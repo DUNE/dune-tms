@@ -127,14 +127,15 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_view->Reset();
   yz_view->Reset();
 
-  int EventNumber = event.GetEventNumber();
+  int EventNumber = event.GetEventNumber()-1;
   xz_view->SetTitle(Form("TMS viewer xz, Event %i", EventNumber));
   yz_view->SetTitle(Form("TMS viewer yz, Event %i", EventNumber));
 
   std::vector<TMS_Hit> TMS_Hits = event.GetHits();
 
-  // Check that there are hits
-  if (TMS_Hits.size() < 50) {
+  // Check that there are hits; overlaps with nMinHits in TMS_Reco
+  // Make this a constant
+  if (TMS_Hits.size() < 10) {
     //std::cout << "Trying to draw an event that has no hits in the TMS, returning..." << std::endl;
     return;
   }

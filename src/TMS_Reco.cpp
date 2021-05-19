@@ -34,7 +34,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
   HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
   HoughLine->SetLineStyle(kDashed);
-  HoughLine->SetLineColor(kRed);
+  HoughLine->SetLineColor(kMagenta-9);
 }
 
 // The generic track finder

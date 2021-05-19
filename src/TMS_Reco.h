@@ -144,7 +144,6 @@ class TMS_TrackFinder {
       return eff;
     }
 
-
   private:
     TMS_TrackFinder();
     TMS_TrackFinder(TMS_TrackFinder const &) = delete;
