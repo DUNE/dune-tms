@@ -53,13 +53,12 @@ namespace TMS_Const {
   // Offsets to put the TMS in the middle
   const double TMS_Det_Offset[] = { 0., 0., 0. };
 
-  // Needs translating by the TMS_Const::TMS_Det_Offset array
   // Start and end of top dead region in x
-  const double TMS_Dead_Top[] = {1717, 1804};
-  // Start and end of central dead region in x
-  const double TMS_Dead_Center[] = {-33, 33};
+  const double TMS_Dead_Top[] = {1749, 1769};
+  // Start and end of central dead region in x; THIS DOESNT SEEM TO BE PRESENT?
+  const double TMS_Dead_Center[] = {0, 0};
   // Start and end of bottom dead region in x
-  const double TMS_Dead_Bottom[] = {-1804, -1717};
+  const double TMS_Dead_Bottom[] = {-1769, -1749};
 
   // Some distance after the end of the TMS
   const double TMS_End_z = TMS_Thick_End+200;
