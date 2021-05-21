@@ -13,6 +13,7 @@
 #include "TF1.h"
 #include "TH2D.h"
 
+// TMS includes
 #include "TMS_Hit.h"
 #include "TMS_Event.h"
 #include "TMS_Constants.h"
@@ -117,21 +118,21 @@ class TMS_TrackFinder {
     void SetZMaxHough(double z) { zMaxHough = z;};
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
 
-    void HoughTransform(const std::vector<TMS_Hit> &TMS_Hits);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &TMS_Hits);
+    void HoughTransform(const std::vector<TMS_Hit> &Hits);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
 
     // Clean up the hits, removing duplicates and zero entries
-    std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &TMS_Hits);
+    std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
     // Get hits projected onto xz or yz
-    std::vector<TMS_Hit> ProjectHits(const std::vector<TMS_Hit> &TMS_Hits, TMS_Bar::BarType bartype = TMS_Bar::kXBar);
-    std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &TMS_Hits);
+    std::vector<TMS_Hit> ProjectHits(const std::vector<TMS_Hit> &Hits, TMS_Bar::BarType bartype = TMS_Bar::kXBar);
+    std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &Hits);
 
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);
 
-    void SpatialPrio(std::vector<TMS_Hit> &TMS_Hits);
+    void SpatialPrio(std::vector<TMS_Hit> &Hits);
 
     // Evaluate the track finding by using the event's true particles
     void EvaluateTrackFinding(TMS_Event &event);
@@ -171,9 +172,12 @@ class TMS_TrackFinder {
     double SlopeWidth;
 
     // Maximum that we run Hough in z
+    double zMinHough;
     double zMaxHough;
     // Maximum number of Hough transforms
     int nMaxHough;
+    // How many continous hits in the first layers to use Hough in thin layer only
+    int nThinCont;
     // Number of hits required to actually run the Hough transform
     double nHits_Tol;
 

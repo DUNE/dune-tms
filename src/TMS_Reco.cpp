@@ -4,15 +4,17 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
   nIntercept(2E3),
   nSlope(2E3),
-  InterceptMin(-25E3),
-  InterceptMax(+25E3),
-  SlopeMin(-1.5),
-  SlopeMax(1.5),
+  InterceptMin(-40E3),
+  InterceptMax(+40E3),
+  SlopeMin(-2.0),
+  SlopeMax(2.0),
   InterceptWidth((InterceptMax-InterceptMin)/nIntercept),
   SlopeWidth((SlopeMax-SlopeMin)/nSlope),
   // Max z for us to do Hough in, here choose transition layer
+  zMinHough(TMS_Const::TMS_Thin_Start),
   zMaxHough(TMS_Const::TMS_Thick_Start+1000),
   nMaxHough(2),
+  nThinCont(10),
   nHits_Tol(0.5),
   // Minimum number of hits required to run track finding
   nMinHits(10),
@@ -66,6 +68,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
 
+  // Skip the Kalman filter for now
   return;
 
   // Now have the TotalCandidates filled
@@ -144,47 +147,92 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 }
 
 void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
+  if (TMS_Hits.empty()) return;
 
   // First remove duplicate hits
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
+  if (TMS_Hits_Cleaned.empty()) return;
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
-  std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
+  //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
 
   // Do a spatial analysis of the hits in y and x around low z to ignore hits that are disconnected from other hits
   // Includes a simple sort in decreasing z (plane number)
-  SpatialPrio(TMS_yz);
   SpatialPrio(TMS_xz);
+  //SpatialPrio(TMS_yz);
 
   //int nYZ_Hits_Start = TMS_yz.size();
   int nXZ_Hits_Start = TMS_xz.size();
+
+  // Check how many continous hits there are in the first layers
+  int nCont = 0;
+  int HitNumber = 0;
+  for (auto &hitref: TMS_xz) {
+    // The previous layer
+    int PrevLayer = hitref.GetPlaneNumber();
+    nCont = 0;
+    for (auto &hit: TMS_xz) {
+      double planeno = hit.GetPlaneNumber();
+      double z = hit.GetZ();
+      // Run only until we hit the thick target
+      // Could also check planenumber
+      if (z > TMS_Const::TMS_Thick_Start || planeno > TMS_Const::TMS_nThinPlanes) break;
+      // Check continuity
+      if (planeno != PrevLayer+1) continue;
+
+      nCont++;
+      // Update the previous layer
+      PrevLayer = planeno;
+    }
+    // If we've found a sequence of hits that are more than needed
+    if (nCont > nThinCont) {
+      break;
+    }
+    HitNumber++;
+  }
+  std::cout << "Found " << nCont << " continuous hits" << std::endl;
+
+  // If we have continuos hits in the thin region, run the Hough transform only in that region
+  // if we don't , run over whole region
+  zMinHough = TMS_xz[HitNumber].GetZ();
+  if (nCont < nThinCont) {
+    zMaxHough = TMS_Const::TMS_Thick_End;
+  } else {
+    zMaxHough = TMS_Const::TMS_Thick_Start+1000;
+  }
+
   // We'll be moving out TMS_xz and TMS_yz and putting them into candidates
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
 
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && nRuns < nMaxHough) {
 
+    // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
-    std::vector<TMS_Hit> TMS_yz_cand;
-    //if (TMS_xz.size() > 0 && TMS_xz.size() > 0.2*nXZ_Hits_Start) TMS_xz_cand = RunHough(TMS_xz);
-    //if (TMS_yz.size() > 0 && TMS_yz.size() > 0.2*nYZ_Hits_Start) TMS_yz_cand = RunHough(TMS_yz);
+    //std::vector<TMS_Hit> TMS_yz_cand;
     if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
-    if (TMS_yz.size() > 0) TMS_yz_cand = RunHough(TMS_yz);
+    //if (TMS_yz.size() > 0) TMS_yz_cand = RunHough(TMS_yz, nRuns);
+
+    // Check if there are any candidates
+    // If not, they might all be downstream, i.e. this is not a LAr event, it's a TMS event
 
     // Then order them in z
     SpatialPrio(TMS_xz_cand);
-    SpatialPrio(TMS_yz_cand);
+    //SpatialPrio(TMS_yz_cand);
 
+    // Move into the candidate vector
     for (auto &i : TMS_xz_cand) Candidates.push_back(std::move(i));
-    for (auto &i : TMS_yz_cand) Candidates.push_back(std::move(i));
+    //for (auto &i : TMS_yz_cand) Candidates.push_back(i);
     // Loop over vector and remove used hits
-    for (auto jt = TMS_yz_cand.begin(); jt != TMS_yz_cand.end();++jt) {
-      for (auto it = TMS_yz.begin(); it!= TMS_yz.end();) {
-        if ((*it) == (*jt)) it = TMS_yz.erase(it);
-        else it++;
-      }
-    }
+    /*
+       for (auto jt = TMS_yz_cand.begin(); jt != TMS_yz_cand.end();++jt) {
+       for (auto it = TMS_yz.begin(); it!= TMS_yz.end();) {
+       if ((*it) == (*jt)) it = TMS_yz.erase(it);
+       else it++;
+       }
+       }
+       */
 
     // Loop over vector and remove used hits
     for (auto jt = TMS_xz_cand.begin(); jt != TMS_xz_cand.end();++jt) {
@@ -242,16 +290,17 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double SlopeOpt_zy = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
   HoughLine->SetParameter(0, InterceptOpt_zy);
   HoughLine->SetParameter(1, SlopeOpt_zy);
+
   // Different fitting regions for XZ and YZ views: 
   // Most of the bending happens in xz, so fit only until the transition region. 
   // For the yz view, fit the entire region
-  if (IsXZ) HoughLine->SetRange(HoughLine->GetXmin(), zMaxHough);
+  if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
 
   TF1 *HoughCopy = (TF1*)HoughLine->Clone();
 
-  std::pair<bool, TF1*> hough = std::make_pair(IsXZ, HoughCopy);
-  HoughLines.push_back(hough);
+  std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
+  HoughLines.push_back(std::move(HoughPairs));
 
   // Then run a clustering on the Hough Transform
   // Hough transform is most likely to pick out straigh features at begining of track candidate, so start looking there
@@ -286,7 +335,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       ++it;
     }
   }
-
 
   // Loop over the candidates, and add new adjacent candidates to the end
   size_t CandSize = returned.size();
@@ -371,9 +419,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
         ++jt;
       }
     }
-  }
+    }
 
-  return returned;
+    return returned;
 
     // Now see if the yz and xz views roughly agree on stop and start positions of the main track
     // If not, it implies there may be two tracks and the yz view has selected one whereas xz selected theother, or a broken track in one of the views
@@ -634,6 +682,7 @@ nMerges++;
 // Find the bin for the accumulator
 int TMS_TrackFinder::FindBin(double c) {
   // Since we're using uniform binning no need for binary search or similar
+  if (c > InterceptMax) c = InterceptMax;
   int bin = (c-InterceptMin)/InterceptWidth;
   return bin;
 }
@@ -645,12 +694,21 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
   // Now do the Hough
   for (int i = 0; i < nSlope; ++i) {
     double m = SlopeMin+i*SlopeWidth;
+    if (m > SlopeMax) m = SlopeMax;
 
     // Now calculate rho
     double c = xhit-m*zhit;
+    if (c > InterceptMax) c = InterceptMax;
 
     // Find which rho bin this corresponds to
     int c_bin = FindBin(c);
+
+    if (i > nSlope || c_bin > nIntercept) {
+      std::cout << "c: " << c << std::endl;
+      std::cout << "m: " << m << std::endl;
+      std::cout << "i: " <<  i << std::endl;
+      std::cout << "cbin: " << c_bin << std::endl;
+    }
 
     // Fill the accumulator
     Accumulator[i][c_bin]++;
@@ -699,8 +757,8 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
 
   // Do a spatial analysis of the hits in y and x around low z to ignore hits that are disconnected from other hits
   // Includes a simple sort in decreasing z (plane number)
-  SpatialPrio(TMS_yz);
   SpatialPrio(TMS_xz);
+  SpatialPrio(TMS_yz);
 
   int nRuns = 0;
   int nXZ_Hits_Start = TMS_xz.size();
@@ -718,7 +776,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
 
     // Then order them in z
     SpatialPrio(AStarHits_xz);
-    SpatialPrio(AStarHits_yz);
+    //SpatialPrio(AStarHits_yz);
 
     // Copy over to the candidates
     for (auto &i : AStarHits_yz) Candidates.push_back(std::move(i));
@@ -749,6 +807,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
 std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_Hits) {
 
   std::vector<TMS_Hit> TMS_Hits_Cleaned;
+  if (TMS_Hits.empty()) return TMS_Hits_Cleaned;
 
   for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
     TMS_Hit hit = *it;
@@ -792,8 +851,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
 }
 
 std::vector<TMS_Hit> TMS_TrackFinder::ProjectHits(const std::vector<TMS_Hit> &TMS_Hits, TMS_Bar::BarType bartype) {
-
   std::vector<TMS_Hit> returned;
+  if (TMS_Hits.empty()) return returned;
 
   for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
     TMS_Hit hit = (*it);
@@ -833,7 +892,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     // Calculate the Heuristic cost for each of the nodes to the last point
     TempNode.SetHeuristicCost(Last);
 
-    Nodes.push_back(TempNode);
+    Nodes.push_back(std::move(TempNode));
   }
 
   // Can probably evaluate the last node here: if heuristic is large for the 5 nearest hits it's likely wrong?
@@ -1089,9 +1148,10 @@ bool TMS_TrackFinder::NextToGap(double barpos, double width) {
 
 // Do a quick analysis of the hits that are sorted *DESCENDING* in z
 void TMS_TrackFinder::SpatialPrio(std::vector<TMS_Hit> &TMS_Hits) {
+  if (TMS_Hits.empty()) return;
 
   // First do a normal sort decreasing in z
-  std::sort(TMS_Hits.begin(), TMS_Hits.end(), TMS_Hit::SortByZ);
+  std::sort(TMS_Hits.begin(), TMS_Hits.end(), TMS_Hit::SortByZInc);
 
   /*
   // Get the first 10 hits

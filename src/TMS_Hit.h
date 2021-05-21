@@ -28,7 +28,7 @@ class TMS_Hit {
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
 
-    // Sort by increasing Z
+    // Sort by decreasing Z
     static bool SortByZ(TMS_Hit &a, TMS_Hit &b) {
       return ( a.GetBar().GetPlaneNumber() > b.GetBar().GetPlaneNumber() );
     }

@@ -6,8 +6,8 @@ int TMS_Event::EventNumber = 0;
 // Start the relatively tedious process of converting into TMS products!
 TMS_Event::TMS_Event(TG4Event &event) {
   bool OnlyMuon = false;
-  bool LArOnly = true;
-  bool TMSLArOnly = true;
+  bool LArOnly = false;
+  bool TMSLArOnly = false;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -68,6 +68,8 @@ TMS_Event::TMS_Event(TG4Event &event) {
         TG4TrajectoryPoint pt = *kt;
         // Check the point against the geometry
         TGeoNode *vol = TMS_Geom::GetInstance().GetGeometry()->FindNode(pt.GetPosition().X(), pt.GetPosition().Y(), pt.GetPosition().Z());
+        // Very rarely but it does happen, the volume is null
+        if (!vol) continue;
         VolumeName = vol->GetName();
         // Only look at TMS hits
         if (VolumeName.find(TMS_Const::TMS_VolumeName) == std::string::npos && 
@@ -79,7 +81,7 @@ TMS_Event::TMS_Event(TG4Event &event) {
         // Make the true particle that created this trajectory
         TMS_TrueParticle muon(ParentId, TrackId, PDGcode, Momentum, Position);
 
-        TMS_TrueParticles.push_back(muon);
+        TMS_TrueParticles.push_back(std::move(muon));
         // We have the TMS starting point, now exit the loop
         break;
       }
@@ -96,7 +98,7 @@ TMS_Event::TMS_Event(TG4Event &event) {
         for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
           TG4HitSegment edep_hit = *kt;
           TMS_Hit hit = TMS_Hit(edep_hit);
-          TMS_Hits.push_back(hit);
+          TMS_Hits.push_back(std::move(hit));
 
           // Now associate the hits with the muon
           int PrimaryId = edep_hit.GetPrimaryId();

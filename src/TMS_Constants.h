@@ -12,6 +12,9 @@ namespace TMS_KinConst {
 // Lots of these are hard-coded geometry constants that *NEED* to be updated for each production IF detectors move
 namespace TMS_Const {
 
+  const int TMS_nThinPlanes = 40;
+  const int TMS_nThickPlanes = 60;
+
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
   const double Dead_Region_Track_Length = 24.35;
 
