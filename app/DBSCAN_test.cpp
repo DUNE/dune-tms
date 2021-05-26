@@ -3,6 +3,7 @@
 #include "TRandom3.h"
 #include "TGraph.h"
 #include "TCanvas.h"
+#include "TLegend.h"
 
 int main(int argc, char **argv) {
 
@@ -17,16 +18,19 @@ int main(int argc, char **argv) {
   std::vector<TMS_DBScan_Point> Points;
   const int nPoints = 100;
   TRandom3 rnd(0);
-  //int factor = 0;
+  const double mean = 4;
   for (int i = 0; i < nPoints; ++i) {
     // Make some points around somewhere
     double x,y = -1;
-    if (i < nPoints-20) {
-      x = rnd.Gaus(4,1);
-      y = rnd.Gaus(4,1);
+    if (i < nPoints-40) {
+      x = rnd.Gaus(mean,1);
+      y = rnd.Gaus(mean,1);
+    } else if (i < nPoints - 10) {
+      x = mean+(i-(nPoints-40));
+      y = mean+1.5*(i-(nPoints-40));
     } else {
-      x = 4+(nPoints-i);
-      y = 4+(nPoints-i);
+      x = mean+(nPoints-i);
+      y = mean-1.5*(nPoints-i);
     }
 
     TMS_DBScan_Point point(x,y,0);
@@ -35,15 +39,14 @@ int main(int argc, char **argv) {
 
   // Draw as an example
   TCanvas canv("canv", "canv", 1024, 1024);
-  canv.Print("points.pdf[");
+  TString canvname = Form("points_%2.2f_%i.pdf", eps, nMin);
+  canv.Print(canvname+"[");
   TGraph g(nPoints);
   for (int i = 0; i < nPoints; ++i) {
     g.SetPoint(i, Points[i].x, Points[i].y);
   }
-  g.Draw("AP");
   g.SetMarkerSize(3);
   g.SetMarkerStyle(kCircle);
-  canv.Print("points.pdf");
 
   TMS_DBScan cluster(nMin, eps, Points);
 
@@ -57,6 +60,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
+  // Make a graph for each of the clusters
   TGraph **Graphs = new TGraph*[nCluster];
   for (int i = 0; i < nCluster; ++i) {
     Graphs[i] = new TGraph(nPoints);
@@ -64,14 +68,18 @@ int main(int argc, char **argv) {
     Graphs[i]->SetMarkerStyle(kCircle);
     Graphs[i]->SetMarkerColor(i+2);
   }
-  Graphs[nCluster-1]->SetMarkerStyle(20);
-  Graphs[nCluster-1]->SetMarkerColor(kBlack);
+  // And one graph for the noise hits
+  TGraph *Noise = new TGraph(nPoints);
+  Noise->SetMarkerSize(3);
+  Noise->SetMarkerStyle(20);
+  Noise->SetMarkerColor(kBlack);
+  Noise->SetTitle("Noise");
 
   // Now make some TGraphs showing each cluster
   int npoint = 0;
   for (auto &i: Scanned) {
     if (i.ClusterID != kNoise) Graphs[i.ClusterID-1]->SetPoint(npoint, i.x, i.y);
-    else Graphs[nCluster-1]->SetPoint(npoint, i.x, i.y);
+    else Noise->SetPoint(npoint, i.x, i.y);
     npoint++;
   }
 
@@ -80,11 +88,21 @@ int main(int argc, char **argv) {
   std::cout << "Number of noise hits: " << nNoise << std::endl;
   std::cout << "Number of unclassified: " << cluster.GetNUnclassified() << std::endl;
 
-  Graphs[nCluster-1]->Draw("P,same");
-  for (int i = 0; i < nCluster-1; ++i) {
+  TLegend leg(0.1, 0.7, 0.65, 0.85);
+  leg.AddEntry(&g, "Graph", "p");
+  leg.SetFillStyle(0);
+  leg.SetLineWidth(0);
+  leg.SetBorderSize(0);
+  g.Draw("AP");
+  for (int i = 0; i < nCluster; ++i) {
     Graphs[i]->Draw("P,same");
+    leg.AddEntry(Graphs[i], Form("Cluster %i", i), "p");
   }
-  canv.Print("points.pdf");
+  Noise->Draw("P,same");
+  leg.AddEntry(Noise, "Noise", "p");
 
-  canv.Print("points.pdf]");
+  leg.Draw("same");
+  canv.Print(canvname);
+
+  canv.Print(canvname+"]");
 }

@@ -166,8 +166,9 @@ class TMS_DBScan {
 
   private:
     std::vector<TMS_DBScan_Point> _Points; // The points
-    double _Epsilon;
     unsigned int _MinPoints; // The minimum number of points to make a cluster
+    unsigned int _PointSize;
+    double _Epsilon;
 };
 
 #endif
