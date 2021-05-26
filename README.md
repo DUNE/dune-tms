@@ -9,6 +9,11 @@ It uses `edep-sim` output, which are stored at:
 
 For more informatinon on running a production, see the https://github.com/DUNE/ND_Production repository.
 
+# Running the code
+So far all the interfacing happens through the `app/ConvertToTMSTree.cpp` driver application. In a nutshell, it takes `edep-sim` events, converts it into TMS formats, queries the geometry, runs reconstruction, and so on. This will hopefully be more elegant soon!
+
+In the `app` directory you can also find some test executables for the reconstruction.
+
 # Setup and dependencies
 The framework depends on `edep-sim`, `ROOT`, and `CLHEP`. An example setup using mostly `ups` products is provided in `setup.sh`.
 
