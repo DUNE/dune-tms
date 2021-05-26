@@ -13,7 +13,7 @@ EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
 # The TMS includes
 TMS_INC = -I../src
 
-CXXFLAGS = -Wall -O3 -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -O3 -g -fPIC -Werror
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TMS_INC)
 
 # Our lovely collection of dependencies
@@ -27,7 +27,7 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe
 
 directories: $(EXE_DIR)
 
@@ -35,9 +35,12 @@ $(EXE_DIR):
 	${MKDIR_P} $(EXE_DIR)
 
 $(EXE_DIR)/ConvertToTMSTree.exe: ConvertToTMSTree.cpp
-	$(CXX) $(CXXFLAGS) -o $@ ConvertToTMSTree.cpp -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 $(EXE_DIR)/BetheBloch_Example.exe: BetheBloch_Example.cpp
+	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ $(ROOT_LIBS)
+
+$(EXE_DIR)/DBSCAN_test.exe: DBSCAN_test.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ $(ROOT_LIBS)
 
 clean:
