@@ -17,6 +17,7 @@
 #include "TMS_Hit.h"
 #include "TMS_Event.h"
 #include "TMS_Constants.h"
+#include "TMS_DBScan.h"
 
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
