@@ -5,6 +5,7 @@
 #include "TBox.h"
 #include "TLine.h"
 #include "TGaxis.h"
+#include "TGraph.h"
 
 #include "TMS_Event.h"
 #include "TMS_Reco.h"

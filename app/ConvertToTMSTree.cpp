@@ -62,7 +62,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   int i = 0;
   for (; i < N_entries; ++i) {
-    if (i > 200) break;
+    if (i > 500) break;
     events->GetEntry(i);
     gRoo->GetEntry(i);
 

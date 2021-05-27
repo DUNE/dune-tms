@@ -114,9 +114,17 @@ class TMS_TrackFinder {
 
     int **GetAccumulator() { return Accumulator; };
 
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidates() { return ClusterCandidates; };
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidates() { return HoughCandidates; };
+
     TH2D *AccumulatorToTH2D(bool zy);
 
     void SetZMaxHough(double z) { zMaxHough = z;};
+
+    std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
+
+    // Exclude hits Mask from set Orig
+    std::vector<TMS_Hit> MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
     void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
@@ -152,6 +160,7 @@ class TMS_TrackFinder {
     void operator=(TMS_TrackFinder const &) = delete;
 
     TMS_Kalman KalmanFitter;
+    TMS_DBScan DBSCAN;
 
     int FindBin(double Rho);
     // The candidates for each particle
@@ -160,6 +169,8 @@ class TMS_TrackFinder {
 
     std::vector<std::vector<TMS_Hit> > TotalCandidates;
     std::vector<std::pair<bool, TF1*> > HoughLines;
+    std::vector<std::vector<TMS_Hit> > ClusterCandidates;
+    std::vector<std::vector<TMS_Hit> > HoughCandidates;
 
     void Accumulate(double xvalue, double zvalue);
 
@@ -185,7 +196,6 @@ class TMS_TrackFinder {
     int **Accumulator;
 
     TF1 *HoughLine;
-
 
     unsigned int nMinHits;
     unsigned int nMaxMerges;

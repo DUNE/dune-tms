@@ -13,7 +13,12 @@ EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
 # The TMS includes
 TMS_INC = -I../src
 
-CXXFLAGS = -Wall -Wextra -O3 -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
+ifdef DEBUG
+  CXXFLAGS+=-O0
+else
+  CXXFLAGS+=-O3
+endif
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TMS_INC)
 
 # Our lovely collection of dependencies

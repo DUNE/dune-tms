@@ -37,6 +37,9 @@ TMS_TrackFinder::TMS_TrackFinder() :
   HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
   HoughLine->SetLineStyle(kDashed);
   HoughLine->SetLineColor(kMagenta-9);
+
+  DBSCAN.SetEpsilon(2);
+  DBSCAN.SetMinPoints(5);
 }
 
 // The generic track finder
@@ -51,6 +54,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   Candidates.clear();
   RawHits.clear();
   TotalCandidates.clear();
+  HoughCandidates.clear();
+  ClusterCandidates.clear();
   HoughLines.clear();
 
   // Get the raw unmerged and untracked hits
@@ -62,8 +67,23 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // A star
   //BestFirstSearch(TMS_Hits);
 
+  // Set the number of merges in the Hough transform to be zero
+  nMaxMerges = 1;
+  nMaxHough = 1;
+
   // Hough
+  //HoughCandidates = HoughTransform(TMS_Hits);
   HoughTransform(TMS_Hits);
+
+  std::vector<TMS_Hit> Masked;
+  // Loop over the Hough candidates
+  for (auto vec: HoughCandidates) {
+    std::vector<TMS_Hit> Filtered = MaskHits(TMS_Hits, vec);
+    for (auto &Filter: Filtered) Masked.push_back(std::move(Filter));
+  }
+
+  // Try finding some clusters after the Hough Transform
+  ClusterCandidates = FindClusters(Masked);
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -147,6 +167,8 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 }
 
 void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
+
+  // Check it's not empty
   if (TMS_Hits.empty()) return;
 
   // First remove duplicate hits
@@ -162,8 +184,8 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
   SpatialPrio(TMS_xz);
   //SpatialPrio(TMS_yz);
 
-  //int nYZ_Hits_Start = TMS_yz.size();
   int nXZ_Hits_Start = TMS_xz.size();
+  //int nYZ_Hits_Start = TMS_yz.size();
 
   // Check how many continous hits there are in the first layers
   int nCont = 0;
@@ -191,7 +213,6 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
     }
     HitNumber++;
   }
-  std::cout << "Found " << nCont << " continuous hits" << std::endl;
 
   // If we have continuos hits in the thin region, run the Hough transform only in that region
   // if we don't , run over whole region
@@ -223,16 +244,6 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
 
     // Move into the candidate vector
     for (auto &i : TMS_xz_cand) Candidates.push_back(std::move(i));
-    //for (auto &i : TMS_yz_cand) Candidates.push_back(i);
-    // Loop over vector and remove used hits
-    /*
-       for (auto jt = TMS_yz_cand.begin(); jt != TMS_yz_cand.end();++jt) {
-       for (auto it = TMS_yz.begin(); it!= TMS_yz.end();) {
-       if ((*it) == (*jt)) it = TMS_yz.erase(it);
-       else it++;
-       }
-       }
-       */
 
     // Loop over vector and remove used hits
     for (auto jt = TMS_xz_cand.begin(); jt != TMS_xz_cand.end();++jt) {
@@ -242,12 +253,99 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
       }
     }
     // Push back the candidates into the total candidates
-    TotalCandidates.push_back(std::move(Candidates));
+    HoughCandidates.push_back(std::move(Candidates));
     nRuns++;
   }
-  std::cout << "Ran " << nRuns << " Hough transforms" << std::endl;
+};
+
+std::vector<TMS_Hit> TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask) {
+  std::vector<TMS_Hit> Filter = Orig;
+
+  // Loop over each hit in the mask
+  for (auto j: Mask) {
+    // Find it in the original
+    for (auto it = Filter.begin(); it != Filter.end(); ) {
+      if (*it == j) it = Filter.erase(it);
+      else it++;
+    }
+  }
+
+  return Filter;
 }
 
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vector<TMS_Hit> &TMS_Hits) {
+
+  // First clean up double hits in bars
+  std::vector<TMS_Hit> MaskedHits = CleanHits(TMS_Hits);
+  // The vector of DBSCAN points
+  std::vector<TMS_DBScan_Point> DB_Points;
+
+  // For each of the hits make a temporary DBSCAN point
+  for (auto i: MaskedHits) {
+    // Get the point from the hit
+
+    // Only call it "x" since we're plotting z on the x-axis
+    //double x = i.GetZ()/i.GetZw();
+
+    // Use the plane number
+    double x = i.GetPlaneNumber();
+    // And the height of each bar
+    double y = i.GetNotZ()/i.GetNotZw();
+    // Not using z so set to zero (won't impact distance between points)
+    // Maybe update this if we have 3D info somehow
+    double z = 0;
+    TMS_DBScan_Point point(x, y, z);
+    DB_Points.push_back(point);
+  }
+
+  // Create the DBSCAN instance
+  DBSCAN.SetPoints(DB_Points);
+  DBSCAN.RunDBScan();
+
+  std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
+  std::vector<std::vector<TMS_DBScan_Point> > ClusterPoints = DBSCAN.GetClusters();
+
+  // Convert the ClusterPoints to Clusters of TMS hits
+  std::vector<std::vector<TMS_Hit> > ClusterHits;
+  ClusterHits.resize(ClusterPoints.size());
+  // For each hit find its cluster
+  for (auto hit: MaskedHits) {
+    for (auto Clusters: ClusterPoints) {
+      for (auto Point: Clusters) {
+        // Check the matching hit
+        if (Point.x == hit.GetPlaneNumber() && 
+            Point.y == hit.GetNotZ()/hit.GetNotZw()) {
+          ClusterHits[Point.ClusterID-1].push_back(std::move(hit));
+        }
+
+      }
+    }
+  }
+
+  return ClusterHits;
+
+  /*
+  // The NoisePoints can now go through reconstruction since they do not belong to a clusters
+  // Match the hits
+  std::vector<TMS_Hit> NoiseHits;
+  for (auto i: MaskedHits) {
+  for (auto j: NoisePoints) {
+  if (i.GetZ() == j.x && i.GetNotZ() == j.y) {
+  NoiseHits.push_back(std::move(i));
+  }
+  }
+  }
+  // Sanity check the matching
+  if (NoiseHits.size() != NoisePoints.size()) {
+  std::cout << "Matching of noise hits has gone awry!" << std::endl;
+  std::cout << "NoiseHits size: " << NoiseHits.size() << std::endl;
+  std::cout << "NoisePoints size: " << NoisePoints.size() << std::endl;
+  throw;
+  }
+
+  return NoiseHits;
+  */
+}
 
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits) {
 
@@ -381,14 +479,15 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
           Merge = true;
           // Then check merge in NotZ
         } else if (CandidateBar.Contains(PoolPos + PoolPosWidth, CandidateBar.GetZ()) || 
-            CandidateBar.Contains(PoolPos - PoolPosWidth, CandidateBar.GetZ())) {
+                   CandidateBar.Contains(PoolPos - PoolPosWidth, CandidateBar.GetZ())) {
           Merge = true;
           // Then check two bars away for the xz view
-        } else if (IsXZ && 
+        } 
+        /*else if (IsXZ && 
             (CandidateBar.Contains(PoolPos + 2*PoolPosWidth, CandidateBar.GetZ()) || 
              CandidateBar.Contains(PoolPos - 2*PoolPosWidth, CandidateBar.GetZ()))) {
           Merge = true;
-        } /*else if (CandidateBarType == TMS_Bar::kYBar && 
+        } else if (CandidateBarType == TMS_Bar::kYBar && 
             (CandidateBar.Contains(PoolPos + 3*PoolPosWidth, CandidateBar.GetZ()) || 
             CandidateBar.Contains(PoolPos - 3*PoolPosWidth, CandidateBar.GetZ()))) {
             Merge = true;
@@ -797,7 +896,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
         else it++;
       }
     }
-    TotalCandidates.push_back(std::move(Candidates));
+    HoughCandidates.push_back(std::move(Candidates));
     nRuns++;
   }
   std::cout << "Ran " << nRuns << " Astar algo" << std::endl;

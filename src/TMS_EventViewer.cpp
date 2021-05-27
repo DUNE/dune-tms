@@ -149,7 +149,6 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     int BarType = bar.GetBarType();
     double e = (*it).GetE();
 
-
     // Bar along y (no x info)
     if (BarType == TMS_Bar::BarType::kYBar) {
       xz_view->Fill(z, x, e);
@@ -162,33 +161,52 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
   // Loop over the reconstructed tracks to overlay with hits
   //std::vector<TMS_Hit> Candidates = TMS_TrackFinder::GetFinder().GetCandidates();
-  std::vector<std::vector<TMS_Hit> > TotalCandidates = TMS_TrackFinder::GetFinder().GetTotalCandidates();
+  //std::vector<std::vector<TMS_Hit> > TotalCandidates = TMS_TrackFinder::GetFinder().GetTotalCandidates();
 
-  int iter = 0;
-  // Loop over each total candidates
-  for (std::vector<std::vector<TMS_Hit> >::iterator it = TotalCandidates.begin(); it != TotalCandidates.end(); ++it) {
-    std::vector<TMS_Hit> Candidates = (*it);
-
-    double e = 10.0;
-    for (std::vector<TMS_Hit>::iterator jt = Candidates.begin(); jt != Candidates.end(); ++jt) {
-
-      TMS_Bar bar = (*jt).GetBar();  
-      double x = bar.GetX();
-      double y = bar.GetY();
-      double z = bar.GetZ();
-      int BarType = bar.GetBarType();
-
-      // Bar along y (no x info)
-      if (BarType == TMS_Bar::BarType::kYBar) {
-        xz_view->Fill(z, x, e);
-      }
-      // Bar along x (no y info)
-      else if (BarType == TMS_Bar::BarType::kXBar) {
-        yz_view->Fill(z, y, e);
-      }
-
+  // Get the Hough candidates
+  std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  // Now loop over the cluster candidates, make them TGraphs
+  int nLines = HoughCandidates.size();
+  std::vector<TGraph*> HoughGraphVect(nLines);
+  for (int i = 0; i < nLines; ++i) {
+    HoughGraphVect[i] = new TGraph(HoughCandidates[i].size());
+    HoughGraphVect[i]->SetLineColor(i);
+    HoughGraphVect[i]->SetLineWidth(2);
+    HoughGraphVect[i]->SetMarkerColor(i);
+    HoughGraphVect[i]->SetMarkerSize(2);
+    HoughGraphVect[i]->SetMarkerStyle(29);
+  }
+  int LineIt = 0;
+  for (auto Line: HoughCandidates) {
+    int HitIt = 0;
+    for (auto HoughHit: Line) {
+      HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ(), HoughHit.GetNotZ());
+      HitIt++;
     }
-    iter++;
+    LineIt++;
+  }
+  
+  // Get the cluster candidates
+  std::vector<std::vector<TMS_Hit> > ClusterCandidates = TMS_TrackFinder::GetFinder().GetClusterCandidates();
+  // Now loop over the cluster candidates, make them TGraphs
+  int nClusters = ClusterCandidates.size();
+  std::vector<TGraph*> GraphVect(nClusters);
+  for (int i = 0; i < nClusters; ++i) {
+    GraphVect[i] = new TGraph(ClusterCandidates[i].size());
+    GraphVect[i]->SetLineColor(i+1);
+    GraphVect[i]->SetLineWidth(2);
+    GraphVect[i]->SetMarkerColor(i+1);
+    GraphVect[i]->SetMarkerSize(1);
+    GraphVect[i]->SetMarkerStyle(4);
+  }
+  int ClusterIt = 0;
+  for (auto Cluster: ClusterCandidates) {
+    int HitIt = 0;
+    for (auto ClusterHit: Cluster) {
+      GraphVect[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ(), ClusterHit.GetNotZ());
+      HitIt++;
+    }
+    ClusterIt++;
   }
 
   // Get all the hough lines
@@ -203,7 +221,13 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_center->Draw("same");
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
+  for (auto graph: HoughGraphVect) graph->Draw("P,same");
   for (auto i : HoughLines) if (i.first == true) i.second->Draw("same");
+  for (auto graph: GraphVect) graph->Draw("P,same");
+
+  xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nCluster: %i}", xz_view->GetTitle(), nLines, nClusters));
+
+
 
   /*
   Canvas->cd(2); 
@@ -229,6 +253,13 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
     delete accumulator_xz;
     delete accumulator_yz;
+  }
+
+  for (int i = 0; i < nClusters; ++i) {
+    delete GraphVect[i];
+  }
+  for (int i = 0; i < nLines; ++i) {
+    delete HoughGraphVect[i];
   }
 
   nDraws++;

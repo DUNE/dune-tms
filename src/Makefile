@@ -10,7 +10,12 @@ EDEP_LIBS = -L $(EDEP_SIM)/lib -ledepsim_io
 # Need CLHEP for unit conversion, can probably just move this into a standalone header to remove dependency?
 EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
 
-CXXFLAGS = -Wall -Wextra -O3 -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
+ifdef DEBUG
+  CXXFLAGS+=-O0
+else
+  CXXFLAGS+=-O3
+endif
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC)
 
 # Replace and create

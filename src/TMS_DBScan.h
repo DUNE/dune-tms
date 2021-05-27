@@ -43,14 +43,22 @@ class TMS_DBScan {
       _Points(Points),
       _Epsilon(Epsilon),
       _MinPoints(MinPoints)
-  {
-    std::cout << "Created DBSCAN instance with: " << std::endl;
-    std::cout << "  MinPoints: " << _MinPoints << std::endl;
-    std::cout << "  Points: " << _Points.size() << std::endl;
-    std::cout << "  Epsilon: " << _Epsilon << std::endl;
-  };
+  {};
+    TMS_DBScan() :
+      //_Points(std::vector<TMS_DBScan_Point> Empty),
+      _Epsilon(0),
+      _MinPoints(0)
+  {}
 
+    // Some setters for the privates
+    void SetPoints(std::vector<TMS_DBScan_Point> &Points) { _Points = Points; };
+    void SetEpsilon(double eps) { _Epsilon = eps; };
+    void SetMinPoints(unsigned int minpts) { _MinPoints = minpts; };
+
+    // Return the points
     std::vector<TMS_DBScan_Point> &GetPoints() {return _Points;};
+
+    // Get the number of clusters
     int GetNClusters() {
       int HighestCluster = 0;
       for (auto &i : _Points) {
@@ -59,6 +67,31 @@ class TMS_DBScan {
       return HighestCluster;
     }
 
+    // Get the clusters
+    std::vector<std::vector<TMS_DBScan_Point> > GetClusters() {
+      std::vector<std::vector<TMS_DBScan_Point> > vect;
+      int nClusters = GetNClusters();
+      vect.resize(nClusters);
+      for (auto &i : _Points) {
+        if (i.ClusterID > kNoise) {
+          vect[i.ClusterID-1].push_back(std::move(i));
+        }
+      }
+      return vect;
+    }
+
+    // Get all the unclassified noise points
+    std::vector<TMS_DBScan_Point> GetNoise() {
+      std::vector<TMS_DBScan_Point> vect;
+      for (auto &i : _Points) {
+        if (i.ClusterID == kNoise) {
+          vect.push_back(std::move(i));
+        }
+      }
+      return vect;
+    }
+
+    // Get the number of noise points
     int GetNNoise() {
       int NoiseHits = 0;
       for (auto &i : _Points) {
@@ -67,6 +100,7 @@ class TMS_DBScan {
       return NoiseHits;
     }
 
+    // Get the number of unclassified points
     int GetNUnclassified() {
       int Unclassified = 0;
       for (auto &i : _Points) {
@@ -75,10 +109,11 @@ class TMS_DBScan {
       return Unclassified;
     }
 
-    void RunDBScan() {
+    // Run the scan
+    bool RunDBScan() {
       if (_Points.empty()) {
         std::cerr << "Can't run DBscan without having hits" << std::endl;
-        return;
+        return false;
       }
       // Start the cluster counter
       int ClusterID = 1; 
@@ -93,6 +128,11 @@ class TMS_DBScan {
           // If this point has no neighbours it's noise
           else i.ClusterID = kNoise;
       }
+      // If we haven't found any clusters, the DBSCAN has failed
+      if (ClusterID == 1) {
+        return false;
+      }
+      return true;
     }
 
     bool GrowCluster(TMS_DBScan_Point &Point, int ClusterID) {
@@ -148,7 +188,6 @@ class TMS_DBScan {
       return true;
     }
 
-
     // Find the clusters to which this point belongs
     std::vector<int> FindNeighbours(TMS_DBScan_Point &Point) {
       // Loop over the clusters
@@ -166,8 +205,8 @@ class TMS_DBScan {
 
   private:
     std::vector<TMS_DBScan_Point> _Points; // The points
-    unsigned int _MinPoints; // The minimum number of points to make a cluster
     double _Epsilon;
+    unsigned int _MinPoints; // The minimum number of points to make a cluster
 };
 
 #endif
