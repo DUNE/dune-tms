@@ -69,6 +69,7 @@ class TMS_Hit {
     double GetNotZw() const { return Bar.GetNotZw(); };
 
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
+    int GetBarNumber() const {return Bar.GetBarNumber(); };
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars
@@ -83,11 +84,10 @@ class TMS_Hit {
 };
 
 inline bool operator==(const TMS_Hit &a, const TMS_Hit &b) {
-  if (a.GetX() == b.GetX() && 
-      a.GetY() == b.GetY() && 
-      a.GetZ() == b.GetZ() &&
-      a.GetE() == b.GetE() &&
-      a.GetT() == b.GetT() ) return true;
+  if (a.GetZ()    == b.GetZ() && 
+      a.GetNotZ() == b.GetNotZ() && 
+      a.GetE()    == b.GetE() &&
+      a.GetT()    == b.GetT() ) return true;
   return false;
 }
 
