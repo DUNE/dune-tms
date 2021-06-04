@@ -98,11 +98,13 @@ void deposits(std::string filename) {
     if (abs(vtx[0]) > 300 || abs(vtx[1]) > 100 || vtx[2] < 50 || vtx[2] > 350) continue;
 
     // Fiducial cut in TMS in z
+    /*
     if (muonBirth[2] > 740. || muonDeath[2] > 1375. || 
         muonDeath[1] > 25.+50. || muonDeath[1] < -260.+50. ||
         abs(muonDeath[0]) > 300. ||
         muonExitKE <= 0 ||
         abs(muonDeath[0]) > 165. || abs(muonDeath[0]) < 10. ) continue;
+        */
 
     if (muonReco != 2) continue;
 

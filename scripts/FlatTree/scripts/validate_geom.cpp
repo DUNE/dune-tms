@@ -1,3 +1,9 @@
+#include <iostream>
+#include "TFile.h"
+#include "TH1D.h"
+#include "TTree.h"
+#include "TCanvas.h"
+#include "TStyle.h"
 void validate_geom(std::string filename) {
   gStyle->SetPalette(55);
   gErrorIgnoreLevel = kError;
@@ -7,19 +13,18 @@ void validate_geom(std::string filename) {
 
   tree->SetBranchStatus("*", false);
 
-  std::vector<float> *xpt;
-  std::vector<float> *ypt;
-  std::vector<float> *zpt;
+  std::vector<float> *xpt = NULL;
+  std::vector<float> *ypt = NULL;
+  std::vector<float> *zpt = NULL;
 
   float muonBirth[3];
   float muonDeath[3];
 
+  tree->SetBranchStatus("TMSBirth", true);
+  tree->SetBranchAddress("TMSBirth", muonBirth);
 
-  tree->SetBranchStatus("muonBirth", true);
-  tree->SetBranchAddress("muonBirth", muonBirth);
-
-  tree->SetBranchStatus("muonDeath", true);
-  tree->SetBranchAddress("muonDeath", muonDeath);
+  tree->SetBranchStatus("TMSDeath", true);
+  tree->SetBranchAddress("TMSDeath", muonDeath);
 
   double zmin = 9999;
   double zmax = 0;
@@ -40,6 +45,7 @@ void validate_geom(std::string filename) {
   tree->SetBranchAddress("ypt", &ypt);
   tree->SetBranchStatus("zpt", true);
   tree->SetBranchAddress("zpt", &zpt);
+  std::cout << "Starting main loop" << std::endl;
 
   int npass = 0;
   for (int i = 0; i < nEntries; ++i) {
@@ -65,7 +71,6 @@ void validate_geom(std::string filename) {
         prevx = x;
         prevy = y;
         prevz = z;
-
         continue;
       }
 
@@ -73,18 +78,16 @@ void validate_geom(std::string filename) {
       double disty = y-prevy;
       double distz = z-prevz;
 
-      double dist = sqrt(distx*distx+disty*disty+distz*distz); // Sometimes things mess up
-      //if (dist > prevdist+10 || prevz > z || z > prevz+10 || z < prevz-10) continue;
+      double dist = sqrt(distx*distx+disty*disty+distz*distz);
       // Only want forward going
-      // Sometimes get multiple hits
-      //if (z-prevz < 0 || abs(z-prevz) < 1) continue;
+      // Sometimes get multiple hits in a bar
       if (distz < 0 || abs(distz) < 4.5) continue;
 
       std::cout << z << " " << prevz << std::endl;
       std::cout << distz << std::endl;
-      return
-      //if (abs(z-prevz) > 10) continue;
-      //std::cout << x << ", " << y << ", " << z << ": " << dist << std::endl;
+
+      // If hits are separated far the particle has gone out of the active material, skip these
+      if (abs(z-prevz) > 10) continue;
       length += dist;
       zhits->Fill(z);
       gap->Fill(z-prevz);
@@ -94,7 +97,6 @@ void validate_geom(std::string filename) {
       prevz = z;
     }
     npass++;
-    //std::cout << "Event " << i << " deposits: " << nDep << " length: " << length << std::endl;
   }
   TCanvas *canv = new TCanvas("canv", "canv", 1024, 1024);
   canv->Print("geom.pdf[");
@@ -110,7 +112,7 @@ void validate_geom(std::string filename) {
 
     zhits->GetXaxis()->SetBinLabel(i+1, Form("+%2.2f", center-previous));
     previous = center;
-    //zhits->SetBinContent(i+1, 1);
+    zhits->SetBinContent(i+1, 1);
   }
   zhits->Draw("hist");
   canv->SetLogy();
@@ -154,6 +156,7 @@ void validate_geom(std::string filename) {
   for (int i = 0; i < gap->GetXaxis()->GetNbins(); ++i) {
     if (gap->GetBinContent(i+1) == 0) continue;
     gap->GetXaxis()->SetBinLabel(i+1, Form("%2.2f", gap->GetBinCenter(i+1)));
+    gap->SetBinContent(i+1, 1);
   }
   gap->Draw("hist");
   canv->SetLogy();

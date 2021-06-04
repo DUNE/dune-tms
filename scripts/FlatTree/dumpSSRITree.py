@@ -56,10 +56,7 @@ def ResetVariables():
 
 def loop( events, dspt, tgeo, tout ):
 
-    #offset = [ 0., 5.5, 411. ]
     offset = [ 0., 0., 0. ]
-
-    nplanes_cut = 8
 
     event = ROOT.TG4Event()
     events.SetBranchAddress("Event",ROOT.AddressOf(event))
@@ -90,7 +87,7 @@ def loop( events, dspt, tgeo, tout ):
             t_Reac = vertex.GetReaction()
 
             # Set the vertex location
-            for i in range(3): t_vtx[i] = vertex.GetPosition()[i] / 10. - offset[i] # cm
+            for i in range(3): t_vtx[i] = vertex.GetPosition()[i]
 
             # Reset lepton trajectory
             ileptraj = -1
@@ -101,7 +98,6 @@ def loop( events, dspt, tgeo, tout ):
             for ipart,particle in enumerate(vertex.Particles):
                 e = particle.GetMomentum()[3]
                 p = (particle.GetMomentum()[0]**2 + particle.GetMomentum()[1]**2 + particle.GetMomentum()[2]**2)**0.5
-                m = (e**2 - p**2)**0.5
                 m = (e**2 - p**2)**0.5
                 pdg = particle.GetPDGCode()
                 t_fsPdg[nfsp] = pdg
@@ -133,6 +129,9 @@ def loop( events, dspt, tgeo, tout ):
 
             pointval = 0
 
+            # Can loop over each trajectory
+            #for traj in event.Trajectories:
+
             # Now find which volume the first hit of the lepton trajectory is
             startpt = leptraj.Points[0].GetPosition()
             startnode = tgeo.FindNode( startpt.X(), startpt.Y(), startpt.Z() )
@@ -154,14 +153,14 @@ def loop( events, dspt, tgeo, tout ):
                 node = tgeo.FindNode( pt.X(), pt.Y(), pt.Z() )
                 volName = node.GetName()
 
-                pPos = ROOT.TVector3( pt.X()/10. - offset[0], pt.Y()/10. - offset[1], pt.Z()/10. - offset[2] )
+                pPos = ROOT.TVector3( pt.X(), pt.Y(), pt.Z() )
                 if ( "volTPCActive_" in volName or 
                      "volPixelPlane_" in volName or 
                      "volLAr_" in volName or
                      "volArCLight_PV" in volName ):
-                    t_muonExitPt[0] = pt.X() / 10. - offset[0]
-                    t_muonExitPt[1] = pt.Y() / 10. - offset[1]
-                    t_muonExitPt[2] = pt.Z() / 10. - offset[2]
+                    t_muonExitPt[0] = pt.X()
+                    t_muonExitPt[1] = pt.Y()
+                    t_muonExitPt[2] = pt.Z()
                     t_muonExitMom[0] = p.GetMomentum().x()
                     t_muonExitMom[1] = p.GetMomentum().y()
                     t_muonExitMom[2] = p.GetMomentum().z()
@@ -182,9 +181,9 @@ def loop( events, dspt, tgeo, tout ):
 
             node = tgeo.FindNode( endpt.X(), endpt.Y(), endpt.Z() )
 
-            t_GlobalDeath[0] = endpt.X()/10. - offset[0]
-            t_GlobalDeath[1] = endpt.Y()/10. - offset[1]
-            t_GlobalDeath[2] = endpt.Z()/10. - offset[2]
+            t_GlobalDeath[0] = endpt.X()
+            t_GlobalDeath[1] = endpt.Y()
+            t_GlobalDeath[2] = endpt.Z()
 
             endVolName = node.GetName()
             if "TPCActive" in endVolName: t_muonReco[0] = 1 # contained
@@ -207,7 +206,7 @@ def loop( events, dspt, tgeo, tout ):
                 ar_muon_hits.append(hit)
 
             for idx, hit in enumerate(ar_muon_hits):
-                hStart = ROOT.TVector3( hit.GetStart()[0]/10.-offset[0], hit.GetStart()[1]/10.-offset[1], hit.GetStart()[2]/10.-offset[2] )
+                hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
                 xpt.push_back(hStart.x())
                 ypt.push_back(hStart.y())
                 zpt.push_back(hStart.z())
@@ -229,14 +228,14 @@ def loop( events, dspt, tgeo, tout ):
 
             if muon_hits:
               hMuonStart = muon_hits[0].GetStart()
-              t_TMSBirth[0] = hMuonStart[0]/10.-offset[0]
-              t_TMSBirth[1] = hMuonStart[1]/10.-offset[1]
-              t_TMSBirth[2] = hMuonStart[2]/10.-offset[2]
+              t_TMSBirth[0] = hMuonStart[0]
+              t_TMSBirth[1] = hMuonStart[1]
+              t_TMSBirth[2] = hMuonStart[2]
 
               for idx, hit in enumerate(muon_hits):
 
-                hStart = ROOT.TVector3( hit.GetStart()[0]/10.-offset[0], hit.GetStart()[1]/10.-offset[1], hit.GetStart()[2]/10.-offset[2] )
-                hStop = ROOT.TVector3( hit.GetStop()[0]/10.-offset[0], hit.GetStop()[1]/10.-offset[1], hit.GetStop()[2]/10.-offset[2] )
+                hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
+                hStop = ROOT.TVector3( hit.GetStop()[0], hit.GetStop()[1], hit.GetStop()[2] )
                 Time = hit.GetStart()[3]
 
                 xpt.push_back(hStart.x())
@@ -245,7 +244,7 @@ def loop( events, dspt, tgeo, tout ):
                 deposit.push_back(hit.GetEnergyDeposit())
 
               hit = muon_hits[-1]
-              hFinal = ROOT.TVector3( hit.GetStart()[0]/10.-offset[0], hit.GetStart()[1]/10.-offset[1], hit.GetStart()[2]/10.-offset[2] )
+              hFinal = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
               t_TMSDeath[0] = hFinal.x()
               t_TMSDeath[1] = hFinal.y()
               t_TMSDeath[2] = hFinal.z()
