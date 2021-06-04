@@ -52,8 +52,20 @@ class TMS_DBScan {
 
     // Some setters for the privates
     void SetPoints(std::vector<TMS_DBScan_Point> &Points) { _Points = Points; };
-    void SetEpsilon(double eps) { _Epsilon = eps; };
-    void SetMinPoints(unsigned int minpts) { _MinPoints = minpts; };
+    void SetEpsilon(double eps) { 
+      if (eps <= 0) {
+        std::cerr << "Can't set epsilon in DBSCAN to negative or zero value!" << std::endl;
+        throw;
+      }
+      _Epsilon = eps; 
+    };
+    void SetMinPoints(unsigned int minpts) { 
+      if (minpts <= 0) {
+        std::cerr << "Can't set minpts in DBSCAN to negative or zero value!" << std::endl;
+        throw;
+      }
+      _MinPoints = minpts; 
+    };
 
     // Return the points
     std::vector<TMS_DBScan_Point> &GetPoints() {return _Points;};

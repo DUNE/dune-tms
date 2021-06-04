@@ -13,6 +13,8 @@ EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
 # The TMS includes
 TMS_INC = -I../src
 
+TOML_INC = -I../toml11
+
 CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
 ifdef DEBUG
   CXXFLAGS+=-O0
@@ -22,7 +24,7 @@ endif
 ifdef VERBOSE
   CXXFLAGS+=-DDEBUG
 endif
-CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TMS_INC)
+CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TMS_INC) $(TOML_INC)
 
 # Our lovely collection of dependencies
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)

@@ -3,22 +3,21 @@
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(2E3),
   nSlope(2E3),
-  InterceptMin(-40E3),
-  InterceptMax(+40E3),
-  SlopeMin(-2.0),
-  SlopeMax(2.0),
+  InterceptMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinInterp()),
+  InterceptMax(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxInterp()),
+  SlopeMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinSlope()),
+  SlopeMax(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxSlope()),
   InterceptWidth((InterceptMax-InterceptMin)/nIntercept),
   SlopeWidth((SlopeMax-SlopeMin)/nSlope),
   // Max z for us to do Hough in, here choose transition layer
   zMinHough(TMS_Const::TMS_Thin_Start),
   //zMaxHough(TMS_Const::TMS_Thick_Start),
   zMaxHough(TMS_Const::TMS_Thick_End),
-  nMaxHough(10),
+  nMaxHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough()),
   nThinCont(10),
-  nHits_Tol(0.2),
+  nHits_Tol(TMS_Manager::GetInstance().Get_Reco_HOUGH_HitMult()),
   // Minimum number of hits required to run track finding
-  nMinHits(10),
-  nMinHitsHough(10), // Number of hits to run Hough transform
+  nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
   // Maximum number of merges for one hit
   nMaxMerges(1),
   IsGreedy(false),
@@ -39,8 +38,8 @@ TMS_TrackFinder::TMS_TrackFinder() :
   HoughLine->SetLineStyle(kDashed);
   HoughLine->SetLineColor(kMagenta-9);
 
-  DBSCAN.SetEpsilon(3);
-  DBSCAN.SetMinPoints(2);
+  DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
+  DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
 }
 
 // The generic track finder
@@ -249,7 +248,7 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
   int nRuns = 0;
 
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
-         TMS_xz.size() > nMinHitsHough && 
+         TMS_xz.size() > nMinHits && 
          nRuns < nMaxHough) {
 
     // The candidate vectors
@@ -257,7 +256,7 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
     if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
 
     // If we're running out of hits (Hough transform doesn't have enough hits)
-    if (TMS_xz_cand.size() < nMinHitsHough) {
+    if (TMS_xz_cand.size() < nMinHits) {
       nRuns++;
       delete HoughLines.back().second;
       HoughLines.pop_back(); // Remove the built Hough line

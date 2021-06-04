@@ -19,6 +19,9 @@ The framework depends on `edep-sim`, `ROOT`, and `CLHEP`. An example setup using
 
 Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
+## toml dependency
+We read parameter settings using toml. I particularly like the https://github.com/ToruNiina/toml11/tree/v3.7.0 repo, which has a good readme, with fast and simple implementation. I should probably amke this into a git submodule soon
+
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
 * `src` contains the TMS source files, like the track finder, event classes, true particle classes, and so on

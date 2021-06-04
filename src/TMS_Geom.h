@@ -120,8 +120,8 @@ class TMS_Geom {
   private:
     // The empty constructor
     TMS_Geom() {
-      geom = NULL;
       FileName = TMS_Manager::GetInstance().GetFileName();
+      geom = NULL;
     };
 
     TMS_Geom(TMS_Geom const &) = delete;

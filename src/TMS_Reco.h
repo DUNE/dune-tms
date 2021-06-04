@@ -14,6 +14,8 @@
 #include "TH2D.h"
 
 // TMS includes
+#include "TMS_Manager.h"
+
 #include "TMS_Hit.h"
 #include "TMS_Event.h"
 #include "TMS_Constants.h"
@@ -204,9 +206,7 @@ class TMS_TrackFinder {
     TF1 *HoughLine;
 
     unsigned int nMinHits;
-    unsigned int nMinHitsHough;
     unsigned int nMaxMerges;
-
 
     bool IsGreedy;
     double HighestCost;

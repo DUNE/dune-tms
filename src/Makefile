@@ -10,6 +10,8 @@ EDEP_LIBS = -L $(EDEP_SIM)/lib -ledepsim_io
 # Need CLHEP for unit conversion, can probably just move this into a standalone header to remove dependency?
 EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
 
+TOML_INC = -I../toml11/
+
 CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
 ifdef DEBUG
   CXXFLAGS+=-O0
@@ -19,7 +21,8 @@ endif
 ifdef VERBOSE
   CXXFLAGS+=-DDEBUG
 endif
-CXXFLAGS += $(ROOT_INC) $(EDEP_INC)
+CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TOML_INC)
+
 
 # Replace and create
 ARFLAGS = rc
@@ -38,7 +41,7 @@ LIB_DIR=../lib
 # Our lovely collection of libs
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)
 
-TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o
+TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_Manager.o
 
 %.o:%.cpp
 	$(CXX) -c $(CXXFLAGS) $<
