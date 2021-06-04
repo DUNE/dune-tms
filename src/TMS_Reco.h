@@ -18,6 +18,7 @@
 #include "TMS_Event.h"
 #include "TMS_Constants.h"
 #include "TMS_DBScan.h"
+#include "TMS_Utils.h"
 
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
@@ -108,6 +109,8 @@ class TMS_TrackFinder {
     const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
 
+    const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
+
     TF1* GetHoughLine() { return HoughLine; };
 
     std::vector<std::pair<bool, TF1*> > GetHoughLines() { return HoughLines; };
@@ -124,7 +127,9 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
     // Exclude hits Mask from set Orig
-    std::vector<TMS_Hit> MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
+    void MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
+    void WalkDownStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
+    void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
     void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
@@ -167,6 +172,7 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> Candidates;
     std::vector<TMS_Hit> RawHits;
 
+    std::vector<TMS_Hit> CleanedHits;
     std::vector<std::vector<TMS_Hit> > TotalCandidates;
     std::vector<std::pair<bool, TF1*> > HoughLines;
     std::vector<std::vector<TMS_Hit> > ClusterCandidates;
@@ -198,7 +204,9 @@ class TMS_TrackFinder {
     TF1 *HoughLine;
 
     unsigned int nMinHits;
+    unsigned int nMinHitsHough;
     unsigned int nMaxMerges;
+
 
     bool IsGreedy;
     double HighestCost;
