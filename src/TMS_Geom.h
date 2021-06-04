@@ -11,6 +11,8 @@
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
+#include "TMS_Manager.h"
+
 // Define the TMS geometry singleton
 class TMS_Geom {
   public:
@@ -119,7 +121,7 @@ class TMS_Geom {
     // The empty constructor
     TMS_Geom() {
       geom = NULL;
-      FileName = "";
+      FileName = TMS_Manager::GetInstance().GetFileName();
     };
 
     TMS_Geom(TMS_Geom const &) = delete;
