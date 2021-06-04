@@ -80,12 +80,12 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // Update the hit value to be the bar, not the exact hit position
   x = Translation[0];
   // y-bar information doesn't seem to work?
-  //y = Translation[1];
+  y = Translation[1];
   z = Translation[2];
 
   // For the y-bar hack around it
   // Know y start and end points of detector, so split up into 40mm slices and see in which slice this falls in
-  y = FindYbar(y); 
+  //y = FindYbar(y); 
 
   // If we've reached the world volume we don't have a scintillator hit -> return some mad bad value
   if (BarNumber == -1 || PlaneNumber == -1 || GlobalBarNumber == -1) {
@@ -149,7 +149,6 @@ int TMS_Bar::FindBar(double x, double y, double z) {
 
   int Number = nav->GetCurrentNode()->GetNumber();
 
-  // If ROOT geometry isn't available, use this hard-coded mess
   return Number;
 }
 

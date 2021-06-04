@@ -102,4 +102,13 @@ class TMS_Bar {
     BarType BarOrient;
 };
 
+inline bool operator==(const TMS_Bar &a, const TMS_Bar &b) {
+  if (a.GetZ() == b.GetZ() && 
+      a.GetNotZ() == b.GetNotZ() )
+    return true;
+
+  return false;
+}
+
+
 #endif
