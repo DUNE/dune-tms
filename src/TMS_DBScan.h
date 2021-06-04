@@ -58,6 +58,13 @@ class TMS_DBScan {
     // Return the points
     std::vector<TMS_DBScan_Point> &GetPoints() {return _Points;};
 
+    void Print() {
+      std::cout << "DBSCAN with " << _Points.size() << " points" << std::endl;
+      std::cout << "   Found " << GetNClusters() << " clusters" << std::endl;
+      std::cout << "         " << GetNNoise() << " noise" << std::endl;
+      std::cout << "         " << GetNUnclassified() << " unclassified" << std::endl;
+    }
+
     // Get the number of clusters
     int GetNClusters() {
       int HighestCluster = 0;
@@ -112,7 +119,9 @@ class TMS_DBScan {
     // Run the scan
     bool RunDBScan() {
       if (_Points.empty()) {
+#ifdef DEBUG
         std::cerr << "Can't run DBscan without having hits" << std::endl;
+#endif
         return false;
       }
       // Start the cluster counter
