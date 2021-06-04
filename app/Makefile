@@ -19,6 +19,9 @@ ifdef DEBUG
 else
   CXXFLAGS+=-O3
 endif
+ifdef VERBOSE
+  CXXFLAGS+=-DDEBUG
+endif
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TMS_INC)
 
 # Our lovely collection of dependencies
