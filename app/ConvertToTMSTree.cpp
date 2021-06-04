@@ -22,11 +22,14 @@
 // Reconstructor
 #include "TMS_Reco.h"
 
+#include "TMS_TreeWriter.h"
+#include "TMS_Manager.h"
+
 bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   std::cout << "Got " << filename << ", writing to " << output_filename << std::endl;
 
   // The input file
-  TFile *input = new TFile(filename.c_str());
+  TFile *input = new TFile(filename.c_str(), "open");
   // The EDepSim events
   TTree *events = (TTree*)input->Get("EDepSimEvents");
   // The generator pass-through information
@@ -38,36 +41,29 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TG4Event *event = NULL;
   events->SetBranchAddress("Event", &event);
 
+  // The global manager
+  TMS_Manager::GetInstance().SetFileName(filename);
+
   // Load up the geometry
   TMS_Geom::GetInstance().SetGeometry(geom);
-  TMS_Geom::GetInstance().SetFileName(filename);
 
-  int N_entries = events->GetEntries();
+  //int N_entries = events->GetEntries();
+  int N_entries = 500;
 
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
   Timer.Start();
 
-  // Make an output file
-  //TFile *Output = new TFile("hough_lines_test.root", "recreate");
-  //Output->cd();
-  //TTree *tree = new TTree("Hough_Lines", "Hough_Lines");
-  //int EventNo;
-  //double Slope[2], Intercept[2];
-  //int nLines;
-  //tree->Branch("EventNo", &EventNo, "EventNo/I");
-  //tree->Branch("Slope", Slope, "Slope[2]/D");
-  //tree->Branch("Intercept", Intercept, "Intercept[2]/D");
-  //tree->Branch("nLines", &nLines, "nLines/I");
-
   int i = 0;
   for (; i < N_entries; ++i) {
-    if (i > 500) break;
     events->GetEntry(i);
     gRoo->GetEntry(i);
 
+#ifndef DEBUG
     if (i % (N_entries/10) == 0) {
+#endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
+      //tree->AutoSave();
     }
 
     // Make a TMS event
@@ -81,20 +77,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // View it
     TMS_EventViewer::GetViewer().Draw(tms_event);
 
-    /*
-    EventNo = i;
-    std::vector<std::pair<bool, TF1*>> HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
-    nLines = HoughLines.size();
-    if (nLines == 0) continue;
-    int it = 0;
-    for (auto Lines: HoughLines) {
-      Intercept[it] = Lines.second->GetParameter(0);
-      Slope[it] = Lines.second->GetParameter(1);
-      it++;
-    }
-    tree->Fill();
-    */
-    
+    // Write it
+    TMS_TreeWriter::GetWriter().Fill(i);
+
   } // End loop over all the events
 
   /*
@@ -111,9 +96,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   Timer.Stop();
   std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
-  //Output->cd();
-  //tree->Write();
-  //std::cout << "Write Houghlines to " << Output->GetName() << std::endl;
 
   return true;
 }
