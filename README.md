@@ -20,7 +20,9 @@ The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example set
 Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
 ## toml submodule dependency
-We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS_Manager` class
+We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. Remember to run `git submodule init && git submodule update` to get the submodule.
+
+The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS_Manager` class.
 
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
