@@ -29,7 +29,9 @@ export LD_LIBRARY_PATH=${EDEP_SIM}/lib:${LD_LIBRARY_PATH}
 export PATH=${EDEP_SIM}/bin:${PATH}
 
 # Add TMS execs and library directory to env
-export PATH=${PATH}:${PWD}/bin
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PWD}/lib
+export TMS_DIR=${PWD}
+export PATH=${PATH}:${TMS_DIR}/bin
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
+
 
 echo "Setup TMS environment"

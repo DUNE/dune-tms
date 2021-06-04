@@ -1,0 +1,28 @@
+# Specify TMS reconstruction values
+# Read in by the general manager (TMS_Manager) for persistency
+
+# Recon parameter constants
+[Recon]
+  # Minimum number of hits to consider reconstructing the event
+  MinHits = 10
+
+  [Recon.DBSCAN]
+    # The minimum points for the DBSCAN clustering algorithm
+    MinPoints = 2
+    # How far away can a bar/plane combination be to include in a cluster
+    Epsilon = 3.0
+
+  [Recon.Hough]
+    # The highest number of transform we can run
+    MaxTrans = 10
+    # Intercepts
+    MinInter = -40.0E3
+    MaxInter = 40.0E3
+    # Slopes
+    MinSlope = -2.0
+    MaxSlope = 2.0
+    # What factor of hits of total do we need to cover to count a successful Hough line finding
+    HitMult = 0.2
+
+  [Recon.AStar]
+
