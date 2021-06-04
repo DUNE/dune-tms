@@ -19,8 +19,8 @@ The framework depends on `edep-sim`, `ROOT`, and `CLHEP`. An example setup using
 
 Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
-## toml dependency
-We read parameter settings using toml. I particularly like the https://github.com/ToruNiina/toml11/tree/v3.7.0 repo, which has a good readme, with fast and simple implementation. I should probably amke this into a git submodule soon
+## toml submodule dependency
+We read parameter settings using `toml`. I particularly like the https://github.com/ToruNiina/toml11/ repo, so have included it as a submodule here. The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS\_Manager` class
 
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
@@ -34,4 +34,4 @@ We read parameter settings using toml. I particularly like the https://github.co
 * Chris Marhsall, [chris.marshall@rochester.edu](mailto:chris.marshall@rochester.edu)
 * Mathew Muether, [mathew.muether@wichita.edu](mailto:mathew.muether@wichita.edu)
 
-#nd_muon_spectrometer on dunescience.slack.com
+#nd\_muon\_spectrometer on dunescience.slack.com
