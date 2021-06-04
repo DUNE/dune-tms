@@ -6,9 +6,11 @@
 #include "TLine.h"
 #include "TGaxis.h"
 #include "TGraph.h"
+#include "TROOT.h"
 
 #include "TMS_Event.h"
 #include "TMS_Reco.h"
+#include "TMS_Manager.h"
 
 class TMS_EventViewer {
   public:

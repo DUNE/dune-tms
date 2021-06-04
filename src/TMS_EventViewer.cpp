@@ -1,8 +1,7 @@
 #include "TMS_EventViewer.h"
 
 TMS_EventViewer::TMS_EventViewer() :
-DrawTrackFinding(false)
-{
+DrawTrackFinding(false) {
 
   nDraws = 0;
 
@@ -116,9 +115,17 @@ DrawTrackFinding(false)
   yz_Thin_Thick->SetLineColor(kGray);
   yz_Thin_Thick->SetLineStyle(kDashed);
 
-  // Open up the pdf
-  CanvasName = "TMS_EventViewer_Collection_Hough_xzonly_hough";
+  // Make the output file
+  std::string filename = TMS_Manager::GetInstance().GetFileName();
+
+  while (filename.find("/") != std::string::npos) {
+    filename = filename.substr(filename.find("/")+1, filename.size());
+  }
+  CanvasName = filename.c_str();
+  CanvasName.ReplaceAll(".root", "_TMS_EventViewer");
+  gErrorIgnoreLevel = kWarning;
   Canvas->Print(CanvasName+".pdf[");
+  gErrorIgnoreLevel = kInfo;
 }
 
 // Draw the finished event
@@ -135,7 +142,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
   // Check that there are hits; overlaps with nMinHits in TMS_Reco
   // Make this a constant
-  if (TMS_Hits.size() < 10) {
+  if (TMS_Hits.size() < 10 || TMS_TrackFinder::GetFinder().GetCleanedHits().size() < 10) {
     //std::cout << "Trying to draw an event that has no hits in the TMS, returning..." << std::endl;
     return;
   }
@@ -173,8 +180,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     HoughGraphVect[i]->SetLineColor(i);
     HoughGraphVect[i]->SetLineWidth(2);
     HoughGraphVect[i]->SetMarkerColor(i);
-    HoughGraphVect[i]->SetMarkerSize(2);
-    HoughGraphVect[i]->SetMarkerStyle(29);
+    HoughGraphVect[i]->SetMarkerSize(1.5);
+    HoughGraphVect[i]->SetMarkerStyle(25);
   }
   int LineIt = 0;
   for (auto Line: HoughCandidates) {
@@ -193,9 +200,9 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<TGraph*> GraphVect(nClusters);
   for (int i = 0; i < nClusters; ++i) {
     GraphVect[i] = new TGraph(ClusterCandidates[i].size());
-    GraphVect[i]->SetLineColor(i+1);
+    GraphVect[i]->SetLineColor(nLines+i);
     GraphVect[i]->SetLineWidth(2);
-    GraphVect[i]->SetMarkerColor(i+1);
+    GraphVect[i]->SetMarkerColor(nLines+i);
     GraphVect[i]->SetMarkerSize(1);
     GraphVect[i]->SetMarkerStyle(4);
   }
@@ -222,12 +229,17 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
   for (auto graph: HoughGraphVect) graph->Draw("P,same");
-  for (auto i : HoughLines) if (i.first == true) i.second->Draw("same");
+  int it = 0;
+  for (auto i : HoughLines) {
+    if (i.first == true) {
+      i.second->SetLineColor(it);
+      i.second->Draw("same");
+      it++;
+    }
+  }
   for (auto graph: GraphVect) graph->Draw("P,same");
 
   xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nCluster: %i}", xz_view->GetTitle(), nLines, nClusters));
-
-
 
   /*
   Canvas->cd(2); 
@@ -238,6 +250,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (auto i : HoughLines) if (i.first == false) i.second->Draw("same");
   */
 
+  // ROOT is very verbose when printing, turn this off
+  gErrorIgnoreLevel = kWarning;
   Canvas->Print(CanvasName+".pdf");
 
   if (DrawTrackFinding) {
@@ -261,6 +275,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (int i = 0; i < nLines; ++i) {
     delete HoughGraphVect[i];
   }
+  gErrorIgnoreLevel = kInfo;
 
   nDraws++;
 }
