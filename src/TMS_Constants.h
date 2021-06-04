@@ -12,6 +12,14 @@ namespace TMS_KinConst {
 // Lots of these are hard-coded geometry constants that *NEED* to be updated for each production IF detectors move
 namespace TMS_Const {
 
+  // No idea what the units are
+  const double TMS_TimeThreshold = 1;
+
+  // Roughly the minimum energy that can be detected (MeV)
+  // Roughly 1/10th of a MIP
+  const double TMS_EnThres = 0.05;
+
+  // Number of planes, check against geometry
   const int TMS_nThinPlanes = 40;
   const int TMS_nThickPlanes = 60;
 
@@ -80,6 +88,8 @@ namespace TMS_Const {
   const std::string TMS_TopLayerName = "volWorld";
 
   const std::string LAr_ActiveName = "volTPCActive";
+
+  const double TMS_Small_Num = 1.E-5;
 }
 
 #endif
