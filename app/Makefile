@@ -37,7 +37,7 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe
 
 directories: $(EXE_DIR)
 
@@ -52,6 +52,9 @@ $(EXE_DIR)/BetheBloch_Example.exe: BetheBloch_Example.cpp
 
 $(EXE_DIR)/DBSCAN_test.exe: DBSCAN_test.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ $(ROOT_LIBS)
+
+$(EXE_DIR)/DrawEvents.exe: DrawEvents.cpp
+	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 clean:
 	rm -f $(EXE_DIR)/*.exe
