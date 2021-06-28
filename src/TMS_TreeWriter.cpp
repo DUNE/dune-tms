@@ -42,6 +42,11 @@ void TMS_TreeWriter::Fill(int i) {
   nLines = HoughLines.size();
   // Skip the event if there aren't any Hough Lines
   if (nLines == 0) return;
+  if (nLines > 20) {
+    std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
+    std::cerr << "Not writing event" << std::endl;
+    return;
+  }
   int it = 0;
   for (auto &Lines: HoughLines) {
     Intercept[it] = Lines.second->GetParameter(0);

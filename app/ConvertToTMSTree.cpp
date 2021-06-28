@@ -5,9 +5,6 @@
 #include "TGeoManager.h"
 #include "TStopwatch.h"
 
-// For now write the efficiency here...
-#include "TH1D.h"
-
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
 #include "EDepSim/TG4PrimaryVertex.h"
@@ -21,8 +18,9 @@
 #include "TMS_EventViewer.h"
 // Reconstructor
 #include "TMS_Reco.h"
-
+// TTree writer
 #include "TMS_TreeWriter.h"
+// General manager
 #include "TMS_Manager.h"
 
 bool ConvertToTMSTree(std::string filename, std::string output_filename) {
@@ -31,9 +29,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // The input file
   TFile *input = new TFile(filename.c_str(), "open");
   // The EDepSim events
-  TTree *events = (TTree*)input->Get("EDepSimEvents");
+  TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
   // The generator pass-through information
-  TTree *gRoo = (TTree*)input->Get("DetSimPassThru/gRooTracker");
+  TTree *gRoo = (TTree*)(input->Get("DetSimPassThru/gRooTracker")->Clone("gRoo"));
   // Get the detector geometry
   TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
 
@@ -47,8 +45,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Load up the geometry
   TMS_Geom::GetInstance().SetGeometry(geom);
 
-  //int N_entries = events->GetEntries();
-  int N_entries = 500;
+  int N_entries = events->GetEntries();
 
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
@@ -75,27 +72,19 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_TrackFinder::GetFinder().FindTracks(tms_event);
 
     // View it
-    TMS_EventViewer::GetViewer().Draw(tms_event);
+    //TMS_EventViewer::GetViewer().Draw(tms_event);
 
     // Write it
     TMS_TreeWriter::GetWriter().Fill(i);
-
   } // End loop over all the events
 
-  /*
-  TH1D* eff = TMS_TrackFinder::GetFinder().GetEfficiencyHist();
-  TH1D* total = TMS_TrackFinder::GetFinder().GetTotalHist();
-  TH1D* eff_ratio = TMS_TrackFinder::GetFinder().GetEfficiency();
-  TFile *file = new TFile("test_eff.root", "recreate");
-  file->cd();
-  eff->Write();
-  total->Write();
-  eff_ratio->Write();
-  file->Close();
-  */
 
   Timer.Stop();
   std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
+
+  delete events;
+  delete gRoo;
+  input->Close();
 
   return true;
 }

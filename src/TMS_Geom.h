@@ -124,6 +124,8 @@ class TMS_Geom {
       geom = NULL;
     };
 
+    ~TMS_Geom() {};
+
     TMS_Geom(TMS_Geom const &) = delete;
     void operator=(TMS_Geom const &) = delete;
 

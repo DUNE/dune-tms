@@ -35,6 +35,7 @@ class TMS_Manager {
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
     void operator=(TMS_Manager const &) = delete;
+    ~TMS_Manager() {};
 
     std::string Filename;
 

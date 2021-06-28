@@ -9,6 +9,8 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 
+#define __TMS_MAX_LINES__ 20
+
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
 
@@ -18,13 +20,6 @@ class TMS_TreeWriter {
       return Instance;
     }
 
-    // Destructor writes the TTree to file and closes the file
-    ~TMS_TreeWriter() {
-      Output->cd();
-      Branch_Lines->Write();
-      std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
-      Output->Close();
-    }
 
     void Fill(int i); // Fill the variables
 
@@ -32,6 +27,13 @@ class TMS_TreeWriter {
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;
     void operator=(TMS_TreeWriter const &) = delete;
+    ~TMS_TreeWriter() {
+      Output->cd();
+      Branch_Lines->Write();
+      std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
+      Branch_Lines->Delete();
+      Output->Close();
+    }
 
     TFile *Output; // The output TFile
     TTree *Branch_Lines; // The TTree
@@ -40,15 +42,14 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
-    double Slope[20];
-    double Intercept[20];
-    double DirectionZ[20];
-    double DirectionX[20];
+    double Slope[__TMS_MAX_LINES__];
+    double Intercept[__TMS_MAX_LINES__];
+    double DirectionZ[__TMS_MAX_LINES__];
+    double DirectionX[__TMS_MAX_LINES__];
     int nLines;
     double FirstHit[2];
     int FirstPlane;
     bool TMSStart;
-
 };
 
 

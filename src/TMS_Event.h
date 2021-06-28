@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 
-
 // Include the constants
 #include "TMS_Constants.h"
 #include "TMS_Hit.h"

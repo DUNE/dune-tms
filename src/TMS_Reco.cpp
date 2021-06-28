@@ -448,12 +448,18 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     double HoughPoint = HoughLine->Eval(zhit);
 
     // Hough point is inside bar -> start clustering around bar
-    if (bar.Contains(HoughPoint, zhit) ||
+    if (( bar.Contains(HoughPoint, zhit) ||
         bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
-        bar.Contains(HoughPoint+bar.GetNotZw(), zhit)) {
-      returned.push_back(std::move(hit));
-      // Remove from pool of hits
-      it = HitPool.erase(it);
+        bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
+      bool IsGood = true;
+      if (returned.size() > 5 && abs(returned.back().GetPlaneNumber() - hit.GetPlaneNumber()) > 5) IsGood = false;
+      if (IsGood) {
+        returned.push_back(std::move(hit));
+        // Remove from pool of hits
+        it = HitPool.erase(it);
+      } else {
+        ++it;
+      }
     } else {
       ++it;
     }
@@ -1435,6 +1441,10 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     double yprev = vec[NeighbourIndex].GetNotZ();
     
     double grad_exp = (y-yprev)/(x-xprev);
+
+    // Save the indices of which particle was best
+    // Only allow for one merge
+
     // Matching 
     for (std::vector<TMS_Hit>::iterator it = full.begin(); it != full.end(); ) {
       TMS_Hit hits = *it;

@@ -23,7 +23,6 @@ ifdef VERBOSE
 endif
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TOML_INC)
 
-
 # Replace and create
 ARFLAGS = rc
 

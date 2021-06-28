@@ -165,6 +165,7 @@ class TMS_TrackFinder {
     TMS_TrackFinder();
     TMS_TrackFinder(TMS_TrackFinder const &) = delete;
     void operator=(TMS_TrackFinder const &) = delete;
+    ~TMS_TrackFinder() {};
 
     TMS_Kalman KalmanFitter;
     TMS_DBScan DBSCAN;
