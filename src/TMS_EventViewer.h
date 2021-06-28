@@ -21,17 +21,17 @@ class TMS_EventViewer {
 
     void Draw(TMS_Event &event);
 
+
+  private:
+    TMS_EventViewer();
+    TMS_EventViewer(TMS_EventViewer const&) = delete;
+    void operator=(TMS_EventViewer const&) = delete;
     ~TMS_EventViewer() {
       if (nDraws > 0) {
         Canvas->Print(CanvasName+".pdf]");
         std::cout << "TMS_EventViewer drew " << nDraws << " events to " << CanvasName+".pdf" << std::endl;
       }
     }
-
-  private:
-    TMS_EventViewer();
-    TMS_EventViewer(TMS_EventViewer const&) = delete;
-    void operator=(TMS_EventViewer const&) = delete;
 
     TH2D *xz_view;
     TH2D *yz_view;

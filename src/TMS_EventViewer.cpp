@@ -26,8 +26,8 @@ DrawTrackFinding(false) {
 
   xz_view->SetMinimum(-0.01);
   yz_view->SetMinimum(-0.01);
-  xz_view->SetMaximum(10);
-  yz_view->SetMaximum(10);
+  xz_view->SetMaximum(5);
+  yz_view->SetMaximum(5);
 
   yz_view->GetZaxis()->SetTitleOffset(yz_view->GetZaxis()->GetTitleOffset()*1.2);
   xz_view->GetZaxis()->SetTitleOffset(xz_view->GetZaxis()->GetTitleOffset()*1.2);
