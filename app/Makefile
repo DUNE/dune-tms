@@ -17,7 +17,7 @@ TOML_INC = -I../toml11
 
 CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
 ifdef DEBUG
-  CXXFLAGS+=-O0
+  CXXFLAGS+=-Og
 else
   CXXFLAGS+=-O3
 endif
