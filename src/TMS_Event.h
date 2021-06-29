@@ -25,7 +25,7 @@ class TMS_Event {
     // Reconstructed tracks
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
-    const std::vector<TMS_TrueParticle> &GetParticles() const { return TMS_TrueParticles; };
+    const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
 
     void Print();
 
@@ -35,6 +35,7 @@ class TMS_Event {
     }
 
     int GetEventNumber() { return EventNumber; };
+    std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum?
 
@@ -48,6 +49,7 @@ class TMS_Event {
 
     // Spill number (can have many events in a spill)?
     //int SpillNumber;
+    std::string Reaction;
  
     static int EventNumber;
 };

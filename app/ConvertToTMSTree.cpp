@@ -75,12 +75,13 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     //TMS_EventViewer::GetViewer().Draw(tms_event);
 
     // Write it
-    TMS_TreeWriter::GetWriter().Fill(i);
+    TMS_TreeWriter::GetWriter().Fill(tms_event);
   } // End loop over all the events
-
 
   Timer.Stop();
   std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
+
+  TMS_TreeWriter::GetWriter().Write();
 
   delete events;
   delete gRoo;

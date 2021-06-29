@@ -128,7 +128,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   // Also
   
   // Get the true muon
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetParticles();
+  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   TMS_TrueParticle muon;
   bool FoundMuon = false;
   for (auto &particle: TrueParticles) {

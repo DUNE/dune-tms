@@ -17,14 +17,19 @@ TMS_TreeWriter::TMS_TreeWriter() {
     throw;
   }
   Output->cd();
+
   Branch_Lines = new TTree("Line_Candidates", "Line_Candidates");
-  Branch_Lines->SetAutoSave(1E3); // Every 1000 events (negative for MB)
+  Branch_Lines->SetDirectory(Output);
+  Branch_Lines->SetAutoSave(__TMS_AUTOSAVE__); // Every 1000 events (negative for MB)
+
+  Truth_Info = new TTree("Truth_Info", "Truth_Info");
+  Truth_Info->SetDirectory(Output);
+  Truth_Info->SetAutoSave(__TMS_AUTOSAVE__);
 
   MakeBranches();
 }
 
 void TMS_TreeWriter::MakeBranches() {
-  Output->cd();
   Branch_Lines->Branch("nLines", &nLines, "nLines/I");
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("Slope", Slope, "Slope[nLines]/D");
@@ -34,19 +39,57 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[2]/D");
   Branch_Lines->Branch("FirstHoughPlane", &FirstPlane, "FirstHoughPlane/I");
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
+  Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
+
+  Truth_Info->Branch("Muon", Muon, "Muon_px[4]/D");
+  Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/D");
+  Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
+  Truth_Info->Branch("Interaction", &Reaction);
+  Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
 }
 
-void TMS_TreeWriter::Fill(int i) {
-  EventNo = i;
+void TMS_TreeWriter::Fill(TMS_Event &event) {
+
+  // Fill the truth info
+  EventNo = event.GetEventNumber();
+  Reaction = event.GetReaction();
+
+  // Get the truth info
+  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  nParticles = TrueParticles.size();
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+
+    Muon[0] = (*it).GetMomentum().Px();
+    Muon[1] = (*it).GetMomentum().Py();
+    Muon[2] = (*it).GetMomentum().Pz();
+    Muon[3] = (*it).GetMomentum().E();
+    Muon_Vertex[0] = (*it).GetPosition().X();
+    Muon_Vertex[1] = (*it).GetPosition().Y();
+    Muon_Vertex[2] = (*it).GetPosition().Z();
+    Muon_Vertex[3] = (*it).GetPosition().T();
+  }
+
+  Truth_Info->Fill();
+
+  // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
   nLines = HoughLines.size();
+  // Also get the size of the hits to get a measure of relative goodness
+  std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  // Get the cleaned hits for a reference of the "total"
+  int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
+ 
   // Skip the event if there aren't any Hough Lines
   if (nLines == 0) return;
-  if (nLines > 20) {
+  if (nLines > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Not writing event" << std::endl;
     return;
   }
+
   int it = 0;
   for (auto &Lines: HoughLines) {
     Intercept[it] = Lines.second->GetParameter(0);
@@ -64,6 +107,7 @@ void TMS_TreeWriter::Fill(int i) {
     ylen = ylen/len;
     DirectionZ[it] = xlen;
     DirectionX[it] = ylen;
+    Occupancy[it] = (double)HoughCandidates[it].size()/TotalHits;
 
     it++;
   }
@@ -82,9 +126,11 @@ void TMS_TreeWriter::Fill(int i) {
       }
     }
   }
+
   // Was the first hit within the first 3 layers?
   if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
   else TMSStart = true;
+
   // Then save the hit info
   FirstHit[0] = FirstTrack->GetZ();
   FirstHit[1] = FirstTrack->GetNotZ();
@@ -92,5 +138,4 @@ void TMS_TreeWriter::Fill(int i) {
 
   Branch_Lines->Fill();
 }
-
 
