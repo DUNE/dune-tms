@@ -38,6 +38,7 @@ class TMS_Event {
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum?
+    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
 
   private:
     // Hits
@@ -52,6 +53,8 @@ class TMS_Event {
     std::string Reaction;
  
     static int EventNumber;
+
+    std::pair<TLorentzVector,int> TrueNeutrino;
 };
 
 #endif

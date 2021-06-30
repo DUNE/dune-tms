@@ -119,12 +119,22 @@ TMS_Event::TMS_Event(TG4Event &event) {
   EventNumber++;
 }
 
+void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4]) {
+  TrueNeutrino.first.SetX(p4[0][0]);
+  TrueNeutrino.first.SetY(p4[0][1]);
+  TrueNeutrino.first.SetZ(p4[0][2]);
+  TrueNeutrino.first.SetT(p4[0][3]);
+  TrueNeutrino.second = pdg[0];
+}
+
 void TMS_Event::Print() {
   std::cout << std::endl;
   std::cout << "*** " << std::endl;
   std::cout << "Printing TMS_Event class from "  << __FILE__ << std::endl;
   std::cout << "  Using geometry: " << TMS_Geom::GetInstance().GetGeometry()->GetName() << ", " << TMS_Geom::GetInstance().GetGeometry()->GetTitle() << std::endl;
   std::cout << "  From: " << TMS_Geom::GetInstance().GetFileName() << std::endl;
+  std::cout << "  Initial state neutrino from gRooTracker: " << std::endl;
+  std::cout << "  pdg: " << TrueNeutrino.second << " (px, py, pz, E) = (" << TrueNeutrino.first.X() << ", " << TrueNeutrino.first.Y() << ", " << TrueNeutrino.first.Z() << ", " << TrueNeutrino.first.T() << std::endl;
   std::cout << "  N Truth particles: " << TMS_TrueParticles.size() << std::endl;
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;

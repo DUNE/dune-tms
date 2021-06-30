@@ -38,6 +38,14 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Get the event
   TG4Event *event = NULL;
   events->SetBranchAddress("Event", &event);
+  // Get the true neutrino vector from the gRooTracker object
+  int StdHepPdg[__EDEP_SIM_MAX_PART__];
+  double StdHepP4[__EDEP_SIM_MAX_PART__][4];
+  gRoo->SetBranchStatus("*", false);
+  gRoo->SetBranchStatus("StdHepPdg", true);
+  gRoo->SetBranchStatus("StdHepP4", true);
+  gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
+  gRoo->SetBranchAddress("StdHepP4", StdHepP4);
 
   // The global manager
   TMS_Manager::GetInstance().SetFileName(filename);
@@ -65,6 +73,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+
+    // Pass some gRooTracker info through?
     // Dump information
     //tms_event.Print();
 

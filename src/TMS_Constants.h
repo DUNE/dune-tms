@@ -3,6 +3,10 @@
 
 #include <string>
 
+// Hidden from us inside edep-sim EDepSimRooTrackerKinematicsGenerator.hh
+// Number of maximum particles in an edep-sim event
+#define __EDEP_SIM_MAX_PART__ 4000
+
 // Constants
 namespace TMS_KinConst {
   const double mass_mu = 105.6583755; // Muon mass in MeV/c2
