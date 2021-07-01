@@ -40,6 +40,9 @@ class TMS_Event {
     // Include some truth metadata, like process, energy, lepton momentum?
     void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
 
+    int GetNeutrinoPDG() { return TrueNeutrino.second; };
+    TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
+
   private:
     // Hits
     std::vector<TMS_Hit> TMS_Hits;

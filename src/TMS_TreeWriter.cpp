@@ -41,11 +41,13 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
 
-  Truth_Info->Branch("Muon", Muon, "Muon_px[4]/D");
+  Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/D");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/D");
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
   Truth_Info->Branch("Interaction", &Reaction);
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
+  Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
+  Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/D");
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -53,6 +55,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Fill the truth info
   EventNo = event.GetEventNumber();
   Reaction = event.GetReaction();
+
+  NeutrinoPDG = event.GetNeutrinoPDG();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();
+  NeutrinoP4[1] = event.GetNeutrinoP4().Y();
+  NeutrinoP4[2] = event.GetNeutrinoP4().Z();
+  NeutrinoP4[3] = event.GetNeutrinoP4().T();
 
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
@@ -62,10 +70,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;
 
-    Muon[0] = (*it).GetMomentum().Px();
-    Muon[1] = (*it).GetMomentum().Py();
-    Muon[2] = (*it).GetMomentum().Pz();
-    Muon[3] = (*it).GetMomentum().E();
+    MuonP4[0] = (*it).GetMomentum().Px();
+    MuonP4[1] = (*it).GetMomentum().Py();
+    MuonP4[2] = (*it).GetMomentum().Pz();
+    MuonP4[3] = (*it).GetMomentum().E();
     Muon_Vertex[0] = (*it).GetPosition().X();
     Muon_Vertex[1] = (*it).GetPosition().Y();
     Muon_Vertex[2] = (*it).GetPosition().Z();

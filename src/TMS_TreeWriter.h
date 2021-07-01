@@ -58,10 +58,12 @@ class TMS_TreeWriter {
     bool TMSStart;
     double Occupancy[__TMS_MAX_LINES__];
 
-    double Muon[4];
+    double MuonP4[4];
     double Muon_Vertex[4];
     int nParticles;
     std::string Reaction;
+    int NeutrinoPDG;
+    double NeutrinoP4[4];
 };
 
 
