@@ -31,13 +31,14 @@ class aNode {
 
     enum HeuristicType { kManhattan, kEuclidean, kUnkown };
 
-    aNode(double xval, double yval, double ywval): 
-      x(xval), y(yval), yw(ywval), 
+    //aNode(double xval, double yval, double ywval): 
+    aNode(double xval, double yval) :
+      x(xval), y(yval),
       HeuristicCost(-999), NodeID(-999),
       Heuristic(kManhattan) { // what calculator
     };
 
-    aNode(double xval, double yval, double ywval, int ID): aNode(xval, yval, ywval) {
+    aNode(double xval, double yval, int ID): aNode(xval, yval) {
       NodeID = ID;
     };
 
@@ -51,9 +52,8 @@ class aNode {
       //double deltax = (x-other.x)*5;
       double deltax = (x-other.x)*10;
       // Moving 1 plane up is 10 ground cost, so reflect that here too
-      double deltay = ((y-other.y)/yw)*10;
+      double deltay = (y-other.y)*10;
 
-      //std::cout << deltax << " " << deltay << std::endl;
       if (Heuristic == kManhattan) return std::abs(deltax)+std::abs(deltay);
       else if (Heuristic == kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
       else return 999;
@@ -75,7 +75,6 @@ class aNode {
     // Position
     double x;
     double y;
-    double yw;
     // Costs
     double HeuristicCost;
     // Neighbours

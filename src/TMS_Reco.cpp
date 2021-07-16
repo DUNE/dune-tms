@@ -73,7 +73,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Set the number of merges in the Hough transform to be zero
   // Hough
-  HoughTransform(CleanedHits);
+  //HoughTransform(CleanedHits);
+  BestFirstSearch(CleanedHits);
 
   std::vector<TMS_Hit> Masked = CleanedHits;
   // Loop over the Hough candidates
@@ -452,7 +453,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
         bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
         bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
       bool IsGood = true;
-      if (returned.size() > 5 && abs(returned.back().GetPlaneNumber() - hit.GetPlaneNumber()) > 5) IsGood = false;
+      if (returned.size() > 5 && 
+          abs(returned.back().GetPlaneNumber() - hit.GetPlaneNumber()) > 5) {
+        IsGood = false;
+      }
+
       if (IsGood) {
         returned.push_back(std::move(hit));
         // Remove from pool of hits
@@ -889,42 +894,47 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
-  std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
+  //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
 
   // Do a spatial analysis of the hits in y and x around low z to ignore hits that are disconnected from other hits
   // Includes a simple sort in decreasing z (plane number)
   SpatialPrio(TMS_xz);
-  SpatialPrio(TMS_yz);
+  //SpatialPrio(TMS_yz);
 
   int nRuns = 0;
   int nXZ_Hits_Start = TMS_xz.size();
 
-  while (TMS_xz.size() > 0.2*nXZ_Hits_Start && nRuns < 4) {
+  while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
+         TMS_xz.size() > nMinHits && 
+         nRuns < nMaxHough) {
     //std::cout << "yz = " << TMS_yz.size() << " before a = " << a << std::endl;
     //std::cout << "xz = " << TMS_xz.size() << " before a = " << a << std::endl;
-    std::vector<TMS_Hit> AStarHits_yz;
+    //std::vector<TMS_Hit> AStarHits_yz;
     std::vector<TMS_Hit> AStarHits_xz;
 
     // Run on x-z first since that's where the gaps occur, leading to broken tracks
     // We can save where this happens in z and make the yz reconstruction aware of the gap
     if (TMS_xz.size() > 0) AStarHits_xz = RunAstar(TMS_xz);
-    if (TMS_yz.size() > 0) AStarHits_yz = RunAstar(TMS_yz);
+    else return;
+    //if (TMS_yz.size() > 0) AStarHits_yz = RunAstar(TMS_yz);
 
     // Then order them in z
     SpatialPrio(AStarHits_xz);
     //SpatialPrio(AStarHits_yz);
 
     // Copy over to the candidates
-    for (auto &i : AStarHits_yz) Candidates.push_back(std::move(i));
     for (auto &i : AStarHits_xz) Candidates.push_back(std::move(i));
+    //for (auto &i : AStarHits_yz) Candidates.push_back(std::move(i));
 
     // Loop over vector and remove used hits
+    /*
     for (auto jt = AStarHits_yz.begin(); jt!=AStarHits_yz.end();++jt) {
       for (auto it = TMS_yz.begin(); it!= TMS_yz.end();) {
         if ((*it) == (*jt)) it = TMS_yz.erase(it);
         else it++;
       }
     }
+    */
 
     // Loop over vector and remove used hits
     for (auto jt = AStarHits_xz.begin(); jt!=AStarHits_xz.end();++jt) {
@@ -1016,6 +1026,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::ProjectHits(const std::vector<TMS_Hit> &TM
   return returned;
 }
 
+// Needs hits ordered in z
 std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_xz) {
 
   // Remember which orientation these hits are
@@ -1025,7 +1036,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   if (IsXZ) PlanesNearGap.clear();
 
   // Set the first and last hit to calculate the heuristic to
-  aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
+  //aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
+  aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetBarNumber());
+
+  std::cout << "Last hit we calculate heuristic cost to" << std::endl;
+  Last.Print();
 
   // Also convert the TMS_Hit to our path-node
   std::vector<aNode> Nodes;
@@ -1036,11 +1051,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
     // Use the x position as plane number
     double x = (*it).GetPlaneNumber();
-    double y = (*it).GetNotZ();
-    double yw = (*it).GetNotZw();
+    double y = (*it).GetBarNumber();
 
     // Make the node
-    aNode TempNode(x, y, yw, NodeID);
+    aNode TempNode(x, y, NodeID);
     // Calculate the Heuristic cost for each of the nodes to the last point
     TempNode.SetHeuristicCost(Last);
 
@@ -1049,28 +1063,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Can probably evaluate the last node here: if heuristic is large for the 5 nearest hits it's likely wrong?
 
-
   // Now find the neighbours of each node
   for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
 
     double x = (*it).x;
     double y = (*it).y;
-
-    // Check if we're close to the gap if in xz view
-    bool IsNextToGap = false;
-    if (IsXZ) {
-      IsNextToGap = NextToGap(y, (*it).yw);
-      if (IsNextToGap) {
-        PlanesNearGap.push_back(x);
-      }
-      // If we're in yz view, see if this z could be close to a gap
-    } else {
-      IsNextToGap = (std::find(PlanesNearGap.begin(), PlanesNearGap.end(), x-1) != PlanesNearGap.end() ||
-          std::find(PlanesNearGap.begin(), PlanesNearGap.end(), x+1) != PlanesNearGap.end() );
-    }
-
-    // If a hit is close to a gap and connects to another hit close to a gap, ONLY allow for it to connect to the closest hit
-    bool FoundNeighbourNearGap = false;
 
     for (std::vector<aNode>::iterator jt = Nodes.begin(); jt != Nodes.end(); ++jt) {
 
@@ -1084,79 +1081,41 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       int DeltaPlane = xcan-x;
 
       double y_n = (*jt).y;
-      double DeltaY = fabs(y_n-y);
+      double DeltaY_Trunc = fabs(y_n-y);
 
-      // Get the number of vertical bars (NotZw gives bar width)
-      int DeltaY_Trunc = int(DeltaY/(*jt).yw);
-
-      // Allow for three bars in y at maximum
-      if (abs(DeltaY_Trunc) > 3) continue;
-
-      // Find the other hits that are next to the gaps
-      bool IsNextToGap_cand = false;
-      // If in xz view we just check the x coordinate and see if it's next to the gap
-      // Only allow it tracking downstream
-      if (IsXZ) {
-        //IsNextToGap_cand = ( DeltaPlane < 2 && NextToGap(y_n, (*jt).yw) );
-        IsNextToGap_cand = ( DeltaPlane < 1 && NextToGap(y_n, (*jt).yw) );
-      } else {
-        // Only allow the gap exception if really needed in z
-        // Only allow it tracking downstream
-        //IsNextToGap_cand = ( DeltaPlane < 2 && (
-        IsNextToGap_cand = ( DeltaPlane < 1 && (
-              std::find(PlanesNearGap.begin(), PlanesNearGap.end(), xcan-1) != PlanesNearGap.end() ||
-              std::find(PlanesNearGap.begin(), PlanesNearGap.end(), xcan+1) != PlanesNearGap.end() ) );
-      }
-
-      // Only look at adjacent bars in z (remember planes are alternating so adjacent xz bars are every two planes)
-      //if (!(IsNextToGap_cand && IsNextToGap && !FoundNeighbourNearGap) && abs(DeltaPlane) > 2) continue;
-      if (!(IsNextToGap_cand && IsNextToGap && !FoundNeighbourNearGap) && abs(DeltaPlane) > 1) continue;
-
-      // Remember that we've found a neighbour near the gap
-      if (IsNextToGap_cand && IsNextToGap) FoundNeighbourNearGap = true;
+      // Allow for three bars in y at maximum, 1 bar in x at maximum
+      if (abs(DeltaY_Trunc) > 3 || abs(DeltaPlane) > 1) continue;
 
       // And the ground cost will update as we go along?
       // The ground cost depends on if a diagonal or not is connected
       double GroundCost = HighestCost;
-      // Make a special exception when to candidates are at the gap; make the gap jump cheap
-      //if (IsNextToGap && IsNextToGap_cand) GroundCost = abs(DeltaPlane)*5;
-      if (IsNextToGap && IsNextToGap_cand) GroundCost = abs(DeltaPlane)*10;
-      else {
-        // left/right
-        //if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 2) GroundCost = 10;
-        if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 1) GroundCost = 10;
-        // up/down
-        else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 0) GroundCost = 10;
-        // diagonal->prefer left/right followed by up/down
-        //else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 2) GroundCost = 40;
-        else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 1) GroundCost = 40;
-        // up/down by 2 (missing one bar) -- make less preferntial than two single moves
-        // necessary for missing deposits
-        else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 0) GroundCost = 40;
-        // diagonal and missing 1 y-bar
-        // necessary for missing deposits
-        //else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 2) GroundCost = 60;
-        else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 1) GroundCost = 60;
-        // diagonal and missing 2 bar
-        // necessary for missing deposits
-        //else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 2) GroundCost = 120;
-        else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 1) GroundCost = 120;
-        // up/down by 3 (missing three bars)
-        // necessary for missing deposits
-        else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 0) GroundCost = 90;
-        // If we've truncated
-        else if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 0) GroundCost = 0;
-      }
-      // Catch when we're on an airgap; incur standard penalty
-      //else GroundCost = 1000; // Put a large penalty in the case where we need to violate the above to cross a gap
+
+      // left/right
+      if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 1) GroundCost = 10;
+      // up/down
+      else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 0) GroundCost = 10;
+      // diagonal->prefer left/right followed by up/down
+      else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 1) GroundCost = 40;
+      // up/down by 2 (missing one bar) -- make less preferntial than two single moves
+      // necessary for missing deposits
+      else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 0) GroundCost = 40;
+      // diagonal and missing 1 y-bar
+      // necessary for missing deposits
+      else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 1) GroundCost = 60;
+      // diagonal and missing 2 bar
+      // necessary for missing deposits
+      else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 1) GroundCost = 120;
+      // up/down by 3 (missing three bars)
+      // necessary for missing deposits
+      else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 0) GroundCost = 90;
+      // If we've truncated
+      else if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 0) GroundCost = 0;
 
       // This should never happen but is a very very useful check!
       if (GroundCost == HighestCost) {
-        std::cout << "Missed exceptioN!" << std::endl;
+        std::cout << "Missed exception!" << std::endl;
         std::cout << "DeltaY_Trunc: " << DeltaY_Trunc << std::endl;
-        std::cout << "DeltaY: " << DeltaY << std::endl;
         std::cout << "DeltaPlane: " << DeltaPlane << std::endl;
-        std::cout << "getnotzW: " << (*jt).yw << std::endl;
         throw;
       }
 
@@ -1168,6 +1127,19 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     }
   }
 
+  // Now finally loop over all hits and output them
+  for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
+    std::cout << "****" << std::endl;
+    (*it).Print();
+    std::cout << "Neighbours: " << std::endl;
+    for (auto i: (*it).Neighbours) {
+      std::cout << "  ";
+      i.first->Print();
+      std::cout << "  move cost: " << i.second << std::endl;
+    }
+  }
+
+  /*
   // Remove hits that only have one neighbour?
   // Look at the first hit and see how many neighbours its neighbour has
   unsigned int nrem = 0;
@@ -1175,31 +1147,34 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   while (total > nrem && Nodes[nrem].Neighbours.size() < 1) {
     nrem++;
   }
+  std::cout << "Removed " << nrem << " nodes from back without neighbours" << std::endl;
 
   // If there's only one neighbour and its only neigbour is the start
-  /*
      if (Nodes[nrem].Neighbours.size() == 1 &&
      Nodes[nrem+1].Neighbours.find(&Nodes[nrem]) != Nodes[nrem+1].Neighbours.end()) {
      nrem++;
      }
-     */
-
   // Do the same for the front
   unsigned int nrem_front = 0;
   while (total > nrem_front && Nodes[total-nrem_front].Neighbours.size() < 1) {
     nrem_front++;
   }
+  std::cout << "Remove " << nrem_front << " nodes from front without neighbours" << std::endl;
 
   // Return if there are no nodes left
   if (nrem >= total || nrem_front >= total) {
     std::vector<TMS_Hit> empt;
     return empt;
   }
+
   // Recalculate the heuristic
   //if (nrem_front > 1) nrem_front--;
   for (auto &i: Nodes) {
     i.SetHeuristicCost(Nodes.at(total-nrem_front-1));
   }
+  std::cout << "Re-calculating Heuristic cost relative entry " << total-nrem_front-1 << " of " << total << std::endl;
+  Nodes.at(total-nrem_front-1).Print();
+  */
 
   // Keep a map of the cost so far for reaching an aNode
   std::unordered_map<int, double> cost_so_far;
@@ -1209,9 +1184,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   std::priority_queue<aNode, std::vector<aNode> > pq;
 
   //if (nrem > 1) nrem--;
-  pq.push(Nodes.at(nrem));
-  cost_so_far[nrem] = 0;
-  came_from[nrem] = 0;
+  pq.push(Nodes.at(0));
+  cost_so_far[0] = 0;
+  came_from[0] = 0;
   // Keep track when we hit the last point
   bool LastPoint = false;
   while (!pq.empty()) {
@@ -1439,7 +1414,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     // Calculate expected derivative from upstream hit
     double xprev = vec[NeighbourIndex].GetZ();
     double yprev = vec[NeighbourIndex].GetNotZ();
-    
+
     double grad_exp = (y-yprev)/(x-xprev);
 
     // Save the indices of which particle was best
@@ -1454,7 +1429,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         if (PlaneNumber_cand <= PlaneNumber) {
           ++it;
           continue;
-        // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
+          // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
         } else {
           break;
         }
@@ -1472,8 +1447,8 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
             fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
             TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
-              ++it;
-              continue;
+          ++it;
+          continue;
         }
         // Now need to find position to insert
         // Guaranteed sorted in z
@@ -1482,7 +1457,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         if (xcand >= vec.back().GetZ()) {
           vec.push_back(std::move(hits));
           // Need to decrement iterator over line
-        // Sometimes we've missed one hit between Hough hits
+          // Sometimes we've missed one hit between Hough hits
         } else {
           for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
             double compx = (*jt).GetZ();
@@ -1553,7 +1528,7 @@ void TMS_TrackFinder::WalkUpStream(std::vector<TMS_Hit> &vec, std::vector<TMS_Hi
     // Calculate expected derivative from upstream hit
     double xprev = vec[NeighbourIndex].GetZ();
     double yprev = vec[NeighbourIndex].GetNotZ();
-    
+
     double grad_exp = (y-yprev)/(x-xprev);
     // Matching 
     for (std::vector<TMS_Hit>::iterator it = full.begin(); it != full.end(); ) {
@@ -1564,7 +1539,7 @@ void TMS_TrackFinder::WalkUpStream(std::vector<TMS_Hit> &vec, std::vector<TMS_Hi
         if (PlaneNumber_cand >= PlaneNumber) {
           ++it;
           continue;
-        // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
+          // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
         } else {
           break;
         }
@@ -1592,7 +1567,7 @@ void TMS_TrackFinder::WalkUpStream(std::vector<TMS_Hit> &vec, std::vector<TMS_Hi
         if (xcand <= vec.back().GetZ()) {
           vec.push_back(std::move(hits));
           // Need to decrement iterator over line
-        // Sometimes we've missed one hit between Hough hits
+          // Sometimes we've missed one hit between Hough hits
         } else {
           for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
             double compx = (*jt).GetZ();
