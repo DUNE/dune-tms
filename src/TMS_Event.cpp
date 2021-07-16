@@ -1,7 +1,7 @@
 #include "TMS_Event.h"
 
 // Initialise the event counter to 0
-int TMS_Event::EventNumber = 0;
+int TMS_Event::EventCounter = 0;
 
 // Start the relatively tedious process of converting into TMS products!
 TMS_Event::TMS_Event(TG4Event &event) {
@@ -9,6 +9,9 @@ TMS_Event::TMS_Event(TG4Event &event) {
   bool OnlyMuon = false;
   bool LArOnly = false;
   bool TMSLArOnly = false;
+
+  // Save down the event number
+  EventNumber = EventCounter;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -116,7 +119,7 @@ TMS_Event::TMS_Event(TG4Event &event) {
     vtxcounter++;
   }
 
-  EventNumber++;
+  EventCounter++;
 }
 
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4]) {

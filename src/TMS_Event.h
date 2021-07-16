@@ -55,7 +55,10 @@ class TMS_Event {
     //int SpillNumber;
     std::string Reaction;
  
-    static int EventNumber;
+    // Counts how many times constructor has been called
+    static int EventCounter;
+    // Saves the event number for a constructed event
+    int EventNumber;
 
     std::pair<TLorentzVector,int> TrueNeutrino;
 };

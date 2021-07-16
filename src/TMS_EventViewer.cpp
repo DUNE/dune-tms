@@ -134,7 +134,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_view->Reset();
   yz_view->Reset();
 
-  int EventNumber = event.GetEventNumber()-1;
+  int EventNumber = event.GetEventNumber();
   xz_view->SetTitle(Form("TMS viewer xz, Event %i", EventNumber));
   yz_view->SetTitle(Form("TMS viewer yz, Event %i", EventNumber));
 

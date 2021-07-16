@@ -83,7 +83,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_TrackFinder::GetFinder().FindTracks(tms_event);
 
     // View it
-    //TMS_EventViewer::GetViewer().Draw(tms_event);
+    TMS_EventViewer::GetViewer().Draw(tms_event);
 
     // Write it
     TMS_TreeWriter::GetWriter().Fill(tms_event);
