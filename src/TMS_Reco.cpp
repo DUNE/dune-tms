@@ -288,6 +288,9 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
     HoughCandidates.push_back(std::move(Candidates));
     nRuns++;
   }
+#ifdef DEBUG
+  std::cout << "Ran " << nRuns << " Hough algo" << std::endl;
+#endif
 };
 
 void TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask) {
@@ -943,7 +946,8 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
         else it++;
       }
     }
-    HoughCandidates.push_back(std::move(Candidates));
+    // Only push back if we have more than one candidate
+    if (Candidates.size() > 1) HoughCandidates.push_back(std::move(Candidates));
     nRuns++;
   }
 #ifdef DEBUG
@@ -1141,6 +1145,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   /*
   // Remove hits that only have one neighbour?
+
   // Look at the first hit and see how many neighbours its neighbour has
   unsigned int nrem = 0;
   unsigned int total = Nodes.size();
@@ -1224,16 +1229,20 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   //}
 
 
-  // Now push back the candidates!
+  // Now push back the candidates by tracing the path
   std::vector<TMS_Hit> returned;
   while (NodeID != 0) {
     returned.push_back(TMS_xz[NodeID]);
     NodeID = came_from[NodeID];
+    // If the current node came from itself, we've reached the end
     if (NodeID == came_from[NodeID]) {
       returned.push_back(TMS_xz[NodeID]);
       break;
     }
   }
+
+  // Put in some check to see if we connected the nodes from 0 to NodeID_{highest}?
+
   //if (NodeID != 0) {
   //std::cout << "did not find last point" << std::endl;
   //}
