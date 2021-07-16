@@ -116,6 +116,41 @@ class TMS_Geom {
       return Materials;
     }
 
+    // Get the track length between two points by walking through the materials at those points
+    double GetTrackLength(const TVector3 &point1, const TVector3 &point2) {
+      // First get the collection of materials between point1 and point2
+      std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(point1, point2);
+
+      double TotalPathLength = 0;
+      double TotalLength = 0;
+      int counter = 0;
+      for (auto material : Materials) {
+
+        // Read these directly from a TGeoManager
+        double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); // now in g/cm3 (edep-sim geometry is in CLHEP units)
+        double thickness = material.second/10.; // in cm (was in mm in geometry)
+        material.first->Print();
+
+          std::cout << "Material " << counter << " = " << material.first->GetName() << std::endl;
+          std::cout << "  density: " << density << std::endl;
+          std::cout << "  thickness: " << thickness << std::endl;
+          std::cout << "  thickness*density = " << density*thickness << std::endl;
+
+        // Skip if density or thickness is small
+        if (density*thickness < 0.1) {
+          std::cout << "  Skipping material, to little path length to bother" << std::endl;
+          continue;
+        }
+
+        TotalPathLength += density*thickness;
+        TotalLength += thickness;
+
+        counter++;
+      }
+
+      return TotalPathLength;
+    };
+
 
   private:
     // The empty constructor
