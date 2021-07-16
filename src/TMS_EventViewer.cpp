@@ -44,9 +44,9 @@ DrawTrackFinding(false) {
 
   // The canvas
   Canvas = new TCanvas("TMS_EventViewer", "TMS_EventViewer", 1024, 1024);
-  //Canvas->Divide(2);
-  Canvas->cd(1)->SetLeftMargin(Canvas->GetLeftMargin()*1.2);
-  Canvas->cd(1)->SetRightMargin(Canvas->GetRightMargin()*1.5);
+  Canvas->Divide(2);
+  //Canvas->cd(1)->SetLeftMargin(Canvas->GetLeftMargin()*1.2);
+  //Canvas->cd(1)->SetRightMargin(Canvas->GetRightMargin()*1.5);
 
   // Full view from inspecting all hits
   xz_box_Full = new TBox(TMS_Const::TMS_Thin_Start,
@@ -221,6 +221,15 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
   gStyle->SetPalette(kBird);
   Canvas->cd(1); 
+  xz_view->Draw("colz");
+  xz_box_FV->Draw("same");
+  xz_box_Full->Draw("same");
+  xz_dead_top->Draw("same");
+  xz_dead_center->Draw("same");
+  xz_dead_bottom->Draw("same");
+  xz_Thin_Thick->Draw("same");
+
+  Canvas->cd(2);
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");

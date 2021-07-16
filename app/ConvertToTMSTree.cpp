@@ -54,6 +54,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   int N_entries = events->GetEntries();
+  N_entries = 110;
 
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
@@ -65,11 +66,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     gRoo->GetEntry(i);
 
 #ifndef DEBUG
-    if (i % (N_entries/10) == 0) {
+    //if (i % (N_entries/10) == 0) {
 #endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
       //tree->AutoSave();
-    }
+    //}
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
