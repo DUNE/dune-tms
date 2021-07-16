@@ -37,13 +37,14 @@ class TMS_TreeWriter {
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;
     void operator=(TMS_TreeWriter const &) = delete;
-    ~TMS_TreeWriter() {
-    }
+    ~TMS_TreeWriter() {};
+
 
     TFile *Output; // The output TFile
     TTree *Branch_Lines; // The TTree
     TTree *Truth_Info; // Truth info
 
+    void Clear();
     void MakeBranches(); // Make the output branches
 
     // The variables
@@ -53,8 +54,10 @@ class TMS_TreeWriter {
     double DirectionZ[__TMS_MAX_LINES__];
     double DirectionX[__TMS_MAX_LINES__];
     int nLines;
-    double FirstHit[2];
-    int FirstPlane;
+    double FirstHit[__TMS_MAX_LINES__][2];
+    double LastHit[__TMS_MAX_LINES__][2];
+    int FirstPlane[__TMS_MAX_LINES__];
+    int LastPlane[__TMS_MAX_LINES__];
     bool TMSStart;
     double Occupancy[__TMS_MAX_LINES__];
 

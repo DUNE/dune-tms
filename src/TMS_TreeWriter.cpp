@@ -36,8 +36,10 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("Intercept", Intercept, "Intercept[nLines]/D");
   Branch_Lines->Branch("DirectionZ", DirectionZ, "DirectionZ[nLines]/D");
   Branch_Lines->Branch("DirectionX", DirectionX, "DirectionX[nLines]/D");
-  Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[2]/D");
-  Branch_Lines->Branch("FirstHoughPlane", &FirstPlane, "FirstHoughPlane/I");
+  Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/D");
+  Branch_Lines->Branch("LastHoughHit", LastHit, "LastHoughHit[nLines][2]/D");
+  Branch_Lines->Branch("FirstHoughPlane", FirstPlane, "FirstHoughPlane[nLines]/I");
+  Branch_Lines->Branch("LastHoughPlane", LastPlane, "LastHoughPlane[nLines]/I");
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
 
@@ -51,6 +53,9 @@ void TMS_TreeWriter::MakeBranches() {
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
+
+  // Clear old info
+  Clear();
 
   // Fill the truth info
   EventNo = event.GetEventNumber();
@@ -125,7 +130,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   std::vector<std::vector<TMS_Hit> > HoughCands = TMS_TrackFinder::GetFinder().GetHoughCandidates();
   TMS_Hit *FirstTrack = NULL;
+
+  it = 0;
   for (auto &Candidates: HoughCands) {
+
     for (auto &hit: Candidates) {
       if (FirstTrack == NULL) {
         FirstTrack = &hit;
@@ -133,17 +141,53 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
+
+    // Then save the hit info
+    FirstPlane[it] = Candidates.front().GetPlaneNumber();
+    FirstHit[it][0] = Candidates.front().GetZ();
+    FirstHit[it][1] = Candidates.front().GetNotZ();
+
+    LastPlane[it] = Candidates.back().GetPlaneNumber();
+    LastHit[it][0] = Candidates.back().GetZ();
+    LastHit[it][1] = Candidates.back().GetNotZ();
+
+    it++;
   }
 
   // Was the first hit within the first 3 layers?
   if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
   else TMSStart = true;
 
-  // Then save the hit info
-  FirstHit[0] = FirstTrack->GetZ();
-  FirstHit[1] = FirstTrack->GetNotZ();
-  FirstPlane = FirstTrack->GetPlaneNumber();
-
   Branch_Lines->Fill();
+}
+
+void TMS_TreeWriter::Clear() {
+
+  // The variables
+  EventNo = nLines = nParticles = NeutrinoPDG = -999;
+  TMSStart = false;
+  Reaction = "";
+
+
+  for (int i = 0; i < 4; ++i) {
+    MuonP4[i]=-999;
+    Muon_Vertex[i]=-999;
+    NeutrinoP4[i]=-999;
+  }
+
+  for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
+    Slope[i]=-999;
+    Intercept[i]=-999;
+    DirectionZ[i]=-999;
+    DirectionX[i]=-999;
+    Occupancy[i]=-999;
+    FirstPlane[i]=-999;
+    LastPlane[i]=-999;
+    for (int j = 0; j < 2; ++j) {
+      FirstHit[i][j] = -999;
+      LastHit[i][j] = -999;
+    }
+  }
+
 }
 
