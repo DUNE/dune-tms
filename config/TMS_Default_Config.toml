@@ -6,6 +6,14 @@
   # Minimum number of hits to consider reconstructing the event
   MinHits = 10
 
+  # Track reco; Hough, AStar, DBSCAN
+  TrackMethod = "Hough"
+  #TrackMethod = "AStar"
+  #TrackMethod = "DBSCAN"
+
+  # Run clustering algorithm (DBSCAN) after track finding?
+  Clustering = true
+
   [Recon.DBSCAN]
     # The minimum points for the DBSCAN clustering algorithm
     MinPoints = 2

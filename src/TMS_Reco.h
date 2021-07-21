@@ -27,6 +27,12 @@
 
 #define __LARGE_COST__ 999999999
 
+enum TrackMethod {
+  kHough,
+  kAStar,
+  kDBSCAN
+};
+
 // Utility class struct to store the node for track finding using A* or Best-First
 class aNode {
   public:
@@ -265,6 +271,9 @@ class TMS_TrackFinder {
 
     TH1D *Efficiency;
     TH1D *Total;
+
+    bool UseClustering;
+    TrackMethod kTrackMethod;
 };
 
 #endif

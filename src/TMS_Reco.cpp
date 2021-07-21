@@ -20,7 +20,10 @@ TMS_TrackFinder::TMS_TrackFinder() :
   nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
   // Maximum number of merges for one hit
   nMaxMerges(1),
-  IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy())
+  // Is DBSCAN greedy
+  IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy()),
+  // Use DBSCAN clustering after track finding
+  UseClustering(TMS_Manager::GetInstance().Get_Reco_Clustering())
 {
   // Apply the maximum Hough transform to the zx not zy: all bending happens in zx
   Accumulator = new int*[nSlope];
@@ -38,6 +41,19 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
   DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
   DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
+
+  // Set up the tracker algorithm
+  std::string trackname = TMS_Manager::GetInstance().Get_Reco_TrackMethod();
+  if      (trackname == "Hough")  kTrackMethod = kHough;
+  else if (trackname == "AStar")  kTrackMethod = kAStar;
+  else if (trackname == "DBSCAN") kTrackMethod = kDBSCAN;
+  else {
+    std::cerr << "Invalid track reconstruction method provided to TMS reconstruction" << std::endl;
+    std::cerr << "You provided: " << trackname << std::endl;
+    std::cerr << "Options are: Hough, AStar, DBSCAN" << std::endl;
+    throw;
+  }
+
 
 }
 
@@ -70,10 +86,12 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   std::cout << "Cleaned hits: " << CleanedHits.size() << std::endl;
 #endif
 
-  // Set the number of merges in the Hough transform to be zero
   // Hough
-  //HoughTransform(CleanedHits);
-  BestFirstSearch(CleanedHits);
+  if (kTrackMethod == kHough) {
+    HoughTransform(CleanedHits);
+  } else if (kTrackMethod == kAStar) {
+    BestFirstSearch(CleanedHits);
+  }
 
   std::vector<TMS_Hit> Masked = CleanedHits;
   // Loop over the Hough candidates
@@ -92,7 +110,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 #endif
 
   // Try finding some clusters after the Hough Transform
-  ClusterCandidates = FindClusters(Masked);
+  if (UseClustering) {
+    ClusterCandidates = FindClusters(Masked);
+  }
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);

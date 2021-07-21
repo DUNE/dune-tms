@@ -2,6 +2,7 @@
 #define __TMS_MANAGER_H__
 
 #include <iostream>
+#include <string>
 #include "toml.hpp"
 
 // Just a global parameter manager
@@ -33,6 +34,9 @@ class TMS_Manager {
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
 
+    std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
+    bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
+
   private:
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
@@ -55,6 +59,8 @@ class TMS_Manager {
 
     bool _RECO_ASTAR_IsGreedy;
 
+    std::string _RECO_TRACK_METHOD;
+    bool _RECO_CLUSTERING;
 };
 
 #endif
