@@ -124,6 +124,8 @@ DrawTrackFinding(false) {
   CanvasName = filename.c_str();
   CanvasName.ReplaceAll(".root", "_TMS_EventViewer");
   gErrorIgnoreLevel = kWarning;
+  CanvasName += "_"+TMS_Manager::GetInstance().Get_Reco_TrackMethod();
+  CanvasName += Form("_Cluster%i", TMS_Manager::GetInstance().Get_Reco_Clustering());
   Canvas->Print(CanvasName+".pdf[");
   gErrorIgnoreLevel = kInfo;
 }
