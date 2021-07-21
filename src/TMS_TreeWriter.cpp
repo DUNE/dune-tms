@@ -8,7 +8,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
     filename = filename.substr(filename.find("/")+1, filename.size());
   }
   TString Outputname = filename.c_str();
-  Outputname.ReplaceAll(".root", "_LineCandidates.root");
+  Outputname.ReplaceAll(".root", "_LineCandidates");
+  Outputname += "_"+TMS_Manager::GetInstance().Get_Reco_TrackMethod();
+  Outputname += Form("_Cluster%i", TMS_Manager::GetInstance().Get_Reco_Clustering());
+  Outputname += ".root";
   // Make an output file
   Output = new TFile(Outputname, "recreate");
   if (!Output->IsOpen()) {
