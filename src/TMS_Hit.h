@@ -21,7 +21,7 @@
 class TMS_Hit {
 
   public:
-    void Print();
+    void Print() const;
     // The constructor for the TMS hit
     TMS_Hit(TG4HitSegment &edep_seg);
 

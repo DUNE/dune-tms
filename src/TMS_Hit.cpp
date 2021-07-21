@@ -36,7 +36,7 @@ bool TMS_Hit::NextToGap() {
   return false;
 }
 
-void TMS_Hit::Print() {
+void TMS_Hit::Print() const {
   std::cout << "Printing TMS hit" << std::endl;
   std::cout << "EnergyDeposit: " << EnergyDeposit << std::endl;
   std::cout << "Time: " << Time << std::endl;

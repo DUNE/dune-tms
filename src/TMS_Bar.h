@@ -17,7 +17,7 @@ class TMS_Bar {
 
     // Enum for the x, y, U, V bar orientation
     enum BarType { kXBar, kYBar, kUBar, kVBar, kError };
-    std::string BarType_ToString(BarType bar);
+    std::string BarType_ToString(BarType bar) const;
 
     // Getter functions
     int GetBarNumber() const { return BarNumber; };
@@ -47,7 +47,7 @@ class TMS_Bar {
       return -9999999999;
     }
 
-    void Print();
+    void Print() const;
 
     int FindBar(double x, double y, double z);
     bool FindModules(double x, double y, double z);

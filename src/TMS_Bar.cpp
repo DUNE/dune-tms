@@ -152,7 +152,7 @@ int TMS_Bar::FindBar(double x, double y, double z) {
   return Number;
 }
 
-std::string TMS_Bar::BarType_ToString(BarType bar) {
+std::string TMS_Bar::BarType_ToString(BarType bar) const {
   if (bar == kXBar) return std::string("X-bar");
   else if (bar == kYBar) return std::string("Y-bar");
   else if (bar == kUBar) return std::string("U-bar");
@@ -160,7 +160,7 @@ std::string TMS_Bar::BarType_ToString(BarType bar) {
   return std::string("ERROR");
 }
 
-void TMS_Bar::Print() {
+void TMS_Bar::Print() const {
   std::cout << "Printing TMS bar: " << std::endl;
   std::cout << "(x, y, z) = " << "(" << x << ", " << y << ", " << z << ")" << std::endl;
   std::cout << "(xw, yw, zw) = " << "(" << xw << ", " << yw << ", " << zw << ")" << std::endl;
