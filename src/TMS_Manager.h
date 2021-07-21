@@ -31,6 +31,8 @@ class TMS_Manager {
     double Get_Reco_HOUGH_MaxSlope() { return _RECO_HOUGH_MaxSlope; };
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
 
+    bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
+
   private:
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
@@ -50,6 +52,8 @@ class TMS_Manager {
     double _RECO_HOUGH_MinSlope;
     double _RECO_HOUGH_MaxSlope;
     double _RECO_HOUGH_HitMult;
+
+    bool _RECO_ASTAR_IsGreedy;
 
 };
 

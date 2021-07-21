@@ -25,4 +25,5 @@
     HitMult = 0.2
 
   [Recon.AStar]
+    IsGreedy = false
 
