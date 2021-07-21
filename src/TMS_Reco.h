@@ -25,6 +25,8 @@
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
 
+#define __LARGE_COST__ 999999999
+
 // Utility class struct to store the node for track finding using A* or Best-First
 class aNode {
   public:
@@ -34,7 +36,7 @@ class aNode {
     //aNode(double xval, double yval, double ywval): 
     aNode(double xval, double yval) :
       x(xval), y(yval),
-      HeuristicCost(-999), NodeID(-999),
+      HeuristicCost(__LARGE_COST__), NodeID(-999),
       Heuristic(kManhattan) { // what calculator
     };
 
@@ -44,6 +46,55 @@ class aNode {
 
     bool operator==(aNode const &other) {
       return (x == other.x && y == other.y);
+    }
+
+    double CalculateGroundCost(aNode const &other) {
+      double deltax = abs(x-other.x);
+      double deltay = abs(y-other.y);
+
+      // Allow for three bars in y at maximum, 1 bar in x at maximum
+      if (deltay > 2 || deltax > 1) return (deltax+deltay)*__LARGE_COST__;
+
+      double GroundCost = 0;
+      // First add up the individual distance
+      GroundCost += (deltax+deltay)*10;
+
+      //if      (deltax+deltay == 2) GroundCost += 20;
+      //if      (deltax+deltay == 2) GroundCost += 5;
+
+      // Need to penalise diagonal connections to avoid them being preferred over non-diagonal
+      if (deltax == 2 || deltay == 2) {
+        GroundCost += 10;
+        if (deltax == 2 && deltay == 2) {
+          GroundCost += 10;
+        }
+      }
+
+      //else if (deltax+deltay == 3) GroundCost += 30;
+      //else if (deltax+deltay == 4) GroundCost += 40;
+      //else if (deltax+deltay == 5) GroundCost += 50;
+
+      // Penalise double jumps
+      //if (deltax > 1) GroundCost *= 10;
+
+      /*
+      if      (deltax == 1) GroundCost += deltax*10;
+      else if (deltax == 2) GroundCost += deltax*100;
+
+      if      (deltay == 1) GroundCost += deltay*10;
+      else if (deltay == 2) GroundCost += deltay*100;
+      else if (deltay == 3) GroundCost += deltay*200;
+
+      if      (deltax == 1 && deltay == 1) GroundCost += 10;
+      else if (deltax == 1 && deltay == 2) GroundCost += 100;
+      else if (deltax == 1 && deltay == 3) GroundCost += 1000;
+
+      if      (deltax == 2 && deltay == 1) GroundCost += 10;
+      else if (deltax == 2 && deltay == 2) GroundCost += 100;
+      else if (deltax == 2 && deltay == 3) GroundCost += 1000;
+      */
+
+      return GroundCost;
     }
 
     double Calculate(aNode const &other) {
@@ -56,8 +107,8 @@ class aNode {
 
       if (Heuristic == kManhattan) return std::abs(deltax)+std::abs(deltay);
       else if (Heuristic == kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
-      else return 999;
-      return 999;
+
+      return __LARGE_COST__;
     }
 
     void SetHeuristicCost(aNode const &other) {
@@ -84,7 +135,7 @@ class aNode {
     // What Heuristic do we use
     HeuristicType Heuristic;
 
-    void Print() {
+    void Print() const {
       std::cout << "NodeID: " << NodeID << std::endl;
       std::cout << "x, y = " << x << ", " << y << std::endl;
       std::cout << "Heuristic: " << HeuristicCost << std::endl; //" Ground: " << GroundCost << std::endl;
@@ -209,7 +260,6 @@ class TMS_TrackFinder {
     unsigned int nMaxMerges;
 
     bool IsGreedy;
-    double HighestCost;
     // Which planes are next to the gaps (i.e. may cause discontinuities)?
     std::vector<int> PlanesNearGap;
 

@@ -20,9 +20,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
   nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
   // Maximum number of merges for one hit
   nMaxMerges(1),
-  IsGreedy(false),
-  // Initialise Highest cost to be very large
-  HighestCost(999)
+  IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy())
 {
   // Apply the maximum Hough transform to the zx not zy: all bending happens in zx
   Accumulator = new int*[nSlope];
@@ -40,6 +38,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
   DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
   DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
+
 }
 
 // The generic track finder
@@ -847,12 +846,14 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
     // Find which rho bin this corresponds to
     int c_bin = FindBin(c);
 
+    /*
     if (i > nSlope || c_bin > nIntercept) {
       std::cout << "c: " << c << std::endl;
       std::cout << "m: " << m << std::endl;
       std::cout << "i: " <<  i << std::endl;
       std::cout << "cbin: " << c_bin << std::endl;
     }
+    */
 
     // Fill the accumulator
     Accumulator[i][c_bin]++;
@@ -926,7 +927,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
     //SpatialPrio(AStarHits_yz);
 
     // Copy over to the candidates
-    for (auto &i : AStarHits_xz) Candidates.push_back(std::move(i));
+    //for (auto &i : AStarHits_xz) Candidates.push_back(std::move(i));
     //for (auto &i : AStarHits_yz) Candidates.push_back(std::move(i));
 
     // Loop over vector and remove used hits
@@ -947,7 +948,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
       }
     }
     // Only push back if we have more than one candidate
-    if (Candidates.size() > 1) HoughCandidates.push_back(std::move(Candidates));
+    if (AStarHits_xz.size() > nMinHits) HoughCandidates.push_back(std::move(AStarHits_xz));
     nRuns++;
   }
 #ifdef DEBUG
@@ -1043,8 +1044,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   //aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
   aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetBarNumber());
 
-  std::cout << "Last hit we calculate heuristic cost to" << std::endl;
-  Last.Print();
+  //std::cout << "Last hit we calculate heuristic cost to" << std::endl;
+  //Last.Print();
 
   // Also convert the TMS_Hit to our path-node
   std::vector<aNode> Nodes;
@@ -1065,13 +1066,29 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     Nodes.push_back(std::move(TempNode));
   }
 
+  // Now that we have the Heuristic cost calculated, we can set the first node as the node in the most upstream layer with the smallest Heuristic cost
+  int lowest_index = 0;
+  double lowest_heur = 999;
+  int firstlayer = 999;
+  for (size_t i = 0; i < Nodes.size(); ++i) {
+    // Check nodes is in first layers
+    int layer = Nodes[i].x;
+    if (layer > firstlayer) continue;
+    // Save the first layer
+    firstlayer = layer;
+    // Check if the heuristic cost is smaller
+    if (Nodes[i].HeuristicCost < lowest_heur && Nodes[i].Neighbours.size() > 0) {
+      lowest_heur = Nodes[i].HeuristicCost;
+      lowest_index = i;
+    }
+  }
+  //std::cout << "Index of lowest heuristic hit: " << lowest_index << " in layer " << firstlayer << " with heuristic = " << lowest_heur << std::endl;
+  std::swap(Nodes[0], Nodes[lowest_index]);
+
   // Can probably evaluate the last node here: if heuristic is large for the 5 nearest hits it's likely wrong?
 
   // Now find the neighbours of each node
   for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
-
-    double x = (*it).x;
-    double y = (*it).y;
 
     for (std::vector<aNode>::iterator jt = Nodes.begin(); jt != Nodes.end(); ++jt) {
 
@@ -1080,48 +1097,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
       // Get the address
       aNode* Pointer = &(*jt);
-
-      double xcan = Pointer->x;
-      int DeltaPlane = xcan-x;
-
-      double y_n = (*jt).y;
-      double DeltaY_Trunc = fabs(y_n-y);
-
-      // Allow for three bars in y at maximum, 1 bar in x at maximum
-      if (abs(DeltaY_Trunc) > 3 || abs(DeltaPlane) > 1) continue;
-
-      // And the ground cost will update as we go along?
-      // The ground cost depends on if a diagonal or not is connected
-      double GroundCost = HighestCost;
-
-      // left/right
-      if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 1) GroundCost = 10;
-      // up/down
-      else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 0) GroundCost = 10;
-      // diagonal->prefer left/right followed by up/down
-      else if (abs(DeltaY_Trunc) == 1 && abs(DeltaPlane) == 1) GroundCost = 40;
-      // up/down by 2 (missing one bar) -- make less preferntial than two single moves
-      // necessary for missing deposits
-      else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 0) GroundCost = 40;
-      // diagonal and missing 1 y-bar
-      // necessary for missing deposits
-      else if (abs(DeltaY_Trunc) == 2 && abs(DeltaPlane) == 1) GroundCost = 60;
-      // diagonal and missing 2 bar
-      // necessary for missing deposits
-      else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 1) GroundCost = 120;
-      // up/down by 3 (missing three bars)
-      // necessary for missing deposits
-      else if (abs(DeltaY_Trunc) == 3 && abs(DeltaPlane) == 0) GroundCost = 90;
-      // If we've truncated
-      else if (abs(DeltaY_Trunc) == 0 && abs(DeltaPlane) == 0) GroundCost = 0;
-
-      // This should never happen but is a very very useful check!
-      if (GroundCost == HighestCost) {
-        std::cout << "Missed exception!" << std::endl;
-        std::cout << "DeltaY_Trunc: " << DeltaY_Trunc << std::endl;
-        std::cout << "DeltaPlane: " << DeltaPlane << std::endl;
-        throw;
-      }
+      // Only connect adjacent nodes to make calculation much faster
+      if (abs((*jt).x - (*it).x) > 2 || abs((*jt).y - (*jt).y) > 2) continue;
+      double GroundCost = (*it).CalculateGroundCost(*jt);
 
       // If a greedy algorithm, have no ground cost (only condition on getting closer to the goal)
       if (IsGreedy) GroundCost = 0;
@@ -1131,7 +1109,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     }
   }
 
+
   // Now finally loop over all hits and output them
+  /*
   for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
     std::cout << "****" << std::endl;
     (*it).Print();
@@ -1142,8 +1122,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       std::cout << "  move cost: " << i.second << std::endl;
     }
   }
+  */
 
-  /*
   // Remove hits that only have one neighbour?
 
   // Look at the first hit and see how many neighbours its neighbour has
@@ -1152,28 +1132,41 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   while (total > nrem && Nodes[nrem].Neighbours.size() < 1) {
     nrem++;
   }
-  std::cout << "Removed " << nrem << " nodes from back without neighbours" << std::endl;
+  //std::cout << "Removed " << nrem << " nodes from front without neighbours" << std::endl;
+  //std::cout << "total: " << total << std::endl;
+  if (nrem == total) {
+    std::vector<TMS_Hit> emptyvec;
+    return emptyvec;
+  }
 
+  /*
   // If there's only one neighbour and its only neigbour is the start
      if (Nodes[nrem].Neighbours.size() == 1 &&
      Nodes[nrem+1].Neighbours.find(&Nodes[nrem]) != Nodes[nrem+1].Neighbours.end()) {
      nrem++;
      }
-  // Do the same for the front
+  */
+
+  /*
+  // Do the same for the back: make sure end point has neighbours
   unsigned int nrem_front = 0;
-  while (total > nrem_front && Nodes[total-nrem_front].Neighbours.size() < 1) {
+  while (total-nrem > nrem_front && Nodes[total-nrem_front].Neighbours.size() < 1) {
     nrem_front++;
   }
   std::cout << "Remove " << nrem_front << " nodes from front without neighbours" << std::endl;
+  */
 
   // Return if there are no nodes left
+  /*
   if (nrem >= total || nrem_front >= total) {
     std::vector<TMS_Hit> empt;
     return empt;
   }
+  */
 
   // Recalculate the heuristic
   //if (nrem_front > 1) nrem_front--;
+  /*
   for (auto &i: Nodes) {
     i.SetHeuristicCost(Nodes.at(total-nrem_front-1));
   }
@@ -1189,9 +1182,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   std::priority_queue<aNode, std::vector<aNode> > pq;
 
   //if (nrem > 1) nrem--;
-  pq.push(Nodes.at(0));
-  cost_so_far[0] = 0;
-  came_from[0] = 0;
+  pq.push(Nodes.at(nrem));
+  cost_so_far[nrem] = 0;
+  came_from[nrem] = 0;
   // Keep track when we hit the last point
   bool LastPoint = false;
   while (!pq.empty()) {
@@ -1231,9 +1224,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Now push back the candidates by tracing the path
   std::vector<TMS_Hit> returned;
+  //std::cout << "Printing priority queue: " << std::endl;
   while (NodeID != 0) {
     returned.push_back(TMS_xz[NodeID]);
+    //std::cout << "Node: " << std::endl;
+    //Nodes[NodeID].Print();
+    //std::cout << "Came from: " << std::endl;
     NodeID = came_from[NodeID];
+    //Nodes[NodeID].Print();
     // If the current node came from itself, we've reached the end
     if (NodeID == came_from[NodeID]) {
       returned.push_back(TMS_xz[NodeID]);
