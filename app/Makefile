@@ -37,7 +37,7 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe
 
 directories: $(EXE_DIR)
 
@@ -57,6 +57,9 @@ $(EXE_DIR)/DrawEvents.exe: DrawEvents.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 $(EXE_DIR)/TrackLengthTester.exe: TrackLengthTester.cpp
+	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^  -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
+
+$(EXE_DIR)/ShootRay.exe: ShootRay.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^  -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 clean:
