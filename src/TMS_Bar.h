@@ -54,6 +54,8 @@ class TMS_Bar {
 
     double FindYbar(double yval);
 
+    bool CheckBar();
+
     // Find if a 2D point is inside the bar
     // x here denotes the other view than z
     // can be both x and y views (depending on bar type)!

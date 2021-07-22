@@ -119,6 +119,8 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // Reset the geom navigator node level in case it's used again
   geom->FindNode(xval,yval,zval);
 
+  CheckBar();
+
   return true;
 }
 
@@ -181,4 +183,31 @@ double TMS_Bar::FindYbar(double yval) {
   double val = ymin+bin*40+20;
 
   return val;
+}
+
+bool TMS_Bar::CheckBar() {
+
+  // Sanity check the global bar number
+  if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
+    std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
+    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+    throw;
+    return false;
+  }
+
+  if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
+    std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
+    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+    throw;
+    return false;
+  }
+
+  if (PlaneNumber >= TMS_Const::nPlanes || PlaneNumber < 0) {
+    std::cerr << "Plane number does not agree with expectation of between 0 to " << TMS_Const::nPlanes << std::endl;
+    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+    throw;
+    return false;
+  }
+
+  return true;
 }
