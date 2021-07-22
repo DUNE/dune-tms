@@ -94,6 +94,10 @@ namespace TMS_Const {
   const std::string LAr_ActiveName = "volTPCActive";
 
   const double TMS_Small_Num = 1.E-5;
+
+  const int nModulesPerSubModule = 48;
+  const int nModules = 8;
+  const int nPlanes = 100;
 }
 
 #endif

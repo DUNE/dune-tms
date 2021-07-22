@@ -12,6 +12,7 @@
 #include "CLHEP/Units/SystemOfUnits.h"
 
 #include "TMS_Manager.h"
+#include "TMS_Constants.h"
 
 // Define the TMS geometry singleton
 class TMS_Geom {
@@ -150,6 +151,88 @@ class TMS_Geom {
 
       return TotalPathLength;
     };
+
+    std::vector<std::pair<std::string, const double*> > GetNodes(const TVector3 &point1, const TVector3 &point2) {
+
+      // First cd the navigator to the starting point
+      geom->FindNode(point1.X(), point1.Y(), point1.Z());
+
+      // Go between the two points
+      // Set the current point to be the current point
+      geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
+      // Set the direction
+      geom->SetCurrentDirection((point2-point1).Unit().X(), 
+          (point2-point1).Unit().Y(), 
+          (point2-point1).Unit().Z());
+      
+      std::vector<std::pair<std::string, const double*> > Nodes;
+
+      // Walk through until we're in the same volume as our final point
+      while (!geom->IsSameLocation(point2.X(), point2.Y(), point2.Z())) {
+        // Get the material of the current point
+        std::string nodename = std::string(geom->GetCurrentNode()->GetName());
+        const double *pos = geom->GetCurrentPoint();
+
+        // Step into the next volume
+        geom->FindNextBoundaryAndStep();
+
+        // Push back the information
+        std::pair<std::string, const double*> temp(nodename, pos);
+        Nodes.push_back(temp);
+      }
+
+      return Nodes;
+    }
+
+    std::vector<std::pair<int*, const double*> > GetUniquePlaneBarIdent(const TVector3 &point1, const TVector3 &point2) {
+
+      // First cd the navigator to the starting point
+      geom->FindNode(point1.X(), point1.Y(), point1.Z());
+
+      // Go between the two points
+      // Set the current point to be the current point
+      geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
+      // Set the direction
+      geom->SetCurrentDirection((point2-point1).Unit().X(), 
+          (point2-point1).Unit().Y(), 
+          (point2-point1).Unit().Z());
+      
+      std::vector<std::pair<int*, const double*> > Nodes;
+
+      // Walk through until we're in the same volume as our final point
+      while (!geom->IsSameLocation(point2.X(), point2.Y(), point2.Z())) {
+        const double *pos = geom->GetCurrentPoint();
+        std::string NodeName = std::string(geom->FindNode(pos[0], pos[1], pos[2])->GetName());
+        // Plane, bar, global
+        int *Plane = new int[3];
+
+        // cd up in the geometry to find the right name
+        while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos &&
+               NodeName.find(TMS_Const::TMS_EDepSim_VolumeName) == std::string::npos) {
+
+          // We've found the plane number
+          if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+            Plane[0] = geom->GetCurrentNode()->GetNumber();
+          } else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
+            Plane[1] = geom->GetCurrentNode()->GetNumber();
+          } else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
+            Plane[2] = geom->GetCurrentNode()->GetNumber();
+          }
+
+          geom->CdUp();
+          NodeName = std::string(geom->GetCurrentNode()->GetName());
+        }
+
+        // Step into the next volume
+        geom->FindNextBoundaryAndStep();
+
+        // Push back the information
+        std::pair<int*, const double*> temp(Plane, pos);
+        Nodes.push_back(temp);
+      }
+
+      return Nodes;
+    }
 
 
   private:
