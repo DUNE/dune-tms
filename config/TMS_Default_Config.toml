@@ -7,18 +7,18 @@
   MinHits = 10
 
   # Track reco; Hough, AStar, DBSCAN
-  TrackMethod = "Hough"
+  #TrackMethod = "Hough"
   #TrackMethod = "AStar"
-  #TrackMethod = "DBSCAN"
+  TrackMethod = "DBSCAN"
 
   # Run clustering algorithm (DBSCAN) after track finding?
   Clustering = true
 
   [Recon.DBSCAN]
     # The minimum points for the DBSCAN clustering algorithm
-    MinPoints = 2
+    MinPoints = 3
     # How far away can a bar/plane combination be to include in a cluster
-    Epsilon = 3.0
+    Epsilon = 2.5
 
   [Recon.Hough]
     # The highest number of transform we can run
