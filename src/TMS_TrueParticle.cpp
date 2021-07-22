@@ -19,14 +19,14 @@ void TMS_TrueParticle::Print() {
   std::cout << "  Size of points vector: " << PositionPoints.size() << std::endl;
   std::cout << "  Position of hits: " << std::endl;
   int it = 0;
-  for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i) {
+  for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i,++it) {
     std::cout << "  Point " << it << "/" << PositionPoints.size() << std::endl;
     (*i).Print();
   }
 
   std::cout << "  Momentum at trajectory points: " << MomentumPoints.size() << std::endl;
   it = 0;
-  for (auto i = MomentumPoints.begin(); i != MomentumPoints.end(); ++i) {
+  for (auto i = MomentumPoints.begin(); i != MomentumPoints.end(); ++i,++it) {
     std::cout << "  Point " << it << "/" << MomentumPoints.size() << std::endl;
     (*i).Print();
   }
