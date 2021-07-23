@@ -17,7 +17,7 @@
 // The general event class
 class TMS_Event {
   public:
-    TMS_Event(TG4Event &event);
+    TMS_Event(TG4Event &event, bool FillEvent = true);
     //~TMS_Event();
 
     // The getters once the class is completed
