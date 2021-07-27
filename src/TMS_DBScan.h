@@ -5,12 +5,12 @@
 #include <vector>
 
 // Enum for how a point has been classified
-enum PointClassifier { kUnclassified = -1, kNoise = 0, kCore, kBorder };
+enum class PointClassifier { kUnclassified = -1, kNoise = 0 };
 
 // Just a struct to keep the info
 class TMS_DBScan_Point {
   public:
-    TMS_DBScan_Point(double xvar, double yvar, double zvar) : x(xvar), y(yvar), z(zvar), ClusterID(kUnclassified) {};
+    TMS_DBScan_Point(double xvar, double yvar, double zvar) : x(xvar), y(yvar), z(zvar), ClusterID(int(PointClassifier::kUnclassified)) {};
     // Positions
     double x, y, z;
     // Which cluster does it belong to
@@ -92,7 +92,7 @@ class TMS_DBScan {
       int nClusters = GetNClusters();
       vect.resize(nClusters);
       for (auto &i : _Points) {
-        if (i.ClusterID > kNoise) {
+        if (i.ClusterID > int(PointClassifier::kNoise)) {
           vect[i.ClusterID-1].push_back(std::move(i));
         }
       }
@@ -103,7 +103,7 @@ class TMS_DBScan {
     std::vector<TMS_DBScan_Point> GetNoise() {
       std::vector<TMS_DBScan_Point> vect;
       for (auto &i : _Points) {
-        if (i.ClusterID == kNoise) {
+        if (i.ClusterID == int(PointClassifier::kNoise)) {
           vect.push_back(std::move(i));
         }
       }
@@ -114,7 +114,7 @@ class TMS_DBScan {
     int GetNNoise() {
       int NoiseHits = 0;
       for (auto &i : _Points) {
-        if (i.ClusterID == kNoise) NoiseHits++;
+        if (i.ClusterID == int(PointClassifier::kNoise)) NoiseHits++;
       }
       return NoiseHits;
     }
@@ -123,7 +123,7 @@ class TMS_DBScan {
     int GetNUnclassified() {
       int Unclassified = 0;
       for (auto &i : _Points) {
-        if (i.ClusterID == kUnclassified) Unclassified++;
+        if (i.ClusterID == int(PointClassifier::kUnclassified)) Unclassified++;
       }
       return Unclassified;
     }
@@ -141,13 +141,13 @@ class TMS_DBScan {
       // Start the loop over the points
       for (auto &i: _Points) {
         // Check if point has been classified already
-        if (i.ClusterID != kUnclassified) continue;
+        if (i.ClusterID != int(PointClassifier::kUnclassified)) continue;
           // This is the "inner loop"
           if (GrowCluster(i, ClusterID)) {
             ClusterID++;
           }
           // If this point has no neighbours it's noise
-          else i.ClusterID = kNoise;
+          else i.ClusterID = int(PointClassifier::kNoise);
       }
       // If we haven't found any clusters, the DBSCAN has failed
       if (ClusterID == 1) {
@@ -161,7 +161,7 @@ class TMS_DBScan {
       std::vector<int> Neighbours = FindNeighbours(Point);
       // Check it has more neighbours than our minimum requirement
       if (Neighbours.size() < _MinPoints) {
-        Point.ClusterID = kNoise;
+        Point.ClusterID = int(PointClassifier::kNoise);
         return false;
       }
 
@@ -195,9 +195,9 @@ class TMS_DBScan {
         // Go through to find the cluster IDs
         for (auto &j: Neighbours_Neighbour) {
           // If point is unclassified or noise, check it
-          if (_Points[j].ClusterID == kUnclassified ||
-              _Points[j].ClusterID == kNoise) {
-            if (_Points[j].ClusterID == kUnclassified) {
+          if (_Points[j].ClusterID == int(PointClassifier::kUnclassified) ||
+              _Points[j].ClusterID == int(PointClassifier::kNoise)) {
+            if (_Points[j].ClusterID == int(PointClassifier::kUnclassified)) {
               Neighbours.push_back(j);
               // Updated the n
               n = Neighbours.size();

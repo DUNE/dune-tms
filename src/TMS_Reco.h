@@ -27,23 +27,32 @@
 
 #define __LARGE_COST__ 999999999
 
-enum TrackMethod {
+enum class TrackMethod {
   kHough,
   kAStar,
-  kDBSCAN
+  kDBSCAN,
+  kUnknown
+};
+
+enum class HeuristicType { 
+  kManhattan, 
+  kEuclidean, 
+  kDetectorZ,
+  kDetectorNotZ,
+  kUnknown
 };
 
 // Utility class struct to store the node for track finding using A* or Best-First
 class aNode {
   public:
 
-    enum HeuristicType { kManhattan, kEuclidean, kUnkown };
 
     //aNode(double xval, double yval, double ywval): 
     aNode(double xval, double yval) :
       x(xval), y(yval),
       HeuristicCost(__LARGE_COST__), NodeID(-999),
-      Heuristic(kManhattan) { // what calculator
+      //Heuristic(kManhattan) { // what calculator
+      Heuristic(HeuristicType::kEuclidean) { // what calculator
     };
 
     aNode(double xval, double yval, int ID): aNode(xval, yval) {
@@ -63,7 +72,7 @@ class aNode {
 
       double GroundCost = 0;
       // First add up the individual distance
-      GroundCost += (deltax+deltay)*10;
+      GroundCost += (deltax+2*deltay)*10;
 
       //if      (deltax+deltay == 2) GroundCost += 20;
       //if      (deltax+deltay == 2) GroundCost += 5;
@@ -111,8 +120,10 @@ class aNode {
       // Moving 1 plane up is 10 ground cost, so reflect that here too
       double deltay = (y-other.y)*10;
 
-      if (Heuristic == kManhattan) return std::abs(deltax)+std::abs(deltay);
-      else if (Heuristic == kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
+      if      (Heuristic == HeuristicType::kManhattan) return std::abs(deltax)+std::abs(deltay);
+      else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
+      else if (Heuristic == HeuristicType::kDetectorZ) return std::abs(deltax);
+      else if (Heuristic == HeuristicType::kDetectorNotZ) return std::abs(deltay);
 
       return __LARGE_COST__;
     }
@@ -271,6 +282,8 @@ class TMS_TrackFinder {
 
     TH1D *Efficiency;
     TH1D *Total;
+
+    HeuristicType kHeuristic;
 
     bool UseClustering;
     TrackMethod kTrackMethod;

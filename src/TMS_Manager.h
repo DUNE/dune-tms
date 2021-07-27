@@ -33,6 +33,7 @@ class TMS_Manager {
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
+    std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
 
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
@@ -58,6 +59,7 @@ class TMS_Manager {
     double _RECO_HOUGH_HitMult;
 
     bool _RECO_ASTAR_IsGreedy;
+    std::string _RECO_ASTAR_CostMetric;
 
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;

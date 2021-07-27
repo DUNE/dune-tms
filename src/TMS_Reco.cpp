@@ -44,14 +44,34 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
   // Set up the tracker algorithm
   std::string trackname = TMS_Manager::GetInstance().Get_Reco_TrackMethod();
-  if      (trackname == "Hough")  kTrackMethod = kHough;
-  else if (trackname == "AStar")  kTrackMethod = kAStar;
-  else if (trackname == "DBSCAN") kTrackMethod = kDBSCAN;
+  if      (trackname == "Hough")  kTrackMethod = TrackMethod::kHough;
+  else if (trackname == "AStar")  kTrackMethod = TrackMethod::kAStar;
+  else if (trackname == "DBSCAN") kTrackMethod = TrackMethod::kDBSCAN;
   else {
     std::cerr << "Invalid track reconstruction method provided to TMS reconstruction" << std::endl;
     std::cerr << "You provided: " << trackname << std::endl;
     std::cerr << "Options are: Hough, AStar, DBSCAN" << std::endl;
+    kTrackMethod = TrackMethod::kUnknown;
     throw;
+  }
+
+  std::string heuristicname = TMS_Manager::GetInstance().Get_Reco_ASTAR_CostMetric();
+  if      (heuristicname == "Euclidean") kHeuristic = HeuristicType::kEuclidean;
+  else if (heuristicname == "Manhattan") kHeuristic = HeuristicType::kManhattan;
+  else if (heuristicname == "DetectorZ") kHeuristic = HeuristicType::kDetectorZ;
+  else if (heuristicname == "DetectorNotZ") kHeuristic = HeuristicType::kDetectorNotZ;
+  else {
+    std::cerr << "Invalid AStar heuristic method provided to TMS reconstruction" << std::endl;
+    std::cerr << "You provided: " << heuristicname << std::endl;
+    std::cerr << "Options are: Euclidean, Manhattan, DetectorZ, DetectorNotZ" << std::endl;
+    kHeuristic = HeuristicType::kUnknown;
+    throw;
+  }
+
+  std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;
+  std::cout << "Using DBSCAN for clustering after main track finding? " << UseClustering << std::endl;
+  if (kTrackMethod == TrackMethod::kAStar) {
+    std::cout << "Using " << heuristicname << " for A* heuristic cost calculation" << std::endl;
   }
 
 
@@ -87,9 +107,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 #endif
 
   // Hough
-  if (kTrackMethod == kHough) {
+  if (kTrackMethod == TrackMethod::kHough) {
     HoughTransform(CleanedHits);
-  } else if (kTrackMethod == kAStar) {
+  } else if (kTrackMethod == TrackMethod::kAStar) {
     BestFirstSearch(CleanedHits);
   }
 
@@ -913,6 +933,8 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 // Implement A* algorithm for track finding, starting with most upstream to most downstream hit
 void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
 
+  // Set the Heuristic cost calculator
+
   // First remove duplicate hits
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
 
@@ -1081,6 +1103,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     // Make the node
     aNode TempNode(x, y, NodeID);
     // Calculate the Heuristic cost for each of the nodes to the last point
+    // This could probably be updated less often...
+    TempNode.SetHeuristic(kHeuristic);
     TempNode.SetHeuristicCost(Last);
 
     Nodes.push_back(std::move(TempNode));
@@ -1258,6 +1282,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       break;
     }
   }
+
+  // Could walk upstream and downstream from here on
 
   // Put in some check to see if we connected the nodes from 0 to NodeID_{highest}?
 

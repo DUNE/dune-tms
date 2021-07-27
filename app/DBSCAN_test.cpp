@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   // Now make some TGraphs showing each cluster
   int npoint = 0;
   for (auto &i: Scanned) {
-    if (i.ClusterID != kNoise) Graphs[i.ClusterID-1]->SetPoint(npoint, i.x, i.y);
+    if (i.ClusterID != int(PointClassifier::kNoise)) Graphs[i.ClusterID-1]->SetPoint(npoint, i.x, i.y);
     else Noise->SetPoint(npoint, i.x, i.y);
     npoint++;
   }

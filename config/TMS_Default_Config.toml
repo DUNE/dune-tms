@@ -8,8 +8,8 @@
 
   # Track reco; Hough, AStar, DBSCAN
   #TrackMethod = "Hough"
-  #TrackMethod = "AStar"
-  TrackMethod = "DBSCAN"
+  TrackMethod = "AStar"
+  #TrackMethod = "DBSCAN"
 
   # Run clustering algorithm (DBSCAN) after track finding?
   Clustering = true
@@ -33,5 +33,9 @@
     HitMult = 0.2
 
   [Recon.AStar]
+    #CostMetric = "Manhattan"
+    #CostMetric = "Euclidean"
+    CostMetric = "DetectorZ"
+    #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
