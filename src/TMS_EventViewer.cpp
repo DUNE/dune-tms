@@ -44,7 +44,7 @@ DrawTrackFinding(false) {
 
   // The canvas
   Canvas = new TCanvas("TMS_EventViewer", "TMS_EventViewer", 1024, 1024);
-  Canvas->Divide(2);
+  Canvas->Divide(3);
   //Canvas->cd(1)->SetLeftMargin(Canvas->GetLeftMargin()*1.2);
   //Canvas->cd(1)->SetRightMargin(Canvas->GetRightMargin()*1.5);
 
@@ -168,6 +168,49 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     }
   }
 
+  // Get the true particle's trajectories
+  std::vector<TMS_TrueParticle> traj = event.GetTrueParticles();
+  int ntraj = traj.size();
+  // Make a TGraph for each trajectory
+  std::vector<TGraph*> trajgraphs(ntraj);
+  // Loop over the trajectories
+  int it = 0;
+  for (auto i = traj.begin(); i != traj.end(); ++i,it++) {
+    TGraph *tempgraph = new TGraph((*i).GetPositionPoints().size());
+    int npoints = int(((*i).GetPositionPoints()).size());
+    for (int j = 0; j < npoints; ++j) {
+      tempgraph->SetPoint(j, (*i).GetPositionPoints()[j].Z(), (*i).GetPositionPoints()[j].X());
+    }
+
+    // Set a specific marker from primary particles
+    tempgraph->SetMarkerStyle(24);
+    tempgraph->SetMarkerSize(0.4);
+    if ((*i).GetParent() == -1) {
+      tempgraph->SetMarkerStyle(25);
+      tempgraph->SetMarkerSize(1.0);
+    } 
+
+    if (abs((*i).GetPDG()) == 13) {
+      tempgraph->SetMarkerColor(kYellow-3);
+    } else if (abs((*i).GetPDG()) == 11) {
+      tempgraph->SetMarkerColor(kGreen-2);
+    } else if (abs((*i).GetPDG()) == 211) {
+      tempgraph->SetMarkerColor(kRed-7);
+    } else if (abs((*i).GetPDG()) == 2212) {
+      tempgraph->SetMarkerColor(kMagenta-7);
+    } else if (abs((*i).GetPDG()) == 2112) {
+      tempgraph->SetMarkerColor(kCyan-3);
+      tempgraph->SetMarkerSize(0.1);
+      tempgraph->SetMarkerStyle(31);
+    } else if (abs((*i).GetPDG()) == 22) {
+      tempgraph->SetMarkerColor(kGray);
+      tempgraph->SetMarkerSize(0.1);
+      tempgraph->SetMarkerStyle(31);
+    }
+
+    trajgraphs[it] = tempgraph;
+  }
+
   // Loop over the reconstructed tracks to overlay with hits
   //std::vector<TMS_Hit> Candidates = TMS_TrackFinder::GetFinder().GetCandidates();
   //std::vector<std::vector<TMS_Hit> > TotalCandidates = TMS_TrackFinder::GetFinder().GetTotalCandidates();
@@ -222,6 +265,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<std::pair<bool, TF1*> > HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
 
   gStyle->SetPalette(kBird);
+
+  // Draw the raw hits
   Canvas->cd(1); 
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
@@ -231,7 +276,21 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
 
-  Canvas->cd(2);
+  // Draw the true trajectories
+  Canvas->cd(2); 
+  xz_view->Draw("colz");
+  xz_box_FV->Draw("same");
+  xz_box_Full->Draw("same");
+  xz_dead_top->Draw("same");
+  xz_dead_center->Draw("same");
+  xz_dead_bottom->Draw("same");
+  xz_Thin_Thick->Draw("same");
+  for (int i = 0; i < int(trajgraphs.size()); ++i) {
+    if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+  }
+
+  // Draw the reconstructed tracks 
+  Canvas->cd(3);
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -240,7 +299,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
   for (auto graph: HoughGraphVect) graph->Draw("P,same");
-  int it = 0;
+  it = 0;
   for (auto i : HoughLines) {
     if (i.first == true) {
       i.second->SetLineColor(it);
@@ -286,6 +345,11 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (int i = 0; i < nLines; ++i) {
     delete HoughGraphVect[i];
   }
+
+  for (int i = 0; i < int(trajgraphs.size()); ++i) {
+    delete trajgraphs[i];
+  }
+
   gErrorIgnoreLevel = kInfo;
 
   nDraws++;

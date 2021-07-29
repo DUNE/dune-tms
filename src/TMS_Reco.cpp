@@ -209,7 +209,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   }
 
   double efficiency = double(nFoundHits)/nTrueHits;
-  double muonmom = muon.GetInitialTMSMomentum().Mag();
+  double muonmom = muon.GetInitialMomentum().Mag();
 
   double muonke = sqrt(muonmom*muonmom+TMS_KinConst::mass_mu*TMS_KinConst::mass_mu) - TMS_KinConst::mass_mu;
   muonke /= 1E3;

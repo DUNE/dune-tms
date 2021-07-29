@@ -29,6 +29,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Truth_Info->SetDirectory(Output);
   Truth_Info->SetAutoSave(__TMS_AUTOSAVE__);
 
+  // Make a metadata branch
+  //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
+
+
   MakeBranches();
 }
 
@@ -77,15 +81,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
 
-    MuonP4[0] = (*it).GetMomentum().Px();
-    MuonP4[1] = (*it).GetMomentum().Py();
-    MuonP4[2] = (*it).GetMomentum().Pz();
-    MuonP4[3] = (*it).GetMomentum().E();
-    Muon_Vertex[0] = (*it).GetPosition().X();
-    Muon_Vertex[1] = (*it).GetPosition().Y();
-    Muon_Vertex[2] = (*it).GetPosition().Z();
-    Muon_Vertex[3] = (*it).GetPosition().T();
+    MuonP4[0] = (*it).GetBirthMomentum().Px();
+    MuonP4[1] = (*it).GetBirthMomentum().Py();
+    MuonP4[2] = (*it).GetBirthMomentum().Pz();
+    MuonP4[3] = (*it).GetBirthEnergy();
+    Muon_Vertex[0] = (*it).GetBirthPosition().X();
+    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
+    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
+    Muon_Vertex[3] = (*it).GetBirthPosition().T();
   }
 
   Truth_Info->Fill();

@@ -13,6 +13,7 @@
 
   # Run clustering algorithm (DBSCAN) after track finding?
   Clustering = true
+  #Clustering = false
 
   [Recon.DBSCAN]
     # The minimum points for the DBSCAN clustering algorithm
@@ -39,3 +40,6 @@
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
+# Options for processing and saving truth information
+[Truth]
+  LightWeight = false

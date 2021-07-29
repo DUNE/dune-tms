@@ -10,6 +10,13 @@
 // Constants
 namespace TMS_KinConst {
   const double mass_mu = 105.6583755; // Muon mass in MeV/c2
+  const double mass_e = 0.510998950; // electron mass in MeV/c2
+  const double mass_tau = 1776.86; // tau mass in MeV/c2
+  const double mass_pic = 139.57039; // charged pion mass in MeV/c2
+  const double mass_pi0 = 134.9768; // neutral pion mass in MeV/c2
+
+  const double mass_proton = 938.27208816; // proton mass in MeV/c2
+  const double mass_neutron = 939.56542052; // neutron mass in MeV/c2
 }
 
 // General constants for the TMS

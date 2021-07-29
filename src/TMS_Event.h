@@ -44,22 +44,33 @@ class TMS_Event {
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
 
   private:
+    bool LightWeight; // Don't save all true trajectories; only save significant ones
+
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
-    // True particles
+
+    // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
+
+    // Primary particles from neutrino event; before G4 is run
+    std::vector<TMS_TrueParticle> TMS_TruePrimaryParticles;
+
     // Reconstructed tracks
     //std::vector<TMS_Track> TMS_Tracks;
 
-    // Spill number (can have many events in a spill)?
-    //int SpillNumber;
+    // The number of true trajectories right out of edep-sim
+    // No energy cuts, or number of deposits etc checked
+    int nTrueTrajectories;
+
     std::string Reaction;
  
     // Counts how many times constructor has been called
     static int EventCounter;
+
     // Saves the event number for a constructed event
     int EventNumber;
 
+    // Saves down the true Neutrino information from the gRooTracker passthrough (not available in edep-sim or G4)
     std::pair<TLorentzVector,int> TrueNeutrino;
 };
 

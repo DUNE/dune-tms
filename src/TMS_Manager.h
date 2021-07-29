@@ -38,6 +38,8 @@ class TMS_Manager {
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
+    bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
+
   private:
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
@@ -63,6 +65,9 @@ class TMS_Manager {
 
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;
+
+    // Lightweight trajectory saving (ignore small trajectories and gammas)
+    bool _TRUTH_LIGHTWEIGHT;
 };
 
 #endif
