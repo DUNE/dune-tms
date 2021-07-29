@@ -7,6 +7,7 @@
 #include "TStopwatch.h"
 #include "TLorentzVector.h"
 #include "TH2D.h"
+#include "TGraph.h"
 #include "TCanvas.h"
 #include "TGeoManager.h"
 #include "TStyle.h"
@@ -37,6 +38,14 @@ int main(int argc, char** argv) {
   TFile *input = new TFile(filename.c_str(), "open");
   // The EDepSim events
   TTree *events = (TTree*)input->Get("EDepSimEvents");
+  // Get the detector geometry
+  TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
+
+  // The global manager
+  TMS_Manager::GetInstance().SetFileName(filename);
+
+  // Load up the geometry
+  TMS_Geom::GetInstance().SetGeometry(geom);
   // The generator pass-through information
   TTree *gRoo = (TTree*)input->Get("DetSimPassThru/gRooTracker");
   // Get the true neutrino vector from the gRooTracker object
@@ -48,13 +57,12 @@ int main(int argc, char** argv) {
   gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
   gRoo->SetBranchAddress("StdHepP4", StdHepP4);
 
-
   // Get the event
   TG4Event *event = NULL;
   events->SetBranchAddress("Event", &event);
 
   int N_entries = events->GetEntries();
-  N_entries = 1000;
+  //N_entries = 1000;
   const double zmin = 3000;
   const double zmax = 19000;
   const double xmin = -4000;
@@ -168,7 +176,7 @@ int main(int argc, char** argv) {
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
 
-    TMS_Event tms_event = TMS_Event(*event, false);
+    TMS_Event tms_event = TMS_Event(*event, true);
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
 
     int pdg = tms_event.GetNeutrinoPDG();
@@ -177,22 +185,67 @@ int main(int argc, char** argv) {
     reaction.ReplaceAll(";",",");
     plot->SetTitle(Form("#splitline{Event %i, #nu PDG: %i, E_{#nu}=%.2f GeV}{%s}", i, pdg, enu, reaction.Data()));
 
-    // Just extract the hits from the edep-sim event
-    for (TG4HitSegmentDetectors::iterator jt = event->SegmentDetectors.begin(); jt != event->SegmentDetectors.end(); ++jt) {
-      TG4HitSegmentContainer tms_hits = (*jt).second;
-      for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
-        TG4HitSegment edep_hit = *kt;
-        TLorentzVector Position = (edep_hit.GetStop()+edep_hit.GetStart());
-        Position *= 0.5;
-        plot->Fill(Position.Z(), Position.X(), edep_hit.GetEnergyDeposit());
-        pos[0] = Position.X();
-        pos[1] = Position.Y();
-        pos[2] = Position.Z();
-        pos[3] = Position.T();
-        energy = edep_hit.GetEnergyDeposit();
-        outtree->Fill();
-      }
+    std::vector<TMS_Hit> TMS_Hits = tms_event.GetHits();
+    // First draw the hits
+    for (auto i = TMS_Hits.begin(); i != TMS_Hits.end(); ++i) {
+      double x = (*i).GetTrueHit().GetX();
+      double y = (*i).GetTrueHit().GetY();
+      double z = (*i).GetTrueHit().GetZ();
+      double t = (*i).GetTrueHit().GetT();
+      double e = (*i).GetTrueHit().GetE();
+      plot->Fill(z, x, e);
+      pos[0] = x;
+      pos[1] = y;
+      pos[2] = z;
+      pos[3] = t;
+      energy = e;
+      outtree->Fill();
     }
+
+    // Get the true particle's trajectories
+    std::vector<TMS_TrueParticle> traj = tms_event.GetTrueParticles();
+    int ntraj = traj.size();
+    // Make a TGraph for each trajectory
+    std::vector<TGraph*> trajgraphs(ntraj);
+    // Loop over the trajectories
+    int it = 0;
+    for (auto i = traj.begin(); i != traj.end(); ++i,it++) {
+      TGraph *tempgraph = new TGraph((*i).GetPositionPoints().size());
+      int npoints = int(((*i).GetPositionPoints()).size());
+      for (int j = 0; j < npoints; ++j) {
+        tempgraph->SetPoint(j, (*i).GetPositionPoints()[j].Z(), (*i).GetPositionPoints()[j].X());
+      }
+
+      // Set a specific marker from primary particles
+      tempgraph->SetMarkerStyle(24);
+      tempgraph->SetMarkerSize(0.4);
+      if ((*i).GetParent() == -1) {
+        tempgraph->SetMarkerStyle(25);
+        tempgraph->SetMarkerSize(1.0);
+      } 
+
+      if (abs((*i).GetPDG()) == 13) {
+        tempgraph->SetMarkerColor(kYellow-3);
+      } else if (abs((*i).GetPDG()) == 11) {
+        tempgraph->SetMarkerColor(kGreen-2);
+      } else if (abs((*i).GetPDG()) == 211) {
+        tempgraph->SetMarkerColor(kRed-7);
+      } else if (abs((*i).GetPDG()) == 2212) {
+        tempgraph->SetMarkerColor(kMagenta-7);
+      } else if (abs((*i).GetPDG()) == 2112) {
+        tempgraph->SetMarkerColor(kCyan-3);
+        tempgraph->SetMarkerSize(0.1);
+        tempgraph->SetMarkerStyle(31);
+      } else if (abs((*i).GetPDG()) == 22) {
+        tempgraph->SetMarkerColor(kGray);
+        tempgraph->SetMarkerSize(0.1);
+        tempgraph->SetMarkerStyle(31);
+      }
+
+      trajgraphs[it] = tempgraph;
+    }
+
+    // Now make the TGraphs for the true trajectory points
 
     if (plot->Integral() == 0) continue;
 
@@ -209,8 +262,15 @@ int main(int argc, char** argv) {
     xz_dead_bottom->Draw("same");
     xz_Thin_Thick->Draw("same");
 
+    for (int i = 0; i < int(trajgraphs.size()); ++i) {
+      if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+    }
+
     canv->Print(Outputname);
 
+    for (int i = 0; i < int(trajgraphs.size()); ++i) {
+      delete trajgraphs[i];
+    }
   }
 
   outfile->cd();
