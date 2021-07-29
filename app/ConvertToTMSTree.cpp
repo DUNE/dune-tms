@@ -54,13 +54,15 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   int N_entries = events->GetEntries();
-  N_entries = 1100;
+  //N_entries = 1100;
 
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
   Timer.Start();
 
   int i = 0;
+  //N_entries = 420;
+  //N_entries = 1000;
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
