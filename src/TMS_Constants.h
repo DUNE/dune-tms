@@ -93,14 +93,18 @@ namespace TMS_Const {
   // Volume name for edep-sim SegmentDetectors
   const std::string TMS_EDepSim_VolumeName = "volTMS";
   // To find in z
-  const std::string TMS_ModuleLayerName = "modulelayervol_PV";
+  const std::string TMS_ModuleLayerName = "modulelayervol";
   // To find scintillator "box"
-  const std::string TMS_ModuleName = "ModuleBoxvol_PV";
+  const std::string TMS_ModuleName = "ModuleBoxvol";
   // To find scintillator "box"
-  const std::string TMS_ScintLayerName = "scinBoxlvTMS_PV";
+  const std::string TMS_ScintLayerName = "scinBoxlvTMS";
   // The top layer name
   const std::string TMS_TopLayerName = "volWorld";
-
+  // The detector enclosure
+  const std::string TMS_DetEnclosure = "volDetEnclosure";
+  // The rock volume
+  const std::string TMS_Rock = "rockBox_lv";
+  // LAr active region
   const std::string LAr_ActiveName = "volTPCActive";
 
   const double TMS_Small_Num = 1.E-5;

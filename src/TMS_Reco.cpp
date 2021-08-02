@@ -92,6 +92,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   HoughLines.clear();
   HoughCandidates.clear();
   ClusterCandidates.clear();
+  TrackLength.clear();
 
   // Get the raw unmerged and untracked hits
   RawHits = event.GetHits();
@@ -132,6 +133,27 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Try finding some clusters after the Hough Transform
   if (UseClustering) {
     ClusterCandidates = FindClusters(Masked);
+  }
+
+  // Now calculate the track length for each track
+  CalculateTrackLength();
+
+  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  double KE = 0;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+    TVector3 mom = (*it).GetBirthMomentum();
+    double E = (*it).GetBirthEnergy();
+    // Get KE (E - m)
+    double mass = sqrt(E*E-mom.Mag2());
+    KE = E-mass;
+  }
+  std::cout << "True muon KE: " << KE << std::endl;
+  for (auto it = TrackLength.begin(); it != TrackLength.end(); ++it) {
+    std::cout << (*it) << " g/cm2 ~ " << (*it)*1.9 << " MeV KE" << std::endl;
   }
 
   // For future probably want to move track candidates into the TMS_Event class
@@ -216,6 +238,30 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   if (efficiency > 0) {
     Efficiency->Fill(muonke, efficiency);
     Total->Fill(muonke);
+  }
+}
+
+void TMS_TrackFinder::CalculateTrackLength() {
+  // Look at the reconstructed tracks
+  if (HoughCandidates.size() == 0) return;
+
+
+  // Loop over each Hough Candidate and find the track length
+  for (auto it = HoughCandidates.begin(); it != HoughCandidates.end(); ++it) {
+    double total = 0;
+    // Sort by increasing z
+    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
+
+    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
+      auto nexthit = *(hit+1);
+      // Use the geometry to calculate the track length between hits
+      TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
+      TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
+      if ((point2-point1).Mag() > 100) continue;
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      total += tracklength;
+    }
+    TrackLength.push_back(total);
   }
 }
 

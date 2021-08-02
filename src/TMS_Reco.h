@@ -193,6 +193,8 @@ class TMS_TrackFinder {
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
+    void CalculateTrackLength();
+
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
     // Exclude hits Mask from set Orig
@@ -287,6 +289,8 @@ class TMS_TrackFinder {
 
     bool UseClustering;
     TrackMethod kTrackMethod;
+
+    std::vector<double> TrackLength;
 };
 
 #endif

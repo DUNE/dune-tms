@@ -48,44 +48,62 @@ int main(int argc, char **argv) {
   TMS_Geom::GetInstance().SetGeometry(geom);
   TVector3 start(startx, starty, startz);
   TVector3 stop(endx, endy, endz);
-  std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop);
 
   std::cout << "Shooting ray between " << std::endl;
   start.Print();
   std::cout << "and " << std::endl;
   stop.Print();
+
+  // Get the position of materials
+  std::vector<std::pair<TGeoMaterial*, TVector3> > Materials = TMS_Geom::GetInstance().GetMaterialsPos(start, stop);
   int counter = 0;
   std::cout << "Found " << Materials.size() << " materials: " << std::endl;
   for (auto it = Materials.begin(); it != Materials.end(); ++it, counter++) {
-    std::cout << "Material " << counter << "/" << Materials.size() << std::endl;
+    std::cout << "***" << std::endl;
+    std::cout << "Material " << counter+1 << "/" << Materials.size() << std::endl;
     (*it).first->Print();
-    std::cout << "Thickness: " << (*it).second << std::endl;
-  }
-
-  std::vector<std::pair<std::string, const double*> > Nodes = TMS_Geom::GetInstance().GetNodes(start, stop);
-  std::cout << "Found " << Nodes.size() << " nodes: " << std::endl;
-  counter = 0;
-  for (auto it = Nodes.begin(); it != Nodes.end(); ++it, counter++) {
-    std::cout << "Node " << counter << "/" << Nodes.size() << std::endl;
-    std::cout << "   " << (*it).first << std::endl;
-    std::cout << "   position: ";
-    for (int i = 0; i < 3; ++i) std::cout << (*it).second[i] << " ";
+    std::cout << "Position: " << std::endl;
+    (*it).second.Print();
     std::cout << std::endl;
   }
 
-  std::vector<std::pair<int*, const double*> > Planes = TMS_Geom::GetInstance().GetUniquePlaneBarIdent(start, stop);
-  std::cout << "Found " << Planes.size() << " nodes: " << std::endl;
+  // Get the width of materials
+  std::vector<std::pair<TGeoMaterial*, double> > MaterialsW = TMS_Geom::GetInstance().GetMaterials(start, stop);
   counter = 0;
-  for (auto it = Planes.begin(); it != Planes.end(); ++it, counter++) {
-    std::cout << "Node " << counter << "/" << Planes.size() << std::endl;
-    std::cout << "position: " << std::endl;
+  std::cout << "Found " << MaterialsW.size() << " materials: " << std::endl;
+  for (auto it = MaterialsW.begin(); it != MaterialsW.end(); ++it, counter++) {
+    std::cout << "***" << std::endl;
+    std::cout << "Material " << counter+1 << "/" << MaterialsW.size() << std::endl;
+    (*it).first->Print();
+    std::cout << "Width: " << (*it).second << std::endl;
+    std::cout << std::endl;
+  }
+
+  std::vector<std::pair<std::string, TVector3> > Nodes = TMS_Geom::GetInstance().GetNodes(start, stop);
+  std::cout << "Found " << Nodes.size() << " nodes: " << std::endl;
+  counter = 0;
+  for (auto it = Nodes.begin(); it != Nodes.end(); ++it, counter++) {
+    std::cout << "***" << std::endl;
+    std::cout << "Node " << counter+1 << "/" << Nodes.size() << std::endl;
+    std::cout << "   " << (*it).first << std::endl;
+    std::cout << "   position: " << std::endl;
+    (*it).second.Print();
+    std::cout << std::endl;
+  }
+
+  std::vector<std::pair<int*, TVector3> > Planes = TMS_Geom::GetInstance().GetUniquePlaneBarIdent(start, stop);
+  std::cout << "Found " << Planes.size() << " TMS modules: " << std::endl;
+  counter = 0;
+  for (std::vector<std::pair<int*, TVector3> >::iterator it = Planes.begin(); it != Planes.end(); ++it, counter++) {
+    std::cout << "***" << std::endl;
+    std::cout << "Module " << counter+1 << "/" << Planes.size() << std::endl;
+    std::cout << "Plane enumeration: ";
     for (int i = 0; i < 3; ++i) {
       std::cout << (*it).first[i] << " ";
     }
     std::cout << std::endl;
-    for (int i = 0; i < 3; ++i) {
-      std::cout << (*it).second[i] << " ";
-    }
+    std::cout << "At position: " << std::endl;
+    (*it).second.Print();
     std::cout << std::endl;
   }
 
