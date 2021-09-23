@@ -32,7 +32,6 @@ TMS_TreeWriter::TMS_TreeWriter() {
   // Make a metadata branch
   //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
 
-
   MakeBranches();
 }
 
@@ -49,9 +48,11 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("LastHoughPlane", LastPlane, "LastHoughPlane[nLines]/I");
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
+  Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/D");
 
   Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/D");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/D");
+  Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/D");
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
   Truth_Info->Branch("Interaction", &Reaction);
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
@@ -73,6 +74,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
+
+  std::vector<double> TrueTrackLength = TMS_TrackFinder::GetFinder().GetTrueMuonKE();
+  if (TrueTrackLength.size() == 0) Muon_TrueKE = -999;
+  else Muon_TrueKE = TrueTrackLength[0];
 
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
@@ -98,14 +103,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
-  nLines = HoughLines.size();
   // Also get the size of the hits to get a measure of relative goodness
   std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  nLines = HoughCandidates.size();
   // Get the cleaned hits for a reference of the "total"
-  int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
- 
+
   // Skip the event if there aren't any Hough Lines
-  if (nLines == 0) return;
+  //if (nLines == 0) return;
   if (nLines > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Not writing event" << std::endl;
@@ -129,7 +133,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ylen = ylen/len;
     DirectionZ[it] = xlen;
     DirectionX[it] = ylen;
-    Occupancy[it] = (double)HoughCandidates[it].size()/TotalHits;
 
     it++;
   }
@@ -138,11 +141,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   TMSStart = false;
 
   std::vector<std::vector<TMS_Hit> > HoughCands = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
   TMS_Hit *FirstTrack = NULL;
 
   it = 0;
   for (auto &Candidates: HoughCands) {
 
+    // Loop over hits
     for (auto &hit: Candidates) {
       if (FirstTrack == NULL) {
         FirstTrack = &hit;
@@ -160,12 +165,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     LastHit[it][0] = Candidates.back().GetZ();
     LastHit[it][1] = Candidates.back().GetNotZ();
 
+    TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
+    Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+
     it++;
   }
 
   // Was the first hit within the first 3 layers?
-  if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
-  else TMSStart = true;
+  if (FirstTrack != NULL) {
+    if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
+    else TMSStart = true;
+  }
 
   Branch_Lines->Fill();
 }
@@ -173,10 +183,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 void TMS_TreeWriter::Clear() {
 
   // The variables
-  EventNo = nLines = nParticles = NeutrinoPDG = -999;
+  EventNo = nLines = nParticles = NeutrinoPDG = Muon_TrueKE = -999;
   TMSStart = false;
   Reaction = "";
-
 
   for (int i = 0; i < 4; ++i) {
     MuonP4[i]=-999;
@@ -190,6 +199,7 @@ void TMS_TreeWriter::Clear() {
     DirectionZ[i]=-999;
     DirectionX[i]=-999;
     Occupancy[i]=-999;
+    TrackLength[i]=-999;
     FirstPlane[i]=-999;
     LastPlane[i]=-999;
     for (int j = 0; j < 2; ++j) {

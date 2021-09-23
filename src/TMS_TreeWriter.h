@@ -60,9 +60,11 @@ class TMS_TreeWriter {
     int LastPlane[__TMS_MAX_LINES__];
     bool TMSStart;
     double Occupancy[__TMS_MAX_LINES__];
+    double TrackLength[__TMS_MAX_LINES__];
 
     double MuonP4[4];
     double Muon_Vertex[4];
+    double Muon_TrueKE;
     int nParticles;
     std::string Reaction;
     int NeutrinoPDG;
