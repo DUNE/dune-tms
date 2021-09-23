@@ -77,8 +77,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
 }
 
-// The generic track finder
-void TMS_TrackFinder::FindTracks(TMS_Event &event) {
+void TMS_TrackFinder::CleanClass() {
 
   // Check through the Houghlines
   for (auto &i: HoughLines) {
@@ -93,6 +92,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   HoughCandidates.clear();
   ClusterCandidates.clear();
   TrackLength.clear();
+  TrueMuonKE.clear();
+}
+
+// The generic track finder
+void TMS_TrackFinder::FindTracks(TMS_Event &event) {
+
+  CleanClass();
 
   // Get the raw unmerged and untracked hits
   RawHits = event.GetHits();
@@ -136,25 +142,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 
   // Now calculate the track length for each track
-  CalculateTrackLength();
-
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
-  double KE = 0;
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-    // Only save muon info for now
-    if (abs((*it).GetPDG()) != 13) continue;
-    // Also make sure it's a fundamental muon
-    if ((*it).GetParent() != -1) continue;
-    TVector3 mom = (*it).GetBirthMomentum();
-    double E = (*it).GetBirthEnergy();
-    // Get KE (E - m)
-    double mass = sqrt(E*E-mom.Mag2());
-    KE = E-mass;
-  }
-  std::cout << "True muon KE: " << KE << std::endl;
-  for (auto it = TrackLength.begin(); it != TrackLength.end(); ++it) {
-    std::cout << (*it) << " g/cm2 ~ " << (*it)*1.9 << " MeV KE" << std::endl;
-  }
+  CalculateTrackLength(event);
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -241,10 +229,9 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   }
 }
 
-void TMS_TrackFinder::CalculateTrackLength() {
+void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
   // Look at the reconstructed tracks
   if (HoughCandidates.size() == 0) return;
-
 
   // Loop over each Hough Candidate and find the track length
   for (auto it = HoughCandidates.begin(); it != HoughCandidates.end(); ++it) {
@@ -262,6 +249,22 @@ void TMS_TrackFinder::CalculateTrackLength() {
       total += tracklength;
     }
     TrackLength.push_back(total);
+  }
+
+  // Also push back the true track length
+  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  double KE = 0;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+    TVector3 mom = (*it).GetBirthMomentum();
+    double E = (*it).GetBirthEnergy();
+    // Get KE (E - m)
+    double mass = sqrt(E*E-mom.Mag2());
+    KE = E-mass;
+    TrueMuonKE.push_back(KE);
   }
 }
 

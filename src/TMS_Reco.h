@@ -193,7 +193,7 @@ class TMS_TrackFinder {
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
-    void CalculateTrackLength();
+    void CalculateTrackLength(TMS_Event &event);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -221,6 +221,11 @@ class TMS_TrackFinder {
 
     // Evaluate the track finding by using the event's true particles
     void EvaluateTrackFinding(TMS_Event &event);
+
+    void CleanClass();
+
+    std::vector<double> &GetTrackLength() { return TrackLength; };
+    std::vector<double> &GetTrueMuonKE() { return TrueMuonKE; };
 
     TH1D* GetEfficiencyHist() { return Efficiency; };
     TH1D* GetTotalHist() { return Total; };
@@ -291,6 +296,7 @@ class TMS_TrackFinder {
     TrackMethod kTrackMethod;
 
     std::vector<double> TrackLength;
+    std::vector<double> TrueMuonKE;
 };
 
 #endif
