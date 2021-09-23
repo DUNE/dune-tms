@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   events->SetBranchAddress("Event", &event);
 
   int N_entries = events->GetEntries();
-  //N_entries = 1000;
+  N_entries = 1000;
   const double zmin = 3000;
   const double zmax = 19000;
   const double xmin = -4000;
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
   gErrorIgnoreLevel = kWarning;
   int i = 0;
-  TH2D *plot = new TH2D("xz", "xz-view;z (mm); x (mm); Energy deposit (MeV)", 1000, zmin, zmax, 1000, xmin, xmax);
+  TH2D *plot = new TH2D("xz", "xz-view;z (mm); x (mm); Energy deposit (MeV)", 100, zmin, zmax, 100, xmin, xmax);
   plot->GetZaxis()->SetTitleOffset(plot->GetZaxis()->GetTitleOffset()*1.3);
 
   for (; i < N_entries; ++i) {
@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
 
       // Set a specific marker from primary particles
       tempgraph->SetMarkerStyle(24);
-      tempgraph->SetMarkerSize(0.4);
+      tempgraph->SetMarkerSize(1.0);
       if ((*i).GetParent() == -1) {
         tempgraph->SetMarkerStyle(25);
         tempgraph->SetMarkerSize(1.0);
@@ -234,12 +234,12 @@ int main(int argc, char** argv) {
         tempgraph->SetMarkerColor(kMagenta-7);
       } else if (abs((*i).GetPDG()) == 2112) {
         tempgraph->SetMarkerColor(kCyan-3);
-        tempgraph->SetMarkerSize(0.1);
-        tempgraph->SetMarkerStyle(31);
+        tempgraph->SetMarkerSize(0.0);
+        tempgraph->SetMarkerStyle(26);
       } else if (abs((*i).GetPDG()) == 22) {
         tempgraph->SetMarkerColor(kGray);
-        tempgraph->SetMarkerSize(0.1);
-        tempgraph->SetMarkerStyle(31);
+        tempgraph->SetMarkerSize(0.0);
+        tempgraph->SetMarkerStyle(27);
       }
 
       trajgraphs[it] = tempgraph;
@@ -250,7 +250,7 @@ int main(int argc, char** argv) {
     if (plot->Integral() == 0) continue;
 
     plot->SetMinimum(0);
-    plot->SetMaximum(5);
+    plot->SetMaximum(2);
 
     plot->Draw("colz");
     xz_box_FV->Draw("same");
@@ -262,7 +262,8 @@ int main(int argc, char** argv) {
     xz_dead_bottom->Draw("same");
     xz_Thin_Thick->Draw("same");
 
-    for (int i = 0; i < int(trajgraphs.size()); ++i) {
+    // Go from back to front to have muon draw on top
+    for (int i = trajgraphs.size()-1; i >= 0; --i) {
       if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
     }
 
