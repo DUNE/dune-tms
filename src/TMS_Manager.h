@@ -40,6 +40,8 @@ class TMS_Manager {
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
 
+    bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
+
   private:
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
@@ -68,6 +70,8 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
+
+    bool _APPLICATIONS_DrawPDF;
 };
 
 #endif

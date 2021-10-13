@@ -37,4 +37,5 @@ TMS_Manager::TMS_Manager() {
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 
+  _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
 }

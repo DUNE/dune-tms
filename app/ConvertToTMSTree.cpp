@@ -54,15 +54,15 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   int N_entries = events->GetEntries();
-  //N_entries = 1100;
+
+  bool DrawPDF = TMS_Manager::GetInstance().Get_DrawPDF();
 
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
   Timer.Start();
 
   int i = 0;
-  //N_entries = 420;
-  //N_entries = 1000;
+  //N_entries = 100;
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
@@ -85,7 +85,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_TrackFinder::GetFinder().FindTracks(tms_event);
 
     // View it
-    TMS_EventViewer::GetViewer().Draw(tms_event);
+    if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
 
     // Write it
     TMS_TreeWriter::GetWriter().Fill(tms_event);

@@ -43,3 +43,6 @@
 # Options for processing and saving truth information
 [Truth]
   LightWeight = false
+
+[Applications]
+  DrawPDF = false
