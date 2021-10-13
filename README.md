@@ -30,6 +30,9 @@ So far all the reconstruction happens through the `app/ConvertToTMSTree.cpp` dri
 
 In the `app` directory you can also find some test executables for the reconstruction.
 
+## Configuration options
+All run-time configuration happens through `config/TMS_Default_Config.toml`. At time of writing, you can control reconstruction parameters (e.g. how many points do you need to form a "cluster" in DBSCAN, or what is the track reconstruction method), and application parameters (e.g. do we save detailed truth information, do we draw PDFs of hits) here. Have a look around and feel free to play!
+
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
 * `src` contains the TMS source files, like the track finder, event classes, true particle classes, and so on
