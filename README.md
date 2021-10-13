@@ -11,20 +11,24 @@ It uses `edep-sim` output, which are stored at:
 
 For more informatinon on running a production, see the [DUNE ND Production](https://github.com/DUNE/ND_Production) repo.
 
-# Running the code
-So far all the interfacing happens through the `app/ConvertToTMSTree.cpp` driver application. In a nutshell, it takes `edep-sim` events, converts it into TMS formats, queries the geometry, runs reconstruction, and so on. There is a `TMS_TreeWriter` class which drives the `TTree` writing to file, and a `TMS_EventViewer` class which shows simple 2D event displays.
+# Building the code
+The repo is designed for minimal external dependencies. We use `ROOT` for some convenience classes, and input/output. There's dependency on `edep-sim` for the event and hit structure, and `toml` for config files.
 
-In the `app` directory you can also find some test executables for the reconstruction.
-
-# Setup and dependencies
-The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example setup using mostly `ups` products is provided in `setup.sh`.
-
-Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
+## Setup and dependencies
+The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example setup using mostly `ups` products at FNAL is provided in `setup.sh`.
 
 ## toml submodule dependency
 We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. Remember to run `git submodule init && git submodule update` to get the submodule.
 
 The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS_Manager` class.
+
+## Building
+Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
+
+# Running the code
+So far all the reconstruction happens through the `app/ConvertToTMSTree.cpp` driver application. In a nutshell, it takes `edep-sim` events, converts it into TMS formats, queries the geometry, runs reconstruction, and so on. There is a `TMS_TreeWriter` class which drives the `TTree` writing to file, and a `TMS_EventViewer` class which shows simple 2D event displays. The output `ROOT` file should contain (at least) two branches: one with reconstructed information and one with truth information. As of right October 2021, no hit level information is saved.
+
+In the `app` directory you can also find some test executables for the reconstruction.
 
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
