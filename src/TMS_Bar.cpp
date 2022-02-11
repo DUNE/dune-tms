@@ -39,7 +39,8 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   double Translation[] = {0., 0., 0.};
 
   // cd up in the geometry to find the right name
-  while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+  //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
 
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
@@ -137,13 +138,15 @@ int TMS_Bar::FindBar(double x, double y, double z) {
   std::string NodeName = std::string(nav->GetCurrentNode()->GetName());
   // cd up in the geometry to find the right name
   while (NodeName.find(TMS_Const::TMS_ModuleLayerName) == std::string::npos && 
-      NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+      //NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+      NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
     nav->CdUp();
     NodeName = std::string(nav->GetCurrentNode()->GetName());
   }
 
   // If we've reached the world volume we don't have a scintillator hit -> return some mad bad value
-  if (NodeName.find(TMS_Const::TMS_TopLayerName) != std::string::npos) {
+  //if (NodeName.find(TMS_Const::TMS_TopLayerName) != std::string::npos) {
+  if (NodeName.find(TMS_Const::TMS_DetEnclosure) != std::string::npos) {
     // Since the bar has already been created as a "error" in the above empty constructor we can just return
     std::cout << "Bar position not found in TMS_Bar::FindBar!" << std::endl;
     return -1;
