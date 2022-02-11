@@ -55,8 +55,9 @@ namespace TMS_Const {
   const double TMS_Start[] = {-4000, -3500, 11000};
   const double TMS_End[] = {4000, 500, 19000};
 
-  const double LAr_Start_Exact[] = {-3480, -2170, 4178};
-  const double LAr_End_Exact[] = {3480, 830, 9136};
+  // From scanning all hits x,y,z position in the LAr active volume
+  const double LAr_Start_Exact[] = {-3478.48, -2166.71, 4179.24};
+  const double LAr_End_Exact[] = {3478.48, 829.282, 9135.88};
 
   // More exact locations of bars
   const double TMS_Start_Exact[] = {-3520, -3864, TMS_Thin_Start};
