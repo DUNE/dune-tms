@@ -49,6 +49,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
   Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/D");
+  Branch_Lines->Branch("TrackEnergy", TrackEnergy, "TrackEnergy[nLines]/D");
 
   Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/D");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/D");
@@ -166,7 +167,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     LastHit[it][1] = Candidates.back().GetNotZ();
 
     TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
+    TrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
     Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+
+    // Save down hit information
 
     it++;
   }
@@ -180,6 +184,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   Branch_Lines->Fill();
 }
 
+// Reset the variables
 void TMS_TreeWriter::Clear() {
 
   // The variables
@@ -200,6 +205,7 @@ void TMS_TreeWriter::Clear() {
     DirectionX[i]=-999;
     Occupancy[i]=-999;
     TrackLength[i]=-999;
+    TrackEnergy[i]=-999;
     FirstPlane[i]=-999;
     LastPlane[i]=-999;
     for (int j = 0; j < 2; ++j) {

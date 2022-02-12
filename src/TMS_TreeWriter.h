@@ -10,9 +10,11 @@
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
 
-#define __TMS_MAX_LINES__ 20
-
-#define __TMS_AUTOSAVE__ 1000
+// Only hard-coded for constant ROOT strucutre
+// Could (and probably should) be replaced by vectors
+#define __TMS_MAX_LINES__ 20 // Maximum number of lines in an event
+#define __TMS_MAX_HITS__ 200 // Maximum number of hits in an event
+#define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
@@ -61,6 +63,10 @@ class TMS_TreeWriter {
     bool TMSStart;
     double Occupancy[__TMS_MAX_LINES__];
     double TrackLength[__TMS_MAX_LINES__];
+    double TrackEnergy[__TMS_MAX_LINES__];
+
+    double RecoHitPosition[__TMS_MAX_LINES__][__TMS_MAX_HITS__][4];
+    double RecoHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_HITS__][4];
 
     double MuonP4[4];
     double Muon_Vertex[4];

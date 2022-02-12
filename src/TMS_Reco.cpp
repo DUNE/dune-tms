@@ -92,6 +92,7 @@ void TMS_TrackFinder::CleanClass() {
   HoughCandidates.clear();
   ClusterCandidates.clear();
   TrackLength.clear();
+  TrackEnergy.clear();
   TrueMuonKE.clear();
 }
 
@@ -143,6 +144,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Now calculate the track length for each track
   CalculateTrackLength(event);
+  CalculateTrackEnergy();
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -229,6 +231,24 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   }
 }
 
+// Calculate the total track energy
+void TMS_TrackFinder::CalculateTrackEnergy() {
+  // Look at the reconstructed tracks
+  if (HoughCandidates.size() == 0) return;
+
+  // Loop over each Hough Candidate and find the track length
+  for (auto it = HoughCandidates.begin(); it != HoughCandidates.end(); ++it) {
+    double total = 0;
+    // Sort by increasing z
+    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
+    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
+      total += (*hit).GetE();
+    }
+    TrackEnergy.push_back(total);
+  }
+}
+
+// Calculate the track length for each track
 void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
   // Look at the reconstructed tracks
   if (HoughCandidates.size() == 0) return;
@@ -251,7 +271,7 @@ void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
     TrackLength.push_back(total);
   }
 
-  // Also push back the true track length
+  // Also push back the true muon KE
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   double KE = 0;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
