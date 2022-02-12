@@ -42,6 +42,12 @@ LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)
 
 TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_Manager.o BField_Handler.o
 
+# If linking against DUNE anaobj
+ifdef DUNEANAOBJ_ENABLED
+  CXXFLAGS += -D__DUNEANAOBJ_ENABLED__
+  TMS_OBJ += TMS_CAF_converter.o
+endif
+
 %.o:%.cpp
 	$(CXX) -c $(CXXFLAGS) $<
 

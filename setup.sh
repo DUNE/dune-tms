@@ -17,6 +17,13 @@ source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 #setup root v6_20_08a -f Linux64bit+3.10-2.17 -q c7:p383b:prof
 setup root v6_12_06a -f Linux64bit+3.10-2.17 -q e15:prof
 
+# Setup CMAKE for dune ana obj
+setup cmake v3_14_3 -f Linux64bit+3.10-2.17
+# Dependence on cetbuildtools
+setup cetbuildtools v8_19_02
+# Flag for enabling linking against DUNEANAOBJ
+export DUNEANAOBJ_ENABLED=1
+
 
 # edep-sim needs to find geant4.sh to build
 #export PATH=$PATH:${GEANT4_FQ_DIR}/bin
