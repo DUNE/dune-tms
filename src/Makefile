@@ -37,10 +37,18 @@ MKDIR_P := mkdir -p
 # Library directory where we build to
 LIB_DIR=../lib
 
+TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_Manager.o BField_Handler.o
+
 # Our lovely collection of libs
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)
 
-TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_Manager.o BField_Handler.o
+# If linking against DUNE anaobj
+ifdef DUNEANAOBJ_ENABLED
+  CXXFLAGS += -I$(DUNEANAOBJ_INC)
+  CXXFLAGS += -DDUNEANAOBJ_ENABLED
+  TMS_OBJ += TMS_CAF_converter.o
+  LIB_OBJ += -L $(DUNEANAOBJ_LIB) -lduneanaobj_StandardRecord
+endif
 
 %.o:%.cpp
 	$(CXX) -c $(CXXFLAGS) $<
