@@ -10,6 +10,10 @@ caf::SRTMS TMS_CAF_converter::ConvertEvent() {
   // Loop over tracks and convert them to caf::SRTrack format
   std::vector<caf::SRTrack> tracks = caf.tracks;
   tracks.reserve(caf.ntracks);
+
+  // Build up number of total hits
+  int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
+
   // Fill the number of tracks from the track finder
   for (auto it = LineCandidates.begin(); it != LineCandidates.end(); ++it) {
     // Get the track
@@ -26,7 +30,8 @@ caf::SRTMS TMS_CAF_converter::ConvertEvent() {
     caf::SRTrack srtrack;
     srtrack.start = firsthit_conv;
     srtrack.end = lasthit_conv;
-    //srtrack.push_back(track);
+    srtrack.TrackQuality = double((*it).size())/TotalHits;
+    caf.tracks.push_back(srtrack);
   }
 
   std::vector<std::pair<bool, TF1*> > HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
@@ -49,6 +54,10 @@ caf::SRTMS TMS_CAF_converter::ConvertEvent() {
 
     caf::SRVector3D dir(xlen, 0, zlen); // Make the converted direction unit vector
     tracks[nit].dir = dir;
+
+    // Now do the track quality, track energy and track length
+    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLength()[nit];
+    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergy()[nit];
   }
 
   return caf;
