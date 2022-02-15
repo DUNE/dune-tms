@@ -7,8 +7,8 @@
   MinHits = 10
 
   # Track reco; Hough, AStar, DBSCAN
-  #TrackMethod = "Hough"
-  TrackMethod = "AStar"
+  TrackMethod = "Hough"
+  #TrackMethod = "AStar"
   #TrackMethod = "DBSCAN"
 
   # Run clustering algorithm (DBSCAN) after track finding?
@@ -32,6 +32,11 @@
     MaxSlope = 2.0
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
+    # Do we merge adjacent tracks afterwards?
+    MergeTracks = true
+    # Do we run AStar afterwards on start and end points
+    # To undo the greediness in the Hough line finding?
+    RunAStarCleanup = true
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -41,8 +46,10 @@
     IsGreedy = false
 
 # Options for processing and saving truth information
+# LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
 [Truth]
-  LightWeight = false
+  LightWeight = true
 
+# Draw PDF of "event display". Slows down reco considerably
 [Applications]
-  DrawPDF = false
+  DrawPDF = true

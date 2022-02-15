@@ -400,80 +400,109 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
   std::cout << "Ran " << nRuns << " Hough algo" << std::endl;
 #endif
 
-  // Can clean up hough hits a little bit
-  // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeTracks()) {
+    // Can clean up hough hits a little bit
+    // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
 
-  // Loop over our Hough Candidates and merge 
-  // The Hough candidates aren't necessarily ordered after any metric
-  // Skip for 0 or single track events
-  if (HoughCandidates.size() < 2) return;
+    // Loop over our Hough Candidates and merge 
+    // The Hough candidates aren't necessarily ordered after any metric
+    // Skip for 0 or single track events
+    if (HoughCandidates.size() < 2) return;
 
-  // Keep a iterator pointing to the end which we may have to update
-  auto endit = HoughCandidates.end();
-  // Loop over the Hough candidates
-  for (std::vector<std::vector<TMS_Hit> >::iterator it = HoughCandidates.begin(); it != endit; ++it) {
-    // Let's get the first and last hits of each track
-    std::vector<TMS_Hit> hits = *it;
-    // How many hits before merge
-    if (it > endit) {
-      break;
-    }
-
-    // Sort each in decreasing z
-    SpatialPrio(hits);
-
-    // Get first and last hits
-    TMS_Hit firsthit = hits.front();
-    TMS_Hit lasthit = hits.back();
-    double last_hit_z = lasthit.GetPlaneNumber();
-    double last_hit_notz = lasthit.GetNotZ();
-
-    // Now loop over the remaining
-    // Need to keep a conventional iterator to remove the HoughLine vector entries
-    int line_number = 0;
-    for (auto jt = HoughCandidates.begin(); jt != HoughCandidates.end(); line_number++) {
+    // Keep a iterator pointing to the end which we may have to update
+    auto endit = HoughCandidates.end();
+    // Loop over the Hough candidates
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = HoughCandidates.begin(); it != endit; ++it) {
       // Let's get the first and last hits of each track
-      auto hits_2 = *jt;
+      std::vector<TMS_Hit> hits = *it;
+      // How many hits before merge
+      if (it > endit) {
+        break;
+      }
+
       // Sort each in decreasing z
-      SpatialPrio(hits_2);
+      SpatialPrio(hits);
 
-      // Get the first and last hit for this second track
-      TMS_Hit firsthit_2 = hits_2.front();
-      TMS_Hit lasthit_2 = hits_2.back();
-      // Check that it's not the same hit
-      if (firsthit_2 == firsthit && lasthit_2 == lasthit) {
-        ++jt;
-        continue;
+      // Get first and last hits
+      TMS_Hit firsthit = hits.front();
+      TMS_Hit lasthit = hits.back();
+      double last_hit_z = lasthit.GetPlaneNumber();
+      double last_hit_notz = lasthit.GetNotZ();
+
+      // Now loop over the remaining
+      // Need to keep a conventional iterator to remove the HoughLine vector entries
+      int line_number = 0;
+      for (auto jt = HoughCandidates.begin(); jt != HoughCandidates.end(); line_number++) {
+        // Let's get the first and last hits of each track
+        auto hits_2 = *jt;
+        // Sort each in decreasing z
+        SpatialPrio(hits_2);
+
+        // Get the first and last hit for this second track
+        TMS_Hit firsthit_2 = hits_2.front();
+        TMS_Hit lasthit_2 = hits_2.back();
+        // Check that it's not the same hit
+        if (firsthit_2 == firsthit && lasthit_2 == lasthit) {
+          ++jt;
+          continue;
+        }
+
+        double first_hit_z_2 = firsthit_2.GetPlaneNumber();
+        double first_hit_notz_2 = firsthit_2.GetNotZ();
+
+        // Now check how far away the hits are
+        bool merge = (fabs(first_hit_z_2 - last_hit_z) < 3 && 
+            fabs(first_hit_notz_2 - last_hit_notz) < 80);
+
+        // Check if we should merge or not
+        if (!merge) {
+          ++jt;
+          continue;
+        }
+
+        // Copy over the contents of hits_2 into hits
+        for (auto movehits = hits_2.begin(); movehits != hits_2.end(); ++movehits) {
+          (*it).push_back(std::move(*movehits));
+        }
+
+        // Clear out the original vector
+        hits_2.clear();
+
+        // Remove the vector; if not this will cause problems in the outer loop
+        jt = HoughCandidates.erase(jt);
+        // Update the end iterator after removal
+        endit = HoughCandidates.end();
+
+        // And remove the hough line from the array of lines
+        HoughLines.erase(HoughLines.begin()+line_number);
       }
+    }
+  }
 
-      double first_hit_z_2 = firsthit_2.GetPlaneNumber();
-      double first_hit_notz_2 = firsthit_2.GetNotZ();
+  /////////////// FIX THIS
+  /////////////////// CHECK GENERAL ERASE PROCEDURE!
 
-      // Now check how far away the hits are
-      bool merge = (fabs(first_hit_z_2 - last_hit_z) < 3 && 
-                    fabs(first_hit_notz_2 - last_hit_notz) < 80);
+  // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
+  // This helps remove biases in the greedy hough adjacent hit merging
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
+    int tracknumber = 0;
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = HoughCandidates.begin(); it != HoughCandidates.end(); ) {
+      std::vector<TMS_Hit> track = (*it);
+      //int nhoughhits = track.size();
+      std::vector<TMS_Hit> CleanedHough = RunAstar(track);
+      unsigned int ncleaned = CleanedHough.size();
 
-      // Check if we should merge or not
-      if (!merge) {
-        ++jt;
-        continue;
+      // Now replace the old hits with this cleaned version
+      // Can remove Hough hits if not big enough
+      // Also remember to remove the line
+      if (ncleaned < nMinHits) {
+        it = HoughCandidates.erase(it);
+        HoughLines.erase(HoughLines.begin()+tracknumber);
+      } else {
+        *it = CleanedHough;
+        it++;
+        tracknumber++;
       }
-
-      // Copy over the contents of hits_2 into hits
-      for (auto movehits = hits_2.begin(); movehits != hits_2.end(); ++movehits) {
-        (*it).push_back(std::move(*movehits));
-      }
-
-      // Clear out the original vector
-      hits_2.clear();
-
-      // Remove the vector; if not this will cause problems in the outer loop
-      jt = HoughCandidates.erase(jt);
-      // Update the end iterator after removal
-      endit = HoughCandidates.end();
-
-      // And remove the hough line from the array of lines
-      HoughLines.erase(HoughLines.begin()+line_number);
     }
   }
 };

@@ -31,6 +31,8 @@ class TMS_Manager {
     double Get_Reco_HOUGH_MinSlope() { return _RECO_HOUGH_MinSlope; };
     double Get_Reco_HOUGH_MaxSlope() { return _RECO_HOUGH_MaxSlope; };
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
+    double Get_Reco_HOUGH_MergeTracks() { return _RECO_HOUGH_MergeTracks; };
+    double Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
@@ -61,6 +63,8 @@ class TMS_Manager {
     double _RECO_HOUGH_MinSlope;
     double _RECO_HOUGH_MaxSlope;
     double _RECO_HOUGH_HitMult;
+    bool _RECO_HOUGH_MergeTracks;
+    bool _RECO_HOUGH_RunAStar;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;

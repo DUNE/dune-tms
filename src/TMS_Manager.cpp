@@ -28,6 +28,8 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_MinSlope = toml::find<double>(data, "Recon", "Hough", "MinSlope");
   _RECO_HOUGH_MaxSlope = toml::find<double>(data, "Recon", "Hough", "MaxSlope");
   _RECO_HOUGH_HitMult = toml::find<double>(data, "Recon", "Hough", "HitMult");
+  _RECO_HOUGH_MergeTracks = toml::find<bool>(data, "Recon", "Hough", "MergeTracks");
+  _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
