@@ -8,6 +8,7 @@ int TMS_Event::EventCounter = 0;
 TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 
   // Maybe make these class members
+  // Keep false to process all events and all particles in events
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
@@ -28,10 +29,9 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     Reaction = (*it).GetReaction();
 
     if (FillEvent) {
-      std::vector<TG4PrimaryParticle> particles = vtx.Particles;
-
       // Primary particles in edep-sim are before any particle propagation happens
       // i.e. it's the particles out of the neutrino generation; don't save them
+      std::vector<TG4PrimaryParticle> particles = vtx.Particles;
 
       // Loop over the particles in the vertex and save them
       for (TG4PrimaryVertex::PrimaryParticles::iterator jt = particles.begin(); jt != particles.end(); ++jt) {
@@ -42,17 +42,17 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         TMS_TruePrimaryParticles.emplace_back(truepart);
       }
 
+      // Number of true trajectories
       nTrueTrajectories = event.Trajectories.size();
-
-      // Now loop over the trajectories (tracks) in the event
+      // Now loop over the true trajectories (tracks) in the event
       for (TG4TrajectoryContainer::iterator jt = event.Trajectories.begin(); jt != event.Trajectories.end(); ++jt) {
         TG4Trajectory traj = *jt;
 
-        // Only the muon
+        // Only the muon if requested
         int PDGcode = traj.GetPDGCode();
         if (OnlyMuon && abs(PDGcode) != 13) continue;
 
-        // Only from fundamental vertex
+        // Only from fundamental vertex if requested
         int ParentId = traj.GetParentId();
         if (OnlyPrimary && ParentId != -1) continue;
 
@@ -60,15 +60,15 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         int TrackId = traj.GetTrackId();
         //std::cout << "PDG: " << PDGcode << " parentid: " << ParentId << " trackid: " << TrackId << " points: " << traj.Points.size() << std::endl;
 
-        // Ignore particles that leave few hits, or gammas
+        // Ignore particles that leave few hits, or gammas, if requested
         if (LightWeight && 
-            (traj.Points.size() < 3 || PDGcode == 22 || PDGcode == 2112)) continue;
+            //(traj.Points.size() < 3 || PDGcode == 22 || PDGcode == 2112)) continue;
+            (PDGcode == 22 || PDGcode == 2112)) continue;
             //ParentId != -1) continue;
 
-        // Skip this trajectory if it has no parts of it in TMS or LAr
-        bool skip = true;
-
-        // Save down the trajectory points of the true particles
+        // Is this the first time we encounter this particle in the trajectory point loop?
+        bool firsttime = true;
+        // Loop over the trajectory points of given true trajectory
         for (std::vector<TG4TrajectoryPoint>::iterator kt = traj.Points.begin(); kt != traj.Points.end(); kt++) {
           TG4TrajectoryPoint pt = *kt;
 
@@ -79,7 +79,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           if (!vol) continue;
           std::string VolumeName = vol->GetName();
 
-          // Only look at LAr and TMS hits
+          // If asked to only look at LAr and TMS trajectories
+          //
           if (TMSOnly || TMSLArOnly) {
             // Check the TMS volume first
             if (VolumeName.find(TMS_Const::TMS_VolumeName) == std::string::npos && 
@@ -92,17 +93,18 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             }
           }
 
-          // If skip is true and the above passes, this is the first time the particle enters volume of interest, so create it
-          if (skip) {
+          // If firsttime is true and the above passes, this is the first time the particle enters any volume of interest, so create it
+          if (firsttime) {
+            // Can't set start momentum and position whe looping over the trajectory points, do this later
             //TMS_TrueParticle part(ParentId, TrackId, PDGcode, Momentum, Position);
             TMS_TrueParticle part(ParentId, TrackId, PDGcode);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
           }
 
-          // At this point we have a trajectory point in the TMS, great!
+          // At this point we have a trajectory point that we are interested in, great!
           // Remember to fill this event with vertex information
-          skip = false;
+          firsttime = false;
 
           // Now push back the position and momentum for the true particle at this trajectory point
           TLorentzVector Position = pt.GetPosition();
@@ -110,13 +112,14 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Add the point
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
           part->AddPoint(Position, Momentum);
-        } // End loop over trajectory point
+        } // End loop over trajectory points
 
-        // Save the birth and death points of trajectory that had a hit in TMS or LAr
-        if (!skip) {
+        // Save the birth and death points of trajectories that had a hit in a volume of interest
+        if (!firsttime) {
           TG4TrajectoryPoint start = traj.Points.front();
           TG4TrajectoryPoint stop = traj.Points.back();
 
+          // Get the TMS_TrueParticle corresponding to this particle
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
 
           TVector3 initialmom = start.GetMomentum();
@@ -129,7 +132,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           part->SetDeathMomentum(finalmom);
           part->SetDeathPosition(finalpos);
         }
-      }
+      } // End loop over the trajectories
 
       // Loop over each hit
       for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
@@ -142,7 +145,6 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TG4HitSegment edep_hit = *kt;
           TMS_Hit hit = TMS_Hit(edep_hit);
           TMS_Hits.push_back(std::move(hit));
-
 
           // Loop through the True Particle list and associate
           /*

@@ -37,7 +37,7 @@ class TMS_Event {
     int GetEventNumber() { return EventNumber; };
     std::string GetReaction() { return Reaction; };
     
-    // Include some truth metadata, like process, energy, lepton momentum?
+    // Include some truth metadata, like process, energy, lepton momentum
     void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
