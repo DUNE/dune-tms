@@ -127,8 +127,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Skip the event if there aren't any Hough Lines
   if (nLines > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
+    std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
+    std::cerr << "Number of lines in event: " << nLines << std::endl;
     std::cerr << "Not writing event" << std::endl;
-    return;
+    throw;
   }
 
   int it = 0;
@@ -245,6 +247,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Write out the hit information
   std::vector<TMS_Hit> CleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
   nHits = CleanedHits.size();
+  if (nHits > __TMS_MAX_HITS__) {
+    std::cerr << "Exceeded max number of hits to write to file" << std::endl;
+    std::cerr << "Max hits: " << __TMS_MAX_HITS__ << std::endl;
+    std::cerr << "Number of hits in event: " << nHits << std::endl;
+    std::cerr << "Not writing event" << std::endl;
+    throw;
+  }
   stdit = 0;
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
     RecoHitPos[stdit][0] = (*it).GetX();
@@ -294,7 +303,7 @@ void TMS_TreeWriter::Clear() {
   // Reset hit information
   nHits = -999;
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
-    for (int j = 0; i < 4; ++j) RecoHitPos[i][j] = -999;
+    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = -999;
     RecoHitEnergy[i] = -999;
   }
 
