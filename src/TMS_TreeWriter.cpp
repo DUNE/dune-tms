@@ -8,7 +8,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
     filename = filename.substr(filename.find("/")+1, filename.size());
   }
   TString Outputname = filename.c_str();
-  Outputname.ReplaceAll(".root", "_LineCandidates");
+  Outputname.ReplaceAll(".root", "_TMS_RecoCandidates");
   Outputname += "_"+TMS_Manager::GetInstance().Get_Reco_TrackMethod();
   Outputname += Form("_Cluster%i", TMS_Manager::GetInstance().Get_Reco_Clustering());
   Outputname += ".root";
@@ -35,30 +35,43 @@ TMS_TreeWriter::TMS_TreeWriter() {
   MakeBranches();
 }
 
+// Create the branches
 void TMS_TreeWriter::MakeBranches() {
-  Branch_Lines->Branch("nLines", &nLines, "nLines/I");
+  // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
-  Branch_Lines->Branch("Slope", Slope, "Slope[nLines]/D");
-  Branch_Lines->Branch("Intercept", Intercept, "Intercept[nLines]/D");
-  Branch_Lines->Branch("DirectionZ", DirectionZ, "DirectionZ[nLines]/D");
-  Branch_Lines->Branch("DirectionX", DirectionX, "DirectionX[nLines]/D");
-  Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/D");
-  Branch_Lines->Branch("LastHoughHit", LastHit, "LastHoughHit[nLines][2]/D");
+  Branch_Lines->Branch("nLines", &nLines, "nLines/I");
+  Branch_Lines->Branch("Slope", Slope, "Slope[nLines]/F");
+  Branch_Lines->Branch("Intercept", Intercept, "Intercept[nLines]/F");
+  Branch_Lines->Branch("DirectionZ", DirectionZ, "DirectionZ[nLines]/F");
+  Branch_Lines->Branch("DirectionX", DirectionX, "DirectionX[nLines]/F");
+  Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/F");
+  Branch_Lines->Branch("LastHoughHit", LastHit, "LastHoughHit[nLines][2]/F");
   Branch_Lines->Branch("FirstHoughPlane", FirstPlane, "FirstHoughPlane[nLines]/I");
   Branch_Lines->Branch("LastHoughPlane", LastPlane, "LastHoughPlane[nLines]/I");
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
-  Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/D");
-  Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/D");
-  Branch_Lines->Branch("TrackEnergy", TrackEnergy, "TrackEnergy[nLines]/D");
+  Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/F");
+  Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/F");
+  Branch_Lines->Branch("TrackEnergy", TrackEnergy, "TrackEnergy[nLines]/F");
 
-  Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/D");
-  Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/D");
-  Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/D");
+  // Cluster information
+  Branch_Lines->Branch("nClusterss", &nClusters, "nClusters/I");
+  Branch_Lines->Branch("ClusterEnergy", ClusterEnergy, "ClusterEnergy[nClusters]");
+  Branch_Lines->Branch("HitsInCluster", HitsInCluster, "HitsInCluster[nClusters]");
+
+  // Hit information
+  Branch_Lines->Branch("nHits", &nHits, "nHits/I");
+  Branch_Lines->Branch("RecoHitPos", RecoHitPos, "RecoHitPos[nHits][4]");
+  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]");
+
+  // Truth information
+  Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
+  Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
+  Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
+  Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
   Truth_Info->Branch("Interaction", &Reaction);
-  Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
   Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
-  Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/D");
+  Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -83,6 +96,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   nParticles = TrueParticles.size();
+  // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
 
     // Only save muon info for now
@@ -100,6 +114,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Muon_Vertex[3] = (*it).GetBirthPosition().T();
   }
 
+  // Fill up the truth info
   Truth_Info->Fill();
 
   // Fill the reco info
@@ -110,7 +125,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Get the cleaned hits for a reference of the "total"
 
   // Skip the event if there aren't any Hough Lines
-  //if (nLines == 0) return;
   if (nLines > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Not writing event" << std::endl;
@@ -121,6 +135,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto &Lines: HoughLines) {
     Intercept[it] = Lines.second->GetParameter(0);
     Slope[it] = Lines.second->GetParameter(1);
+
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double xlow = TMS_Const::TMS_Thin_Start;
     double xhi = TMS_Const::TMS_Thick_Start;
@@ -147,7 +162,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   it = 0;
   for (auto &Candidates: HoughCands) {
-
     // Loop over hits
     for (auto &hit: Candidates) {
       if (FirstTrack == NULL) {
@@ -170,8 +184,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
     Occupancy[it] = double(HoughCands[it].size())/TotalHits;
 
-    // Save down hit information
-
     it++;
   }
 
@@ -181,23 +193,88 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     else TMSStart = true;
   }
 
+  // Save down cluster information
+  std::vector<std::vector<TMS_Hit> > Clusters = TMS_TrackFinder::GetFinder().GetClusterCandidates();
+  nClusters = Clusters.size();
+  if (nClusters > __TMS_MAX_CLUSTERS__) {
+    std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
+    std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
+    std::cerr << "nClusters in event: " << nClusters << std::endl;
+    throw;
+  }
+
+  // Sum up the cluster candidates
+  int stdit = 0;
+  // Calculate the cluster by cluster summaries
+  // e.g. total energy in cluster, cluster position, and cluster standard deviation
+  for (auto it = Clusters.begin(); it != Clusters.end(); ++it, ++stdit) {
+    double total_energy = 0;
+    // Mean of cluster in z and not z
+    double mean_z = 0;
+    double mean_notz = 0;
+    // Mean of square of cluster in z and not z
+    double mean2_z = 0;
+    double mean2_notz = 0;
+    int nhits = (*it).size();
+    for (auto jt : *it) {
+      mean_z += jt.GetZ();
+      mean_notz += jt.GetNotZ();
+      mean2_z += jt.GetZ()*jt.GetZ();
+      mean2_notz += jt.GetNotZ()*jt.GetNotZ();
+      total_energy += jt.GetE();
+    }
+    mean_z /= nhits;
+    mean_notz /= nhits;
+
+    mean2_z /= nhits;
+    mean2_notz /= nhits;
+
+    ClusterEnergy[stdit] = total_energy;
+    HitsInCluster[stdit] = nhits;
+    ClusterPosMean[stdit][0] = mean_z;
+    ClusterPosMean[stdit][1] = mean_notz;
+    // Calculate the standard deviation
+    double std_dev_z = mean2_z-mean_z*mean_z;
+    double std_dev_notz = mean2_z-mean_z*mean_z;
+    if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
+    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_z);
+    ClusterPosStdDev[stdit][0] = std_dev_z;
+    ClusterPosStdDev[stdit][1] = std_dev_notz;
+  }
+
+  // Write out the hit information
+  std::vector<TMS_Hit> CleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
+  nHits = CleanedHits.size();
+  stdit = 0;
+  for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
+    RecoHitPos[stdit][0] = (*it).GetX();
+    RecoHitPos[stdit][1] = (*it).GetY();
+    RecoHitPos[stdit][2] = (*it).GetZ();
+    RecoHitPos[stdit][3] = (*it).GetT();
+    RecoHitEnergy[stdit] = (*it).GetE();
+    // Don't really need these?
+    //RecoHitTrack
+    //RecoHitCluster
+  }
+
   Branch_Lines->Fill();
 }
 
 // Reset the variables
 void TMS_TreeWriter::Clear() {
 
-  // The variables
-  EventNo = nLines = nParticles = NeutrinoPDG = Muon_TrueKE = -999;
-  TMSStart = false;
+  // Reset truth information
+  EventNo = nParticles = NeutrinoPDG = Muon_TrueKE = -999;
   Reaction = "";
-
   for (int i = 0; i < 4; ++i) {
     MuonP4[i]=-999;
     Muon_Vertex[i]=-999;
     NeutrinoP4[i]=-999;
   }
 
+  // Reset line information
+  TMSStart = false;
+  nLines = -999;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     Slope[i]=-999;
     Intercept[i]=-999;
@@ -211,6 +288,24 @@ void TMS_TreeWriter::Clear() {
     for (int j = 0; j < 2; ++j) {
       FirstHit[i][j] = -999;
       LastHit[i][j] = -999;
+    }
+  }
+
+  // Reset hit information
+  nHits = -999;
+  for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
+    for (int j = 0; i < 4; ++j) RecoHitPos[i][j] = -999;
+    RecoHitEnergy[i] = -999;
+  }
+
+  // Reset Cluster info
+  nClusters = -999;
+  for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
+    ClusterEnergy[i] = -999;
+    HitsInCluster[i] = -999;
+    for (int j = 0; j < 2; ++j) {
+      ClusterPosMean[i][j] = -999;
+      ClusterPosStdDev[i][j] = -999;
     }
   }
 

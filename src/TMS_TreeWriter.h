@@ -13,7 +13,8 @@
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
 #define __TMS_MAX_LINES__ 20 // Maximum number of lines in an event
-#define __TMS_MAX_HITS__ 200 // Maximum number of hits in an event
+#define __TMS_MAX_HITS__ 1000 // Maximum number of hits in an event
+#define __TMS_MAX_CLUSTERS__ 20 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
 // Just a simple tree writer for the output tree
@@ -51,30 +52,42 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
-    double Slope[__TMS_MAX_LINES__];
-    double Intercept[__TMS_MAX_LINES__];
-    double DirectionZ[__TMS_MAX_LINES__];
-    double DirectionX[__TMS_MAX_LINES__];
+    float Slope[__TMS_MAX_LINES__];
+    float Intercept[__TMS_MAX_LINES__];
+    float DirectionZ[__TMS_MAX_LINES__];
+    float DirectionX[__TMS_MAX_LINES__];
     int nLines;
-    double FirstHit[__TMS_MAX_LINES__][2];
-    double LastHit[__TMS_MAX_LINES__][2];
+    float FirstHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float LastHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     int FirstPlane[__TMS_MAX_LINES__];
     int LastPlane[__TMS_MAX_LINES__];
     bool TMSStart;
-    double Occupancy[__TMS_MAX_LINES__];
-    double TrackLength[__TMS_MAX_LINES__];
-    double TrackEnergy[__TMS_MAX_LINES__];
+    float Occupancy[__TMS_MAX_LINES__];
+    float TrackLength[__TMS_MAX_LINES__];
+    float TrackEnergy[__TMS_MAX_LINES__];
 
-    double RecoHitPosition[__TMS_MAX_LINES__][__TMS_MAX_HITS__][4];
-    double RecoHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_HITS__][4];
+    // Cluster information
+    int nClusters; // Number of clusters
+    float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
+    int HitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
+    float ClusterPosMean[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
+    float ClusterPosStdDev[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
 
-    double MuonP4[4];
-    double Muon_Vertex[4];
-    double Muon_TrueKE;
+    // Reco information
+    int nHits; // How many hits in event
+    float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
+    float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
+    //int RecoHitTrack[__TMS_MAX_HITS__]; // which track is this hit associated with
+    //int RecoHitCluster[__TMS_MAX_HITS__]; // which cluster is this hit associated with
+
+    // Truth information
+    float MuonP4[4];
+    float Muon_Vertex[4];
+    float Muon_TrueKE;
     int nParticles;
     std::string Reaction;
     int NeutrinoPDG;
-    double NeutrinoP4[4];
+    float NeutrinoP4[4];
 };
 
 
