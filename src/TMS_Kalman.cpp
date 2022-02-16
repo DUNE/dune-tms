@@ -17,7 +17,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
 {
 
   // Empty the KalmanStates
-  KalmanNodes.empty();
+  KalmanNodes.clear();
 
   // Save the number of initial candidates
   int nCand = Candidates.size();
