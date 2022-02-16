@@ -479,9 +479,6 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
     }
   }
 
-  /////////////// FIX THIS
-  /////////////////// CHECK GENERAL ERASE PROCEDURE!
-
   // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
   // This helps remove biases in the greedy hough adjacent hit merging
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
