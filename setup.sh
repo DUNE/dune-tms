@@ -22,13 +22,13 @@ setup cmake v3_17_3 -f Linux64bit+3.10-2.17
 #setup duneanaobj v01_00_00 -f Linux64bit+3.10-2.17 -q debug:e17:gv2
 
 # Setup custom UPS products, for CAFana format development
-#source /dune/app/users/cwret/ups/setup.sh
-#setup duneanaobj v02_01_01 -q e20:gv3:prof
+source /dune/app/users/cwret/ups/setup.sh
+setup duneanaobj v02_01_01 -q e20:gv3:prof
 # Flag for enabling linking against DUNEANAOBJ
-#if [ ! -z "${DUNEANAOBJ_INC}" ]; then
-  #export DUNEANAOBJ_ENABLED=1
-  #echo "Enabling DUNEANAOBJ..."
-#fi
+if [ ! -z "${DUNEANAOBJ_INC}" ]; then
+  export DUNEANAOBJ_ENABLED=1
+  echo "Enabling DUNEANAOBJ..."
+fi
 
 # Need CLHEP for unit conversion in edep-sim info
 setup clhep v2_4_4_1 -f Linux64bit+3.10-2.17 -q debug:e20
