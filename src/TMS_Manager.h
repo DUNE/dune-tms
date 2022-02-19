@@ -30,6 +30,8 @@ class TMS_Manager {
     double Get_Reco_HOUGH_MaxInterp() { return _RECO_HOUGH_MaxInterp; };
     double Get_Reco_HOUGH_MinSlope() { return _RECO_HOUGH_MinSlope; };
     double Get_Reco_HOUGH_MaxSlope() { return _RECO_HOUGH_MaxSlope; };
+    int Get_Reco_HOUGH_NSlope() { return _RECO_HOUGH_NSlope; };
+    int Get_Reco_HOUGH_NInter() { return _RECO_HOUGH_NInter; };
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
     double Get_Reco_HOUGH_MergeTracks() { return _RECO_HOUGH_MergeTracks; };
     double Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
@@ -62,6 +64,8 @@ class TMS_Manager {
     double _RECO_HOUGH_MaxInterp;
     double _RECO_HOUGH_MinSlope;
     double _RECO_HOUGH_MaxSlope;
+    double _RECO_HOUGH_NSlope;
+    double _RECO_HOUGH_NInter;
     double _RECO_HOUGH_HitMult;
     bool _RECO_HOUGH_MergeTracks;
     bool _RECO_HOUGH_RunAStar;

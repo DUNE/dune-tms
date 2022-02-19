@@ -4,7 +4,7 @@
 # Recon parameter constants
 [Recon]
   # Minimum number of hits to consider reconstructing the event
-  MinHits = 10
+  MinHits = 5
 
   # Track reco; Hough, AStar, DBSCAN
   TrackMethod = "Hough"
@@ -25,13 +25,18 @@
     # The highest number of transform we can run
     MaxTrans = 10
     # Intercepts
-    MinInter = -40.0E3
-    MaxInter = 40.0E3
+    MinInter = -50.0E3
+    MaxInter = 50.0E3
     # Slopes
-    MinSlope = -2.0
-    MaxSlope = 2.0
+    MinSlope = -5.0
+    MaxSlope = 5.0
+    # Number of Hough bins, resolution should be about 1cm
+    NSlope = 10000
+    NInter = 10000
+    # Minimum distance for Hough
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
+    # Minimum distance for a Hough track (prevents overfinding)
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -40,8 +45,8 @@
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
-    #CostMetric = "Euclidean"
-    CostMetric = "DetectorZ"
+    CostMetric = "Euclidean"
+    #CostMetric = "DetectorZ"
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
@@ -52,4 +57,4 @@
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
-  DrawPDF = false
+  DrawPDF = true
