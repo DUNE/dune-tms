@@ -113,8 +113,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Muon_Vertex[2] = (*it).GetBirthPosition().Z();
     Muon_Vertex[3] = (*it).GetBirthPosition().T();
   }
-
-  // Fill up the truth info
   Truth_Info->Fill();
 
   // Fill the reco info
@@ -130,7 +128,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
     std::cerr << "Number of lines in event: " << nLines << std::endl;
     std::cerr << "Not writing event" << std::endl;
-    throw;
+    return;
   }
 
   int it = 0;
@@ -202,7 +200,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
     std::cerr << "nClusters in event: " << nClusters << std::endl;
-    throw;
+    return;
   }
 
   // Sum up the cluster candidates
@@ -252,7 +250,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Max hits: " << __TMS_MAX_HITS__ << std::endl;
     std::cerr << "Number of hits in event: " << nHits << std::endl;
     std::cerr << "Not writing event" << std::endl;
-    throw;
+    return;
   }
   stdit = 0;
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
@@ -266,6 +264,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     //RecoHitCluster
   }
 
+  // Fill up the info only if all above has passed
   Branch_Lines->Fill();
 }
 
