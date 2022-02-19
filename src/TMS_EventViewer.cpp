@@ -229,7 +229,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     HoughGraphVect[i]->SetMarkerStyle(25);
   }
   int LineIt = 0;
-  for (auto Line: HoughCandidates) {
+  for (auto &Line: HoughCandidates) {
     int HitIt = 0;
     for (auto HoughHit: Line) {
       HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ(), HoughHit.GetNotZ());
@@ -252,7 +252,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     GraphVect[i]->SetMarkerStyle(4);
   }
   int ClusterIt = 0;
-  for (auto Cluster: ClusterCandidates) {
+  for (auto &Cluster: ClusterCandidates) {
     int HitIt = 0;
     for (auto ClusterHit: Cluster) {
       GraphVect[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ(), ClusterHit.GetNotZ());
@@ -298,16 +298,18 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_center->Draw("same");
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
-  for (auto graph: HoughGraphVect) graph->Draw("P,same");
+  // Draw the clusters first
+  for (auto &graph: GraphVect) graph->Draw("P,same");
+  // Then the track candidates
+  for (auto &graph: HoughGraphVect) graph->Draw("P,same");
   it = 0;
-  for (auto i : HoughLines) {
+  for (auto &i : HoughLines) {
     if (i.first == true) {
       i.second->SetLineColor(it);
       i.second->Draw("same");
       it++;
     }
   }
-  for (auto graph: GraphVect) graph->Draw("P,same");
 
   xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nCluster: %i}", xz_view->GetTitle(), nLines, nClusters));
 
