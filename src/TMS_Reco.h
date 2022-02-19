@@ -46,7 +46,6 @@ enum class HeuristicType {
 class aNode {
   public:
 
-
     //aNode(double xval, double yval, double ywval): 
     aNode(double xval, double yval) :
       x(xval), y(yval),
@@ -67,8 +66,10 @@ class aNode {
       double deltax = abs(x-other.x);
       double deltay = abs(y-other.y);
 
-      // Allow for three bars in y at maximum, 1 bar in x at maximum
-      if (deltay > 2 || deltax > 1) return (deltax+deltay)*__LARGE_COST__;
+      // Allow for all connections that exceed 1 cell, but if they're not great make sure they're heavily penalised
+      if (deltay > 1 || deltax > 1) {
+        return (deltax*deltax+deltay*deltay)*__LARGE_COST__;
+      }
 
       double GroundCost = 0;
       // First add up the individual distance
@@ -78,12 +79,13 @@ class aNode {
       //if      (deltax+deltay == 2) GroundCost += 5;
 
       // Need to penalise diagonal connections to avoid them being preferred over non-diagonal
-      if (deltax == 2 || deltay == 2) {
-        GroundCost += 10;
-        if (deltax == 2 && deltay == 2) {
-          GroundCost += 10;
-        }
-      }
+      if (deltay == 1 && deltax == 1) GroundCost += 100;
+      //if (deltax == 2 || deltay == 2) {
+        //GroundCost += 10;
+        //if (deltax == 2 && deltay == 2) {
+          //GroundCost += 10;
+        //}
+      //}
 
       //else if (deltax+deltay == 3) GroundCost += 30;
       //else if (deltax+deltay == 4) GroundCost += 40;
@@ -206,7 +208,8 @@ class TMS_TrackFinder {
     // Run a best first search
     void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
 
-    void HoughTransform(const std::vector<TMS_Hit> &Hits);
+    //void HoughTransform(const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
 
     // Clean up the hits, removing duplicates and zero entries
@@ -284,6 +287,7 @@ class TMS_TrackFinder {
 
     unsigned int nMinHits;
     unsigned int nMaxMerges;
+    double MinDistHough;
 
     bool IsGreedy;
     // Which planes are next to the gaps (i.e. may cause discontinuities)?

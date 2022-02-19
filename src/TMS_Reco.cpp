@@ -1,8 +1,8 @@
 #include "TMS_Reco.h"
 
 TMS_TrackFinder::TMS_TrackFinder() :
-  nIntercept(2E3),
-  nSlope(2E3),
+  nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
+  nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
   InterceptMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinInterp()),
   InterceptMax(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxInterp()),
   SlopeMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinSlope()),
@@ -20,7 +20,8 @@ TMS_TrackFinder::TMS_TrackFinder() :
   nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
   // Maximum number of merges for one hit
   nMaxMerges(1),
-  // Is DBSCAN greedy
+  MinDistHough(450), // Minimum distance for Hough in mm
+  // Is AStar greedy
   IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy()),
   // Use DBSCAN clustering after track finding
   UseClustering(TMS_Manager::GetInstance().Get_Reco_Clustering())
@@ -69,6 +70,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
   }
 
   std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;
+  std::cout << "Using AStar to clean up HoughTrack? " << TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar() << std::endl;
   std::cout << "Using DBSCAN for clustering after main track finding? " << UseClustering << std::endl;
   if (kTrackMethod == TrackMethod::kAStar) {
     std::cout << "Using " << heuristicname << " for A* heuristic cost calculation" << std::endl;
@@ -116,7 +118,20 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Hough
   if (kTrackMethod == TrackMethod::kHough) {
-    HoughTransform(CleanedHits);
+    /*
+    // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
+    std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
+    std::cout << "Found " << DBScanCandidates.size() << " clusters" << std::endl;
+    // Hand over each cluster from DBSCAN to a Hough transform
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidates.begin(); it != DBScanCandidates.end(); ++it) {
+      std::vector<TMS_Hit> hits = *it;
+      std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits);
+      for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
+        HoughCandidates.emplace_back(std::move(*jt));
+      }
+    }
+    */
+    HoughCandidates = HoughTransform(CleanedHits);
   } else if (kTrackMethod == TrackMethod::kAStar) {
     BestFirstSearch(CleanedHits);
   }
@@ -288,74 +303,34 @@ void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
   }
 }
 
-void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
+//void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
+
+  // The returned vector of tracks
+  std::vector<std::vector<TMS_Hit> > LineCandidates;
 
   // Check it's not empty
-  if (TMS_Hits.empty()) return;
+  if (TMS_Hits.empty()) return LineCandidates;
 
   // First remove duplicate hits
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
-  if (TMS_Hits_Cleaned.empty()) return;
+  if (TMS_Hits_Cleaned.empty()) return LineCandidates;
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
-  //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
 
   // Do a spatial analysis of the hits in y and x around low z to ignore hits that are disconnected from other hits
   // Includes a simple sort in decreasing z (plane number)
   SpatialPrio(TMS_xz);
-  //SpatialPrio(TMS_yz);
 
   int nXZ_Hits_Start = TMS_xz.size();
 #ifdef DEBUG
   std::cout << "Starting Hough transform with: " << nXZ_Hits_Start << " hits" << std::endl;
 #endif
-  //int nYZ_Hits_Start = TMS_yz.size();
-
-  // First find where to do the Hough transform
-  // Check how many continous hits there are in the first layers from the first hit
-  /*
-  int nCont = 0;
-  int HitNumber = 0;
-  for (auto &hitref: TMS_xz) {
-    // The previous layer
-    int PrevLayer = hitref.GetPlaneNumber();
-    nCont = 0;
-    for (auto &hit: TMS_xz) {
-      double planeno = hit.GetPlaneNumber();
-      double z = hit.GetZ();
-      // Run only until we hit the thick target
-      // Could also check planenumber
-      if (z > TMS_Const::TMS_Thick_Start || planeno > TMS_Const::TMS_nThinPlanes) break;
-      // Check continuity
-      if (planeno != PrevLayer+1) continue;
-
-      // Increment the number of continuous hits
-      nCont++;
-      // Update the previous layer
-      PrevLayer = planeno;
-    }
-    // If we've found a sequence of hits that are more than needed
-    if (nCont > nThinCont) {
-      break;
-    }
-    HitNumber++;
-  }
-
-  // If we have continuos hits in the thin region, run the Hough transform only in that region
-  // if we don't , run over whole region
-  zMinHough = TMS_xz[HitNumber].GetZ();
-  if (nCont < nThinCont) {
-    zMaxHough = TMS_Const::TMS_Thick_End;
-  } else {
-    zMaxHough = TMS_Const::TMS_Thick_Start;
-  }
-  */
 
   // We'll be moving out TMS_xz and TMS_yz and putting them into candidates
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
-
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
          TMS_xz.size() > nMinHits && 
          nRuns < nMaxHough) {
@@ -363,24 +338,16 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
     // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
     if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
+    //std::cout << "  Hough candidates " << TMS_xz_cand.size() << " in track " << nRuns << std::endl;
 
     // If we're running out of hits (Hough transform doesn't have enough hits)
     if (TMS_xz_cand.size() < nMinHits) {
+      //std::cout << "Failed size" << std::endl;
       nRuns++;
       delete HoughLines.back().second;
       HoughLines.pop_back(); // Remove the built Hough line
       break;
     }
-
-    // Check if there are any candidates
-    // If not, they might all be downstream, i.e. this is not a LAr event, it's a TMS event
-
-    //std::vector<TMS_Hit> TMS_yz_cand;
-    //if (TMS_yz.size() > 0) TMS_yz_cand = RunHough(TMS_yz, nRuns);
-
-    // Then order them in z
-    SpatialPrio(TMS_xz_cand);
-    //SpatialPrio(TMS_yz_cand);
 
     // Move into the candidate vector
     for (auto &i: TMS_xz_cand) Candidates.push_back(std::move(i));
@@ -393,57 +360,51 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
       }
     }
     // Push back the candidates into the total candidates
-    HoughCandidates.push_back(std::move(Candidates));
+    LineCandidates.push_back(std::move(Candidates));
     nRuns++;
   }
 #ifdef DEBUG
   std::cout << "Ran " << nRuns << " Hough algo" << std::endl;
 #endif
+  //std::cout << LineCandidates.size() << " hough lines" << std::endl;
 
-  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeTracks()) {
-    // Can clean up hough hits a little bit
-    // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
 
-    // Loop over our Hough Candidates and merge 
-    // The Hough candidates aren't necessarily ordered after any metric
-    // Skip for 0 or single track events
-    if (HoughCandidates.size() < 2) return;
+  // Can clean up hough hits a little bit
+  // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
 
-    // Keep a iterator pointing to the end which we may have to update
-    auto endit = HoughCandidates.end();
+  // Loop over our Hough Candidates and merge 
+  // The Hough candidates aren't necessarily ordered after any metric
+  // Skip for 0 or single track events
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeTracks() && LineCandidates.size() > 1) {
+
     // Loop over the Hough candidates
-    for (std::vector<std::vector<TMS_Hit> >::iterator it = HoughCandidates.begin(); it != endit; ++it) {
-      // Let's get the first and last hits of each track
-      std::vector<TMS_Hit> hits = *it;
-      // How many hits before merge
-      if (it > endit) {
-        break;
-      }
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ++it) {
+      if ((*it).size() == 0) continue;
 
-      // Sort each in decreasing z
-      SpatialPrio(hits);
+      // Sort each in decreasing z (already done)
+      SpatialPrio((*it));
 
       // Get first and last hits
-      TMS_Hit firsthit = hits.front();
-      TMS_Hit lasthit = hits.back();
+      TMS_Hit firsthit = (*it).front();
+      TMS_Hit lasthit = (*it).back();
       double last_hit_z = lasthit.GetPlaneNumber();
       double last_hit_notz = lasthit.GetNotZ();
 
-      // Now loop over the remaining
+      //std::cout << "Running on track with size: " << (*it).size() << std::endl;
+
+      // Now loop over the remaining hits
       // Need to keep a conventional iterator to remove the HoughLine vector entries
-      int line_number = 0;
-      for (auto jt = HoughCandidates.begin(); jt != HoughCandidates.end(); line_number++) {
+      //int line_number = 0;
+      for (auto jt = it; jt != LineCandidates.end(); ++jt) {
         // Let's get the first and last hits of each track
-        auto hits_2 = *jt;
         // Sort each in decreasing z
-        SpatialPrio(hits_2);
+        SpatialPrio(*jt);
 
         // Get the first and last hit for this second track
-        TMS_Hit firsthit_2 = hits_2.front();
-        TMS_Hit lasthit_2 = hits_2.back();
+        TMS_Hit firsthit_2 = (*jt).front();
+        TMS_Hit lasthit_2 = (*jt).back();
         // Check that it's not the same hit
         if (firsthit_2 == firsthit && lasthit_2 == lasthit) {
-          ++jt;
           continue;
         }
 
@@ -451,49 +412,68 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
         double first_hit_notz_2 = firsthit_2.GetNotZ();
 
         // Now check how far away the hits are
-        bool merge = (fabs(first_hit_z_2 - last_hit_z) < 3 && 
-            fabs(first_hit_notz_2 - last_hit_notz) < 80);
+        bool merge = (fabs(first_hit_z_2 - last_hit_z) < 4 && 
+            fabs(first_hit_notz_2 - last_hit_notz) < 120);
 
         // Check if we should merge or not
         if (!merge) {
-          ++jt;
           continue;
         }
+        //std::cout << "removing track with size " << (*jt).size() << std::endl;
+
+        // Now we're sure we will merge these tracks
 
         // Copy over the contents of hits_2 into hits
-        for (auto movehits = hits_2.begin(); movehits != hits_2.end(); ++movehits) {
-          (*it).push_back(std::move(*movehits));
+        for (auto &movehits: (*jt)) {
+          (*it).emplace_back(std::move(movehits));
         }
 
         // Clear out the original vector
-        hits_2.clear();
+        (*jt).clear();
 
         // Remove the vector; if not this will cause problems in the outer loop
-        jt = HoughCandidates.erase(jt);
+        //jt = LineCandidates.erase(jt);
         // Update the end iterator after removal
-        endit = HoughCandidates.end();
-
+        //endit = LineCandidates.end();
         // And remove the hough line from the array of lines
-        HoughLines.erase(HoughLines.begin()+line_number);
+        //HoughLines.erase(HoughLines.begin()+line_number);
       }
+      //std::cout << (*it).size() << " after" << std::endl;
     }
   }
 
+  // Loop over and remove the empty tracks
+  int linenumber = 0;
+  for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
+    if ((*it).size() == 0) {
+      it = LineCandidates.erase(it);
+      HoughLines.erase(HoughLines.begin()+linenumber);
+    } else {
+      ++it;
+      ++linenumber;
+    }
+  }
+
+  //std::cout << LineCandidates.size() << " line candidates" << std::endl;
+  //std::cout << HoughLines.size() << " lines" << std::endl;
+
   // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
   // This helps remove biases in the greedy hough adjacent hit merging
+  // For A* after Hough, better to run with Euclidean metric, over-riding the previous
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
+    HeuristicType old = kHeuristic;
+    kHeuristic = HeuristicType::kEuclidean;
     int tracknumber = 0;
-    for (std::vector<std::vector<TMS_Hit> >::iterator it = HoughCandidates.begin(); it != HoughCandidates.end(); ) {
-      std::vector<TMS_Hit> track = (*it);
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
       //int nhoughhits = track.size();
-      std::vector<TMS_Hit> CleanedHough = RunAstar(track);
+      std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
       unsigned int ncleaned = CleanedHough.size();
 
       // Now replace the old hits with this cleaned version
       // Can remove Hough hits if not big enough
       // Also remember to remove the line
-      if (ncleaned < nMinHits) {
-        it = HoughCandidates.erase(it);
+      if (ncleaned < 1) {
+        it = LineCandidates.erase(it);
         HoughLines.erase(HoughLines.begin()+tracknumber);
       } else {
         *it = CleanedHough;
@@ -501,7 +481,39 @@ void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
         tracknumber++;
       }
     }
+    // Reset the heuristic
+    kHeuristic = old;
   }
+
+  // Now finally check if any hough tracks are too short, or have too few hits
+  // Makes sense to do this right at the end when all the merging and cleaning has been run
+  int stdit = 0;
+  for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
+    // Order them in z
+    SpatialPrio(*it);
+    // Now check that the Hough candidates are long enough
+    double xend = (*it).back().GetNotZ();
+    double zend = (*it).back().GetZ();
+    double xstart = (*it).front().GetNotZ();
+    double zstart = (*it).front().GetZ();
+    double xdist = xstart-xend;
+    double zdist = zstart-zend;
+    double dist = sqrt(xdist*xdist+zdist*zdist);
+    unsigned int nhits = (*it).size();
+    if (dist < MinDistHough || nhits < nMinHits) {
+      //std::cout << "Failed dist" << std::endl;
+      //std::cout << dist << std::endl;
+      it = LineCandidates.erase(it);
+      // Remove the corrresponding Hough line
+      HoughLines.erase(HoughLines.begin()+stdit);
+    } else {
+      it++;
+      stdit++;
+    }
+  }
+  //std::cout << LineCandidates.size() << " hough lines at end" << std::endl;
+
+  return LineCandidates;
 };
 
 void TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask) {
@@ -583,6 +595,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   return ClusterHits;
 }
 
+// Requires hits to be ordered in z
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits) {
 
   // Check if we're in XZ view
@@ -594,6 +607,42 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       Accumulator[i][j] = 0;
     }
   }
+
+  // Recalculate Hough parameters event by event... not fully tested!
+  bool VariableHough = false;
+  if (VariableHough) {
+    // Recalculate the min and max of slope and intercept for every event
+    // Hits are ordered in z already
+    double maxz = TMS_Const::TMS_Thin_Start;
+    double minz = TMS_Const::TMS_Thick_End;
+    double min_notz = TMS_Const::TMS_End_Exact[0];
+    double max_notz =  TMS_Const::TMS_Start_Exact[0];
+    for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it!=TMS_Hits.end(); ++it) {
+      double z = (*it).GetZ();
+      double not_z = (*it).GetNotZ();
+      if (z > maxz) maxz = z;
+      if (z < minz) minz = z;
+      if (not_z > max_notz) max_notz = not_z;
+      if (not_z < min_notz) min_notz = not_z;
+    }
+    // 1.8 comes from wanting to cover vertices that are maximally 80% between min and max z
+    double slope = (max_notz-min_notz)*1.8/(maxz-minz);
+    double intercept = -1*slope*(minz+0.8*(maxz-minz));
+    std::cout << "***" << std::endl;
+    std::cout << "z range: " << minz << " " << maxz << std::endl;
+    std::cout << "notz range: " << min_notz << " " << max_notz << std::endl;
+    std::cout << "slope: " << slope << std::endl;
+    std::cout << "intercept: " << intercept << std::endl;
+
+    // now try setting these as the max/min
+    SlopeMin = -1*slope;
+    SlopeMax = slope;
+    InterceptMin = -1*intercept;
+    InterceptMax = intercept;
+    InterceptWidth = (InterceptMax-InterceptMin)/nIntercept;
+    SlopeWidth = (SlopeMax-SlopeMin)/nSlope;
+  }
+
 
   // First run a simple Hough Transform
   for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it!=TMS_Hits.end(); ++it) {
@@ -645,7 +694,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Just make a pool of hits, and tracked hits
   // We'll pull hit out of the HitPool and put them into Candidates
   std::vector<TMS_Hit> HitPool = TMS_Hits;
-
   std::vector<TMS_Hit> returned;
 
   // Move hits from the pool into the candidates, and remove the candidates from the pool
@@ -667,6 +715,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
           bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
           bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
       bool IsGood = true;
+      // If we've got more than 5 hits in the pool and the last hit and this hit is too separated in z
       if (returned.size() > 5 && 
           abs(returned.back().GetPlaneNumber() - hit.GetPlaneNumber()) > 5) {
         IsGood = false;
@@ -683,6 +732,88 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       ++it;
     }
   }
+
+  if (returned.empty()) return returned;
+
+  // Clean up tracks by asking that the first and last hit of a track has neighbours
+  // Otherwise we might have just included this by the Hough line being drawn far and just happened to hit another active cell
+  // Sort each in decreasing z
+  SpatialPrio(returned);
+  int indexstart = 0;
+  double dist = 999;
+  int vecsize = returned.size();
+  while (dist > 150 && indexstart < vecsize) {
+    double startz = returned[indexstart].GetZ();
+    double startx = returned[indexstart].GetNotZ();
+    // Check adjacent
+    double distz = 0;
+    double distx = 0;
+    double startz_1 = startz;
+    double startx_1 = startx;
+    // which index are we checking against
+    int index = indexstart+1;
+    //std::cout << "starting at " << indexstart << std::endl;
+    while (distz+distx == 0 && index < vecsize) {
+      startz_1 = returned[index].GetZ();
+      startx_1 = returned[index].GetNotZ();
+      distz = startz_1-startz;
+      distx = startx_1-startx;
+      index++;
+    }
+    index--;
+    dist = sqrt(distx*distx+distz*distz);
+    //std::cout << startz << "-" << startz_1 << "=" << distz << std::endl;
+    //std::cout << startx << "-" << startx_1 << "=" << distx << std::endl;
+    //std::cout << dist << std::endl;
+    //std::cout << "at index " << index << std::endl;
+    indexstart++;
+  }
+  indexstart--;
+  //std::cout << "Start at " << indexstart << " which is " << dist << " near next point" << std::endl;
+  //std::cout << returned.size() << " before erase" << std::endl;
+  returned.erase(returned.begin(), returned.begin()+indexstart);
+  //std::cout << returned.size() << " after erase" << std::endl;
+
+  // Do the same for the end point 
+  dist = 999;
+  vecsize = returned.size();
+  indexstart = vecsize;
+  while (dist > 150 && indexstart > 0) {
+    double startz = returned[indexstart].GetZ();
+    double startx = returned[indexstart].GetNotZ();
+    // Check adjacent
+    double distz = 0;
+    double distx = 0;
+    double startz_1 = startz;
+    double startx_1 = startx;
+    // which index are we checking against
+    int index = indexstart-1;
+    //std::cout << "starting at " << indexstart << std::endl;
+    while (distz+distx == 0 && index > 0) {
+      startz_1 = returned[index].GetZ();
+      startx_1 = returned[index].GetNotZ();
+      distz = startz_1-startz;
+      distx = startx_1-startx;
+      index--;
+    }
+    index++;
+    dist = sqrt(distx*distx+distz*distz);
+    //std::cout << startz << "-" << startz_1 << "=" << distz << std::endl;
+    //std::cout << startx << "-" << startx_1 << "=" << distx << std::endl;
+    //std::cout << dist << std::endl;
+    //std::cout << "at index " << index << std::endl;
+    indexstart--;
+  }
+  indexstart++;
+  //std::cout << "Start at " << indexstart << " which is " << dist << " near next point" << std::endl;
+  //std::cout << returned.size() << " before erase" << std::endl;
+  returned.erase(returned.begin()+indexstart, returned.end());
+  //std::cout << returned.size() << " after erase" << std::endl;
+
+  // If there's a single start point far away from the next, remove it from transform
+
+  //double endz = (*it).back().GetZ();
+  //double endx = (*it).back().GetNotZ();
 
   // Now walk along the Hough hits and add on adjacent hits
   // Hough is most likely to find hits upstream due to bending being less there
@@ -1258,9 +1389,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   //aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
   aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetBarNumber());
 
-  //std::cout << "Last hit we calculate heuristic cost to" << std::endl;
-  //Last.Print();
-
   // Also convert the TMS_Hit to our path-node
   std::vector<aNode> Nodes;
 
@@ -1305,7 +1433,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Now find the neighbours of each node
   for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
-
     for (std::vector<aNode>::iterator jt = Nodes.begin(); jt != Nodes.end(); ++jt) {
 
       // First check this node isn't itself!
@@ -1313,8 +1440,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
       // Get the address
       aNode* Pointer = &(*jt);
-      // Only connect adjacent nodes to make calculation much faster
-      if (abs((*jt).x - (*it).x) > 2 || abs((*jt).y - (*jt).y) > 2) continue;
+      // Only connect nearby nodes
+      // to make calculation much faster
+      // This important can't be 1 though, because that would not connect split hits
+      if (abs((*jt).x - (*it).x) > 4 || 
+          abs((*jt).y - (*jt).y) > 4) continue;
       double GroundCost = (*it).CalculateGroundCost(*jt);
 
       // If a greedy algorithm, have no ground cost (only condition on getting closer to the goal)
