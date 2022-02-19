@@ -64,7 +64,8 @@ class TMS_TreeWriter {
     bool TMSStart;
     float Occupancy[__TMS_MAX_LINES__];
     float TrackLength[__TMS_MAX_LINES__];
-    float TrackEnergy[__TMS_MAX_LINES__];
+    float TotalTrackEnergy[__TMS_MAX_LINES__];
+    float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_HITS__]; // Energy per track hit
 
     // Cluster information
     int nClusters; // Number of clusters

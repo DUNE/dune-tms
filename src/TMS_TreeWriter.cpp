@@ -51,10 +51,10 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/F");
   Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/F");
-  Branch_Lines->Branch("TrackEnergy", TrackEnergy, "TrackEnergy[nLines]/F");
+  Branch_Lines->Branch("TotalTrackEnergy", TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
 
   // Cluster information
-  Branch_Lines->Branch("nClusterss", &nClusters, "nClusters/I");
+  Branch_Lines->Branch("nClusters", &nClusters, "nClusters/I");
   Branch_Lines->Branch("ClusterEnergy", ClusterEnergy, "ClusterEnergy[nClusters]");
   Branch_Lines->Branch("HitsInCluster", HitsInCluster, "HitsInCluster[nClusters]");
 
@@ -62,6 +62,9 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHits", &nHits, "nHits/I");
   Branch_Lines->Branch("RecoHitPos", RecoHitPos, "RecoHitPos[nHits][4]");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]");
+
+  // Track hit energy
+  Branch_Lines->Branch("TrackHitEnergy", TrackHitEnergy, "TrackHitEnergy[20][500]/F");
 
   // Truth information
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
@@ -181,8 +184,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     LastHit[it][1] = Candidates.back().GetNotZ();
 
     TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
-    TrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
+    TotalTrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
     Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+    // Get each hit in the track and save its energy
+    for (unsigned int i = 0; i < Candidates.size(); ++i) {
+      TrackHitEnergy[it][i] = Candidates[i].GetE();
+    }
 
     it++;
   }
@@ -259,9 +266,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
-    // Don't really need these?
-    //RecoHitTrack
-    //RecoHitCluster
   }
 
   // Fill up the info only if all above has passed
@@ -290,12 +294,15 @@ void TMS_TreeWriter::Clear() {
     DirectionX[i]=-999;
     Occupancy[i]=-999;
     TrackLength[i]=-999;
-    TrackEnergy[i]=-999;
+    TotalTrackEnergy[i]=-999;
     FirstPlane[i]=-999;
     LastPlane[i]=-999;
     for (int j = 0; j < 2; ++j) {
       FirstHit[i][j] = -999;
       LastHit[i][j] = -999;
+    }
+    for (int j = 0; j < __TMS_MAX_HITS__; ++j) {
+      TrackHitEnergy[i][j]=-999;
     }
   }
 
