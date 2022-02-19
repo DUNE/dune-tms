@@ -57,4 +57,4 @@
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
-  DrawPDF = true
+  DrawPDF = false
