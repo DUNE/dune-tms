@@ -62,7 +62,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   Timer.Start();
 
   int i = 0;
-  //N_entries = 100;
+  //N_entries = 210;
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
@@ -75,9 +75,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    // Fill up truth information from the GRooTracker object
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
 
-    // Pass some gRooTracker info through?
     // Dump information
     //tms_event.Print();
 
