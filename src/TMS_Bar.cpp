@@ -120,6 +120,8 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // Reset the geom navigator node level in case it's used again
   geom->FindNode(xval,yval,zval);
 
+  // Update the bar number
+  BarNumber = (GetX()-TMS_Const::TMS_Start_Exact[0])/GetXw();
   CheckBar();
 
   return true;
@@ -191,9 +193,11 @@ double TMS_Bar::FindYbar(double yval) {
 bool TMS_Bar::CheckBar() {
 
   // Sanity check the global bar number
-  if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
+  //if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
+  if (BarNumber >= (TMS_Const::TMS_End_Exact[0]-TMS_Const::TMS_Start_Exact[0])/GetXw() || BarNumber < 0) {
     std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+    std::cout << "Bar number: " << BarNumber << std::endl;
     throw;
     return false;
   }
