@@ -70,6 +70,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
   Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
+  Truth_Info->Branch("Muon_Death", Muon_Death, "Muon_Death[4]/F");
   Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
   Truth_Info->Branch("Interaction", &Reaction);
@@ -115,6 +116,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Muon_Vertex[1] = (*it).GetBirthPosition().Y();
     Muon_Vertex[2] = (*it).GetBirthPosition().Z();
     Muon_Vertex[3] = (*it).GetBirthPosition().T();
+
+    Muon_Death[0] = (*it).GetDeathPosition().X();
+    Muon_Death[1] = (*it).GetDeathPosition().Y();
+    Muon_Death[2] = (*it).GetDeathPosition().Z();
+    Muon_Death[3] = (*it).GetDeathPosition().T();
   }
   Truth_Info->Fill();
 
@@ -281,6 +287,7 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < 4; ++i) {
     MuonP4[i]=-999;
     Muon_Vertex[i]=-999;
+    Muon_Death[i]=-999;
     NeutrinoP4[i]=-999;
   }
 

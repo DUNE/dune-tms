@@ -14,7 +14,7 @@
 // Could (and probably should) be replaced by vectors
 #define __TMS_MAX_LINES__ 20 // Maximum number of lines in an event
 #define __TMS_MAX_HITS__ 1500 // Maximum number of hits in an event
-#define __TMS_MAX_CLUSTERS__ 20 // Maximum number of clusters in an event
+#define __TMS_MAX_CLUSTERS__ 25 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
 // Just a simple tree writer for the output tree
@@ -84,6 +84,7 @@ class TMS_TreeWriter {
     // Truth information
     float MuonP4[4];
     float Muon_Vertex[4];
+    float Muon_Death[4];
     float Muon_TrueKE;
     int nParticles;
     std::string Reaction;
