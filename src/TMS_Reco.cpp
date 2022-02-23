@@ -20,7 +20,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
   nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
   // Maximum number of merges for one hit
   nMaxMerges(1),
-  MinDistHough(450), // Minimum distance for Hough in mm
+  MinDistHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinDist()), // Minimum distance for Hough in mm
   // Is AStar greedy
   IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy()),
   // Use DBSCAN clustering after track finding
@@ -118,20 +118,21 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Hough
   if (kTrackMethod == TrackMethod::kHough) {
-    /*
-    // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
-    std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
-    std::cout << "Found " << DBScanCandidates.size() << " clusters" << std::endl;
-    // Hand over each cluster from DBSCAN to a Hough transform
-    for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidates.begin(); it != DBScanCandidates.end(); ++it) {
-      std::vector<TMS_Hit> hits = *it;
-      std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits);
-      for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
-        HoughCandidates.emplace_back(std::move(*jt));
+    // Do we first run clustering algorithm to separate hits, then hand off to A*?
+    if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
+      // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
+      std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
+      // Hand over each cluster from DBSCAN to a Hough transform
+      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidates.begin(); it != DBScanCandidates.end(); ++it) {
+        std::vector<TMS_Hit> hits = *it;
+        std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits);
+        for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
+          HoughCandidates.emplace_back(std::move(*jt));
+        }
       }
+    } else {
+      HoughCandidates = HoughTransform(CleanedHits);
     }
-    */
-    HoughCandidates = HoughTransform(CleanedHits);
   } else if (kTrackMethod == TrackMethod::kAStar) {
     BestFirstSearch(CleanedHits);
   }
@@ -181,10 +182,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     KalmanFitter = TMS_Kalman(xz_hits);
 
     /*
-    std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
-    std::cout << "yz hits: " << yz_hits.size() << std::endl;
-    KalmanFitter = TMS_Kalman(yz_hits);
-    */
+       std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
+       std::cout << "yz hits: " << yz_hits.size() << std::endl;
+       KalmanFitter = TMS_Kalman(yz_hits);
+       */
   }
 
 }
@@ -193,7 +194,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   // Have the TMS_Event, which has a vector of TMS_TrueParticles, which has a vector of hits from each particle (so target the muon for instance)
   // Also
-  
+
   // Get the true muon
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   TMS_TrueParticle muon;
@@ -332,13 +333,12 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
-         TMS_xz.size() > nMinHits && 
-         nRuns < nMaxHough) {
+      TMS_xz.size() > nMinHits && 
+      nRuns < nMaxHough) {
 
     // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
     if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
-    //std::cout << "  Hough candidates " << TMS_xz_cand.size() << " in track " << nRuns << std::endl;
 
     // If we're running out of hits (Hough transform doesn't have enough hits)
     if (TMS_xz_cand.size() < nMinHits) {
@@ -419,9 +419,6 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         if (!merge) {
           continue;
         }
-        //std::cout << "removing track with size " << (*jt).size() << std::endl;
-
-        // Now we're sure we will merge these tracks
 
         // Copy over the contents of hits_2 into hits
         for (auto &movehits: (*jt)) {
@@ -430,15 +427,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
         // Clear out the original vector
         (*jt).clear();
-
-        // Remove the vector; if not this will cause problems in the outer loop
-        //jt = LineCandidates.erase(jt);
-        // Update the end iterator after removal
-        //endit = LineCandidates.end();
-        // And remove the hough line from the array of lines
-        //HoughLines.erase(HoughLines.begin()+line_number);
       }
-      //std::cout << (*it).size() << " after" << std::endl;
     }
   }
 
@@ -453,9 +442,6 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       ++linenumber;
     }
   }
-
-  //std::cout << LineCandidates.size() << " line candidates" << std::endl;
-  //std::cout << HoughLines.size() << " lines" << std::endl;
 
   // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
   // This helps remove biases in the greedy hough adjacent hit merging

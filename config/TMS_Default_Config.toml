@@ -36,7 +36,10 @@
     # Minimum distance for Hough
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
-    # Minimum distance for a Hough track (prevents overfinding)
+    # Minimum distance for a Hough track (prevents overfinding) -- in mm
+    MinDist = 450.0
+    # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
+    FirstCluster = false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -45,8 +48,8 @@
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
-    CostMetric = "Euclidean"
-    #CostMetric = "DetectorZ"
+    #CostMetric = "Euclidean"
+    CostMetric = "DetectorZ"
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
