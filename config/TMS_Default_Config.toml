@@ -4,7 +4,7 @@
 # Recon parameter constants
 [Recon]
   # Minimum number of hits to consider reconstructing the event
-  MinHits = 5
+  MinHits = 3
 
   # Track reco; Hough, AStar, DBSCAN
   TrackMethod = "Hough"
@@ -22,7 +22,7 @@
     Epsilon = 2.5
 
   [Recon.Hough]
-    # The highest number of transform we can run
+    # The highest number of Hough transforms we can run after each other
     MaxTrans = 10
     # Intercepts
     MinInter = -50.0E3
@@ -31,25 +31,28 @@
     MinSlope = -5.0
     MaxSlope = 5.0
     # Number of Hough bins, resolution should be about 1cm
-    NSlope = 10000
-    NInter = 10000
+    #NSlope = 10000
+    #NInter = 10000
+    NSlope = 1000
+    NInter = 1000
     # Minimum distance for Hough
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
-    # Minimum distance for a Hough track (prevents overfinding) -- in mm
-    MinDist = 450.0
+    # Minimum distance for a Hough track (prevents overfinding) -- in bars and plane
+    # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
+    MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
     FirstCluster = false
     # Do we merge adjacent tracks afterwards?
-    MergeTracks = true
+    MergeTracks = false
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
-    #CostMetric = "Euclidean"
-    CostMetric = "DetectorZ"
+    CostMetric = "Euclidean"
+    #CostMetric = "DetectorZ"
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
