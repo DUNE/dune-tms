@@ -7,6 +7,8 @@
 // Number of maximum particles in an edep-sim event
 #define __EDEP_SIM_MAX_PART__ 4000
 
+#define __TMS_BAD_NUMBER__ -999.99
+
 // Constants
 namespace TMS_KinConst {
   const double mass_mu = 105.6583755; // Muon mass in MeV/c2
@@ -27,8 +29,8 @@ namespace TMS_Const {
   const double TMS_TimeThreshold = 1;
 
   // Roughly the minimum energy that can be detected (MeV)
-  // Roughly 1/10th of a MIP
-  const double TMS_EnThres = 0.05;
+  const double TMS_EnThres = 0.1;
+  //const double TMS_EnThres = 1;
 
   // Number of planes, check against geometry
   const int TMS_nThinPlanes = 40;
