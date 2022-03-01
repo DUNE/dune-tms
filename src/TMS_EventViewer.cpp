@@ -140,11 +140,11 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_view->SetTitle(Form("TMS viewer xz, Event %i", EventNumber));
   yz_view->SetTitle(Form("TMS viewer yz, Event %i", EventNumber));
 
-  std::vector<TMS_Hit> TMS_Hits = event.GetHits();
+  std::vector<TMS_Hit> TMS_Hits = TMS_TrackFinder::GetFinder().GetCleanedHits();
 
   // Check that there are hits; overlaps with nMinHits in TMS_Reco
   // Make this a constant
-  if (TMS_Hits.size() < 10 || TMS_TrackFinder::GetFinder().GetCleanedHits().size() < 10) {
+  if (TMS_Hits.size() < 1 || TMS_TrackFinder::GetFinder().GetCleanedHits().size() < 1) {
     //std::cout << "Trying to draw an event that has no hits in the TMS, returning..." << std::endl;
     return;
   }
@@ -175,6 +175,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<TGraph*> trajgraphs(ntraj);
   // Loop over the trajectories
   int it = 0;
+  int truemuon_traj = -1;
   for (auto i = traj.begin(); i != traj.end(); ++i,it++) {
     TGraph *tempgraph = new TGraph((*i).GetPositionPoints().size());
     int npoints = int(((*i).GetPositionPoints()).size());
@@ -191,6 +192,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     } 
 
     if (abs((*i).GetPDG()) == 13) {
+      truemuon_traj = it;
       tempgraph->SetMarkerColor(kYellow-3);
     } else if (abs((*i).GetPDG()) == 11) {
       tempgraph->SetMarkerColor(kGreen-2);
@@ -212,8 +214,6 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   }
 
   // Loop over the reconstructed tracks to overlay with hits
-  //std::vector<TMS_Hit> Candidates = TMS_TrackFinder::GetFinder().GetCandidates();
-  //std::vector<std::vector<TMS_Hit> > TotalCandidates = TMS_TrackFinder::GetFinder().GetTotalCandidates();
 
   // Get the Hough candidates
   std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
@@ -268,6 +268,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
   // Draw the raw hits
   Canvas->cd(1); 
+  xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nClusters: %i}", xz_view->GetTitle(), nLines, nClusters));
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -288,6 +289,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (int i = 0; i < int(trajgraphs.size()); ++i) {
     if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
   }
+  // Draw the muon trajectory on top
+  if (truemuon_traj >= 0) trajgraphs[truemuon_traj]->Draw("P,same");
 
   // Draw the reconstructed tracks 
   Canvas->cd(3);
@@ -311,7 +314,6 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     }
   }
 
-  xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nCluster: %i}", xz_view->GetTitle(), nLines, nClusters));
 
   /*
   Canvas->cd(2); 
@@ -330,15 +332,19 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     gStyle->SetPalette(87);
     Canvas->cd(1);
     TH2D *accumulator_xz = TMS_TrackFinder::GetFinder().AccumulatorToTH2D(false);
+    accumulator_xz->RebinX(100);
+    accumulator_xz->RebinY(100);
+    accumulator_xz->SetMinimum(-0.01);
     accumulator_xz->Draw("colz");
-
-    Canvas->cd(2);
-    TH2D *accumulator_yz = TMS_TrackFinder::GetFinder().AccumulatorToTH2D(true);
-    accumulator_yz->Draw("colz");
     Canvas->Print(CanvasName+".pdf");
 
+    //Canvas->cd(2);
+    //TH2D *accumulator_yz = TMS_TrackFinder::GetFinder().AccumulatorToTH2D(true);
+    //accumulator_yz->Draw("colz");
+    //Canvas->Print(CanvasName+".pdf");
+
     delete accumulator_xz;
-    delete accumulator_yz;
+    //delete accumulator_yz;
   }
 
   for (int i = 0; i < nClusters; ++i) {

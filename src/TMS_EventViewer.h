@@ -21,7 +21,6 @@ class TMS_EventViewer {
 
     void Draw(TMS_Event &event);
 
-
   private:
     TMS_EventViewer();
     TMS_EventViewer(TMS_EventViewer const&) = delete;
