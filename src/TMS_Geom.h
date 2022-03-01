@@ -282,10 +282,16 @@ class TMS_Geom {
         // How far is this boundary from the starting point
         dist = (pt_vec-point1).Mag();
 
+        std::cout << "new node" << std::endl;
+        // Go down to the deepest node
+        geom->FindNode();
+        std::cout << geom->GetCurrentNode()->GetName() << std::endl;
+
         // Step into the next volume
         geom->FindNextBoundaryAndStep();
         // Go down to the deepest node
         geom->FindNode();
+        std::cout << geom->GetCurrentNode()->GetName() << std::endl;
         // How big was the step in this material
         step = geom->GetStep();
         if (step < __GEOM_TINY_STEP__) {
@@ -296,6 +302,13 @@ class TMS_Geom {
           geom->FindNode();
           // How big was the step in this material
           step = geom->GetStep();
+        }
+        // Try cding around
+        std::cout << "***" << nodename << std::endl;
+        while (nodename.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
+          geom->CdUp();
+          nodename = std::string(geom->GetCurrentNode()->GetName());
+          std::cout << nodename << std::endl;
         }
 
         // Push back the information
