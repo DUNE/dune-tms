@@ -195,7 +195,7 @@ class TMS_TrackFinder {
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
-    void CalculateTrackLength(TMS_Event &event);
+    void CalculateTrackLength();
     void CalculateTrackEnergy();
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
@@ -216,7 +216,7 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
     // Get hits projected onto xz or yz
     std::vector<TMS_Hit> ProjectHits(const std::vector<TMS_Hit> &Hits, TMS_Bar::BarType bartype = TMS_Bar::kXBar);
-    std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &Hits);
+    std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &Hits, bool ConnectAll = false);
 
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);
@@ -230,7 +230,6 @@ class TMS_TrackFinder {
 
     std::vector<double> &GetTrackLength() { return TrackLength; };
     std::vector<double> &GetTrackEnergy() { return TrackEnergy; };
-    std::vector<double> &GetTrueMuonKE() { return TrueMuonKE; };
 
     TH1D* GetEfficiencyHist() { return Efficiency; };
     TH1D* GetTotalHist() { return Total; };
@@ -303,7 +302,6 @@ class TMS_TrackFinder {
 
     std::vector<double> TrackEnergy;
     std::vector<double> TrackLength;
-    std::vector<double> TrueMuonKE;
 };
 
 #endif

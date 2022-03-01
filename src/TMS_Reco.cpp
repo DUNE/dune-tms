@@ -95,7 +95,6 @@ void TMS_TrackFinder::CleanClass() {
   ClusterCandidates.clear();
   TrackLength.clear();
   TrackEnergy.clear();
-  TrueMuonKE.clear();
 }
 
 // The generic track finder
@@ -159,7 +158,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 
   // Now calculate the track length for each track
-  CalculateTrackLength(event);
+  CalculateTrackLength();
   CalculateTrackEnergy();
 
   // For future probably want to move track candidates into the TMS_Event class
@@ -193,7 +192,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 // Let's try to evaluate the goodness of the trackfinding
 void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   // Have the TMS_Event, which has a vector of TMS_TrueParticles, which has a vector of hits from each particle (so target the muon for instance)
-  // Also
 
   // Get the true muon
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
@@ -211,7 +209,6 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 
   // Now compare this to our tracks and see how many of the muon hits are included
   // Loop over the candidate tracks that have been built
-  //
   int nTrueHits = muon.GetPositionPoints().size();
   if (nTrueHits == 0) return;
 
@@ -265,13 +262,14 @@ void TMS_TrackFinder::CalculateTrackEnergy() {
 }
 
 // Calculate the track length for each track
-void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
+void TMS_TrackFinder::CalculateTrackLength() {
   // Look at the reconstructed tracks
   if (HoughCandidates.size() == 0) return;
 
   // Loop over each Hough Candidate and find the track length
   for (auto it = HoughCandidates.begin(); it != HoughCandidates.end(); ++it) {
     double total = 0;
+
     // Sort by increasing z
     std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
 
@@ -285,22 +283,6 @@ void TMS_TrackFinder::CalculateTrackLength(TMS_Event &event) {
       total += tracklength;
     }
     TrackLength.push_back(total);
-  }
-
-  // Also push back the true muon KE
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
-  double KE = 0;
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-    // Only save muon info for now
-    if (abs((*it).GetPDG()) != 13) continue;
-    // Also make sure it's a fundamental muon
-    if ((*it).GetParent() != -1) continue;
-    TVector3 mom = (*it).GetBirthMomentum();
-    double E = (*it).GetBirthEnergy();
-    // Get KE (E - m)
-    double mass = sqrt(E*E-mom.Mag2());
-    KE = E-mass;
-    TrueMuonKE.push_back(KE);
   }
 }
 
@@ -332,6 +314,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // We'll be moving out TMS_xz and TMS_yz and putting them into candidates
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
+  //std::cout << "All hits" << std::endl;
+  //for (auto &hit: TMS_xz) {
+    //std::cout << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << std::endl;
+  //}
+
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
       TMS_xz.size() > nMinHits && 
       nRuns < nMaxHough) {
@@ -339,10 +326,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
     if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
-
-    // If we're running out of hits (Hough transform doesn't have enough hits)
-    if (TMS_xz_cand.size() < nMinHits) {
-      //std::cout << "Failed size" << std::endl;
+    
+    if (TMS_xz_cand.size() == 0) {
       nRuns++;
       delete HoughLines.back().second;
       HoughLines.pop_back(); // Remove the built Hough line
@@ -368,6 +353,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 #endif
   //std::cout << LineCandidates.size() << " hough lines" << std::endl;
 
+  //std::cout << "Hough lines before cleaning: " << std::endl;
+  //for (auto &line: LineCandidates) {
+    //std::cout << "New line" << std::endl;
+    //for (auto &hit : line) {
+      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
+    //}
+  //}
 
   // Can clean up hough hits a little bit
   // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
@@ -378,7 +370,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeTracks() && LineCandidates.size() > 1) {
 
     // Loop over the Hough candidates
-    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ++it) {
+    int lineit = 0;
+    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ++it, ++lineit) {
       if ((*it).size() == 0) continue;
 
       // Sort each in decreasing z (already done)
@@ -387,15 +380,20 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Get first and last hits
       TMS_Hit firsthit = (*it).front();
       TMS_Hit lasthit = (*it).back();
-      double last_hit_z = lasthit.GetPlaneNumber();
-      double last_hit_notz = lasthit.GetNotZ();
+      int last_hit_z = lasthit.GetPlaneNumber();
+      int last_hit_notz = lasthit.GetBarNumber();
 
       //std::cout << "Running on track with size: " << (*it).size() << std::endl;
 
+      double HoughInter_1 = HoughLines[lineit].second->GetParameter(0);
+      double HoughSlope_1 = HoughLines[lineit].second->GetParameter(1);
+
       // Now loop over the remaining hits
       // Need to keep a conventional iterator to remove the HoughLine vector entries
-      //int line_number = 0;
-      for (auto jt = it; jt != LineCandidates.end(); ++jt) {
+      int lineit_2 = 0;
+      for (std::vector<std::vector<TMS_Hit> >::iterator jt = LineCandidates.begin(); jt != LineCandidates.end(); ++jt, ++lineit_2) {
+
+        if ((*jt).size() == 0) continue;
         // Let's get the first and last hits of each track
         // Sort each in decreasing z
         SpatialPrio(*jt);
@@ -408,28 +406,63 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
           continue;
         }
 
-        double first_hit_z_2 = firsthit_2.GetPlaneNumber();
-        double first_hit_notz_2 = firsthit_2.GetNotZ();
+        int first_hit_z_2 = firsthit_2.GetPlaneNumber();
+        int first_hit_notz_2 = firsthit_2.GetBarNumber();
+
+        //std::cout << last_hit_z << ", " << last_hit_notz << std::endl;
+        //std::cout << "against" << std::endl;
+        //std::cout << first_hit_z_2 << ", " << first_hit_notz_2 << std::endl;
 
         // Now check how far away the hits are
-        bool merge = (fabs(first_hit_z_2 - last_hit_z) < 4 && 
-            fabs(first_hit_notz_2 - last_hit_notz) < 120);
+        bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= 2 && 
+                          abs(first_hit_notz_2 - last_hit_notz) <= 2);
+
+        double HoughInter_2 = HoughLines[lineit_2].second->GetParameter(0);
+        double HoughSlope_2 = HoughLines[lineit_2].second->GetParameter(1);
+
+        //std::cout << "Hough pars: " << std::endl;
+        //std::cout << HoughInter_1 << ", " << HoughInter_2 << std::endl;
+        //std::cout << HoughSlope_1 << ", " << HoughSlope_2 << std::endl;
+        // Now check how similar the Hough lines are
+        bool mergehough = (fabs(HoughInter_2 - HoughInter_1) < 100 && 
+                           fabs(HoughSlope_2 - HoughSlope_1) < 0.01);
 
         // Check if we should merge or not
-        if (!merge) {
+        if (!mergehits && !mergehough) {
           continue;
         }
+        //std::cout << "merged track" << std::endl;
 
         // Copy over the contents of hits_2 into hits
-        for (auto &movehits: (*jt)) {
-          (*it).emplace_back(std::move(movehits));
+        for (TMS_Hit movehits: (*jt)) {
+          (*it).push_back(movehits);
         }
 
         // Clear out the original vector
         (*jt).clear();
+        //std::cout << "After merge size: " << (*it).size() << std::endl;
+        //std::cout << "After merge del vector: " << (*jt).size() << std::endl;
+        // After a merge we need to re-sort the original vector and recalculate the first and last hits
+        SpatialPrio((*it));
+        firsthit = (*it).front();
+        lasthit = (*it).back();
+        last_hit_z = lasthit.GetPlaneNumber();
+        last_hit_notz = lasthit.GetBarNumber();
       }
+      //std::cout << "Line " << lineit << " after check" << std::endl;
+      //for (std::vector<TMS_Hit>::iterator jt = (*it).begin(); jt != (*it).end(); ++jt) {
+        //std::cout << (*jt).GetPlaneNumber() << ", " << (*jt).GetBarNumber() << std::endl;
+      //}
     }
   }
+
+  //std::cout << "Hough lines right after track merge: " << std::endl;
+  //for (auto &line: LineCandidates) {
+    //std::cout << "New line" << std::endl;
+    //for (auto &hit : line) {
+      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
+    //}
+  //}
 
   // Loop over and remove the empty tracks
   int linenumber = 0;
@@ -443,16 +476,24 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     }
   }
 
+  //std::cout << "Hough lines after track merge: " << std::endl;
+  //for (auto &line: LineCandidates) {
+    //std::cout << "New line" << std::endl;
+    //for (auto &hit : line) {
+      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
+    //}
+  //}
+
   // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
   // This helps remove biases in the greedy hough adjacent hit merging
   // For A* after Hough, better to run with Euclidean metric, over-riding the previous
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
-    HeuristicType old = kHeuristic;
-    kHeuristic = HeuristicType::kEuclidean;
     int tracknumber = 0;
     for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
       //int nhoughhits = track.size();
-      std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
+      // Need to sort each line in z
+      SpatialPrio(*it);
+      std::vector<TMS_Hit> CleanedHough = RunAstar(*it); 
       unsigned int ncleaned = CleanedHough.size();
 
       // Now replace the old hits with this cleaned version
@@ -467,36 +508,23 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         tracknumber++;
       }
     }
-    // Reset the heuristic
-    kHeuristic = old;
   }
 
-  // Now finally check if any hough tracks are too short, or have too few hits
-  // Makes sense to do this right at the end when all the merging and cleaning has been run
-  int stdit = 0;
-  for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
-    // Order them in z
-    SpatialPrio(*it);
-    // Now check that the Hough candidates are long enough
-    double xend = (*it).back().GetNotZ();
-    double zend = (*it).back().GetZ();
-    double xstart = (*it).front().GetNotZ();
-    double zstart = (*it).front().GetZ();
-    double xdist = xstart-xend;
-    double zdist = zstart-zend;
-    double dist = sqrt(xdist*xdist+zdist*zdist);
-    unsigned int nhits = (*it).size();
-    if (dist < MinDistHough || nhits < nMinHits) {
-      //std::cout << "Failed dist" << std::endl;
-      //std::cout << dist << std::endl;
-      it = LineCandidates.erase(it);
-      // Remove the corrresponding Hough line
-      HoughLines.erase(HoughLines.begin()+stdit);
-    } else {
-      it++;
-      stdit++;
-    }
-  }
+  //std::cout << "Hough lines after A* slimming: " << std::endl;
+  //for (auto &line: LineCandidates) {
+    //std::cout << "New line" << std::endl;
+    //for (auto &hit : line) {
+      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
+    //}
+  //}
+
+  //std::cout << "Hough lines after cleaning: " << std::endl;
+  //for (auto &line: LineCandidates) {
+    //std::cout << "New line" << std::endl;
+    //for (auto &hit : line) {
+      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
+    //}
+  //}
   //std::cout << LineCandidates.size() << " hough lines at end" << std::endl;
 
   return LineCandidates;
@@ -509,7 +537,11 @@ void TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> 
   std::cout << "Size before masking: " << Orig.size() << std::endl;
   std::cout << "Mask size: " << Mask.size() << std::endl;
 #endif
-  // Loop over the
+
+  //std::cout << "Before masking: " << std::endl;
+  //std::cout << "Original size: " << Orig.size() << std::endl;
+  //std::cout << "Masked size: " << Mask.size() << std::endl;
+
   // Loop over each hit in the mask
   for (auto &MaskHit: Mask) {
     for (auto it = Orig.begin(); it != Orig.end(); ) {
@@ -517,6 +549,10 @@ void TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> 
       else it++;
     }
   }
+  //std::cout << "After masking: " << std::endl;
+  //std::cout << "Original size: " << Orig.size() << std::endl;
+  //std::cout << "Masked size: " << Mask.size() << std::endl;
+
 #ifdef DEBUG
   int sizeaft = Orig.size();
   std::cout << "Removed " << sizebef - sizeaft << " in masking (" << sizebef << "-" << sizeaft << ")" << std::endl;
@@ -529,14 +565,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   std::vector<TMS_Hit> MaskedHits = CleanHits(TMS_Hits);
   // The vector of DBSCAN points
   std::vector<TMS_DBScan_Point> DB_Points;
-
   // For each of the hits make a temporary DBSCAN point
   for (auto &i: MaskedHits) {
-    // Get the point from the hit
-
-    // Only call it "x" since we're plotting z on the x-axis
-    //double x = i.GetZ()/i.GetZw();
-
     // Use the plane number
     double x = i.GetPlaneNumber();
     // And the height of each bar
@@ -556,7 +586,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   DBSCAN.SetPoints(DB_Points);
   DBSCAN.RunDBScan();
 
-  std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
+  //std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
   std::vector<std::vector<TMS_DBScan_Point> > ClusterPoints = DBSCAN.GetClusters();
 
   // Convert the ClusterPoints to Clusters of TMS hits
@@ -614,11 +644,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // 1.8 comes from wanting to cover vertices that are maximally 80% between min and max z
     double slope = (max_notz-min_notz)*1.8/(maxz-minz);
     double intercept = -1*slope*(minz+0.8*(maxz-minz));
-    std::cout << "***" << std::endl;
-    std::cout << "z range: " << minz << " " << maxz << std::endl;
-    std::cout << "notz range: " << min_notz << " " << max_notz << std::endl;
-    std::cout << "slope: " << slope << std::endl;
-    std::cout << "intercept: " << intercept << std::endl;
+    //std::cout << "***" << std::endl;
+    //std::cout << "z range: " << minz << " " << maxz << std::endl;
+    //std::cout << "notz range: " << min_notz << " " << max_notz << std::endl;
+    //std::cout << "slope: " << slope << std::endl;
+    //std::cout << "intercept: " << intercept << std::endl;
 
     // now try setting these as the max/min
     SlopeMin = -1*slope;
@@ -628,6 +658,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     InterceptWidth = (InterceptMax-InterceptMin)/nIntercept;
     SlopeWidth = (SlopeMax-SlopeMin)/nSlope;
   }
+
+  //std::cout << "All hits in Hough" << std::endl;
+  //for (auto &hit: TMS_Hits) {
+    //std::cout << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << std::endl;
+  //}
 
 
   // First run a simple Hough Transform
@@ -700,456 +735,251 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     if (( bar.Contains(HoughPoint, zhit) ||
           bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
           bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
-      bool IsGood = true;
-      // If we've got more than 5 hits in the pool and the last hit and this hit is too separated in z
-      if (returned.size() > 5 && 
-          abs(returned.back().GetPlaneNumber() - hit.GetPlaneNumber()) > 5) {
-        IsGood = false;
-      }
-
-      if (IsGood) {
-        returned.push_back(std::move(hit));
-        // Remove from pool of hits
-        it = HitPool.erase(it);
-      } else {
-        ++it;
-      }
+      // Move into line vector and remove from pool
+      returned.push_back(std::move(hit));
+      it = HitPool.erase(it);
     } else {
       ++it;
     }
   }
 
+  //std::cout << "New line " << std::endl;
+  //for (auto &hits : returned) std::cout << hits.GetPlaneNumber() << " " << hits.GetBarNumber() << std::endl;
+//
+  //std::cout << "Hit pool before start/end dist" << std::endl;
+  //for (auto &hit: HitPool) {
+    //std::cout << hit.GetPlaneNumber() << "," << hit.GetBarNumber() << std::endl;
+  //}
+
   if (returned.empty()) return returned;
 
+  /*
   // Clean up tracks by asking that the first and last hit of a track has neighbours
   // Otherwise we might have just included this by the Hough line being drawn far and just happened to hit another active cell
   // Sort each in decreasing z
-  SpatialPrio(returned);
-  int indexstart = 0;
+  int indexstart = -1;
   double dist = 999;
   int vecsize = returned.size();
-  while (dist > 150 && indexstart < vecsize) {
-    double startz = returned[indexstart].GetZ();
-    double startx = returned[indexstart].GetNotZ();
+  while (dist > 3 && indexstart < vecsize) {
+    indexstart++;
+    int startz = returned[indexstart].GetPlaneNumber();
+    int startx = returned[indexstart].GetBarNumber();
     // Check adjacent
-    double distz = 0;
-    double distx = 0;
-    double startz_1 = startz;
-    double startx_1 = startx;
+    int distz = 0;
+    int distx = 0;
+    int startz_1 = startz;
+    int startx_1 = startx;
     // which index are we checking against
-    int index = indexstart+1;
-    //std::cout << "starting at " << indexstart << std::endl;
-    while (distz+distx == 0 && index < vecsize) {
-      startz_1 = returned[index].GetZ();
-      startx_1 = returned[index].GetNotZ();
+    int index = indexstart;
+    std::cout << "Running on " << startz << ", " << startx << std::endl;
+    while (abs(distz)+abs(distx) == 0 && index < vecsize) {
+      // Look at the next hit
+      index++;
+      startz_1 = returned[index].GetPlaneNumber();
+      startx_1 = returned[index].GetBarNumber();
       distz = startz_1-startz;
       distx = startx_1-startx;
-      index++;
+      std::cout << index << " " << startz_1 << "," << startx_1 << std::endl;
     }
-    index--;
+    std::cout << "Found good comparison at " << startz_1 << ", " << startx_1 << std::endl;
     dist = sqrt(distx*distx+distz*distz);
-    //std::cout << startz << "-" << startz_1 << "=" << distz << std::endl;
-    //std::cout << startx << "-" << startx_1 << "=" << distx << std::endl;
-    //std::cout << dist << std::endl;
-    //std::cout << "at index " << index << std::endl;
-    indexstart++;
+    std::cout << dist << std::endl;
   }
-  indexstart--;
-  //std::cout << "Start at " << indexstart << " which is " << dist << " near next point" << std::endl;
-  //std::cout << returned.size() << " before erase" << std::endl;
+  std::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
+  for (std::vector<TMS_Hit>::iterator it = returned.begin(); it != returned.begin()+indexstart; it++) {
+    HitPool.push_back(std::move(*it));
+  }
   returned.erase(returned.begin(), returned.begin()+indexstart);
-  //std::cout << returned.size() << " after erase" << std::endl;
+
+  if (returned.empty()) return returned;
+
+  SpatialPrio(returned);
+  std::cout << "Line before end point" << std::endl;
+  for (auto &hit: returned) {
+    std::cout << hit.GetPlaneNumber() << "," << hit.GetBarNumber() << std::endl;
+  }
 
   // Do the same for the end point 
   dist = 999;
   vecsize = returned.size();
   indexstart = vecsize;
-  while (dist > 150 && indexstart > 0) {
-    double startz = returned[indexstart].GetZ();
-    double startx = returned[indexstart].GetNotZ();
+  std::cout << indexstart << std::endl;
+  while (dist > 3 && indexstart > 0) {
+    indexstart--;
+    int startz = returned[indexstart].GetPlaneNumber();
+    int startx = returned[indexstart].GetBarNumber();
     // Check adjacent
-    double distz = 0;
-    double distx = 0;
-    double startz_1 = startz;
-    double startx_1 = startx;
+    int distz = 0;
+    int distx = 0;
+    int startz_1 = startz;
+    int startx_1 = startx;
     // which index are we checking against
-    int index = indexstart-1;
-    //std::cout << "starting at " << indexstart << std::endl;
-    while (distz+distx == 0 && index > 0) {
-      startz_1 = returned[index].GetZ();
-      startx_1 = returned[index].GetNotZ();
+    int index = indexstart;
+    std::cout << "Running on " << startz << ", " << startx << std::endl;
+    while (abs(distz)+abs(distx) == 0 && index > 0) {
+      index--;
+      startz_1 = returned[index].GetPlaneNumber();
+      startx_1 = returned[index].GetBarNumber();
+      std::cout << index << " " << startz_1 << "," << startx_1 << std::endl;
       distz = startz_1-startz;
       distx = startx_1-startx;
-      index--;
     }
-    index++;
+    std::cout << "Found good comparison at " << startz_1 << ", " << startx_1 << std::endl;
     dist = sqrt(distx*distx+distz*distz);
-    //std::cout << startz << "-" << startz_1 << "=" << distz << std::endl;
-    //std::cout << startx << "-" << startx_1 << "=" << distx << std::endl;
-    //std::cout << dist << std::endl;
-    //std::cout << "at index " << index << std::endl;
-    indexstart--;
+    std::cout << dist << std::endl;
   }
   indexstart++;
-  //std::cout << "Start at " << indexstart << " which is " << dist << " near next point" << std::endl;
-  //std::cout << returned.size() << " before erase" << std::endl;
+  std::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
+  for (std::vector<TMS_Hit>::iterator it = returned.begin()+indexstart; it != returned.end(); it++) {
+    HitPool.push_back(std::move(*it));
+  }
   returned.erase(returned.begin()+indexstart, returned.end());
-  //std::cout << returned.size() << " after erase" << std::endl;
 
-  // If there's a single start point far away from the next, remove it from transform
+  if (returned.empty()) return returned;
+  */
 
-  //double endz = (*it).back().GetZ();
-  //double endx = (*it).back().GetNotZ();
+  //std::cout << "Hit pool before walking" << std::endl;
+  //for (auto &hit: HitPool) {
+    //std::cout << hit.GetPlaneNumber() << "," << hit.GetBarNumber() << std::endl;
+  //}
+
+  //std::cout << "Line before walking" << std::endl;
+  //for (auto &hit: returned) {
+    //std::cout << hit.GetPlaneNumber() << "," << hit.GetBarNumber() << std::endl;
+  //}
 
   // Now walk along the Hough hits and add on adjacent hits
   // Hough is most likely to find hits upstream due to bending being less there
+  //std::cout << returned.size() << " line hits before walking downstream" << std::endl;
   WalkDownStream(returned, HitPool);
+  //std::cout << returned.size() << " line hits after walking downstream" << std::endl;
   WalkUpStream(returned, HitPool);
+  //std::cout << returned.size() << " line hits after walking upstream" << std::endl;
 
+  // The vector of DBSCAN points
+  std::vector<TMS_DBScan_Point> DB_Points;
+  // For each of the hits make a temporary DBSCAN point
+  for (auto &i: returned) {
+    // Use the plane number
+    double x = i.GetPlaneNumber();
+    // And the height of each bar
+    double y = i.GetBarNumber();
+
+    // Not using z so set to zero (won't impact distance between points)
+    // Maybe update this if we have 3D info somehow
+    double z = 0;
+    TMS_DBScan_Point point(x, y, z);
+    DB_Points.push_back(point);
+  }
+  // See if DBSCAN can find different clusters
+  TMS_DBScan LineDB(3, 5, DB_Points);
+  LineDB.RunDBScan();
+  std::vector<std::vector<TMS_DBScan_Point> > ClusterPoints = LineDB.GetClusters();
+  if (ClusterPoints.empty()) {
+    std::vector<TMS_Hit> emptyvec;
+    return emptyvec;
+  }
+
+  // Convert the ClusterPoints to Clusters of TMS hits
+  std::vector<std::vector<TMS_Hit> > ClusterHits;
+  ClusterHits.resize(ClusterPoints.size());
+  // For each hit find its cluster
+  for (auto &hit: returned) {
+    for (auto &Clusters: ClusterPoints) {
+      for (auto &Point: Clusters) {
+        // Check the matching hit
+        if (Point.x == hit.GetPlaneNumber() && 
+            Point.y == hit.GetBarNumber()) {
+          ClusterHits[Point.ClusterID-1].push_back(std::move(hit));
+        }
+      }
+    }
+  }
+
+  //std::cout << "Found " << ClusterHits.size() << " DBScan clusters" << std::endl;
+  if (ClusterHits.size() > 0) {
+    unsigned int largest = 0;
+    for (unsigned int i = 0; i < ClusterHits.size(); ++i) if (ClusterHits[i].size() > ClusterHits[largest].size()) largest = i;
+    //std::cout << "Cluster " << largest << " is largest" << std::endl;
+    //for (unsigned int i = 0; i < ClusterHits.size(); ++i) {
+      //std::cout << "Cluster " << i << std::endl;
+      //for (auto &hit: ClusterHits[i]) std::cout << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << std::endl;
+    //}
+    // Now remove the hits that aren't in the cluster hits
+    for (auto it = returned.begin(); it != returned.end(); ) {
+      bool match = false;
+      for (auto jt = ClusterHits[largest].begin(); jt != ClusterHits[largest].end(); ++jt) {
+        if ((*it) == (*jt)) match = true;
+      }
+      if (!match) {
+        // Move back into the hitpool
+        HitPool.push_back(std::move(*it));
+        it = returned.erase(it);
+      }
+      else it++;
+    }
+  }
+
+  // Finally run A* to find the shortest path from start to end
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
+    SpatialPrio(returned);
+    std::vector<TMS_Hit> vec = RunAstar(returned);
+    //std::cout << HitPool.size() << " before set_difference" << std::endl;
+    //std::cout << "return before a*" << returned.size() << std::endl;
+
+    // Only overwrite when necessary
+    if (vec.size() != returned.size()) {
+      // Put the missing hits back into the hit pool
+      for (auto it = vec.begin(); it != vec.end(); ++it) {
+        for (auto jt = returned.begin(); jt != returned.end(); ) {
+          if ((*it) == (*jt)) {
+            jt = returned.erase(jt);
+          } else {
+            ++jt;
+          }
+        }
+      }
+      for (auto &hit: returned) HitPool.emplace_back(std::move(hit));
+      //std::cout << "return after a*" << std::endl;
+      //std::cout << returned.size() << std::endl;
+      //std::cout << "a* vec" << std::endl;
+      //std::cout << vec.size() << std::endl;
+      returned = vec;
+    }
+    //std::cout << HitPool.size() << " after set_difference" << std::endl;
+  }
+
+  // Now finally check if any hough tracks are too short, or have too few hits
+  // Makes sense to do this right at the end when all the merging and cleaning has been run
+  // Order them in z
+  SpatialPrio(returned);
+  // Now check that the Hough candidates are long enough
   /*
-  // Loop over the candidates, and add new adjacent candidates to the end
-  size_t CandSize = returned.size();
-  for (size_t i = 0; i < CandSize; ++i) {
-  TMS_Hit Candidate = returned[i];
-  TMS_Bar CandidateBar = Candidate.GetBar();
-  int CandidatePlaneNumber = Candidate.GetPlaneNumber();
-
-  // Count the number of times a candidate merges adjacent hits
-  unsigned int nMerges = 0;
-  // Is this hit close to an airgap?
-  //bool InGap = Candidate.NextToGap();
-
-  // Now loop over each hit
-  for (std::vector<TMS_Hit>::iterator jt = HitPool.begin(); jt != HitPool.end();) {
-
-  // If we've already merged more than we're allowed to
-  if (nMerges >= nMaxMerges) break;
-  TMS_Hit PoolHit = (*jt);
-  //TMS_Bar PoolBar = PoolHit.GetBar();
-  int PoolPlaneNumber = PoolHit.GetPlaneNumber();
-
-  // Now check the distance in x or y depending on bar
-  double PoolPos = PoolHit.GetNotZ();
-  //double PoolPosWidth = PoolHit.GetNotZw();
-
-  // Ensure adjacent or matching in z
-  // Make an exception for the airgaps; allow any range in z
-  //if (!InGap && abs(CandidatePlaneNumber-PoolPlaneNumber) > 2) {
-  //if (!InGap && abs(CandidatePlaneNumber-PoolPlaneNumber) > 1) {
-  if (abs(CandidatePlaneNumber-PoolPlaneNumber) > 1) {
-  ++jt;
-  continue;
+  double xend = (returned).back().GetNotZ();
+  double zend = (returned).back().GetZ();
+  double xstart = (returned).front().GetNotZ();
+  double zstart = (returned).front().GetZ();
+  double xdist = xstart-xend;
+  double zdist = zstart-zend;
+  double dist = sqrt(xdist*xdist+zdist*zdist);
+  */
+  double xend = (returned).back().GetBarNumber();
+  double zend = (returned).back().GetPlaneNumber();
+  double xstart = (returned).front().GetBarNumber();
+  double zstart = (returned).front().GetPlaneNumber();
+  double xdist = xstart-xend;
+  double zdist = zstart-zend;
+  double dist = sqrt(xdist*xdist+zdist*zdist);
+  unsigned int nhits = (returned).size();
+  // Calculate the minimum distance in planes and bars instead of physical distance
+  if (dist < MinDistHough || nhits < nMinHits) {
+    //std::cout << "Failed distance or min hits cut" << std::endl;
+    std::vector<TMS_Hit> emptyvec;
+    return emptyvec;
   }
 
-  // Should we merge this hit
-  bool Merge = false;
-  // If this hasn't been merged already, attempt to do so
-  if (nMerges < nMaxMerges) {
-  // If the Candidate bar contains the pool bar + it's width, they're adjacent
-  // Or even better, the adjacent hits have maxing not z
-
-  // Preferentially merge in z (same NotZ position)
-  if (CandidateBar.Contains(PoolPos, CandidateBar.GetZ())) {
-  Merge = true;
-  // Then check merge in NotZ
-  } 
-  else if (CandidateBar.Contains(PoolPos + PoolPosWidth, CandidateBar.GetZ()) || 
-  CandidateBar.Contains(PoolPos - PoolPosWidth, CandidateBar.GetZ())) {
-  Merge = true;
-  // Then check two bars away for the xz view
-  } else if (IsXZ && 
-  (CandidateBar.Contains(PoolPos + 2*PoolPosWidth, CandidateBar.GetZ()) || 
-  CandidateBar.Contains(PoolPos - 2*PoolPosWidth, CandidateBar.GetZ()))) {
-  Merge = true;
-  } else if (CandidateBarType == TMS_Bar::kYBar && 
-  (CandidateBar.Contains(PoolPos + 3*PoolPosWidth, CandidateBar.GetZ()) || 
-  CandidateBar.Contains(PoolPos - 3*PoolPosWidth, CandidateBar.GetZ()))) {
-  Merge = true;
-  }
-
-  // Make a special arrangement for if we're next to the gap
-  else if (InGap && ( 
-  PoolBar.Contains(TMS_Const::TMS_Dead_Top[1]+PoolPosWidth, PoolBar.GetZ()) ||
-  PoolBar.Contains(TMS_Const::TMS_Dead_Top[0]-PoolPosWidth, PoolBar.GetZ()) ||
-  PoolBar.Contains(TMS_Const::TMS_Dead_Center[1]+PoolPosWidth, PoolBar.GetZ()) ||
-  PoolBar.Contains(TMS_Const::TMS_Dead_Center[0]-PoolPosWidth, PoolBar.GetZ()) ||
-  PoolBar.Contains(TMS_Const::TMS_Dead_Bottom[1]+PoolPosWidth, PoolBar.GetZ()) ||
-  PoolBar.Contains(TMS_Const::TMS_Dead_Bottom[0]-PoolPosWidth, PoolBar.GetZ()) )) {
-  Merge = true;
-  }
+  return returned;
 }
-
-if (Merge) {
-  returned.push_back(std::move(PoolHit));
-  // Increment the number of candidates in the vector
-  CandSize++;
-  jt = HitPool.erase(jt);
-  // Increment the merges for this candidate
-  nMerges++;
-} else {
-  ++jt;
-}
-}
-}
-*/
-
-return returned;
-
-// Now see if the yz and xz views roughly agree on stop and start positions of the main track
-// If not, it implies there may be two tracks and the yz view has selected one whereas xz selected theother, or a broken track in one of the views
-/*
-   int StartPlane_xz = 99999999;
-   int EndPlane_xz = -99999999;
-
-   for (std::vector<TMS_Hit>::iterator it = Candidates.begin(); it != Candidates.end(); ++it) {
-   TMS_Bar Bar = (*it).GetBar();
-// Compare the plane number
-int PlaneNumber = Bar.GetPlaneNumber();
-if (PlaneNumber < StartPlane_yz) StartPlane_yz = PlaneNumber;
-if (PlaneNumber > EndPlane_yz) EndPlane_yz = PlaneNumber;
-}
-
-// Propagate the xz/yz start and endpoints here
-if (abs(StartPlane_yz - StartPlane_xz) != 1 || abs(EndPlane_yz - EndPlane_xz) != 1) {
-//Matched_yz_xz = false;
-std::cout << "Not matching end/start plane" << std::endl;
-std::cout << "StartPlane yz: " << StartPlane_yz << ", EndPlane yz: " << EndPlane_yz << std::endl;
-std::cout << "StartPlane xz: " << StartPlane_xz << ", EndPlane xz: " << EndPlane_xz << std::endl;
-}
-*/
-
-/*
-// Do a Hough transform on the remaining hits
-// If this Hough transform matches within some number the original Hough transform parameters, merge the tracks
-// Reset the accumulator (or make a new one?)
-for (int i = 0; i < nSlope; ++i) {
-for (int j = 0; j < nIntercept; ++j) {
-Accumulator_zy[i][j] = 0;
-Accumulator_zx[i][j] = 0;
-}
-}
-
-// First run a simple Hough Transform
-for (std::vector<TMS_Hit>::iterator it = HitPool.begin(); it!=HitPool.end(); ++it) {
-TMS_Hit hit = (*it);
-TMS_Bar bar = hit.GetBar();
-//double EnergyDeposit = hit.GetE();
-//double Time = hit.GetT();
-double xhit = bar.GetX();
-double yhit = bar.GetY();
-double zhit = bar.GetZ();
-
-TMS_Bar::BarType Type = bar.GetBarType();
-// Scan over the entire range this time
-// Or maybe the z region in which the other view's track has been found?
-
-Accumulate(xhit, yhit, zhit, Type);
-}
-
-max_zy = 0;
-max_zx = 0;
-max_zy_slope_bin = 0;
-max_zy_inter_bin = 0;
-max_zx_slope_bin = 0;
-max_zx_inter_bin = 0;
-for (int i = 0; i < nSlope; ++i) {
-for (int j = 0; j < nIntercept; ++j) {
-if (Accumulator_zy[i][j] > max_zy) {
-max_zy = Accumulator_zy[i][j];
-max_zy_slope_bin = i;
-max_zy_inter_bin = j;
-}
-if (Accumulator_zx[i][j] > max_zx) {
-max_zx = Accumulator_zx[i][j];
-max_zx_slope_bin = i;
-max_zx_inter_bin = j;
-}
-}
-}
-
-double InterceptOpt_zx_2 = InterceptMin+max_zx_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
-double SlopeOpt_zx_2 = SlopeMin+max_zx_slope_bin*(SlopeMax-SlopeMin)/nSlope;
-
-double InterceptOpt_zy_2 = InterceptMin+max_zy_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
-double SlopeOpt_zy_2 = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
-
-TF1 *HoughLine_zy_2 = (TF1*)HoughLine_zy->Clone("HZY_2");
-HoughLine_zy_2->SetLineColor(kWhite);
-HoughLine_zy_2->SetParameter(0, InterceptOpt_zy_2);
-HoughLine_zy_2->SetParameter(1, SlopeOpt_zy_2);
-
-TF1 *HoughLine_zx_2 = (TF1*)HoughLine_zx->Clone("HZX_2");
-HoughLine_zx_2->SetLineColor(kWhite);
-HoughLine_zx_2->SetParameter(0, InterceptOpt_zx_2);
-HoughLine_zx_2->SetParameter(1, SlopeOpt_zx_2);
-
-// Get the hits that intersect the second hough line
-// First make a second candidate vector
-std::vector<TMS_Hit> Candidates2;
-for (std::vector<TMS_Hit>::iterator it = HitPool.begin(); it!=HitPool.end(); ) {
-TMS_Hit hit = (*it);
-TMS_Bar bar = hit.GetBar();
-double zhit = bar.GetZ();
-TMS_Bar::BarType Type = bar.GetBarType();
-if (Type == TMS_Bar::kXBar) {
-  HoughLine = HoughLine_zy_2;
-} else if (Type == TMS_Bar::kYBar) {
-  HoughLine = HoughLine_zx_2;
-}
-
-double HoughPoint = HoughLine->Eval(zhit);
-
-// Hough point is inside bar -> start clustering around bar
-if (bar.Contains(HoughPoint, zhit)) {
-  Candidates2.push_back(std::move(hit));
-  // Remove from pool of hits
-  it = HitPool.erase(it);
-} else {
-  ++it;
-}
-}
-
-// Loop over the candidates, and add new adjacent candidates to the end
-CandSize = Candidates2.size();
-for (size_t i = 0; i < CandSize; ++i) {
-  TMS_Hit Candidate = Candidates2[i];
-  TMS_Bar CandidateBar = Candidate.GetBar();
-  int CandidatePlaneNumber = CandidateBar.GetPlaneNumber();
-  TMS_Bar::BarType CandidateBarType = CandidateBar.GetBarType();
-
-  // Count the number of times a candidate merges adjacent hits
-  unsigned int nMerges = 0;
-  // Now loop over each hit
-  for (std::vector<TMS_Hit>::iterator jt = HitPool.begin(); jt != HitPool.end();) {
-    TMS_Hit PoolHit = (*jt);
-    TMS_Bar PoolBar = PoolHit.GetBar();
-    int PoolPlaneNumber = PoolBar.GetPlaneNumber();
-    TMS_Bar::BarType PoolBarType = PoolBar.GetBarType();
-
-    // Only match the same type of bars (x bars with x bars, y bars with ybars)
-    if (PoolBarType != CandidateBarType) {
-      ++jt;
-      continue;
-    }
-
-    // Ensure adjacent or matching in z
-    // Need some exception here for the airgaps! FIGURE IT OUT
-    if (abs(CandidatePlaneNumber-PoolPlaneNumber) > 2) {
-      ++jt;
-      continue;
-    }
-
-    // Now check the distance in x or y depending on bar
-    double PoolPos = PoolBar.GetNotZ();
-    double PoolPosWidth = PoolBar.GetNotZw();
-    // If the Candidate bar contains the pool bar + it's width, they're adjacent
-    // Or even better, the adjacent hits have maxing not z
-    if (CandidateBar.Contains(PoolPos + PoolPosWidth, CandidateBar.GetZ()) || CandidateBar.Contains(PoolPos - PoolPosWidth, CandidateBar.GetZ()) || CandidateBar.Contains(PoolPos, CandidateBar.GetZ())) {
-      Candidates2.push_back(std::move(PoolHit));
-      // Increment the number of candidates in the vector
-      CandSize++;
-      jt = HitPool.erase(jt);
-      // Increment the merges for this candidate
-      nMerges++;
-    } else {
-      ++jt;
-    }
-  }
-}
-
-// Now we *should* have two candidates?
-std::cout << "Total hits: " << TMS_Hits.size() << std::endl;
-std::cout << "Candidates (Hough+Cluster): " << Candidates.size() << std::endl;
-std::cout << "Candidates2 (Leftover+Hough+cluster): " << Candidates2.size() << std::endl;
-std::cout << "Hitpool: " << HitPool.size() << std::endl;
-
-// Intersection in z (x-axis) of the two Hough lines
-double intersection_zx = (InterceptOpt_zx-InterceptOpt_zx_2)/(SlopeOpt_zx_2-SlopeOpt_zx);
-double intersection_zy = (InterceptOpt_zy-InterceptOpt_zy_2)/(SlopeOpt_zy_2-SlopeOpt_zy);
-std::cout << "Intersection zx: " << intersection_zx << std::endl;
-std::cout << "Intersection zy: " << intersection_zy << std::endl;
-
-TotalCandidates.push_back(Candidates);
-//TotalCandidates.push_back(Candidates2);
-
-HoughLines_zy.push_back(HoughLine_zy);
-//HoughLines_zy.push_back(HoughLine_zy_2);
-
-HoughLines_zx.push_back(HoughLine_zx);
-//HoughLines_zx.push_back(HoughLine_zx_2);
-
-// If this Hough transform matches the start and end position in z of the other view, choose the longest track as the muon and make 2 candidate tracks
-
-
-
-// Last scan tries looks at hits that occur around the gap regions
-// Then use this to inform the yz reconstruction (since broken tracks will be due to holes in x, not y)
-
-
-// Run a Hough transform on the remaining HitPool to find second tracks
-*/
-
-
-/*
-   std::cout << "After Hough+adjacent checks: " << std::endl;
-   std::cout << "Of " << TMS_Hits.size()  << " hits " << Candidates.size() << " are candidates and " << HitPool.size() << " are left" << std::endl;
-   */
-
-
-}
-
-/*
-   void TMS_TrackFinder::MergeAdjacent(std::vector<TMS_Hit> Candidates, std::vector<TMS_Hit> Pool) {
-
-// Loop over the candidates, and add new adjacent candidates to the end
-size_t CandSize = Candidates.size();
-for (size_t i = 0; i < CandSize; ++i) {
-TMS_Hit Candidate = Candidates[i];
-TMS_Bar CandidateBar = Candidate.GetBar();
-int CandidatePlaneNumber = CandidateBar.GetPlaneNumber();
-TMS_Bar::BarType CandidateBarType = CandidateBar.GetBarType();
-
-// Count the number of times a candidate merges adjacent hits
-int nMerges = 0;
-// Now loop over each hit
-for (std::vector<TMS_Hit>::iterator jt = HitPool.begin(); jt != HitPool.end();) {
-TMS_Hit PoolHit = (*jt);
-TMS_Bar PoolBar = PoolHit.GetBar();
-int PoolPlaneNumber = PoolBar.GetPlaneNumber();
-TMS_Bar::BarType PoolBarType = PoolBar.GetBarType();
-
-// Only match the same type of bars (x bars with x bars, y bars with ybars)
-if (PoolBarType != CandidateBarType) {
-++jt;
-continue;
-}
-
-// Ensure adjacent or matching in z
-// Need some exception here for the airgaps! FIGURE IT OUT
-if (abs(CandidatePlaneNumber-PoolPlaneNumber) > 2) {
-++jt;
-continue;
-}
-
-// Now check the distance in x or y depending on bar
-double PoolPos = PoolBar.GetNotZ();
-double PoolPosWidth = PoolBar.GetNotZw();
-// If the Candidate bar contains the pool bar + it's width, they're adjacent
-// Or even better, the adjacent hits have maxing not z
-if (CandidateBar.Contains(PoolPos + PoolPosWidth, CandidateBar.GetZ()) || CandidateBar.Contains(PoolPos - PoolPosWidth, CandidateBar.GetZ()) || CandidateBar.Contains(PoolPos, CandidateBar.GetZ())) {
-Candidates.push_back(std::move(PoolHit));
-// Increment the number of candidates in the vector
-CandSize++;
-jt = HitPool.erase(jt);
-// Increment the merges for this candidate
-nMerges++;
-} else {
-++jt;
-}
-}
-}
-}
-*/
 
 // Find the bin for the accumulator
 int TMS_TrackFinder::FindBin(double c) {
@@ -1319,7 +1149,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
       double t2 = hit2.GetT();
 
       // Merge
-      if (z == z2 && y == y2 && fabs(t2-(*it).GetT()) < TMS_Const::TMS_TimeThreshold) {
+      //if (z == z2 && y == y2 && fabs(t2-(*it).GetT()) < TMS_Const::TMS_TimeThreshold)
+      if (z == z2 && y == y2) {
         (*it).SetE((*it).GetE()+e2);
         (*it).SetT(((*it).GetT()+t2)/2);
         nDuplicates++;
@@ -1363,7 +1194,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::ProjectHits(const std::vector<TMS_Hit> &TM
 }
 
 // Needs hits ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_xz) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_xz, bool ConnectAll) {
 
   // Remember which orientation these hits are
   // needed when we potentially skip the air gap in xz (but not in yz!)
@@ -1429,8 +1260,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       // Only connect nearby nodes
       // to make calculation much faster
       // This important can't be 1 though, because that would not connect split hits
-      if (abs((*jt).x - (*it).x) > 4 || 
-          abs((*jt).y - (*jt).y) > 4) continue;
+      if (!ConnectAll) {
+        if (abs((*jt).x - (*it).x) > 3 || 
+            abs((*jt).y - (*jt).y) > 3) continue;
+      }
       double GroundCost = (*it).CalculateGroundCost(*jt);
 
       // If a greedy algorithm, have no ground cost (only condition on getting closer to the goal)
@@ -1716,6 +1549,10 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
 
   // First mask out the vec hits from the full vector so we have no entries from "vec" in "full"
   MaskHits(full, vec);
+  //std::cout << "Line: " << std::endl;
+  //for (auto &hits: vec) std::cout << hits.GetZ() << " " << hits.GetNotZ() << "(" << hits.GetPlaneNumber() << ", " << hits.GetBarNumber() << ")" << std::endl;
+  //std::cout << "Masked: " << std::endl;
+  //for (auto &hits: full) std::cout << hits.GetZ() << " " << hits.GetNotZ() << "(" << hits.GetPlaneNumber() << ", " << hits.GetBarNumber() << ")" << std::endl;
 
   // Sort in z
   SpatialPrio(vec);
@@ -1725,20 +1562,24 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
   // Now walk along vec (start at second element due to derivative calculation)
   for (std::vector<TMS_Hit>::size_type i = 1; i < size; ++i) {
     // Use to calculate gradient to next point
-    double x = vec[i].GetZ();
-    double y = vec[i].GetNotZ();
+    //double x = vec[i].GetZ();
+    //double y = vec[i].GetNotZ();
+    double x = vec[i].GetPlaneNumber();
+    double y = vec[i].GetBarNumber();
     int PlaneNumber = vec[i].GetPlaneNumber();
+    int BarNumber = vec[i].GetBarNumber();
 
     // Require continous hits for derivative calculation
     // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
     int NeighbourIndex = i-1;
     // Previous plane number
     int PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
+    //std::cout << "Comparing hit " << x << "," << y << std::endl;
 
     bool MoveOn = false;
 
     // Only look at upstream adjacent planes
-    while (PlaneNumber - PlaneNumber_prev != 1) {
+    while (PlaneNumber - PlaneNumber_prev == 0) {
       NeighbourIndex--;
       // Check that we aren't going beyond unphysical planes
       if (NeighbourIndex < 0) {
@@ -1748,7 +1589,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       // This loop could probably be improved to just be included in the while?
       // Or do we even need a loop, doesn't look like it...
       PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
-      if (PlaneNumber - PlaneNumber_prev > 1) {
+      if (PlaneNumber - PlaneNumber_prev > 2) {
         MoveOn = true;
         break;
       }
@@ -1758,10 +1599,15 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     if (MoveOn) continue;
 
     // Calculate expected gradient from upstream hit
-    double xprev = vec[NeighbourIndex].GetZ();
-    double yprev = vec[NeighbourIndex].GetNotZ();
+    //double xprev = vec[NeighbourIndex].GetZ();
+    //double yprev = vec[NeighbourIndex].GetNotZ();
+    double xprev = vec[NeighbourIndex].GetPlaneNumber();
+    double yprev = vec[NeighbourIndex].GetBarNumber();
 
     double grad_exp = (y-yprev)/(x-xprev);
+
+    //std::cout << "Comparing hit " << x << "," << y << " to " << xprev << "," << yprev << " expecing gradient " << grad_exp << std::endl;
+    //std::cout << "(" << PlaneNumber << ", " << vec[i].GetBarNumber() << "-" << PlaneNumber_prev << ", " << vec[NeighbourIndex].GetBarNumber() << ")" << std::endl;
 
     // Save the indices of which particle was best
     // Only allow for one merge
@@ -1771,28 +1617,39 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     for (std::vector<TMS_Hit>::iterator it = full.begin(); it != full.end(); ) {
       TMS_Hit hits = *it;
       int PlaneNumber_cand = hits.GetPlaneNumber();
-      // Always look at one plane downstream
-      if (PlaneNumber_cand - PlaneNumber != 1) {
-        // Might be that the candidate is actually upstream, continue
-        if (PlaneNumber_cand <= PlaneNumber) {
-          ++it;
-          continue;
-          // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
-        } else {
-          break;
-        }
+      int BarNumber_cand = hits.GetBarNumber();
+
+      // If candidate is upstream, continue
+      if (PlaneNumber_cand < PlaneNumber) {
+        ++it;
+        continue;
       }
+
+      if (abs(BarNumber_cand - BarNumber) > 2) {
+        ++it;
+        continue;
+      }
+
+      // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
+      if (PlaneNumber_cand - PlaneNumber > 2) break;
+
       // At this point we should have a Hough hit and an adjacent non-Hough hit
 
       // Allow for broken track in z?
-      double xcand = hits.GetZ();
-      double ycand = hits.GetNotZ();
+      //double xcand = hits.GetZ();
+      //double ycand = hits.GetNotZ();
+      double xcand = hits.GetPlaneNumber();
+      double ycand = hits.GetBarNumber();
 
       // Calculate the new gradient between the points
       double grad_new = (ycand-y)/(xcand-x);
 
+      //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
+      //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
+      //std::cout << "and new gradient: " << grad_new << std::endl;
+
       // If gradient is within 0.6 and the correct sign, accept
-      if (fabs(grad_new-grad_exp) <= 0.6) {
+      if (fabs(grad_new-grad_exp) <= 2.0) {
         // If the gradient is zero we shouldn't do a sign check
         // But if it's not, check the sign of the gradient doesn't flip
         if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
@@ -1802,19 +1659,23 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           continue;
         }
 
-        // Now need to find position to insert
-        // Guaranteed sorted in z
+        //std::cout << "Will be merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
+
+        // Now need to find where we insert this hit since we need to guarantee sorted in z
         // Need to find how many duplicates in z there are; don't necessarily want to insert right after this hit if it is followed by a hit in the same z
         // If this is the largest z, just pop to the back
-        if (xcand >= vec.back().GetZ()) {
+        //if (xcand >= vec.back().GetZ()) {
+        if (xcand >= vec.back().GetPlaneNumber()) {
           vec.push_back(std::move(hits));
           // Need to decrement iterator over line
           // Sometimes we've missed one hit between Hough hits
         } else {
           for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
-            double compx = (*jt).GetZ();
+            //double compx = (*jt).GetZ();
             // Look one ahead
-            double compx1 = (*(jt-1)).GetZ();
+            //double compx1 = (*(jt-1)).GetZ();
+            double compx = (*jt).GetPlaneNumber();
+            double compx1 = (*(jt-1)).GetPlaneNumber();
             if (compx == x) continue;
             if (xcand >= compx) {
               vec.insert(jt+1, std::move(hits));
@@ -1829,124 +1690,163 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           }
         }
         ++size;
-        // Remove off the end
+        // Remove from the pool
         it = full.erase(it);
       } else {
         it++;
       }
+      }
     }
   }
-}
 
-void TMS_TrackFinder::WalkUpStream(std::vector<TMS_Hit> &vec, std::vector<TMS_Hit> &full) {
-  // First mask out the vec hits from the full vector so we have no entries from "vec" in "full"
-  MaskHits(full, vec);
+  void TMS_TrackFinder::WalkUpStream(std::vector<TMS_Hit> &vec, std::vector<TMS_Hit> &full) {
+    // First mask out the vec hits from the full vector so we have no entries from "vec" in "full"
+    MaskHits(full, vec);
 
-  // Sort in *decreasing* z (starting at highest z, i.e. most downstream)
-  std::sort(vec.begin(), vec.end(), TMS_Hit::SortByZ);
-  std::sort(full.begin(), full.end(), TMS_Hit::SortByZ);
+    // Sort in *decreasing* z (starting at highest z, i.e. most downstream)
+    std::sort(vec.begin(), vec.end(), TMS_Hit::SortByZ);
+    std::sort(full.begin(), full.end(), TMS_Hit::SortByZ);
 
-  // Now walk along vec (start at second element due to derivative calculation
-  std::vector<TMS_Hit>::size_type size = vec.size();
-  for (std::vector<TMS_Hit>::size_type i = 1; i < size; ++i) {
-    // Use to calculate gradient to next point
-    double x = vec[i].GetZ();
-    double y = vec[i].GetNotZ();
-    int PlaneNumber = vec[i].GetPlaneNumber();
+    //std::cout << "Line: " << std::endl;
+    //for (auto &hits: vec) std::cout << hits.GetZ() << " " << hits.GetNotZ() << "(" << hits.GetPlaneNumber() << ", " << hits.GetBarNumber() << ")" << std::endl;
+    //std::cout << "Masked: " << std::endl;
+    //for (auto &hits: full) std::cout << hits.GetZ() << " " << hits.GetNotZ() << "(" << hits.GetPlaneNumber() << ", " << hits.GetBarNumber() << ")" << std::endl;
 
-    // Require continous hits for derivative calculation
-    // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
-    int NeighbourIndex = i-1;
-    // Previous plane number
-    int PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
+    // Now walk along vec (start at second element due to derivative calculation
+    std::vector<TMS_Hit>::size_type size = vec.size();
+    for (std::vector<TMS_Hit>::size_type i = 1; i < size; ++i) {
+      // Use to calculate gradient to next point
+      //double x = vec[i].GetZ();
+      //double y = vec[i].GetNotZ();
+      double x = vec[i].GetPlaneNumber();
+      double y = vec[i].GetBarNumber();
+      int PlaneNumber = vec[i].GetPlaneNumber();
+      int BarNumber = vec[i].GetBarNumber();
 
-    bool MoveOn = false;
-    while (PlaneNumber_prev - PlaneNumber != 1) {
-      NeighbourIndex--;
-      if (NeighbourIndex < 0) {
-        MoveOn = true;
-        break;
-      }
-      PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
-      if (PlaneNumber_prev - PlaneNumber > 1) {
-        MoveOn = true;
-        break;
-      }
-    }
+      // Require continous hits for derivative calculation
+      // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
+      int NeighbourIndex = i-1;
+      // Previous plane number
+      int PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
+      //std::cout << "Comparing hit " << x << "," << y << std::endl;
 
-    // Couldn't find the right hit
-    if (MoveOn) continue;
-
-    // Calculate expected derivative from upstream hit
-    double xprev = vec[NeighbourIndex].GetZ();
-    double yprev = vec[NeighbourIndex].GetNotZ();
-
-    double grad_exp = (y-yprev)/(x-xprev);
-    // Matching 
-    for (std::vector<TMS_Hit>::iterator it = full.begin(); it != full.end(); ) {
-      TMS_Hit hits = *it;
-      int PlaneNumber_cand = hits.GetPlaneNumber();
-      // Always look downstream
-      if (PlaneNumber - PlaneNumber_cand != 1) {
-        if (PlaneNumber_cand >= PlaneNumber) {
-          ++it;
-          continue;
-          // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
-        } else {
+      bool MoveOn = false;
+      // Always look for a hit with different plane number, i.e. we're moving in z
+      while (PlaneNumber_prev - PlaneNumber == 0) {
+        NeighbourIndex--;
+        if (NeighbourIndex < 0) {
+          MoveOn = true;
+          break;
+        }
+        PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
+        if (PlaneNumber_prev - PlaneNumber > 2) {
+          MoveOn = true;
           break;
         }
       }
-      // Allow for broken track in z?
-      double xcand = hits.GetZ();
-      double ycand = hits.GetNotZ();
 
-      double grad_new = (ycand-y)/(xcand-x);
+      // Couldn't find the right hit
+      if (MoveOn) continue;
 
-      // If gradient is within 1 and the correct sign, accept
-      if (fabs(grad_new-grad_exp) <= 0.6) {
-        // If the gradient is zero we shouldn't do a sign check
-        // But if it's not, check the sign of the gradient doesn't flip
-        if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
-            fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
-            TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
+      // Calculate expected derivative from upstream hit
+      //double xprev = vec[NeighbourIndex].GetZ();
+      //double yprev = vec[NeighbourIndex].GetNotZ();
+      double xprev = vec[NeighbourIndex].GetPlaneNumber();
+      double yprev = vec[NeighbourIndex].GetBarNumber();
+
+      double grad_exp = (y-yprev)/(x-xprev);
+
+      //std::cout << "Comparing hit " << x << "," << y << " to " << xprev << "," << yprev << " expecing gradient " << grad_exp << std::endl;
+      //std::cout << "(" << PlaneNumber << ", " << vec[i].GetBarNumber() << "-" << PlaneNumber_prev << ", " << vec[NeighbourIndex].GetBarNumber() << ")" << std::endl;
+
+      // Matching 
+      for (std::vector<TMS_Hit>::iterator it = full.begin(); it != full.end(); ) {
+        TMS_Hit hits = *it;
+        int PlaneNumber_cand = hits.GetPlaneNumber();
+        int BarNumber_cand = hits.GetBarNumber();
+        // Always look upstream
+        if (PlaneNumber < PlaneNumber_cand) {
           ++it;
           continue;
         }
-        // Now need to find position to insert
-        // Guaranteed sorted in z
-        // Need to find how many duplicates in z there are; don't necessarily want to insert right after this hit if it is followed by a hit in the same z
-        // If this is the largest z, just pop to the back
-        if (xcand <= vec.back().GetZ()) {
-          vec.push_back(std::move(hits));
-          // Need to decrement iterator over line
-          // Sometimes we've missed one hit between Hough hits
-        } else {
-          for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
-            double compx = (*jt).GetZ();
-            // Look one behind
-            double compx1 = (*(jt-1)).GetZ();
-            if (compx == x) continue;
-            //std::cout << "compared " << compx << " to candidate x: " << xcand << std::endl;
-            if (xcand <= compx) {
-              vec.insert(jt+1, std::move(hits));
-              break;
-            } else if (xcand > compx && xcand <= compx1) {
-              // Put in the previous
-              vec.insert(jt, std::move(hits));
-              break;
-            } else {
-              std::cout << "Didn't find anywhere to insert " << xcand << std::endl;
+
+        if (abs(BarNumber_cand - BarNumber) > 2) {
+          ++it;
+          continue;
+        }
+
+        // Finally also check the diagonal distance
+        //double disty = BarNumber_cand-BarNumber;
+        //double distx = PlaneNumber_cand-PlaneNumber;
+        //if (sqrt(distx*distx + disty*disty) > 2.5) {
+        //++it;
+        //continue;
+        //}
+
+        // Since the candidates plane numbers are ordered in z, once we encounter a lower z, all the remaining ones also won't be mergeable, so save some time by not scanning them
+        if (PlaneNumber - PlaneNumber_cand > 2) break;
+
+        // Allow for broken track in z?
+        //double xcand = hits.GetZ();
+        //double ycand = hits.GetNotZ();
+        double xcand = hits.GetPlaneNumber();
+        double ycand = hits.GetBarNumber();
+
+        double grad_new = (ycand-y)/(xcand-x);
+
+        //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
+        //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
+        //std::cout << "and new gradient: " << grad_new << std::endl;
+
+        // If gradient is within 1 and the correct sign, accept
+        if (fabs(grad_new-grad_exp) <= 1.5) {
+          // If the gradient is zero we shouldn't do a sign check
+          // But if it's not, check the sign of the gradient doesn't flip
+          if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
+              fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
+              TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
+            ++it;
+            continue;
+          }
+          //std::cout << "Will be merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
+          // Now need to find position to insert
+          // Guaranteed sorted in z
+          // Need to find how many duplicates in z there are; don't necessarily want to insert right after this hit if it is followed by a hit in the same z
+          // If this is the largest z, just pop to the back
+          if (xcand <= vec.back().GetPlaneNumber()) {
+            vec.push_back(std::move(hits));
+            // Need to decrement iterator over line
+            // Sometimes we've missed one hit between Hough hits
+          } else {
+            for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
+              //double compx = (*jt).GetZ();
+              // Look one behind
+              //double compx1 = (*(jt-1)).GetZ();
+              double compx = (*jt).GetPlaneNumber();
+              // Look one behind
+              double compx1 = (*(jt-1)).GetPlaneNumber();
+              if (compx == x) continue;
+              //std::cout << "compared " << compx << " to candidate x: " << xcand << std::endl;
+              if (xcand <= compx) {
+                vec.insert(jt+1, std::move(hits));
+                break;
+              } else if (xcand > compx && xcand <= compx1) {
+                // Put in the previous
+                vec.insert(jt, std::move(hits));
+                break;
+              } else {
+                std::cout << "Didn't find anywhere to insert " << xcand << std::endl;
+              }
             }
           }
+          ++size;
+          // Remove off the end
+          it = full.erase(it);
+        } else {
+          it++;
         }
-        ++size;
-        // Remove off the end
-        it = full.erase(it);
-      } else {
-        it++;
       }
     }
-  }
 
-}
+  }
 
