@@ -12,8 +12,9 @@
 
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
-#define __TMS_MAX_LINES__ 20 // Maximum number of lines in an event
-#define __TMS_MAX_HITS__ 1500 // Maximum number of hits in an event
+#define __TMS_MAX_LINES__ 10 // Maximum number of lines in an event
+#define __TMS_MAX_HITS__ 1000 // Maximum number of hits in an event
+#define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 25 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
@@ -65,21 +66,23 @@ class TMS_TreeWriter {
     float Occupancy[__TMS_MAX_LINES__];
     float TrackLength[__TMS_MAX_LINES__];
     float TotalTrackEnergy[__TMS_MAX_LINES__];
-    float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_HITS__]; // Energy per track hit
+    float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
+    float TrackHitPos[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
+    int nHitsInTrack[__TMS_MAX_LINES__];
 
     // Cluster information
     int nClusters; // Number of clusters
     float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
-    int HitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
+    int nHitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
     float ClusterPosMean[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
     float ClusterPosStdDev[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
+    float ClusterHitPos[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
+    float ClusterHitEnergy[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
 
     // Reco information
     int nHits; // How many hits in event
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
-    //int RecoHitTrack[__TMS_MAX_HITS__]; // which track is this hit associated with
-    //int RecoHitCluster[__TMS_MAX_HITS__]; // which cluster is this hit associated with
 
     // Truth information
     float MuonP4[4];
@@ -90,6 +93,8 @@ class TMS_TreeWriter {
     std::string Reaction;
     int NeutrinoPDG;
     float NeutrinoP4[4];
+    float Muon_TrueTrackLength;
+    bool IsCC;
 };
 
 
