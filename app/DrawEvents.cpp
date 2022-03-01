@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
   gStyle->SetNumberContours(255);
   gStyle->SetPalette(89);
 
+  bool DrawTraj = false;
+
   std::string filename = std::string(argv[1]);
 
   std::cout << "Got " << filename << std::endl;
@@ -164,7 +166,7 @@ int main(int argc, char** argv) {
 
   gErrorIgnoreLevel = kWarning;
   int i = 0;
-  TH2D *plot = new TH2D("xz", "xz-view;z (mm); x (mm); Energy deposit (MeV)", 100, zmin, zmax, 100, xmin, xmax);
+  TH2D *plot = new TH2D("xz", "xz-view;z (mm); x (mm); Energy deposit (MeV)", 300, zmin, zmax, 200, xmin, xmax);
   plot->GetZaxis()->SetTitleOffset(plot->GetZaxis()->GetTitleOffset()*1.3);
 
   for (; i < N_entries; ++i) {
@@ -263,8 +265,10 @@ int main(int argc, char** argv) {
     xz_Thin_Thick->Draw("same");
 
     // Go from back to front to have muon draw on top
-    for (int i = trajgraphs.size()-1; i >= 0; --i) {
-      if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+    if (DrawTraj) {
+      for (int i = trajgraphs.size()-1; i >= 0; --i) {
+        if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+      }
     }
 
     canv->Print(Outputname);
