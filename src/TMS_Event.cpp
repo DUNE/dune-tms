@@ -3,6 +3,12 @@
 // Initialise the event counter to 0
 int TMS_Event::EventCounter = 0;
 
+TMS_Event::TMS_Event() {
+  EventNumber = -999;
+  nTrueTrajectories = -999;
+  LightWeight = true;
+}
+
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
 TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
@@ -167,6 +173,34 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   EventCounter++;
 }
 
+// Add a separate event to this event
+// Handy for making hacked overlays
+void TMS_Event::AddEvent(TMS_Event &Other_Event) {
+  std::cout << "Adding event " << Other_Event.GetEventNumber() << " to event " << GetEventNumber() << std::endl;
+
+  // Get the other hits
+  std::vector<TMS_Hit> other_hits = Other_Event.GetHits();
+  std::cout << "Event hits: " << TMS_Hits.size() << std::endl;
+  std::cout << "Other event's hits: " << other_hits.size() << std::endl;
+
+  // And use them to expand on the original hits in the event
+  for (auto &hit: other_hits) {
+    TMS_Hits.emplace_back(std::move(hit));
+  }
+
+  // Do the same for the true particles
+  std::vector<TMS_TrueParticle> other_truepart = Other_Event.GetTrueParticles();
+  for (auto &part: other_truepart) {
+    TMS_TrueParticles.emplace_back(std::move(part));
+  }
+
+  std::cout << "Afterwards: " << std::endl;
+  std::cout << "Event hits: " << TMS_Hits.size() << std::endl;
+  std::cout << "Other event's hits: " << other_hits.size() << std::endl;
+}
+
+// For now just fill the true neutrino
+// But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4]) {
   TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
@@ -211,3 +245,51 @@ void TMS_Event::Print() {
   }
 }
 
+double TMS_Event::GetMuonTrueKE() {
+  std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
+  double HighestKE = -999.99;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+    TVector3 mom = (*it).GetBirthMomentum();
+    double E = (*it).GetBirthEnergy();
+    // Get KE (E - m)
+    double mass = sqrt(E*E-mom.Mag2());
+    double KE = E-mass;
+    if (KE > HighestKE) HighestKE = KE;
+  }
+  return HighestKE;
+}
+
+double TMS_Event::GetMuonTrueTrackLength() {
+  std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
+  double total = 0;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+
+    std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
+    int num = 0;
+    for (auto pnt = pos.begin(); pnt != pos.end(); ++pnt, ++num) {
+      auto nextpnt = *(pnt+1);
+      TVector3 point1((*pnt).X(), -200, (*pnt).Z());
+      TVector3 point2(nextpnt.X(), -200, nextpnt.Z());
+      //point1.Print();
+      //point2.Print();
+      if ((point2-point1).Mag() > 100) {
+        //std::cout << "moving on" << std::endl;
+        continue;
+      }
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      total += tracklength;
+      //std::cout << "point " << num << std::endl;
+      //std::cout << "total: " << total << std::endl;
+      //std::cout << "tracklength: " << tracklength << std::endl;
+    }
+  }
+  return total;
+}

@@ -62,7 +62,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   Timer.Start();
 
   int i = 0;
-  //N_entries = 210;
+  //N_entries = 200;
+  TMS_Event lastevent;
+  bool addevent = false;
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
@@ -78,17 +80,21 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Fill up truth information from the GRooTracker object
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
 
+    // Add event information and truth from another event
+    if (addevent) tms_event.AddEvent(lastevent);
+
     // Dump information
     //tms_event.Print();
 
     // Try finding some tracks
     TMS_TrackFinder::GetFinder().FindTracks(tms_event);
-
     // View it
     if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
-
     // Write it
     TMS_TreeWriter::GetWriter().Fill(tms_event);
+
+    // Save the last event to combine with the next one
+    if (addevent) lastevent = tms_event;
   } // End loop over all the events
 
   Timer.Stop();

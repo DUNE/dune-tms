@@ -18,7 +18,10 @@
 class TMS_Event {
   public:
     TMS_Event(TG4Event &event, bool FillEvent = true);
+    TMS_Event();
     //~TMS_Event();
+
+    void AddEvent(TMS_Event &);
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> &GetHits() const {return TMS_Hits;};
@@ -26,6 +29,9 @@ class TMS_Event {
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
+
+    double GetMuonTrueKE();
+    double GetMuonTrueTrackLength();
 
     void Print();
 
