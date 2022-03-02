@@ -112,7 +112,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
-  Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
+  //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
+  Muon_TrueTrackLength = -999.99;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
 
