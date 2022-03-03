@@ -1,8 +1,13 @@
-void muonke() {
-  //TFile *f = new TFile("neutrino.merge.root");
-  //TFile *f = new TFile("neutrino.20_1645138010.edep_TMS_RecoCandidates_Hough_Cluster1.root");
-  //TFile *f = new TFile("neutrino_merge_0p1Ecut.root");
-  TFile *f = new TFile("/dune/data/users/cwret/tms/tmsonly/newprod/test_merge.root");
+void muonke(std::string filename) {
+  int nLinesCut = 1; // How many lines can our events have?
+  int nClustersCut = 0; // Only allow for less clusters than this
+  float OccupancyCut = 0.9; // Only allow for higher occupancy tracks than this
+  bool CCmuOnly = false; // Only include events with a true CC muon (not necessarily selected as the track, but present in the event)
+  float ClusterEnergyCut = 5; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
+  bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
+  bool AllDet = true; // Muon starts in the whole detector? Or just thin region
+
+  TFile *f = new TFile(filename.c_str());
   TTree *truth = (TTree*)f->Get("Truth_Info");
   TTree *reco = (TTree*)f->Get("Line_Candidates");
 
@@ -36,10 +41,9 @@ void muonke() {
   reco->SetBranchAddress("FirstHoughHit", FirstHoughHit);
   reco->SetBranchStatus("LastHoughHit", true);
   reco->SetBranchAddress("LastHoughHit", LastHoughHit);
-  reco->SetBranchStatus("TMSStart", true);
-  reco->SetBranchAddress("TMSStart", &TMSStart);
   reco->SetBranchStatus("RecoHitEnergy", true);
   reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
+
   reco->SetBranchStatus("ClusterEnergy", true);
   reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
   reco->SetBranchStatus("nClusters", true);
@@ -64,12 +68,12 @@ void muonke() {
   truth->SetBranchAddress("Muon_Death", Muon_Death);
   truth->SetBranchStatus("Muon_TrueKE", true);
   truth->SetBranchAddress("Muon_TrueKE", &Muon_TrueKE);
-  truth->SetBranchStatus("nParticles", true);
-  truth->SetBranchAddress("nParticles", &nParticles);
-  truth->SetBranchStatus("NeutrinoPDG", true);
-  truth->SetBranchAddress("NeutrinoPDG", &NeutrinoPDG);
-  truth->SetBranchStatus("NeutrinoP4", true);
-  truth->SetBranchAddress("NeutrinoP4", NeutrinoP4);
+  //truth->SetBranchStatus("nParticles", true);
+  //truth->SetBranchAddress("nParticles", &nParticles);
+  //truth->SetBranchStatus("NeutrinoPDG", true);
+  //truth->SetBranchAddress("NeutrinoPDG", &NeutrinoPDG);
+  //truth->SetBranchStatus("NeutrinoP4", true);
+  //truth->SetBranchAddress("NeutrinoP4", NeutrinoP4);
 
   TH2D *KE = new TH2D("KE", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
   TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 100, 0, 1);
@@ -91,13 +95,24 @@ void muonke() {
 
     if (i % int(nentries/100.) == 0) std::cout << "Event " << i << std::endl;
 
-    //if (i > 1E6) break;
     // The event has to have a muon
     if (Muon_TrueKE < 0) continue;
 
+    // Ask for a true muon in the event if requested
+    if (CCmuOnly && Muon_Vertex[2] < 0) continue;
+
     // Only include events with lines
-    if (nLines < 1) continue;
-    if (nClusters > 0) continue;
+    if (AtLeastOneLine && nLines < 1) continue;
+
+    // Run the cuts
+    if (nLines > nLinesCut) continue;
+    if (nClusters > nClustersCut) continue;
+    // Sum up the total cluster energy
+    float cluster_en = 0;
+    for (int j = 0; j < nClusters; ++j) {
+      cluster_en += ClusterEnergy[j];
+    }
+    if (cluster_en > ClusterEnergyCut) continue;
 
     // Find the best track
     int besttrack = 0;
@@ -122,9 +137,6 @@ void muonke() {
     }
 
     if (longtrack != lon_trklen) {
-      //std::cout << "***" << std::endl;
-      //std::cout << "Largest tracklength: " << lon_trklen << std::endl;
-      //std::cout << "Longest distance: " << longtrack << std::endl;
       trklen_counter++;
     }
     longtrack = lon_trklen;
@@ -133,8 +145,11 @@ void muonke() {
     if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
 
     // Check that the longest track stops in the detector, and starts in the detector FV
-    //if (FirstHoughHit[longtrack][0] < 11362+55*2) continue;
-    if (FirstHoughHit[longtrack][0] < 11362+55*2 || FirstHoughHit[longtrack][0] > 13600) continue;
+    if (AllDet) {
+      if (FirstHoughHit[longtrack][0] < 11362+55*2) continue;
+    } else {
+      if (FirstHoughHit[longtrack][0] < 11362+55*2 || FirstHoughHit[longtrack][0] > 13600) continue;
+    }
     if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
@@ -143,19 +158,11 @@ void muonke() {
     if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
 
     h_Occupancy->Fill(Occupancy[longtrack]);
-    if (nLines > 1) continue;
+
     // Ask for only small amount of other energy deposits
-    if (Occupancy[longtrack] < 0.9) continue;
+    if (Occupancy[longtrack] < OccupancyCut) continue;
 
-    // Sum up the total cluster energy
-    float cluster_en = 0;
-    for (int j = 0; j < nClusters; ++j) {
-      cluster_en += ClusterEnergy[j];
-    }
-
-    //float best_tracklength = TrackLength[besttrack];
     float best_tracklength = TrackLength[longtrack];
-    //KEest->Fill(Muon_TrueKE, 296+2.12*best_tracklength);
     KEest->Fill(Muon_TrueKE, 80+1.75*best_tracklength);
     KE->Fill(Muon_TrueKE, best_tracklength);
     ngood++;
@@ -166,12 +173,23 @@ void muonke() {
   TCanvas *canv = new TCanvas("canv", "canv", 1024, 1024);
   canv->SetLeftMargin(canv->GetLeftMargin()*1.5);
   canv->SetRightMargin(canv->GetRightMargin()*1.4);
-  canv->Print("MuonKE.pdf[");
+
+  // Fix filename
+
+  while (filename.find("/") != std::string::npos) {
+    filename = filename.substr(filename.find("/")+1, filename.size());
+  }
+
+  TString canvname = Form("MuonKE_%s", filename.c_str());
+  canvname += Form("_nLinesCut%i_nClusterCut%i_OccupancyCut%.2f_CCmuOnly%o_ClusterEnCut%.2f_AtLeastOneLine%o_AllDet%o", nLinesCut, nClustersCut, OccupancyCut, CCmuOnly, ClusterEnergyCut, AtLeastOneLine, AllDet);
+  canvname += ".pdf";
+  canv->Print(canvname+"[");
+
   gStyle->SetPalette(55);
   KE->Draw("colz");
-  canv->Print("MuonKE.pdf");
+  canv->Print(canvname);
   h_Occupancy->Draw();
-  canv->Print("MuonKE.pdf");
+  canv->Print(canvname);
 
   TH1D *arith = new TH1D("arith", "arith", KE->GetXaxis()->GetNbins(), KE->GetXaxis()->GetBinLowEdge(1), KE->GetXaxis()->GetBinLowEdge(KE->GetXaxis()->GetNbins()+1));
   // Now make the muon KE
@@ -186,7 +204,7 @@ void muonke() {
     arith->SetBinError(i+1, rms);
     proj->Draw();
     proj->SetStats(1);
-    canv->Print("MuonKE.pdf");
+    canv->Print(canvname);
   }
   TF1 *fit = new TF1("fit", "[0]+[1]*x", KE->GetYaxis()->GetBinLowEdge(1), KE->GetYaxis()->GetBinLowEdge(KE->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
@@ -200,12 +218,12 @@ void muonke() {
   arith->GetXaxis()->SetTitle("Muon True KE");
   leg->Draw("same");
 
-  canv->Print("MuonKE.pdf");
+  canv->Print(canvname);
 
   KEest->Draw("colz");
-  canv->Print("MuonKE.pdf");
+  canv->Print(canvname);
 
   // Now make a simple neutrino energy estimator assuming a QE event
 
-  canv->Print("MuonKE.pdf]");
+  canv->Print(canvname+"]");
 }
