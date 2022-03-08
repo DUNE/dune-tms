@@ -1,11 +1,28 @@
-void enuqe(std::string filename) {
-  int nLinesCut = 1; // How many lines can our events have?
+#include "paul_tol_colors.hpp"
+
+// Helper to calculate Poisson
+double CalcPoisson(TH1D *data, TH1D *mc) {
+  double llh = 0;
+  for (int i = 0; i < data->GetXaxis()->GetNbins(); ++i) {
+    double data_c = data->GetBinContent(i+1);
+    double mc_c = mc->GetBinContent(i+1);
+    if (mc_c > 0 && data_c > 0) {
+      llh += (mc_c - data_c + data_c * TMath::Log(data_c/mc_c));
+    } else if (mc_c > 0 && data_c == 0) {
+      llh += mc_c;
+    }
+  }
+  return 2*llh;
+}
+
+void muonke_weights(std::string filename) {
+  int nLinesCut = 2; // How many lines can our events have?
   int nClustersCut = 10; // Only allow for this many clusters
-  float OccupancyCut = 0.80; // Only allow for higher occupancy tracks than this
+  float OccupancyCut = 0.50; // Only allow for higher occupancy tracks than this
   bool CCmuOnly = false; // Only include events with a true CC muon (not necessarily selected as the track, but present in the event)
   float ClusterEnergyCut = 100; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
   bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
-  bool AllDet = false; // Muon starts in the whole detector? Or just thin region
+  bool AllDet = true; // Muon starts in the whole detector? Or just thin region
 
   TFile *f = new TFile(filename.c_str());
   TTree *truth = (TTree*)f->Get("Truth_Info");
@@ -21,8 +38,6 @@ void enuqe(std::string filename) {
   float Occupancy[MAX_LINES];
   float FirstHoughHit[MAX_LINES][2];
   float LastHoughHit[MAX_LINES][2];
-  int nHitsInTrack[MAX_LINES];
-  float TrackHitPos[MAX_LINES][200][2];
   int EventNum_reco;
 
   float RecoHitEnergy[MAX_HITS];
@@ -45,11 +60,6 @@ void enuqe(std::string filename) {
   reco->SetBranchAddress("LastHoughHit", LastHoughHit);
   reco->SetBranchStatus("RecoHitEnergy", true);
   reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
-
-  reco->SetBranchStatus("TrackHitPos", true);
-  reco->SetBranchAddress("TrackHitPos", TrackHitPos);
-  reco->SetBranchStatus("nHitsInTrack", true);
-  reco->SetBranchAddress("nHitsInTrack", nHitsInTrack);
 
   reco->SetBranchStatus("ClusterEnergy", true);
   reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
@@ -88,16 +98,49 @@ void enuqe(std::string filename) {
   truth->SetBranchStatus("EventNo", true);
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
-  TH2D *EnuvsEnuQE = new TH2D("EnuQE", "EnuQE; True E_{#nu} (GeV);E_{#nu}^{QE} (GeV)", 100, 0, 5, 100, 0, 5);
-  EnuvsEnuQE->GetYaxis()->SetTitleOffset(EnuvsEnuQE->GetYaxis()->GetTitleOffset()*1.4);
-  EnuvsEnuQE->GetZaxis()->SetTitleOffset(EnuvsEnuQE->GetZaxis()->GetTitleOffset()*1.4);
+  // Set up the weights file
+  TFile *weightfile = new TFile("/media/storage/work/DUNE/ssri/newgeom_Feb2022/fluxstudy/tms_beamMonitoring_weights.root");
+  const int nweights = 11;
+  TH1D *weights[nweights];
+  // All histograms are in true Enu, in GeV
+  // Convert into TGraphs so can use interpolation?
+  weights[0] = (TH1D*)weightfile->Get("h_xProjtargetDensity");
+  weights[1] = (TH1D*)weightfile->Get("h_xProjBeamOffsetX;1");
+  weights[2] = (TH1D*)weightfile->Get("h_xProjBeamTheta;1");
+  weights[3] = (TH1D*)weightfile->Get("h_xProjBeamThetaPhi;1");
+  weights[4] = (TH1D*)weightfile->Get("h_xProjHC;1");
+  weights[5] = (TH1D*)weightfile->Get("h_xProjWL;1");
+  weights[6] = (TH1D*)weightfile->Get("h_xProjDPR;1");
+  weights[7] = (TH1D*)weightfile->Get("h_xProjHorn1_XShift;1");
+  weights[8] = (TH1D*)weightfile->Get("h_xProjHorn1_YShift;1");
+  weights[9] = (TH1D*)weightfile->Get("h_xProjHorn2_XShift;1");
+  weights[10] = (TH1D*)weightfile->Get("h_xProjHorn2_YShift;1");
 
-  // Prepare the neutrino
-  TVector3 nuvect(0, 0, 1);
-  nuvect.RotateX(0.101);
+  TH2D *KE = new TH2D("KE", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
+  TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 110, 0, 1.1);
 
-  const double mumass = 106.5;
-  const double nmass = 939.6;
+  TH2D *KEest = new TH2D("KEest", "KE estimator; True muon KE (MeV); KE estimate", 50, 0, 5000, 50, 0, 5000);
+  TH1D *TrueHad = new TH1D("TrueEHad", "True E_{had}; True E_{#nu}-E_{#mu} (GeV); N_{events}", 100, 0, 1);
+  KE->GetYaxis()->SetTitleOffset(KE->GetYaxis()->GetTitleOffset()*1.4);
+  KE->GetZaxis()->SetTitleOffset(KE->GetZaxis()->GetTitleOffset()*1.4);
+
+  KEest->GetYaxis()->SetTitleOffset(KEest->GetYaxis()->GetTitleOffset()*1.4);
+  KEest->GetZaxis()->SetTitleOffset(KEest->GetZaxis()->GetTitleOffset()*1.4);
+
+  TH1D *MuonKEreco = new TH1D("MuonKEreco", "Muon KE reco;Muon reco KE (GeV); Number of events", 50, 0, 5);
+  TH1D *MuonKEreco_w[nweights];
+  for (int i = 0; i < nweights; ++i) {
+    MuonKEreco_w[i] = new TH1D(Form("MuonKEreco_w_%i", i), Form("%s;Muon reco KE (GeV); Number of events, weighted", weights[i]->GetName()), 50, 0, 5);
+    MuonKEreco_w[i]->SetLineColor(10000+i);
+    MuonKEreco_w[i]->SetMarkerSize(0);
+    MuonKEreco_w[i]->SetFillStyle(0);
+    if (i > 5) MuonKEreco_w[i]->SetLineStyle(kDashed);
+  }
+
+  MuonKEreco->SetLineColor(kBlack);
+  MuonKEreco->SetLineStyle(kDashed);
+  MuonKEreco->SetMarkerSize(0);
+  MuonKEreco->SetFillStyle(0);
 
   int ngood = 0;
   int nentries = truth->GetEntries();
@@ -117,7 +160,6 @@ void enuqe(std::string filename) {
     }
 
     if (i % int(nentries/100.) == 0) std::cout << "Event " << i << std::endl;
-    //std::cout << "Event " << i << std::endl;
 
     // The event has to have a muon
     if (Muon_TrueKE < 0) continue;
@@ -181,53 +223,25 @@ void enuqe(std::string filename) {
     if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;
     if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
 
+    h_Occupancy->Fill(Occupancy[longtrack]);
+
     // Ask for only small amount of other energy deposits
     if (Occupancy[longtrack] < OccupancyCut) continue;
 
-    // Calculate the angle in the x-z plane relative the neutrino
-    // Recalculate from the track start positions
-    // Find where the kink in the track happens (if at all)
-    double firstx = TrackHitPos[longtrack][0][1];
-    int kink = 0;
-    //std::cout << "***" << std::endl;
-    for (int j = 0; j < nHitsInTrack[longtrack]; ++j) {
-      double z = TrackHitPos[longtrack][j][0];
-      double x = TrackHitPos[longtrack][j][1];
-      //std::cout << "hit " << j << " " << z << " " << x << std::endl;
-      if (fabs(firstx - x) > 30.54*2 && kink == 0) {
-        //std::cout << "kink" << std::endl;
-        kink = j;
-        break;
-      }
-    }
-    if (kink == 0) {
-      //std::cout << "found no kink" << std::endl;
-      kink = nHitsInTrack[longtrack]-1;
-    }
-    // Calculate the slope until the kink
-    double dx = TrackHitPos[longtrack][kink][1] - firstx;
-    double dz = TrackHitPos[longtrack][kink][0] - TrackHitPos[longtrack][0][0];
-    //double theta = atan(dx/dx);
-    TVector3 mu(dx, 0, dz);
-    mu = mu.Unit();
-    double theta = nuvect.Angle(mu);
-
-    // Get the track length
     float best_tracklength = TrackLength[longtrack];
-    double muonke = 82+1.75*best_tracklength;
-    double muonE = muonke+mumass;
-    // Get the muon momentum/energy from here
-    double mom = sqrt(muonke*(muonke+2*mumass));
-    double enuqe = (2.*nmass*(muonE)-mumass*mumass)/(2*(nmass-muonE+mom*cos(theta)));
-    enuqe *= 1.E-3;
+    KEest->Fill(Muon_TrueKE, 82+1.75*best_tracklength);
+    KE->Fill(Muon_TrueKE, best_tracklength);
 
-    // check true angle
-    //TVector3 truenu(NeutrinoP4[0], 0, NeutrinoP4[2]);
-    TVector3 truemu(MuonP4[0], 0, MuonP4[2]);
-    double trueangle = nuvect.Angle(truemu);
-    //std::cout << trueangle*180/3.1415 << " " << theta*180/3.1415 << std::endl;
-    
-    EnuvsEnuQE->Fill(NeutrinoP4[3], enuqe);
+    MuonKEreco->Fill((82+1.75*best_tracklength)/1.E3);
+    // Get the weighted
+    // First true Enu, in GeV
+    double TrueEnu = NeutrinoP4[3];
+    for (int j = 0; j < nweights; ++j) {
+      double weight = weights[j]->GetBinContent(weights[j]->FindBin(TrueEnu));
+      MuonKEreco_w[j]->Fill((82+1.75*best_tracklength)/1.E3, weight);
+    }
+
+    TrueHad->Fill(NeutrinoP4[3] - MuonP4[3]/1000.);
     ngood++;
   }
   std::cout << ngood << "/" << nentries << std::endl;
@@ -238,25 +252,28 @@ void enuqe(std::string filename) {
   canv->SetRightMargin(canv->GetRightMargin()*1.4);
 
   // Fix filename
+
   while (filename.find("/") != std::string::npos) {
     filename = filename.substr(filename.find("/")+1, filename.size());
   }
 
-  TString canvname = Form("EnuQE_%s", filename.c_str());
+  TString canvname = Form("MuonKE_%s", filename.c_str());
   canvname += Form("_nLinesCut%i_nClusterCut%i_OccupancyCut%.2f_CCmuOnly%o_ClusterEnCut%.2f_AtLeastOneLine%o_AllDet%o", nLinesCut, nClustersCut, OccupancyCut, CCmuOnly, ClusterEnergyCut, AtLeastOneLine, AllDet);
   canvname += ".pdf";
   canv->Print(canvname+"[");
 
   gStyle->SetPalette(55);
-  EnuvsEnuQE->Draw("colz");
+  KE->Draw("colz");
+  canv->Print(canvname);
+  h_Occupancy->Draw();
   canv->Print(canvname);
 
-  TH1D *arith = new TH1D("arith", "arith", EnuvsEnuQE->GetXaxis()->GetNbins(), EnuvsEnuQE->GetXaxis()->GetBinLowEdge(1), EnuvsEnuQE->GetXaxis()->GetBinLowEdge(EnuvsEnuQE->GetXaxis()->GetNbins()+1));
-  // Now make the muon EnuvsEnuQE
+  TH1D *arith = new TH1D("arith", "arith", KE->GetXaxis()->GetNbins(), KE->GetXaxis()->GetBinLowEdge(1), KE->GetXaxis()->GetBinLowEdge(KE->GetXaxis()->GetNbins()+1));
+  // Now make the muon KE
   gStyle->SetOptStat(1111);
-  for (int i = 0; i < EnuvsEnuQE->GetXaxis()->GetNbins(); ++i) {
-    double center = EnuvsEnuQE->GetXaxis()->GetBinCenter(i);
-    TH1D *proj = EnuvsEnuQE->ProjectionY(Form("EnuvsEnuQE %.2f", center), i, i);
+  for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
+    double center = KE->GetXaxis()->GetBinCenter(i);
+    TH1D *proj = KE->ProjectionY(Form("KE %.2f", center), i, i);
     double mean = proj->GetMean();
     double mode = proj->GetBinCenter(proj->GetMaximumBin());
     double rms = proj->GetRMS();
@@ -266,10 +283,9 @@ void enuqe(std::string filename) {
     proj->SetStats(1);
     canv->Print(canvname);
   }
-
-  TF1 *fit = new TF1("fit", "[0]+[1]*x", EnuvsEnuQE->GetYaxis()->GetBinLowEdge(1), EnuvsEnuQE->GetYaxis()->GetBinLowEdge(EnuvsEnuQE->GetYaxis()->GetNbins()+1));
+  TF1 *fit = new TF1("fit", "[0]+[1]*x", KE->GetYaxis()->GetBinLowEdge(1), KE->GetYaxis()->GetBinLowEdge(KE->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
-  EnuvsEnuQE->Draw("colz");
+  KE->Draw("colz");
   arith->Draw("same");
   arith->Fit(fit, "S", "", 700, 2500);
   TLegend *leg = new TLegend(0.2, 0.5, 0.6, 0.9);
@@ -280,6 +296,58 @@ void enuqe(std::string filename) {
   leg->Draw("same");
 
   canv->Print(canvname);
+
+  KEest->Draw("colz");
+  canv->Print(canvname);
+
+  TrueHad->Draw();
+  canv->Print(canvname);
+
+  MuonKEreco->Draw();
+  for (int i = 0; i < nweights; ++i) {
+    double n2llh = CalcPoisson(MuonKEreco_w[i], MuonKEreco);
+    MuonKEreco_w[i]->SetTitle(Form("%s #chi^{2}=%.2f", MuonKEreco_w[i]->GetTitle(), n2llh));
+    MuonKEreco_w[i]->Draw("same");
+  }
+  canv->BuildLegend();
+  MuonKEreco->Draw("same");
+  canv->Print(canvname);
+
+  TH1D *ratios[nweights];
+  for (int i = 0; i < nweights; ++i) {
+    ratios[i] = (TH1D*)MuonKEreco_w[i]->Clone(Form("%s_r", MuonKEreco_w[i]->GetName()));
+    ratios[i]->Divide(MuonKEreco);
+  }
+
+  for (int i = 0; i < nweights; ++i) {
+    if (i == 0) ratios[i]->Draw();
+    else ratios[i]->Draw("same");
+  }
+  ratios[0]->GetYaxis()->SetRangeUser(0.8, 1.2);
+  ratios[0]->GetYaxis()->SetTitle("Ratio to nom.");
+  TLine *line = new TLine(ratios[0]->GetXaxis()->GetBinLowEdge(1), 1, ratios[0]->GetXaxis()->GetBinLowEdge(ratios[0]->GetXaxis()->GetNbins()+1), 1);
+  line->SetLineWidth(2);
+  line->SetLineColor(kRed);
+  line->SetLineStyle(kDashed);
+  canv->BuildLegend();
+  line->Draw("same");
+  canv->Print(canvname);
+
+  // Write all historams to a file too
+  TString outname = canvname;
+  outname = outname.ReplaceAll(".pdf", ".root");
+  TFile *output = new TFile(outname, "recreate");
+
+  KE->Write();
+  h_Occupancy->Write();
+  KEest->Write();
+  TrueHad->Write();
+  MuonKEreco->Write();
+  for (int i = 0; i < nweights; ++i) {
+    MuonKEreco_w[i]->Write();
+    ratios[i]->Write();
+  }
+  output->Close();
 
   canv->Print(canvname+"]");
 }

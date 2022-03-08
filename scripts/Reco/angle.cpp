@@ -1,11 +1,11 @@
-void enuqe(std::string filename) {
+void angle(std::string filename) {
   int nLinesCut = 1; // How many lines can our events have?
-  int nClustersCut = 10; // Only allow for this many clusters
+  int nClustersCut = 100; // Only allow for this many clusters
   float OccupancyCut = 0.80; // Only allow for higher occupancy tracks than this
   bool CCmuOnly = false; // Only include events with a true CC muon (not necessarily selected as the track, but present in the event)
   float ClusterEnergyCut = 100; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
   bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
-  bool AllDet = false; // Muon starts in the whole detector? Or just thin region
+  bool AllDet = true; // Muon starts in the whole detector? Or just thin region
 
   TFile *f = new TFile(filename.c_str());
   TTree *truth = (TTree*)f->Get("Truth_Info");
@@ -23,11 +23,12 @@ void enuqe(std::string filename) {
   float LastHoughHit[MAX_LINES][2];
   int nHitsInTrack[MAX_LINES];
   float TrackHitPos[MAX_LINES][200][2];
-  int EventNum_reco;
 
   float RecoHitEnergy[MAX_HITS];
   float ClusterEnergy[MAX_CLUSTERS];
   int nClusters;
+
+  int EventNum_reco;
 
   reco->SetBranchStatus("*", false);
 
@@ -50,6 +51,7 @@ void enuqe(std::string filename) {
   reco->SetBranchAddress("TrackHitPos", TrackHitPos);
   reco->SetBranchStatus("nHitsInTrack", true);
   reco->SetBranchAddress("nHitsInTrack", nHitsInTrack);
+
 
   reco->SetBranchStatus("ClusterEnergy", true);
   reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
@@ -88,20 +90,18 @@ void enuqe(std::string filename) {
   truth->SetBranchStatus("EventNo", true);
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
-  TH2D *EnuvsEnuQE = new TH2D("EnuQE", "EnuQE; True E_{#nu} (GeV);E_{#nu}^{QE} (GeV)", 100, 0, 5, 100, 0, 5);
-  EnuvsEnuQE->GetYaxis()->SetTitleOffset(EnuvsEnuQE->GetYaxis()->GetTitleOffset()*1.4);
-  EnuvsEnuQE->GetZaxis()->SetTitleOffset(EnuvsEnuQE->GetZaxis()->GetTitleOffset()*1.4);
+  TH2D *AnglevsTrue = new TH2D("AnglevsTrue", "AnglevsTrue; muon z true angle (degrees); muon z reco angle (degrees)", 360, 0, 90, 360, 0, 90);
+  AnglevsTrue->GetYaxis()->SetTitleOffset(AnglevsTrue->GetYaxis()->GetTitleOffset()*1.4);
+  AnglevsTrue->GetZaxis()->SetTitleOffset(AnglevsTrue->GetZaxis()->GetTitleOffset()*1.4);
 
   // Prepare the neutrino
   TVector3 nuvect(0, 0, 1);
   nuvect.RotateX(0.101);
 
-  const double mumass = 106.5;
-  const double nmass = 939.6;
-
   int ngood = 0;
   int nentries = truth->GetEntries();
   int trklen_counter = 0;
+  //nentries = 1E5;
   std::cout << nentries << " events..." << std::endl;
   int true_entry = 0;
   int reco_entry = 0;
@@ -174,7 +174,7 @@ void enuqe(std::string filename) {
     } else {
       if (FirstHoughHit[longtrack][0] < 11362+55*2 || FirstHoughHit[longtrack][0] > 13600) continue;
     }
-    if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
+    //if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
     // 10 cm inwards
@@ -190,6 +190,7 @@ void enuqe(std::string filename) {
     double firstx = TrackHitPos[longtrack][0][1];
     int kink = 0;
     //std::cout << "***" << std::endl;
+    //std::cout << "Event " << i << std::endl;
     for (int j = 0; j < nHitsInTrack[longtrack]; ++j) {
       double z = TrackHitPos[longtrack][j][0];
       double x = TrackHitPos[longtrack][j][1];
@@ -203,31 +204,29 @@ void enuqe(std::string filename) {
     if (kink == 0) {
       //std::cout << "found no kink" << std::endl;
       kink = nHitsInTrack[longtrack]-1;
+      //std::cout << TrackHitPos[longtrack][kink][1] << " to " << firstx << std::endl;
+      //std::cout << TrackHitPos[longtrack][kink][0] << " to " << TrackHitPos[longtrack][0][0] << std::endl;
     }
     // Calculate the slope until the kink
     double dx = TrackHitPos[longtrack][kink][1] - firstx;
     double dz = TrackHitPos[longtrack][kink][0] - TrackHitPos[longtrack][0][0];
+    //std::cout << dz << std::endl;
     //double theta = atan(dx/dx);
     TVector3 mu(dx, 0, dz);
     mu = mu.Unit();
-    double theta = nuvect.Angle(mu);
-
-    // Get the track length
-    float best_tracklength = TrackLength[longtrack];
-    double muonke = 82+1.75*best_tracklength;
-    double muonE = muonke+mumass;
-    // Get the muon momentum/energy from here
-    double mom = sqrt(muonke*(muonke+2*mumass));
-    double enuqe = (2.*nmass*(muonE)-mumass*mumass)/(2*(nmass-muonE+mom*cos(theta)));
-    enuqe *= 1.E-3;
+    //double recoangle = nuvect.Angle(mu)*180./3.1415;
+    double recoangle = acos(mu.Z())*180./3.1415;
 
     // check true angle
-    //TVector3 truenu(NeutrinoP4[0], 0, NeutrinoP4[2]);
+    //TVector3 truemu(MuonP4[0], MuonP4[1], MuonP4[2]);
     TVector3 truemu(MuonP4[0], 0, MuonP4[2]);
-    double trueangle = nuvect.Angle(truemu);
-    //std::cout << trueangle*180/3.1415 << " " << theta*180/3.1415 << std::endl;
+    truemu = truemu.Unit();
+    //double trueangle = nuvect.Angle(truemu)*180./3.1415;
+    double trueangle = acos(truemu.Z())*180./3.1415;
+
+    //std::cout << "true: " << trueangle << " reco: " << recoangle << std::endl;
     
-    EnuvsEnuQE->Fill(NeutrinoP4[3], enuqe);
+    AnglevsTrue->Fill(trueangle, recoangle);
     ngood++;
   }
   std::cout << ngood << "/" << nentries << std::endl;
@@ -242,21 +241,21 @@ void enuqe(std::string filename) {
     filename = filename.substr(filename.find("/")+1, filename.size());
   }
 
-  TString canvname = Form("EnuQE_%s", filename.c_str());
+  TString canvname = Form("Angle_%s", filename.c_str());
   canvname += Form("_nLinesCut%i_nClusterCut%i_OccupancyCut%.2f_CCmuOnly%o_ClusterEnCut%.2f_AtLeastOneLine%o_AllDet%o", nLinesCut, nClustersCut, OccupancyCut, CCmuOnly, ClusterEnergyCut, AtLeastOneLine, AllDet);
   canvname += ".pdf";
   canv->Print(canvname+"[");
 
   gStyle->SetPalette(55);
-  EnuvsEnuQE->Draw("colz");
+  AnglevsTrue->Draw("colz");
   canv->Print(canvname);
 
-  TH1D *arith = new TH1D("arith", "arith", EnuvsEnuQE->GetXaxis()->GetNbins(), EnuvsEnuQE->GetXaxis()->GetBinLowEdge(1), EnuvsEnuQE->GetXaxis()->GetBinLowEdge(EnuvsEnuQE->GetXaxis()->GetNbins()+1));
-  // Now make the muon EnuvsEnuQE
+  TH1D *arith = new TH1D("arith", "arith", AnglevsTrue->GetXaxis()->GetNbins(), AnglevsTrue->GetXaxis()->GetBinLowEdge(1), AnglevsTrue->GetXaxis()->GetBinLowEdge(AnglevsTrue->GetXaxis()->GetNbins()+1));
+  // Now make the muon AnglevsTrue
   gStyle->SetOptStat(1111);
-  for (int i = 0; i < EnuvsEnuQE->GetXaxis()->GetNbins(); ++i) {
-    double center = EnuvsEnuQE->GetXaxis()->GetBinCenter(i);
-    TH1D *proj = EnuvsEnuQE->ProjectionY(Form("EnuvsEnuQE %.2f", center), i, i);
+  for (int i = 0; i < AnglevsTrue->GetXaxis()->GetNbins(); ++i) {
+    double center = AnglevsTrue->GetXaxis()->GetBinCenter(i);
+    TH1D *proj = AnglevsTrue->ProjectionY(Form("AnglevsTrue %.2f", center), i, i);
     double mean = proj->GetMean();
     double mode = proj->GetBinCenter(proj->GetMaximumBin());
     double rms = proj->GetRMS();
@@ -267,9 +266,9 @@ void enuqe(std::string filename) {
     canv->Print(canvname);
   }
 
-  TF1 *fit = new TF1("fit", "[0]+[1]*x", EnuvsEnuQE->GetYaxis()->GetBinLowEdge(1), EnuvsEnuQE->GetYaxis()->GetBinLowEdge(EnuvsEnuQE->GetYaxis()->GetNbins()+1));
+  TF1 *fit = new TF1("fit", "[0]+[1]*x", AnglevsTrue->GetYaxis()->GetBinLowEdge(1), AnglevsTrue->GetYaxis()->GetBinLowEdge(AnglevsTrue->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
-  EnuvsEnuQE->Draw("colz");
+  AnglevsTrue->Draw("colz");
   arith->Draw("same");
   arith->Fit(fit, "S", "", 700, 2500);
   TLegend *leg = new TLegend(0.2, 0.5, 0.6, 0.9);
@@ -278,8 +277,13 @@ void enuqe(std::string filename) {
   fit->SetLineColor(kRed);
   arith->GetXaxis()->SetTitle("Muon True KE");
   leg->Draw("same");
-
   canv->Print(canvname);
+
+  TString rootfilename = canvname;
+  rootfilename = rootfilename.ReplaceAll(".pdf",".root");
+  TFile *output = new TFile(rootfilename, "recreate");
+  AnglevsTrue->Write();
+  output->Close();
 
   canv->Print(canvname+"]");
 }
