@@ -99,7 +99,7 @@ void muonke_weights(std::string filename) {
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
   // Set up the weights file
-  TFile *weightfile = new TFile("/media/storage/work/DUNE/ssri/newgeom_Feb2022/fluxstudy/tms_beamMonitoring_weights.root");
+  TFile *weightfile = new TFile("tms_beamMonitoring_weights.root");
   const int nweights = 11;
   TH1D *weights[nweights];
   // All histograms are in true Enu, in GeV
@@ -136,11 +136,24 @@ void muonke_weights(std::string filename) {
     MuonKEreco_w[i]->SetFillStyle(0);
     if (i > 5) MuonKEreco_w[i]->SetLineStyle(kDashed);
   }
-
   MuonKEreco->SetLineColor(kBlack);
   MuonKEreco->SetLineStyle(kDashed);
   MuonKEreco->SetMarkerSize(0);
   MuonKEreco->SetFillStyle(0);
+
+  TH1D *hTrueEnu = new TH1D("hTrueEnu", "True E_{#nu};True E_{#nu} (GeV); Number of events", 50, 0, 10);
+  TH1D *hTrueEnu_w[nweights];
+  for (int i = 0; i < nweights; ++i) {
+    hTrueEnu_w[i] = new TH1D(Form("hTrueEnu_w_%i", i), Form("%s;True E_{#nu} (GeV); Number of events, weighted", weights[i]->GetName()), 50, 0, 10);
+    hTrueEnu_w[i]->SetLineColor(10000+i);
+    hTrueEnu_w[i]->SetMarkerSize(0);
+    hTrueEnu_w[i]->SetFillStyle(0);
+    if (i > 5) hTrueEnu_w[i]->SetLineStyle(kDashed);
+  }
+  hTrueEnu->SetLineColor(kBlack);
+  hTrueEnu->SetLineStyle(kDashed);
+  hTrueEnu->SetMarkerSize(0);
+  hTrueEnu->SetFillStyle(0);
 
   int ngood = 0;
   int nentries = truth->GetEntries();
@@ -239,7 +252,9 @@ void muonke_weights(std::string filename) {
     for (int j = 0; j < nweights; ++j) {
       double weight = weights[j]->GetBinContent(weights[j]->FindBin(TrueEnu));
       MuonKEreco_w[j]->Fill((82+1.75*best_tracklength)/1.E3, weight);
+      hTrueEnu_w[j]->Fill(TrueEnu, weight);
     }
+    hTrueEnu->Fill(TrueEnu);
 
     TrueHad->Fill(NeutrinoP4[3] - MuonP4[3]/1000.);
     ngood++;
@@ -300,17 +315,17 @@ void muonke_weights(std::string filename) {
   KEest->Draw("colz");
   canv->Print(canvname);
 
-  TrueHad->Draw();
+  TrueHad->Draw("hist");
   canv->Print(canvname);
 
-  MuonKEreco->Draw();
+  MuonKEreco->Draw("hist");
   for (int i = 0; i < nweights; ++i) {
     double n2llh = CalcPoisson(MuonKEreco_w[i], MuonKEreco);
     MuonKEreco_w[i]->SetTitle(Form("%s #chi^{2}=%.2f", MuonKEreco_w[i]->GetTitle(), n2llh));
-    MuonKEreco_w[i]->Draw("same");
+    MuonKEreco_w[i]->Draw("same,hist");
   }
   canv->BuildLegend();
-  MuonKEreco->Draw("same");
+  MuonKEreco->Draw("same,hist");
   canv->Print(canvname);
 
   TH1D *ratios[nweights];
@@ -320,8 +335,8 @@ void muonke_weights(std::string filename) {
   }
 
   for (int i = 0; i < nweights; ++i) {
-    if (i == 0) ratios[i]->Draw();
-    else ratios[i]->Draw("same");
+    if (i == 0) ratios[i]->Draw("hist");
+    else ratios[i]->Draw("same,hist");
   }
   ratios[0]->GetYaxis()->SetRangeUser(0.8, 1.2);
   ratios[0]->GetYaxis()->SetTitle("Ratio to nom.");
@@ -331,6 +346,37 @@ void muonke_weights(std::string filename) {
   line->SetLineStyle(kDashed);
   canv->BuildLegend();
   line->Draw("same");
+  canv->Print(canvname);
+
+  // Write the enu histograms
+  hTrueEnu->Draw("hist");
+  for (int i = 0; i < nweights; ++i) {
+    double n2llh = CalcPoisson(hTrueEnu_w[i], hTrueEnu);
+    hTrueEnu_w[i]->SetTitle(Form("%s #chi^{2}=%.2f", hTrueEnu_w[i]->GetTitle(), n2llh));
+    hTrueEnu_w[i]->Draw("same,hist");
+  }
+  canv->BuildLegend();
+  hTrueEnu->Draw("same,hist");
+  canv->Print(canvname);
+
+  TH1D *ratioEnu[nweights];
+  for (int i = 0; i < nweights; ++i) {
+    ratioEnu[i] = (TH1D*)hTrueEnu_w[i]->Clone(Form("%s_r", hTrueEnu_w[i]->GetName()));
+    ratioEnu[i]->Divide(hTrueEnu);
+  }
+
+  for (int i = 0; i < nweights; ++i) {
+    if (i == 0) ratioEnu[i]->Draw("hist");
+    else ratioEnu[i]->Draw("same,hist");
+  }
+  ratioEnu[0]->GetYaxis()->SetRangeUser(0.8, 1.2);
+  ratioEnu[0]->GetYaxis()->SetTitle("Ratio to nom.");
+  TLine *line2 = new TLine(ratioEnu[0]->GetXaxis()->GetBinLowEdge(1), 1, ratioEnu[0]->GetXaxis()->GetBinLowEdge(ratioEnu[0]->GetXaxis()->GetNbins()+1), 1);
+  line2->SetLineWidth(2);
+  line2->SetLineColor(kRed);
+  line2->SetLineStyle(kDashed);
+  canv->BuildLegend();
+  line2->Draw("same");
   canv->Print(canvname);
 
   // Write all historams to a file too
@@ -343,9 +389,12 @@ void muonke_weights(std::string filename) {
   KEest->Write();
   TrueHad->Write();
   MuonKEreco->Write();
+  hTrueEnu->Write();
   for (int i = 0; i < nweights; ++i) {
     MuonKEreco_w[i]->Write();
     ratios[i]->Write();
+    hTrueEnu_w[i]->Write();
+    ratioEnu[i]->Write();
   }
   output->Close();
 
