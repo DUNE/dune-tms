@@ -3,6 +3,8 @@ This is the project for studying the Temporary Muon Spectrometer as a part of th
 
 It uses `edep-sim` output, which are stored at:
 
+* Fourth production: `/pnfs/dune/persistent/ndmuonspect/TMSTarget/edep/`, using TMS as the only target, with a fixed TMS geometry (front 40 planes now in correct y), and no plane tilts. Used for pileup, flux studies, and so on
+
 * Third production: `/pnfs/dune/persistent/users/marshalc/LArTMSProductionJun23withLArCV/edep/FHC/00m/00/`, using LAr as active target, with a slightly updated TMS geometry. Used for track matching studies by Faiza/Jeremy/Clarence
 
 * Second production: `/pnfs/dune/scratch/users/marshalc/geomValHallLArTMS2/edep/0m/00/`, using LAr+TMS+Hall as active targets, with an updated more realistic cavern and cryostat, and updated TMS geometry.
