@@ -190,8 +190,6 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
 
   // Get the other hits
   std::vector<TMS_Hit> other_hits = Other_Event.GetHits();
-  std::cout << "Event hits: " << TMS_Hits.size() << std::endl;
-  std::cout << "Other event's hits: " << other_hits.size() << std::endl;
 
   // And use them to expand on the original hits in the event
   for (auto &hit: other_hits) {
@@ -204,9 +202,6 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
 
-  std::cout << "Afterwards: " << std::endl;
-  std::cout << "Event hits: " << TMS_Hits.size() << std::endl;
-  std::cout << "Other event's hits: " << other_hits.size() << std::endl;
 }
 
 // For now just fill the true neutrino
