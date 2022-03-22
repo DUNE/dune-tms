@@ -8,32 +8,32 @@ DrawTrackFinding(false) {
   gStyle->SetOptStat(0);
   gStyle->SetNumberContours(255);
 
-  const double zmin = TMS_Const::TMS_Start[2];
-  const double zmax = TMS_Const::TMS_End[2];
-  const double xmin = TMS_Const::TMS_Start[0];
-  const double xmax = TMS_Const::TMS_End[0];
-  const double ymin = TMS_Const::TMS_Start[1];
-  const double ymax = TMS_Const::TMS_End[1];
+  const double zmin = TMS_Const::TMS_Start[2]/1.E3;
+  const double zmax = TMS_Const::TMS_End[2]/1.E3;
+  const double xmin = TMS_Const::TMS_Start[0]/1.E3;
+  const double xmax = TMS_Const::TMS_End[0]/1.E3;
+  const double ymin = TMS_Const::TMS_Start[1]/1.E3;
+  const double ymax = TMS_Const::TMS_End[1]/1.E3;
   // Scint bars are 4 by 1 cm
   //const int nbinsz = ((zmax-zmin)/10)/5;
-  const int nbinsz = ((zmax-zmin)/100)*2;
-  const int nbinsx = ((xmax-xmin)/100)*3;
-  const int nbinsy = ((ymax-ymin)/100)*3;
+  const int nbinsz = ((zmax-zmin)/0.1)*2;
+  const int nbinsx = ((xmax-xmin)/0.1)*3;
+  const int nbinsy = ((ymax-ymin)/0.1)*3;
 
   // The 2D views
-  xz_view = new TH2D("TMS_Viewer_xz", "TMS viewer xz;z (mm); x (mm); Energy Deposit (MeV)", nbinsz, zmin, zmax, nbinsx, xmin, xmax);
-  yz_view = new TH2D("TMS_Viewer_yz", "TMS viewer yz;z (mm); y (mm); Energy Deposit (MeV)", nbinsz, zmin, zmax, nbinsy, ymin, ymax);
+  xz_view = new TH2D("TMS_Viewer_xz", "TMS viewer xz;z (m); x (m); Energy Deposited (MeV)", nbinsz, zmin, zmax, nbinsx, xmin, xmax);
+  yz_view = new TH2D("TMS_Viewer_yz", "TMS viewer yz;z (m); y (m); Energy Deposited (MeV)", nbinsz, zmin, zmax, nbinsy, ymin, ymax);
 
-  xz_view->SetMinimum(-0.01);
-  yz_view->SetMinimum(-0.01);
-  xz_view->SetMaximum(5);
-  yz_view->SetMaximum(5);
+  xz_view->SetMinimum(0);
+  yz_view->SetMinimum(0);
+  xz_view->SetMaximum(3);
+  yz_view->SetMaximum(3);
 
   yz_view->GetZaxis()->SetTitleOffset(yz_view->GetZaxis()->GetTitleOffset()*1.2);
   xz_view->GetZaxis()->SetTitleOffset(xz_view->GetZaxis()->GetTitleOffset()*1.2);
 
-  yz_view->GetYaxis()->SetTitleOffset(1.8);
-  xz_view->GetYaxis()->SetTitleOffset(1.8);
+  yz_view->GetYaxis()->SetTitleOffset(1.1);
+  xz_view->GetYaxis()->SetTitleOffset(1.1);
 
   yz_view->GetYaxis()->SetMaxDigits(3);
   yz_view->GetXaxis()->SetMaxDigits(3);
@@ -44,55 +44,54 @@ DrawTrackFinding(false) {
 
   // The canvas
   Canvas = new TCanvas("TMS_EventViewer", "TMS_EventViewer", 1024, 1024);
-  Canvas->Divide(3);
-  //Canvas->cd(1)->SetLeftMargin(Canvas->GetLeftMargin()*1.2);
-  //Canvas->cd(1)->SetRightMargin(Canvas->GetRightMargin()*1.5);
+  Canvas->SetTopMargin(Canvas->GetTopMargin()*1.4);
+  Canvas->SetRightMargin(Canvas->GetRightMargin()*1.4);
 
   // Full view from inspecting all hits
-  xz_box_Full = new TBox(TMS_Const::TMS_Thin_Start,
-      -3485,
-      TMS_Const::TMS_Thick_End,
-      3485);
+  xz_box_Full = new TBox(TMS_Const::TMS_Thin_Start/1E3,
+      -3485/1E3,
+      TMS_Const::TMS_Thick_End/1E3,
+      3485/1E3);
   xz_box_Full->SetLineColor(kGreen);
   xz_box_Full->SetFillStyle(0);
 
-  yz_box_Full = new TBox(TMS_Const::TMS_Thin_Start,
-      -2340,
-      TMS_Const::TMS_Thick_End,
-      870);
+  yz_box_Full = new TBox(TMS_Const::TMS_Thin_Start/1E3,
+      -2340/1E3,
+      TMS_Const::TMS_Thick_End/1E3,
+      870/1E3);
   yz_box_Full->SetLineColor(kGreen);
   yz_box_Full->SetFillStyle(0);
 
   // FV just taking 50 cm in from the full
   xz_box_FV = new TBox(xz_box_Full->GetX1(),
-      xz_box_Full->GetY1()+500,
-      xz_box_Full->GetX2()-500,
-      xz_box_Full->GetY2()-500);
+      xz_box_Full->GetY1()+500/1E3,
+      xz_box_Full->GetX2()-500/1E3,
+      xz_box_Full->GetY2()-500/1E3);
   xz_box_FV->SetLineColor(kRed);
   xz_box_FV->SetLineStyle(kDashed);
   xz_box_FV->SetFillStyle(0);
 
   yz_box_FV = new TBox(yz_box_Full->GetX1(),
-      yz_box_Full->GetY1()+500,
-      yz_box_Full->GetX2()-500,
-      yz_box_Full->GetY2()-500);
+      yz_box_Full->GetY1()+500/1E3,
+      yz_box_Full->GetX2()-500/1E3,
+      yz_box_Full->GetY2()-500/1E3);
   yz_box_FV->SetLineColor(kRed);
   yz_box_FV->SetLineStyle(kDashed);
   yz_box_FV->SetFillStyle(0);
 
   // Include the dead region boxes
-  xz_dead_top = new TBox(TMS_Const::TMS_Thin_Start,
-      TMS_Const::TMS_Dead_Top[0],
-      TMS_Const::TMS_Thick_End,
-      TMS_Const::TMS_Dead_Top[1]);
-  xz_dead_center = new TBox(TMS_Const::TMS_Thin_Start,
-      TMS_Const::TMS_Dead_Center[0],
-      TMS_Const::TMS_Thick_End,
-      TMS_Const::TMS_Dead_Center[0]);
-  xz_dead_bottom = new TBox(TMS_Const::TMS_Thin_Start,
-      TMS_Const::TMS_Dead_Bottom[0],
-      TMS_Const::TMS_Thick_End,
-      TMS_Const::TMS_Dead_Bottom[1]);
+  xz_dead_top = new TBox(TMS_Const::TMS_Thin_Start/1E3,
+      TMS_Const::TMS_Dead_Top[0]/1E3,
+      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Dead_Top[1]/1E3);
+  xz_dead_center = new TBox(TMS_Const::TMS_Thin_Start/1E3,
+      TMS_Const::TMS_Dead_Center[0]/1E3,
+      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Dead_Center[0]/1E3);
+  xz_dead_bottom = new TBox(TMS_Const::TMS_Thin_Start/1E3,
+      TMS_Const::TMS_Dead_Bottom[0]/1E3,
+      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Dead_Bottom[1]/1E3);
   xz_dead_top->SetFillStyle(3003);
   xz_dead_center->SetFillStyle(3003);
   xz_dead_bottom->SetFillStyle(3003);
@@ -101,17 +100,17 @@ DrawTrackFinding(false) {
   xz_dead_bottom->SetFillColor(kGray);
   
   // And a line at the thin/thick divide
-  xz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start,
-      TMS_Const::TMS_Start_Exact[0],
-      TMS_Const::TMS_Thick_Start,
-      TMS_Const::TMS_End_Exact[0]);
+  xz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start/1E3,
+      TMS_Const::TMS_Start_Exact[0]/1E3,
+      TMS_Const::TMS_Thick_Start/1E3,
+      TMS_Const::TMS_End_Exact[0]/1E3);
   xz_Thin_Thick->SetLineColor(kGray);
   xz_Thin_Thick->SetLineStyle(kDashed);
 
-  yz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start,
-      TMS_Const::TMS_Start_Exact[1],
-      TMS_Const::TMS_Thick_Start,
-      TMS_Const::TMS_End_Exact[1]);
+  yz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start/1E3,
+      TMS_Const::TMS_Start_Exact[1]/1E3,
+      TMS_Const::TMS_Thick_Start/1E3,
+      TMS_Const::TMS_End_Exact[1]/1E3);
   yz_Thin_Thick->SetLineColor(kGray);
   yz_Thin_Thick->SetLineStyle(kDashed);
 
@@ -137,8 +136,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   yz_view->Reset();
 
   int EventNumber = event.GetEventNumber();
-  xz_view->SetTitle(Form("TMS viewer xz, Event %i", EventNumber));
-  yz_view->SetTitle(Form("TMS viewer yz, Event %i", EventNumber));
+  xz_view->SetTitle(Form("Event %i", EventNumber));
+  yz_view->SetTitle(Form("Event %i", EventNumber));
 
   std::vector<TMS_Hit> TMS_Hits = TMS_TrackFinder::GetFinder().GetCleanedHits();
 
@@ -152,9 +151,9 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Loop over the hits and add them
   for (std::vector<TMS_Hit>::iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
     TMS_Bar bar = (*it).GetBar();  
-    double x = bar.GetX();
-    double y = bar.GetY();
-    double z = bar.GetZ();
+    double x = bar.GetX()/1E3;
+    double y = bar.GetY()/1E3;
+    double z = bar.GetZ()/1E3;
     int BarType = bar.GetBarType();
     double e = (*it).GetE();
 
@@ -180,7 +179,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     TGraph *tempgraph = new TGraph((*i).GetPositionPoints().size());
     int npoints = int(((*i).GetPositionPoints()).size());
     for (int j = 0; j < npoints; ++j) {
-      tempgraph->SetPoint(j, (*i).GetPositionPoints()[j].Z(), (*i).GetPositionPoints()[j].X());
+      tempgraph->SetPoint(j, (*i).GetPositionPoints()[j].Z()/1E3, (*i).GetPositionPoints()[j].X()/1E3);
     }
 
     // Set a specific marker from primary particles
@@ -188,7 +187,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     tempgraph->SetMarkerSize(0.4);
     if ((*i).GetParent() == -1) {
       tempgraph->SetMarkerStyle(25);
-      tempgraph->SetMarkerSize(1.0);
+      tempgraph->SetMarkerSize(1.5);
     } 
 
     if (abs((*i).GetPDG()) == 13) {
@@ -224,7 +223,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     HoughGraphVect[i] = new TGraph(HoughCandidates[i].size());
     HoughGraphVect[i]->SetLineColor(i);
     HoughGraphVect[i]->SetLineWidth(2);
-    HoughGraphVect[i]->SetMarkerColor(i);
+    HoughGraphVect[i]->SetMarkerColor(i+1);
     HoughGraphVect[i]->SetMarkerSize(1.5);
     HoughGraphVect[i]->SetMarkerStyle(25);
   }
@@ -232,7 +231,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (auto &Line: HoughCandidates) {
     int HitIt = 0;
     for (auto HoughHit: Line) {
-      HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ(), HoughHit.GetNotZ());
+      HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
       HitIt++;
     }
     LineIt++;
@@ -248,14 +247,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     GraphVect[i]->SetLineColor(nLines+i);
     GraphVect[i]->SetLineWidth(2);
     GraphVect[i]->SetMarkerColor(nLines+i);
-    GraphVect[i]->SetMarkerSize(1);
+    GraphVect[i]->SetMarkerSize(1.2);
     GraphVect[i]->SetMarkerStyle(4);
   }
   int ClusterIt = 0;
   for (auto &Cluster: ClusterCandidates) {
     int HitIt = 0;
     for (auto ClusterHit: Cluster) {
-      GraphVect[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ(), ClusterHit.GetNotZ());
+      GraphVect[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ()/1E3, ClusterHit.GetNotZ()/1E3);
       HitIt++;
     }
     ClusterIt++;
@@ -264,11 +263,18 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Get all the hough lines
   std::vector<std::pair<bool, TF1*> > HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
 
-  gStyle->SetPalette(kBird);
+  int pdg = event.GetNeutrinoPDG();
+  double enu = event.GetNeutrinoP4().E();
+  TString reaction = event.GetReaction().c_str();
+  // Get the true muon info
+  double muonke = event.GetMuonTrueKE();
+  double Emu = muonke + 106.5;
+  Emu *= 1E-3;
 
-  // Draw the raw hits
-  Canvas->cd(1); 
-  xz_view->SetTitle(Form("#splitline{%s}{nLines: %i, nClusters: %i}", xz_view->GetTitle(), nLines, nClusters));
+  reaction.ReplaceAll(";",",");
+  xz_view->SetTitle(Form("#splitline{Event %i, all reco hits, #nu^{true} PDG: %i, E^{true}_{#nu}=%.2f GeV, E^{true}_{#mu}=%.2f GeV}{%s}", EventNumber, pdg, enu, Emu, reaction.Data()));
+
+  gStyle->SetPalette(89);
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -276,9 +282,10 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_center->Draw("same");
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
+  gErrorIgnoreLevel = kWarning;
+  Canvas->Print(CanvasName+".pdf");
 
   // Draw the true trajectories
-  Canvas->cd(2); 
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -291,9 +298,10 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   }
   // Draw the muon trajectory on top
   if (truemuon_traj >= 0) trajgraphs[truemuon_traj]->Draw("P,same");
+  Canvas->Print(CanvasName+".pdf");
 
   // Draw the reconstructed tracks 
-  Canvas->cd(3);
+  xz_view->SetTitle(Form("#splitline{Event %i reconstructed}{nLines: %i, nClusters: %i}", EventNumber, nLines, nClusters));
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -308,29 +316,15 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   it = 0;
   for (auto &i : HoughLines) {
     if (i.first == true) {
-      i.second->SetLineColor(it);
+      i.second->SetLineColor(it+1);
       i.second->Draw("same");
       it++;
     }
   }
-
-
-  /*
-  Canvas->cd(2); 
-  yz_view->Draw("colz");
-  yz_box_FV->Draw("same");
-  yz_box_Full->Draw("same");
-  yz_Thin_Thick->Draw("same");
-  for (auto i : HoughLines) if (i.first == false) i.second->Draw("same");
-  */
-
-  // ROOT is very verbose when printing, turn this off
-  gErrorIgnoreLevel = kWarning;
   Canvas->Print(CanvasName+".pdf");
 
   if (DrawTrackFinding) {
     gStyle->SetPalette(87);
-    Canvas->cd(1);
     TH2D *accumulator_xz = TMS_TrackFinder::GetFinder().AccumulatorToTH2D(false);
     accumulator_xz->RebinX(100);
     accumulator_xz->RebinY(100);
