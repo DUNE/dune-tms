@@ -62,9 +62,15 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   Timer.Start();
 
   int i = 0;
-  //N_entries = 200;
-  TMS_Event lastevent;
-  bool addevent = false;
+  //N_entries = 500;
+
+  // Do we overlay events
+  bool Overlay = false;
+  // How many events do we want to overlay?
+  int nOverlays = 3;
+  // The vector carrying our events that we want to overlay
+  std::vector<TMS_Event> overlay_events;
+
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
@@ -80,8 +86,18 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Fill up truth information from the GRooTracker object
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
 
+    // Keep filling up the vector and move on to the next event
+    if (Overlay && i % nOverlays != 0) {
+      overlay_events.push_back(tms_event);
+      continue;
+    }
+
     // Add event information and truth from another event
-    if (addevent) tms_event.AddEvent(lastevent);
+    if (Overlay && i % nOverlays == 0) {
+      // Now loop over previous events
+      for (auto &event : overlay_events) tms_event.AddEvent(event);
+      overlay_events.clear();
+    }
 
     // Dump information
     //tms_event.Print();
@@ -92,9 +108,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
     // Write it
     TMS_TreeWriter::GetWriter().Fill(tms_event);
-
-    // Save the last event to combine with the next one
-    if (addevent) lastevent = tms_event;
   } // End loop over all the events
 
   Timer.Stop();
