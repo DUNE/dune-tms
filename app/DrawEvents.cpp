@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   events->SetBranchAddress("Event", &event);
 
   int N_entries = events->GetEntries();
-  N_entries = 100;
+  //N_entries = 300;
   const double zmin = 3000;
   const double zmax = 19000;
   const double xmin = -4000;
@@ -167,10 +167,10 @@ int main(int argc, char** argv) {
 
   gErrorIgnoreLevel = kWarning;
   int i = 0;
-  TH2D *plot = new TH2D("xz", "xz-view;z (m); x (m); Energy deposit (MeV)", 300, zmin/1E3, zmax/1E3, 200, xmin/1E3, xmax/1E3);
+  TH2D *plot = new TH2D("xz", "xz-view;z (m); x (m); Energy deposit (MeV)", 400, zmin/1E3, zmax/1E3, 400, xmin/1E3, xmax/1E3);
   plot->GetZaxis()->SetTitleOffset(plot->GetZaxis()->GetTitleOffset()*1.3);
-
   TString zaxistitle = plot->GetZaxis()->GetTitle();
+
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
     gRoo->GetEntry(i);
@@ -186,8 +186,14 @@ int main(int argc, char** argv) {
     int pdg = tms_event.GetNeutrinoPDG();
     double enu = tms_event.GetNeutrinoP4().E();
     TString reaction = tms_event.GetReaction().c_str();
+    // Get the true muon info
+    double muonke = tms_event.GetMuonTrueKE();
+    double Emu = muonke + 106.5;
+    Emu *= 1E-3;
+
     reaction.ReplaceAll(";",",");
-    plot->SetTitle(Form("#splitline{Event %i, all true hits, #nu PDG: %i, E_{#nu}=%.2f GeV}{%s}", i, pdg, enu, reaction.Data()));
+    plot->SetTitle(Form("#splitline{Event %i, all true hits, #nu PDG: %i, E_{#nu}=%.2f GeV, E_{#mu}=%.2f GeV}{%s}", i, pdg, enu, Emu, reaction.Data()));
+
 
     std::vector<TMS_Hit> TMS_Hits = tms_event.GetHits();
     // First draw the hits
@@ -256,7 +262,7 @@ int main(int argc, char** argv) {
     if (plot->Integral() == 0) continue;
 
     plot->SetMinimum(0);
-    plot->SetMaximum(2);
+    plot->SetMaximum(3);
 
     plot->GetZaxis()->SetTitle(zaxistitle);
     plot->Draw("colz");
