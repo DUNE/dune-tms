@@ -20,6 +20,14 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool TMSLArOnly = false;
   bool OnlyPrimary = false;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
+  /*
+  if (LightWeight) {
+    OnlyMuon = true;
+    TMSOnly = true;
+    TMSLArOnly = true;
+    OnlyPrimary = true;
+  }
+  */
 
   // Save down the event number
   EventNumber = EventCounter;
@@ -144,7 +152,9 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
         // Only look at TMS hits
         std::string DetString = (*jt).first;
-        if (DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
+
+        // Skip hits outside of the TMS if running lightweight
+        if (TMSOnly && DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
 
         TG4HitSegmentContainer tms_hits = (*jt).second;
         for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
