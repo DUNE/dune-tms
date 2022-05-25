@@ -104,6 +104,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Try finding some tracks
     TMS_TrackFinder::GetFinder().FindTracks(tms_event);
+
+#ifdef DUNEANAOBJ_ENABLED
+    caf::SRTMS srtms = TMS_Utils::ConvertEvent();
+#endif
+
     // View it
     if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
     // Write it
