@@ -37,7 +37,7 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe
 
 directories: $(EXE_DIR)
 
@@ -45,6 +45,9 @@ $(EXE_DIR):
 	${MKDIR_P} $(EXE_DIR)
 
 $(EXE_DIR)/ConvertToTMSTree.exe: ConvertToTMSTree.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
+
+$(EXE_DIR)/CherryPickEvents.exe: CherryPickEvents.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 $(EXE_DIR)/BetheBloch_Example.exe: BetheBloch_Example.cpp
