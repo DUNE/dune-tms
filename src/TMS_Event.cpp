@@ -123,9 +123,15 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Now push back the position and momentum for the true particle at this trajectory point
           TLorentzVector Position = pt.GetPosition();
           TVector3 Momentum = pt.GetMomentum();
+
+          // Might not want to save this truth information?
+          // See G4ProcessType.hh, G4HaronicprocessType.hh, G4EmProcessSubType.hh
+          int G4Process = pt.GetProcess();
+          int G4Subprocess = pt.GetSubprocess();
+
           // Add the point
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
-          part->AddPoint(Position, Momentum);
+          part->AddPoint(Position, Momentum, G4Process, G4Subprocess);
         } // End loop over trajectory points
 
         // Save the birth and death points of trajectories that had a hit in a volume of interest
