@@ -46,7 +46,7 @@ LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)
 ifdef DUNEANAOBJ_ENABLED
   CXXFLAGS += -I$(DUNEANAOBJ_INC)
   CXXFLAGS += -DDUNEANAOBJ_ENABLED
-  TMS_OBJ += TMS_CAF_converter.o
+  #TMS_OBJ += TMS_CAF_converter.o
   LIB_OBJ += -L $(DUNEANAOBJ_LIB) -lduneanaobj_StandardRecord
 endif
 
