@@ -59,6 +59,13 @@ class TMS_TrueParticle {
       PositionPoints.emplace_back(Position);
     }
 
+    void AddPoint(TLorentzVector &Position, TVector3 &Momentum, int &G4Process, int &G4Subprocess)  {
+      PositionPoints.emplace_back(Position);
+      MomentumPoints.emplace_back(Momentum);
+      Process.emplace_back(G4Process);
+      Subprocess.emplace_back(G4Subprocess);
+    }
+
     void SetParent(int num) { Parent = num; };
     void SetTrackId(int num) { TrackId = num; };
     void SetPDG(int num) { PDG = num; };
@@ -69,6 +76,8 @@ class TMS_TrueParticle {
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
+    std::vector<int> &GetProcessPoints() { return Process; };
+    std::vector<int> &GetSubprocessPoints() { return Subprocess; };
 
     void SetVertexID(int vtx) {
       VertexID = vtx;
@@ -91,9 +100,9 @@ class TMS_TrueParticle {
 
     double GetBirthEnergy() { 
       double mass = 0;
-      if (abs(PDG) == 13) mass = TMS_KinConst::mass_mu;
-      else if (abs(PDG) == 11) mass = TMS_KinConst::mass_e;
-      else if (abs(PDG) == 15) mass = TMS_KinConst::mass_tau;
+      if      (abs(PDG) == 13)  mass = TMS_KinConst::mass_mu;
+      else if (abs(PDG) == 11)  mass = TMS_KinConst::mass_e;
+      else if (abs(PDG) == 15)  mass = TMS_KinConst::mass_tau;
       else if (abs(PDG) == 211) mass = TMS_KinConst::mass_pic;
       else if (abs(PDG) == 111) mass = TMS_KinConst::mass_pi0;
       else if (abs(PDG) == 2212) mass = TMS_KinConst::mass_proton;
@@ -109,6 +118,8 @@ class TMS_TrueParticle {
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;
+    std::vector<int> Process;
+    std::vector<int> Subprocess;
 
     TVector3 BirthMomentum;
     TLorentzVector BirthPosition;

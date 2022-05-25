@@ -26,5 +26,6 @@ void TMS_TrueParticle::Print() {
     (*i).Print();
     std::cout << "  Momentum: " << std::endl;
     MomentumPoints[it].Print();
+    std::cout << "  GEANT4 Process, Subprocess: " << Process[it] << ", " << Subprocess[it] << std::endl;
   }
 }
