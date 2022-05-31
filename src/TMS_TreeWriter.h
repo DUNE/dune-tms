@@ -13,9 +13,9 @@
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
 #define __TMS_MAX_LINES__ 10 // Maximum number of lines in an event
-#define __TMS_MAX_HITS__ 1000 // Maximum number of hits in an event
+#define __TMS_MAX_HITS__ 2000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
-#define __TMS_MAX_CLUSTERS__ 25 // Maximum number of clusters in an event
+#define __TMS_MAX_CLUSTERS__ 50 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
 // Just a simple tree writer for the output tree
