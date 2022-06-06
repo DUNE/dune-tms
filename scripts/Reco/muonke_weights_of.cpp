@@ -15,7 +15,15 @@ double CalcPoisson(TH1D *data, TH1D *mc) {
   return 2*llh;
 }
 
-void muonke_weights_of(std::string filename) {
+void muonke_weights_of(std::string filename,
+    int nLinesCut = 100,
+    int nClustersCut = 100,
+    float OccupancyCut = 0.50,
+    bool CCmuOnly = false,
+    float ClusterEnergyCut = 100,
+    bool AtLeastOneLine = true,
+    bool AllDet = true) {
+  /*
   int nLinesCut = 100; // How many lines can our events have?
   int nClustersCut = 100; // Only allow for this many clusters
   float OccupancyCut = 0.50; // Only allow for higher occupancy tracks than this
@@ -23,6 +31,7 @@ void muonke_weights_of(std::string filename) {
   float ClusterEnergyCut = 1000; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
   bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
   bool AllDet = true; // Muon starts in the whole detector? Or just thin region
+  */
 
   TFile *f = new TFile(filename.c_str());
   TTree *truth = (TTree*)f->Get("Truth_Info");
@@ -33,17 +42,16 @@ void muonke_weights_of(std::string filename) {
   const int MAX_HITS = 1500;
   const int MAX_CLUSTERS = 25;
   int nLines;
-  float TotalTrackEnergy[MAX_LINES];
+  //float TotalTrackEnergy[MAX_LINES];
   float TrackLength[MAX_LINES];
   float Occupancy[MAX_LINES];
   float FirstHoughHit[MAX_LINES][2];
   float LastHoughHit[MAX_LINES][2];
-  int FirstHoughPlane[MAX_LINES];
-  int LastHoughPlane[MAX_LINES];
-  bool TMSStart;
+  //int FirstHoughPlane[MAX_LINES];
+  //int LastHoughPlane[MAX_LINES];
   int EventNum_reco;
 
-  float RecoHitEnergy[MAX_HITS];
+  //float RecoHitEnergy[MAX_HITS];
   float ClusterEnergy[MAX_CLUSTERS];
   int nClusters;
 
@@ -51,8 +59,8 @@ void muonke_weights_of(std::string filename) {
 
   reco->SetBranchStatus("nLines", true);
   reco->SetBranchAddress("nLines", &nLines);
-  reco->SetBranchStatus("TotalTrackEnergy", true);
-  reco->SetBranchAddress("TotalTrackEnergy", TotalTrackEnergy);
+  //reco->SetBranchStatus("TotalTrackEnergy", true);
+  //reco->SetBranchAddress("TotalTrackEnergy", TotalTrackEnergy);
   reco->SetBranchStatus("TrackLength", true);
   reco->SetBranchAddress("TrackLength", TrackLength);
   reco->SetBranchStatus("Occupancy", true);
@@ -63,13 +71,13 @@ void muonke_weights_of(std::string filename) {
   reco->SetBranchStatus("LastHoughHit", true);
   reco->SetBranchAddress("LastHoughHit", LastHoughHit);
 
-  reco->SetBranchStatus("FirstHoughPlane", true);
-  reco->SetBranchAddress("FirstHoughPlane", FirstHoughPlane);
-  reco->SetBranchStatus("LastHoughPlane", true);
-  reco->SetBranchAddress("LastHoughPlane", LastHoughPlane);
+  //reco->SetBranchStatus("FirstHoughPlane", true);
+  //reco->SetBranchAddress("FirstHoughPlane", FirstHoughPlane);
+  //reco->SetBranchStatus("LastHoughPlane", true);
+  //reco->SetBranchAddress("LastHoughPlane", LastHoughPlane);
 
-  reco->SetBranchStatus("RecoHitEnergy", true);
-  reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
+  //reco->SetBranchStatus("RecoHitEnergy", true);
+  //reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
 
   reco->SetBranchStatus("ClusterEnergy", true);
   reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
@@ -110,7 +118,7 @@ void muonke_weights_of(std::string filename) {
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
   // Set up the weights file
-  TFile *weightfile = new TFile("/media/storage/work/DUNE/ssri/newgeom_Feb2022/fluxstudy/tms_beamMonitoring_weights.root");
+  TFile *weightfile = new TFile("tms_beamMonitoring_weights.root");
   const int nweights = 11;
   TH1D *weights[nweights];
   // All histograms are in true Enu, in GeV
@@ -128,13 +136,16 @@ void muonke_weights_of(std::string filename) {
   weights[10] = (TH1D*)weightfile->Get("h_xProjHorn2_YShift;1");
 
   TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 110, 0, 1.1);
-  TH1D *TrueEnu = new TH1D("TrueEnu", "True E_{#nu};True E_{#nu} (GeV)", 100, 0, 10);
-  TH1D *TrueHad = new TH1D("TrueEHad", "True E_{had}; True E_{#nu}-E_{#mu} (GeV); N_{events}", 100, 0, 2);
-  TH1D *TrueMuKE = new TH1D("TrueKEMu", "True Muon KE; True Muon KE (GeV); N_{events}", 100, 0, 10);
+  TH1D *TrueEnu = new TH1D("TrueEnu", "True E_{#nu};True E_{#nu} (GeV)", 200, 0, 20);
+  TH1D *TrueHad = new TH1D("TrueEHad", "True E_{had}; True E_{#nu}-E_{#mu} (GeV); N_{events}", 300, 0, 3);
+  TH1D *TrueMuKE = new TH1D("TrueKEMu", "True Muon KE; True Muon KE (GeV); N_{events}", 200, 0, 20);
 
   TH1D *TrueMuKE_w[nweights];
   for (int i = 0; i < nweights; ++i) {
-    TrueMuKE_w[i] = new TH1D(Form("TrueMuKE_w_%i", i), Form("%s;Muon reco KE (GeV); Number of events, weighted", weights[i]->GetName()), 100, 0, 10);
+    TString name = weights[i]->GetName();
+    name.ReplaceAll("h_xProj","");
+    TrueMuKE_w[i] = new TH1D(Form("TrueMuKE_w_%i", i), Form("%s;Muon true KE (GeV); N_{events}, weighted", name.Data()), 200, 0, 20);
+    std::cout << TrueMuKE_w[i]->GetTitle() << std::endl;
     TrueMuKE_w[i]->SetLineColor(10000+i);
     TrueMuKE_w[i]->SetMarkerSize(0);
     TrueMuKE_w[i]->SetFillStyle(0);
@@ -218,7 +229,8 @@ void muonke_weights_of(std::string filename) {
     longtrack = lon_trklen;
 
     // Look only at events with true muons that die inside the detector
-    if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
+    // Not needed for exiting
+    //if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
 
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
@@ -231,8 +243,8 @@ void muonke_weights_of(std::string filename) {
     if (LastHoughHit[longtrack][0] < 18300) continue;
 
     // 10 cm inwards
-    if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;
-    if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
+    if (fabs(FirstHoughHit[longtrack][1]) > 3520-100) continue;
+    //if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
 
     h_Occupancy->Fill(Occupancy[longtrack]);
 
@@ -278,33 +290,33 @@ void muonke_weights_of(std::string filename) {
     filename = filename.substr(filename.find("/")+1, filename.size());
   }
 
-  TString canvname = Form("MuonKE_OVERFLOW_%s", filename.c_str());
+  TString canvname = Form("MuonKE_OVERFLOW_SIDEINC_%s", filename.c_str());
   canvname += Form("_nLinesCut%i_nClusterCut%i_OccupancyCut%.2f_CCmuOnly%o_ClusterEnCut%.2f_AtLeastOneLine%o_AllDet%o", nLinesCut, nClustersCut, OccupancyCut, CCmuOnly, ClusterEnergyCut, AtLeastOneLine, AllDet);
   canvname += ".pdf";
   canv->Print(canvname+"[");
 
   gStyle->SetPalette(55);
 
-  h_Occupancy->Draw();
+  h_Occupancy->Draw("hist");
   canv->Print(canvname);
 
-  hClusterEnergy->Draw();
+  hClusterEnergy->Draw("hist");
   canv->Print(canvname);
 
-  TrueEnu->Draw();
+  TrueEnu->Draw("hist");
   canv->Print(canvname);
 
-  TrueHad->Draw();
+  TrueHad->Draw("hist");
   canv->Print(canvname);
 
-  TrueMuKE->Draw();
+  TrueMuKE->Draw("hist");
   for (int i = 0; i < nweights; ++i) {
     double n2llh = CalcPoisson(TrueMuKE_w[i], TrueMuKE);
     TrueMuKE_w[i]->SetTitle(Form("%s #chi^{2}=%.2f", TrueMuKE_w[i]->GetTitle(), n2llh));
-    TrueMuKE_w[i]->Draw("same");
+    TrueMuKE_w[i]->Draw("same,hist");
   }
   canv->BuildLegend();
-  TrueMuKE->Draw("same");
+  TrueMuKE->Draw("same,hist");
   canv->Print(canvname);
 
   TH1D *ratios[nweights];
@@ -314,8 +326,8 @@ void muonke_weights_of(std::string filename) {
   }
 
   for (int i = 0; i < nweights; ++i) {
-    if (i == 0) ratios[i]->Draw();
-    else ratios[i]->Draw("same");
+    if (i == 0) ratios[i]->Draw("hist");
+    else ratios[i]->Draw("same,hist");
   }
   ratios[0]->GetYaxis()->SetRangeUser(0.8, 1.2);
   ratios[0]->GetYaxis()->SetTitle("Ratio to nom.");
@@ -329,11 +341,11 @@ void muonke_weights_of(std::string filename) {
 
   // Final single bin comparisons
   TH1D *onebin_nom = new TH1D("nom", "nom;;Number of events", 1, 0, 1);
-  nom->SetBinContent(1, TrueMuKE->Integral());
-  nom->SetLineColor(kBlack);
-  nom->SetLineStyle(kDashed);
-  nom->SetMarkerSize(0);
-  nom->SetFillStyle(0);
+  onebin_nom->SetBinContent(1, TrueMuKE->Integral());
+  onebin_nom->SetLineColor(kBlack);
+  onebin_nom->SetLineStyle(kDashed);
+  onebin_nom->SetMarkerSize(0);
+  onebin_nom->SetFillStyle(0);
 
   TH1D *onebin_w[nweights];
   for (int i = 0; i < nweights; ++i) {
@@ -349,8 +361,8 @@ void muonke_weights_of(std::string filename) {
   }
 
   // Draw them
-  onebin_nom->Draw();
-  for (int i = 0; i < nweights; ++i) onebin_w[i]->Draw("same");
+  onebin_nom->Draw("hist");
+  for (int i = 0; i < nweights; ++i) onebin_w[i]->Draw("same,hist");
   canv->BuildLegend();
   canv->Print(canvname);
 
@@ -367,8 +379,8 @@ void muonke_weights_of(std::string filename) {
   line2->SetLineColor(kRed);
   line2->SetLineStyle(kDashed);
   for (int i = 0; i < nweights; ++i) {
-    if (i == 0) onebin_ratios[i]->Draw();
-    else onebin_ratios[i]->Draw("same");
+    if (i == 0) onebin_ratios[i]->Draw("hist");
+    else onebin_ratios[i]->Draw("same,hist");
   }
   canv->BuildLegend();
   line2->Draw("same");

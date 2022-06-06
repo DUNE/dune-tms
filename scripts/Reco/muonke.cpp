@@ -1,9 +1,12 @@
+// Simple script to run on TMS reco output
+// Uses the track length and some basic selection to get a KE estimate
+//
 void muonke(std::string filename) {
   int nLinesCut = 1; // How many lines can our events have?
   int nClustersCut = 0; // Only allow for less clusters than this
   float OccupancyCut = 0.9; // Only allow for higher occupancy tracks than this
   bool CCmuOnly = false; // Only include events with a true CC muon (not necessarily selected as the track, but present in the event)
-  float ClusterEnergyCut = 5; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
+  float ClusterEnergyCut = 0; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
   bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
   bool AllDet = true; // Muon starts in the whole detector? Or just thin region
 
@@ -22,6 +25,7 @@ void muonke(std::string filename) {
   float FirstHoughHit[MAX_LINES][2];
   float LastHoughHit[MAX_LINES][2];
   bool TMSStart;
+  int EventNum_reco;
 
   float RecoHitEnergy[MAX_HITS];
   float ClusterEnergy[MAX_CLUSTERS];
@@ -49,6 +53,9 @@ void muonke(std::string filename) {
   reco->SetBranchStatus("nClusters", true);
   reco->SetBranchAddress("nClusters", &nClusters);
 
+  reco->SetBranchStatus("EventNo", true);
+  reco->SetBranchAddress("EventNo", &EventNum_reco);
+
   // Truth info
   float MuonP4[4];
   float Muon_Vertex[4];
@@ -57,6 +64,7 @@ void muonke(std::string filename) {
   int nParticles;
   int NeutrinoPDG;
   float NeutrinoP4[4];
+  int EventNum_true;
 
   truth->SetBranchStatus("*", false);
 
@@ -72,11 +80,13 @@ void muonke(std::string filename) {
   //truth->SetBranchAddress("nParticles", &nParticles);
   //truth->SetBranchStatus("NeutrinoPDG", true);
   //truth->SetBranchAddress("NeutrinoPDG", &NeutrinoPDG);
-  //truth->SetBranchStatus("NeutrinoP4", true);
-  //truth->SetBranchAddress("NeutrinoP4", NeutrinoP4);
+  truth->SetBranchStatus("NeutrinoP4", true);
+  truth->SetBranchAddress("NeutrinoP4", NeutrinoP4);
+  truth->SetBranchStatus("EventNo", true);
+  truth->SetBranchAddress("EventNo", &EventNum_true);
 
   TH2D *KE = new TH2D("KE", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
-  TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 100, 0, 1);
+  TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 110, 0, 1.1);
 
   TH2D *KEest = new TH2D("KEest", "KE estimator; True muon KE (MeV); KE estimate", 50, 0, 5000, 50, 0, 5000);
   KE->GetYaxis()->SetTitleOffset(KE->GetYaxis()->GetTitleOffset()*1.4);
@@ -89,9 +99,18 @@ void muonke(std::string filename) {
   int nentries = truth->GetEntries();
   int trklen_counter = 0;
   std::cout << nentries << " events..." << std::endl;
-  for (int i = 0; i < nentries; ++i) {
-    truth->GetEntry(i);
-    reco->GetEntry(i);
+  int true_entry = 0;
+  int reco_entry = 0;
+  for (int i = 0; i < nentries; ++i, ++true_entry, ++reco_entry) {
+    truth->GetEntry(true_entry);
+    reco->GetEntry(reco_entry);
+
+    if (EventNum_reco != EventNum_true) {
+      std::cout << "Event " << i << " " << EventNum_reco << " " << EventNum_true << std::endl;
+      std::cout << true_entry << " " << reco_entry << std::endl;
+      true_entry++;
+      continue;
+    }
 
     if (i % int(nentries/100.) == 0) std::cout << "Event " << i << std::endl;
 
@@ -153,7 +172,7 @@ void muonke(std::string filename) {
     if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
-    // 10 cm inwards
+    // 20 cm inwards
     if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;
     if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
 
@@ -163,8 +182,9 @@ void muonke(std::string filename) {
     if (Occupancy[longtrack] < OccupancyCut) continue;
 
     float best_tracklength = TrackLength[longtrack];
-    KEest->Fill(Muon_TrueKE, 80+1.75*best_tracklength);
+    KEest->Fill(Muon_TrueKE, 82+1.75*best_tracklength);
     KE->Fill(Muon_TrueKE, best_tracklength);
+
     ngood++;
   }
   std::cout << ngood << "/" << nentries << std::endl;
@@ -223,7 +243,6 @@ void muonke(std::string filename) {
   KEest->Draw("colz");
   canv->Print(canvname);
 
-  // Now make a simple neutrino energy estimator assuming a QE event
 
   canv->Print(canvname+"]");
 }

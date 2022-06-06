@@ -15,14 +15,23 @@ double CalcPoisson(TH1D *data, TH1D *mc) {
   return 2*llh;
 }
 
-void muonke_weights(std::string filename) {
-  int nLinesCut = 2; // How many lines can our events have?
-  int nClustersCut = 10; // Only allow for this many clusters
+void muonke_weights(std::string filename, 
+    int nLinesCut = 1, 
+    int nClustersCut = 0, 
+    float OccupancyCut = 0.50, 
+    bool CCmuOnly = false, 
+    float ClusterEnergyCut = 0, 
+    bool AtLeastOneLine = true, 
+    bool AllDet = true) {
+  /*
+  int nLinesCut = 1; // How many lines can our events have?
+  int nClustersCut = 0; // Only allow for this many clusters
   float OccupancyCut = 0.50; // Only allow for higher occupancy tracks than this
   bool CCmuOnly = false; // Only include events with a true CC muon (not necessarily selected as the track, but present in the event)
-  float ClusterEnergyCut = 100; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
+  float ClusterEnergyCut = 0; // How many MeV of energy in all clusters do we cut on (greater than this number gets excluded)
   bool AtLeastOneLine = true; // Do we require at least one line? (necessary for track length measurement)
   bool AllDet = true; // Muon starts in the whole detector? Or just thin region
+  */
 
   TFile *f = new TFile(filename.c_str());
   TTree *truth = (TTree*)f->Get("Truth_Info");
@@ -33,14 +42,14 @@ void muonke_weights(std::string filename) {
   const int MAX_HITS = 1500;
   const int MAX_CLUSTERS = 25;
   int nLines;
-  float TotalTrackEnergy[MAX_LINES];
+  //float TotalTrackEnergy[MAX_LINES];
   float TrackLength[MAX_LINES];
   float Occupancy[MAX_LINES];
   float FirstHoughHit[MAX_LINES][2];
   float LastHoughHit[MAX_LINES][2];
   int EventNum_reco;
 
-  float RecoHitEnergy[MAX_HITS];
+  //float RecoHitEnergy[MAX_HITS];
   float ClusterEnergy[MAX_CLUSTERS];
   int nClusters;
 
@@ -48,8 +57,8 @@ void muonke_weights(std::string filename) {
 
   reco->SetBranchStatus("nLines", true);
   reco->SetBranchAddress("nLines", &nLines);
-  reco->SetBranchStatus("TotalTrackEnergy", true);
-  reco->SetBranchAddress("TotalTrackEnergy", TotalTrackEnergy);
+  //reco->SetBranchStatus("TotalTrackEnergy", true);
+  //reco->SetBranchAddress("TotalTrackEnergy", TotalTrackEnergy);
   reco->SetBranchStatus("TrackLength", true);
   reco->SetBranchAddress("TrackLength", TrackLength);
   reco->SetBranchStatus("Occupancy", true);
@@ -58,8 +67,8 @@ void muonke_weights(std::string filename) {
   reco->SetBranchAddress("FirstHoughHit", FirstHoughHit);
   reco->SetBranchStatus("LastHoughHit", true);
   reco->SetBranchAddress("LastHoughHit", LastHoughHit);
-  reco->SetBranchStatus("RecoHitEnergy", true);
-  reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
+  //reco->SetBranchStatus("RecoHitEnergy", true);
+  //reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
 
   reco->SetBranchStatus("ClusterEnergy", true);
   reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
@@ -232,7 +241,7 @@ void muonke_weights(std::string filename) {
     if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
-    // 10 cm inwards
+    // 20 cm inwards
     if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;
     if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
 
@@ -252,6 +261,7 @@ void muonke_weights(std::string filename) {
     for (int j = 0; j < nweights; ++j) {
       double weight = weights[j]->GetBinContent(weights[j]->FindBin(TrueEnu));
       MuonKEreco_w[j]->Fill((82+1.75*best_tracklength)/1.E3, weight);
+      //MuonKEreco_w[j]->Fill((88.6+1.72*best_tracklength)/1.E3, weight);
       hTrueEnu_w[j]->Fill(TrueEnu, weight);
     }
     hTrueEnu->Fill(TrueEnu);
