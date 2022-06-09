@@ -66,10 +66,9 @@ def loop( events, dspt, tgeo, tout ):
     ient = 0
     for evt in dspt:
 
-        t_Ev[0] = evt.StdHepP4[3] # neutrino is first 4-vector, so 3 is always Ev
 
-        if ient % 1000 == 0:
-            print "Event %d of %d..." % (ient,N)
+        if ient % 100 == 0:
+          print "Event %d of %d..." % (ient,N)
 
         if ient > nmax: 
           break
@@ -82,6 +81,7 @@ def loop( events, dspt, tgeo, tout ):
             # Reset the variables
             ResetVariables()
             t_ievt[0] = ient
+            t_Ev[0] = evt.StdHepP4[3] # neutrino is first 4-vector, so 3 is always Ev
 
             # Get the reaction code
             t_Reac = vertex.GetReaction()
@@ -119,7 +119,7 @@ def loop( events, dspt, tgeo, tout ):
             assert ileptraj != -1, "There isn't a lepton??"
             t_nFS[0] = nfsp
 
-            if abs(t_lepPdg[0]) != 13: continue
+            #if abs(t_lepPdg[0]) != 13: continue
 
             # If there is a muon, determine how to reconstruct its momentum and charge
             exit = False
@@ -210,6 +210,7 @@ def loop( events, dspt, tgeo, tout ):
                 xpt.push_back(hStart.x())
                 ypt.push_back(hStart.y())
                 zpt.push_back(hStart.z())
+                deposit.push_back(hit.GetEnergyDeposit())
                 
             #-------------------------------------------------------
             # look for muon hits in the scintillator
