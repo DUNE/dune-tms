@@ -41,6 +41,9 @@ class TMS_Manager {
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
 
+    int Get_Reco_STOPPING_nLastHits() { return _RECO_STOPPING_nLastHits; };
+    double Get_Reco_STOPPING_EnergyCut() { return _RECO_STOPPING_EnergyCut; };
+
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
@@ -76,6 +79,9 @@ class TMS_Manager {
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;
+
+    bool _RECO_STOPPING_nLastHits;
+    double _RECO_STOPPING_EnergyCut;
 
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;

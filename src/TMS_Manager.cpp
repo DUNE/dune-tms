@@ -38,6 +38,9 @@ TMS_Manager::TMS_Manager() {
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
 
+  _RECO_STOPPING_nLastHits = toml::find<int>(data, "Recon", "Stopping", "nLastHits");
+  _RECO_STOPPING_EnergyCut = toml::find<double>(data, "Recon", "Stopping", "EnergyCut");
+
   _RECO_TRACK_METHOD  = toml::find<std::string>(data, "Recon", "TrackMethod");
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
 
