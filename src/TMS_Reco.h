@@ -226,10 +226,43 @@ class TMS_TrackFinder {
     // Evaluate the track finding by using the event's true particles
     void EvaluateTrackFinding(TMS_Event &event);
 
-    void CleanClass();
+    void ClearClass();
 
     std::vector<double> &GetTrackLength() { return TrackLength; };
     std::vector<double> &GetTrackEnergy() { return TrackEnergy; };
+
+    void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
+      // First run a simple Hough Transform
+      for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it!=TMS_Hits.end(); ++it) {
+        TMS_Hit hit = (*it);
+        double xhit = hit.GetNotZ();
+        double zhit = hit.GetZ();
+
+        // If z position is above region of interest, ignore hit
+        //if (IsXZ && zhit > zMaxHough) continue;
+        if (zhit > zMaxHough) continue;
+
+        Accumulate(xhit, zhit);
+      }
+
+      // Find the maximum of the accumulator and which m,c bin the maximum occurs in
+      double max_zy = 0;
+      int max_zy_slope_bin = 0;
+      int max_zy_inter_bin = 0;
+      for (int i = 0; i < nSlope; ++i) {
+        for (int j = 0; j < nIntercept; ++j) {
+          if (Accumulator[i][j] > max_zy) {
+            max_zy = Accumulator[i][j];
+            max_zy_slope_bin = i;
+            max_zy_inter_bin = j;
+          }
+        }
+      }
+
+      intercept = InterceptMin+max_zy_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
+      slope = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
+    }
+
 
     TH1D* GetEfficiencyHist() { return Efficiency; };
     TH1D* GetTotalHist() { return Total; };
@@ -258,8 +291,6 @@ class TMS_TrackFinder {
     std::vector<std::pair<bool, TF1*> > HoughLines;
     std::vector<std::vector<TMS_Hit> > ClusterCandidates;
     std::vector<std::vector<TMS_Hit> > HoughCandidates;
-
-    void Accumulate(double xvalue, double zvalue);
 
     int nIntercept;
     int nSlope;
@@ -302,6 +333,36 @@ class TMS_TrackFinder {
 
     std::vector<double> TrackEnergy;
     std::vector<double> TrackLength;
+
+    // xvalue is x-axis, y value is y-axis
+    void Accumulate(double xhit, double zhit) {
+
+      // Could probably multi-thread this operation
+      // Now do the Hough
+      for (int i = 0; i < nSlope; ++i) {
+        double m = SlopeMin+i*SlopeWidth;
+        if (m > SlopeMax) m = SlopeMax;
+
+        // Now calculate rho
+        double c = xhit-m*zhit;
+        if (c > InterceptMax) c = InterceptMax;
+
+        // Find which rho bin this corresponds to
+        int c_bin = FindBin(c);
+
+        /*
+           if (i > nSlope || c_bin > nIntercept) {
+           std::cout << "c: " << c << std::endl;
+           std::cout << "m: " << m << std::endl;
+           std::cout << "i: " <<  i << std::endl;
+           std::cout << "cbin: " << c_bin << std::endl;
+           }
+           */
+
+        // Fill the accumulator
+        Accumulator[i][c_bin]++;
+      }
+    }
 };
 
 #endif
