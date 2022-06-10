@@ -66,6 +66,8 @@ class TMS_TreeWriter {
     float Occupancy[__TMS_MAX_LINES__];
     float TrackLength[__TMS_MAX_LINES__];
     float TotalTrackEnergy[__TMS_MAX_LINES__];
+    bool TrackStopping[__TMS_MAX_LINES__];
+
     float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
     float TrackHitPos[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
     int nHitsInTrack[__TMS_MAX_LINES__];

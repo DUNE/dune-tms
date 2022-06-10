@@ -63,6 +63,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/F");
   Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/F");
   Branch_Lines->Branch("TotalTrackEnergy", TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
+  Branch_Lines->Branch("TrackStopping", TrackStopping, "TrackStopping[nLines]/O");
 
   // Track hit energy
   Branch_Lines->Branch("nHitsInTrack", &nHitsInTrack, "nHitsInTrack[nLines]/I");
@@ -100,6 +101,11 @@ void TMS_TreeWriter::MakeBranches() {
 void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Clear old info
   Clear();
+
+  // See if track is exiting or not
+  int nLastHits = TMS_Manager::GetInstance().Get_Reco_STOPPING_nLastHits();
+  double EnergyCut = TMS_Manager::GetInstance().Get_Reco_STOPPING_EnergyCut();
+
 
   // Fill the truth info
   EventNo = event.GetEventNumber();
@@ -221,6 +227,16 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       TrackHitPos[it][j][1] = Candidates[j].GetNotZ();
     }
 
+    double maxenergy = 0;
+    unsigned int nLastHits_temp = nLastHits;
+    if ((unsigned int)nLastHits > Candidates.size()) nLastHits_temp = Candidates.size();
+    for (unsigned int i = 0; i < nLastHits_temp; ++i) {
+      double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
+      if (hitenergy > maxenergy) maxenergy = hitenergy;
+    }
+    if (maxenergy > EnergyCut) TrackStopping[it] = true;
+
+
     it++;
   }
 
@@ -333,6 +349,7 @@ void TMS_TreeWriter::Clear() {
     FirstPlane[i]=-999;
     LastPlane[i]=-999;
     nHitsInTrack[i] = -999;
+    TrackStopping[i] = false;
     for (int j = 0; j < 2; ++j) {
       FirstHit[i][j] = -999;
       LastHit[i][j] = -999;
