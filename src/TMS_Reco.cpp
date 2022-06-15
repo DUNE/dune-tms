@@ -175,7 +175,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
     // The number of hits in this track, take 20% and call upstream and dowstream segments
     int nrescanhits = 0.3*Lines.size()+1;
-    if (nrescanhits == 0) nrescanhits = 1;
+    // If there are only a few hits, use all of them
+    if (nrescanhits < 5) nrescanhits = Lines.size();
     std::vector<TMS_Hit> upstream;
     std::vector<TMS_Hit> downstream;
     for (int i = 0; i < nrescanhits; ++i) {
@@ -208,6 +209,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 
   // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
+  //if (nLines > 0) {
+    //if (nLines == 1) Vertex =;
+    //else {
+    //}
+  //} else {
+    //Vertex = -999;
+  //}
 
   // Now calculate the track length for each track
   CalculateTrackLength();
