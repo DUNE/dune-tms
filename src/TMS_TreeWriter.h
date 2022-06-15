@@ -53,6 +53,8 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
+    int nLines;
+
     float Slope[__TMS_MAX_LINES__];
     float Intercept[__TMS_MAX_LINES__];
 
@@ -64,7 +66,13 @@ class TMS_TreeWriter {
 
     float DirectionZ[__TMS_MAX_LINES__];
     float DirectionX[__TMS_MAX_LINES__];
-    int nLines;
+
+    float DirectionZ_Upstream[__TMS_MAX_LINES__];
+    float DirectionX_Upstream[__TMS_MAX_LINES__];
+
+    float DirectionZ_Downstream[__TMS_MAX_LINES__];
+    float DirectionX_Downstream[__TMS_MAX_LINES__];
+
     float FirstHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     float LastHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     int FirstPlane[__TMS_MAX_LINES__];

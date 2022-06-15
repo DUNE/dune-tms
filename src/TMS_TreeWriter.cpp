@@ -50,44 +50,49 @@ TMS_TreeWriter::TMS_TreeWriter() {
 void TMS_TreeWriter::MakeBranches() {
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
-  Branch_Lines->Branch("nLines", &nLines, "nLines/I");
+  Branch_Lines->Branch("nLines",  &nLines,  "nLines/I");
 
-  Branch_Lines->Branch("Slope", Slope, "Slope[nLines]/F");
-  Branch_Lines->Branch("Intercept", Intercept, "Intercept[nLines]/F");
-  Branch_Lines->Branch("Slope_Downstream", Slope_Downstream, "Slope_Downstream[nLines]/F");
-  Branch_Lines->Branch("Intercept_Downstream", Intercept_Downstream, "Intercept_Downstream[nLines]/F");
-  Branch_Lines->Branch("Slope_Upstream", Slope_Upstream, "Slope_Upstream[nLines]/F");
-  Branch_Lines->Branch("Intercept_Upstream", Intercept_Upstream, "Intercept_Upstream[nLines]/F");
+  Branch_Lines->Branch("Slope",     Slope,      "Slope[nLines]/F");
+  Branch_Lines->Branch("Intercept", Intercept,  "Intercept[nLines]/F");
+  Branch_Lines->Branch("Slope_Downstream",      Slope_Downstream,       "Slope_Downstream[nLines]/F");
+  Branch_Lines->Branch("Intercept_Downstream",  Intercept_Downstream,   "Intercept_Downstream[nLines]/F");
+  Branch_Lines->Branch("Slope_Upstream",        Slope_Upstream,         "Slope_Upstream[nLines]/F");
+  Branch_Lines->Branch("Intercept_Upstream",    Intercept_Upstream,     "Intercept_Upstream[nLines]/F");
 
   Branch_Lines->Branch("DirectionZ", DirectionZ, "DirectionZ[nLines]/F");
   Branch_Lines->Branch("DirectionX", DirectionX, "DirectionX[nLines]/F");
+  Branch_Lines->Branch("DirectionZ_Downstream", DirectionZ_Downstream,  "DirectionZ_Downstream[nLines]/F");
+  Branch_Lines->Branch("DirectionX_Downstream", DirectionX_Downstream,  "DirectionX_Downstream[nLines]/F");
+  Branch_Lines->Branch("DirectionZ_Upstream",   DirectionZ_Upstream,    "DirectionZ_Upstream[nLines]/F");
+  Branch_Lines->Branch("DirectionX_Upstream",   DirectionX_Upstream,    "DirectionX_Upstream[nLines]/F");
+
   Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/F");
-  Branch_Lines->Branch("LastHoughHit", LastHit, "LastHoughHit[nLines][2]/F");
+  Branch_Lines->Branch("LastHoughHit",  LastHit,  "LastHoughHit[nLines][2]/F");
   Branch_Lines->Branch("FirstHoughPlane", FirstPlane, "FirstHoughPlane[nLines]/I");
-  Branch_Lines->Branch("LastHoughPlane", LastPlane, "LastHoughPlane[nLines]/I");
-  Branch_Lines->Branch("TMSStart", &TMSStart, "TMSStart/O");
-  Branch_Lines->Branch("Occupancy", Occupancy, "Occupancy[nLines]/F");
-  Branch_Lines->Branch("TrackLength", TrackLength, "TrackLength[nLines]/F");
-  Branch_Lines->Branch("TotalTrackEnergy", TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
-  Branch_Lines->Branch("TrackStopping", TrackStopping, "TrackStopping[nLines]/O");
+  Branch_Lines->Branch("LastHoughPlane",  LastPlane,  "LastHoughPlane[nLines]/I");
+  Branch_Lines->Branch("TMSStart",    &TMSStart, "TMSStart/O");
+  Branch_Lines->Branch("Occupancy",   Occupancy, "Occupancy[nLines]/F");
+  Branch_Lines->Branch("TrackLength",       TrackLength,      "TrackLength[nLines]/F");
+  Branch_Lines->Branch("TotalTrackEnergy",  TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
+  Branch_Lines->Branch("TrackStopping",     TrackStopping,    "TrackStopping[nLines]/O");
 
   // Track hit energy
-  Branch_Lines->Branch("nHitsInTrack", &nHitsInTrack, "nHitsInTrack[nLines]/I");
-  Branch_Lines->Branch("TrackHitEnergy", TrackHitEnergy, "TrackHitEnergy[10][200]/F");
-  Branch_Lines->Branch("TrackHitPos", TrackHitPos, "TrackHitPos[10][200][2]/F");
+  Branch_Lines->Branch("nHitsInTrack",    &nHitsInTrack,  "nHitsInTrack[nLines]/I");
+  Branch_Lines->Branch("TrackHitEnergy",  TrackHitEnergy, "TrackHitEnergy[10][200]/F");
+  Branch_Lines->Branch("TrackHitPos",     TrackHitPos,    "TrackHitPos[10][200][2]/F");
 
   // Cluster information
-  Branch_Lines->Branch("nClusters", &nClusters, "nClusters/I");
-  Branch_Lines->Branch("ClusterEnergy", ClusterEnergy, "ClusterEnergy[nClusters]/F");
-  Branch_Lines->Branch("ClusterPosMean", ClusterPosMean, "ClusterPosMean[25][2]/F");
-  Branch_Lines->Branch("ClusterPosStdDev", ClusterPosStdDev, "ClusterPosStdDev[25][2]/F");
-  Branch_Lines->Branch("nHitsInCluster", nHitsInCluster, "nHitsInCluster[nClusters]/I");
-  Branch_Lines->Branch("ClusterHitPos", ClusterHitPos, "ClusterHitPos[25][200][2]/F");
-  Branch_Lines->Branch("ClusterHitEnergy", ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
+  Branch_Lines->Branch("nClusters",       &nClusters,       "nClusters/I");
+  Branch_Lines->Branch("ClusterEnergy",   ClusterEnergy,    "ClusterEnergy[nClusters]/F");
+  Branch_Lines->Branch("ClusterPosMean",  ClusterPosMean,   "ClusterPosMean[25][2]/F");
+  Branch_Lines->Branch("ClusterPosStdDev",ClusterPosStdDev, "ClusterPosStdDev[25][2]/F");
+  Branch_Lines->Branch("nHitsInCluster",  nHitsInCluster,   "nHitsInCluster[nClusters]/I");
+  Branch_Lines->Branch("ClusterHitPos",   ClusterHitPos,    "ClusterHitPos[25][200][2]/F");
+  Branch_Lines->Branch("ClusterHitEnergy",ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
 
   // Hit information
   Branch_Lines->Branch("nHits", &nHits, "nHits/I");
-  Branch_Lines->Branch("RecoHitPos", RecoHitPos, "RecoHitPos[1000][4]/F");
+  Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[1000][4]/F");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[1000]/F");
 
   // Truth information
@@ -175,27 +180,44 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   int it = 0;
   for (auto &Lines: HoughLines) {
+    // Get the slopes saved down
     Intercept[it] = Lines.second->GetParameter(0);
+    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].first;
+    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].first;
     Slope[it] = Lines.second->GetParameter(1);
+    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].second;
+    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].second;
 
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double xlow = TMS_Const::TMS_Thin_Start;
     double xhi = TMS_Const::TMS_Thick_Start;
     double ylow = Lines.second->Eval(xlow);
     double yhi = Lines.second->Eval(xhi);
+    // Do the same for up and downstream portions
+    double ylow_upstream = Intercept_Upstream[it]+xlow*Slope_Upstream[it];
+    double yhi_upstream = Intercept_Upstream[it]+xhi*Slope_Upstream[it];
+
+    double ylow_downstream = Intercept_Downstream[it]+xlow*Slope_Downstream[it];
+    double yhi_downstream = Intercept_Downstream[it]+xhi*Slope_Downstream[it];
 
     double xlen = xhi-xlow;
     double ylen = yhi-ylow;
     double len = sqrt(xlen*xlen+ylen*ylen);
-    xlen = xlen/len;
-    ylen = ylen/len;
-    DirectionZ[it] = xlen;
-    DirectionX[it] = ylen;
 
-    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].first;
-    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].second;
-    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].first;
-    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].second;
+    double ylen_upstream = yhi_upstream - ylow_upstream;
+    double ylen_downstream = yhi_downstream - ylow_downstream;
+
+    double len_upstream = sqrt(xlen*xlen+ylen_upstream*ylen_upstream);
+    double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
+
+    DirectionZ[it] = xlen/len;
+    DirectionX[it] = ylen/len;
+
+    DirectionZ_Upstream[it] = xlen/len_upstream;
+    DirectionX_Upstream[it] = ylen_upstream/len_upstream;
+
+    DirectionZ_Downstream[it] = xlen/len_downstream;
+    DirectionX_Downstream[it] = ylen_downstream/len_downstream;
 
     it++;
   }
@@ -359,6 +381,11 @@ void TMS_TreeWriter::Clear() {
 
     DirectionZ[i]=-999;
     DirectionX[i]=-999;
+    DirectionZ_Upstream[i]=-999;
+    DirectionX_Upstream[i]=-999;
+    DirectionZ_Downstream[i]=-999;
+    DirectionX_Downstream[i]=-999;
+
     Occupancy[i]=-999;
     TrackLength[i]=-999;
     TotalTrackEnergy[i]=-999;
