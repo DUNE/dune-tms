@@ -55,6 +55,13 @@ class TMS_TreeWriter {
     int EventNo;
     float Slope[__TMS_MAX_LINES__];
     float Intercept[__TMS_MAX_LINES__];
+
+    float Slope_Downstream[__TMS_MAX_LINES__];
+    float Intercept_Downstream[__TMS_MAX_LINES__];
+
+    float Slope_Upstream[__TMS_MAX_LINES__];
+    float Intercept_Upstream[__TMS_MAX_LINES__];
+
     float DirectionZ[__TMS_MAX_LINES__];
     float DirectionX[__TMS_MAX_LINES__];
     int nLines;

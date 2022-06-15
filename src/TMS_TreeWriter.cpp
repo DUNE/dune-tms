@@ -51,8 +51,14 @@ void TMS_TreeWriter::MakeBranches() {
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("nLines", &nLines, "nLines/I");
+
   Branch_Lines->Branch("Slope", Slope, "Slope[nLines]/F");
   Branch_Lines->Branch("Intercept", Intercept, "Intercept[nLines]/F");
+  Branch_Lines->Branch("Slope_Downstream", Slope_Downstream, "Slope_Downstream[nLines]/F");
+  Branch_Lines->Branch("Intercept_Downstream", Intercept_Downstream, "Intercept_Downstream[nLines]/F");
+  Branch_Lines->Branch("Slope_Upstream", Slope_Upstream, "Slope_Upstream[nLines]/F");
+  Branch_Lines->Branch("Intercept_Upstream", Intercept_Upstream, "Intercept_Upstream[nLines]/F");
+
   Branch_Lines->Branch("DirectionZ", DirectionZ, "DirectionZ[nLines]/F");
   Branch_Lines->Branch("DirectionX", DirectionX, "DirectionX[nLines]/F");
   Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/F");
@@ -156,7 +162,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Also get the size of the hits to get a measure of relative goodness
   std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
   nLines = HoughCandidates.size();
-  // Get the cleaned hits for a reference of the "total"
+
 
   // Skip the event if there aren't any Hough Lines
   if (nLines > __TMS_MAX_LINES__) {
@@ -185,6 +191,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ylen = ylen/len;
     DirectionZ[it] = xlen;
     DirectionX[it] = ylen;
+
+    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].first;
+    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].second;
+    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].first;
+    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].second;
 
     it++;
   }
@@ -341,6 +352,11 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     Slope[i]=-999;
     Intercept[i]=-999;
+    Slope_Downstream[i]=-999;
+    Intercept_Downstream[i]=-999;
+    Slope_Upstream[i]=-999;
+    Intercept_Upstream[i]=-999;
+
     DirectionZ[i]=-999;
     DirectionX[i]=-999;
     Occupancy[i]=-999;
