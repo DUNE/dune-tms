@@ -156,9 +156,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
   int lineno = 0;
-  std::cout << "Event " << event.GetEventNumber() << std::endl;
+  //std::cout << "Event " << event.GetEventNumber() << std::endl;
   for (auto Lines: HoughCandidates) {
-    std::cout << "line  " << lineno << std::endl;
+    //std::cout << "line  " << lineno << std::endl;
     std::pair<bool, TF1*> houghline = HoughLines[lineno];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
