@@ -185,6 +185,8 @@ class TMS_TrackFinder {
     TF1* GetHoughLine() { return HoughLine; };
 
     std::vector<std::pair<bool, TF1*> > GetHoughLines() { return HoughLines; };
+    std::vector<std::pair<double,double> > GetHoughLines_Upstream() { return HoughLines_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLines_Downstream() { return HoughLines_Downstream; };
 
     int **GetAccumulator() { return Accumulator; };
 
@@ -232,8 +234,14 @@ class TMS_TrackFinder {
     std::vector<double> &GetTrackEnergy() { return TrackEnergy; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
+      // Reset the accumulator
+      for (int i = 0; i < nSlope; ++i) {
+        for (int j = 0; j < nIntercept; ++j) {
+          Accumulator[i][j] = 0;
+        }
+      }
       // First run a simple Hough Transform
-      for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it!=TMS_Hits.end(); ++it) {
+      for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
         TMS_Hit hit = (*it);
         double xhit = hit.GetNotZ();
         double zhit = hit.GetZ();
@@ -291,6 +299,8 @@ class TMS_TrackFinder {
     std::vector<std::pair<bool, TF1*> > HoughLines;
     std::vector<std::vector<TMS_Hit> > ClusterCandidates;
     std::vector<std::vector<TMS_Hit> > HoughCandidates;
+    std::vector<std::pair<double,double>> HoughLines_Upstream;
+    std::vector<std::pair<double,double>> HoughLines_Downstream;
 
     int nIntercept;
     int nSlope;

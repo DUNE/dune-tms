@@ -91,6 +91,8 @@ void TMS_TrackFinder::ClearClass() {
   RawHits.clear();
   TotalCandidates.clear();
   HoughLines.clear();
+  HoughLines_Upstream.clear();
+  HoughLines_Downstream.clear();
   HoughCandidates.clear();
   ClusterCandidates.clear();
   TrackLength.clear();
@@ -115,7 +117,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   std::cout << "Cleaned hits: " << CleanedHits.size() << std::endl;
 #endif
 
-  // Hough
+  // Hough transform
   if (kTrackMethod == TrackMethod::kHough) {
     // Do we first run clustering algorithm to separate hits, then hand off to A*?
     if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
@@ -152,10 +154,60 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   std::cout << "Masked hits: " << Masked.size() << std::endl;
 #endif
 
+  // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
+  int lineno = 0;
+  std::cout << "Event " << event.GetEventNumber() << std::endl;
+  for (auto Lines: HoughCandidates) {
+    std::cout << "line  " << lineno << std::endl;
+    std::pair<bool, TF1*> houghline = HoughLines[lineno];
+    double slope, intercept = 0;
+    GetHoughLine(Lines, slope, intercept);
+    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
+        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+      //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
+      //std::cout << "New slope: " << slope << std::endl;
+      //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
+      //std::cout << "New intercept: " << intercept << std::endl;
+
+      HoughLines[lineno].second->SetParameter(0, intercept);
+      HoughLines[lineno].second->SetParameter(1, slope);
+    }
+
+    // The number of hits in this track, take 20% and call upstream and dowstream segments
+    int nrescanhits = 0.3*Lines.size()+1;
+    if (nrescanhits == 0) nrescanhits = 1;
+    std::vector<TMS_Hit> upstream;
+    std::vector<TMS_Hit> downstream;
+    for (int i = 0; i < nrescanhits; ++i) {
+      upstream.push_back(Lines[Lines.size()-1-i]);
+      downstream.push_back(Lines[i]);
+      //std::cout << upstream.back().GetZ() << " " << downstream.back().GetZ() << std::endl;
+    }
+    //std::cout << "nhits: " << Lines.size() << std::endl;
+    //std::cout << nrescanhits << std::endl;
+    //std::cout << upstream.size() << std::endl;
+    //std::cout << downstream.size() << std::endl;
+
+    double upstreamslope, upstreamintercept = 0;
+    double downstreamslope, downstreamintercept = 0;
+    GetHoughLine(upstream, upstreamslope, upstreamintercept);
+    GetHoughLine(downstream, downstreamslope, downstreamintercept);
+
+    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
+    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
+
+    HoughLines_Upstream.push_back(upstreamline);
+    HoughLines_Downstream.push_back(downstreamline);
+
+    lineno++;
+  }
+
   // Try finding some clusters after the Hough Transform
   if (UseClustering) {
     ClusterCandidates = FindClusters(Masked);
   }
+
+  // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
 
   // Now calculate the track length for each track
   CalculateTrackLength();
@@ -616,13 +668,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   // Check if we're in XZ view
   bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar);
-
-  // Reset the accumulator
-  for (int i = 0; i < nSlope; ++i) {
-    for (int j = 0; j < nIntercept; ++j) {
-      Accumulator[i][j] = 0;
-    }
-  }
 
   // Recalculate Hough parameters event by event... not fully tested!
   bool VariableHough = false;
