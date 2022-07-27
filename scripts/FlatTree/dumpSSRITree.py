@@ -13,50 +13,46 @@ nmax = -1
 maxfiles = 9999
 
 def ResetVariables():
-
   t_Reac="EMPTY"
 
   ## initialize output variables
-  t_vtx = [-999]*3
-  t_p3lep = [-999]*3
-  t_GlobalDeath = [-999]*3
+  t_vtx = array('f',3*[-999.99])
+  t_p3lep = array('f',3*[-999.99])
+  t_GlobalDeath = array('f',3*[-999.99])
 
   # In TMS
-  t_TMSDeath = [-999]*3
-  t_TMSBirth = [-999]*3
+  t_TMSDeath = array('f',3*[-999.99])
+  t_TMSBirth = array('f',3*[-999.99])
 
   # Exiting the LAr
-  t_muonExitPt = [-999]*3
-  t_muonExitMom = [-999]*3
-  t_lepTMS = [-999]*3
+  t_muonExitPt = array('f',3*[-999.99])
+  t_muonExitMom = array('f',3*[-999.99])
+  t_muonExitKE = array('f',[-999.99])
+  t_lepTMS = array('f',3*[-999.99])
 
-  t_lepPdg[0] = -999
-  t_lepKE[0] = -999
-  t_TMSKE[0] = -999
-  t_lepE[0] = -999
-  t_Ev[0] = -999
-  t_PDGv[0] = -999
+  t_lepPdg = array('i',[-999])
+  t_lepKE = array('f',[-999.99])
+  t_TMSKE = array('f',[-999.99])
+  t_lepE = array('f',[-999.99])
+  t_Ev = array('f', [-999.99])
+  t_PDGv = array('i', [-999])
 
-  t_muonExitKE[0] = -999
-  t_muonReco[0] = -999
-  t_muonStart[0] = -999
+  t_muonReco = array('i',[-999])
+  t_muonStart = array('i',[-999])
 
-  t_nFS = 0
-  t_fsPdg = [-999]*100
-  t_fsPx = [-999]*100
-  t_fsPy = [-999]*100
-  t_fsPz = [-999]*100
-  t_fsE = [-999]*100
+  t_nFS = array('i',[-999])
+  t_fsPdg = array('i',100*[-999])
+  t_fsPx = array('f',100*[-999.99])
+  t_fsPy = array('f',100*[-999.99])
+  t_fsPz = array('f',100*[-999.99])
+  t_fsE = array('f',100*[-999.99])
 
   xpt.clear()
   ypt.clear()
   zpt.clear()
   deposit.clear()
 
-
 def loop( events, dspt, tgeo, tout ):
-
-    offset = [ 0., 0., 0. ]
 
     event = ROOT.TG4Event()
     events.SetBranchAddress("Event",ROOT.AddressOf(event))
@@ -64,195 +60,204 @@ def loop( events, dspt, tgeo, tout ):
     N = events.GetEntries()
     print "Starting loop over %d entries" % N
     ient = 0
+
     for evt in dspt:
 
+      if ient % 1000 == 0:
+        print "Event %d of %d..." % (ient,N)
 
-        if ient % 100 == 0:
-          print "Event %d of %d..." % (ient,N)
+      if ient > nmax: 
+        break
 
-        if ient > nmax: 
-          break
+      events.GetEntry(ient)
 
-        events.GetEntry(ient)
+      # Loop over the primary vertices in the event
+      for ivtx,vertex in enumerate(event.Primaries):
 
-        # Loop over the primary vertices in the event
-        for ivtx,vertex in enumerate(event.Primaries):
+        # Reset the variables
+        ResetVariables()
 
-            # Reset the variables
-            ResetVariables()
-            t_ievt[0] = ient
-            t_Ev[0] = evt.StdHepP4[3] # neutrino is first 4-vector, so 3 is always Ev
+        t_ievt[0] = ient
+        t_Ev[0] = evt.StdHepP4[3] # neutrino is first 4-vector, so 3 is always Ev
 
-            # Get the reaction code
-            t_Reac = vertex.GetReaction()
+        # Get the reaction code
+        t_Reac = vertex.GetReaction()
 
-            # Set the vertex location
-            for i in range(3): t_vtx[i] = vertex.GetPosition()[i]
+        # Set the vertex location
+        for i in range(3): t_vtx[i] = vertex.GetPosition()[i]
 
-            # Reset lepton trajectory
-            ileptraj = -1
-            # Number of final state particle
-            nfsp = 0
+        # Reset lepton trajectory
+        ileptraj = -1
+        # Number of final state particle
+        nfsp = 0
 
-            # Loop over the particles at the vertex
-            for ipart,particle in enumerate(vertex.Particles):
-                e = particle.GetMomentum()[3]
-                p = (particle.GetMomentum()[0]**2 + particle.GetMomentum()[1]**2 + particle.GetMomentum()[2]**2)**0.5
-                m = (e**2 - p**2)**0.5
-                pdg = particle.GetPDGCode()
-                t_fsPdg[nfsp] = pdg
-                t_fsPx[nfsp] = particle.GetMomentum()[0]
-                t_fsPy[nfsp] = particle.GetMomentum()[1]
-                t_fsPz[nfsp] = particle.GetMomentum()[2]
-                t_fsE[nfsp] = e
-                nfsp += 1
+        # Loop over the particles at the vertex
+        for ipart,particle in enumerate(vertex.Particles):
+          e = particle.GetMomentum()[3]
+          p = (particle.GetMomentum()[0]**2 + particle.GetMomentum()[1]**2 + particle.GetMomentum()[2]**2)**0.5
+          m = (e**2 - p**2)**0.5
+          pdg = particle.GetPDGCode()
+          t_fsPdg[nfsp] = pdg
+          t_fsPx[nfsp] = particle.GetMomentum()[0]
+          t_fsPy[nfsp] = particle.GetMomentum()[1]
+          t_fsPz[nfsp] = particle.GetMomentum()[2]
+          t_fsE[nfsp] = e
+          nfsp += 1
 
-                # Look for the lepton (dicey, need match?)
-                if abs(pdg) in [11,12,13,14]:
-                    ileptraj = particle.GetTrackId()
-                    t_lepPdg[0] = pdg
-                    # set the muon momentum for output
-                    for i in range(3): t_p3lep[i] = particle.GetMomentum()[i]
-                    t_lepKE[0] = e - m
-                    t_lepE[0] = e
+          # Look for the lepton (dicey, need match?)
+          if abs(pdg) in [11,12,13,14]:
+            ileptraj = particle.GetTrackId()
+            t_lepPdg[0] = pdg
+            # set the muon momentum for output
+            for i in range(3): t_p3lep[i] = particle.GetMomentum()[i]
+            t_lepKE[0] = e - m
+            t_lepE[0] = e
 
-            assert ileptraj != -1, "There isn't a lepton??"
-            t_nFS[0] = nfsp
+        assert ileptraj != -1, "There isn't a lepton!"
+        t_nFS[0] = nfsp
 
-            #if abs(t_lepPdg[0]) != 13: continue
+        # Only interested in muons
+        if abs(t_lepPdg[0]) != 13: continue
 
-            # If there is a muon, determine how to reconstruct its momentum and charge
-            exit = False
-            inTMS = False
+        # If there is a muon, determine how to reconstruct its momentum and charge
+        exit = False
+        inTMS = False
 
-            leptraj = event.Trajectories[ileptraj]
+        leptraj = event.Trajectories[ileptraj]
 
-            pointval = 0
+        # Can loop over each trajectory
+        #for traj in event.Trajectories:
 
-            # Can loop over each trajectory
-            #for traj in event.Trajectories:
+        # Now find which volume the first hit of the lepton trajectory is
+        startpt = leptraj.Points[0].GetPosition()
 
-            # Now find which volume the first hit of the lepton trajectory is
-            startpt = leptraj.Points[0].GetPosition()
-            startnode = tgeo.FindNode( startpt.X(), startpt.Y(), startpt.Z() )
-            vertexname = startnode.GetName()
-            if ( "volTPCActive_" in vertexname or 
-                 "volPixelPlane_" in vertexname or 
-                 "volLAr_" in vertexname or
-                 "volArCLight_PV" in vertexname ):
-              t_muonStart[0] = 1
-            elif ("TMS" in vertexname or
-                  "modulelayer" in vertexname):
-              t_muonStart[0] = 2
-            else:
-              t_muonStart[0] = 0
+        startnode = tgeo.FindNode( startpt.X(), startpt.Y(), startpt.Z() )
+        vertexname = startnode.GetName()
+        if ( "volTPCActive_" in vertexname or 
+             "volPixelPlane_" in vertexname or 
+             "volLAr_" in vertexname or
+             "volArCLight_PV" in vertexname ):
+          t_muonStart[0] = 1
+        elif ("TMS" in vertexname or
+              "modulelayer" in vertexname):
+          t_muonStart[0] = 2
+        else:
+          t_muonStart[0] = 0
 
-            # Now loop over the particles
-            for p in leptraj.Points:
-                pt = p.GetPosition()
-                node = tgeo.FindNode( pt.X(), pt.Y(), pt.Z() )
-                volName = node.GetName()
+        # Now loop over the particles
+        for p in leptraj.Points:
+          pt = p.GetPosition()
+          node = tgeo.FindNode( pt.X(), pt.Y(), pt.Z() )
+          if node == None:
+            continue
+          volName = node.GetName()
 
-                pPos = ROOT.TVector3( pt.X(), pt.Y(), pt.Z() )
-                if ( "volTPCActive_" in volName or 
-                     "volPixelPlane_" in volName or 
-                     "volLAr_" in volName or
-                     "volArCLight_PV" in volName ):
-                    t_muonExitPt[0] = pt.X()
-                    t_muonExitPt[1] = pt.Y()
-                    t_muonExitPt[2] = pt.Z()
-                    t_muonExitMom[0] = p.GetMomentum().x()
-                    t_muonExitMom[1] = p.GetMomentum().y()
-                    t_muonExitMom[2] = p.GetMomentum().z()
-                    
-                    t_muonExitKE[0] = (p.GetMomentum().Mag2() + muon_mass*2)**0.5 - muon_mass
-                else:
-                    exit = True
+          pPos = ROOT.TVector3( pt.X(), pt.Y(), pt.Z() )
+          # Update the exit point
+          if ("volTPCActive_" in volName or 
+              "volPixelPlane_" in volName or 
+              "volLAr_" in volName or
+              "volArCLight_PV" in volName):
+            t_muonExitPt[0] = pt.X()
+            t_muonExitPt[1] = pt.Y()
+            t_muonExitPt[2] = pt.Z()
+            t_muonExitMom[0] = p.GetMomentum().x()
+            t_muonExitMom[1] = p.GetMomentum().y()
+            t_muonExitMom[2] = p.GetMomentum().z()
+            t_muonExitKE[0] = (p.GetMomentum().Mag2() + muon_mass*2)**0.5 - muon_mass
+          else:
+            exit = True
 
-                    # Check if it is in the TMS
-                    if ("TMS_" in volName or 
-                        "modulelayer" in volName) and not inTMS:
-                        t_TMSKE[0] = (p.GetMomentum().Mag2() + muon_mass*2)**0.5 - muon_mass
-                        inTMS = True
+          # Check if it is in the TMS
+          if ("TMS_" in volName or 
+              "modulelayer" in volName) and not inTMS:
+            t_TMSKE[0] = (p.GetMomentum().Mag2() + muon_mass*2)**0.5 - muon_mass
+            inTMS = True
 
-                pointval += 1
+        # Get the endpoint
+        endpt = leptraj.Points[-1].GetPosition()
+        t_GlobalDeath[0] = endpt.X()
+        t_GlobalDeath[1] = endpt.Y()
+        t_GlobalDeath[2] = endpt.Z()
 
-            endpt = leptraj.Points[-1].GetPosition()
+        node = tgeo.FindNode( endpt.X(), endpt.Y(), endpt.Z() )
+        if node == None:
+          continue
 
-            node = tgeo.FindNode( endpt.X(), endpt.Y(), endpt.Z() )
+        endVolName = node.GetName()
+        if "TPCActive" in endVolName: t_muonReco[0] = 1 # contained
+        # Updated name in new geom
+        elif "TMS" in endVolName: t_muonReco[0] = 2 # Scintillator stopper
+        else: t_muonReco[0] = 0 # endpoint not in active material
 
-            t_GlobalDeath[0] = endpt.X()
-            t_GlobalDeath[1] = endpt.Y()
-            t_GlobalDeath[2] = endpt.Z()
+        # look for muon hits in the ArgonCube
+        arhits = []
+        for key in event.SegmentDetectors:
+          # Updated name in new geom
+          if key.first == "TPCActive_shape":
+            arhits += key.second
+                  
+        ar_muon_hits = []
+        for idx, hit in enumerate(arhits):
+          tid = hit.Contrib[0]
+          traj = event.Trajectories[tid]
+          if traj.GetParentId() == -1 and abs(traj.GetPDGCode()) == 13:
+            ar_muon_hits.append(hit)
 
-            endVolName = node.GetName()
-            if "TPCActive" in endVolName: t_muonReco[0] = 1 # contained
-            # Updated name in new geom
-            elif "TMS" in endVolName: t_muonReco[0] = 2 # Scintillator stopper
-            else: t_muonReco[0] = 0 # endpoint not in active material
-
-            # look for muon hits in the ArgonCube
-            arhits = []
-            for key in event.SegmentDetectors:
-                # Updated name in new geom
-                if key.first == "TPCActive_shape":
-                    arhits += key.second
-                    
-            ar_muon_hits = []
-            for idx, hit in enumerate(arhits):
-                tid = hit.Contrib[0]
-                traj = event.Trajectories[tid]
-                #if traj.GetParentId() == -1 and abs(traj.GetPDGCode()) == 13:
-                ar_muon_hits.append(hit)
-
-            for idx, hit in enumerate(ar_muon_hits):
-                hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
-                xpt.push_back(hStart.x())
-                ypt.push_back(hStart.y())
-                zpt.push_back(hStart.z())
-                deposit.push_back(hit.GetEnergyDeposit())
+        for idx, hit in enumerate(ar_muon_hits):
+          hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
+          xpt.push_back(hStart.x())
+          ypt.push_back(hStart.y())
+          zpt.push_back(hStart.z())
+          deposit.push_back(hit.GetEnergyDeposit())
                 
-            #-------------------------------------------------------
-            # look for muon hits in the scintillator
-            hits = []
-            for key in event.SegmentDetectors:
-                if key.first == "volTMS":
-                    hits += key.second
+        #-------------------------------------------------------
+        # look for muon hits in the scintillator
+        hits = []
+        for key in event.SegmentDetectors:
+          if key.first == "volTMS":
+            hits += key.second
 
-            muon_hits = []
-            for idx, hit in enumerate(hits):
-                tid = hit.Contrib[0]
-                traj = event.Trajectories[tid]
-                # Check they are fundamental
-                #if traj.GetParentId() == -1 and abs(traj.GetPDGCode()) == 13:
-                muon_hits.append(hit)
+        muon_hits = []
+        for idx, hit in enumerate(hits):
+          tid = hit.Contrib[0]
+          traj = event.Trajectories[tid]
+          # Check they are fundamental
+          if traj.GetParentId() == -1 and abs(traj.GetPDGCode()) == 13:
+            muon_hits.append(hit)
 
-            if muon_hits:
-              hMuonStart = muon_hits[0].GetStart()
-              t_TMSBirth[0] = hMuonStart[0]
-              t_TMSBirth[1] = hMuonStart[1]
-              t_TMSBirth[2] = hMuonStart[2]
+        if muon_hits:
+          hMuonStart = muon_hits[0].GetStart()
+          t_TMSBirth[0] = hMuonStart[0]
+          t_TMSBirth[1] = hMuonStart[1]
+          t_TMSBirth[2] = hMuonStart[2]
 
-              for idx, hit in enumerate(muon_hits):
+          for idx, hit in enumerate(muon_hits):
+            hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
+            hStop = ROOT.TVector3( hit.GetStop()[0], hit.GetStop()[1], hit.GetStop()[2] )
+            Time = hit.GetStart()[3]
 
-                hStart = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
-                hStop = ROOT.TVector3( hit.GetStop()[0], hit.GetStop()[1], hit.GetStop()[2] )
-                Time = hit.GetStart()[3]
+            xpt.push_back(hStart.x())
+            ypt.push_back(hStart.y())
+            zpt.push_back(hStart.z())
+            deposit.push_back(hit.GetEnergyDeposit())
 
-                xpt.push_back(hStart.x())
-                ypt.push_back(hStart.y())
-                zpt.push_back(hStart.z())
-                deposit.push_back(hit.GetEnergyDeposit())
+          hit = muon_hits[-1]
+          hFinal = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
+          t_TMSDeath[0] = hFinal.x()
+          t_TMSDeath[1] = hFinal.y()
+          t_TMSDeath[2] = hFinal.z()
+        else:
+          t_TMSBirth[0] = -999.99
+          t_TMSBirth[1] = -999.99
+          t_TMSBirth[2] = -999.99
+          t_TMSDeath[0] = -999.99
+          t_TMSDeath[1] = -999.99
+          t_TMSDeath[2] = -999.99
 
-              hit = muon_hits[-1]
-              hFinal = ROOT.TVector3( hit.GetStart()[0], hit.GetStart()[1], hit.GetStart()[2] )
-              t_TMSDeath[0] = hFinal.x()
-              t_TMSDeath[1] = hFinal.y()
-              t_TMSDeath[2] = hFinal.z()
+        tout.Fill()
 
-            tout.Fill()
-
-        ient += 1
+      ient += 1
 
 if __name__ == "__main__":
 
