@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
     gRoo->GetEntry(i);
 
     plot->Reset();
-    if (i % (N_entries/10) == 0) {
+    if ((N_entries < 10) || (i % (N_entries/10) == 0)) {
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
 
