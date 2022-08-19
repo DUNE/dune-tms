@@ -35,17 +35,8 @@ setup clhep v2_4_4_1 -f Linux64bit+3.10-2.17 -q debug:e20
 # Specific requirements for duneanaobj
 setup root v6_12_06a -f Linux64bit+3.10-2.17 -q e15:prof
 
-# edep-sim needs to find geant4.sh to build
-#export PATH=$PATH:${GEANT4_FQ_DIR}/bin
-
-# edep-sim also needs cmake for setup
-#export GXMLPATH=$MY_SSRI_DIR/gevgen:${GXMLPATH}
-#export GNUMIXML="GNuMIFlux.xml"
-
-# Add custom edep-sim (can also use UPS product) at this point
-export EDEP_SIM=${MY_SSRI_DIR}/edep-sim/edep-gcc-6.4.0-x86_64-pc-linux-gnu
-export LD_LIBRARY_PATH=${EDEP_SIM}/lib:${LD_LIBRARY_PATH}
-export PATH=${EDEP_SIM}/bin:${PATH}
+# Set up edep-sim
+setup edepsim v3_2_0 -f Linux64bit+3.10-2.17 -q e20:prof
 
 # Add TMS execs and library directory to env
 export TMS_DIR=${PWD}

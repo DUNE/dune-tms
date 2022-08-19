@@ -6,9 +6,9 @@ LD_SHARED=g++
 ROOT_LIBS = $(shell root-config --evelibs)
 ROOT_INC = $(shell root-config --cflags)
 
-EDEP_LIBS = -L $(EDEP_SIM)/lib -ledepsim_io
+EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io
 # Need CLHEP for unit conversion, can probably just move this into a standalone header to remove dependency?
-EDEP_INC = -I$(EDEP_SIM)/include -I$(CLHEP_INC)
+EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
 
 # The TMS includes
 TMS_INC = -I../src
