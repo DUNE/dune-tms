@@ -5,6 +5,11 @@
 // Intended to be played around with to make people comfortable with the geometry rather than treat the code like gospel, hence lots of code is commented out; these are intended as examples
 //
 // There are many volumes to draw here, so check PrintAllVolumes() output and select the specific volume that you want to draw, if you're so inclined
+//
+// To run this, do 
+// root view_geom.cpp
+// or if you want to feed a specific geometry do 
+// root 'view_geom.cpp("geometry_file.gdml")'
 
 void RecursiveInvisible(TGeoVolume *vol);
 void RecursiveVisible(TGeoVolume *vol);
