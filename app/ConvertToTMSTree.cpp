@@ -31,7 +31,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // The EDepSim events
   TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
   // The generator pass-through information
-  TTree *gRoo = (TTree*)(input->Get("DetSimPassThru/gRooTracker")->Clone("gRoo"));
+  TTree *gRoo = (TTree*) (input->Get("DetSimPassThru/gRooTracker"));
+  if (gRoo)
+    gRoo = (TTree*) (gRoo->Clone("gRoo"));
   // Get the detector geometry
   TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
 
@@ -41,12 +43,13 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Get the true neutrino vector from the gRooTracker object
   int StdHepPdg[__EDEP_SIM_MAX_PART__];
   double StdHepP4[__EDEP_SIM_MAX_PART__][4];
-  gRoo->SetBranchStatus("*", false);
-  gRoo->SetBranchStatus("StdHepPdg", true);
-  gRoo->SetBranchStatus("StdHepP4", true);
-  gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
-  gRoo->SetBranchAddress("StdHepP4", StdHepP4);
-
+  if (gRoo){
+    gRoo->SetBranchStatus("*", false);
+    gRoo->SetBranchStatus("StdHepPdg", true);
+    gRoo->SetBranchStatus("StdHepP4", true);
+    gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
+    gRoo->SetBranchAddress("StdHepP4", StdHepP4);
+  }
   // The global manager
   TMS_Manager::GetInstance().SetFileName(filename);
 
@@ -73,7 +76,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
-    gRoo->GetEntry(i);
+    if (gRoo)
+      gRoo->GetEntry(i);
 
 #ifndef DEBUG
     if (i % (N_entries/10) == 0) {
@@ -84,7 +88,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
     // Fill up truth information from the GRooTracker object
-    tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+    if (gRoo){
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+    }
 
     // Keep filling up the vector and move on to the next event
     if (Overlay && i % nOverlays != 0) {
@@ -121,7 +127,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_TreeWriter::GetWriter().Write();
 
   delete events;
-  delete gRoo;
+  if (gRoo)
+    delete gRoo;
   input->Close();
 
   return true;
