@@ -13,6 +13,7 @@
 #include "TStyle.h"
 #include "TPaveText.h"
 #include "TBox.h"
+#include "TLine.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
