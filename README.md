@@ -19,13 +19,13 @@ The repo is designed for minimal external dependencies. We use `ROOT` for some c
 ## Setup and dependencies
 The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example setup using mostly `ups` products at FNAL is provided in `setup.sh`.
 
+## Building
+Once you have set your environment up, run `make`, which will get toml11, make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
+
 ## toml submodule dependency
-We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. Remember to run `git submodule init && git submodule update` to get the submodule.
+We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The submodule setup is included in the default make recipe, so you shouldn't have to do anything else. If you for some reason want to run it on your own, do `git submodule init && git submodule update` to get the submodule.
 
 The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS_Manager` class.
-
-## Building
-Once you have set your environment up, run `make`, which will make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
 # Running the code
 So far all the reconstruction happens through the `app/ConvertToTMSTree.cpp` driver application. In a nutshell, it takes `edep-sim` events, converts it into TMS formats, queries the geometry, runs reconstruction, and so on. There is a `TMS_TreeWriter` class which drives the `TTree` writing to file, and a `TMS_EventViewer` class which shows simple 2D event displays. The output `ROOT` file should contain (at least) two branches: one with reconstructed information and one with truth information. As of right October 2021, no hit level information is saved.
