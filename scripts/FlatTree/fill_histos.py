@@ -38,16 +38,16 @@ def loop( tree, hNum, hNumLen, hDenom, hNumX, hDenomX, hNumQ2, hDenomQ2, hVXY, h
     n = 0
     total_selected = 0.
     total = 0.
-    print "entries: ", N
+    print("entries: ", N)
     for entry in tree:
         if n % 1000 == 0:
-            print "  event %d of %d..." % (n,N)
+            print("  event %d of %d..." % (n,N))
         n += 1
-        print "event ", n
+        print("event ", n)
 
         # True numu CC (or rather just mu+/-)
         if abs(entry.lepPdg) != 13: continue
-        print "passed lepton req"
+        print("passed lepton req")
 
         # vertex cut (LAr fiducial)
         if abs(entry.vtx[0]) > 300. or abs(entry.vtx[1]) > 100. or entry.vtx[2] < 50. or entry.vtx[2] > 350.: continue
@@ -196,11 +196,11 @@ def loop( tree, hNum, hNumLen, hDenom, hNumX, hDenomX, hNumQ2, hDenomQ2, hVXY, h
             if rec:
                 hNumX.Fill( entry.lepKE/1000., entry.vtx[0] )
 
-    print " total_selected: ", total_selected
-    print "total: ", total
+    print(" total_selected: ", total_selected)
+    print("total: ", total)
 
     purity = total_selected / total
-    print "Purity: ", purity
+    print("Purity: ", purity)
 
 if __name__ == "__main__":
 
@@ -275,7 +275,7 @@ if __name__ == "__main__":
             hSignDist[g][t] = ROOT.TH1D( "signdist_%s_%s" % (geom, ty), ";Signed Distance (cm)", 100, -300., 300. )
             #hSignDistMom[g][t] = ROOT.TH2D( "signdistmom_%s_%s" % (geom, ty), ";True Muon momentum (GeV);Signed Distance (cm)", 20, 0., 20., 100, -300., 300. )
             hSignDistMom[g][t] = ROOT.TH2D( "signdistmom_%s_%s" % (geom, ty), ";Signed Distance (cm);Muon momentum (GeV) [LAr-exit]", 100, -300., 300., 60, 0., 6. )
-        print "Looping for %s" % geom
+        print("Looping for %s" % geom)
         loop( tree, hNum[g], hNumLen[g], hDenom[g], hNumX[g], hDenomX[g], hNumQ2[g], hDenomQ2[g], hVXY[g], hVYZ[g], hMuonBirthXZ[g], hMuonBirthYZ[g], hMuonDeathXZ[g], hMuonDeathYZ[g], hAngle[g], hED[g], hED2[g], hEDTrk[g], hScint[g], hMomAC[g], hMomSSRI[g], hMomCON[g], hMomRes[g], hMomRes2[g], hLArFactor[g], hSignDist[g], hSignDistMom[g] )
 
         #out = ROOT.TFile( "%s/filled_fifty.root" % topdir, "RECREATE" )

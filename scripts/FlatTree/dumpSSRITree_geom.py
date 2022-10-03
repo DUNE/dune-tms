@@ -66,7 +66,7 @@ def loop( events, dspt, tgeo, tout ):
     events.SetBranchAddress("Event",ROOT.AddressOf(event))
 
     N = events.GetEntries()
-    print "Starting loop over %d entries" % N
+    print("Starting loop over %d entries" % N)
     ient = 0
     for evt in dspt:
 
@@ -82,7 +82,7 @@ def loop( events, dspt, tgeo, tout ):
         t_PDGv[0] = evt.StdHepPdg[3]
 
         if ient % 1000 == 0:
-            print "Event %d of %d..." % (ient,N)
+            print("Event %d of %d..." % (ient,N))
 
 
         # Loop over the primary vertices in the event
@@ -209,7 +209,7 @@ def loop( events, dspt, tgeo, tout ):
             for key in event.SegmentDetectors:
                 # Updated name in new geom
                 if key.first == "TPCActive_shape":
-                    arhits += key.second
+                    arhits.extend(key.second)
                     
             ar_muon_hits = []
             for idx, hit in enumerate(arhits):
@@ -238,7 +238,7 @@ def loop( events, dspt, tgeo, tout ):
             hits = []
             for key in event.SegmentDetectors:
                 if key.first == "volTMS":
-                    hits += key.second
+                    hits.extend(key.second)
 
             muon_hits = []
             for idx, hit in enumerate(hits):
@@ -636,23 +636,23 @@ if __name__ == "__main__":
 
     nfiles = 0
     for run in glob.glob(args.topdir+"/edep*.root"):
-      print nfiles
-      print maxfiles
+      print("Number of files: ", nfiles)
+      print("Max files: ", maxfiles)
       if nfiles > maxfiles: 
         break
 
       fname = run
-      print "Adding "+fname+" to TChain..."
+      print("Adding "+fname+" to TChain...")
 
       #fname = fname.replace("/pnfs","root://fndca1.fnal.gov:1094//pnfs/fnal.gov/usr")
       # see if it is an OK file
       if not os.access( fname, os.R_OK ):
-        print "Can't access file: %s" % fname
+        print("Can't access file: %s" % fname)
         continue
 
       tf = ROOT.TFile.Open( fname )
       if tf.TestBit(ROOT.TFile.kRecovered): # problem with file
-        print "File is crap: %s" % fname
+        print("File is crap: %s" % fname)
         continue
 
       if not loaded:
@@ -670,7 +670,7 @@ if __name__ == "__main__":
 
       nfiles += 1
 
-    print "Running on ",nfiles," root files..."
+    print("Running on ",nfiles," root files...")
     loop( events, dspt, tgeo, tout )
 
     fout.cd()

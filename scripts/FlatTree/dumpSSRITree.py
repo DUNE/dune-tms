@@ -58,13 +58,13 @@ def loop( events, dspt, tgeo, tout ):
     events.SetBranchAddress("Event",ROOT.AddressOf(event))
 
     N = events.GetEntries()
-    print "Starting loop over %d entries" % N
+    print("Starting loop over %d entries" % N)
     ient = 0
 
     for evt in dspt:
 
       if ient % 1000 == 0:
-        print "Event %d of %d..." % (ient,N)
+        print("Event %d of %d..." % (ient,N))
 
       if ient > nmax: 
         break
@@ -195,11 +195,13 @@ def loop( events, dspt, tgeo, tout ):
         for key in event.SegmentDetectors:
           # Updated name in new geom
           if key.first == "TPCActive_shape":
-            arhits += key.second
+        #    for hit in key.second:
+            arhits.extend(key.second)
                   
         ar_muon_hits = []
         for idx, hit in enumerate(arhits):
-          tid = hit.Contrib[0]
+          contrib = hit.GetContributors()
+          tid = contrib[0] # Get the top contributor
           traj = event.Trajectories[tid]
           if traj.GetParentId() == -1 and abs(traj.GetPDGCode()) == 13:
             ar_muon_hits.append(hit)
@@ -216,7 +218,8 @@ def loop( events, dspt, tgeo, tout ):
         hits = []
         for key in event.SegmentDetectors:
           if key.first == "volTMS":
-            hits += key.second
+            #for hit in key.second:
+            hits.extend(key.second)
 
         muon_hits = []
         for idx, hit in enumerate(hits):
@@ -280,9 +283,9 @@ if __name__ == "__main__":
 
     nmax = int(args.nmax)
     input_file = args.infile
-    print input_file
+    print ("Input file: ", input_file)
     if not input_file:
-      print "Need input file"
+      print ("Need input file")
       exit(-1)
 
     # make an output ntuple
@@ -404,7 +407,7 @@ if __name__ == "__main__":
 
       #fname = run
     fname = input_file
-    print "Adding "+fname+" to TChain..."
+    print ("Adding "+fname+" to TChain...")
     tgeo = None
 
     tf = ROOT.TFile.Open( fname )

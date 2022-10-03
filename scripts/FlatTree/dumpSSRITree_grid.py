@@ -25,14 +25,14 @@ def loop( events, dspt, tgeo, tout ):
     events.SetBranchAddress("Event",ROOT.AddressOf(event))
 
     N = events.GetEntries()
-    print "Starting loop over %d entries" % N
+    print("Starting loop over %d entries" % N)
     ient = 0
     for evt in dspt:
 
         t_Ev[0] = evt.StdHepP4[3] # neutrino is first 4-vector, so 3 is always Ev
 
         if ient % 100 == 0:
-            print "Event %d of %d..." % (ient,N)
+            print("Event %d of %d..." % (ient,N))
 
         if ient > nmax: 
           break
@@ -153,7 +153,7 @@ def loop( events, dspt, tgeo, tout ):
             arhits = []
             for key in event.SegmentDetectors:
                 if key.first == "ArgonCube":
-                    arhits += key.second
+                    arhits.extend(key.second)
                     
             ar_muon_hits = []
             for idx, hit in enumerate(arhits):
@@ -188,7 +188,7 @@ def loop( events, dspt, tgeo, tout ):
             hits = []
             for key in event.SegmentDetectors:
                 if key.first == "rmmsvol":
-                    hits += key.second
+                    hits.extend(key.second)
 
             muon_hits = []
             for idx, hit in enumerate(hits):
@@ -334,9 +334,9 @@ if __name__ == "__main__":
 
     nmax = int(args.nmax)
     input_file = args.infile
-    print input_file
+    print("Input file: ", input_file)
     if not input_file:
-      print "Need input file"
+      print("Need input file")
       exit(-1)
 
     # make an output ntuple
@@ -411,7 +411,7 @@ if __name__ == "__main__":
     dspt = ROOT.TChain( "DetSimPassThru/gRooTracker", "other thing" )
 
     fname = input_file
-    print "Adding "+fname+" to TChain..."
+    print("Adding "+fname+" to TChain...")
     tgeo = None
 
     tf = ROOT.TFile.Open( fname )

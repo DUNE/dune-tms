@@ -120,10 +120,10 @@ def plotMomRes( ohdenom, geom ):
 
         hRMS.SetBinContent( b, h.GetRMS() )
         maxP = h.GetBinCenter(h.GetMaximumBin() )
-        print "maxP", maxP
+        print("maxP", maxP)
         if h.GetSumOfWeights() != 0:
             h.Fit( "gaus", "Q", "Q", maxP-0.2, maxP+0.2 )
-            print "sigma ", h.GetFunction("gaus").GetParameter(2)
+            print("sigma ", h.GetFunction("gaus").GetParameter(2))
             hSig.SetBinContent( b, h.GetFunction("gaus").GetParameter(2) )
             h.Draw("hist")
             h.GetFunction("gaus").SetLineColor(2)
@@ -340,8 +340,8 @@ def plotSignDist( ohNum, geom ):
     hNum[0].Draw("hist")
     integral = hNum[0].Integral(50,100)
     totintegral = hNum[0].Integral(-1,-1)
-    print "INTEGRAL: ", integral
-    print "tot INTEGRAL: ", totintegral
+    print("INTEGRAL: ", integral)
+    print("tot INTEGRAL: ", totintegral)
     hNum[1].Draw("hist same")
     leg = ROOT.TLegend( 0.2, 0.75, 0.8, 0.846 )
     leg.SetNColumns(2)
