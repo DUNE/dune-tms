@@ -17,13 +17,13 @@ For more informatinon on running a production, see the [DUNE ND Production](http
 The repo is designed for minimal external dependencies. We use `ROOT` for some convenience classes, and input/output. There's dependency on `edep-sim` for the event and hit structure, and `toml` for config files.
 
 ## Setup and dependencies
-The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example setup using mostly `ups` products at FNAL is provided in `setup.sh`.
+The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example setup using mostly `ups` products at FNAL is provided in `setup.sh`: once the `edep-sim` `ups` product is set up, `ROOT` and `CLHEP` will also be appropriately set up.
 
 ## Building
 Once you have set your environment up, run `make`, which will get toml11, make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
 ## toml submodule dependency
-We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The submodule setup is included in the default make recipe, so you shouldn't have to do anything else. If you for some reason want to run it on your own, do `git submodule init && git submodule update` to get the submodule.
+We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The submodule setup is included in the default `make` recipe, so you shouldn't have to do anything else. If you for some reason want to run it on your own, do `git submodule init && git submodule update` to get the submodule.
 
 The repo has a good readme, with fast and simple implementation, feel free to check it out and implement accordingly in the `TMS_Manager` class.
 
