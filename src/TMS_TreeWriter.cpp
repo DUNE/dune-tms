@@ -68,9 +68,14 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/F");
   Branch_Lines->Branch("LastHoughHit",  LastHit,  "LastHoughHit[nLines][2]/F");
+  Branch_Lines->Branch("FirstHoughHitTime", FirstHitTime, "FirstHoughHitTime[nLines]/F");
+  Branch_Lines->Branch("LastHoughHitTime", LastHitTime, "LastHoughHitTime[nLines]/F");
+  Branch_Lines->Branch("HoughEarliestHitTime", EarliestHitTime, "HoughEarliestHitTime[nLines]/F");
+  Branch_Lines->Branch("HoughLatestHitTime", LatestHitTime, "HoughLatestHitTime[nLines]/F");
   Branch_Lines->Branch("FirstHoughPlane", FirstPlane, "FirstHoughPlane[nLines]/I");
   Branch_Lines->Branch("LastHoughPlane",  LastPlane,  "LastHoughPlane[nLines]/I");
   Branch_Lines->Branch("TMSStart",    &TMSStart, "TMSStart/O");
+  Branch_Lines->Branch("TMSStartTime",    &TMSStartTime, "TMSStartTime/F");
   Branch_Lines->Branch("Occupancy",   Occupancy, "Occupancy[nLines]/F");
   Branch_Lines->Branch("TrackLength",       TrackLength,      "TrackLength[nLines]/F");
   Branch_Lines->Branch("TotalTrackEnergy",  TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
@@ -80,15 +85,18 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHitsInTrack",    &nHitsInTrack,  "nHitsInTrack[nLines]/I");
   Branch_Lines->Branch("TrackHitEnergy",  TrackHitEnergy, "TrackHitEnergy[10][200]/F");
   Branch_Lines->Branch("TrackHitPos",     TrackHitPos,    "TrackHitPos[10][200][2]/F");
+  Branch_Lines->Branch("TrackHitTime",    TrackHitTime,   "TrackHitTime[10][200]/F");
 
   // Cluster information
   Branch_Lines->Branch("nClusters",       &nClusters,       "nClusters/I");
   Branch_Lines->Branch("ClusterEnergy",   ClusterEnergy,    "ClusterEnergy[nClusters]/F");
+  Branch_Lines->Branch("ClusterTime",   ClusterTime,    "ClusterTime[nClusters]/F");
   Branch_Lines->Branch("ClusterPosMean",  ClusterPosMean,   "ClusterPosMean[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDev",ClusterPosStdDev, "ClusterPosStdDev[25][2]/F");
   Branch_Lines->Branch("nHitsInCluster",  nHitsInCluster,   "nHitsInCluster[nClusters]/I");
   Branch_Lines->Branch("ClusterHitPos",   ClusterHitPos,    "ClusterHitPos[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergy",ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTime",  ClusterHitTime,   "ClusterHitTime[25][200]/F");
 
   // Hit information
   Branch_Lines->Branch("nHits", &nHits, "nHits/I");
@@ -224,6 +232,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Find where the first hough hit is
   TMSStart = false;
+  TMSStartTime = -9999.0;
 
   std::vector<std::vector<TMS_Hit> > HoughCands = TMS_TrackFinder::GetFinder().GetHoughCandidates();
   int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
@@ -245,20 +254,34 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     FirstPlane[it] = Candidates.front().GetPlaneNumber();
     FirstHit[it][0] = Candidates.front().GetZ();
     FirstHit[it][1] = Candidates.front().GetNotZ();
+    FirstHitTime[it] = Candidates.front().GetT();
 
     LastPlane[it] = Candidates.back().GetPlaneNumber();
     LastHit[it][0] = Candidates.back().GetZ();
     LastHit[it][1] = Candidates.back().GetNotZ();
+    LastHitTime[it] = Candidates.back().GetT();
 
     TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
     TotalTrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
     Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+    
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
     for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergy[it][j] = Candidates[j].GetE();
+      TrackHitTime[it][j] = Candidates[j].GetT();
       TrackHitPos[it][j][0] = Candidates[j].GetZ();
       TrackHitPos[it][j][1] = Candidates[j].GetNotZ();
+      
+      float time = Candidates[j].GetT();
+      
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
     }
+    EarliestHitTime[it] = earliest_hit_time;
+    LatestHitTime[it] = latest_hit_time;
+    
 
     double maxenergy = 0;
     unsigned int nLastHits_temp = nLastHits;
@@ -272,9 +295,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     it++;
   }
+  
 
   // Was the first hit within the first 3 layers?
   if (FirstTrack != NULL) {
+    TMSStartTime = FirstTrack->GetT();
     if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
     else TMSStart = true;
   }
@@ -301,6 +326,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     // Mean of square of cluster in z and not z
     double mean2_z = 0;
     double mean2_notz = 0;
+    double min_cluster_time = 1e10;
     int nhits = (*it).size();
     for (int j = 0; j < nhits; ++j) {
       mean_z += (*it)[j].GetZ();
@@ -308,9 +334,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
       mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
       total_energy += (*it)[j].GetE();
+      float time = (*it)[j].GetT();
+      if (time < min_cluster_time) min_cluster_time = time;
       ClusterHitPos[stdit][j][0] = (*it)[j].GetZ();
       ClusterHitPos[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergy[stdit][j] = (*it)[j].GetE();
+      ClusterHitTime[stdit][j] = (*it)[j].GetT();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -319,6 +348,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     mean2_notz /= nhits;
 
     ClusterEnergy[stdit] = total_energy;
+    ClusterTime[stdit] = min_cluster_time;
     nHitsInCluster[stdit] = nhits;
     ClusterPosMean[stdit][0] = mean_z;
     ClusterPosMean[stdit][1] = mean_notz;

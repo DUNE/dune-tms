@@ -177,6 +177,7 @@ class TMS_TrackFinder {
     }
 
     void FindTracks(TMS_Event &event);
+    int RunTimeSlicer(TMS_Event &event);
     const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
 

@@ -12,10 +12,10 @@
 
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
-#define __TMS_MAX_LINES__ 10 // Maximum number of lines in an event
-#define __TMS_MAX_HITS__ 2000 // Maximum number of hits in an event
+#define __TMS_MAX_LINES__ 100 // Maximum number of lines in an event
+#define __TMS_MAX_HITS__ 20000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
-#define __TMS_MAX_CLUSTERS__ 50 // Maximum number of clusters in an event
+#define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
 // Just a simple tree writer for the output tree
@@ -75,26 +75,34 @@ class TMS_TreeWriter {
 
     float FirstHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     float LastHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float FirstHitTime[__TMS_MAX_LINES__]; 
+    float LastHitTime[__TMS_MAX_LINES__];
+    float EarliestHitTime[__TMS_MAX_LINES__]; 
+    float LatestHitTime[__TMS_MAX_LINES__];
     int FirstPlane[__TMS_MAX_LINES__];
     int LastPlane[__TMS_MAX_LINES__];
     bool TMSStart;
+    float TMSStartTime;
     float Occupancy[__TMS_MAX_LINES__];
     float TrackLength[__TMS_MAX_LINES__];
     float TotalTrackEnergy[__TMS_MAX_LINES__];
     bool TrackStopping[__TMS_MAX_LINES__];
 
     float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
+    float TrackHitTime[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitPos[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
     int nHitsInTrack[__TMS_MAX_LINES__];
 
     // Cluster information
     int nClusters; // Number of clusters
     float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
+    float ClusterTime[__TMS_MAX_CLUSTERS__]; // Energy in cluster
     int nHitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
     float ClusterPosMean[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
     float ClusterPosStdDev[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
     float ClusterHitPos[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
     float ClusterHitEnergy[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    float ClusterHitTime[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
 
     // Reco information
     int nHits; // How many hits in event

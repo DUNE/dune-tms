@@ -12,6 +12,7 @@ TMS_Event::TMS_Event() {
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
 TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
+  //std::cout<<"Making TMS event"<<std::endl;
 
   // Maybe make these class members
   // Keep false to process all events and all particles in events
@@ -31,6 +32,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
+  NSlices = 1; // By default there's at least one
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -38,6 +40,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   int vtxcounter = 0;
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
+    //std::cout<<"for each event.Primaries "<<vtxcounter<<std::endl;
 
     TG4PrimaryVertex vtx = *it;
     Reaction = (*it).GetReaction();
@@ -114,7 +117,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             TMS_TrueParticle part(ParentId, TrackId, PDGcode);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
-          }
+          } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
           // Remember to fill this event with vertex information
@@ -151,42 +154,149 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TLorentzVector finalpos = stop.GetPosition();
           part->SetDeathMomentum(finalmom);
           part->SetDeathPosition(finalpos);
-        }
+        } // End if (!firsttime) 
       } // End loop over the trajectories
-
-      // Loop over each hit
-      for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
-        // Only look at TMS hits
-        std::string DetString = (*jt).first;
-
-        // Skip hits outside of the TMS if running lightweight
-        if (TMSOnly && DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
-
-        TG4HitSegmentContainer tms_hits = (*jt).second;
-        for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
-          TG4HitSegment edep_hit = *kt;
-          TMS_Hit hit = TMS_Hit(edep_hit);
-          TMS_Hits.push_back(std::move(hit));
-
-          // Loop through the True Particle list and associate
-          /*
-          // Now associate the hits with the muon
-          int PrimaryId = edep_hit.GetPrimaryId();
-          for (auto &TrueParticle : TMS_TrueParticles) {
-          // Check the primary ID
-          if (TrueParticle.GetTrackId() != PrimaryId) continue;
-          TLorentzVector Position = (edep_hit.GetStop()+edep_hit.GetStart());
-          Position *= 0.5;
-          TrueParticle.AddPoint(Position);
-          }
-          */
-        }
-      }
       vtxcounter++;
-    }
-  }
+    } // End if (FillEvent)
+  } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
+  
+  
+
+  // Loop over each hit
+  for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
+    // Only look at TMS hits
+    std::string DetString = (*jt).first;
+
+    // Skip hits outside of the TMS if running lightweight
+    if (TMSOnly && DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
+
+    TG4HitSegmentContainer tms_hits = (*jt).second;
+    for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
+      TG4HitSegment edep_hit = *kt;
+      TMS_Hit hit = TMS_Hit(edep_hit);
+      TMS_Hits.push_back(std::move(hit));
+
+      // Loop through the True Particle list and associate
+      /*
+      // Now associate the hits with the muon
+      int PrimaryId = edep_hit.GetPrimaryId();
+      for (auto &TrueParticle : TMS_TrueParticles) {
+      // Check the primary ID
+      if (TrueParticle.GetTrackId() != PrimaryId) continue;
+      TLorentzVector Position = (edep_hit.GetStop()+edep_hit.GetStart());
+      Position *= 0.5;
+      TrueParticle.AddPoint(Position);
+      }
+      */
+    } // End for (TG4HitSegmentContainer::iterator kt
+  } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+  
+  // Merge hits that happened in the same scintillator strip and within the same readout time window
+  // This is a simulation cleanup step, not reconstruction
+  MergeCoincidentHits();
+  // Now apply optical and timing models
+  ApplyReconstructionEffects();
 
   EventCounter++;
+}
+
+void TMS_Event::MergeCoincidentHits() {
+  std::sort(TMS_Hits.begin(), TMS_Hits.end(), TMS_Hit::SortByZThenT);
+  
+  // Loop over the original hits
+  for (std::vector<TMS_Hit>::iterator it = TMS_Hits.begin(); 
+      it != TMS_Hits.end(); it++) {
+    if ((*it).GetPedSup()) continue; // Skip hits which are already removed
+    // Maybe this hit has already been counted
+    double z = (*it).GetZ();
+    double y = (*it).GetNotZ();
+    //double e = hit.GetE();
+    double t = (*it).GetT();
+    
+    //Strip out hits that are outside the actual volume 
+    // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
+    // TODO figure out why these happen
+    if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) (*it).SetPedSup(true);
+
+    // Look ahead to find duplicates, but stop when z != z2
+    std::vector<std::vector<TMS_Hit>::iterator> duplicates;
+    for (std::vector<TMS_Hit>::iterator jt = it+1; jt != TMS_Hits.end() && jt->GetZ() == z; ++jt) {
+
+      TMS_Hit hit2 = *(jt);
+      if (hit2.GetPedSup()) continue; // Skip hits which are already removed
+      double z2 = hit2.GetZ();
+      double y2 = hit2.GetNotZ();
+      double e2 = hit2.GetE();
+      double t2 = hit2.GetT();
+
+      // Merge
+      if (z == z2 && y == y2 && fabs(t2-t) < TMS_Const::TMS_TimeThreshold) {
+        (*it).SetE((*it).GetE()+e2);
+        (*it).SetT(std::min(t, t2));
+        duplicates.push_back(jt);
+      }
+    }
+    // Now flag the duplicates for removal
+    for (int i = duplicates.size() - 1; i >= 0; i--) {
+      auto hit_to_erase = duplicates[i];
+      hit_to_erase->SetPedSup(true);
+    }
+  }
+  // Now erase all hits that are set as ped supped
+  std::vector<TMS_Hit> remaining_hits;
+  std::vector<TMS_Hit> deleted_hits;
+  for (auto hit : TMS_Hits) {
+    if (!hit.GetPedSup()) remaining_hits.push_back(hit);
+    else deleted_hits.push_back(hit);
+  }
+  TMS_Hits.clear();
+  for (auto hit : remaining_hits) TMS_Hits.push_back(hit);
+  deleted_hits.erase(deleted_hits.begin(), deleted_hits.end());
+}
+
+void TMS_Event::SimulateOpticalModel() {
+  
+}
+
+void TMS_Event::SimulatePedestalSubtraction() {
+  // Don't actually remove the hits because they may be relevant for other processes
+  // Loop over the hits
+  for (std::vector<TMS_Hit>::iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); it++) {
+     auto hit = (*it);
+     double hit_energy = hit.GetE();
+     if (hit_energy < TMS_Const::TMS_EnThres) {
+       hit.SetPedSup(true);
+     }   
+  }
+}
+
+void TMS_Event::SimulateTimingModel() {
+  // List of timing effects to simulate:
+  // Random electronic timing noise
+  // Deadtime
+  // Time skew from first PE to hit sensor
+  // Optical fiber length delays (corrected to strip center)
+  // Timing effects from random noise, cross talk, afterpulsing
+}
+
+void TMS_Event::ApplyReconstructionEffects() {
+  // Simulate an optical model 
+  SimulateOpticalModel();
+  // Simulate pedestal subtraction where any hit under TMS_Const::TMS_EnThres MeV is removed
+  SimulatePedestalSubtraction();
+  // Simulate a timing model
+  SimulateTimingModel();
+}
+
+const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
+  std::vector<TMS_Hit> out;
+  for (auto hit : TMS_Hits) {
+    if (!hit.GetPedSup() || include_ped_sup) {
+      int slice_number = hit.GetSlice();
+      if (slice_number == slice || slice < 0) out.push_back(hit);
+    }
+  }
+  return out;
 }
 
 // Add a separate event to this event
@@ -195,7 +305,7 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   std::cout << "Adding event " << Other_Event.GetEventNumber() << " to event " << GetEventNumber() << std::endl;
 
   // Get the other hits
-  std::vector<TMS_Hit> other_hits = Other_Event.GetHits();
+  std::vector<TMS_Hit> other_hits = Other_Event.GetHits(-1, true);
 
   // And use them to expand on the original hits in the event
   for (auto &hit: other_hits) {

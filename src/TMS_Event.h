@@ -24,7 +24,7 @@ class TMS_Event {
     void AddEvent(TMS_Event &);
 
     // The getters once the class is completed
-    const std::vector<TMS_Hit> &GetHits() const {return TMS_Hits;};
+    const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
     // Reconstructed tracks
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
@@ -48,12 +48,21 @@ class TMS_Event {
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
+    
+    int GetNSlices() { return NSlices; }; 
+    void SetNSlices(int n) { NSlices = n; };
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
+    
+    void ApplyReconstructionEffects();
+    void MergeCoincidentHits();
+    void SimulateOpticalModel();
+    void SimulatePedestalSubtraction();
+    void SimulateTimingModel();
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
@@ -75,6 +84,8 @@ class TMS_Event {
 
     // Saves the event number for a constructed event
     int EventNumber;
+    
+    int NSlices;
 
     // Saves down the true Neutrino information from the gRooTracker passthrough (not available in edep-sim or G4)
     std::pair<TLorentzVector,int> TrueNeutrino;
