@@ -18,6 +18,8 @@ TMS_Manager::TMS_Manager() {
 
   // The minimum hits needed to run reconstruction
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
+  
+  _RECO_TIME_RunTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunTimeSlicer");
 
   _RECO_DBSCAN_MinPoints = toml::find<int>(data, "Recon", "DBSCAN", "MinPoints");
   _RECO_DBSCAN_Epsilon = toml::find<double>(data, "Recon", "DBSCAN", "Epsilon");

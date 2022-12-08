@@ -5,6 +5,8 @@ int TMS_Event::EventCounter = 0;
 
 TMS_Event::TMS_Event() {
   EventNumber = -999;
+  SliceNumber = 0;
+  SpillNumber = -999;
   nTrueTrajectories = -999;
   LightWeight = true;
 }
@@ -19,7 +21,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = false;
+  bool OnlyPrimary = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   /*
   if (LightWeight) {
@@ -32,6 +34,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
+  SliceNumber = 0;
+  SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
 
   // Check the integrity of the event
@@ -293,6 +297,7 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
   for (auto hit : TMS_Hits) {
     if (!hit.GetPedSup() || include_ped_sup) {
       int slice_number = hit.GetSlice();
+      //std::cout<<"Slice number for hit: "<<slice_number<<std::endl;
       if (slice_number == slice || slice < 0) out.push_back(hit);
     }
   }

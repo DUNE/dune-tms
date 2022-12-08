@@ -57,6 +57,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   int N_entries = events->GetEntries();
+  
+  int event_counter = 0;
 
   bool DrawPDF = TMS_Manager::GetInstance().Get_DrawPDF();
 
@@ -109,16 +111,38 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     //tms_event.Print();
 
     // Try finding some tracks
-    TMS_TrackFinder::GetFinder().FindTracks(tms_event);
+
+    int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    for (int slice = 0; slice < nslices; slice++) {
+    
+      auto slice_hits = tms_event.GetHits(slice);
+      /*double min_time = 1e9;
+      double max_time = -1e9;
+      for (auto hit : slice_hits) {
+        if (hit.GetPedSup()) std::cout<<"Found a ped supped hit in slice"<<std::endl;
+        min_time = std::min(min_time, hit.GetT());
+        max_time = std::max(max_time, hit.GetT());
+      }
+      if (max_time - min_time > (10000.0 / 52)) std::cout<<"Found a time range larger than expected: "<<(max_time - min_time)<<", min="<<min_time<<", max="<<max_time<<", slice="<<slice<<std::endl; */
+      TMS_Event tms_event_slice = TMS_Event();
+      tms_event_slice.SetHitsRaw(slice_hits);
+      tms_event_slice.SetSliceNumber(slice);
+      tms_event_slice.SetEventNumber(event_counter);
+      event_counter += 1;
+      int spill_number = i;
+      tms_event_slice.SetSpillNumber(spill_number);
+      
+      TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 
 #ifdef DUNEANAOBJ_ENABLED
-    caf::SRTMS srtms = TMS_Utils::ConvertEvent();
+      caf::SRTMS srtms = TMS_Utils::ConvertEvent();
 #endif
 
-    // View it
-    if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
-    // Write it
-    TMS_TreeWriter::GetWriter().Fill(tms_event);
+      // View it
+      if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event_slice);
+      // Write it
+      TMS_TreeWriter::GetWriter().Fill(tms_event_slice);
+    }
   } // End loop over all the events
 
   Timer.Stop();

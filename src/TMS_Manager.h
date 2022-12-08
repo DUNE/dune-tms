@@ -48,6 +48,8 @@ class TMS_Manager {
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
+    
+    bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
 
@@ -88,6 +90,8 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
+    
+    bool _RECO_TIME_RunTimeSlicer;
 
     bool _APPLICATIONS_DrawPDF;
 };

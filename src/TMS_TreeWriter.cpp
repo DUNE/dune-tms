@@ -50,6 +50,8 @@ TMS_TreeWriter::TMS_TreeWriter() {
 void TMS_TreeWriter::MakeBranches() {
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
+  Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
+  Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
   Branch_Lines->Branch("nLines",  &nLines,  "nLines/I");
 
   Branch_Lines->Branch("Slope",     Slope,      "Slope[nLines]/F");
@@ -97,11 +99,13 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("ClusterHitPos",   ClusterHitPos,    "ClusterHitPos[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergy",ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
   Branch_Lines->Branch("ClusterHitTime",  ClusterHitTime,   "ClusterHitTime[25][200]/F");
+  Branch_Lines->Branch("ClusterHitSlice", ClusterHitSlice, "ClusterHitSlice[25][200]/I");
 
   // Hit information
   Branch_Lines->Branch("nHits", &nHits, "nHits/I");
-  Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[1000][4]/F");
-  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[1000]/F");
+  Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[nHits][4]/F");
+  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitSlice", RecoHitSlice, "RecoHitSlice[nHits]/I");
 
   // Truth information
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
@@ -128,6 +132,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill the truth info
   EventNo = event.GetEventNumber();
+  SliceNo = event.GetSliceNumber();
+  SpillNo = event.GetSpillNumber();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -340,6 +346,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       ClusterHitPos[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergy[stdit][j] = (*it)[j].GetE();
       ClusterHitTime[stdit][j] = (*it)[j].GetT();
+      ClusterHitSlice[stdit][j] = (*it)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -378,6 +385,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
   // Fill up the info only if all above has passed

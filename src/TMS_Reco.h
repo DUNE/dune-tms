@@ -166,6 +166,19 @@ inline bool operator<(aNode const &a, aNode const &b) {
   return a.HeuristicCost < b.HeuristicCost;
 }
 
+class TMS_TimeSlicer {
+  public:
+
+    static TMS_TimeSlicer& GetSlicer() {
+      static TMS_TimeSlicer Instance;
+      return Instance;
+    }
+
+    int RunTimeSlicer(TMS_Event &event);
+    int SimpleTimeSlicer(TMS_Event &event);
+    
+};
+
 // Maybe put this inside a separate namespace
 class TMS_TrackFinder {
 
@@ -177,7 +190,6 @@ class TMS_TrackFinder {
     }
 
     void FindTracks(TMS_Event &event);
-    int RunTimeSlicer(TMS_Event &event);
     const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
 

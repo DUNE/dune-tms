@@ -25,6 +25,8 @@ class TMS_Event {
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
+    std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
+    void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
     // Reconstructed tracks
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
@@ -41,6 +43,7 @@ class TMS_Event {
     }
 
     int GetEventNumber() { return EventNumber; };
+    void SetEventNumber(int num) { EventNumber = num; };
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
@@ -51,6 +54,14 @@ class TMS_Event {
     
     int GetNSlices() { return NSlices; }; 
     void SetNSlices(int n) { NSlices = n; };
+    
+    int GetSliceNumber() { return SliceNumber; };
+    void SetSliceNumber(int slice) { SliceNumber = slice; };
+    
+    int GetSpillNumber() { return SpillNumber; };
+    void SetSpillNumber(int spill) { SpillNumber = spill; };
+    
+    void SortHits(bool(*comp)(TMS_Hit& a, TMS_Hit& b)) { std::sort(TMS_Hits.begin(), TMS_Hits.end(), comp); };
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -84,8 +95,10 @@ class TMS_Event {
 
     // Saves the event number for a constructed event
     int EventNumber;
+    int SliceNumber;
     
     int NSlices;
+    int SpillNumber;
 
     // Saves down the true Neutrino information from the gRooTracker passthrough (not available in edep-sim or G4)
     std::pair<TLorentzVector,int> TrueNeutrino;

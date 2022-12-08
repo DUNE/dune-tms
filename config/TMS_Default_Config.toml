@@ -4,7 +4,7 @@
 # Recon parameter constants
 [Recon]
   # Minimum number of hits to consider reconstructing the event
-  MinHits = 3
+  MinHits = 30
 
   # Track reco; Hough, AStar, DBSCAN
   TrackMethod = "Hough"
@@ -59,6 +59,9 @@
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not
+    
+   [Recon.Time]
+    RunTimeSlicer = true # Whether to run a time slicer
     
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)

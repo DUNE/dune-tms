@@ -99,184 +99,344 @@ void TMS_TrackFinder::ClearClass() {
   TrackEnergy.clear();
 }
 
-int TMS_TrackFinder::RunTimeSlicer(TMS_Event &event) {
+int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
   int nslices = 1;
-  
   // For now do the simplest thing and divide into N chunks
-  /*double spill_time = 10000; // ns
-  double n_slices_target = 520;
+  int nsliceswithoneormorehit = 0;
+  double spill_time = 10000; // ns
+  int n_slices_target = 52;
   double dt = spill_time / n_slices_target; // ns
-  auto hits = event.GetHits();
+  auto hits = event.GetHitsRaw();
   std::cout<<"Running time slicer with n="<<hits.size()<<std::endl;
-  for (int slice_number = 1; slice_number < n_slices_target; slice_number++) {
+  for (int slice_number = 1; slice_number <= n_slices_target; slice_number++) {
     double start_time = dt * (slice_number - 1);
     double end_time = dt * slice_number;
-    for (auto hit : hits) {
+    int nhitsinslice = 0;
+    //for (auto hit : hits) {
+    //for (std::vector<TMS_Hit>::iterator it = hits.begin(); it != hits.end(); it++) {
+    for (size_t i = 0; i < hits.size(); i++) {
+      //auto hit = (*it);
+      auto hit = hits[i];
+      // todo add back?
+      //if (hit.GetPedSup()) continue; // Skip ped supped hits
       double hit_time = hit.GetT();
       // If in time with slice, add this hit to slice
-      if (start_time <= hit_time && hit_time < end_time) hit.SetSlice(slice_number);
+      bool hit_is_in_slice = false;
+      if (start_time <= hit_time && hit_time < end_time) hit_is_in_slice = true;
+      // Special cases for hit times outside of standard range
+      // todo, understand why true hit_time < 0 is possible
+      if (slice_number == 1 && hit_time < 0) hit_is_in_slice = true;
+      if (slice_number == n_slices_target && hit_time >= spill_time) hit_is_in_slice = true;
+      if (hit_is_in_slice) {
+        if (hit.GetSlice() != 0) { std::cout<<"Trying to change a hit slice from "<<hit.GetSlice()<<" to "<<slice_number<<", t="<<hit_time<<std::endl; exit(0); }
+        //std::cout<<"Trying to change a hit slice from "<<hit.GetSlice()<<" to "<<slice_number<<", t="<<hit_time;
+        //hit.SetSlice(slice_number);
+        auto hit_pointer = &hits[i];
+        hit_pointer->SetSlice(slice_number);
+        nhitsinslice++;
+        //std::cout<<", Checking new slice number: "<<hit.GetSlice()<<", "<<hits[i].GetSlice()<<std::endl;
+      }
     }
+    if (nhitsinslice > 0) nsliceswithoneormorehit += 1;
     nslices += 1;
-  }*/
+  }
+  // Need to explicitly change the raw hits in the event since we're not dealing with pointers
+  event.SetHitsRaw(hits);
+  std::cout<<"Found "<<nslices<<" slices. "<<nsliceswithoneormorehit<<" have more than one hit."<<std::endl;
+  
+  
+  auto hits2 = event.GetHitsRaw();
+  int n_hits_outside_slice0 = 0;
+  int n_hits_inside_slice0 = 0;
+  for (auto hit : hits2) {
+    //if (hit.GetSlice() != 0) std::cout<<"Checking new slice number: "<<hit.GetSlice()<<std::endl;
+    if (hit.GetSlice() != 0) n_hits_outside_slice0 += 1;
+    if (hit.GetSlice() == 0) n_hits_inside_slice0 += 1;
+    if (hit.GetSlice() == 0) std::cout<<"Hit in slice 0, T="<<hit.GetT()<<std::endl;
+  }
+  std::cout<<"Found "<<n_hits_outside_slice0<<" hits with slice number != 0, and "<<n_hits_inside_slice0<<" inside slice 0"<<std::endl;
+  
   
   event.SetNSlices(nslices);
+  return nslices;
+}
+
+int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
+  int nslices = 1;
+  // Sort by T so slices are easier to find
+  event.SortHits(TMS_Hit::SortByT);
+  
+  
+  bool RunTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
+  bool RunSimpleTimeSlicer = false; // TODO make this adjustable
+  if (RunTimeSlicer && RunSimpleTimeSlicer) nslices = SimpleTimeSlicer(event);
+  if (RunTimeSlicer && !RunSimpleTimeSlicer) {
+    // Here are all the constants
+    double threshold1 = 10;
+    double threshold2 = 5;
+    int sliding_window_width = 10;
+    int minimum_slice_width = 10;
+    const int NUMBER_OF_SLICES = 10000;
+    const double SPILL_LENGTH = 10000;
+  
+    // First initialize an array of energy and slice labels
+    const double DT = SPILL_LENGTH / NUMBER_OF_SLICES;
+    double energy_slices[NUMBER_OF_SLICES];
+    int time_slices[NUMBER_OF_SLICES];
+    for (int i = 0; i < NUMBER_OF_SLICES; i++) {
+      energy_slices[i] = 0;
+      time_slices[i] = 0;
+    }
+    
+    // Add all hit energy to array
+    auto hits = event.GetHitsRaw();
+    for (auto hit : hits) {
+      int index = hit.GetT() * DT;
+      // Make sure we're within bounds, and add energy
+      if (index >= 0 && index < NUMBER_OF_SLICES) energy_slices[index] += hit.GetE();
+    }
+    
+    // Now make a sliding window;
+    // After starting a slice, go at least this far
+    // This allows for a slice that's at least as wide as minimum_slice_width
+    int minimum_index = 0;
+    int slice_index = 1;
+    bool in_slice = false;
+    for (int i = 0; i < NUMBER_OF_SLICES; i++) {
+      double energy_in_window = 0;
+      for (int j = 0; i + j + sliding_window_width < NUMBER_OF_SLICES && j < sliding_window_width; j++) 
+        energy_in_window += energy_slices[i + j];
+      
+      // Reached threshold to start making slice
+      if (!in_slice && energy_in_window >= threshold1) { 
+        std::cout<<"Starting slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
+        in_slice = true;
+        minimum_index = i + minimum_slice_width;
+      }
+      
+      // Reached below threshold then stop recording slice
+      // But only if we reached minimum_index
+      if (in_slice && energy_in_window < threshold2 && i > minimum_index) {
+        std::cout<<"Ending slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
+        in_slice = false;
+        // Finish writing that window. 
+        // So that time_slices[i:i+sliding_window_width-1] all are in slice_index
+        // This will mean that time_slices[i+sliding_window_width] will be first array index not in time slice
+        for (int j = 0; i + j + sliding_window_width < NUMBER_OF_SLICES && j < sliding_window_width - 1; j++) 
+          time_slices[i + j] = slice_index;
+        i += sliding_window_width - 1;
+        slice_index += 1;
+      }
+      
+      // If in a slice, record that index.
+      if (in_slice) {
+        time_slices[i] = slice_index;
+      }
+    }
+    // Write out the remaining slices
+    /*if (in_slice) {
+      int i = NUMBER_OF_SLICES - sliding_window_width;
+      for (int j = 0; i + j + sliding_window_width < NUMBER_OF_SLICES && j < sliding_window_width - 1; j++) 
+        time_slices[i + j] = slice_index;
+    }*/
+    nslices = slice_index - 1;
+    std::cout<<"Found "<<nslices<<" slices"<<std::endl;
+    double occupancy = 0;
+    for (int i = 0; i < NUMBER_OF_SLICES; i++) 
+      if (time_slices[i] != 0) occupancy += 1;
+    occupancy /= NUMBER_OF_SLICES;
+    std::cout<<occupancy<<" are in different slices"<<std::endl;
+    
+    // Finally assign hits based on slice
+    std::vector<TMS_Hit> changed_hits;
+    for (auto hit : hits) {
+      int index = hit.GetT() * DT;
+      int slice = 0; 
+      // Make sure we're within bounds
+      if (index >= 0 && index < NUMBER_OF_SLICES) slice = time_slices[index];
+      hit.SetSlice(slice);
+      changed_hits.push_back(hit);
+    }
+    event.SetHitsRaw(changed_hits);
+  }
   return nslices;
 }
 
 // The generic track finder
 void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
-  int nslices = RunTimeSlicer(event);
+  ClearClass();
+
+  // Get the raw unmerged and untracked hits
+  RawHits = event.GetHits();
+  //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
+  //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
   
-  for (int slice = 0; slice < nslices; slice++) {
-
-    ClearClass();
-
-    // Get the raw unmerged and untracked hits
-    RawHits = event.GetHits(slice);
-    //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
-
-    // Clean hits (check duplicate hits, and energy threshold)
-    CleanedHits = CleanHits(RawHits);
-    // Require N hits after cleaning
-    if (RawHits.size() < nMinHits) return;
-
-  #ifdef DEBUG
-    std::cout << "Raw hits: " << RawHits.size() << std::endl;
-    std::cout << "Cleaned hits: " << CleanedHits.size() << std::endl;
-  #endif
-
-    // Hough transform
-    if (kTrackMethod == TrackMethod::kHough) {
-      // Do we first run clustering algorithm to separate hits, then hand off to A*?
-      if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
-        // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
-        std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
-        // Hand over each cluster from DBSCAN to a Hough transform
-        for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidates.begin(); it != DBScanCandidates.end(); ++it) {
-          std::vector<TMS_Hit> hits = *it;
-          std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits);
-          for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
-            HoughCandidates.emplace_back(std::move(*jt));
-          }
-        }
-      } else {
-        HoughCandidates = HoughTransform(CleanedHits);
-      }
-    } else if (kTrackMethod == TrackMethod::kAStar) {
-      BestFirstSearch(CleanedHits);
-    }
-
-    std::vector<TMS_Hit> Masked = CleanedHits;
-    // Loop over the Hough candidates
-    for (auto Lines: HoughCandidates) {
-  #ifdef DEBUG
-      std::cout << "Masked size bef: " << Masked.size() << std::endl;
-  #endif
-      MaskHits(Masked, Lines);
-  #ifdef DEBUG
-      std::cout << "Masked size aft: " << Masked.size() << std::endl;
-  #endif
-    }
-
-  #ifdef DEBUG
-    std::cout << "Masked hits: " << Masked.size() << std::endl;
-  #endif
-
-    // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
-    int lineno = 0;
-    //std::cout << "Event " << event.GetEventNumber() << std::endl;
-    for (auto Lines: HoughCandidates) {
-      //std::cout << "line  " << lineno << std::endl;
-      std::pair<bool, TF1*> houghline = HoughLines[lineno];
-      double slope, intercept = 0;
-      GetHoughLine(Lines, slope, intercept);
-      if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-          fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-        //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
-        //std::cout << "New slope: " << slope << std::endl;
-        //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
-        //std::cout << "New intercept: " << intercept << std::endl;
-
-        HoughLines[lineno].second->SetParameter(0, intercept);
-        HoughLines[lineno].second->SetParameter(1, slope);
-      }
-
-      // The number of hits in this track, take 20% and call upstream and dowstream segments
-      int nrescanhits = 0.3*Lines.size()+1;
-      // If there are only a few hits, use all of them
-      if (nrescanhits < 5) nrescanhits = Lines.size();
-      std::vector<TMS_Hit> upstream;
-      std::vector<TMS_Hit> downstream;
-      for (int i = 0; i < nrescanhits; ++i) {
-        upstream.push_back(Lines[Lines.size()-1-i]);
-        downstream.push_back(Lines[i]);
-        //std::cout << upstream.back().GetZ() << " " << downstream.back().GetZ() << std::endl;
-      }
-      //std::cout << "nhits: " << Lines.size() << std::endl;
-      //std::cout << nrescanhits << std::endl;
-      //std::cout << upstream.size() << std::endl;
-      //std::cout << downstream.size() << std::endl;
-
-      double upstreamslope, upstreamintercept = 0;
-      double downstreamslope, downstreamintercept = 0;
-      GetHoughLine(upstream, upstreamslope, upstreamintercept);
-      GetHoughLine(downstream, downstreamslope, downstreamintercept);
-
-      std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
-      std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
-
-      HoughLines_Upstream.push_back(upstreamline);
-      HoughLines_Downstream.push_back(downstreamline);
-
-      lineno++;
-    }
-
-    // Try finding some clusters after the Hough Transform
-    if (UseClustering) {
-      ClusterCandidates = FindClusters(Masked);
-    }
-
-    // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
-    //if (nLines > 0) {
-      //if (nLines == 1) Vertex =;
-      //else {
-      //}
-    //} else {
-      //Vertex = -999;
-    //}
-
-    // Now calculate the track length for each track
-    CalculateTrackLength();
-    CalculateTrackEnergy();
-
-    // For future probably want to move track candidates into the TMS_Event class
-    //EvaluateTrackFinding(event);
-
-    // Find if the event may have started outside the TMS
-    // Look at the first hits of each of the Hough lines
-    // Also check that the hits are continuous
-
-    // Skip the Kalman filter for now
-    return;
-
-    // Now have the TotalCandidates filled
-    // Start some reconstruction chain
-    for (auto &i : TotalCandidates) {
-      // Get the xz and yz hits
-      std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
-      size_t nHits = xz_hits.size();
-      if (nHits < 1) continue; 
-      KalmanFitter = TMS_Kalman(xz_hits);
-
-      /*
-         std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
-         std::cout << "yz hits: " << yz_hits.size() << std::endl;
-         KalmanFitter = TMS_Kalman(yz_hits);
-         */
-    }
-    
+  
+  double min_time = 1e9;
+  double max_time = -1e9;
+  int slice = event.GetSliceNumber();
+  for (auto hit : RawHits) {
+    if (hit.GetPedSup()) std::cout<<"Raw hits, found a ped supped hit in slice"<<std::endl;
+    min_time = std::min(min_time, hit.GetT());
+    max_time = std::max(max_time, hit.GetT());
   }
+  //if (max_time - min_time > (10000.0 / 52)) std::cout<<"In Reco RawHits, found a time range larger than expected: "<<(max_time - min_time)<<", min="<<min_time<<", max="<<max_time<<", slice="<<slice<<std::endl;
+
+  // Clean hits (check duplicate hits, and energy threshold)
+  CleanedHits = CleanHits(RawHits);
+  // Require N hits after cleaning
+  if (CleanedHits.size() < nMinHits) return;
+  
+  double clean_min_time = 1e9;
+  double clean_max_time = -1e9;
+  int n_in_slice = 0;
+  int n_in_wrong_slice = 0;
+  for (auto hit : CleanedHits) {
+    if (hit.GetPedSup()) std::cout<<"Cleaned hits, found a ped supped hit in slice"<<std::endl;
+    clean_min_time = std::min(clean_min_time, hit.GetT());
+    clean_max_time = std::max(clean_max_time, hit.GetT());
+    if (hit.GetSlice() == slice) n_in_slice += 1;
+    if (hit.GetSlice() != slice) n_in_wrong_slice += 1;
+  }
+  //if (clean_max_time - clean_min_time > (10000.0 / 52)) std::cout<<"In Reco CleanedHits, found a time range larger than expected: "<<(clean_max_time - clean_min_time)<<", min="<<clean_min_time<<", max="<<clean_max_time<<", slice="<<slice<<std::endl;
+  if (n_in_wrong_slice > 0) std::cout<<"Found "<<n_in_wrong_slice<<" in wrong slice and "<<n_in_slice<<" in correct slice for "<<slice<<std::endl;
+
+#ifdef DEBUG
+  std::cout << "Raw hits: " << RawHits.size() << std::endl;
+  std::cout << "Cleaned hits: " << CleanedHits.size() << std::endl;
+#endif
+
+  // Hough transform
+  if (kTrackMethod == TrackMethod::kHough) {
+    // Do we first run clustering algorithm to separate hits, then hand off to A*?
+    if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
+      // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
+      std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
+      // Hand over each cluster from DBSCAN to a Hough transform
+      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidates.begin(); it != DBScanCandidates.end(); ++it) {
+        std::vector<TMS_Hit> hits = *it;
+        std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits);
+        for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
+          HoughCandidates.emplace_back(std::move(*jt));
+        }
+      }
+    } else {
+      HoughCandidates = HoughTransform(CleanedHits);
+    }
+  } else if (kTrackMethod == TrackMethod::kAStar) {
+    BestFirstSearch(CleanedHits);
+  }
+
+  std::vector<TMS_Hit> Masked = CleanedHits;
+  // Loop over the Hough candidates
+  for (auto Lines: HoughCandidates) {
+#ifdef DEBUG
+    std::cout << "Masked size bef: " << Masked.size() << std::endl;
+#endif
+    MaskHits(Masked, Lines);
+#ifdef DEBUG
+    std::cout << "Masked size aft: " << Masked.size() << std::endl;
+#endif
+  }
+
+#ifdef DEBUG
+  std::cout << "Masked hits: " << Masked.size() << std::endl;
+#endif
+
+  // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
+  int lineno = 0;
+  //std::cout << "Event " << event.GetEventNumber() << std::endl;
+  for (auto Lines: HoughCandidates) {
+    //std::cout << "line  " << lineno << std::endl;
+    std::pair<bool, TF1*> houghline = HoughLines[lineno];
+    double slope, intercept = 0;
+    GetHoughLine(Lines, slope, intercept);
+    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
+        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+      //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
+      //std::cout << "New slope: " << slope << std::endl;
+      //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
+      //std::cout << "New intercept: " << intercept << std::endl;
+
+      HoughLines[lineno].second->SetParameter(0, intercept);
+      HoughLines[lineno].second->SetParameter(1, slope);
+    }
+
+    // The number of hits in this track, take 20% and call upstream and dowstream segments
+    int nrescanhits = 0.3*Lines.size()+1;
+    // If there are only a few hits, use all of them
+    if (nrescanhits < 5) nrescanhits = Lines.size();
+    std::vector<TMS_Hit> upstream;
+    std::vector<TMS_Hit> downstream;
+    for (int i = 0; i < nrescanhits; ++i) {
+      upstream.push_back(Lines[Lines.size()-1-i]);
+      downstream.push_back(Lines[i]);
+      //std::cout << upstream.back().GetZ() << " " << downstream.back().GetZ() << std::endl;
+    }
+    //std::cout << "nhits: " << Lines.size() << std::endl;
+    //std::cout << nrescanhits << std::endl;
+    //std::cout << upstream.size() << std::endl;
+    //std::cout << downstream.size() << std::endl;
+
+    double upstreamslope, upstreamintercept = 0;
+    double downstreamslope, downstreamintercept = 0;
+    GetHoughLine(upstream, upstreamslope, upstreamintercept);
+    GetHoughLine(downstream, downstreamslope, downstreamintercept);
+
+    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
+    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
+
+    HoughLines_Upstream.push_back(upstreamline);
+    HoughLines_Downstream.push_back(downstreamline);
+
+    lineno++;
+  }
+
+  // Try finding some clusters after the Hough Transform
+  if (UseClustering) {
+    ClusterCandidates = FindClusters(Masked);
+  }
+
+  // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
+  //if (nLines > 0) {
+    //if (nLines == 1) Vertex =;
+    //else {
+    //}
+  //} else {
+    //Vertex = -999;
+  //}
+
+  // Now calculate the track length for each track
+  CalculateTrackLength();
+  CalculateTrackEnergy();
+
+  // For future probably want to move track candidates into the TMS_Event class
+  //EvaluateTrackFinding(event);
+
+  // Find if the event may have started outside the TMS
+  // Look at the first hits of each of the Hough lines
+  // Also check that the hits are continuous
+
+  // Skip the Kalman filter for now
+  return;
+
+  // Now have the TotalCandidates filled
+  // Start some reconstruction chain
+  for (auto &i : TotalCandidates) {
+    // Get the xz and yz hits
+    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
+    size_t nHits = xz_hits.size();
+    if (nHits < 1) continue; 
+    KalmanFitter = TMS_Kalman(xz_hits);
+
+    /*
+       std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
+       std::cout << "yz hits: " << yz_hits.size() << std::endl;
+       KalmanFitter = TMS_Kalman(yz_hits);
+       */
+  }
+    
 
 }
 
@@ -1153,6 +1313,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
   std::vector<TMS_Hit> TMS_Hits_Cleaned;
   if (TMS_Hits.empty()) return TMS_Hits_Cleaned;
   TMS_Hits_Cleaned = TMS_Hits;
+  //  Clean hits has functional overlap with ped sup and merging hits steps, which are now done earlier
+  //return TMS_Hits_Cleaned; // TODO is this safe?
 
   // First sort in z so overlapping hits are next to each other in the arrays
   SpatialPrio(TMS_Hits_Cleaned);
