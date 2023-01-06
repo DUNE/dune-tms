@@ -57,6 +57,11 @@ class TMS_TreeWriter {
     
     int SliceNo;
     int SpillNo;
+    
+    int VertexIdOfMostEnergyInEvent;
+    float VisibleEnergyFromVertexInSlice;
+    float TotalVisibleEnergyFromVertex;
+    float VisibleEnergyFromOtherVerticesInSlice;
 
     float Slope[__TMS_MAX_LINES__];
     float Intercept[__TMS_MAX_LINES__];
@@ -123,6 +128,10 @@ class TMS_TreeWriter {
     std::string Reaction;
     int NeutrinoPDG;
     float NeutrinoP4[4];
+    float NeutrinoX4[4];
+    int LeptonPDG;
+    float LeptonP4[4];
+    float LeptonX4[4];
     float Muon_TrueTrackLength;
     bool IsCC;
 };

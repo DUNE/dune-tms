@@ -12,13 +12,17 @@
 // Essentially a copy of the edep-sim THit
 class TMS_TrueHit {
   public:
-    TMS_TrueHit(TG4HitSegment &edep_seg);
+    TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id);
 
     double GetX() const {return x;};
     double GetY() const {return y;};
     double GetZ() const {return z;};
     double GetT() const {return t;};
     double GetE() const {return EnergyDeposit; };
+    
+    int GetPrimaryId() const { return PrimaryId; };
+    int GetVertexId() const { return VertexId; };
+    void SetVertexId(int id) { VertexId = id; };
 
     void SetX(double pos) {x = pos;};
     void SetY(double pos) {y = pos;};
@@ -35,6 +39,7 @@ class TMS_TrueHit {
     double t;
     double EnergyDeposit;
     int PrimaryId;
+    int VertexId;
 };
 
 #endif

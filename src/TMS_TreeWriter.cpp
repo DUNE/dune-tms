@@ -114,11 +114,20 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("Interaction", &Reaction);
   Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
+  Truth_Info->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
+  Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
+  Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
+  Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
   Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
   Truth_Info->Branch("Muon_Death", Muon_Death, "Muon_Death[4]/F");
   Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
+  
+  Truth_Info->Branch("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
+  Truth_Info->Branch("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, "TotalVisibleEnergyFromVertex/F");
+  Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -141,7 +150,26 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
+  NeutrinoX4[0] = event.GetNeutrinoX4().X();
+  NeutrinoX4[1] = event.GetNeutrinoX4().Y();
+  NeutrinoX4[2] = event.GetNeutrinoX4().Z();
+  NeutrinoX4[3] = event.GetNeutrinoX4().T();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
+  // Lepton info
+  LeptonPDG = event.GetLeptonPDG();
+  LeptonP4[1] = event.GetLeptonP4().Y();
+  LeptonP4[2] = event.GetLeptonP4().Z();
+  LeptonP4[3] = event.GetLeptonP4().T();
+  LeptonX4[0] = event.GetLeptonX4().X();
+  LeptonX4[1] = event.GetLeptonX4().Y();
+  LeptonX4[2] = event.GetLeptonX4().Z();
+  LeptonX4[3] = event.GetLeptonX4().T();
+  
+  VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
+  VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
+  TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
+  VisibleEnergyFromOtherVerticesInSlice = event.GetVisibleEnergyFromOtherVerticesInSlice();
 
   //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
   Muon_TrueTrackLength = -999.99;
@@ -396,7 +424,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 void TMS_TreeWriter::Clear() {
 
   // Reset truth information
-  EventNo = nParticles = NeutrinoPDG = Muon_TrueKE = Muon_TrueTrackLength = -999;
+  EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
+  VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
@@ -404,6 +433,9 @@ void TMS_TreeWriter::Clear() {
     Muon_Vertex[i]=-999;
     Muon_Death[i]=-999;
     NeutrinoP4[i]=-999;
+    NeutrinoX4[i]=-999;
+    LeptonP4[i]=-999;
+    LeptonX4[i]=-999;
   }
 
   // Reset line information

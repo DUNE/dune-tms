@@ -104,10 +104,10 @@ int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
   // For now do the simplest thing and divide into N chunks
   int nsliceswithoneormorehit = 0;
   double spill_time = 10000; // ns
-  int n_slices_target = 52;
+  int n_slices_target = 1; //52;
   double dt = spill_time / n_slices_target; // ns
   auto hits = event.GetHitsRaw();
-  std::cout<<"Running time slicer with n="<<hits.size()<<std::endl;
+  //std::cout<<"Running time slicer with n="<<hits.size()<<std::endl;
   for (int slice_number = 1; slice_number <= n_slices_target; slice_number++) {
     double start_time = dt * (slice_number - 1);
     double end_time = dt * slice_number;
@@ -142,7 +142,7 @@ int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
   }
   // Need to explicitly change the raw hits in the event since we're not dealing with pointers
   event.SetHitsRaw(hits);
-  std::cout<<"Found "<<nslices<<" slices. "<<nsliceswithoneormorehit<<" have more than one hit."<<std::endl;
+  //std::cout<<"Found "<<nslices<<" slices. "<<nsliceswithoneormorehit<<" have more than one hit."<<std::endl;
   
   
   auto hits2 = event.GetHitsRaw();
@@ -154,7 +154,7 @@ int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
     if (hit.GetSlice() == 0) n_hits_inside_slice0 += 1;
     if (hit.GetSlice() == 0) std::cout<<"Hit in slice 0, T="<<hit.GetT()<<std::endl;
   }
-  std::cout<<"Found "<<n_hits_outside_slice0<<" hits with slice number != 0, and "<<n_hits_inside_slice0<<" inside slice 0"<<std::endl;
+  //std::cout<<"Found "<<n_hits_outside_slice0<<" hits with slice number != 0, and "<<n_hits_inside_slice0<<" inside slice 0"<<std::endl;
   
   
   event.SetNSlices(nslices);
@@ -168,19 +168,26 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
   
   
   bool RunTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
-  bool RunSimpleTimeSlicer = false; // TODO make this adjustable
+  bool RunSimpleTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunSimpleTimeSlicer();
   if (RunTimeSlicer && RunSimpleTimeSlicer) nslices = SimpleTimeSlicer(event);
   if (RunTimeSlicer && !RunSimpleTimeSlicer) {
     // Here are all the constants
-    double threshold1 = 10;
-    double threshold2 = 5;
-    int sliding_window_width = 10;
-    int minimum_slice_width = 10;
-    const int NUMBER_OF_SLICES = 10000;
-    const double SPILL_LENGTH = 10000;
-  
+    double threshold1 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdStart();
+    double threshold2 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdEnd();
+    int sliding_window_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerEnergyWindowInUnits();
+    int minimum_slice_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
+    const double SPILL_LENGTH = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMaxTime();
+    const double DT = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerSliceUnit();
+    const int NUMBER_OF_SLICES = std::ceil(SPILL_LENGTH / DT);
+    /*std::cout<<"threshold1 "<<threshold1<<std::endl;
+    std::cout<<"threshold2 "<<threshold2<<std::endl;
+    std::cout<<"sliding_window_width "<<sliding_window_width<<std::endl;
+    std::cout<<"minimum_slice_width "<<minimum_slice_width<<std::endl;
+    std::cout<<"SPILL_LENGTH "<<SPILL_LENGTH<<std::endl;
+    std::cout<<"DT "<<DT<<std::endl;
+    std::cout<<"NUMBER_OF_SLICES: "<<NUMBER_OF_SLICES<<std::endl;*/
+    
     // First initialize an array of energy and slice labels
-    const double DT = SPILL_LENGTH / NUMBER_OF_SLICES;
     double energy_slices[NUMBER_OF_SLICES];
     int time_slices[NUMBER_OF_SLICES];
     for (int i = 0; i < NUMBER_OF_SLICES; i++) {
@@ -209,7 +216,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       
       // Reached threshold to start making slice
       if (!in_slice && energy_in_window >= threshold1) { 
-        std::cout<<"Starting slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
+        //std::cout<<"Starting slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
         in_slice = true;
         minimum_index = i + minimum_slice_width;
       }
@@ -217,7 +224,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       // Reached below threshold then stop recording slice
       // But only if we reached minimum_index
       if (in_slice && energy_in_window < threshold2 && i > minimum_index) {
-        std::cout<<"Ending slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
+        //std::cout<<"Ending slice at i="<<i<<", energy_in_window="<<energy_in_window<<std::endl;
         in_slice = false;
         // Finish writing that window. 
         // So that time_slices[i:i+sliding_window_width-1] all are in slice_index
@@ -239,13 +246,25 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       for (int j = 0; i + j + sliding_window_width < NUMBER_OF_SLICES && j < sliding_window_width - 1; j++) 
         time_slices[i + j] = slice_index;
     }*/
-    nslices = slice_index - 1;
-    std::cout<<"Found "<<nslices<<" slices"<<std::endl;
-    double occupancy = 0;
-    for (int i = 0; i < NUMBER_OF_SLICES; i++) 
-      if (time_slices[i] != 0) occupancy += 1;
-    occupancy /= NUMBER_OF_SLICES;
-    std::cout<<occupancy<<" are in different slices"<<std::endl;
+    nslices = slice_index;
+    if (nslices > 0 && false) {
+      std::cout<<"Found "<<nslices<<" slices. ";//<<std::endl;
+      double occupancy = 0;
+      double energy_outside_slice_0 = 0;
+      double energy_total = 0;
+      for (int i = 0; i < NUMBER_OF_SLICES; i++) {
+        double energy = energy_slices[i];
+        if (time_slices[i] != 0) { 
+          occupancy += 1; 
+          energy_outside_slice_0 += energy;
+        }
+        energy_total += energy;
+      }
+      occupancy /= NUMBER_OF_SLICES;
+      std::cout<<occupancy<<" of time slice units have different slice labels. "; //<<std::endl;
+      double percent = 100 * energy_outside_slice_0 / energy_total;
+      std::cout<<percent<<"% of the energy"<<std::endl;
+    }
     
     // Finally assign hits based on slice
     std::vector<TMS_Hit> changed_hits;

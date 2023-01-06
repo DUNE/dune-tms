@@ -8,6 +8,7 @@ TMS_Event::TMS_Event() {
   SliceNumber = 0;
   SpillNumber = -999;
   nTrueTrajectories = -999;
+  VertexIdOfMostEnergyInEvent = -999;
   LightWeight = true;
 }
 
@@ -37,6 +38,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
+  VertexIdOfMostEnergyInEvent = -999;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -164,8 +166,17 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
   
+  // First create a mapping so we don't loop multiple times
+  std::map<int, int> mapping_track_to_vertex_id;
+  int vertex_index = 0;
+  for (auto vertex : event.Primaries) {
+    for (auto particle : vertex.Particles) {
+      int track_id = particle.GetTrackId();
+      mapping_track_to_vertex_id[track_id] = vertex_index;
+    }
+    vertex_index += 1;
+  } 
   
-
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
     // Only look at TMS hits
@@ -177,8 +188,13 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     TG4HitSegmentContainer tms_hits = (*jt).second;
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
-      TMS_Hit hit = TMS_Hit(edep_hit);
+      int track_id = edep_hit.GetPrimaryId();
+      int vertex_id = mapping_track_to_vertex_id[track_id];
+      TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
       TMS_Hits.push_back(std::move(hit));
+      
+      // todo, maybe skip for michel electrons or late neutrons
+      TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexId()] += hit.GetTrueHit().GetE();
 
       // Loop through the True Particle list and associate
       /*
@@ -202,6 +218,22 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   ApplyReconstructionEffects();
 
   EventCounter++;
+}
+
+TMS_Event::TMS_Event(TMS_Event &event, int slice) {
+  // Create an event from a slice of another event
+  TMS_Hits = event.GetHits(slice);
+  SliceNumber = slice;
+  SpillNumber = event.SpillNumber;
+  // Todo, did I copy everything
+  // Update event counter if slice != 0, and keep old event number for slice 0.
+  if (slice != 0) {
+    EventNumber = EventCounter;
+    EventCounter++;
+  }
+  else {
+    EventNumber = event.EventNumber;
+  }
 }
 
 void TMS_Event::MergeCoincidentHits() {
@@ -333,6 +365,96 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
+  
+}
+
+void TMS_Event::FillAdditionalTruthFromGRooTracker(double x4[__EDEP_SIM_MAX_PART__][4]) {
+
+  TrueNeutrinoPosition.SetX(x4[0][0]);
+  TrueNeutrinoPosition.SetY(x4[0][1]);
+  TrueNeutrinoPosition.SetZ(x4[0][2]);
+  TrueNeutrinoPosition.SetT(x4[0][3]);
+}
+
+void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum) {
+  TrueLeptonPDG = pdg;
+  TrueLeptonPosition = position;
+  TrueLeptonMomentum = momentum;
+}
+
+int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
+  // Return early if we've already calculated it
+  if (VertexIdOfMostEnergyInEvent >= 0) return VertexIdOfMostEnergyInEvent;
+
+  // Reset the map
+  TrueVisibleEnergyPerVertex.clear();
+  // First find how much energy is in each variable
+  for (auto hit : TMS_Hits) {
+    int vertex_id = hit.GetTrueHit().GetVertexId();
+    // todo, true or reco energy?
+    double energy = hit.GetTrueHit().GetE();
+    TrueVisibleEnergyPerVertex[vertex_id] += energy;
+  }
+  
+  // Now find the most energetic vertex
+  double max = -1e9;
+  int max_vertex_id = -999;
+  double total_energy = 0;
+  for (auto it : TrueVisibleEnergyPerVertex) {
+    double vertex = it.first;
+    double energy = it.second;
+    //std::cout<<"Vertex "<<vertex<<" has E: "<<energy<<std::endl;
+    if (energy > max) { max = energy; max_vertex_id = vertex; }
+    total_energy += energy;
+  }
+  VertexIdOfMostEnergyInEvent = max_vertex_id;
+  VisibleEnergyFromVertexInSlice = max;
+  VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
+  
+  return VertexIdOfMostEnergyInEvent;
+}
+
+void TMS_Event::FillTruthInformation(TG4Event &event) {
+  // First create a mapping so we don't loop twice
+  /*std::map<int, int> mapping;
+  int vertex_index = 0;
+  for (auto vertex : event.Primaries) {
+    for (auto particle : vertex.Particles) {
+      int track_id = particle.GetTrackId();
+      mapping[track_id] = vertex_index;
+    }
+    vertex_index += 1;
+  } 
+  
+  for (size_t i = 0; i < TMS_Hits.size(); i++) {
+    TMS_Hit hit = TMS_Hits[i];
+    int primary_id = hit.GetTrueHit().GetPrimaryId();
+    auto traj = event.Trajectories[primary_id];
+    int parent_id = traj.GetParentId();
+    // Keep going up the tree until you find the primary particle
+    while (parent_id >= 0) {
+      traj = event.Trajectories[parent_id];
+      primary_id = parent_id;
+      parent_id = traj.GetParentId();
+    }
+    int vertex_id = mapping[primary_id];
+    std::cout<<"primary_id: "<<primary_id<<", vertex id: "<<vertex_id<<std::endl;
+    if (vertex_id >= 0) {
+      hit.GetTrueHit().SetVertexId(vertex_id);
+    }
+  }*/
+  // TODO erase function
+  event.Primaries.begin();
+}
+
+std::pair<double, double> TMS_Event::GetEventTimeRange() {
+  double min_time = 1e9;
+  double max_time = -1e9;
+  for (auto hit : TMS_Hits) {
+    min_time = std::min(min_time, hit.GetT());
+    max_time = std::max(max_time, hit.GetT());
+  }
+  return std::make_pair(min_time, max_time);
 }
 
 void TMS_Event::Print() {
@@ -348,6 +470,10 @@ void TMS_Event::Print() {
   std::cout << "  N True unfiltered trajectories: " << nTrueTrajectories << std::endl;
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;
+  std::cout << "  Vertex ID of most energy: " << VertexIdOfMostEnergyInEvent << std::endl;
+  std::cout << "  Visible energy in slice: " << VisibleEnergyFromVertexInSlice << std::endl;
+  std::cout << "  Total visible energy: " << TotalVisibleEnergyFromVertex << std::endl;
+  std::cout << "  Other visible energy: " << VisibleEnergyFromOtherVerticesInSlice << std::endl;
 
   std::cout << "Printing primary particle stack: " << std::endl;
   int PartCount = 0;
