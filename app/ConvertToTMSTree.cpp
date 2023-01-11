@@ -128,42 +128,26 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     //std::cout<<"Ran time slicer"<<std::endl;
     for (int slice = 0; slice < nslices; slice++) {
-      std::cout<<"Processing slice "<<slice<<std::endl;
+      if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
       // First make an event based on the slice
       TMS_Event tms_event_slice = TMS_Event(tms_event, slice);
-      //tms_event_slice.SetEventNumber(event_counter);
-    
-      //auto slice_hits = tms_event.GetHits(slice);
-      //auto all_hits = tms_event.GetHits(-1);
-      //std::cout<<"Slice: "<<slice<<", N hits in slice: "<<slice_hits.size()<<", n hits total: "<<all_hits.size()<<std::endl;
-      /*double min_time = 1e9;
-      double max_time = -1e9;
-      for (auto hit : slice_hits) {
-        if (hit.GetPedSup()) std::cout<<"Found a ped supped hit in slice"<<std::endl;
-        min_time = std::min(min_time, hit.GetT());
-        max_time = std::max(max_time, hit.GetT());
-      }
-      if (max_time - min_time > (10000.0 / 52)) std::cout<<"Found a time range larger than expected: "<<(max_time - min_time)<<", min="<<min_time<<", max="<<max_time<<", slice="<<slice<<std::endl; */
-      //tms_event_slice.SetHitsRaw(slice_hits);
-      //tms_event_slice.SetSliceNumber(slice);
-      //std::cout<<"Made tms_event_slice"<<std::endl;
       
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
-      // TODO add back
-      if (false && gRoo && (slice != 0 || nslices == 1)) {
+      if (gRoo && (slice != 0 || nslices == 1)) {
         // First find the vertex which contributed most to the event
         // This also sets the slice specific variables
         int primary_vertex_id = tms_event_slice.GetVertexIdOfMostVisibleEnergy();
         if (primary_vertex_id >= 0) {
-          //std::cout<<"Got primary vertex id: "<<primary_vertex_id<<std::endl;
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
           
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
-          //std::cout<<"For slice "<<slice<<", found total visible energy of "<<tms_event_slice.GetTotalVisibleEnergyFromVertex()<<" for id "<<primary_vertex_id<<", compare to "<<tms_event_slice.GetVisibleEnergyFromVertexInSlice()<<std::endl;
-          //std::cout<<"N hits full: "<<tms_event.GetNHits()<<", N hits slice: "<<tms_event_slice.GetNHits()<<std::endl;
-          //std::cout<<"Set total visible energy"<<std::endl;
+          /*double visible_energy_from_vertex_in_slice = tms_event_slice.GetVisibleEnergyFromVertexInSlice();
+          double other_energy_in_slice = tms_event_slice.GetVisibleEnergyFromOtherVerticesInSlice();
+          std::cout<<"True visible energy "<<visible_energy_from_vertex<<" MeV for vertex id "<<primary_vertex_id<<std::endl;
+          std::cout<<"True visible energy "<<visible_energy_from_vertex_in_slice<<" MeV in slice "<<slice<<std::endl;
+          std::cout<<"Other energy "<<other_energy_in_slice<<" MeV in slice "<<std::endl;*/
           
           // Now set the remaining information from the gRoo tchain.
           auto primary_vertex = event->Primaries[primary_vertex_id];
@@ -171,7 +155,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
           gRoo->GetEntry(interaction_number);
           tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
           tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
-          //std::cout<<"Set truth info"<<std::endl;
           // And the lepton info
           int lepton_index = -1;
           int current_index = 0;
@@ -183,7 +166,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
             }
             current_index += 1;
           }
-          //std::cout<<"Found particle"<<std::endl;
           if (lepton_index >= 0) {
             auto lepton = primary_vertex.Particles[lepton_index];
             int lepton_pdg = lepton.GetPDGCode();
@@ -191,87 +173,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
             auto lepton_momentum = lepton.GetMomentum();
             tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
           }
-          //std::cout<<"Filled lepton truth info"<<std::endl;
         }
-        //std::cout<<"E vtx: "<<tms_event_slice.GetVisibleEnergyFromVertexInSlice()<<", E tot: "<<tms_event_slice.GetTotalVisibleEnergyFromVertex()<<", E other: "<<tms_event_slice.GetVisibleEnergyFromOtherVerticesInSlice()<<std::endl;
-      
-        /*
-        bool found_correct_primary = false;
-        auto time_range = tms_event_slice.GetEventTimeRange();
-        double min_time = time_range.first;
-        double max_time = time_range.second;
-        const double buffer = 5; // ns because reco and true time aren't always the same
-        int best_candidate = -999;
-        double best_time_score = 1e9;
-        for (TG4PrimaryVertexContainer::iterator it = event->Primaries.begin(); it != event->Primaries.end(); ++it) {
-          double time = it->GetPosition().T();
-          // Find neutrinos in slice
-          if (min_time - buffer <= time && time <= max_time + buffer) {
-            // Find event nearest to the front of the slice
-            double time_score = std::abs(time - min_time);
-            // todo, exclude NC events?
-            if (best_candidate == -999 || time_score < best_time_score) {
-              best_candidate = it - event->Primaries.begin();
-              best_time_score = time_score;
-            }
-          }
-        }
-        if (best_candidate != -999) {
-          int interaction_number = event->Primaries[best_candidate].GetInteractionNumber();
-          gRoo->GetEntry(interaction_number);
-          found_correct_primary = true;
-          //std::cout<<"For slice "<<slice<<", found best candidate interaction_number="<<interaction_number<<", score="<<best_time_score<<std::endl;
-        }
-        if (found_correct_primary) { 
-          tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
-          tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
-          auto primary_vertex = event->Primaries[best_candidate];
-          int lepton_index = -1;
-          int current_index = 0;
-          for (auto particle : primary_vertex.Particles) {
-            int pdg = std::abs(particle.GetPDGCode());
-            if (pdg >= 11 && pdg <= 16) {
-              lepton_index = current_index;
-              break;
-            }
-            current_index += 1;
-          }
-          if (lepton_index >= 0) {
-            auto lepton = primary_vertex.Particles[lepton_index];
-            int lepton_pdg = lepton.GetPDGCode();
-            auto lepton_position = primary_vertex.GetPosition();
-            auto lepton_momentum = lepton.GetMomentum();
-            tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
-            // Find all the energy associated with this vertex
-            double total_energy_in_slice = 0;
-            double total_energy_of_primary_neutrino_in_slice = 0;
-            double total_other_energy_in_slice = 0;
-            double total_energy_of_primary_neutrino = 0;
-            for (auto hit : all_hits) {
-              int slice_number = hit.GetSlice();
-              //int primary_id = hit.GetTrueHit().GetPrimaryId();
-              bool is_primary_neutrino = false;
-              int vertex_id = hit.GetTrueHit().GetVertexId();
-              if (vertex_id < 0) { std::cout<<"Found vertex id < 0: "<<vertex_id<<std::endl; exit(0); }
-              if (vertex_id == best_candidate) {
-                is_primary_neutrino = true;
-              }
-              if (slice_number == slice) { 
-                total_energy_in_slice += hit.GetE();
-                if (is_primary_neutrino) total_energy_of_primary_neutrino_in_slice += hit.GetE();
-                else total_other_energy_in_slice += hit.GetE();
-              }
-              if (is_primary_neutrino) total_energy_of_primary_neutrino += hit.GetE();
-              //hit.Print();
-            }
-            std::cout<<"Total energy in slice: "<<total_energy_in_slice<<std::endl;
-            std::cout<<"Total primary energy in slice: "<<total_energy_of_primary_neutrino_in_slice<<std::endl;
-            std::cout<<"Total other energy in slice: "<<total_other_energy_in_slice<<std::endl;
-            std::cout<<"Total energy of primary: "<<total_energy_of_primary_neutrino<<std::endl;
-            //if (total_energy_of_primary_neutrino_in_slice > 0) exit(0);
-          }
-          
-        } */
       }
       
       event_counter += 1;

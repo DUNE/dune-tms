@@ -62,6 +62,8 @@ class TMS_TreeWriter {
     float VisibleEnergyFromVertexInSlice;
     float TotalVisibleEnergyFromVertex;
     float VisibleEnergyFromOtherVerticesInSlice;
+    float VertexVisibleEnergyFractionInSlice;
+    float PrimaryVertexVisibleEnergyFraction;
 
     float Slope[__TMS_MAX_LINES__];
     float Intercept[__TMS_MAX_LINES__];

@@ -225,6 +225,13 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) {
   TMS_Hits = event.GetHits(slice);
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
+  
+  
+  nTrueTrajectories = -999;
+  VertexIdOfMostEnergyInEvent = -999;
+  LightWeight = true;
+  GetVertexIdOfMostVisibleEnergy();
+  
   // Todo, did I copy everything
   // Update event counter if slice != 0, and keep old event number for slice 0.
   if (slice != 0) {
@@ -313,6 +320,11 @@ void TMS_Event::SimulateTimingModel() {
   // Time skew from first PE to hit sensor
   // Optical fiber length delays (corrected to strip center)
   // Timing effects from random noise, cross talk, afterpulsing
+  
+  // Random electronic timing noise (~1ns or less)
+  // Optical fiber length delay (corrected to strip center) 
+  // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+  // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
