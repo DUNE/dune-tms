@@ -1,4 +1,5 @@
 #include "TMS_Event.h"
+#include <random>
 
 // Initialise the event counter to 0
 int TMS_Event::EventCounter = 0;
@@ -320,11 +321,67 @@ void TMS_Event::SimulateTimingModel() {
   // Time skew from first PE to hit sensor
   // Optical fiber length delays (corrected to strip center)
   // Timing effects from random noise, cross talk, afterpulsing
+  std::default_random_engine generator(1234 + EventNumber);
+  // TODO check constants or put in config  
+  std::normal_distribution<double> noise_distribution(0.0, 1); // Mean of 0.0 and standard deviation of 1ns
+  std::uniform_int_distribution<int> coin_flip(0, 1); // 0 or 1 depending on if you went long or short
+  std::exponential_distribution<double> exp_scint(1 / 3.0); // Decay time = 3ns for scintillator
+  std::exponential_distribution<double> exp_wsf(1 / 20.0); // 20ns for wavelength shifting fiber
+  const double SPEED_OF_LIGHT =  0.2998; // m/ns
+  const double FIBER_N = 1.5; // 
+  const double SPEED_OF_LIGHT_IN_FIBER = SPEED_OF_LIGHT / FIBER_N;
   
-  // Random electronic timing noise (~1ns or less)
-  // Optical fiber length delay (corrected to strip center) 
-  // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
-  // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
+  //double avg = 0;
+  //double maxy = -1e9;
+  //double miny = 1e9;
+  //int n = 0;
+  for (auto& hit : TMS_Hits) {
+    double t = 0;
+    // Random electronic timing noise (~1ns or less)
+    t += noise_distribution(generator);
+    // Optical fiber length delay (corrected to strip center) 
+    // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+    double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    //miny = std::min(miny, true_y);
+    //maxy = std::max(maxy, true_y);
+    // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
+    // TODO manually found this center. Want a better way in case things change
+    double distance_from_middle = -1.54799 - true_y; 
+    //avg += distance_from_middle;
+    //n += 1;
+    //double distance_from_middle = 0; 
+    // Find the time correction
+    double time_correction = distance_from_middle / SPEED_OF_LIGHT_IN_FIBER;
+    // This is the time correction if you go the long way instead
+    double long_way_distance = distance_from_middle + 8;
+    double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
+    // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
+    double pe = hit.GetPE();
+    double minimum_time_offset = 1e100;
+    while (pe > 0) {
+      // Light can either go the directly to the readout or go the long way first.
+      // TODO this should be synchronized with the optical model to account for additional loss the long way
+      int direction = coin_flip(generator);
+      double time_offset = time_correction;
+      if (direction == 1) time_offset = time_correction_long_way;
+      time_offset += exp_scint(generator);
+      time_offset += exp_wsf(generator);
+      minimum_time_offset = std::min(time_offset, minimum_time_offset);
+      pe -= 1;
+    }
+    t += minimum_time_offset;
+    double hit_time = hit.GetT();
+    //std::cout<<"dt: "<<t<<", hit t: "<<hit_time<<", reco t: "<<hit_time + t<<", min t offset: "<<minimum_time_offset<<", t corr: "<<time_correction<<", dist from middle: "<<distance_from_middle<<", long way t corr: "<<time_correction_long_way<<", long way dist: "<<long_way_distance<<", hit pe: "<<hit.GetPE()<<std::endl;
+    //std::cout<<"Hit time: "<<hit_time<<std::endl;
+    //std::cout<<"Adjusted hit time: "<<hit_time + t<<std::endl;
+    // Finally set the time
+    hit.SetT(hit_time + t);
+  }
+  //avg /= n;
+  //std::cout<<"Avg middle: "<<avg<<std::endl;
+  /*std::cout<<"Max y: "<<maxy<<std::endl;
+  std::cout<<"Min y: "<<miny<<std::endl;
+  std::cout<<"Center y: "<<0.5*(maxy - miny)<<std::endl;*/
 }
 
 void TMS_Event::ApplyReconstructionEffects() {

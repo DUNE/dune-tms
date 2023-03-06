@@ -93,7 +93,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       gRoo->GetEntry(i);
 
 #ifndef DEBUG
-    if (i % (N_entries/10) == 0) {
+    if (N_entries <= 10 || i % (N_entries/10) == 0) {
 #endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
