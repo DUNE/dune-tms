@@ -75,7 +75,6 @@ class TMS_Event {
     
     std::pair<double, double> GetEventTimeRange();
     
-    void FillTruthInformation(TG4Event &event);
     std::map<int, double>& GetTrueVisibleEnergyPerVertex() { return TrueVisibleEnergyPerVertex; };
     
     void SetTotalVisibleEnergyFromVertex(double energy) { TotalVisibleEnergyFromVertex = energy; };

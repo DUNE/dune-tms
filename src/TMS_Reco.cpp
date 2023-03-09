@@ -179,13 +179,6 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     const double SPILL_LENGTH = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMaxTime();
     const double DT = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerSliceUnit();
     const int NUMBER_OF_SLICES = std::ceil(SPILL_LENGTH / DT);
-    /*std::cout<<"threshold1 "<<threshold1<<std::endl;
-    std::cout<<"threshold2 "<<threshold2<<std::endl;
-    std::cout<<"sliding_window_width "<<sliding_window_width<<std::endl;
-    std::cout<<"minimum_slice_width "<<minimum_slice_width<<std::endl;
-    std::cout<<"SPILL_LENGTH "<<SPILL_LENGTH<<std::endl;
-    std::cout<<"DT "<<DT<<std::endl;
-    std::cout<<"NUMBER_OF_SLICES: "<<NUMBER_OF_SLICES<<std::endl;*/
     
     // First initialize an array of energy and slice labels
     double energy_slices[NUMBER_OF_SLICES];
@@ -241,11 +234,6 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       }
     }
     // Write out the remaining slices
-    /*if (in_slice) {
-      int i = NUMBER_OF_SLICES - sliding_window_width;
-      for (int j = 0; i + j + sliding_window_width < NUMBER_OF_SLICES && j < sliding_window_width - 1; j++) 
-        time_slices[i + j] = slice_index;
-    }*/
     nslices = slice_index;
     if (nslices > 0 && false) {
       std::cout<<"Found "<<nslices<<" slices. ";//<<std::endl;

@@ -44,11 +44,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   int StdHepPdg[__EDEP_SIM_MAX_PART__];
   double StdHepP4[__EDEP_SIM_MAX_PART__][4];
   double StdHepX4[__EDEP_SIM_MAX_PART__][4];
-  //gRoo->Show(0);
-  //gRoo->Show(1);
-  //events->Show(0);
-  //events->Show(1);
-  //exit(0);
   if (gRoo){
     gRoo->SetBranchStatus("*", false);
     gRoo->SetBranchStatus("StdHepPdg", true);
@@ -103,7 +98,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
-      //tms_event.FillTruthInformation(*event);
     }
 
     // Keep filling up the vector and move on to the next event
@@ -143,11 +137,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
           
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
-          /*double visible_energy_from_vertex_in_slice = tms_event_slice.GetVisibleEnergyFromVertexInSlice();
-          double other_energy_in_slice = tms_event_slice.GetVisibleEnergyFromOtherVerticesInSlice();
-          std::cout<<"True visible energy "<<visible_energy_from_vertex<<" MeV for vertex id "<<primary_vertex_id<<std::endl;
-          std::cout<<"True visible energy "<<visible_energy_from_vertex_in_slice<<" MeV in slice "<<slice<<std::endl;
-          std::cout<<"Other energy "<<other_energy_in_slice<<" MeV in slice "<<std::endl;*/
           
           // Now set the remaining information from the gRoo tchain.
           auto primary_vertex = event->Primaries[primary_vertex_id];

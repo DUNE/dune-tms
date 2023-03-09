@@ -483,39 +483,6 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   return VertexIdOfMostEnergyInEvent;
 }
 
-void TMS_Event::FillTruthInformation(TG4Event &event) {
-  // First create a mapping so we don't loop twice
-  /*std::map<int, int> mapping;
-  int vertex_index = 0;
-  for (auto vertex : event.Primaries) {
-    for (auto particle : vertex.Particles) {
-      int track_id = particle.GetTrackId();
-      mapping[track_id] = vertex_index;
-    }
-    vertex_index += 1;
-  } 
-  
-  for (size_t i = 0; i < TMS_Hits.size(); i++) {
-    TMS_Hit hit = TMS_Hits[i];
-    int primary_id = hit.GetTrueHit().GetPrimaryId();
-    auto traj = event.Trajectories[primary_id];
-    int parent_id = traj.GetParentId();
-    // Keep going up the tree until you find the primary particle
-    while (parent_id >= 0) {
-      traj = event.Trajectories[parent_id];
-      primary_id = parent_id;
-      parent_id = traj.GetParentId();
-    }
-    int vertex_id = mapping[primary_id];
-    std::cout<<"primary_id: "<<primary_id<<", vertex id: "<<vertex_id<<std::endl;
-    if (vertex_id >= 0) {
-      hit.GetTrueHit().SetVertexId(vertex_id);
-    }
-  }*/
-  // TODO erase function
-  event.Primaries.begin();
-}
-
 std::pair<double, double> TMS_Event::GetEventTimeRange() {
   double min_time = 1e9;
   double max_time = -1e9;
