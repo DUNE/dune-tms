@@ -23,7 +23,7 @@ class TMS_Hit {
   public:
     void Print() const;
     // The constructor for the TMS hit
-    TMS_Hit(TG4HitSegment &edep_seg);
+    TMS_Hit(TG4HitSegment &edep_seg, int vertex_id);
 
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
@@ -41,9 +41,14 @@ class TMS_Hit {
     // A helper function to determine if a hit is close to a gap
     bool NextToGap();
 
-    // Sort by increasing Z
+    // Sort by increasing T
     static bool SortByT(TMS_Hit &a, TMS_Hit &b) {
       return ( a.GetT() < b.GetT() );
+    }
+    // Sort by increasing Z
+    static bool SortByZThenT(TMS_Hit &a, TMS_Hit &b) {
+      if ( a.GetBar().GetPlaneNumber() == b.GetBar().GetPlaneNumber() ) return a.GetT() < b.GetT();
+      return ( a.GetBar().GetPlaneNumber() < b.GetBar().GetPlaneNumber() );
     }
 
     // The true hit
@@ -54,9 +59,18 @@ class TMS_Hit {
 
     void SetE(double E) {EnergyDeposit = E;};
     void SetT(double t) {Time = t;};
+    
+    void SetPedSup(bool isPedSup) { PedSuppressed = isPedSup;};
+    bool GetPedSup() { return PedSuppressed; };
+    
+    void SetPE(double pe) { PE = pe; };
+    double GetPE() { return PE; };
 
     double GetE() const {return EnergyDeposit;};
     double GetT() const {return Time;};
+    
+    void SetSlice(int slice) { Slice = slice; };
+    int GetSlice() { return Slice; };
 
     double GetX() const { return Bar.GetX(); };
     double GetY() const { return Bar.GetY(); };
@@ -81,6 +95,12 @@ class TMS_Hit {
     double EnergyDeposit;
     // The timing of the hit
     double Time;
+    
+    int Slice;
+    
+    
+    bool PedSuppressed;
+    double PE;
 };
 
 inline bool operator==(const TMS_Hit &a, const TMS_Hit &b) {

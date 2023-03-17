@@ -31,6 +31,9 @@ namespace TMS_Const {
   // Roughly the minimum energy that can be detected (MeV)
   const double TMS_EnThres = 0.1;
   //const double TMS_EnThres = 1;
+  
+  // The conversion factor from 1 MeV to 1 PE. 
+  const double TMS_EtoPE = 1000.0 / 20.0;
 
   // Number of planes, check against geometry
   const int TMS_nThinPlanes = 40;

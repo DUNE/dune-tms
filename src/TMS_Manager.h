@@ -48,8 +48,18 @@ class TMS_Manager {
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
+    
+    bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
+    bool Get_Reco_TIME_RunSimpleTimeSlicer() { return _RECO_TIME_RunSimpleTimeSlicer; };
+    double Get_RECO_TIME_TimeSlicerThresholdStart() { return _RECO_TIME_TimeSlicerThresholdStart; };
+    double Get_RECO_TIME_TimeSlicerThresholdEnd() { return _RECO_TIME_TimeSlicerThresholdEnd; };
+    double Get_RECO_TIME_TimeSlicerSliceUnit() { return _RECO_TIME_TimeSlicerSliceUnit; };
+    int Get_RECO_TIME_TimeSlicerEnergyWindowInUnits() { return _RECO_TIME_TimeSlicerEnergyWindowInUnits; };
+    int Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits() { return _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits; };
+    double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
+    int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
   private:
     TMS_Manager();
@@ -88,8 +98,18 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
+    
+    bool _RECO_TIME_RunTimeSlicer;
+    bool _RECO_TIME_RunSimpleTimeSlicer;
+    double _RECO_TIME_TimeSlicerThresholdStart;
+    double _RECO_TIME_TimeSlicerThresholdEnd;
+    double _RECO_TIME_TimeSlicerSliceUnit;
+    int _RECO_TIME_TimeSlicerEnergyWindowInUnits;
+    int _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits;
+    double _RECO_TIME_TimeSlicerMaxTime;
 
     bool _APPLICATIONS_DrawPDF;
+    int _APPLICATIONS_MaximumNEvents;
 };
 
 #endif

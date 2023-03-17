@@ -50,6 +50,8 @@ TMS_TreeWriter::TMS_TreeWriter() {
 void TMS_TreeWriter::MakeBranches() {
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
+  Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
+  Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
   Branch_Lines->Branch("nLines",  &nLines,  "nLines/I");
 
   Branch_Lines->Branch("Slope",     Slope,      "Slope[nLines]/F");
@@ -68,9 +70,14 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("FirstHoughHit", FirstHit, "FirstHoughHit[nLines][2]/F");
   Branch_Lines->Branch("LastHoughHit",  LastHit,  "LastHoughHit[nLines][2]/F");
+  Branch_Lines->Branch("FirstHoughHitTime", FirstHitTime, "FirstHoughHitTime[nLines]/F");
+  Branch_Lines->Branch("LastHoughHitTime", LastHitTime, "LastHoughHitTime[nLines]/F");
+  Branch_Lines->Branch("HoughEarliestHitTime", EarliestHitTime, "HoughEarliestHitTime[nLines]/F");
+  Branch_Lines->Branch("HoughLatestHitTime", LatestHitTime, "HoughLatestHitTime[nLines]/F");
   Branch_Lines->Branch("FirstHoughPlane", FirstPlane, "FirstHoughPlane[nLines]/I");
   Branch_Lines->Branch("LastHoughPlane",  LastPlane,  "LastHoughPlane[nLines]/I");
   Branch_Lines->Branch("TMSStart",    &TMSStart, "TMSStart/O");
+  Branch_Lines->Branch("TMSStartTime",    &TMSStartTime, "TMSStartTime/F");
   Branch_Lines->Branch("Occupancy",   Occupancy, "Occupancy[nLines]/F");
   Branch_Lines->Branch("TrackLength",       TrackLength,      "TrackLength[nLines]/F");
   Branch_Lines->Branch("TotalTrackEnergy",  TotalTrackEnergy, "TotalTrackEnergy[nLines]/F");
@@ -80,20 +87,25 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHitsInTrack",    &nHitsInTrack,  "nHitsInTrack[nLines]/I");
   Branch_Lines->Branch("TrackHitEnergy",  TrackHitEnergy, "TrackHitEnergy[10][200]/F");
   Branch_Lines->Branch("TrackHitPos",     TrackHitPos,    "TrackHitPos[10][200][2]/F");
+  Branch_Lines->Branch("TrackHitTime",    TrackHitTime,   "TrackHitTime[10][200]/F");
 
   // Cluster information
   Branch_Lines->Branch("nClusters",       &nClusters,       "nClusters/I");
   Branch_Lines->Branch("ClusterEnergy",   ClusterEnergy,    "ClusterEnergy[nClusters]/F");
+  Branch_Lines->Branch("ClusterTime",   ClusterTime,    "ClusterTime[nClusters]/F");
   Branch_Lines->Branch("ClusterPosMean",  ClusterPosMean,   "ClusterPosMean[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDev",ClusterPosStdDev, "ClusterPosStdDev[25][2]/F");
   Branch_Lines->Branch("nHitsInCluster",  nHitsInCluster,   "nHitsInCluster[nClusters]/I");
   Branch_Lines->Branch("ClusterHitPos",   ClusterHitPos,    "ClusterHitPos[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergy",ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTime",  ClusterHitTime,   "ClusterHitTime[25][200]/F");
+  Branch_Lines->Branch("ClusterHitSlice", ClusterHitSlice, "ClusterHitSlice[25][200]/I");
 
   // Hit information
   Branch_Lines->Branch("nHits", &nHits, "nHits/I");
-  Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[1000][4]/F");
-  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[1000]/F");
+  Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[nHits][4]/F");
+  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitSlice", RecoHitSlice, "RecoHitSlice[nHits]/I");
 
   // Truth information
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
@@ -102,11 +114,22 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("Interaction", &Reaction);
   Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
+  Truth_Info->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
+  Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
+  Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
+  Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
   Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
   Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
   Truth_Info->Branch("Muon_Death", Muon_Death, "Muon_Death[4]/F");
   Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
+  
+  Truth_Info->Branch("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
+  Truth_Info->Branch("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, "TotalVisibleEnergyFromVertex/F");
+  Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
+  Truth_Info->Branch("VertexVisibleEnergyFractionInSlice", &VertexVisibleEnergyFractionInSlice, "VertexVisibleEnergyFractionInSlice/F");
+  Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction", &PrimaryVertexVisibleEnergyFraction, "PrimaryVertexVisibleEnergyFraction/F");
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -120,6 +143,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill the truth info
   EventNo = event.GetEventNumber();
+  SliceNo = event.GetSliceNumber();
+  SpillNo = event.GetSpillNumber();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -127,7 +152,28 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
+  NeutrinoX4[0] = event.GetNeutrinoX4().X();
+  NeutrinoX4[1] = event.GetNeutrinoX4().Y();
+  NeutrinoX4[2] = event.GetNeutrinoX4().Z();
+  NeutrinoX4[3] = event.GetNeutrinoX4().T();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
+  // Lepton info
+  LeptonPDG = event.GetLeptonPDG();
+  LeptonP4[1] = event.GetLeptonP4().Y();
+  LeptonP4[2] = event.GetLeptonP4().Z();
+  LeptonP4[3] = event.GetLeptonP4().T();
+  LeptonX4[0] = event.GetLeptonX4().X();
+  LeptonX4[1] = event.GetLeptonX4().Y();
+  LeptonX4[2] = event.GetLeptonX4().Z();
+  LeptonX4[3] = event.GetLeptonX4().T();
+  
+  VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
+  VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
+  TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
+  VisibleEnergyFromOtherVerticesInSlice = event.GetVisibleEnergyFromOtherVerticesInSlice();
+  VertexVisibleEnergyFractionInSlice = VisibleEnergyFromVertexInSlice / TotalVisibleEnergyFromVertex;
+  PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromVertexInSlice / (VisibleEnergyFromOtherVerticesInSlice + VisibleEnergyFromVertexInSlice);
 
   //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
   Muon_TrueTrackLength = -999.99;
@@ -224,6 +270,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Find where the first hough hit is
   TMSStart = false;
+  TMSStartTime = -9999.0;
 
   std::vector<std::vector<TMS_Hit> > HoughCands = TMS_TrackFinder::GetFinder().GetHoughCandidates();
   int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
@@ -245,20 +292,34 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     FirstPlane[it] = Candidates.front().GetPlaneNumber();
     FirstHit[it][0] = Candidates.front().GetZ();
     FirstHit[it][1] = Candidates.front().GetNotZ();
+    FirstHitTime[it] = Candidates.front().GetT();
 
     LastPlane[it] = Candidates.back().GetPlaneNumber();
     LastHit[it][0] = Candidates.back().GetZ();
     LastHit[it][1] = Candidates.back().GetNotZ();
+    LastHitTime[it] = Candidates.back().GetT();
 
     TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
     TotalTrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
     Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+    
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
     for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergy[it][j] = Candidates[j].GetE();
+      TrackHitTime[it][j] = Candidates[j].GetT();
       TrackHitPos[it][j][0] = Candidates[j].GetZ();
       TrackHitPos[it][j][1] = Candidates[j].GetNotZ();
+      
+      float time = Candidates[j].GetT();
+      
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
     }
+    EarliestHitTime[it] = earliest_hit_time;
+    LatestHitTime[it] = latest_hit_time;
+    
 
     double maxenergy = 0;
     unsigned int nLastHits_temp = nLastHits;
@@ -272,9 +333,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     it++;
   }
+  
 
   // Was the first hit within the first 3 layers?
   if (FirstTrack != NULL) {
+    TMSStartTime = FirstTrack->GetT();
     if (FirstTrack->GetPlaneNumber() < 4) TMSStart = false;
     else TMSStart = true;
   }
@@ -301,6 +364,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     // Mean of square of cluster in z and not z
     double mean2_z = 0;
     double mean2_notz = 0;
+    double min_cluster_time = 1e10;
     int nhits = (*it).size();
     for (int j = 0; j < nhits; ++j) {
       mean_z += (*it)[j].GetZ();
@@ -308,9 +372,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
       mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
       total_energy += (*it)[j].GetE();
+      float time = (*it)[j].GetT();
+      if (time < min_cluster_time) min_cluster_time = time;
       ClusterHitPos[stdit][j][0] = (*it)[j].GetZ();
       ClusterHitPos[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergy[stdit][j] = (*it)[j].GetE();
+      ClusterHitTime[stdit][j] = (*it)[j].GetT();
+      ClusterHitSlice[stdit][j] = (*it)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -319,6 +387,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     mean2_notz /= nhits;
 
     ClusterEnergy[stdit] = total_energy;
+    ClusterTime[stdit] = min_cluster_time;
     nHitsInCluster[stdit] = nhits;
     ClusterPosMean[stdit][0] = mean_z;
     ClusterPosMean[stdit][1] = mean_notz;
@@ -348,6 +417,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
   // Fill up the info only if all above has passed
@@ -358,7 +428,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 void TMS_TreeWriter::Clear() {
 
   // Reset truth information
-  EventNo = nParticles = NeutrinoPDG = Muon_TrueKE = Muon_TrueTrackLength = -999;
+  EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
+  VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
@@ -366,6 +437,9 @@ void TMS_TreeWriter::Clear() {
     Muon_Vertex[i]=-999;
     Muon_Death[i]=-999;
     NeutrinoP4[i]=-999;
+    NeutrinoX4[i]=-999;
+    LeptonP4[i]=-999;
+    LeptonX4[i]=-999;
   }
 
   // Reset line information

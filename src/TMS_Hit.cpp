@@ -3,12 +3,15 @@
 // The constructor for a hit in the TMS, from a edep-sim hit
 
 // Set the bar and truehit
-TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg) : 
-  TrueHit(edep_seg), 
+TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) : 
+  TrueHit(edep_seg, vertex_id), 
   Bar(edep_seg),
   EnergyDeposit(edep_seg.GetEnergyDeposit()),
   // Define time as the average between start and stop of hit
-  Time((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2) {
+  Time((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2), 
+  Slice(0), 
+  PedSuppressed(false), 
+  PE(edep_seg.GetEnergyDeposit() * TMS_Const::TMS_EtoPE) {
 
   // The true particle
   //TrueParticle = TMS_TrueParticle(edep_seg);
