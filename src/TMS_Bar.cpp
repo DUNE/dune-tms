@@ -40,7 +40,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // cd up in the geometry to find the right name
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
+  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
 
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
