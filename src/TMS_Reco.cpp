@@ -156,7 +156,6 @@ int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
   }
   //std::cout<<"Found "<<n_hits_outside_slice0<<" hits with slice number != 0, and "<<n_hits_inside_slice0<<" inside slice 0"<<std::endl;
   
-  
   event.SetNSlices(nslices);
   return nslices;
 }
@@ -327,121 +326,122 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
         for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
           HoughCandidates.emplace_back(std::move(*jt));
         }
+      } else {
+        HoughCandidates = HoughTransform(CleanedHits);
       }
-    } else {
-      HoughCandidates = HoughTransform(CleanedHits);
-    }
-  } else if (kTrackMethod == TrackMethod::kAStar) {
-    BestFirstSearch(CleanedHits);
-  }
-
-  std::vector<TMS_Hit> Masked = CleanedHits;
-  // Loop over the Hough candidates
-  for (auto Lines: HoughCandidates) {
-#ifdef DEBUG
-    std::cout << "Masked size bef: " << Masked.size() << std::endl;
-#endif
-    MaskHits(Masked, Lines);
-#ifdef DEBUG
-    std::cout << "Masked size aft: " << Masked.size() << std::endl;
-#endif
-  }
-
-#ifdef DEBUG
-  std::cout << "Masked hits: " << Masked.size() << std::endl;
-#endif
-
-  // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
-  int lineno = 0;
-  //std::cout << "Event " << event.GetEventNumber() << std::endl;
-  for (auto Lines: HoughCandidates) {
-    //std::cout << "line  " << lineno << std::endl;
-    std::pair<bool, TF1*> houghline = HoughLines[lineno];
-    double slope, intercept = 0;
-    GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-      //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
-      //std::cout << "New slope: " << slope << std::endl;
-      //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
-      //std::cout << "New intercept: " << intercept << std::endl;
-
-      HoughLines[lineno].second->SetParameter(0, intercept);
-      HoughLines[lineno].second->SetParameter(1, slope);
+    } else if (kTrackMethod == TrackMethod::kAStar) {
+      BestFirstSearch(CleanedHits);
     }
 
-    // The number of hits in this track, take 20% and call upstream and dowstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
-    // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
-    std::vector<TMS_Hit> upstream;
-    std::vector<TMS_Hit> downstream;
-    for (int i = 0; i < nrescanhits; ++i) {
-      upstream.push_back(Lines[Lines.size()-1-i]);
-      downstream.push_back(Lines[i]);
-      //std::cout << upstream.back().GetZ() << " " << downstream.back().GetZ() << std::endl;
+    std::vector<TMS_Hit> Masked = CleanedHits;
+    // Loop over the Hough candidates
+    for (auto Lines: HoughCandidates) {
+  #ifdef DEBUG
+      std::cout << "Masked size bef: " << Masked.size() << std::endl;
+  #endif
+      MaskHits(Masked, Lines);
+  #ifdef DEBUG
+      std::cout << "Masked size aft: " << Masked.size() << std::endl;
+  #endif
     }
-    //std::cout << "nhits: " << Lines.size() << std::endl;
-    //std::cout << nrescanhits << std::endl;
-    //std::cout << upstream.size() << std::endl;
-    //std::cout << downstream.size() << std::endl;
 
-    double upstreamslope, upstreamintercept = 0;
-    double downstreamslope, downstreamintercept = 0;
-    GetHoughLine(upstream, upstreamslope, upstreamintercept);
-    GetHoughLine(downstream, downstreamslope, downstreamintercept);
+  #ifdef DEBUG
+    std::cout << "Masked hits: " << Masked.size() << std::endl;
+  #endif
 
-    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
-    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
+    // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
+    int lineno = 0;
+    //std::cout << "Event " << event.GetEventNumber() << std::endl;
+    for (auto Lines: HoughCandidates) {
+      //std::cout << "line  " << lineno << std::endl;
+      std::pair<bool, TF1*> houghline = HoughLines[lineno];
+      double slope, intercept = 0;
+      GetHoughLine(Lines, slope, intercept);
+      if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
+          fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+        //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
+        //std::cout << "New slope: " << slope << std::endl;
+        //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
+        //std::cout << "New intercept: " << intercept << std::endl;
 
-    HoughLines_Upstream.push_back(upstreamline);
-    HoughLines_Downstream.push_back(downstreamline);
+        HoughLines[lineno].second->SetParameter(0, intercept);
+        HoughLines[lineno].second->SetParameter(1, slope);
+      }
 
-    lineno++;
-  }
+      // The number of hits in this track, take 20% and call upstream and dowstream segments
+      int nrescanhits = 0.3*Lines.size()+1;
+      // If there are only a few hits, use all of them
+      if (nrescanhits < 5) nrescanhits = Lines.size();
+      std::vector<TMS_Hit> upstream;
+      std::vector<TMS_Hit> downstream;
+      for (int i = 0; i < nrescanhits; ++i) {
+        upstream.push_back(Lines[Lines.size()-1-i]);
+        downstream.push_back(Lines[i]);
+        //std::cout << upstream.back().GetZ() << " " << downstream.back().GetZ() << std::endl;
+      }
+      //std::cout << "nhits: " << Lines.size() << std::endl;
+      //std::cout << nrescanhits << std::endl;
+      //std::cout << upstream.size() << std::endl;
+      //std::cout << downstream.size() << std::endl;
 
-  // Try finding some clusters after the Hough Transform
-  if (UseClustering) {
-    ClusterCandidates = FindClusters(Masked);
-  }
+      double upstreamslope, upstreamintercept = 0;
+      double downstreamslope, downstreamintercept = 0;
+      GetHoughLine(upstream, upstreamslope, upstreamintercept);
+      GetHoughLine(downstream, downstreamslope, downstreamintercept);
 
-  // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
-  //if (nLines > 0) {
-    //if (nLines == 1) Vertex =;
-    //else {
+      std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
+      std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
+
+      HoughLines_Upstream.push_back(upstreamline);
+      HoughLines_Downstream.push_back(downstreamline);
+
+      lineno++;
+    }
+
+    // Try finding some clusters after the Hough Transform
+    if (UseClustering) {
+      ClusterCandidates = FindClusters(Masked);
+    }
+
+    // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
+    //if (nLines > 0) {
+      //if (nLines == 1) Vertex =;
+      //else {
+      //}
+    //} else {
+      //Vertex = -999;
     //}
-  //} else {
-    //Vertex = -999;
-  //}
 
-  // Now calculate the track length for each track
-  CalculateTrackLength();
-  CalculateTrackEnergy();
+    // Now calculate the track length for each track
+    CalculateTrackLength();
+    CalculateTrackEnergy();
 
-  // For future probably want to move track candidates into the TMS_Event class
-  //EvaluateTrackFinding(event);
+    // For future probably want to move track candidates into the TMS_Event class
+    //EvaluateTrackFinding(event);
 
-  // Find if the event may have started outside the TMS
-  // Look at the first hits of each of the Hough lines
-  // Also check that the hits are continuous
+    // Find if the event may have started outside the TMS
+    // Look at the first hits of each of the Hough lines
+    // Also check that the hits are continuous
 
-  // Skip the Kalman filter for now
-  return;
+    // Skip the Kalman filter for now
+    return;
 
-  // Now have the TotalCandidates filled
-  // Start some reconstruction chain
-  for (auto &i : TotalCandidates) {
-    // Get the xz and yz hits
-    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
-    size_t nHits = xz_hits.size();
-    if (nHits < 1) continue; 
-    KalmanFitter = TMS_Kalman(xz_hits);
+    // Now have the TotalCandidates filled
+    // Start some reconstruction chain
+    for (auto &i : TotalCandidates) {
+      // Get the xz and yz hits
+      std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
+      size_t nHits = xz_hits.size();
+      if (nHits < 1) continue; 
+      KalmanFitter = TMS_Kalman(xz_hits);
 
-    /*
-       std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
-       std::cout << "yz hits: " << yz_hits.size() << std::endl;
-       KalmanFitter = TMS_Kalman(yz_hits);
-       */
+      /*
+         std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
+         std::cout << "yz hits: " << yz_hits.size() << std::endl;
+         KalmanFitter = TMS_Kalman(yz_hits);
+         */
+    }
+    
   }
     
 

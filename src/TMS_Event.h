@@ -26,8 +26,10 @@ class TMS_Event {
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
+
     std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
     void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
+
     // Reconstructed tracks
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
@@ -55,6 +57,7 @@ class TMS_Event {
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
+
     TLorentzVector GetNeutrinoX4() { return TrueNeutrinoPosition; };
     int GetLeptonPDG() { return TrueLeptonPDG; };
     TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
@@ -115,6 +118,7 @@ class TMS_Event {
 
     // Saves the event number for a constructed event
     int EventNumber;
+
     int SliceNumber;
     
     int NSlices;

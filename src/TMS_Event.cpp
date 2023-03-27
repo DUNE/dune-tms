@@ -189,6 +189,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     TG4HitSegmentContainer tms_hits = (*jt).second;
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
+
       int track_id = edep_hit.GetPrimaryId();
       int vertex_id = mapping_track_to_vertex_id[track_id];
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
@@ -279,6 +280,7 @@ void TMS_Event::MergeCoincidentHits() {
         (*it).SetT(std::min(t, t2));
         duplicates.push_back(jt);
       }
+
     }
     // Now flag the duplicates for removal
     for (int i = duplicates.size() - 1; i >= 0; i--) {
@@ -293,6 +295,7 @@ void TMS_Event::MergeCoincidentHits() {
     if (!hit.GetPedSup()) remaining_hits.push_back(hit);
     else deleted_hits.push_back(hit);
   }
+
   TMS_Hits.clear();
   for (auto hit : remaining_hits) TMS_Hits.push_back(hit);
   deleted_hits.erase(deleted_hits.begin(), deleted_hits.end());
@@ -321,6 +324,7 @@ void TMS_Event::SimulateTimingModel() {
   // Time skew from first PE to hit sensor
   // Optical fiber length delays (corrected to strip center)
   // Timing effects from random noise, cross talk, afterpulsing
+
   std::default_random_engine generator(1234 + EventNumber);
   // TODO check constants or put in config  
   std::normal_distribution<double> noise_distribution(0.0, 1); // Mean of 0.0 and standard deviation of 1ns
@@ -398,7 +402,7 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
   for (auto hit : TMS_Hits) {
     if (!hit.GetPedSup() || include_ped_sup) {
       int slice_number = hit.GetSlice();
-      //std::cout<<"Slice number for hit: "<<slice_number<<std::endl;
+
       if (slice_number == slice || slice < 0) out.push_back(hit);
     }
   }
