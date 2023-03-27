@@ -54,6 +54,16 @@ class TMS_TreeWriter {
     // The variables
     int EventNo;
     int nLines;
+    
+    int SliceNo;
+    int SpillNo;
+    
+    int VertexIdOfMostEnergyInEvent;
+    float VisibleEnergyFromVertexInSlice;
+    float TotalVisibleEnergyFromVertex;
+    float VisibleEnergyFromOtherVerticesInSlice;
+    float VertexVisibleEnergyFractionInSlice;
+    float PrimaryVertexVisibleEnergyFraction;
 
     float Slope[__TMS_MAX_LINES__];
     float Intercept[__TMS_MAX_LINES__];
@@ -103,11 +113,13 @@ class TMS_TreeWriter {
     float ClusterHitPos[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
     float ClusterHitEnergy[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
     float ClusterHitTime[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    int ClusterHitSlice[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
 
     // Reco information
     int nHits; // How many hits in event
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
+    int RecoHitSlice[__TMS_MAX_HITS__];
 
     // Truth information
     float MuonP4[4];
@@ -118,6 +130,10 @@ class TMS_TreeWriter {
     std::string Reaction;
     int NeutrinoPDG;
     float NeutrinoP4[4];
+    float NeutrinoX4[4];
+    int LeptonPDG;
+    float LeptonP4[4];
+    float LeptonX4[4];
     float Muon_TrueTrackLength;
     bool IsCC;
 };

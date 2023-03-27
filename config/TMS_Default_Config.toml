@@ -4,7 +4,7 @@
 # Recon parameter constants
 [Recon]
   # Minimum number of hits to consider reconstructing the event
-  MinHits = 3
+  MinHits = 5
 
   # Track reco; Hough, AStar, DBSCAN
   TrackMethod = "Hough"
@@ -60,6 +60,17 @@
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not
     
+  [Recon.Time]
+    RunTimeSlicer = true # Whether to run a time slicer
+    TimeSlicerThresholdStart = 10.0 # The minimum window energy to start a slice
+    TimeSlicerThresholdEnd = 5.0 # The window energy to end a slice
+    SliceUnit = 1.0 # ns, the algorithm splits an array into TimeSlicerMaxTime/SliceUnit chunks. Each array represents 1 SliceUnit of time
+    TimeSlicerEnergyWindowInUnits = 10 # units, so 10*1ns unit = 10ns window
+    TimeSlicerMinimumSliceWidthInUnits = 19 # units, the minimum width of a slice in time
+    TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
+    RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
+    
+    
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
 [Truth]
@@ -68,3 +79,4 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
+  MaximumNEvents = -1

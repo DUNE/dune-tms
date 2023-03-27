@@ -1,11 +1,15 @@
 #include "TMS_Event.h"
+#include <random>
 
 // Initialise the event counter to 0
 int TMS_Event::EventCounter = 0;
 
 TMS_Event::TMS_Event() {
   EventNumber = -999;
+  SliceNumber = 0;
+  SpillNumber = -999;
   nTrueTrajectories = -999;
+  VertexIdOfMostEnergyInEvent = -999;
   LightWeight = true;
 }
 
@@ -19,7 +23,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = false;
+  bool OnlyPrimary = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   /*
   if (LightWeight) {
@@ -32,7 +36,10 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
+  SliceNumber = 0;
+  SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
+  VertexIdOfMostEnergyInEvent = -999;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -160,8 +167,17 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
   
+  // First create a mapping so we don't loop multiple times
+  std::map<int, int> mapping_track_to_vertex_id;
+  int vertex_index = 0;
+  for (auto vertex : event.Primaries) {
+    for (auto particle : vertex.Particles) {
+      int track_id = particle.GetTrackId();
+      mapping_track_to_vertex_id[track_id] = vertex_index;
+    }
+    vertex_index += 1;
+  } 
   
-
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
     // Only look at TMS hits
@@ -173,8 +189,14 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     TG4HitSegmentContainer tms_hits = (*jt).second;
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
-      TMS_Hit hit = TMS_Hit(edep_hit);
+
+      int track_id = edep_hit.GetPrimaryId();
+      int vertex_id = mapping_track_to_vertex_id[track_id];
+      TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
       TMS_Hits.push_back(std::move(hit));
+      
+      // todo, maybe skip for michel electrons or late neutrons
+      TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexId()] += hit.GetTrueHit().GetE();
 
       // Loop through the True Particle list and associate
       /*
@@ -198,6 +220,29 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   ApplyReconstructionEffects();
 
   EventCounter++;
+}
+
+TMS_Event::TMS_Event(TMS_Event &event, int slice) {
+  // Create an event from a slice of another event
+  TMS_Hits = event.GetHits(slice);
+  SliceNumber = slice;
+  SpillNumber = event.SpillNumber;
+  
+  
+  nTrueTrajectories = -999;
+  VertexIdOfMostEnergyInEvent = -999;
+  LightWeight = true;
+  GetVertexIdOfMostVisibleEnergy();
+  
+  // Todo, did I copy everything
+  // Update event counter if slice != 0, and keep old event number for slice 0.
+  if (slice != 0) {
+    EventNumber = EventCounter;
+    EventCounter++;
+  }
+  else {
+    EventNumber = event.EventNumber;
+  }
 }
 
 void TMS_Event::MergeCoincidentHits() {
@@ -235,6 +280,7 @@ void TMS_Event::MergeCoincidentHits() {
         (*it).SetT(std::min(t, t2));
         duplicates.push_back(jt);
       }
+
     }
     // Now flag the duplicates for removal
     for (int i = duplicates.size() - 1; i >= 0; i--) {
@@ -249,6 +295,7 @@ void TMS_Event::MergeCoincidentHits() {
     if (!hit.GetPedSup()) remaining_hits.push_back(hit);
     else deleted_hits.push_back(hit);
   }
+
   TMS_Hits.clear();
   for (auto hit : remaining_hits) TMS_Hits.push_back(hit);
   deleted_hits.erase(deleted_hits.begin(), deleted_hits.end());
@@ -277,6 +324,68 @@ void TMS_Event::SimulateTimingModel() {
   // Time skew from first PE to hit sensor
   // Optical fiber length delays (corrected to strip center)
   // Timing effects from random noise, cross talk, afterpulsing
+
+  std::default_random_engine generator(1234 + EventNumber);
+  // TODO check constants or put in config  
+  std::normal_distribution<double> noise_distribution(0.0, 1); // Mean of 0.0 and standard deviation of 1ns
+  std::uniform_int_distribution<int> coin_flip(0, 1); // 0 or 1 depending on if you went long or short
+  std::exponential_distribution<double> exp_scint(1 / 3.0); // Decay time = 3ns for scintillator
+  std::exponential_distribution<double> exp_wsf(1 / 20.0); // 20ns for wavelength shifting fiber
+  const double SPEED_OF_LIGHT =  0.2998; // m/ns
+  const double FIBER_N = 1.5; // 
+  const double SPEED_OF_LIGHT_IN_FIBER = SPEED_OF_LIGHT / FIBER_N;
+  
+  //double avg = 0;
+  //double maxy = -1e9;
+  //double miny = 1e9;
+  //int n = 0;
+  for (auto& hit : TMS_Hits) {
+    double t = 0;
+    // Random electronic timing noise (~1ns or less)
+    t += noise_distribution(generator);
+    // Optical fiber length delay (corrected to strip center) 
+    // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+    double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    //miny = std::min(miny, true_y);
+    //maxy = std::max(maxy, true_y);
+    // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
+    // TODO manually found this center. Want a better way in case things change
+    double distance_from_middle = -1.54799 - true_y; 
+    //avg += distance_from_middle;
+    //n += 1;
+    //double distance_from_middle = 0; 
+    // Find the time correction
+    double time_correction = distance_from_middle / SPEED_OF_LIGHT_IN_FIBER;
+    // This is the time correction if you go the long way instead
+    double long_way_distance = distance_from_middle + 8;
+    double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
+    // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
+    double pe = hit.GetPE();
+    double minimum_time_offset = 1e100;
+    while (pe > 0) {
+      // Light can either go the directly to the readout or go the long way first.
+      // TODO this should be synchronized with the optical model to account for additional loss the long way
+      int direction = coin_flip(generator);
+      double time_offset = time_correction;
+      if (direction == 1) time_offset = time_correction_long_way;
+      time_offset += exp_scint(generator);
+      time_offset += exp_wsf(generator);
+      minimum_time_offset = std::min(time_offset, minimum_time_offset);
+      pe -= 1;
+    }
+    t += minimum_time_offset;
+    double hit_time = hit.GetT();
+    //std::cout<<"dt: "<<t<<", hit t: "<<hit_time<<", reco t: "<<hit_time + t<<", min t offset: "<<minimum_time_offset<<", t corr: "<<time_correction<<", dist from middle: "<<distance_from_middle<<", long way t corr: "<<time_correction_long_way<<", long way dist: "<<long_way_distance<<", hit pe: "<<hit.GetPE()<<std::endl;
+    //std::cout<<"Hit time: "<<hit_time<<std::endl;
+    //std::cout<<"Adjusted hit time: "<<hit_time + t<<std::endl;
+    // Finally set the time
+    hit.SetT(hit_time + t);
+  }
+  //avg /= n;
+  //std::cout<<"Avg middle: "<<avg<<std::endl;
+  /*std::cout<<"Max y: "<<maxy<<std::endl;
+  std::cout<<"Min y: "<<miny<<std::endl;
+  std::cout<<"Center y: "<<0.5*(maxy - miny)<<std::endl;*/
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
@@ -293,6 +402,7 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
   for (auto hit : TMS_Hits) {
     if (!hit.GetPedSup() || include_ped_sup) {
       int slice_number = hit.GetSlice();
+
       if (slice_number == slice || slice < 0) out.push_back(hit);
     }
   }
@@ -328,6 +438,63 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
+  
+}
+
+void TMS_Event::FillAdditionalTruthFromGRooTracker(double x4[__EDEP_SIM_MAX_PART__][4]) {
+
+  TrueNeutrinoPosition.SetX(x4[0][0]);
+  TrueNeutrinoPosition.SetY(x4[0][1]);
+  TrueNeutrinoPosition.SetZ(x4[0][2]);
+  TrueNeutrinoPosition.SetT(x4[0][3]);
+}
+
+void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum) {
+  TrueLeptonPDG = pdg;
+  TrueLeptonPosition = position;
+  TrueLeptonMomentum = momentum;
+}
+
+int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
+  // Return early if we've already calculated it
+  if (VertexIdOfMostEnergyInEvent >= 0) return VertexIdOfMostEnergyInEvent;
+
+  // Reset the map
+  TrueVisibleEnergyPerVertex.clear();
+  // First find how much energy is in each variable
+  for (auto hit : TMS_Hits) {
+    int vertex_id = hit.GetTrueHit().GetVertexId();
+    // todo, true or reco energy?
+    double energy = hit.GetTrueHit().GetE();
+    TrueVisibleEnergyPerVertex[vertex_id] += energy;
+  }
+  
+  // Now find the most energetic vertex
+  double max = -1e9;
+  int max_vertex_id = -999;
+  double total_energy = 0;
+  for (auto it : TrueVisibleEnergyPerVertex) {
+    double vertex = it.first;
+    double energy = it.second;
+    //std::cout<<"Vertex "<<vertex<<" has E: "<<energy<<std::endl;
+    if (energy > max) { max = energy; max_vertex_id = vertex; }
+    total_energy += energy;
+  }
+  VertexIdOfMostEnergyInEvent = max_vertex_id;
+  VisibleEnergyFromVertexInSlice = max;
+  VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
+  
+  return VertexIdOfMostEnergyInEvent;
+}
+
+std::pair<double, double> TMS_Event::GetEventTimeRange() {
+  double min_time = 1e9;
+  double max_time = -1e9;
+  for (auto hit : TMS_Hits) {
+    min_time = std::min(min_time, hit.GetT());
+    max_time = std::max(max_time, hit.GetT());
+  }
+  return std::make_pair(min_time, max_time);
 }
 
 void TMS_Event::Print() {
@@ -343,6 +510,10 @@ void TMS_Event::Print() {
   std::cout << "  N True unfiltered trajectories: " << nTrueTrajectories << std::endl;
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;
+  std::cout << "  Vertex ID of most energy: " << VertexIdOfMostEnergyInEvent << std::endl;
+  std::cout << "  Visible energy in slice: " << VisibleEnergyFromVertexInSlice << std::endl;
+  std::cout << "  Total visible energy: " << TotalVisibleEnergyFromVertex << std::endl;
+  std::cout << "  Other visible energy: " << VisibleEnergyFromOtherVerticesInSlice << std::endl;
 
   std::cout << "Printing primary particle stack: " << std::endl;
   int PartCount = 0;

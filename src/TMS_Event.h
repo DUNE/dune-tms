@@ -18,6 +18,7 @@
 class TMS_Event {
   public:
     TMS_Event(TG4Event &event, bool FillEvent = true);
+    TMS_Event(TMS_Event &event, int slice);
     TMS_Event();
     //~TMS_Event();
 
@@ -25,6 +26,10 @@ class TMS_Event {
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
+
+    std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
+    void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
+
     // Reconstructed tracks
     //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
     // The true particles
@@ -39,19 +44,48 @@ class TMS_Event {
     bool IsEmpty() { 
       return (TMS_Hits.size() == 0 ? true : false);
     }
+    
+    int GetNHits() { return TMS_Hits.size(); };
 
     int GetEventNumber() { return EventNumber; };
+    //void SetEventNumber(int num) { EventNumber = num; };
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
     void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
+    void FillAdditionalTruthFromGRooTracker(double x4[100][4]);
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
+
+    TLorentzVector GetNeutrinoX4() { return TrueNeutrinoPosition; };
+    int GetLeptonPDG() { return TrueLeptonPDG; };
+    TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
+    TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
+    
+    void FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum);
     
     int GetNSlices() { return NSlices; }; 
     void SetNSlices(int n) { NSlices = n; };
-
+    
+    int GetSliceNumber() { return SliceNumber; };
+    void SetSliceNumber(int slice) { SliceNumber = slice; };
+    
+    int GetSpillNumber() { return SpillNumber; };
+    void SetSpillNumber(int spill) { SpillNumber = spill; };
+    
+    void SortHits(bool(*comp)(TMS_Hit& a, TMS_Hit& b)) { std::sort(TMS_Hits.begin(), TMS_Hits.end(), comp); };
+    
+    std::pair<double, double> GetEventTimeRange();
+    
+    std::map<int, double>& GetTrueVisibleEnergyPerVertex() { return TrueVisibleEnergyPerVertex; };
+    
+    void SetTotalVisibleEnergyFromVertex(double energy) { TotalVisibleEnergyFromVertex = energy; };
+    int GetVertexIdOfMostVisibleEnergy();
+    double GetVisibleEnergyFromVertexInSlice() { return VisibleEnergyFromVertexInSlice; };
+    double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
+    double GetVisibleEnergyFromOtherVerticesInSlice() { return VisibleEnergyFromOtherVerticesInSlice; };
+    
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
@@ -84,11 +118,24 @@ class TMS_Event {
 
     // Saves the event number for a constructed event
     int EventNumber;
+
+    int SliceNumber;
     
     int NSlices;
+    int SpillNumber;
 
     // Saves down the true Neutrino information from the gRooTracker passthrough (not available in edep-sim or G4)
     std::pair<TLorentzVector,int> TrueNeutrino;
+    TLorentzVector TrueNeutrinoPosition;
+    int TrueLeptonPDG;
+    TLorentzVector TrueLeptonPosition;
+    TLorentzVector TrueLeptonMomentum;
+    std::map<int, double> TrueVisibleEnergyPerVertex;
+    
+    int VertexIdOfMostEnergyInEvent;
+    double VisibleEnergyFromVertexInSlice;
+    double TotalVisibleEnergyFromVertex;
+    double VisibleEnergyFromOtherVerticesInSlice;
 };
 
 #endif

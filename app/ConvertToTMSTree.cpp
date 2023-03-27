@@ -43,12 +43,15 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Get the true neutrino vector from the gRooTracker object
   int StdHepPdg[__EDEP_SIM_MAX_PART__];
   double StdHepP4[__EDEP_SIM_MAX_PART__][4];
+  double StdHepX4[__EDEP_SIM_MAX_PART__][4];
   if (gRoo){
     gRoo->SetBranchStatus("*", false);
     gRoo->SetBranchStatus("StdHepPdg", true);
     gRoo->SetBranchStatus("StdHepP4", true);
+    gRoo->SetBranchStatus("StdHepX4", true);
     gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
     gRoo->SetBranchAddress("StdHepP4", StdHepP4);
+    gRoo->SetBranchAddress("StdHepX4", StdHepX4);
   }
   // The global manager
   TMS_Manager::GetInstance().SetFileName(filename);
@@ -57,6 +60,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   int N_entries = events->GetEntries();
+  const int max_n_events_config = TMS_Manager::GetInstance().Get_MaximumNEvents();
+  if (max_n_events_config >= 0 && max_n_events_config < N_entries) N_entries = max_n_events_config;
+  
+  int event_counter = 0;
 
   bool DrawPDF = TMS_Manager::GetInstance().Get_DrawPDF();
 
@@ -76,11 +83,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   for (; i < N_entries; ++i) {
     events->GetEntry(i);
+    // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
       gRoo->GetEntry(i);
 
 #ifndef DEBUG
-    if (i % (N_entries/10) == 0) {
+    if (N_entries <= 10 || i % (N_entries/10) == 0) {
 #endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
@@ -108,17 +116,72 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Dump information
     //tms_event.Print();
 
-    // Try finding some tracks
-    TMS_TrackFinder::GetFinder().FindTracks(tms_event);
+    // Calculate the mapping between vertex ID and visible energy for the primary event
+    tms_event.GetVertexIdOfMostVisibleEnergy();
+
+    int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    //std::cout<<"Ran time slicer"<<std::endl;
+    for (int slice = 0; slice < nslices; slice++) {
+      if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
+      // First make an event based on the slice
+      TMS_Event tms_event_slice = TMS_Event(tms_event, slice);
+      
+      // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
+      if (gRoo && (slice != 0 || nslices == 1)) {
+        // First find the vertex which contributed most to the event
+        // This also sets the slice specific variables
+        int primary_vertex_id = tms_event_slice.GetVertexIdOfMostVisibleEnergy();
+        if (primary_vertex_id >= 0) {
+          // Now find out how much that true vertex contributed in general
+          auto map = tms_event.GetTrueVisibleEnergyPerVertex();
+          
+          double visible_energy_from_vertex = map[primary_vertex_id];
+          tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
+          
+          // Now set the remaining information from the gRoo tchain.
+          auto primary_vertex = event->Primaries[primary_vertex_id];
+          int interaction_number = primary_vertex.GetInteractionNumber();
+          gRoo->GetEntry(interaction_number);
+          tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+          tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
+          // And the lepton info
+          int lepton_index = -1;
+          int current_index = 0;
+          for (auto particle : primary_vertex.Particles) {
+            int pdg = std::abs(particle.GetPDGCode());
+            if (pdg >= 11 && pdg <= 16) {
+              lepton_index = current_index;
+              break;
+            }
+            current_index += 1;
+          }
+          if (lepton_index >= 0) {
+            auto lepton = primary_vertex.Particles[lepton_index];
+            int lepton_pdg = lepton.GetPDGCode();
+            auto lepton_position = primary_vertex.GetPosition();
+            auto lepton_momentum = lepton.GetMomentum();
+            tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
+          }
+        }
+      }
+      
+      event_counter += 1;
+      int spill_number = i;
+      tms_event_slice.SetSpillNumber(spill_number);
+      
+      // Try finding some tracks
+      TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 
 #ifdef DUNEANAOBJ_ENABLED
-    caf::SRTMS srtms = TMS_Utils::ConvertEvent();
+      caf::SRTMS srtms = TMS_Utils::ConvertEvent();
 #endif
+      //tms_event_slice.Print();
 
-    // View it
-    if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event);
-    // Write it
-    TMS_TreeWriter::GetWriter().Fill(tms_event);
+      // View it
+      if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event_slice);
+      // Write it
+      TMS_TreeWriter::GetWriter().Fill(tms_event_slice);
+    }
   } // End loop over all the events
 
   Timer.Stop();

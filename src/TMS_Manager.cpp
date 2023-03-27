@@ -18,6 +18,15 @@ TMS_Manager::TMS_Manager() {
 
   // The minimum hits needed to run reconstruction
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
+  
+  _RECO_TIME_RunTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunTimeSlicer");
+  _RECO_TIME_RunSimpleTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunSimpleTimeSlicer");
+  _RECO_TIME_TimeSlicerThresholdStart = toml::find<double>(data, "Recon", "Time", "TimeSlicerThresholdStart");
+  _RECO_TIME_TimeSlicerThresholdEnd = toml::find<double>(data, "Recon", "Time", "TimeSlicerThresholdEnd");
+  _RECO_TIME_TimeSlicerSliceUnit = toml::find<double>(data, "Recon", "Time", "SliceUnit");
+  _RECO_TIME_TimeSlicerEnergyWindowInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerEnergyWindowInUnits");
+  _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
+  _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
 
   _RECO_DBSCAN_MinPoints = toml::find<int>(data, "Recon", "DBSCAN", "MinPoints");
   _RECO_DBSCAN_Epsilon = toml::find<double>(data, "Recon", "DBSCAN", "Epsilon");
@@ -47,4 +56,6 @@ TMS_Manager::TMS_Manager() {
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
+  
+  _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
 }

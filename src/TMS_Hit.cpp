@@ -3,8 +3,8 @@
 // The constructor for a hit in the TMS, from a edep-sim hit
 
 // Set the bar and truehit
-TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg) : 
-  TrueHit(edep_seg), 
+TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) : 
+  TrueHit(edep_seg, vertex_id), 
   Bar(edep_seg),
   EnergyDeposit(edep_seg.GetEnergyDeposit()),
   // Define time as the average between start and stop of hit

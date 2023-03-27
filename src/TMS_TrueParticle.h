@@ -73,6 +73,7 @@ class TMS_TrueParticle {
     int GetPDG() { return PDG; };
     int GetParent() { return Parent; };
     int GetTrackId() { return TrackId; };
+    int GetVertexID() { return VertexID; };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
