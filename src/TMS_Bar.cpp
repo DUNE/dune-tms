@@ -37,11 +37,10 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // The position of the hit bar
   double Translation[] = {0., 0., 0.};
-  
+
   // cd up in the geometry to find the right name
-  // Sometimes the node name can be "volWorld_1", so check for that too. Otherwise it gets stuck in an infinite loop.
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
 
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
