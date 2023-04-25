@@ -33,7 +33,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
   // Find which node this position is equivalent too
-  std::string NodeName = std::string(geom->FindNode(xval,yval,zval)->GetName());
+  std::string NodeName = std::string(TMS_Geom::GetInstance().FindNode(xval,yval,zval)->GetName());
 
   // The position of the hit bar
   double Translation[] = {0., 0., 0.};
@@ -57,6 +57,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       xw = 2*box->GetDX();
       yw = 2*box->GetDY();
       zw = 2*box->GetDZ();
+      TMS_Geom::GetInstance().Scale(xw, yw, zw);
 
       // Do a sanity check (CHEATING!)
       // Know the bars are 1cm in z and 3.542cm in x
@@ -68,6 +69,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       }
 
       for (int i = 0; i < 3; ++i) Translation[i] = geom->GetCurrentMatrix()->GetTranslation()[i];
+      TMS_Geom::GetInstance().Scale(Translation[0], Translation[1], Translation[2]);
     }
 
     else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
@@ -118,7 +120,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   }
 
   // Reset the geom navigator node level in case it's used again
-  geom->FindNode(xval,yval,zval);
+  TMS_Geom::GetInstance().FindNode(xval,yval,zval);
 
   // Update the bar number
   BarNumber = (GetX()-TMS_Const::TMS_Start_Exact[0])/GetXw();
@@ -135,7 +137,7 @@ int TMS_Bar::FindBar(double x, double y, double z) {
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
   // Find which node this position is equivalent too
-  geom->FindNode(x,y,z);
+  TMS_Geom::GetInstance().FindNode(x,y,z);
   TGeoNavigator *nav = geom->GetCurrentNavigator();
   std::string NodeName = std::string(nav->GetCurrentNode()->GetName());
   // cd up in the geometry to find the right name

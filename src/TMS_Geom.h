@@ -8,6 +8,7 @@
 #include "TGeoManager.h"
 
 #include "TVector3.h"
+#include "TGeoBBox.h"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
@@ -46,16 +47,76 @@ class TMS_Geom {
     // Set the geometry
     void SetGeometry(TGeoManager *geometry) {
       geom = geometry;
-      std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
       geom->LockGeometry();
+      
+      // There's an overall scale factor depending on if the gmdl was loaded with cm or mm. 
+      // So here we're trying to automatically figure out the scale factor
+      // If the geometry changes too much, then this would not work and so we'd want to give up.
+      TGeoBBox *box = dynamic_cast<TGeoBBox*>(geom->GetTopVolume()->GetShape());
+      double dx = 2*box->GetDX();
+      if (dx == 600000) ScaleFactor = 1;
+      else if (dx == 60000) ScaleFactor = 10;
+      else {
+       std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
+       throw;
+      }
+      std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
+      std::cout << "Geometry scale factor: " << ScaleFactor;
+      std::cout << ". Factor is 1 if 1 unit = 1mm (aka edep sim), 10 if 1 unit = 1cm (aka larsoft)." << std::endl;
     }
 
     void SetFileName(std::string filename) {
       FileName = filename;
     }
+    
+    inline void Scale(double &x, double &y, double &z) {
+      x *= ScaleFactor;
+      y *= ScaleFactor;
+      z *= ScaleFactor;
+    }
+    
+    inline double Scale(double val) {
+      return val * ScaleFactor;
+    }
+    
+    TVector3 Scale(TVector3 point) {
+      double x = point.X();
+      double y = point.Y();
+      double z = point.Z();
+      Scale(x, y, z);
+      TVector3 out(x, y, z);
+      return out;
+    }
+    
+    inline void Unscale(double &x, double &y, double &z) {
+      x /= ScaleFactor;
+      y /= ScaleFactor;
+      z /= ScaleFactor;
+    }
+    
+    inline double Unscale(double val) {
+      return val / ScaleFactor;
+    }
+    
+    TVector3 Unscale(TVector3 point) {
+      double x = point.X();
+      double y = point.Y();
+      double z = point.Z();
+      Unscale(x, y, z);
+      TVector3 out(x, y, z);
+      return out;
+    }
+    
+    TGeoNode* FindNode(double x, double y, double z) {
+      Unscale(x, y, z);
+      return geom->FindNode(x, y, z);
+    }
 
     // Largely modlled on TGeoChecker::ShootRay in ROOT (except there's a stopping point, not an infinitely long ray)
-    std::vector<std::pair<TGeoMaterial*, double> > GetMaterials(const TVector3 &point1, const TVector3 &point2) {
+    std::vector<std::pair<TGeoMaterial*, double> > GetMaterials(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+      // Make vectors have geometry scale
+      TVector3 point1 = Unscale(point1_temp);
+      TVector3 point2 = Unscale(point2_temp);
 
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
@@ -82,7 +143,7 @@ class TMS_Geom {
       // Count up the total length for debugging
       double total = 0;
       // Walk through until we're in the same volume as our final point
-      while (step < __GEOM_LARGE_STEP__ && target_dist-dist > 0) {
+      while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Get the material of the current point
         TGeoMaterial *mat = geom->GetCurrentNode()->GetMedium()->GetMaterial();
         // Get the position
@@ -98,8 +159,8 @@ class TMS_Geom {
         geom->FindNode();
         // How big was the step in this material
         step = geom->GetStep();
-        if (step < __GEOM_TINY_STEP__) {
-          geom->SetStep(__GEOM_SMALL_STEP__);
+        if (step < Unscale(__GEOM_TINY_STEP__)) {
+          geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
           geom->Step();
           // Go down to the deepest node
@@ -114,7 +175,7 @@ class TMS_Geom {
         }
 
         // Push back the information
-        std::pair<TGeoMaterial*, double> temp(mat, step);
+        std::pair<TGeoMaterial*, double> temp(mat, Scale(step));
         Materials.push_back(temp);
         total += step;
       }
@@ -154,7 +215,11 @@ class TMS_Geom {
       return Materials;
     }
 
-    std::vector<std::pair<TGeoMaterial*, TVector3> > GetMaterialsPos(const TVector3 &point1, const TVector3 &point2) {
+    std::vector<std::pair<TGeoMaterial*, TVector3> > GetMaterialsPos(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+      // Make vectors have geometry scale
+      TVector3 point1 = Unscale(point1_temp);
+      TVector3 point2 = Unscale(point2_temp);
+      
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
 
@@ -177,8 +242,8 @@ class TMS_Geom {
 
       double step = geom->GetStep();
       // Walk through until we're in the same volume as our final point
-      //while (!geom->IsSameLocation(point2.X(), point2.Y(), point2.Z()) && step < __GEOM_LARGE_STEP__) {
-      while (step < __GEOM_LARGE_STEP__ && target_dist-dist > 0) {
+      //while (!geom->IsSameLocation(point2.X(), point2.Y(), point2.Z()) && step < Unscale(__GEOM_LARGE_STEP__)) {
+      while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Get the material of the current point
         TGeoMaterial *mat = geom->GetCurrentNode()->GetMedium()->GetMaterial();
         // Get the position
@@ -195,8 +260,8 @@ class TMS_Geom {
         // Check IsEntering?
         // If IsEntering, set step to very small until not entering anymore
         step = geom->GetStep();
-        if (step < __GEOM_TINY_STEP__) {
-          geom->SetStep(__GEOM_SMALL_STEP__);
+        if (step < Unscale(__GEOM_TINY_STEP__)) {
+          geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
           geom->Step();
           // Go down to the deepest node
@@ -208,14 +273,18 @@ class TMS_Geom {
         if (dist+step > target_dist) break;
 
         // Push back the information
-        std::pair<TGeoMaterial*, TVector3> temp(mat, pt_vec);
+        std::pair<TGeoMaterial*, TVector3> temp(mat, Scale(pt_vec));
         Materials.push_back(temp);
       }
       return Materials;
     }
 
     // Get the track length between two points by walking through the materials at those points
-    double GetTrackLength(const TVector3 &point1, const TVector3 &point2) {
+    double GetTrackLength(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+      // Make vectors have geometry scale
+      TVector3 point1 = Unscale(point1_temp);
+      TVector3 point2 = Unscale(point2_temp);
+      
       // First get the collection of materials between point1 and point2
       std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(point1, point2);
 
@@ -246,11 +315,14 @@ class TMS_Geom {
 
         counter++;
       }
-
+      TotalPathLength = Scale(TotalPathLength);
       return TotalPathLength;
     };
 
-    std::vector<std::pair<std::string, TVector3> > GetNodes(const TVector3 &point1, const TVector3 &point2) {
+    std::vector<std::pair<std::string, TVector3> > GetNodes(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+      // Make vectors have geometry scale
+      TVector3 point1 = Unscale(point1_temp);
+      TVector3 point2 = Unscale(point2_temp);
 
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
@@ -273,7 +345,7 @@ class TMS_Geom {
       double step = geom->GetStep();
 
       // Walk through until we're in the same volume as our final point
-      while (step < __GEOM_LARGE_STEP__ && target_dist-dist > 0) {
+      while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Get the material of the current point
         std::string nodename = std::string(geom->GetCurrentNode()->GetName());
         const double *pt = geom->GetCurrentPoint();
@@ -294,8 +366,8 @@ class TMS_Geom {
         std::cout << geom->GetCurrentNode()->GetName() << std::endl;
         // How big was the step in this material
         step = geom->GetStep();
-        if (step < __GEOM_TINY_STEP__) {
-          geom->SetStep(__GEOM_SMALL_STEP__);
+        if (step < Unscale(__GEOM_TINY_STEP__)) {
+          geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
           geom->Step();
           // Go down to the deepest node
@@ -312,13 +384,16 @@ class TMS_Geom {
         }
 
         // Push back the information
-        std::pair<std::string, TVector3> temp(nodename, pt_vec);
+        std::pair<std::string, TVector3> temp(nodename, Scale(pt_vec));
         Nodes.push_back(temp);
       }
       return Nodes;
     }
 
-    std::vector<std::pair<int*, TVector3> > GetUniquePlaneBarIdent(const TVector3 &point1, const TVector3 &point2) {
+    std::vector<std::pair<int*, TVector3> > GetUniquePlaneBarIdent(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+      // Make vectors have geometry scale
+      TVector3 point1 = Unscale(point1_temp);
+      TVector3 point2 = Unscale(point2_temp);
 
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
@@ -341,7 +416,7 @@ class TMS_Geom {
       double step = geom->GetStep();
 
       // Walk through until we're in the same volume as our final point
-      while (step < __GEOM_LARGE_STEP__ && target_dist-dist > 0) {
+      while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Plane, bar, global
         int *Plane = new int[3];
         for (int i = 0; i < 3; ++i) Plane[i] = -999;
@@ -375,8 +450,8 @@ class TMS_Geom {
         geom->FindNextBoundaryAndStep();
         // How big was the step in this material
         step = geom->GetStep();
-        if (step < __GEOM_TINY_STEP__) {
-          geom->SetStep(__GEOM_SMALL_STEP__);
+        if (step < Unscale(__GEOM_TINY_STEP__)) {
+          geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
           geom->Step();
           // Go down to the deepest node
@@ -389,7 +464,7 @@ class TMS_Geom {
         if (Plane[0] == -999 || Plane[1] == -999 || Plane[2] == -999) continue;
 
         // Push back the information
-        std::pair<int*, TVector3> temp(Plane, pt_vec);
+        std::pair<int*, TVector3> temp(Plane, Scale(pt_vec));
         Nodes.push_back(temp);
       }
 
@@ -402,6 +477,7 @@ class TMS_Geom {
     TMS_Geom() {
       FileName = TMS_Manager::GetInstance().GetFileName();
       geom = NULL;
+      ScaleFactor = 1;
     };
 
     ~TMS_Geom() {};
@@ -412,6 +488,7 @@ class TMS_Geom {
     // The actual geometry
     TGeoManager *geom;
     std::string FileName;
+    double ScaleFactor;
     };
 
 #endif

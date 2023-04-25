@@ -196,6 +196,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     // Read these directly from a TGeoManager
     double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); // now in g/cm3 (edep-sim geometry is in CLHEP units)
     double thickness = material.second/10.; // in cm (was in mm in geometry)
+    density = TMS_Geom::GetInstance().Scale(density);
+    thickness = TMS_Geom::GetInstance().Scale(thickness);
     material.first->Print();
 
     if (Talk) {
