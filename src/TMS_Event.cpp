@@ -97,7 +97,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TG4TrajectoryPoint pt = *kt;
 
           // Check the point against the geometry
-          TGeoNode *vol = TMS_Geom::GetInstance().GetGeometry()->FindNode(pt.GetPosition().X(), pt.GetPosition().Y(), pt.GetPosition().Z());
+          TGeoNode *vol = TMS_Geom::GetInstance().FindNode(pt.GetPosition().X(), pt.GetPosition().Y(), pt.GetPosition().Z());
 
           // Very rarely but it does happen, the volume is null
           if (!vol) continue;
@@ -212,6 +212,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
+  
   // Merge hits that happened in the same scintillator strip and within the same readout time window
   // This is a simulation cleanup step, not reconstruction
   MergeCoincidentHits();
@@ -292,6 +293,7 @@ void TMS_Event::MergeCoincidentHits() {
   for (auto hit : TMS_Hits) {
     if (!hit.GetPedSup()) remaining_hits.push_back(hit);
     else deleted_hits.push_back(hit);
+    if (!hit.GetPedSup() && hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
   }
   TMS_Hits.clear();
   for (auto hit : remaining_hits) TMS_Hits.push_back(hit);
@@ -357,6 +359,11 @@ void TMS_Event::SimulateTimingModel() {
     double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
     // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
     double pe = hit.GetPE();
+    // We don't have to do 1000s of throws. The time will be very close to zero.
+    // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
+    if (pe > 300) {
+      pe = 300;
+    }
     double minimum_time_offset = 1e100;
     while (pe > 0) {
       // Light can either go the directly to the readout or go the long way first.
