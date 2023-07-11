@@ -42,9 +42,10 @@ All run-time configuration happens through `config/TMS_Default_Config.toml`. At 
 * `utils` contains helper files mostly used for generating events with `edep-sim`. Most of the time you won't need these and they're mostly for documentation. You can also find these at `/pnfs/dune/persistent/ndmuonspect/Geometries`.
 
 # Contact
-* Clarence Wret, [c.wret@rochester.edu](mailto:c.wret@rochester.edu)
+* Liam O'Sullivan, [liam.osullivan@uni-mainz.de](mailto:liam.osullivan@uni-mainz.de)
 * Gavin Davies, [gsdavies@phy.olemiss.edu](mailto:gsdavies@phy.olemiss.edu)
 * Chris Marhsall, [chris.marshall@rochester.edu](mailto:chris.marshall@rochester.edu)
 * Mathew Muether, [mathew.muether@wichita.edu](mailto:mathew.muether@wichita.edu)
-
-#nd\_muon\_spectrometer on [DUNE slack](https://dunescience.slack.com/)
+* Clarence Wret (Inactive)
+  
+#nd\_muon\_spectrometer and #nd\_muon\_spectrometer\_code on [DUNE slack](https://dunescience.slack.com/)
