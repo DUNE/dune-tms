@@ -124,7 +124,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     for (int slice = 0; slice < nslices; slice++) {
       if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
       // First make an event based on the slice
-      TMS_Event tms_event_slice = TMS_Event(tms_event, slice);
+      TMS_Event tms_event_slice;
+      // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
+      if (!TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer()) tms_event_slice = tms_event;
+      else tms_event_slice = TMS_Event(tms_event, slice);
       
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
       if (gRoo && (slice != 0 || nslices == 1)) {
