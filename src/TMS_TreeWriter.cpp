@@ -23,6 +23,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Outputname += "_"+TMS_Manager::GetInstance().Get_Reco_TrackMethod();
   Outputname += Form("_Cluster%i", TMS_Manager::GetInstance().Get_Reco_Clustering());
   Outputname += ".root";
+  // Override output file name if set by the environment.
+  if(std::getenv("ND_PRODUCTION_TMS_OUTFILE")) {
+    Outputname = std::getenv("ND_PRODUCTION_TMS_OUTFILE");
+  }
   // Make an output file
   Output = new TFile(Outputname, "recreate");
   if (!Output->IsOpen()) {
