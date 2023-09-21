@@ -39,7 +39,7 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_OPTICAL_LightYield = toml::find<double>(data, "Sim", "Optical", "LightYield");
   
   _SIM_NOISE_DarkNoiseRate = toml::find<double>(data, "Sim", "Noise", "DarkNoiseRate");
-  _SIM_NOISE_DarkNoiseMinPE = toml::find<double>(data, "Sim", "Noise", "DarkNoiseMinPe");
+  _SIM_NOISE_DarkNoiseMinPE = toml::find<double>(data, "Sim", "Noise", "DarkNoiseMinPE");
   
   
   
