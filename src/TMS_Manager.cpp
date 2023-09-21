@@ -16,7 +16,7 @@ TMS_Manager::TMS_Manager() {
   // Read the TOML file
   const auto data = toml::parse(filename);
 
-  // The minimum hits needed to run reconstruction
+  // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
   
   _RECO_TIME_RunTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunTimeSlicer");
@@ -52,6 +52,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_TRACK_METHOD  = toml::find<std::string>(data, "Recon", "TrackMethod");
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
+  
+  _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 

@@ -20,6 +20,8 @@
 #include "TMS_Reco.h"
 // TTree writer
 #include "TMS_TreeWriter.h"
+// TTree writer for det sim
+#include "TMS_ReadoutTreeWriter.h"
 // General manager
 #include "TMS_Manager.h"
 
@@ -118,8 +120,14 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Calculate the mapping between vertex ID and visible energy for the primary event
     tms_event.GetVertexIdOfMostVisibleEnergy();
+    
+    // Save det sim information
+    TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    
+    // Could save per spill info here
+    
     //std::cout<<"Ran time slicer"<<std::endl;
     for (int slice = 0; slice < nslices; slice++) {
       if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
@@ -188,6 +196,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
 
   TMS_TreeWriter::GetWriter().Write();
+  TMS_ReadoutTreeWriter::GetWriter().Write();
 
   delete events;
   if (gRoo)

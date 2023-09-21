@@ -1,4 +1,5 @@
 #include "TMS_TrueHit.h"
+#include "TMS_Readout_Manager.h"
 
 /*
 TMS_TrueHit::TMS_TrueHit() :
@@ -32,6 +33,12 @@ TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) : VertexId(vert
   SetY(avg.Y());
   SetZ(avg.Z());
   SetT(avg.T());
+  TLorentzVector diff = (edep_seg.GetStop() - edep_seg.GetStart());
+  SetdX(diff.P());
+  SetPE(GetE() * TMS_Readout_Manager::GetInstance().Get_Sim_Optical_LightYield());
+  SetPEAfterFibers(GetPE());
+  SetPEAfterFibersLongPath(0);
+  SetPEAfterFibersShortPath(GetPE());
 
   PrimaryId = edep_seg.GetPrimaryId();
 }
@@ -41,3 +48,21 @@ void TMS_TrueHit::Print() const {
   std::cout << "(x,y,z,t,E): (" << GetX() << ", " << GetY() << ", " << GetZ() << ", " << GetT() << ", " << GetE() << ")" << std::endl;
   std::cout << "PrimaryId: " << PrimaryId  << std::endl;
 }
+
+void TMS_TrueHit::MergeWith(TMS_TrueHit& hit) {
+  double new_true_e = GetE() + hit.GetE();
+  double new_true_pe = GetPE() + hit.GetPE();
+  double new_true_short_path_pe = GetPEAfterFibersShortPath() + hit.GetPEAfterFibersShortPath();
+  double new_true_long_path_pe = GetPEAfterFibersLongPath() + hit.GetPEAfterFibersLongPath();
+  double new_true_t = std::min(GetT(), hit.GetT());
+  SetE(new_true_e);
+  SetT(new_true_t);
+  SetPE(new_true_pe);
+  SetPEAfterFibersShortPath(new_true_short_path_pe);
+  SetPEAfterFibersLongPath(new_true_long_path_pe);
+  // TODO how do we handle dedx? and x/y positions?
+}
+
+
+
+

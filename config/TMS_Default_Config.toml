@@ -70,6 +70,9 @@
     TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
     
+  [Recon.Calibration]
+    EnergyCalibration = 4.428 # MeV / PE
+    
     
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
