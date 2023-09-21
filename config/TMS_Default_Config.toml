@@ -71,7 +71,7 @@
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
     
   [Recon.Calibration]
-    EnergyCalibration = 4.428 # MeV / PE
+    EnergyCalibration = 0.08856 # MeV / PE
     
     
 # Options for processing and saving truth information

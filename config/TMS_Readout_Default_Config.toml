@@ -8,7 +8,7 @@
     # All hits within this interval are combined into one
     ReadoutTime = 120.0 # ns
     # How long a channel is dead before it can read again
-    Deadtime = 500.0 # ns, < 0 to turn off
+    Deadtime = -1.0 # ns, < 0 to turn off
     # Hits that happen in deadtime's zombie time get read as a new hit at the start of the next readout interval
     ZombieTime = -1.0 # ns, < 0 to turn off
     ReadoutNoise = 0.4 # in PE
