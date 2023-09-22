@@ -8,7 +8,7 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   }
 
   std::string filename;
-  if (std::getenv("TMS_SIM_TOML") != NULL) filename = std::string(std::getenv("TMS_SIM_TOML"));
+  if (std::getenv("TMS_READOUT_TOML") != NULL) filename = std::string(std::getenv("TMS_READOUT_TOML"));
   else filename = std::string(std::getenv("TMS_DIR"))+"/config/TMS_Readout_Default_Config.toml";
 
   std::cout << "Creating TMS Readout Manager instance using TOML: " << filename << std::endl;
