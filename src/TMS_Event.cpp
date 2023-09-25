@@ -399,8 +399,8 @@ void TMS_Event::SimulateOpticalModel() {
       
       // Now possibly couple to a regular optical fiber
       if (optic_fiber_length > 0) {
-        pe_short = fiber_coupling_eff * pe_short * std::exp(-optic_fiber_decay_constant * distance_from_end);
-        pe_long = fiber_coupling_eff * pe_long * std::exp(-optic_fiber_decay_constant * long_way_distance_from_end);
+        pe_short = fiber_coupling_eff * pe_short * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
+        pe_long = fiber_coupling_eff * pe_long * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
       }
     }
     
