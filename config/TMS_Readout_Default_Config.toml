@@ -24,7 +24,7 @@
     WSFEndReflectionEff = 0.95 
     AdditionalFiberLength = -1.0 # m
     AdditionalFiberAttenuationLength = 4.160 # m
-    AdditionalFiberCouplingEff = 0.9
+    AdditionalFiberCouplingEff = 1.0
     
     ReadoutCouplingEff = 1.0
     LightYield = 50.0 # PE per MeV
