@@ -118,6 +118,11 @@ namespace TMS_Const {
   const int nModulesPerSubModule = 48;
   const int nModules = 8;
   const int nPlanes = 100;
+
+  // After how many planes is the orientation different?
+  // stereo: every second plane is different -> LayerOrientation = 2
+  // 90 degree: e.g. every third plane is different -> LayerOrientation = 3
+  const int LayerOrientation = 2;
 }
 
 #endif

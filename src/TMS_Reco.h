@@ -233,6 +233,10 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> ProjectHits(const std::vector<TMS_Hit> &Hits, TMS_Bar::BarType bartype = TMS_Bar::kXBar);
     std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &Hits, bool ConnectAll = false);
 
+    std::vector<TMS_Hit> OneHitGroup;
+    std::vector<TMS_Hit> OtherHitGroup;
+    int kLayerOrientation;
+
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);
 

@@ -314,6 +314,19 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   std::cout << "Cleaned hits: " << CleanedHits.size() << std::endl;
 #endif
 
+  // separate planes into different groups
+  // 3 degree stereo -> tilted into +3 degree in one group and into -3 degree in other group
+  // 90 degree rotated -> vertical layers in one group and horizontal layers in other group
+  
+  // for loop over hits
+  for (auto hit : CleanedHits) {
+  // get PlaneNumber per hit
+    int HitPlaneNumber = hit.GetBar().GetPlaneNumber();
+  // sorting hits into orientation groups
+    if (HitPlaneNumber % LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
+    else if (!(HitPlaneNumber % LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
+  }
+
   // Hough transform
   if (kTrackMethod == TrackMethod::kHough) {
     // Do we first run clustering algorithm to separate hits, then hand off to A*?
