@@ -210,8 +210,10 @@ class TMS_TrackFinder {
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
-    void CalculateTrackLength();
-    void CalculateTrackEnergy();
+    void CalculateTrackLengthOne();
+    void CalculateTrackEnergyOne();
+    void CalculateTrackLengthOther();
+    void CalculateTrackenergyOther();^
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -224,7 +226,7 @@ class TMS_TrackFinder {
     void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, int &hitgroup);
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
 
     // Clean up the hits, removing duplicates and zero entries
@@ -313,11 +315,18 @@ class TMS_TrackFinder {
 
     std::vector<TMS_Hit> CleanedHits;
     std::vector<std::vector<TMS_Hit> > TotalCandidates;
-    std::vector<std::pair<bool, TF1*> > HoughLines;
-    std::vector<std::vector<TMS_Hit> > ClusterCandidates;
-    std::vector<std::vector<TMS_Hit> > HoughCandidates;
-    std::vector<std::pair<double,double>> HoughLines_Upstream;
-    std::vector<std::pair<double,double>> HoughLines_Downstream;
+    std::vector<std::pair<bool, TF1*> > HoughLinesOne;
+    std::vector<std::pair<bool, TF1*> > HoughLinesOther;
+    std::vector<std::vector<TMS_Hit> > ClusterCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > ClusterCandidatesOther;
+    std::vector<std::vector<TMS_Hit> > HoughCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > HoughCandidatesOther;
+    std::vector<std::pair<double,double>> HoughLines_UpstreamOne;
+    std::vector<std::pair<double,double>> HoughLines_DownstreamOne;
+    std::vector<std::pair<double,double>> HoughLines_UpstreamOther;
+    std::vector<std::pair<double,double>> HoughLines_DownstreamOther;
+
+    int hitgroup;
 
     int nIntercept;
     int nSlope;
