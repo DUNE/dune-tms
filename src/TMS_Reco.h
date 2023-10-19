@@ -223,7 +223,7 @@ class TMS_TrackFinder {
     void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, int &hitgroup);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
     std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, int &hitgroup);

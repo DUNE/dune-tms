@@ -356,8 +356,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     }
   } else if (kTrackMethod == TrackMethod::kAStar) {
     //BestFirstSearch(CleanedHits);
-    BestFirstSearch(OneHitGroup);
-    BestFirstSearch(OtherHitGroup);
+    BestFirstSearch(OneHitGroup, 1);
+    BestFirstSearch(OtherHitGroup, 2);
   }
 
   //std::vector<TMS_Hit> Masked = CleanedHits;
@@ -966,7 +966,6 @@ void TMS_TrackFinder::MaskHits(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> 
 }
 
 std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vector<TMS_Hit> &TMS_Hits) {
-//TODO HitGroup separation weiter durchziehen
   // First clean up double hits in bars
   std::vector<TMS_Hit> MaskedHits = CleanHits(TMS_Hits);
   // The vector of DBSCAN points
@@ -989,7 +988,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   }
 
   // Create the DBSCAN instance
-  DBSCAN.SetPoints(DB_Points);
+  DBSCAN.SetPoints(DB_Points); //TODO how to get this working with separation? Where is this referring to?
   DBSCAN.RunDBScan();
 
   //std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
@@ -1202,7 +1201,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     std::cout << dist << std::endl;
   }
   indexstart++;
-  std::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
+  s<F5><F6>td::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
   for (std::vector<TMS_Hit>::iterator it = returned.begin()+indexstart; it != returned.end(); it++) {
     HitPool.push_back(std::move(*it));
   }
@@ -1394,7 +1393,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 }
 
 // Implement A* algorithm for track finding, starting with most upstream to most downstream hit
-void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
+void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
 
   // Set the Heuristic cost calculator
 
@@ -1453,7 +1452,13 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits) {
       }
     }
     // Only push back if we have more than one candidate
-    if (AStarHits_xz.size() > nMinHits) HoughCandidates.push_back(std::move(AStarHits_xz));
+    if (AStarHits_xz.size() > nMinHits) {
+      if (hitgroup == 1) {    
+        HoughCandidatesOne.push_back(std::move(AStarHits_xz));
+      } else if (hitgroup == 2) {
+        HoughCandidatesOther.push_back(std::move(AStarHits_xz));
+      }
+    }
     nRuns++;
   }
 #ifdef DEBUG
@@ -1469,7 +1474,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
   if (TMS_Hits.empty()) return TMS_Hits_Cleaned;
   TMS_Hits_Cleaned = TMS_Hits;
   //  Clean hits has functional overlap with ped sup and merging hits steps, which are now done earlier
-  //return TMS_Hits_Cleaned; // TODO is this safe?
+  //return TMS_Hits_Cleaned; // TODO (Jeffrey) is this safe?
 
   // First sort in z so overlapping hits are next to each other in the arrays
   SpatialPrio(TMS_Hits_Cleaned);
