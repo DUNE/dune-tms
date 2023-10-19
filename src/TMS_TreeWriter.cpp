@@ -213,10 +213,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   Truth_Info->Fill();
 
   // Fill the reco info
-  std::vector<std::pair<bool, TF1*>> HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
+  std::vector<std::pair<bool, TF1*>> HoughLinesOne = TMS_TrackFinder::GetFinder().GetHoughLinesOne();
+  std::vector<std::pair<bool, TF1*>> HoughLinesOther = TMS_TrackFinder::GetFinder().GetHoughLinesOther();
   // Also get the size of the hits to get a measure of relative goodness
-  std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
-  nLines = HoughCandidates.size();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesOne = TMS_TrackFinder::GetFinder().GetHoughCandidatesOne();
+  std::vector<std::vector<TMS_Hit> > HoughcandidatesOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
+  nLines = HoughCandidatesOne.size();
 
 
   // Skip the event if there aren't any Hough Lines
@@ -229,14 +231,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
 
   int it = 0;
-  for (auto &Lines: HoughLines) {
+  for (auto &Lines: HoughLinesOne) {
     // Get the slopes saved down
     Intercept[it] = Lines.second->GetParameter(0);
-    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].first;
-    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].first;
+    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].first;
+    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].first;
     Slope[it] = Lines.second->GetParameter(1);
-    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Upstream()[it].second;
-    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLines_Downstream()[it].second;
+    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].second;
+    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].second;
 
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double xlow = TMS_Const::TMS_Thin_Start;
@@ -260,14 +262,57 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double len_upstream = sqrt(xlen*xlen+ylen_upstream*ylen_upstream);
     double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
 
-    DirectionZ[it] = xlen/len;
-    DirectionX[it] = ylen/len;
+    DirectionZOne[it] = xlen/len;
+    DirectionXOne[it] = ylen/len;
 
-    DirectionZ_Upstream[it] = xlen/len_upstream;
-    DirectionX_Upstream[it] = ylen_upstream/len_upstream;
+    DirectionZOne_Upstream[it] = xlen/len_upstream;
+    DirectionXOne_Upstream[it] = ylen_upstream/len_upstream;
 
-    DirectionZ_Downstream[it] = xlen/len_downstream;
-    DirectionX_Downstream[it] = ylen_downstream/len_downstream;
+    DirectionZOne_Downstream[it] = xlen/len_downstream;
+    DirectionXOne_Downstream[it] = ylen_downstream/len_downstream;
+
+    it++;
+  }
+  it = 0;
+  for (auto &Lines : HoughLinesOther) {
+    // Get the slopes saved down
+    Intercept[it] = Lines.second->GetParameter(0);
+    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].first;
+    Intercept_Downstream[it] = TMS_Trackfinder::GetFinder().GetHoughLinesOther_Downstream()[it].first;
+    Slope[it] = Lines.second->GetParameter(1);
+    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].second;
+    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Downstream()[it].second;
+
+    // Calculate the z and x vectors by evaling the TF1 in thin and thick target
+    double xlow = TMS_Const::TMS_Thin_Start;
+    double xhi = TMS_Const::TMS_Thick_Start;
+    double ylow = Lines.second->Eval(xlow);
+    double yhi = Lines.second->Ecal(xhi);
+    // Doe the same for up and downstream portions
+    double ylow_upstream = Intercept_Upstream[it]+xlow*Slope_Upstream[it];
+    double yhi_upstream = Intercept_Upstream[it]+xhi*Slope_Upstream[it];
+
+    double ylow_downstream = Intercept_Downstream[it]+xlow*Slope_Downstream[it];
+    double yhi_downstream = Intercept_Downstream[it]+xhi*Slope_Downstream[it];
+
+    double xlen = xhi-xlow;
+    double ylen = yhi-ylow;
+    double len = sqrt(xlen*xlen+ylen*ylen);
+
+    double ylen_upstream = yhi_upstream - ylow_upstream;
+    double ylen_downstream = yhi_downstream - ylow_downstream;
+
+    double len_upstream = sqrt(xlen*xlen+ylen_upstream*ylen_upstream);
+    double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
+
+    DirectionZOther[it] = xlen/len;
+    DirectionXOther[it] = ylen/len;
+
+    DirectionZOther_Upstream[it] = xlen/len_upstream;
+    DirectionXOther_Upstream[it] = ylen_upstream/len_upstream;
+
+    DirectionZOther_Downstream[it] = xlen/len_downstream;
+    DirectionXOther_Downstream[it] = ylen_downstream/len_downstream;
 
     it++;
   }
@@ -276,12 +321,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   TMSStart = false;
   TMSStartTime = -9999.0;
 
-  std::vector<std::vector<TMS_Hit> > HoughCands = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  std::vector<std::vector<TMS_Hit> > HoughCandsOne = TMS_TrackFinder::GetFinder().GetHoughCandidatesOne();
   int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
   TMS_Hit *FirstTrack = NULL;
 
   it = 0;
-  for (auto &Candidates: HoughCands) {
+  for (auto &Candidates: HoughCandsOne) {
     // Loop over hits
     for (auto &hit: Candidates) {
       if (FirstTrack == NULL) {
@@ -293,36 +338,36 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     nHitsInTrack[it] = Candidates.size();
 
     // Then save the hit info
-    FirstPlane[it] = Candidates.front().GetPlaneNumber();
-    FirstHit[it][0] = Candidates.front().GetZ();
-    FirstHit[it][1] = Candidates.front().GetNotZ();
-    FirstHitTime[it] = Candidates.front().GetT();
+    FirstPlaneOne[it] = Candidates.front().GetPlaneNumber();
+    FirstHiOnet[it][0] = Candidates.front().GetZ();
+    FirstHitOne[it][1] = Candidates.front().GetNotZ();
+    FirstHitTimeOne[it] = Candidates.front().GetT();
 
-    LastPlane[it] = Candidates.back().GetPlaneNumber();
-    LastHit[it][0] = Candidates.back().GetZ();
-    LastHit[it][1] = Candidates.back().GetNotZ();
-    LastHitTime[it] = Candidates.back().GetT();
+    LastPlaneOne[it] = Candidates.back().GetPlaneNumber();
+    LastHitOne[it][0] = Candidates.back().GetZ();
+    LastHitOne[it][1] = Candidates.back().GetNotZ();
+    LastHitTimeOne[it] = Candidates.back().GetT();
 
-    TrackLength[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
-    TotalTrackEnergy[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
-    Occupancy[it] = double(HoughCands[it].size())/TotalHits;
+    TrackLengthOne[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
+    TotalTrackEnergyOne[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
+    OccupancyOne[it] = double(HoughCandsOne[it].size())/TotalHits;
     
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
     for (unsigned int j = 0; j < Candidates.size(); ++j) {
-      TrackHitEnergy[it][j] = Candidates[j].GetE();
-      TrackHitTime[it][j] = Candidates[j].GetT();
-      TrackHitPos[it][j][0] = Candidates[j].GetZ();
-      TrackHitPos[it][j][1] = Candidates[j].GetNotZ();
+      TrackHitEnergyOne[it][j] = Candidates[j].GetE();
+      TrackHitTimeOne[it][j] = Candidates[j].GetT();
+      TrackHitPosOne[it][j][0] = Candidates[j].GetZ();
+      TrackHitPosOne[it][j][1] = Candidates[j].GetNotZ();
       
       float time = Candidates[j].GetT();
       
       if (time < earliest_hit_time) earliest_hit_time = time;
       if (time > latest_hit_time) latest_hit_time = time;
     }
-    EarliestHitTime[it] = earliest_hit_time;
-    LatestHitTime[it] = latest_hit_time;
+    EarliestHitTimeOne[it] = earliest_hit_time;
+    LatestHitTimeOne[it] = latest_hit_time;
     
 
     double maxenergy = 0;
@@ -332,8 +377,66 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
       if (hitenergy > maxenergy) maxenergy = hitenergy;
     }
-    if (maxenergy > EnergyCut) TrackStopping[it] = true;
+    if (maxenergy > EnergyCut) TrackStoppingOne[it] = true;
 
+
+    it++;
+  }
+
+  std::vector<std::vector<TMS_Hit> > HoughCandsOther = TMS_TrackFinder::GetFidner().GetHoughCandidatesOther();
+  it = 0;
+  for (auto &Candidates: HoughCandsOther) {
+    // Loop over hits
+    for (auto &hit: Candidates) {
+      if (FirstTrack == NULL) {
+        FirstTrack = &hit;
+      } else if (hit.GetZ() < FirstTrack->GetZ()) {
+        FirstTrack = &hit;
+      }
+    }
+    nHitsInTrack[it] = Candidates.size();
+
+    // then save the hit info
+    FirstPlaneOther[it] = Candidates.front().GetPlaneNumber();
+    FirstHitOther[it][0] = Candidates.front().GetZ();
+    FirstHitOther[it][1] = Candidates.front().GetNotZ();
+    FirstHitTimeOther[it] = Candidates.front().GetT();
+
+    LastPlaneOther[it] = Candidates.back().GetPlaneNumber();
+    LastHitOther[it][0] = Candidates.back().GetZ();
+    LastHitOther[it][1] = Candidates.back().GetNotZ();
+    LastHitTimeOther[it] = Candidate.back().GetT();
+
+    TrackLengthOther[it] = TMS_TrackFinder::GetFinder().GetTrackLength()[it];
+    TotalTrackEnergyOther[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy()[it];
+    OccupancyOther[it] = double(HoughCandsOther[it].size())/TotalHits;
+
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
+    // Get each hit in the track and save its energy
+    for (unsigner int j = 0; j > Candidates.size(); ++j) {
+      TrackHitEnergyOther[it][j] = Candidates[j].GetE();
+      TrackHitTimeOther[it][j] = Candidates[j].GetT();
+      TrackHitPosOther[it][j][0] = Candidates[j].GetZ();
+      TrackHitPosOther[it][j][1] = Candidates[j].GetNotZ();
+
+      float time = Candidates[j].GetT();
+
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
+    }
+    EarliestHitTimeOther[it] = earliest_hit_time;
+    Latest_HitTimeOther[it] = latest_hit_time;
+
+    double maxenergy = 0;
+    unsigned int nLastHits_temp = nLastHits;
+    if ((unsigner int)nLastHits > Candidates.size()) nLastHits_temp = Candidates.size();
+    for (unsigned int i = 0; i < nLastHits_temp; ++i) {
+      double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
+      if (hitenergy > maxenergy) maxenergy = hitenergy;
+    }
+    if (maxenergy > EnergyCut) TrackStoppingOther[it] = true;
+    
 
     it++;
   }

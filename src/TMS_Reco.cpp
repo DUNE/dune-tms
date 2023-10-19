@@ -36,9 +36,13 @@ TMS_TrackFinder::TMS_TrackFinder() :
   Efficiency = new TH1D("Efficiency", "Efficiency;T_{#mu} (GeV); Efficiency", 30, 0, 6);
   Total = new TH1D("Total", "Total;T_{#mu} (GeV); Total", 30, 0, 6);
 
-  HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLine->SetLineStyle(kDashed);
-  HoughLine->SetLineColor(kMagenta-9);
+  HoughLineOne = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
+  HoughLineOne->SetLineStyle(kDashed);
+  HoughLineOne->SetLineColor(kMagenta-9);
+
+  HoughLineOther = new TF1("LinearHough2", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
+  HoughLineOther->SetLineStyle(kDashed);
+  HoughLineOther->SetLineColor(kMagenta-8);
 
   DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
   DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
@@ -82,7 +86,10 @@ TMS_TrackFinder::TMS_TrackFinder() :
 void TMS_TrackFinder::ClearClass() {
 
   // Check through the Houghlines
-  for (auto &i: HoughLines) {
+  for (auto &i: HoughLinesOne) {
+    delete i.second;
+  }
+  for (auto &i: HoughLinesOther) {
     delete i.second;
   }
 
@@ -90,10 +97,14 @@ void TMS_TrackFinder::ClearClass() {
   Candidates.clear();
   RawHits.clear();
   TotalCandidates.clear();
-  HoughLines.clear();
-  HoughLines_Upstream.clear();
-  HoughLines_Downstream.clear();
-  HoughCandidates.clear();
+  HoughLinesOne.clear();
+  HoughLinesOther.clear();
+  HoughLinesOne_Upstream.clear();
+  HoughLinesOther_Upstream.clear();
+  HoughLinesOne_Downstream.clear();
+  HoughLinesOther_Downstream.clear();
+  HoughCandidatesOne.clear();
+  HoughCandidatesOther.clear();
   ClusterCandidates.clear();
   TrackLength.clear();
   TrackEnergy.clear();
@@ -432,8 +443,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
     std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
 
-    HoughLines_UpstreamOne.push_back(upstreamline);
-    HoughLines_DownstreamOne.push_back(downstreamline);
+    HoughLinesOne_Upstream.push_back(upstreamline);
+    HoughLinesOne_Downstream.push_back(downstreamline);
 
     lineno++;
   }
@@ -468,8 +479,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
 
-   HoughLines_UpstreamOther.push_back(upstreamline);
-   HoughLines_DownstreamOther.push_back(downstreamline);
+   HoughLinesOther_Upstream.push_back(upstreamline);
+   HoughLinesOther_Downstream.push_back(downstreamline);
 
    lineno++;
   }
@@ -662,7 +673,7 @@ void TMS_TrackFinder::CalculateTrackLengthOther() {
 }
 
 //void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
-std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, int hitgroup) {
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
 
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
@@ -700,7 +711,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
     // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
-    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz);
+    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz, hitgroup);
     
     if (TMS_xz_cand.size() == 0) {
       nRuns++;
@@ -1017,7 +1028,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 }
 
 // Requires hits to be ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
 
   // Check if we're in XZ view
   bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar);
@@ -1065,20 +1076,34 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double slope, intercept;
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
-  HoughLine->SetParameter(0, intercept);
-  HoughLine->SetParameter(1, slope);
+  if (hitgroup == 1) {
+    HoughLineOne->SetParameter(0, intercept);
+    HoughLineOne->SetParameter(1, slope);
+  } else if (hitgroup == 2) {
+    HoughLineOther->SetParameter(0, intercept);
+    HoughLineOther->SetParameter(1, slope);
+  }
 
   // Different fitting regions for XZ and YZ views: 
   // Most of the bending happens in xz, so fit only until the transition region. 
   // For the yz view, fit the entire region
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
-
-  HoughLine->SetRange(zMinHough, zMaxHough);
-  TF1 *HoughCopy = (TF1*)HoughLine->Clone();
+  
+  if (hitgroup == 1) {
+    HoughLineOne->SetRange(zMinHough, zMaxHough);
+    TF1 *HoughCopy = (TF1*)HoughLineOne->Clone();
+  } else if (hitgroup == 2) {
+    HoughLineOther->Setrange(zMinHough, zMaxHough);
+    TF1* HoughCopy = (TF1*)HoughLineOther->Clone();
+  }
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
-  HoughLines.push_back(std::move(HoughPairs));
+  if (hitgroup == 1) {
+    HoughLinesOne.push_back(std::move(HoughPairs));
+  } else if (hitgroup == 2) {
+    HoughLinesOther.push_back(std::move(HoughPairs));
+  }
 
   // Then run a clustering on the Hough Transform
   // Hough transform is most likely to pick out straigh features at begining of track candidate, so start looking there
@@ -1100,8 +1125,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       ++it;
       continue;
     }
-
-    double HoughPoint = HoughLine->Eval(zhit);
+    
+    double HoughPoint;
+    if (hitgroup == 1) {
+      HoughPoint = HoughLineOne->Eval(zhit);
+    } else if (hitgroup == 2) {
+      HoughPoint = HoughLineOther->Eval(zhit);
+    }
 
     // Hough point is inside bar -> start clustering around bar
     if (( bar.Contains(HoughPoint, zhit) ||

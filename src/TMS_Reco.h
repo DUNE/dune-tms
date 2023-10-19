@@ -195,16 +195,21 @@ class TMS_TrackFinder {
 
     const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
 
-    TF1* GetHoughLine() { return HoughLine; };
+    TF1* GetHoughLineOne() { return HoughLineOne; };
+    TF1* GetHoughLineOther() { return HoughLineOther; };
 
-    std::vector<std::pair<bool, TF1*> > GetHoughLines() { return HoughLines; };
-    std::vector<std::pair<double,double> > GetHoughLines_Upstream() { return HoughLines_Upstream; };
-    std::vector<std::pair<double,double> > GetHoughLines_Downstream() { return HoughLines_Downstream; };
+    std::vector<std::pair<bool, TF1*> > GetHoughLinesOne() { return HoughLinesOne; };
+    std::vector<std::pair<bool, TF1*> > GetHoughLinesOther() { return HoughLinesOther; };
+    std::vector<std::pair<double,double> > GetHoughLinesOne_Upstream() { return HoughLinesOne_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOne_Downstream() { return HoughLinesOne_Downstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOther_Upstream() { return HoughLinesOther_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOther_Downstream() { return HoughLinesOther_Downstream; };
 
     int **GetAccumulator() { return Accumulator; };
 
     std::vector<std::vector<TMS_Hit> > &GetClusterCandidates() { return ClusterCandidates; };
-    std::vector<std::vector<TMS_Hit> > &GetHoughCandidates() { return HoughCandidates; };
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
 
     TH2D *AccumulatorToTH2D(bool zy);
 
@@ -213,7 +218,7 @@ class TMS_TrackFinder {
     void CalculateTrackLengthOne();
     void CalculateTrackEnergyOne();
     void CalculateTrackLengthOther();
-    void CalculateTrackenergyOther();^
+    void CalculateTrackenergyOther();
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -321,10 +326,10 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > ClusterCandidatesOther;
     std::vector<std::vector<TMS_Hit> > HoughCandidatesOne;
     std::vector<std::vector<TMS_Hit> > HoughCandidatesOther;
-    std::vector<std::pair<double,double>> HoughLines_UpstreamOne;
-    std::vector<std::pair<double,double>> HoughLines_DownstreamOne;
-    std::vector<std::pair<double,double>> HoughLines_UpstreamOther;
-    std::vector<std::pair<double,double>> HoughLines_DownstreamOther;
+    std::vector<std::pair<double,double>> HoughLinesOne_Upstream;
+    std::vector<std::pair<double,double>> HoughLinesOne_Downstream;
+    std::vector<std::pair<double,double>> HoughLinesOther_Upstream;
+    std::vector<std::pair<double,double>> HoughLinesOther_Downstream;
 
     int hitgroup;
 
@@ -349,7 +354,8 @@ class TMS_TrackFinder {
 
     int **Accumulator;
 
-    TF1 *HoughLine;
+    TF1 *HoughLineOne;
+    TF1 *HoughLineOther;
 
     unsigned int nMinHits;
     unsigned int nMaxMerges;

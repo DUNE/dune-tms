@@ -215,12 +215,12 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Loop over the reconstructed tracks to overlay with hits
 
   // Get the Hough candidates
-  std::vector<std::vector<TMS_Hit> > HoughCandidates = TMS_TrackFinder::GetFinder().GetHoughCandidates();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesOne = TMS_TrackFinder::GetFinder().GetHoughCandidatesOne();
   // Now loop over the cluster candidates, make them TGraphs
-  int nLines = HoughCandidates.size();
+  int nLines = HoughCandidatesOne.size();
   std::vector<TGraph*> HoughGraphVect(nLines);
   for (int i = 0; i < nLines; ++i) {
-    HoughGraphVect[i] = new TGraph(HoughCandidates[i].size());
+    HoughGraphVect[i] = new TGraph(HoughCandidatesOne[i].size());
     HoughGraphVect[i]->SetLineColor(i);
     HoughGraphVect[i]->SetLineWidth(2);
     HoughGraphVect[i]->SetMarkerColor(i+1);
@@ -228,7 +228,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     HoughGraphVect[i]->SetMarkerStyle(25);
   }
   int LineIt = 0;
-  for (auto &Line: HoughCandidates) {
+  for (auto &Line: HoughCandidatesOne) {
     int HitIt = 0;
     for (auto HoughHit: Line) {
       HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
@@ -261,7 +261,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   }
 
   // Get all the hough lines
-  std::vector<std::pair<bool, TF1*> > HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
+  std::vector<std::pair<bool, TF1*> > HoughLinesOne = TMS_TrackFinder::GetFinder().GetHoughLinesOne();
+  std::vector<std::pair<bool, TF1*> > HoughLinesOther = TMS_TrackFinder::GetFinder().GetHoughLinesOther();
 
   int pdg = event.GetNeutrinoPDG();
   double enu = event.GetNeutrinoP4().E();
@@ -314,7 +315,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Then the track candidates
   for (auto &graph: HoughGraphVect) graph->Draw("P,same");
   it = 0;
-  for (auto &i : HoughLines) {
+  for (auto &i : HoughLinesOne) {
+    if (i.first == true) {
+      i.second->SetLineColor(it+1);
+      i.second->Draw("same");
+      it++;
+    }
+  }
+  for (auto &i : HoughLinesOther) {
     if (i.first == true) {
       i.second->SetLineColor(it+1);
       i.second->Draw("same");
