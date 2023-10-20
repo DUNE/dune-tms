@@ -74,33 +74,54 @@ class TMS_TreeWriter {
     float Slope_Upstream[__TMS_MAX_LINES__];
     float Intercept_Upstream[__TMS_MAX_LINES__];
 
-    float DirectionZ[__TMS_MAX_LINES__];
-    float DirectionX[__TMS_MAX_LINES__];
+    float DirectionZOne[__TMS_MAX_LINES__];
+    float DirectionZOther[__TMS_MAX_LINES__];
+    float DirectionXOne[__TMS_MAX_LINES__];
+    float DirectionXOther[__TMS_MAX_LINES__];
 
-    float DirectionZ_Upstream[__TMS_MAX_LINES__];
-    float DirectionX_Upstream[__TMS_MAX_LINES__];
+    float DirectionZOne_Upstream[__TMS_MAX_LINES__];
+    float DirectionZOther_Upstream[__TMS_MAX_LINES__];
+    float DirectionXOne_Upstream[__TMS_MAX_LINES__];
+    float DirectionXOther_Upstream[__TMS_MAX_LINES__];
 
-    float DirectionZ_Downstream[__TMS_MAX_LINES__];
-    float DirectionX_Downstream[__TMS_MAX_LINES__];
+    float DirectionZOne_Downstream[__TMS_MAX_LINES__];
+    float DirectionZOther_Downstream[__TMS_MAX_LINES__];
+    float DirectionXOne_Downstream[__TMS_MAX_LINES__];
+    float DirectionXOther_Downstream[__TMS_MAX_LINES__];
 
-    float FirstHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
-    float LastHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
-    float FirstHitTime[__TMS_MAX_LINES__]; 
-    float LastHitTime[__TMS_MAX_LINES__];
-    float EarliestHitTime[__TMS_MAX_LINES__]; 
-    float LatestHitTime[__TMS_MAX_LINES__];
-    int FirstPlane[__TMS_MAX_LINES__];
-    int LastPlane[__TMS_MAX_LINES__];
+    float FirstHitOne[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float FirstHitOther[__TMS_MAX_LINES__][2];
+    float LastHitOne[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float LastHitOther[__TMS_MAX_LINES__][2];
+    float FirstHitTimeOne[__TMS_MAX_LINES__]; 
+    float FirstHitTimeOther[__TMS_MAX_LINES__];
+    float LastHitTimeOne[__TMS_MAX_LINES__];
+    float LastHitTimeOther[__TMS_MAX_LINES__];
+    float EarliestHitTimeOne[__TMS_MAX_LINES__]; 
+    float EarliestHitTimeOther[__TMS_MAX_LINES__];
+    float LatestHitTimeOne[__TMS_MAX_LINES__];
+    float LatestHitTimeOther[__TMS_MAX_LINES__];
+    int FirstPlaneOne[__TMS_MAX_LINES__];
+    int FirstPlaneOther[__TMS_MAX_LINES__];
+    int LastPlaneOne[__TMS_MAX_LINES__];
+    int LastPlaneOther[__TMS_MAX_LINES__];
     bool TMSStart;
     float TMSStartTime;
-    float Occupancy[__TMS_MAX_LINES__];
-    float TrackLength[__TMS_MAX_LINES__];
-    float TotalTrackEnergy[__TMS_MAX_LINES__];
-    bool TrackStopping[__TMS_MAX_LINES__];
+    float OccupancyOne[__TMS_MAX_LINES__];
+    float OccupancyOther[__TMS_MAX_LINES__];
+    float TrackLengthOne[__TMS_MAX_LINES__];
+    float TrackLengthOther[__TMS_MAX_LINES__];
+    float TotalTrackEnergyOne[__TMS_MAX_LINES__];
+    float TotalTrackEnergyOther[__TMS_MAX_LINES__];
+    bool TrackStoppingOne[__TMS_MAX_LINES__];
+    bool TrackStoppingOther[__TMS_MAX_LINES__];
 
-    float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
-    float TrackHitTime[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
-    float TrackHitPos[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
+    float TrackHitEnergyOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
+    float TrackHitEnergyOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeOther[__TMS_MAX_LINES][__TMS_MAX_LINE_HITS__];
+    float TrackHitPosOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
+    float TrackHitPosOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
     int nHitsInTrack[__TMS_MAX_LINES__];
 
     // Cluster information

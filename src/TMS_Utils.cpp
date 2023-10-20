@@ -59,8 +59,8 @@ caf::SRTMS ConvertEvent() {
     tracks[nit].dir = dir;
 
     // Now do the track quality, track energy and track length
-    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLength()[nit];
-    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergy()[nit];
+    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOne()[nit];
+    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOne()[nit];
   }
   keeper_nit = nit;
   nit = 0;
@@ -81,8 +81,8 @@ caf::SRTMS ConvertEvent() {
     tracks[nit+keeper_nit].dir = dir;
 
     // Now do the track quality, track energy and track length
-    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengt()[nit];
-    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergy()[nit];
+    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOther()[nit];
+    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOther()[nit];
   }
 
   return caf;

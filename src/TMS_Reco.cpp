@@ -107,8 +107,10 @@ void TMS_TrackFinder::ClearClass() {
   HoughCandidatesOther.clear();
   ClusterCandidatesOne.clear();
   ClusterCandidatesOther.clear();
-  TrackLength.clear();
-  TrackEnergy.clear();
+  TrackLengthOne.clear();
+  TrackLengthOther.clear();
+  TrackEnergyOne.clear();
+  TrackEnergyOther.clear();
 }
 
 int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {

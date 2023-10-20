@@ -255,8 +255,10 @@ class TMS_TrackFinder {
 
     void ClearClass();
 
-    std::vector<double> &GetTrackLength() { return TrackLength; };
-    std::vector<double> &GetTrackEnergy() { return TrackEnergy; };
+    std::vector<double> &GetTrackLengthOne() { return TrackLengthOne; };
+    std::vector<double> &GetTrackLengthOther() { return TrackLengthOther; };
+    std::vector<double> &GetTrackEnergyOne() { return TrackEnergyOne; };
+    std::vector<double> &GetTrackEnergyOther() { return TrackEnergyOther; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
       // Reset the accumulator
@@ -374,8 +376,10 @@ class TMS_TrackFinder {
     bool UseClustering;
     TrackMethod kTrackMethod;
 
-    std::vector<double> TrackEnergy;
-    std::vector<double> TrackLength;
+    std::vector<double> TrackEnergyOne;
+    std::vector<double> TrackEnergyOther;
+    std::vector<double> TrackLengthOne;
+    std::vector<double> TrackLengthOther;
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {
