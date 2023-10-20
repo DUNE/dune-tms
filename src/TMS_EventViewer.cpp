@@ -216,49 +216,90 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
 
   // Get the Hough candidates
   std::vector<std::vector<TMS_Hit> > HoughCandidatesOne = TMS_TrackFinder::GetFinder().GetHoughCandidatesOne();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
   // Now loop over the cluster candidates, make them TGraphs
-  int nLines = HoughCandidatesOne.size();
-  std::vector<TGraph*> HoughGraphVect(nLines);
-  for (int i = 0; i < nLines; ++i) {
-    HoughGraphVect[i] = new TGraph(HoughCandidatesOne[i].size());
-    HoughGraphVect[i]->SetLineColor(i);
-    HoughGraphVect[i]->SetLineWidth(2);
-    HoughGraphVect[i]->SetMarkerColor(i+1);
-    HoughGraphVect[i]->SetMarkerSize(1.5);
-    HoughGraphVect[i]->SetMarkerStyle(25);
+  int nLinesOne = HoughCandidatesOne.size();
+  int nLinesOther = HoughCandidatesOther.size()
+  std::vector<TGraph*> HoughGraphVectOne(nLinesOne);
+  std::vector<TGraph*> HoughGraphVectOther(nLinesOther);
+  for (int i = 0; i < nLinesOne; ++i) {
+    HoughGraphVectOne[i] = new TGraph(HoughCandidatesOne[i].size());
+    HoughGraphVectOne[i]->SetLineColor(i);
+    HoughGraphVectOne[i]->SetLineWidth(2);
+    HoughGraphVectOne[i]->SetMarkerColor(i+1);
+    HoughGraphVectOne[i]->SetMarkerSize(1.5);
+    HoughGraphVectOne[i]->SetMarkerStyle(25);
+  }
+  for (int i = 0; i < nLinesOther; ++i) {
+    HoughGraphVectOther[i] = new TGraph(HoughCandidatesOther[i].size());
+    HoughGraphVectOther[i]->SetLineColor(i);
+    HoughGraphVectOther[i]->SetLineWidth(2);
+    HoughGraphVectOther[i]->SetMarkerColor(i+1);
+    HoughGraphVectOther[i]->SetMarkerSize(1.5);
+    HoughGraphVectOther[i]->SetMarkerStyle(25);
   }
   int LineIt = 0;
   for (auto &Line: HoughCandidatesOne) {
     int HitIt = 0;
     for (auto HoughHit: Line) {
-      HoughGraphVect[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
+      HoughGraphVectOne[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
+      HitIt++;
+    }
+    LineIt++;
+  }
+  LineIt = 0;
+  for (auto &Line: HoughCandidatesOther) {
+    int HitIt = 0;
+    for (auto HoughHit: Line) {
+      HoughGraphVectOther[LineIt]->SetPoint(HitIt, HoughHit.GeZ()/1E3, HoughHit.GetNotZ()/1E3);
       HitIt++;
     }
     LineIt++;
   }
   
   // Get the cluster candidates
-  std::vector<std::vector<TMS_Hit> > ClusterCandidates = TMS_TrackFinder::GetFinder().GetClusterCandidates();
+  std::vector<std::vector<TMS_Hit> > ClusterCandidatesOne = TMS_TrackFinder::GetFinder().GetClusterCandidatesOne();
+  std::vector<std::vector<TMS_Hit> > ClusterCandidatesOther = TMS_TrackFinder::GetFinder().GetClusterCandidatesOther();
   // Now loop over the cluster candidates, make them TGraphs
-  int nClusters = ClusterCandidates.size();
-  std::vector<TGraph*> GraphVect(nClusters);
-  for (int i = 0; i < nClusters; ++i) {
-    GraphVect[i] = new TGraph(ClusterCandidates[i].size());
-    GraphVect[i]->SetLineColor(nLines+i);
-    GraphVect[i]->SetLineWidth(2);
-    GraphVect[i]->SetMarkerColor(nLines+i);
-    GraphVect[i]->SetMarkerSize(1.2);
-    GraphVect[i]->SetMarkerStyle(4);
+  int nClustersOne = ClusterCandidatesOne.size();
+  int nClustersOther = ClusterCandidatesOther.size();
+  std::vector<TGraph*> GraphVectOne(nClustersOne);
+  std::vector<TGraph*> GraphVectOther(nClustersOther);
+  for (int i = 0; i < nClustersOne; ++i) {
+    GraphVectOne[i] = new TGraph(ClusterCandidatesOne[i].size());
+    GraphVectOne[i]->SetLineColor(nLines+i);
+    GraphVectOne[i]->SetLineWidth(2);
+    GraphVectOne[i]->SetMarkerColor(nLines+i);
+    GraphVectOne[i]->SetMarkerSize(1.2);
+    GraphVectOne[i]->SetMarkerStyle(4);
+  }
+  for (int i = 0; i < nClustersOther; ++i) {
+    GraphVectOther[i] = new TGraph(ClusterCandidatesOther[i].size());
+    GraphVectOther[i]->SetLineColor(nLines+i);
+    GraphVectOther[i]->SetLineWidth(2);
+    GraphVectOther[i]->SetMarkerColor(nLines+i);
+    GraphVectOther[i]->SetMarkerSize(1.2);
+    GraphVectOther[i]->SetMarkerStyle(4);
   }
   int ClusterIt = 0;
-  for (auto &Cluster: ClusterCandidates) {
+  for (auto &Cluster: ClusterCandidatesOne) {
     int HitIt = 0;
     for (auto ClusterHit: Cluster) {
-      GraphVect[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ()/1E3, ClusterHit.GetNotZ()/1E3);
+      GraphVectOne[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ()/1E3, ClusterHit.GetNotZ()/1E3);
       HitIt++;
     }
     ClusterIt++;
   }
+  ClusterIt = 0;
+  for (auto &Cluster: ClusterCandidatesOther) {
+    int HitIt = 0;
+    for (auto ClusterHit: Cluster) {
+      GraphVectOther[ClusterIt]->SetPoint(HitIt, ClusterHit.Get()/1E3, ClusterHit.GetNotZ()/1E3);
+      HitIt++;
+    }
+    ClusterIt++;
+  }
+  
 
   // Get all the hough lines
   std::vector<std::pair<bool, TF1*> > HoughLinesOne = TMS_TrackFinder::GetFinder().GetHoughLinesOne();
@@ -302,7 +343,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   Canvas->Print(CanvasName+".pdf");
 
   // Draw the reconstructed tracks 
-  xz_view->SetTitle(Form("#splitline{Event %i reconstructed}{nLines: %i, nClusters: %i}", EventNumber, nLines, nClusters));
+  xz_view->SetTitle(Form("#splitline{Event %i reconstructed}{nLinesOne: %i, nLinesOther: %i, nClustersOne: %i, nClustersOther: %i}", EventNumber, nLinesOne, nLinesOther, nClustersOne, nClustersOther));
   xz_view->Draw("colz");
   xz_box_FV->Draw("same");
   xz_box_Full->Draw("same");
@@ -311,9 +352,11 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   xz_dead_bottom->Draw("same");
   xz_Thin_Thick->Draw("same");
   // Draw the clusters first
-  for (auto &graph: GraphVect) graph->Draw("P,same");
+  for (auto &graph: GraphVectOne) graph->Draw("P,same");
+  for (auto &graph: GraphVectOther) graph->Draw("P,same");
   // Then the track candidates
-  for (auto &graph: HoughGraphVect) graph->Draw("P,same");
+  for (auto &graph: HoughGraphVectOne) graph->Draw("P,same");
+  for (auto &graph: HoughGraphVectOther) graph->Draw("P,same");
   it = 0;
   for (auto &i : HoughLinesOne) {
     if (i.first == true) {
@@ -349,11 +392,17 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     //delete accumulator_yz;
   }
 
-  for (int i = 0; i < nClusters; ++i) {
-    delete GraphVect[i];
+  for (int i = 0; i < nClustersOne; ++i) {
+    delete GraphVectOne[i];
   }
-  for (int i = 0; i < nLines; ++i) {
-    delete HoughGraphVect[i];
+  for (int i = 0; i < nClustersOther; ++i) {
+    delete GraphVectOther[i];
+  }
+  for (int i = 0; i < nLinesOne; ++i) {
+    delete HoughGraphVectOne[i];
+  }
+  for (int i = 0; i < nLinesOther; ++i) {
+    delete HoughGraphVectOther[i];
   }
 
   for (int i = 0; i < int(trajgraphs.size()); ++i) {

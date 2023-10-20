@@ -105,7 +105,8 @@ void TMS_TrackFinder::ClearClass() {
   HoughLinesOther_Downstream.clear();
   HoughCandidatesOne.clear();
   HoughCandidatesOther.clear();
-  ClusterCandidates.clear();
+  ClusterCandidatesOne.clear();
+  ClusterCandidatesOther.clear();
   TrackLength.clear();
   TrackEnergy.clear();
 }

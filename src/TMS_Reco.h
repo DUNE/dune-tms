@@ -207,7 +207,8 @@ class TMS_TrackFinder {
 
     int **GetAccumulator() { return Accumulator; };
 
-    std::vector<std::vector<TMS_Hit> > &GetClusterCandidates() { return ClusterCandidates; };
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidateOnes() { return ClusterCandidatesOne; };
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesOther() { return ClusterCandidatesOther; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
 

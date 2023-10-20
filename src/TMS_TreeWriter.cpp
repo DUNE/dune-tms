@@ -383,7 +383,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     it++;
   }
 
-  std::vector<std::vector<TMS_Hit> > HoughCandsOther = TMS_TrackFinder::GetFidner().GetHoughCandidatesOther();
+  std::vector<std::vector<TMS_Hit> > HoughCandsOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
   it = 0;
   for (auto &Candidates: HoughCandsOther) {
     // Loop over hits
@@ -450,12 +450,20 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
 
   // Save down cluster information
-  std::vector<std::vector<TMS_Hit> > Clusters = TMS_TrackFinder::GetFinder().GetClusterCandidates();
-  nClusters = Clusters.size();
-  if (nClusters > __TMS_MAX_CLUSTERS__) {
+  std::vector<std::vector<TMS_Hit> > ClustersOne = TMS_TrackFinder::GetFinder().GetClusterCandidatesOne();
+  std::vector<std::vector<TMS_Hit> > ClustersOther = TMS_TrackFinder::GetFinder().GetClusterCandidatesOther();
+  nClustersOne = ClustersOne.size();
+  nClustersOther = ClustersOther.size();
+  if (nClustersOne > __TMS_MAX_CLUSTERS__) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
-    std::cerr << "nClusters in event: " << nClusters << std::endl;
+    std::cerr << "nClustersOne in event: " << nClustersOne << std::endl;
+    return;
+  }
+  if (nClustersOther > __TMS_MAX_CLUSTERS__) {
+    std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
+    std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
+    std::cerr << "nClustersOther in event: " << nClustersOther << std::endl;
     return;
   }
 
@@ -463,7 +471,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   int stdit = 0;
   // Calculate the cluster by cluster summaries
   // e.g. total energy in cluster, cluster position, and cluster standard deviation
-  for (auto it = Clusters.begin(); it != Clusters.end(); ++it, ++stdit) {
+  for (auto it = ClustersOne.begin(); it != ClustersOne.end(); ++it, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -481,11 +489,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       total_energy += (*it)[j].GetE();
       float time = (*it)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-      ClusterHitPos[stdit][j][0] = (*it)[j].GetZ();
-      ClusterHitPos[stdit][j][1] = (*it)[j].GetNotZ();
-      ClusterHitEnergy[stdit][j] = (*it)[j].GetE();
-      ClusterHitTime[stdit][j] = (*it)[j].GetT();
-      ClusterHitSlice[stdit][j] = (*it)[j].GetSlice();
+      ClusterHitPosOne[stdit][j][0] = (*it)[j].GetZ();
+      ClusterHitPosOne[stdit][j][1] = (*it)[j].GetNotZ();
+      ClusterHitEnergyOne[stdit][j] = (*it)[j].GetE();
+      ClusterHitTimeOne[stdit][j] = (*it)[j].GetT();
+      ClusterHitSliceOne[stdit][j] = (*it)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -493,18 +501,60 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     mean2_z /= nhits;
     mean2_notz /= nhits;
 
-    ClusterEnergy[stdit] = total_energy;
-    ClusterTime[stdit] = min_cluster_time;
-    nHitsInCluster[stdit] = nhits;
-    ClusterPosMean[stdit][0] = mean_z;
-    ClusterPosMean[stdit][1] = mean_notz;
+    ClusterEnergyOne[stdit] = total_energy;
+    ClusterTimeOne[stdit] = min_cluster_time;
+    nHitsInClusterOne[stdit] = nhits;
+    ClusterPosMeanOne[stdit][0] = mean_z;
+    ClusterPosMeanOne[stdit][1] = mean_notz;
     // Calculate the standard deviation
     double std_dev_z = mean2_z-mean_z*mean_z;
     double std_dev_notz = mean2_z-mean_z*mean_z;
     if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
     if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_z);
-    ClusterPosStdDev[stdit][0] = std_dev_z;
-    ClusterPosStdDev[stdit][1] = std_dev_notz;
+    ClusterPosStdDevOne[stdit][0] = std_dev_z;
+    ClusterPosStdDevOne[stdit][1] = std_dev_notz;
+  }
+  stdit = 0;
+  for (auto it = ClustersOther.begin(); it != ClustersOther.end(); ++it, ++stdit) {
+    double total_energy = 0;
+    double mean_z = 0;
+    double mean_notz = 0;
+    double mean2_z = 0;
+    double mean2_notz = 0;
+    double min_cluster_time = 1e10;
+    int nhits = (*it).size();
+    for (int j = 0; j < nhits; ++j) {
+      mean_z += (*it)[j].GetZ();
+      mean_notz += (*it)[j].GetNotZ();
+      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
+      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
+      total_energy += (*it)[j].GetE();
+      float time = (*it)[j].GetT();
+      if (time < min_cluster_time) min_cluster_time = time;
+      ClusterHitPosOther[stdit][j][0] = (*it)[j].GetZ();
+      ClusterHitPosOther[stdit][j][1] = (*it)[j].GetNotZ();
+      ClusterHitEnergyOther[stdit][j] = (*it)[j].GetE();
+      ClusterHitTimeOther[stdit][j] = (*it)[j].GetT();
+      ClusterHitSliceOther[stdit][j] = (*it)[j].GetSlice();
+    }
+    mean_z /= nhits;
+    mean_notz /= nhits;
+
+    mean2_z /= nhits;
+    mean2_notz /= nhits;
+
+    ClusterEnergyOther[stdit] = total_energy;
+    ClusterTimeOther[stdit] = min_cluster_time;
+    nHitsInClusterOther[stdit] = nhits;
+    ClusterPosMeanOther[stdit][0] = mean_z;
+    ClusterPosMeanOther[stdit][1] = mean_notz;
+
+    double std_dev_z = mean2_z-mean_z*mean_z;
+    double std_dev_notz = mean2_z-mean_z*mean_z;
+    if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
+    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
+    ClusterPosStdDevOther[stdit][0] = std_dev_z;
+    ClusterPosStdDevOther[stdit][1] = std_dev_notz;
   }
 
   // Write out the hit information
