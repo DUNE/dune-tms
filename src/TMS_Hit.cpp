@@ -1,4 +1,5 @@
 #include "TMS_Hit.h"
+#include "TMS_Readout_Manager.h"
 
 // The constructor for a hit in the TMS, from a edep-sim hit
 
@@ -10,8 +11,12 @@ TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) :
   // Define time as the average between start and stop of hit
   Time((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2), 
   Slice(0), 
+  #ifdef RECORD_HIT_DEADTIME
+  DeadtimeStart(-999.0),
+  DeadtimeStop(-999.0),
+  #endif
   PedSuppressed(false), 
-  PE(edep_seg.GetEnergyDeposit() * TMS_Const::TMS_EtoPE) {
+  PE(edep_seg.GetEnergyDeposit() * TMS_Readout_Manager::GetInstance().Get_Sim_Optical_LightYield()) {
 
   // The true particle
   //TrueParticle = TMS_TrueParticle(edep_seg);
@@ -49,3 +54,20 @@ void TMS_Hit::Print() const {
   std::cout << "TrueHit: " << std::endl;
   TrueHit.Print();
 }
+
+void TMS_Hit::MergeWith(TMS_Hit& hit) {
+  SetE(GetE() + hit.GetE());
+  SetPE(GetPE() + hit.GetPE());
+  SetT(std::min(GetT(), hit.GetT()));
+  
+  // And merge truth info
+  GetAdjustableTrueHit().MergeWith(hit.GetAdjustableTrueHit());
+}
+
+
+
+
+
+
+
+

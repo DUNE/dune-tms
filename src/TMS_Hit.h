@@ -17,6 +17,9 @@
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 
+// Not sure if users would need this beyond debugging deadtime
+#define RECORD_HIT_DEADTIME
+
 // A low-level hit
 class TMS_Hit {
 
@@ -53,11 +56,13 @@ class TMS_Hit {
 
     // The true hit
     const TMS_TrueHit &GetTrueHit() const { return TrueHit; };
+    TMS_TrueHit &GetAdjustableTrueHit() { return TrueHit; };
 
     // Over-riders (maybe delete in future)
     void SetTrueHit(TMS_TrueHit hit) {TrueHit = hit;};
 
     void SetE(double E) {EnergyDeposit = E;};
+    void SetEVis(double E) {EnergyDepositVisible = E;};
     void SetT(double t) {Time = t;};
     
     void SetPedSup(bool isPedSup) { PedSuppressed = isPedSup;};
@@ -67,11 +72,12 @@ class TMS_Hit {
     double GetPE() { return PE; };
 
     double GetE() const {return EnergyDeposit;};
+    double GetEVis() const {return EnergyDepositVisible;};
     double GetT() const {return Time;};
     
     void SetSlice(int slice) { Slice = slice; };
     int GetSlice() { return Slice; };
-
+    
     double GetX() const { return Bar.GetX(); };
     double GetY() const { return Bar.GetY(); };
     double GetZ() const { return Bar.GetZ(); };
@@ -84,6 +90,15 @@ class TMS_Hit {
 
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
+    
+    #ifdef RECORD_HIT_DEADTIME
+    void SetDeadtimeStart(double t) { DeadtimeStart = t; };
+    void SetDeadtimeStop(double t) { DeadtimeStop = t; };
+    double GetDeadtimeStart() const { return DeadtimeStart; };
+    double GetDeadtimeStop() const { return DeadtimeStop; };
+    #endif
+    
+    void MergeWith(TMS_Hit& hit);
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars
@@ -93,14 +108,20 @@ class TMS_Hit {
     TMS_Bar Bar;
     // The energy deposited
     double EnergyDeposit;
+    double EnergyDepositVisible;
     // The timing of the hit
     double Time;
     
     int Slice;
     
+    #ifdef RECORD_HIT_DEADTIME
+    double DeadtimeStart;
+    double DeadtimeStop;
+    #endif
     
     bool PedSuppressed;
     double PE;
+    
 };
 
 inline bool operator==(const TMS_Hit &a, const TMS_Hit &b) {
