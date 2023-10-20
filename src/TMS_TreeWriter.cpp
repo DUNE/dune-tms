@@ -510,7 +510,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double std_dev_z = mean2_z-mean_z*mean_z;
     double std_dev_notz = mean2_z-mean_z*mean_z;
     if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
-    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_z);
+    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
     ClusterPosStdDevOne[stdit][0] = std_dev_z;
     ClusterPosStdDevOne[stdit][1] = std_dev_notz;
   }
