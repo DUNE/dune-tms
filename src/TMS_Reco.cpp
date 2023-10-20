@@ -1232,7 +1232,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     std::cout << dist << std::endl;
   }
   indexstart++;
-  s<F5><F6>td::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
+  std::cout << "Will remove from " << indexstart << " to " << returned.size() << std::endl;
   for (std::vector<TMS_Hit>::iterator it = returned.begin()+indexstart; it != returned.end(); it++) {
     HitPool.push_back(std::move(*it));
   }

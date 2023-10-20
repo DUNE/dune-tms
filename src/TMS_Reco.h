@@ -219,7 +219,7 @@ class TMS_TrackFinder {
     void CalculateTrackLengthOne();
     void CalculateTrackEnergyOne();
     void CalculateTrackLengthOther();
-    void CalculateTrackenergyOther();
+    void CalculateTrackEnergyOther();
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
