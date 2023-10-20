@@ -56,14 +56,22 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
-  Branch_Lines->Branch("nLines",  &nLines,  "nLines/I");
+  Branch_Lines->Branch("nLinesOne",   &nLinesOne,   "nLinesOne/I");
+  Branch_Lines->Branch("nLinesOther", &nLinesOther, "nLinesOther/I");
 
-  Branch_Lines->Branch("Slope",     Slope,      "Slope[nLines]/F");
-  Branch_Lines->Branch("Intercept", Intercept,  "Intercept[nLines]/F");
-  Branch_Lines->Branch("Slope_Downstream",      Slope_Downstream,       "Slope_Downstream[nLines]/F");
-  Branch_Lines->Branch("Intercept_Downstream",  Intercept_Downstream,   "Intercept_Downstream[nLines]/F");
-  Branch_Lines->Branch("Slope_Upstream",        Slope_Upstream,         "Slope_Upstream[nLines]/F");
-  Branch_Lines->Branch("Intercept_Upstream",    Intercept_Upstream,     "Intercept_Upstream[nLines]/F");
+  Branch_Lines->Branch("SlopeOne",     SlopeOne,      "SlopeOne[nLinesOne]/F");
+  Branch_Lines->Branch("InterceptOne", InterceptOne,  "InterceptOne[nLinesOne]/F");
+  Branch_Lines->Branch("Slope_DownstreamOne",      Slope_DownstreamOne,       "Slope_DownstreamOne[nLinesOne]/F");
+  Branch_Lines->Branch("Intercept_DownstreamOne",  Intercept_DownstreamOne,   "Intercept_DownstreamOne[nLinesOne]/F");
+  Branch_Lines->Branch("Slope_UpstreamOne",        Slope_UpstreamOne,         "Slope_UpstreamOne[nLinesOne]/F");
+  Branch_Lines->Branch("Intercept_UpstreamOne",    Intercept_UpstreamOne,     "Intercept_UpstreamOne[nLinesOne]/F");
+
+  Branch_Lines->Branch("SlopeOther",     SlopeOther,     "SlopeOther[nLinesOther]/F");
+  Branch_Lines->Branch("InterceptOther", InterceptOther, "InterceptOther[nLinesOther]/F");
+  Branch_Lines->Branch("Slope_DownstreamOther",     Slope_DownstreamOther,     "Slope_DownstreamOther[nLinesOther]/F");
+  Branch_Lines->Branch("Intercept_DownstreamOther", Intercept_DownstreamOther, "Intercept_DownstreamOther[nLinesOther]/F");
+  Branch_Lines->Branch("Slope_UpstreamOther",       Slope_UpstreamOther,       "Slope_UpstreamOther[nLinesOther]/F");
+  Branch_Lines->Branch("Intercept_UpstreamOther",   Intercept_UpstreamOther,   "Intercept_UpstreamOther[nLinesOther]/F");
 
   Branch_Lines->Branch("DirectionZOne",   DirectionZOne,   "DirectionZOne[nLinesOne]/F");
   Branch_Lines->Branch("DirectionZOther", DirectionZOther, "DirectionZOther[nLinesOther]/F");
@@ -78,12 +86,14 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionZOther_Upstream",   DirectionZOther_Upstream,   "DirectionZOther_Upstream[nLinesOther]/F");
   Branch_Lines->Branch("DirectionXOther_Upstream",   DirectionXOther_Upstream,   "DirectionXOther_Upstream[nLinesOther]/F");
 
-  Branch_Lines->Branch("FirstHoughHitOne",     FirstHitOne,     "FirstHoughHitOne[nLinesOne][2]/F");
-  Branch_Lines->Branch("FirstHoughHitOther",   FirstHitOther,   "FirstHoughHitOther[nLinesOther][2]/F");
-  Branch_Lines->Branch("LastHoughHitOne",      LastHitOne,      "LastHoughHitOne[nLinesOne][2]/F");
-  Branch_Lines->Branch("LastHoughitOther",     LastHitOther,    "LastHougHitOther[nLinesOther][2]/F");
-  Branch_Lines->Branch("FirstHoughHitTime",    FirstHitTime,    "FirstHoughHitTime[nLines]/F");
-  Branch_Lines->Branch("LastHoughHitTime",     LastHitTime,     "LastHoughHitTime[nLines]/F");
+  Branch_Lines->Branch("FirstHoughHitOne",       FirstHitOne,       "FirstHoughHitOne[nLinesOne][2]/F");
+  Branch_Lines->Branch("FirstHoughHitOther",     FirstHitOther,     "FirstHoughHitOther[nLinesOther][2]/F");
+  Branch_Lines->Branch("LastHoughHitOne",        LastHitOne,        "LastHoughHitOne[nLinesOne][2]/F");
+  Branch_Lines->Branch("LastHoughitOther",       LastHitOther,      "LastHougHitOther[nLinesOther][2]/F");
+  Branch_Lines->Branch("FirstHoughHitTimeOne",   FirstHitTimeOne,   "FirstHoughHitTimeOne[nLinesOne]/F");
+  Branch_Lines->Branch("FirstHoughHitTimeOther", FirstHitTimeOther, "FirstHoughHitTimeOther[nLinesOther]/F"); 
+  Branch_Lines->Branch("LastHoughHitTimeOne",    LastHitTimeOne,    "LastHoughHitTimeOne[nLinesOne]/F");
+  Branch_Lines->Branch("LastHoughHitTimeOther",  LastHitTimeOther,  "LastHoughHitTimeOther[nLinesOther]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeOne",   EarliestHitTimeOne,   "HoughEarliestHitTimeOne[nLinesOne]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeOther", EarliestHitTimeOther, "HoughEarliestHitTimeOther[nLinesOther]/F");
   Branch_Lines->Branch("HoughLatestHitTimeOne",     LatestHitTimeOne,     "HoughLatestHitTimeOne[nLinesOne]/F");
@@ -104,7 +114,8 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TrackStoppingOther",    TrackStoppingOther,    "TrackStoppingOther[nLinesOther]/O");
 
   // Track hit energy
-  Branch_Lines->Branch("nHitsInTrack",        &nHitsInTrack,       "nHitsInTrack[nLines]/I");
+  Branch_Lines->Branch("nHitsInTrackOne",     &nHitsInTrackOne,    "nHitsInTrackOne[nLinesOne]/I");
+  Branch_Lines->Branch("nHitsInTrackOther",   &nHitsInTrackOther,  "nHitsInTrackOther[nLinesOther]/I");
   Branch_Lines->Branch("TrackHitEnergyOne",   TrackHitEnergyOne,   "TrackHitEnergyOne[10][200]/F");
   Branch_Lines->Branch("TrackHitenergyOther", TrackHitEnergyOther, "TrackHitEnergyOther[10][200]/F");
   Branch_Lines->Branch("TrackHitPosOne",      TrackHitPosOne,      "TrackHitPosOne[10][200][2]/F");
@@ -236,28 +247,37 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   std::vector<std::pair<bool, TF1*>> HoughLinesOther = TMS_TrackFinder::GetFinder().GetHoughLinesOther();
   // Also get the size of the hits to get a measure of relative goodness
   std::vector<std::vector<TMS_Hit> > HoughCandidatesOne = TMS_TrackFinder::GetFinder().GetHoughCandidatesOne();
-  std::vector<std::vector<TMS_Hit> > HoughcandidatesOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
-  nLines = HoughCandidatesOne.size();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
+  nLinesOne = HoughCandidatesOne.size();
+  nLinesOther = HoughCandidatesOther.size();
 
 
   // Skip the event if there aren't any Hough Lines
-  if (nLines > __TMS_MAX_LINES__) {
+  if (nLinesOne > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
-    std::cerr << "Number of lines in event: " << nLines << std::endl;
+    std::cerr << "Number of lines in event (one): " << nLinesOne << std::endl;
     std::cerr << "Not writing event" << std::endl;
+    return;
+  }
+
+  if (nLinesOther > __TMS_MAX_LINES__) {
+    std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
+    std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
+    std::cerr << "Number of lines in event (other): " << nLinesOther << std::endl;
+    std::cerr << "Not writing evet" << std::endl;
     return;
   }
 
   int it = 0;
   for (auto &Lines: HoughLinesOne) {
     // Get the slopes saved down
-    Intercept[it] = Lines.second->GetParameter(0);
-    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].first;
-    Intercept_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].first;
-    Slope[it] = Lines.second->GetParameter(1);
-    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].second;
-    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].second;
+    InterceptOne[it] = Lines.second->GetParameter(0);
+    Intercept_UpstreamOne[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].first;
+    Intercept_DownstreamOne[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].first;
+    SlopeOne[it] = Lines.second->GetParameter(1);
+    Slope_UpstreamOne[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Upstream()[it].second;
+    Slope_DownstreamOne[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOne_Downstream()[it].second;
 
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double xlow = TMS_Const::TMS_Thin_Start;
@@ -265,11 +285,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double ylow = Lines.second->Eval(xlow);
     double yhi = Lines.second->Eval(xhi);
     // Do the same for up and downstream portions
-    double ylow_upstream = Intercept_Upstream[it]+xlow*Slope_Upstream[it];
-    double yhi_upstream = Intercept_Upstream[it]+xhi*Slope_Upstream[it];
+    double ylow_upstream = Intercept_UpstreamOne[it]+xlow*Slope_UpstreamOne[it];
+    double yhi_upstream = Intercept_UpstreamOne[it]+xhi*Slope_UpstreamOne[it];
 
-    double ylow_downstream = Intercept_Downstream[it]+xlow*Slope_Downstream[it];
-    double yhi_downstream = Intercept_Downstream[it]+xhi*Slope_Downstream[it];
+    double ylow_downstream = Intercept_DownstreamOne[it]+xlow*Slope_DownstreamOne[it];
+    double yhi_downstream = Intercept_DownstreamOne[it]+xhi*Slope_DownstreamOne[it];
 
     double xlen = xhi-xlow;
     double ylen = yhi-ylow;
@@ -295,24 +315,24 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   it = 0;
   for (auto &Lines : HoughLinesOther) {
     // Get the slopes saved down
-    Intercept[it] = Lines.second->GetParameter(0);
-    Intercept_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].first;
-    Intercept_Downstream[it] = TMS_Trackfinder::GetFinder().GetHoughLinesOther_Downstream()[it].first;
-    Slope[it] = Lines.second->GetParameter(1);
-    Slope_Upstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].second;
-    Slope_Downstream[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Downstream()[it].second;
+    InterceptOther[it] = Lines.second->GetParameter(0);
+    Intercept_UpstreamOther[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].first;
+    Intercept_DownstreamOther[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Downstream()[it].first;
+    SlopeOther[it] = Lines.second->GetParameter(1);
+    Slope_UpstreamOther[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Upstream()[it].second;
+    Slope_DownstreamOther[it] = TMS_TrackFinder::GetFinder().GetHoughLinesOther_Downstream()[it].second;
 
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double xlow = TMS_Const::TMS_Thin_Start;
     double xhi = TMS_Const::TMS_Thick_Start;
     double ylow = Lines.second->Eval(xlow);
-    double yhi = Lines.second->Ecal(xhi);
+    double yhi = Lines.second->Eval(xhi);
     // Doe the same for up and downstream portions
-    double ylow_upstream = Intercept_Upstream[it]+xlow*Slope_Upstream[it];
-    double yhi_upstream = Intercept_Upstream[it]+xhi*Slope_Upstream[it];
+    double ylow_upstream = Intercept_UpstreamOther[it]+xlow*Slope_UpstreamOther[it];
+    double yhi_upstream = Intercept_UpstreamOther[it]+xhi*Slope_UpstreamOther[it];
 
-    double ylow_downstream = Intercept_Downstream[it]+xlow*Slope_Downstream[it];
-    double yhi_downstream = Intercept_Downstream[it]+xhi*Slope_Downstream[it];
+    double ylow_downstream = Intercept_DownstreamOther[it]+xlow*Slope_DownstreamOther[it];
+    double yhi_downstream = Intercept_DownstreamOther[it]+xhi*Slope_DownstreamOther[it];
 
     double xlen = xhi-xlow;
     double ylen = yhi-ylow;
@@ -354,7 +374,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    nHitsInTrack[it] = Candidates.size();
+    nHitsInTrackOne[it] = Candidates.size();
 
     // Then save the hit info
     FirstPlaneOne[it] = Candidates.front().GetPlaneNumber();
@@ -413,7 +433,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    nHitsInTrack[it] = Candidates.size();
+    nHitsInTrackOther[it] = Candidates.size();
 
     // then save the hit info
     FirstPlaneOther[it] = Candidates.front().GetPlaneNumber();
@@ -424,7 +444,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     LastPlaneOther[it] = Candidates.back().GetPlaneNumber();
     LastHitOther[it][0] = Candidates.back().GetZ();
     LastHitOther[it][1] = Candidates.back().GetNotZ();
-    LastHitTimeOther[it] = Candidate.back().GetT();
+    LastHitTimeOther[it] = Candidates.back().GetT();
 
     TrackLengthOther[it] = TMS_TrackFinder::GetFinder().GetTrackLengthOther()[it];
     TotalTrackEnergyOther[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyOther()[it];
@@ -620,14 +640,21 @@ void TMS_TreeWriter::Clear() {
 
   // Reset line information
   TMSStart = false;
-  nLines = -999;
+  nLinesOne = -999;
+  nLinesOther = -999;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    Slope[i]=-999;
-    Intercept[i]=-999;
-    Slope_Downstream[i]=-999;
-    Intercept_Downstream[i]=-999;
-    Slope_Upstream[i]=-999;
-    Intercept_Upstream[i]=-999;
+    SlopeOne[i]=-999;
+    SlopeOther[i]=-999;
+    InterceptOne[i]=-999;
+    InterceptOther[i]=-999;
+    Slope_DownstreamOne[i]=-999;
+    Slope_DownstreamOther[i]=-999;
+    Intercept_DownstreamOne[i]=-999;
+    Intercept_downstreamOther[i]=-999;
+    Slope_UpstreamOne[i]=-999;
+    Slope_UpstreamOther[i]=-999;
+    Intercept_UpstreamOne[i]=-999;
+    Intercept_UpstreamOther[i]=-999;
 
     DirectionZOne[i]=-999;
     DirectionXOne[i]=-999;
@@ -653,7 +680,8 @@ void TMS_TreeWriter::Clear() {
     FirstPlaneOther[i]=-999;
     LastPlaneOne[i]=-999;
     LastPlaneOther[i]=-999;
-    nHitsInTrack[i] = -999;
+    nHitsInTrackOne[i] = -999;
+    nHitsInTrackOther[i] = -999;
     TrackStoppingOne[i] = false;
     TrackStoppingOther[i] = false;
     for (int j = 0; j < 2; ++j) {
@@ -680,7 +708,8 @@ void TMS_TreeWriter::Clear() {
   }
 
   // Reset Cluster info
-  nClusters = -999;
+  nClustersOne = -999;
+  nClustersOther = -999;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
     ClusterEnergy[i] = -999;
     nHitsInCluster[i] = -999;

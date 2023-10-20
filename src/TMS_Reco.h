@@ -207,7 +207,7 @@ class TMS_TrackFinder {
 
     int **GetAccumulator() { return Accumulator; };
 
-    std::vector<std::vector<TMS_Hit> > &GetClusterCandidateOnes() { return ClusterCandidatesOne; };
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesOne() { return ClusterCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesOther() { return ClusterCandidatesOther; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
@@ -217,9 +217,14 @@ class TMS_TrackFinder {
     void SetZMaxHough(double z) { zMaxHough = z;};
 
     void CalculateTrackLengthOne();
-    void CalculateTrackEnergyOne();
     void CalculateTrackLengthOther();
+    void CalculateTrackEnergyOne();
     void CalculateTrackEnergyOther();
+    
+    void CalculateTrackLengthOne(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackEnergyOne(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackLengthOther(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackEnergyOther(const std::vector<std::vector<TMS_Hit> > &Hits);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -229,11 +234,11 @@ class TMS_TrackFinder {
     void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, int &hitgroup);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, int &hitgroup);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
@@ -243,7 +248,7 @@ class TMS_TrackFinder {
 
     std::vector<TMS_Hit> OneHitGroup;
     std::vector<TMS_Hit> OtherHitGroup;
-    int kLayerOrientation;
+    int LayerOrientation;
 
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);

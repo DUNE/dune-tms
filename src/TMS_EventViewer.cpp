@@ -219,7 +219,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<std::vector<TMS_Hit> > HoughCandidatesOther = TMS_TrackFinder::GetFinder().GetHoughCandidatesOther();
   // Now loop over the cluster candidates, make them TGraphs
   int nLinesOne = HoughCandidatesOne.size();
-  int nLinesOther = HoughCandidatesOther.size()
+  int nLinesOther = HoughCandidatesOther.size();
   std::vector<TGraph*> HoughGraphVectOne(nLinesOne);
   std::vector<TGraph*> HoughGraphVectOther(nLinesOther);
   for (int i = 0; i < nLinesOne; ++i) {
@@ -251,7 +251,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (auto &Line: HoughCandidatesOther) {
     int HitIt = 0;
     for (auto HoughHit: Line) {
-      HoughGraphVectOther[LineIt]->SetPoint(HitIt, HoughHit.GeZ()/1E3, HoughHit.GetNotZ()/1E3);
+      HoughGraphVectOther[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
       HitIt++;
     }
     LineIt++;
@@ -267,17 +267,17 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<TGraph*> GraphVectOther(nClustersOther);
   for (int i = 0; i < nClustersOne; ++i) {
     GraphVectOne[i] = new TGraph(ClusterCandidatesOne[i].size());
-    GraphVectOne[i]->SetLineColor(nLines+i);
+    GraphVectOne[i]->SetLineColor(nLinesOne+i);
     GraphVectOne[i]->SetLineWidth(2);
-    GraphVectOne[i]->SetMarkerColor(nLines+i);
+    GraphVectOne[i]->SetMarkerColor(nLinesOne+i);
     GraphVectOne[i]->SetMarkerSize(1.2);
     GraphVectOne[i]->SetMarkerStyle(4);
   }
   for (int i = 0; i < nClustersOther; ++i) {
     GraphVectOther[i] = new TGraph(ClusterCandidatesOther[i].size());
-    GraphVectOther[i]->SetLineColor(nLines+i);
+    GraphVectOther[i]->SetLineColor(nLinesOther+i);
     GraphVectOther[i]->SetLineWidth(2);
-    GraphVectOther[i]->SetMarkerColor(nLines+i);
+    GraphVectOther[i]->SetMarkerColor(nLinesOther+i);
     GraphVectOther[i]->SetMarkerSize(1.2);
     GraphVectOther[i]->SetMarkerStyle(4);
   }
@@ -294,7 +294,7 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (auto &Cluster: ClusterCandidatesOther) {
     int HitIt = 0;
     for (auto ClusterHit: Cluster) {
-      GraphVectOther[ClusterIt]->SetPoint(HitIt, ClusterHit.Get()/1E3, ClusterHit.GetNotZ()/1E3);
+      GraphVectOther[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ()/1E3, ClusterHit.GetNotZ()/1E3);
       HitIt++;
     }
     ClusterIt++;

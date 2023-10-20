@@ -615,7 +615,7 @@ void TMS_TrackFinder::CalculateTrackEnergyOther() {
   if (HoughCandidatesOther.size() == 0) return;
 
   //Lopp over each Hough Candidate and find the track length
-  for (auto it = HoughCandidatesOther.begin(); it != HoughCandidatesOther.end(); ++i) {
+  for (auto it = HoughCandidatesOther.begin(); it != HoughCandidatesOther.end(); ++it) {
     double total = 0;
     // Sort by increasing z
     std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
@@ -666,9 +666,9 @@ void TMS_TrackFinder::CalculateTrackLengthOther() {
       auto nexthit = *(hit+1);
       // Ue the geometry to calculate the track length between hits
       TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-      TVector3 point2(nexthit.GetNotZ(), -200, nexthit.Get/());
+      TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
       if ((point2-point1).Mag() > 100) continue;
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point);
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
       total += tracklength;
     }
     TrackLengthOther.push_back(total);
@@ -676,7 +676,7 @@ void TMS_TrackFinder::CalculateTrackLengthOther() {
 }
 
 //void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
-std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
@@ -781,12 +781,14 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
       //std::cout << "Running on track with size: " << (*it).size() << std::endl;
 
+      double HoughOneInter_1, HoughOneSlope_1, HoughOtherInter_1, HoughOtherSlope_1;
+
       if (hitgroup == 1) {
-        double HoughOneInter_1 = HoughLinesOne[lineit].second->GetParameter(0);
-        double HoughOneSlope_1 = HoughLinesOne[lineit].second->GetParameter(1);
+        HoughOneInter_1 = HoughLinesOne[lineit].second->GetParameter(0);
+        HoughOneSlope_1 = HoughLinesOne[lineit].second->GetParameter(1);
       } else if (hitgroup == 2) {
-        double HoughOtherInter_1 = HoughLinesOther[lineit].second->GetParameter(0);
-        double HoughOtherSlope_1 = HoughLinesOther[lineit].second->GetParameter(1);
+        HoughOtherInter_1 = HoughLinesOther[lineit].second->GetParameter(0);
+        HoughOtherSlope_1 = HoughLinesOther[lineit].second->GetParameter(1);
       }
 
       // Now loop over the remaining hits
@@ -818,13 +820,15 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= 2 && 
                           abs(first_hit_notz_2 - last_hit_notz) <= 2);
 
+        double HoughOneInter_2, HoughOneSlope_2, HoughOtherInter_2, HoughOtherSlope_2;
+
         if (hitgroup == 1) {
-          double HoughOneInter_2 = HoughLinesOne[lineit_2].second->GetParameter(0);
-          double HoughOneSlope_2 = HoughLinesOne[lineit_2].second->GetParameter(1);
-	} else if (hitgroup == 2) {
-  	  double HoughOtherInter_2 = HoughLinesOther[lineit_2].second->GetParameter(0);
-	  double HoughOtherSlope_2 = HoughLinesOther[lineit_2].second->GetParameter(1);
-	}
+          HoughOneInter_2 = HoughLinesOne[lineit_2].second->GetParameter(0);
+          HoughOneSlope_2 = HoughLinesOne[lineit_2].second->GetParameter(1);
+	      } else if (hitgroup == 2) {
+  	      HoughOtherInter_2 = HoughLinesOther[lineit_2].second->GetParameter(0);
+      	  HoughOtherSlope_2 = HoughLinesOther[lineit_2].second->GetParameter(1);
+      	}
 
         //std::cout << "Hough pars: " << std::endl;
         //std::cout << HoughInter_1 << ", " << HoughInter_2 << std::endl;
@@ -918,10 +922,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Also remember to remove the line
       if (ncleaned < 1) {
         it = LineCandidates.erase(it);
-	if (hitgroup == 1) {
+	      if (hitgroup == 1) {
           HoughLinesOne.erase(HoughLinesOne.begin()+tracknumber);
-	} else if (hitgroup == 2) {
-	  HoughLinesOther.erase(HoughLinesOther.begin()+tracknumber);
+	      } else if (hitgroup == 2) {
+	        HoughLinesOther.erase(HoughLinesOther.begin()+tracknumber);
+        }
       } else {
         *it = CleanedHough;
         it++;
@@ -1031,7 +1036,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 }
 
 // Requires hits to be ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 
   // Check if we're in XZ view
   bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar);
@@ -1093,12 +1098,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
   
+  TF1* HoughCopy;
+
   if (hitgroup == 1) {
     HoughLineOne->SetRange(zMinHough, zMaxHough);
-    TF1 *HoughCopy = (TF1*)HoughLineOne->Clone();
+    HoughCopy = (TF1*)HoughLineOne->Clone();
   } else if (hitgroup == 2) {
-    HoughLineOther->Setrange(zMinHough, zMaxHough);
-    TF1* HoughCopy = (TF1*)HoughLineOther->Clone();
+    HoughLineOther->SetRange(zMinHough, zMaxHough);
+    HoughCopy = (TF1*)HoughLineOther->Clone();
   }
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
@@ -1426,7 +1433,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 }
 
 // Implement A* algorithm for track finding, starting with most upstream to most downstream hit
-void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, int &hitgroup) {
+void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 
   // Set the Heuristic cost calculator
 

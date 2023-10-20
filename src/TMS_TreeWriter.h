@@ -53,7 +53,8 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
-    int nLines;
+    int nLinesOne;
+    int nLinesOther;
     
     int SliceNo;
     int SpillNo;
@@ -65,14 +66,20 @@ class TMS_TreeWriter {
     float VertexVisibleEnergyFractionInSlice;
     float PrimaryVertexVisibleEnergyFraction;
 
-    float Slope[__TMS_MAX_LINES__];
-    float Intercept[__TMS_MAX_LINES__];
+    float SlopeOne[__TMS_MAX_LINES__];
+    float SlopeOther[__TMS_MAX_LINES__];
+    float InterceptOne[__TMS_MAX_LINES__];
+    float InterceptOther[__TMS_MAX_LINES__];
 
-    float Slope_Downstream[__TMS_MAX_LINES__];
-    float Intercept_Downstream[__TMS_MAX_LINES__];
+    float Slope_DownstreamOne[__TMS_MAX_LINES__];
+    float Slope_DownstreamOther[__TMS_MAX_LINES__];
+    float Intercept_DownstreamOne[__TMS_MAX_LINES__];
+    float Intercept_DownstreamOther[__TMS_MAX_LINES__];
 
-    float Slope_Upstream[__TMS_MAX_LINES__];
-    float Intercept_Upstream[__TMS_MAX_LINES__];
+    float Slope_UpstreamOne[__TMS_MAX_LINES__];
+    float Slope_UpstreamOther[__TMS_MAX_LINES__];
+    float Intercept_UpstreamOne[__TMS_MAX_LINES__];
+    float Intercept_UpstreamOther[__TMS_MAX_LINES__];
 
     float DirectionZOne[__TMS_MAX_LINES__];
     float DirectionZOther[__TMS_MAX_LINES__];
@@ -119,13 +126,15 @@ class TMS_TreeWriter {
     float TrackHitEnergyOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
     float TrackHitEnergyOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitTimeOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
-    float TrackHitTimeOther[__TMS_MAX_LINES][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitPosOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
     float TrackHitPosOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
-    int nHitsInTrack[__TMS_MAX_LINES__];
+    int nHitsInTrackOne[__TMS_MAX_LINES__];
+    int nHitsInTrackOther[__TMS_MAX_LINES__];
 
     // Cluster information
-    int nClusters; // Number of clusters
+    int nClustersOne; // Number of clusters
+    int nClustersOther;
     float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
     float ClusterTime[__TMS_MAX_CLUSTERS__]; // Energy in cluster
     int nHitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
