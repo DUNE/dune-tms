@@ -124,16 +124,26 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TrackHitTimeOther",   TrackHitTimeOther,   "TrackHitTimeOther[10][200]/F");
 
   // Cluster information
-  Branch_Lines->Branch("nClusters",        &nClusters,       "nClusters/I");
-  Branch_Lines->Branch("ClusterEnergy",    ClusterEnergy,    "ClusterEnergy[nClusters]/F");
-  Branch_Lines->Branch("ClusterTime",      ClusterTime,      "ClusterTime[nClusters]/F");
-  Branch_Lines->Branch("ClusterPosMean",   ClusterPosMean,   "ClusterPosMean[25][2]/F");
-  Branch_Lines->Branch("ClusterPosStdDev", ClusterPosStdDev, "ClusterPosStdDev[25][2]/F");
-  Branch_Lines->Branch("nHitsInCluster",   nHitsInCluster,   "nHitsInCluster[nClusters]/I");
-  Branch_Lines->Branch("ClusterHitPos",    ClusterHitPos,    "ClusterHitPos[25][200][2]/F");
-  Branch_Lines->Branch("ClusterHitEnergy", ClusterHitEnergy, "ClusterHitEnergy[25][200]/F");
-  Branch_Lines->Branch("ClusterHitTime",   ClusterHitTime,   "ClusterHitTime[25][200]/F");
-  Branch_Lines->Branch("ClusterHitSlice",  ClusterHitSlice,  "ClusterHitSlice[25][200]/I");
+  Branch_Lines->Branch("nClustersOne",          &nClustersOne,         "nClustersOne/I");
+  Branch_Lines->Branch("nClustersOther",        &nClustersOther,       "nClustersOther/I");
+  Branch_Lines->Branch("ClusterEnergyOne",      ClusterEnergyOne,      "ClusterEnergyOne[nClustersOne]/F");
+  Branch_Lines->Branch("ClusterEnergyOther",    ClusterEnergyOther,    "ClusterEnergyOther[nClustersOther]/F");
+  Branch_Lines->Branch("ClusterTimeOne",        ClusterTimeOne,        "ClusterTimeOne[nClustersOne]/F");
+  Branch_Lines->Branch("ClusterTimeOther",      ClusterTimeOther,      "ClusterTimeOther[nClustersOther]/F");
+  Branch_Lines->Branch("ClusterPosMeanOne",     ClusterPosMeanOne,     "ClusterPosMeanOne[25][2]/F");
+  Branch_Lines->Branch("ClusterPosMeanOther",   ClusterPosMeanOther,   "ClusterPosMeanOther[25][2]/F");
+  Branch_Lines->Branch("ClusterPosStdDevOne",   ClusterPosStdDevOne,   "ClusterPosStdDevOne[25][2]/F");
+  Branch_Lines->Branch("ClusterPosStdDevOther", ClusterPosStdDevOther, "ClusterPosStdDevOther[25][2]/F");
+  Branch_Lines->Branch("nHitsInClusterOne",     nHitsInClusterOne,     "nHitsInClusterOne[nClustersOne]/I");
+  Branch_Lines->Branch("nHitsInClusterOther",   nHitsInClusterOther,   "nHitsInClusterOhter[nClustersOther]/I");
+  Branch_Lines->Branch("ClusterHitPosOne",      ClusterHitPosOne,      "ClusterHitPosOne[25][200][2]/F");
+  Branch_Lines->Branch("ClusterHitPosOther",    ClusterHitPosOther,    "ClusterHitPosOther[25][200][2]/F");
+  Branch_Lines->Branch("ClusterHitEnergyOne",   ClusterHitEnergyOne,   "ClusterHitEnergyOne[25][200]/F");
+  Branch_Lines->Branch("ClusterHitEnergyOther", ClusterHitEnergyOther, "ClusterHitEnergyOther[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTimeOne",     ClusterHitTimeOne,     "ClusterHitTimeOne[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTimeOther",   ClusterHitTimeOther,   "ClusterHitTimeOther[25][200]/F");
+  Branch_Lines->Branch("ClusterHitSliceOne",    ClusterHitSliceOne,    "ClusterHitSliceOne[25][200]/I");
+  Branch_Lines->Branch("ClusterHitSliceOther",  ClusterHitSliceOther,  "ClusterHitSliceOther[25][200]/I");
 
   // Hit information
   Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
@@ -650,7 +660,7 @@ void TMS_TreeWriter::Clear() {
     Slope_DownstreamOne[i]=-999;
     Slope_DownstreamOther[i]=-999;
     Intercept_DownstreamOne[i]=-999;
-    Intercept_downstreamOther[i]=-999;
+    Intercept_DownstreamOther[i]=-999;
     Slope_UpstreamOne[i]=-999;
     Slope_UpstreamOther[i]=-999;
     Intercept_UpstreamOne[i]=-999;
@@ -711,16 +721,25 @@ void TMS_TreeWriter::Clear() {
   nClustersOne = -999;
   nClustersOther = -999;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
-    ClusterEnergy[i] = -999;
-    nHitsInCluster[i] = -999;
+    ClusterEnergyOne[i] = -999;
+    ClusterEnergyOther[i] = -999;
+    nHitsInClusterOne[i] = -999;
+    nHitsInClusterOther[i] = -999;
     for (int j = 0; j < 2; ++j) {
-      ClusterPosMean[i][j] = -999;
-      ClusterPosStdDev[i][j] = -999;
+      ClusterPosMeanOne[i][j] = -999;
+      ClusterPosStdDevOne[i][j] = -999;
+      
+      ClusterPosMeanOther[i][j] = -999;
+      ClusterPosStdDevOther[i][j] = -999;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      ClusterHitPos[i][j][0] = -999;
-      ClusterHitPos[i][j][1] = -999;
-      ClusterHitEnergy[i][j] = -999;
+      ClusterHitPosOne[i][j][0] = -999;
+      ClusterHitPosOne[i][j][1] = -999;
+      ClusterHitEnergyOne[i][j] = -999;
+
+      ClusterHitPosOther[i][j][0] = -999;
+      ClusterHitPosOther[i][j][1] = -999;
+      ClusterHitEnergyOther[i][j] = -999;
     }
   }
 

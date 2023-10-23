@@ -781,7 +781,10 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
       //std::cout << "Running on track with size: " << (*it).size() << std::endl;
 
-      double HoughOneInter_1, HoughOneSlope_1, HoughOtherInter_1, HoughOtherSlope_1;
+      double HoughOneInter_1 = 0.000;
+      double HoughOneSlope_1 = 0.000;
+      double HoughOtherInter_1 = 0.000;
+      double HoughOtherSlope_1 = 0.000;
 
       if (hitgroup == 1) {
         HoughOneInter_1 = HoughLinesOne[lineit].second->GetParameter(0);
@@ -820,7 +823,10 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= 2 && 
                           abs(first_hit_notz_2 - last_hit_notz) <= 2);
 
-        double HoughOneInter_2, HoughOneSlope_2, HoughOtherInter_2, HoughOtherSlope_2;
+        double HoughOneInter_2 = 0.000;
+        double HoughOneSlope_2 = 0.000;
+        double HoughOtherInter_2 = 0.000;
+        double HoughOtherSlope_2 = 0.000;
 
         if (hitgroup == 1) {
           HoughOneInter_2 = HoughLinesOne[lineit_2].second->GetParameter(0);
@@ -1098,7 +1104,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
   
-  TF1* HoughCopy;
+  TF1* HoughCopy = (TF1*)HoughLineOne->Clone();
 
   if (hitgroup == 1) {
     HoughLineOne->SetRange(zMinHough, zMaxHough);
@@ -1106,6 +1112,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   } else if (hitgroup == 2) {
     HoughLineOther->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineOther->Clone();
+  } else {
+#ifdef DEBUG
+    std::cout << "Something is going wrong with the assigning of hitgroup" << std::endl;
+#endif
+    return TMS_Hits;
   }
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
@@ -1136,7 +1147,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       continue;
     }
     
-    double HoughPoint;
+    double HoughPoint = HoughLineOne->Eval(zhit);
     if (hitgroup == 1) {
       HoughPoint = HoughLineOne->Eval(zhit);
     } else if (hitgroup == 2) {

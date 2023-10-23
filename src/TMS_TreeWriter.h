@@ -135,15 +135,24 @@ class TMS_TreeWriter {
     // Cluster information
     int nClustersOne; // Number of clusters
     int nClustersOther;
-    float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
-    float ClusterTime[__TMS_MAX_CLUSTERS__]; // Energy in cluster
-    int nHitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
-    float ClusterPosMean[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
-    float ClusterPosStdDev[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
-    float ClusterHitPos[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
-    float ClusterHitEnergy[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
-    float ClusterHitTime[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
-    int ClusterHitSlice[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
+    float ClusterEnergyOne[__TMS_MAX_CLUSTERS__]; // Energy in cluster
+    float ClusterEnergyOther[__TMS_MAX_CLUSTERS__];
+    float ClusterTimeOne[__TMS_MAX_CLUSTERS__]; // Time in cluster
+    float ClusterTimeOther[__TMS_MAX_CLUSTERS__];
+    int nHitsInClusterOne[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
+    int nHitsInClusterOther[__TMS_MAX_CLUSTERS__];
+    float ClusterPosMeanOne[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
+    float ClusterPosMeanOther[__TMS_MAX_CLUSTERS__][2];
+    float ClusterPosStdDevOne[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
+    float ClusterPosStdDevOther[__TMS_MAX_CLUSTERS__][2];
+    float ClusterHitPosOne[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
+    float ClusterHitPosOther[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2];
+    float ClusterHitEnergyOne[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    float ClusterHitEnergyOther[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    float ClusterHitTimeOne[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    float ClusterHitTimeOther[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    int ClusterHitSliceOne[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
+    int ClusterHitSliceOther[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
 
     // Reco information
     int nHits; // How many hits in event
