@@ -504,10 +504,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //}
 
   // Now calculate the track length for each track
-  CalculateTrackLengthOne(HoughCandidatesOne);
-  CalculateTrackEnergyOne(HoughCandidatesOne);
-  CalculateTrackLengthOther(HoughCandidatesOther);
-  CalculateTrackEnergyOther(HoughCandidatesOther);
+  CalculateTrackLengthOne();
+  CalculateTrackEnergyOne();
+  CalculateTrackLengthOther();
+  CalculateTrackEnergyOther();
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
