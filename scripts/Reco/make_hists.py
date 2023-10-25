@@ -3,7 +3,7 @@ import argparse
 import os
 import math
 import ROOT
-# Tells root to be in batch mode so it doesn't try to create a canvas on your screen, which is slow csdbvhbjbd
+# Tells root to be in batch mode so it doesn't try to create a canvas on your screen, which is slow
 ROOT.gROOT.SetBatch(True)
 # Don't draw the stats box on histograms
 ROOT.gStyle.SetOptStat(0)
