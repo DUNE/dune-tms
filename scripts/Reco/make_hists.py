@@ -86,7 +86,7 @@ def run(c, truth, outfilename, nmax=-1):
             
         # Can also calculate efficiency
         hist_eff_track_finding_numerator = ROOT.TH1D("hist_eff_track_finding_numerator", "N Tracks Found;True KE (MeV);N Muons", 50, 0, 5000)
-        hist_eff_track_finding_after_cuts_numerator = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator", "N Tracks After Cuts;True KE (MeV);N Muons", 50, 0, 5000)
+        hist_eff_track_finding_after_cuts_numerator = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator", "True muon KE;True KE (MeV);N Muons", 50, 0, 5000)
         hist_eff_track_finding_denominator = ROOT.TH1D("hist_eff_track_finding_denominator", "N Tracks;True KE (MeV);N Muons", 50, 0, 5000)
         hist_eff_track_finding = ROOT.TH1D("hist_eff_track_finding", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", 50, 0, 5000)
         hist_eff_track_finding_after_cuts = ROOT.TH1D("hist_eff_track_finding_after_cuts", 
