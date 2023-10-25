@@ -76,7 +76,7 @@ def run(c, truth, outfilename, nmax=-1):
             "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
         hist_track_start_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span", 
             "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolution = ROOT.TH1D("hist_track_end_vtx_z_resolution", "End Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+        hist_track_end_vtx_z_resolution = ROOT.TH1D("hist_track_end_vtx_z_resolution", "End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
         hist_track_end_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span", 
             "Track End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
         hist_track_start_vtx_x_resolution = ROOT.TH1D("hist_track_start_vtx_x_resolution", 
