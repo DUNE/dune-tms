@@ -56,7 +56,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist_KE_estimated = ROOT.TH2D("hist_KE_estimated", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
         hist_KE_vs_track_length_max_dz = ROOT.TH2D("hist_KE_vs_track_length_max_dz", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
         hist_track_length_vs_max_dz_dist = ROOT.TH2D("hist_track_length_vs_max_dz_dist", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
-        hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV)", 100, 0, 5000)
+        hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV);N muons", 100, 0, 5000)
         
         # Additional estimators that only require a true muon start and stop inside the TMS (it's "interior")
         # These are not ideal because they're using truth information, but it's a nice way to test for issues with reco
@@ -67,22 +67,22 @@ def run(c, truth, outfilename, nmax=-1):
         hist_true_interior_muon_ke_vs_max_areal_density = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_areal_density", 
             "True KE vs Largest Areal Density Reco Track;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 5000)
         hist_true_interior_muon_ke_vs_estimated_ke = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke", 
-            "True KE vs 3.5*(areal density)True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
+            "True KE vs 3.5*(areal density)True muon KE (MeV);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
         hist_true_interior_muon_ke_vs_estimated_ke_original = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_original", 
             "True KE vs 82+1.75*(areal density);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
         
         # Vertex Resolution
         hist_track_start_vtx_z_resolution = ROOT.TH1D("hist_track_start_vtx_z_resolution", 
-            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
         hist_track_start_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span", 
-            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
         hist_track_end_vtx_z_resolution = ROOT.TH1D("hist_track_end_vtx_z_resolution", "End Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
         hist_track_end_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span", 
-            "Track End Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
         hist_track_start_vtx_x_resolution = ROOT.TH1D("hist_track_start_vtx_x_resolution", 
-            "Track Start Vtx Resolution X;Reco - True Vtx X (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution X;Reco - True Vtx X (mm);N events", 51, -1000, 1000)
         hist_track_end_vtx_x_resolution = ROOT.TH1D("hist_track_end_vtx_x_resolution", 
-            "Track End Vtx Resolution X;Reco - True Vtx X (mm)", 51, -1000, 1000)
+            "Track End Vtx Resolution X;Reco - True Vtx X (mm);N events", 51, -1000, 1000)
             
         # Can also calculate efficiency
         hist_eff_track_finding_numerator = ROOT.TH1D("hist_eff_track_finding_numerator", "N Tracks Found;True KE (MeV);N Muons", 50, 0, 5000)
