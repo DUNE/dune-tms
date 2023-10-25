@@ -1,4 +1,5 @@
 #include "TMS_Reco.h"
+#define DEBUG
 
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
@@ -332,12 +333,17 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // 3 degree stereo -> tilted into +3 degree in one group and into -3 degree in other group
   // 90 degree rotated -> vertical layers in one group and horizontal layers in other group
   
+  std::cout << "LayerOrientation: " << TMS_Const::LayerOrientation << std::endl;
+
   // for loop over hits
   for (auto hit : CleanedHits) {
   // get PlaneNumber per hit hit.GetBar().GetPlaneNumber()
   // sorting hits into orientation groups
-    if (hit.GetBar().GetPlaneNumber() % LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
-    else if (!(hit.GetBar().GetPlaneNumber() % LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
+  //
+    std::cout << "PlaneNumber: " << hit.GetBar().GetPlaneNumber() << " result: " << (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) << std::endl;
+
+    if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
+    else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
   }
 
   // Hough transform
@@ -840,14 +846,14 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         //std::cout << HoughInter_1 << ", " << HoughInter_2 << std::endl;
         //std::cout << HoughSlope_1 << ", " << HoughSlope_2 << std::endl;
         // Now check how similar the Hough lines are
-        bool mergehough;
-	if (hitgroup == 1) {
-	  mergehough = (fabs(HoughOneInter_2 - HoughOneInter_1) < 100 && 
+        bool mergehough = false;
+      	if (hitgroup == 1) {
+      	  mergehough = (fabs(HoughOneInter_2 - HoughOneInter_1) < 100 && 
                            fabs(HoughOneSlope_2 - HoughOneSlope_1) < 0.01);
-	} else if (hitgroup == 2) {
-	  mergehough = (fabs(HoughOtherInter_2 - HoughOtherInter_1) < 100 &&
-			     fabs(HoughOtherSlope_2 - HoughOtherSlope_1) < 0.01);
-	}
+      	} else if (hitgroup == 2) {
+      	  mergehough = (fabs(HoughOtherInter_2 - HoughOtherInter_1) < 100 &&
+			                 fabs(HoughOtherSlope_2 - HoughOtherSlope_1) < 0.01);
+      	}   
 
         // Check if we should merge or not
         if (!mergehits && !mergehough) {
