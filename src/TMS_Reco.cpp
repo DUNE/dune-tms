@@ -1,5 +1,4 @@
 #include "TMS_Reco.h"
-#define DEBUG
 
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
