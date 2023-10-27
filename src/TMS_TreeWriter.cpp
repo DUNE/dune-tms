@@ -89,7 +89,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("FirstHoughHitOne",       FirstHitOne,       "FirstHoughHitOne[nLinesOne][2]/F");
   Branch_Lines->Branch("FirstHoughHitOther",     FirstHitOther,     "FirstHoughHitOther[nLinesOther][2]/F");
   Branch_Lines->Branch("LastHoughHitOne",        LastHitOne,        "LastHoughHitOne[nLinesOne][2]/F");
-  Branch_Lines->Branch("LastHoughitOther",       LastHitOther,      "LastHougHitOther[nLinesOther][2]/F");
+  Branch_Lines->Branch("LastHoughHitOther",      LastHitOther,      "LastHoughHitOther[nLinesOther][2]/F");
   Branch_Lines->Branch("FirstHoughHitTimeOne",   FirstHitTimeOne,   "FirstHoughHitTimeOne[nLinesOne]/F");
   Branch_Lines->Branch("FirstHoughHitTimeOther", FirstHitTimeOther, "FirstHoughHitTimeOther[nLinesOther]/F"); 
   Branch_Lines->Branch("LastHoughHitTimeOne",    LastHitTimeOne,    "LastHoughHitTimeOne[nLinesOne]/F");
