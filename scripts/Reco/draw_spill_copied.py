@@ -168,6 +168,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 color = ROOT.TColor.GetColor(e, 32, 32)
                 marker.SetMarkerColor(color)
                 markers.append(marker)
+                marker = 0
                 
                 if reco_hit_energy > 0:
                     total_energy += reco_hit_energy
@@ -194,6 +195,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerColor(color)
                     marker.SetMarkerSize(20 * cluster_total_std_dev)
                     markers.append(marker)
+                    marker = 0
                 
                 for cluster in range(min(25, event.nClustersOther)):
                     cluster_energy = event.ClusterEnergyOther[cluster]
@@ -214,6 +216,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerColor(color)
                     marker.SetMarkerSize(20 * cluster_total_std_dev)
                     markers.append(marker)
+                    marker = 0
 
                 for line in range(event.nLinesOne):
                     #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
@@ -244,6 +247,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         line.SetLineStyle(ROOT.kDotted)
                         line.SetLineColorAlpha(ROOT.kBlue-6, 0.15)
                         markers.append(line)
+                        line = 0
                     
                     # Add markers for front and end of track
                     offset = 0.075
@@ -251,10 +255,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker_start.SetMarkerColor(ROOT.kBlue-10)
                     marker_start.SetMarkerSize(2)
                     markers.append(marker_start)
+                    marker_start = 0
                     marker_end = ROOT.TMarker(x2, y2 + offset, 23)
                     marker_end.SetMarkerColor(ROOT.kBlue+3)
                     marker_end.SetMarkerSize(2)
                     markers.append(marker_end)
+                    marker_end = 0
 
                 for line in range(event.nLinesOther):
                     
@@ -283,6 +289,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         line.SetLineStyle(ROOT.kDashed)
                         line.SetLineColorAlpha(ROOT.kMagenta-6, 0.15)
                         markers.append(line)
+                        line = 0
 
                     # Add markers for front and end of track
                     offset = 0.075
@@ -290,10 +297,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker_start.SetMarkerColor(ROOT.kMagenta-10)
                     marker_start.SetMarkerSize(2)
                     markers.append(marker_start)
+                    marker_start = 0
                     marker_end = ROOT.TMarker(x2, y2 + offset, 23)
                     marker_end.SetMarkerColor(ROOT.kMagenta+3)
                     marker_end.SetMarkerSize(2)
                     markers.append(marker_end)
+                    marker_end = 0
                  
             
         minimum_energy_to_print = 0
@@ -314,7 +323,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             pad4.Draw()
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             canvas.Print(output_filename + ".png")
-        
+            canvas.Clear("d")
+            markers=[]
         
         
         

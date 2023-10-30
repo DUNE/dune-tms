@@ -190,8 +190,10 @@ class TMS_TrackFinder {
     }
 
     void FindTracks(TMS_Event &event);
-    const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
-    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
+    const std::vector<TMS_Hit> & GetCandidatesOne() { return CandidatesOne; };
+    const std::vector<TMS_Hit> & GetCandidatesOther() { return CandidatesOther; };
+    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesOne() { return TotalCandidatesOne; };
+    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesOther() { return TotalCandidatesOther; };
 
     const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
 
@@ -322,11 +324,13 @@ class TMS_TrackFinder {
 
     int FindBin(double Rho);
     // The candidates for each particle
-    std::vector<TMS_Hit> Candidates;
+    std::vector<TMS_Hit> CandidatesOne;
+    std::vector<TMS_Hit> CandidatesOther;
     std::vector<TMS_Hit> RawHits;
 
     std::vector<TMS_Hit> CleanedHits;
-    std::vector<std::vector<TMS_Hit> > TotalCandidates;
+    std::vector<std::vector<TMS_Hit> > TotalCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > TotalCandidatesOther;
     std::vector<std::pair<bool, TF1*> > HoughLinesOne;
     std::vector<std::pair<bool, TF1*> > HoughLinesOther;
     std::vector<std::vector<TMS_Hit> > ClusterCandidatesOne;
