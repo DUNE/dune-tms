@@ -298,7 +298,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
   //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
   
-  std::cout << "RawHits: " << RawHits.size(); 
   double min_time = 1e9;
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
@@ -314,7 +313,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;
   
-  std::cout << " CleanedHits: " << CleanedHits.size() << std::endl;
+  std::cout << "RawHits: " << RawHits.size() << " CleanedHits: " << CleanedHits.size() << std::endl;
 
   double clean_min_time = 1e9;
   double clean_max_time = -1e9;
