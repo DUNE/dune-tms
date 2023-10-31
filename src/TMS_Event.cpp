@@ -215,7 +215,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   
   // Merge hits that happened in the same scintillator strip and within the same readout time window
   // This is a simulation cleanup step, not reconstruction
-  MergeCoincidentHits();
+//  MergeCoincidentHits();
   // Now apply optical and timing models
   ApplyReconstructionEffects();
 
@@ -261,7 +261,10 @@ void TMS_Event::MergeCoincidentHits() {
     //Strip out hits that are outside the actual volume 
     // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
     // TODO figure out why these happen
-    if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) (*it).SetPedSup(true);
+    if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) {
+      (*it).SetPedSup(true);
+      continue;
+    }
 
     // Look ahead to find duplicates, but stop when z != z2
     std::vector<std::vector<TMS_Hit>::iterator> duplicates;
@@ -290,13 +293,13 @@ void TMS_Event::MergeCoincidentHits() {
   // Now erase all hits that are set as ped supped
   std::vector<TMS_Hit> remaining_hits;
   std::vector<TMS_Hit> deleted_hits;
-  for (auto hit : TMS_Hits) {
+  for (auto& hit : TMS_Hits) {
     if (!hit.GetPedSup()) remaining_hits.push_back(hit);
     else deleted_hits.push_back(hit);
     if (!hit.GetPedSup() && hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
   }
   TMS_Hits.clear();
-  for (auto hit : remaining_hits) TMS_Hits.push_back(hit);
+  for (auto& hit : remaining_hits) TMS_Hits.push_back(hit);
   deleted_hits.erase(deleted_hits.begin(), deleted_hits.end());
 }
 
@@ -465,7 +468,7 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   // Reset the map
   TrueVisibleEnergyPerVertex.clear();
   // First find how much energy is in each variable
-  for (auto hit : TMS_Hits) {
+  for (auto& hit : TMS_Hits) {
     int vertex_id = hit.GetTrueHit().GetVertexId();
     // todo, true or reco energy?
     double energy = hit.GetTrueHit().GetE();
@@ -493,7 +496,7 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
 std::pair<double, double> TMS_Event::GetEventTimeRange() {
   double min_time = 1e9;
   double max_time = -1e9;
-  for (auto hit : TMS_Hits) {
+  for (auto& hit : TMS_Hits) {
     min_time = std::min(min_time, hit.GetT());
     max_time = std::max(max_time, hit.GetT());
   }

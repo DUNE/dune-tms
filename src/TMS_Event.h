@@ -9,6 +9,7 @@
 #include "TMS_Hit.h"
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
+#include <random>
 //#include "TMS_Tracks.h"
 
 // The edep-sim event class
@@ -83,6 +84,11 @@ class TMS_Event {
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
     double GetVisibleEnergyFromOtherVerticesInSlice() { return VisibleEnergyFromOtherVerticesInSlice; };
     
+    std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
+    std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
+    std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
+    std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
+
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
@@ -92,8 +98,13 @@ class TMS_Event {
     void ApplyReconstructionEffects();
     void MergeCoincidentHits();
     void SimulateOpticalModel();
+    void SimulateDeadtime();
     void SimulatePedestalSubtraction();
     void SimulateTimingModel();
+    void SimulateDarkCount();
+    void SimulateReadoutNoise();
+
+    int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
@@ -132,6 +143,13 @@ class TMS_Event {
     double VisibleEnergyFromVertexInSlice;
     double TotalVisibleEnergyFromVertex;
     double VisibleEnergyFromOtherVerticesInSlice;
+
+    std::vector<std::pair<float, float>> ChannelPositions;
+    std::vector<std::pair<float, float>> DeadChannelTimes;
+    std::vector<std::pair<float, float>> ReadChannelTimes;
+
+    std::default_random_engine generator;
+
 };
 
 #endif
