@@ -294,11 +294,11 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   ClearClass();
 
   // Get the raw unmerged and untracked hits
-  RawHits = event.GetHits();
+  RawHits = event.GetHitsRaw(); //GetHits needs variables transferred. Try out GetHitsRaw that doesn't need those
   //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
   //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
   
-  
+  std::cout << "RawHits: " << RawHits.size(); 
   double min_time = 1e9;
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
@@ -314,6 +314,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;
   
+  std::cout << " CleanedHits: " << CleanedHits.size() << std::endl;
+
   double clean_min_time = 1e9;
   double clean_max_time = -1e9;
   int n_in_slice = 0;
@@ -348,9 +350,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
     else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
   }
-
-  std::cout << "OneHitGroup: " << OneHitGroup.size() << " OtherHitGroup: " << OtherHitGroup.size() << " Total: " << CleanedHits.size() << std::endl;
-  
+   
   // Hough transform
   if (kTrackMethod == TrackMethod::kHough) {
     // Do we first run clustering algorithm to separate hits, then hand off to A*?
@@ -519,10 +519,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CalculateTrackEnergyOne();
   CalculateTrackLengthOther();
   CalculateTrackEnergyOther();
-
-  std::cout << "HoughCandidatesOne: " << linenoOne << " HoughCandidatesOther: " << linenoOther << std::endl;
-  std::cout << "ClusterCandidatesOne: " << ClusterCandidatesOne.size() << " ClusterCandidatesOther: " << ClusterCandidatesOther.size() << std::endl;
-
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
