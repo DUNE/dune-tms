@@ -18,18 +18,26 @@ void muonke(std::string filename) {
   const int MAX_LINES = 20;
   const int MAX_HITS = 1500;
   const int MAX_CLUSTERS = 25;
-  int nLines;
-  float TotalTrackEnergy[MAX_LINES];
-  float TrackLength[MAX_LINES];
-  float Occupancy[MAX_LINES];
-  float FirstHoughHit[MAX_LINES][2];
-  float LastHoughHit[MAX_LINES][2];
+  int nLinesOne;
+  int nLinesOther;
+  float TotalTrackEnergyOne[MAX_LINES];
+  float TotalTrackEnergyOther[MAX_LINES];
+  float TrackLengthOne[MAX_LINES];
+  float TrackLengthOther[MAX_LINES];
+  float OccupancyOne[MAX_LINES];
+  float OccupancyOther[MAX_LINES];
+  float FirstHoughHitOne[MAX_LINES][2];
+  float FirstHoughHitOther[MAX_LINES][2];
+  float LastHoughHitOne[MAX_LINES][2];
+  float LastHoughHitOther[MAX_LINES][2];
   bool TMSStart;
   int EventNum_reco;
 
   float RecoHitEnergy[MAX_HITS];
-  float ClusterEnergy[MAX_CLUSTERS];
-  int nClusters;
+  float ClusterEnergyOne[MAX_CLUSTERS];
+  float ClusterEnergyOther[MAX_CLUSTERS];
+  int nClustersOne;
+  int nClustersOther;
 
   reco->SetBranchStatus("*", false);
 
@@ -61,7 +69,7 @@ void muonke(std::string filename) {
   reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
 
   reco->SetBranchStatus("ClusterEnergyOne", true);
-  reco->SetBranchStatuts("ClusterEnergyOther", true);
+  reco->SetBranchStatus("ClusterEnergyOther", true);
   reco->SetBranchAddress("ClusterEnergyOne", ClusterEnergyOne);
   reco->SetBranchAddress("ClusterEnergyOther", ClusterEnergyOther);
   reco->SetBranchStatus("nClustersOne", true);
@@ -123,6 +131,7 @@ void muonke(std::string filename) {
   int ngood = 0;
   int nentries = truth->GetEntries();
   int trklenOne_counter = 0;
+  int trklenOther_counter = 0;
   std::cout << nentries << " events..." << std::endl;
   int true_entry = 0;
   int reco_entry = 0;
@@ -146,7 +155,8 @@ void muonke(std::string filename) {
     if (CCmuOnly && Muon_Vertex[2] < 0) continue;
 
     // Only include events with lines
-    if (AtLeastOneLine && nLines < 1) continue;
+    if (AtLeastOneLine && nLinesOne < 1) continue;
+    if (AtLeastOneLine && nLinesOther < 1) continue;
 
     // Run the cuts
     if (nLinesOne > nLinesCut) continue;
@@ -169,12 +179,12 @@ void muonke(std::string filename) {
     // Find the best track
     int besttrackOne = 0;
     for (int j = 0; j < nLinesOne; ++j) {
-      if (Occupancy[j] > OccupancyOne[besttrackOne]) besttrackOne = j;
+      if (OccupancyOne[j] > OccupancyOne[besttrackOne]) besttrackOne = j;
     }
 
     int besttrackOther = 0;
     for (int j = 0; j < nLinesOther; ++j) {
-      if (Occupancy[i] > OccupancyOther[besttrackOther]) besttrackOther = j;
+      if (OccupancyOther[i] > OccupancyOther[besttrackOther]) besttrackOther = j;
     }
 
     // Also check the track with the longest track length
@@ -246,18 +256,18 @@ void muonke(std::string filename) {
     if (OccupancyOther[longtrackOther] < OccupancyCut) continue;
 
     float best_tracklengthOne = TrackLengthOne[longtrackOne];
-    KEestOne->Fill(Muon_TrueKEOne, 82+1.75*best_tracklengthOne);
-    KEOne->Fill(Muon_TrueKEOne, best_tracklengthOne);
+    KEestOne->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOne);
+    KEOne->Fill(Muon_TrueKE, best_tracklengthOne);
     
     float best_tracklengthOther = TrackLengthOther[longtrackOther];
-    KEestOther->Fill(Muon_TrueKEOther, 82+1.75*best_tracklengthOther;
-    KEOther->Fill(Muon_TrueKEOther, best_tracklengthOther);
+    KEestOther->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOther);
+    KEOther->Fill(Muon_TrueKE, best_tracklengthOther);
 
     ngood++;
   }
   std::cout << ngood << "/" << nentries << std::endl;
-  std::cout << trklen_counterOne << std::endl;
-  std::cout << trklen_counterOther << std::endl;
+  std::cout << trklenOne_counter << std::endl;
+  std::cout << trklenOther_counter << std::endl;
 
   TCanvas *canv = new TCanvas("canv", "canv", 1024, 1024);
   canv->SetLeftMargin(canv->GetLeftMargin()*1.5);
@@ -284,10 +294,12 @@ void muonke(std::string filename) {
   h_OccupancyOther->Draw();
   canv->Print(canvname);
 
-/*  TH1D *arith = new TH1D("arith", "arith", KE->GetXaxis()->GetNbins(), KE->GetXaxis()->GetBinLowEdge(1), KE->GetXaxis()->GetBinLowEdge(KE->GetXaxis()->GetNbins()+1));
+  TH1D *arithOne = new TH1D("arith", "arith", KEOne->GetXaxis()->GetNbins(), KEOne->GetXaxis()->GetBinLowEdge(1), KEOne->GetXaxis()->GetBinLowEdge(KEOne->GetXaxis()->GetNbins()+1));
+  gStyle->SetOptStat(1111);
+  TH1D *arithOther = new TH1D("arith", "arith", KEOther->GetXaxis()->GetNbins(), KEOther->GetXaxis()->GetBinLowEdge(1), KEOther->GetXaxis()->GetBinLowEdge(KEOther->GetXaxis()->GetNbins()+1));
   // Now make the muon KE
   gStyle->SetOptStat(1111);
-  for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
+  /*for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
     double center = KE->GetXaxis()->GetBinCenter(i);
     TH1D *proj = KE->ProjectionY(Form("KE %.2f", center), i, i);
     double mean = proj->GetMean();
@@ -299,31 +311,31 @@ void muonke(std::string filename) {
     proj->SetStats(1);
     canv->Print(canvname);
   }*/
-  TF1 *fit = new TF1("fit", "[0]+[1]*x", KEOne->GetYaxis()->GetBinLowEdge(1), KEOne->GetYaxis()->GetBinLowEdge(KEOne->GetYaxis()->GetNbins()+1));
+  TF1 *fitOne = new TF1("fit", "[0]+[1]*x", KEOne->GetYaxis()->GetBinLowEdge(1), KEOne->GetYaxis()->GetBinLowEdge(KEOne->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
   KEOne->Draw("colz");
-  arith->Draw("same");
-  arith->Fit(fitOne, "S", "", 700, 2500);
-  TLegend *leg = new TLegend(0.2, 0.5, 0.6, 0.9);
-  leg->AddEntry(arith, "Artihmetic mean and RMS", "le");
-  leg->AddEntry(fitOne, Form("y=%.2f x + %.2f", fitOne->GetParameter(1), fitOne->GetParameter(0)), "l");
+  arithOne->Draw("same");
+  arithOne->Fit(fitOne, "S", "", 700, 2500);
+  TLegend *legOne = new TLegend(0.2, 0.5, 0.6, 0.9);
+  legOne->AddEntry(arithOne, "Artihmetic mean and RMS", "le");
+  legOne->AddEntry(fitOne, Form("y=%.2f x + %.2f", fitOne->GetParameter(1), fitOne->GetParameter(0)), "l");
   fitOne->SetLineColor(kRed);
-  arith->GetXaxis()->SetTitle("Muon True KE");
-  leg->Draw("same");
+  arithOne->GetXaxis()->SetTitle("Muon True KE");
+  legOne->Draw("same");
 
   canv->Print(canvname);
 
-  TF1 *fit = new TF1("fit", "[0]+[1]*x", KEOther->GetYaxis()->GetBinLowEdge(1), KEOther->GetYaxis()->GetBinLowEdge(KEOther->GetYaxis()->GetNbins()+1));
+  TF1 *fitOther = new TF1("fit", "[0]+[1]*x", KEOther->GetYaxis()->GetBinLowEdge(1), KEOther->GetYaxis()->GetBinLowEdge(KEOther->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
   KEOther->Draw("colz");
-  arith->Draw("same");
-  arith->Fit(fitOther, "S", "", 700, 2500);
-  TLegend *leg = new TLegend(0.2, 0.5, 0.6, 0.9);
-  leg->AddEntry(arith, "Arithmetic mean and RMS", "le");
-  leg->AddEntry(fitOther, Form("x=%.2f x + %.2f", fitOther->GetParameter(1), fitOther->GetParamter(0)), "l");
+  arithOther->Draw("same");
+  arithOther->Fit(fitOther, "S", "", 700, 2500);
+  TLegend *legOther = new TLegend(0.2, 0.5, 0.6, 0.9);
+  legOther->AddEntry(arithOther, "Arithmetic mean and RMS", "le");
+  legOther->AddEntry(fitOther, Form("x=%.2f x + %.2f", fitOther->GetParameter(1), fitOther->GetParameter(0)), "l");
   fitOther->SetLineColor(kRed);
-  arith->GetXaxis()->SetTitle("Muon True KE");
-  leg->Draw("same");
+  arithOther->GetXaxis()->SetTitle("Muon True KE");
+  legOther->Draw("same");
 
   canv->Print(canvname);
 
