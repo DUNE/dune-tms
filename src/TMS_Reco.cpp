@@ -312,7 +312,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CleanedHits = CleanHits(RawHits);
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;
-  
+ 
   std::cout << "RawHits: " << RawHits.size() << " CleanedHits: " << CleanedHits.size() << std::endl;
 
   double clean_min_time = 1e9;
