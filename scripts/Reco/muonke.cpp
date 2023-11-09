@@ -110,7 +110,7 @@ void muonke(std::string filename) {
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
   TH2D *KEOne = new TH2D("KEOne", "KEOne;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
-  TH2D *KEOther = new TH2D("KEOther", "KEOther;True muon KE (MeV);Track length of best track (g/cm^{cm})", 100, 0, 5000, 50, 0, 2500);
+  TH2D *KEOther = new TH2D("KEOther", "KEOther;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
   TH1D *h_OccupancyOne = new TH1D("OccOne", "OccupancyOne; Occupancy of longest track; Number of events", 110, 0, 1.1);
   TH1D *h_OccupancyOther = new TH1D("OccOther", "OccupancyOther; Occupancy of longest track; Number of events", 110, 0, 1.1);
 
@@ -135,6 +135,9 @@ void muonke(std::string filename) {
   std::cout << nentries << " events..." << std::endl;
   int true_entry = 0;
   int reco_entry = 0;
+
+  std::cout << "nLinesCut: " << nLinesCut << std::endl;
+
   for (int i = 0; i < nentries; ++i, ++true_entry, ++reco_entry) {
     truth->GetEntry(true_entry);
     reco->GetEntry(reco_entry);
@@ -148,6 +151,11 @@ void muonke(std::string filename) {
 
     if (i % int(nentries/100.) == 0) std::cout << "Event " << i << std::endl;
 
+//    if (nLinesOne) std::cout << "nLinesOne: " << nLinesOne << std::endl;
+//    if (nClustersOne) std::cout << "nClustersOne: " << nClustersOne << std::endl;
+//    if (nLinesOther) std::cout << "nLinesOther: " << nLinesOther << std::endl;
+//    if (nClustersOther) std::cout << "nClustersOther: " << nClustersOther << std::endl;
+
     // The event has to have a muon
     if (Muon_TrueKE < 0) continue;
 
@@ -155,37 +163,37 @@ void muonke(std::string filename) {
     if (CCmuOnly && Muon_Vertex[2] < 0) continue;
 
     // Only include events with lines
-    if (AtLeastOneLine && nLinesOne < 1) continue;
-    if (AtLeastOneLine && nLinesOther < 1) continue;
+    if (AtLeastOneLine && nLinesOne < 1 && nLinesOther < 1) continue;
 
     // Run the cuts
-    if (nLinesOne > nLinesCut) continue;
-    if (nLinesOther > nLinesCut) continue;
-    if (nClustersOne > nClustersCut) continue;
-    if (nClustersOther > nClustersCut) continue;
+    if ((nLinesOne > nLinesCut) && (nLinesOther > nLinesCut)) continue;
+    if ((nClustersOne > nClustersCut) && (nClustersOther > nClustersCut)) continue;
     // Sum up the total cluster energy
     float clusterOne_en = 0;
     float clusterOther_en = 0;
     for (int j = 0; j < nClustersOne; ++j) {
       clusterOne_en += ClusterEnergyOne[j];
     }
-    if (clusterOne_en > ClusterEnergyCut) continue;
 
     for (int j = 0; j < nClustersOther; ++j) {
       clusterOther_en += ClusterEnergyOther[j];
     }
-    if (clusterOther_en > ClusterEnergyCut) continue;
+    if ((clusterOne_en > ClusterEnergyCut) || (clusterOther_en > ClusterEnergyCut)) continue;
 
     // Find the best track
     int besttrackOne = 0;
     for (int j = 0; j < nLinesOne; ++j) {
       if (OccupancyOne[j] > OccupancyOne[besttrackOne]) besttrackOne = j;
     }
+    
+    if (nLinesOne) std::cout << "besttrackOne: " << besttrackOne << std::endl;
 
     int besttrackOther = 0;
     for (int j = 0; j < nLinesOther; ++j) {
-      if (OccupancyOther[i] > OccupancyOther[besttrackOther]) besttrackOther = j;
+      if (OccupancyOther[j] > OccupancyOther[besttrackOther]) besttrackOther = j;
     }
+
+    if (nLinesOther) std::cout << "besttrackOther: " << besttrackOther << std::endl;
 
     // Also check the track with the longest track length
     int lon_trklenOne = 0;
@@ -193,10 +201,14 @@ void muonke(std::string filename) {
       if (TrackLengthOne[j] > TrackLengthOne[lon_trklenOne]) lon_trklenOne = j;
     }
 
+    if (nLinesOne) std::cout << "lon_trklenOne: " << lon_trklenOne << std::endl;
+
     int lon_trklenOther = 0;
     for (int j = 0; j < nLinesOther; ++j) {
-      if (TrackLengthOther[i] > TrackLengthOther[lon_trklenOther]) lon_trklenOther = j;
+      if (TrackLengthOther[j] > TrackLengthOther[lon_trklenOther]) lon_trklenOther = j;
     }
+
+    if (nLinesOther) std::cout << "lon_trklenOther: " << lon_trklenOther << std::endl;
 
     // And also check longest track
     float longestOne = 0;
@@ -210,8 +222,11 @@ void muonke(std::string filename) {
 
     if (longtrackOne != lon_trklenOne) {
       trklenOne_counter++;
+      if (nLinesOne) std::cout << "longtrackOne: " << longtrackOne << " | lon_trklenOne: " << lon_trklenOne << std::endl;
     }
     longtrackOne = lon_trklenOne;
+
+    if (nLinesOne) std::cout << "longtrackOne: " << longtrackOne << std::endl;
 
     float longestOther = 0;
     int longtrackOther = 0;
@@ -224,11 +239,16 @@ void muonke(std::string filename) {
 
     if (longtrackOther != lon_trklenOther) {
       trklenOther_counter++;
+      if (nLinesOther) std::cout << "longtrackOther: " << longtrackOther << " | lon_trklenOther: " << lon_trklenOther << std::endl;
     }
     longtrackOther = lon_trklenOther;
 
+    if (nLinesOther) std::cout << "longtrackOther: " << longtrackOther << std::endl;
+
     // Look only at events with true muons that die inside the detector
     if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
+
+    std::cout << "Muon didn't die outside" << std::endl;
 
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
@@ -242,18 +262,23 @@ void muonke(std::string filename) {
     if (LastHoughHitOther[longtrackOther][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
+    std::cout << "Longest track stops in detector" << std::endl;
+
     // 20 cm inwards
-    if (fabs(FirstHoughHitOne[longtrackOne][1]) > 3520-200) continue;
-    if (fabs(FirstHoughHitOther[longtrackOther][1]) > 3520-200) continue;
-    if (fabs(LastHoughHitOne[longtrackOne][1]) > 3520-200) continue;
-    if (fabs(LastHoughHitOther[longtrackOther][1]) > 3520-200) continue;
+    if ((fabs(FirstHoughHitOne[longtrackOne][1]) > 3520-200) || (fabs(FirstHoughHitOther[longtrackOther][1]) > 3520-200)) continue;
+    if ((fabs(LastHoughHitOne[longtrackOne][1]) > 3520-200) || (fabs(LastHoughHitOther[longtrackOther][1]) > 3520-200)) continue;
 
     h_OccupancyOne->Fill(OccupancyOne[longtrackOne]);
     h_OccupancyOther->Fill(OccupancyOther[longtrackOther]);
 
+    std::cout << "20 cm inwards" << std::endl;
+    std::cout << "Occupancy Cut: " << OccupancyCut << std::endl;
+    
     // Ask for only small amount of other energy deposits
-    if (OccupancyOne[longtrackOne] < OccupancyCut) continue;
-    if (OccupancyOther[longtrackOther] < OccupancyCut) continue;
+    //if (OccupancyOne[longtrackOne] < OccupancyCut) continue;
+    //if (OccupancyOther[longtrackOther] < OccupancyCut) continue;
+
+    std::cout << "only small amount of other energy deposited" << std::endl;
 
     float best_tracklengthOne = TrackLengthOne[longtrackOne];
     KEestOne->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOne);
@@ -262,6 +287,9 @@ void muonke(std::string filename) {
     float best_tracklengthOther = TrackLengthOther[longtrackOther];
     KEestOther->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOther);
     KEOther->Fill(Muon_TrueKE, best_tracklengthOther);
+
+    if (nLinesOne) std::cout << "Best track length One: " << best_tracklengthOne << std::endl;
+    if (nLinesOther) std::cout << "Best track length Other: " << best_tracklengthOther << std::endl;
 
     ngood++;
   }
