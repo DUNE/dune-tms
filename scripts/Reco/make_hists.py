@@ -67,10 +67,10 @@ def run(c, truth, outfilename, nmax=-1):
   hist_track_end_xOther = ROOT.TH1D("hist_track_end_x_other", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
   hist_track_end_zOther = ROOT.TH1D("hist_track_end_z_other", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
   hist_track_startOther = ROOT.TH2D("hist_track_start_other",
-    "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 40000)
+    "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
   hist_track_endOther = ROOT.TH2D("hist_track_end_other",
     "Track End Position;Track End Position X (mm); Track End Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
-  hist_track_angleOther = ROOT.TH1D("hist_track_angle (other)", "Track Angle;Angle (deg);N Events", 50, -180, 180)
+  hist_track_angleOther = ROOT.TH1D("hist_track_angle_other", "Track Angle;Angle (deg);N Events", 50, -180, 180)
 
   # Now make histograms that rely on truth information as well
   if truth != None:
@@ -78,11 +78,11 @@ def run(c, truth, outfilename, nmax=-1):
     hist_KEOne = ROOT.TH2D("hist_KE_one", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500)
     hist_KE_estimatedOne = ROOT.TH2D("hist_KE_estimated_one", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
     hist_KE_vs_track_length_max_dz = ROOT.TH2D("hist_KE_vs_track_length_max_dz", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
-    hist_track_length_vs_max_dz_dist = ROOT.TH2D("hist_track_length_vs_max_dz_dist_one", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
+    hist_track_length_vs_max_dz_distOne = ROOT.TH2D("hist_track_length_vs_max_dz_dist_one", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
     hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
 
     hist_KEOther = ROOT.TH2D("hist_KE_other", "KE;True muon KE (MeV);Track length of best track (g/cm^{2}=)", 100, 0, 5000, 50, 0, 2500)
-    hist_KE_estimatedOther = ROOT.TH2D("hist_KE_estimated_other", "KE estimator;True muon KE (MeV);Reco muon KE (Mev)", 100, 0, 5000, 50, 0, 5000)
+    hist_KE_estimatedOther = ROOT.TH2D("hist_KE_estimated_other", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
 #    hist_KE_vs_track_length_max_dzOther = ROOT.TH2D("hist_KE_vs_track_length_max_dz_other", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
     hist_track_length_vs_max_dz_distOther = ROOT.TH2D("hist_track_length_vs_max_dz_dist_other", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
 #    hist_KE_inside_TMSOther = ROOT.TH1D("hist_KE_inside_TMS_other", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
@@ -332,7 +332,7 @@ def run(c, truth, outfilename, nmax=-1):
           track_end_x = event.LastHoughHitOther[2*longtrackOther+1]
           hist_track_start_xOther.Fill(track_start_x)
           hist_track_start_zOther.Fill(track_start_z)
-          hist_track_startOne.Fill(track_start_z, track_start_x)
+          hist_track_startOther.Fill(track_start_z, track_start_x)
           hist_track_end_xOther.Fill(track_end_x)
           hist_track_end_zOther.Fill(track_end_z)
           hist_track_endOther.Fill(track_end_z, track_end_x)
@@ -346,7 +346,7 @@ def run(c, truth, outfilename, nmax=-1):
         best_muon_candidateOne = longtrackOne
         best_muon_candidateOther = longtrackOther
         if longtrackOne >= 0:
-          OccupancyCut = 0.5
+          OccupancyCut = 0.0  #0.5
           alldet = True
           track_start_z = event.FirstHoughHitOne[2*longtrackOne+0]
           track_end_z = event.LastHoughHitOne[2*longtrackOne+0]
@@ -363,9 +363,9 @@ def run(c, truth, outfilename, nmax=-1):
           if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateOne = -1 
           # Make sure that at least OccupancyCut of the hits are from the candidate
           if event.OccupancyOne[longtrackOne] < OccupancyCut: best_muon_candidateOne = -1
-
+          
         if longtrackOther >= 0:
-          OccupancyCut = 0.5
+          OccupancyCut = 0.0  #0.5
           alldet = True
           track_start_z = event.FirstHoughHitOther[2*longtrackOther+0]
           track_end_z = event.LastHoughHitOther[2*longtrackOther+0]
