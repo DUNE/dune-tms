@@ -117,7 +117,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHitsInTrackOne",     &nHitsInTrackOne,    "nHitsInTrackOne[nLinesOne]/I");
   Branch_Lines->Branch("nHitsInTrackOther",   &nHitsInTrackOther,  "nHitsInTrackOther[nLinesOther]/I");
   Branch_Lines->Branch("TrackHitEnergyOne",   TrackHitEnergyOne,   "TrackHitEnergyOne[10][200]/F");
-  Branch_Lines->Branch("TrackHitenergyOther", TrackHitEnergyOther, "TrackHitEnergyOther[10][200]/F");
+  Branch_Lines->Branch("TrackHitEnergyOther", TrackHitEnergyOther, "TrackHitEnergyOther[10][200]/F");
   Branch_Lines->Branch("TrackHitPosOne",      TrackHitPosOne,      "TrackHitPosOne[10][200][2]/F");
   Branch_Lines->Branch("TrackHitPosOther",    TrackHitPosOther,    "TrackHitPosOther[10][200][2]/F");
   Branch_Lines->Branch("TrackHitTimeOne",     TrackHitTimeOne,     "TrackHitTimeOne[10][200]/F");
@@ -135,7 +135,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("ClusterPosStdDevOne",   ClusterPosStdDevOne,   "ClusterPosStdDevOne[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevOther", ClusterPosStdDevOther, "ClusterPosStdDevOther[25][2]/F");
   Branch_Lines->Branch("nHitsInClusterOne",     nHitsInClusterOne,     "nHitsInClusterOne[nClustersOne]/I");
-  Branch_Lines->Branch("nHitsInClusterOther",   nHitsInClusterOther,   "nHitsInClusterOhter[nClustersOther]/I");
+  Branch_Lines->Branch("nHitsInClusterOther",   nHitsInClusterOther,   "nHitsInClusterOther[nClustersOther]/I");
   Branch_Lines->Branch("ClusterHitPosOne",      ClusterHitPosOne,      "ClusterHitPosOne[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitPosOther",    ClusterHitPosOther,    "ClusterHitPosOther[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergyOne",   ClusterHitEnergyOne,   "ClusterHitEnergyOne[25][200]/F");

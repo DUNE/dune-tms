@@ -468,7 +468,7 @@ def run(c, truth, outfilename, nmax=-1):
             # Plot vertex resolution of muon
             # But only if it starts or ends in detector respectively
             if longtrackOne >= 0:
-              dz_start = event.FirstHoughHitOne[2*longtrackOne+0] - mz #TODO what is this 'track' supposed to refer to? Currently it's the last incrementation from for loop in line 276
+              dz_start = event.FirstHoughHitOne[2*longtrackOne+0] - mz 
               dz_start_span = z1 - mz
               dz_end = event.LastHoughHitOne[2*longtrackOne+0] - mdz
               dz_end_span = z2 - mdz
@@ -506,15 +506,15 @@ def run(c, truth, outfilename, nmax=-1):
             if start_inside_tms:
               if longtrackOne >= 0:
                 hist_eff_track_finding_numeratorOne.Fill(Muon_TrueKE)
-              if longtrackOther >= 0:
-                hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
+              #if longtrackOther >= 0:
+              #  hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
               if best_muon_candidateOne >= 0:
                 hist_eff_track_finding_after_cuts_numeratorOne.Fill(Muon_TrueKE)
               hist_eff_track_finding_denominatorOne.Fill(Muon_TrueKE)
               if longtrackOther >= 0:
                 hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
-              if longtrackOther >= 0:
-                hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
+              #if longtrackOther >= 0:
+              #  hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
               if best_muon_candidateOther >= 0:
                 hist_eff_track_finding_after_cuts_numeratorOther.Fill(Muon_TrueKE)
               hist_eff_track_finding_denominatorOther.Fill(Muon_TrueKE)

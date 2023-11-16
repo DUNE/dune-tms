@@ -170,6 +170,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 markers.append(marker)
                 marker = 0
                 
+
                 if reco_hit_energy > 0:
                     total_energy += reco_hit_energy
                 elif reco_hit_energy < 0:
@@ -196,7 +197,16 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(20 * cluster_total_std_dev)
                     markers.append(marker)
                     marker = 0
-                
+                    
+                    for ClusterHit in range(event.nHitsInClusterOne[cluster]):
+                        hit_z = event.ClusterHitPosOne[ClusterHit*2 + 0] / 1000.0
+                        hit_x = event.ClusterHitPosOne[ClusterHit*2 + 1] / 1000.0
+
+                        marker = ROOT.TMarker(hit_z, hit_x, 21)
+                        marker.SetMarkerColor(ROOT.kAzure-8)
+                        markers.append(marker)
+                        marker = 0
+
                 for cluster in range(min(25, event.nClustersOther)):
                     cluster_energy = event.ClusterEnergyOther[cluster]
                     cluster_time = event.ClusterTimeOther[cluster]
@@ -217,6 +227,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(20 * cluster_total_std_dev)
                     markers.append(marker)
                     marker = 0
+
+                    for ClusterHit in range(event.nHitsInClusterOther[cluster]):
+                        hit_z = event.ClusterHitPosOther[ClusterHit*2 + 0] / 1000.0
+                        hit_x = event.ClusterHitPosOther[ClusterHit*2 + 1] / 1000.0
+
+                        marker = ROOT.TMarker(hit_z, hit_x, 21)
+                        marker.SetMarkerColor(ROOT.kMagenta-8)
+                        markers.append(marker)
+                        marker = 0
 
                 for line in range(event.nLinesOne):
                     #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
@@ -262,6 +281,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     markers.append(marker_end)
                     marker_end = 0
 
+                    for TrackHit in range(event.nHitsInTrackOne[line]):
+                        hit_z = event.TrackHitPosOne[TrackHit*2 + 0] / 1000.0
+                        hit_x = event.TrackHitPosOne[TrackHit*2 + 1] / 1000.0
+
+                        marker = ROOT.TMarker(hit_z, hit_x, 21)
+                        marker.SetMarkerColor(ROOT.kAzure-3)
+                        markers.append(marker)
+                        marker = 0
+
                 for line in range(event.nLinesOther):
                     
                     track_z = event.FirstHoughHitOther[line*2 + 0] / 1000.0
@@ -304,6 +332,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     markers.append(marker_end)
                     marker_end = 0
                  
+                    for TrackHit in range(event.nHitsInTrackOther[line]):
+                        hit_z = event.TrackHitPosOther[TrackHit*2 + 0] / 1000.0
+                        hit_x = event.TrackHitPosOther[TrackHit*2 + 1] / 1000.0
+                        
+                        marker = ROOT.TMarker(hit_z, hit_x, 21)
+                        marker.SetMarkerColor(ROOT.kMagenta-3)
+                        markers.append(marker)
+                        marker = 0
             
         minimum_energy_to_print = 0
         if total_energy > minimum_energy_to_print:
