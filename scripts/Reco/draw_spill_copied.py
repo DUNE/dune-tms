@@ -261,12 +261,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
                     
                     if not simplify_tracks: 
-                        line = ROOT.TLine(x, y, x2, y2)
-                        line.SetLineWidth(4)
-                        line.SetLineStyle(ROOT.kDotted)
-                        line.SetLineColorAlpha(ROOT.kBlue-6, 0.15)
-                        markers.append(line)
-                        line = 0
+                        lines = ROOT.TLine(x, y, x2, y2)
+                        lines.SetLineWidth(4)
+                        lines.SetLineStyle(ROOT.kDotted)
+                        lines.SetLineColorAlpha(ROOT.kBlue-6, 0.15)
+                        markers.append(lines)
+                        lines = 0
                     
                     # Add markers for front and end of track
                     offset = 0.075
@@ -312,12 +312,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
 
                     if not simplify_tracks:
-                        line = ROOT.TLine(x, y, x2, y2)
-                        line.SetLineWidth(4)
-                        line.SetLineStyle(ROOT.kDashed)
-                        line.SetLineColorAlpha(ROOT.kMagenta-6, 0.15)
-                        markers.append(line)
-                        line = 0
+                        lines = ROOT.TLine(x, y, x2, y2)
+                        lines.SetLineWidth(4)
+                        lines.SetLineStyle(ROOT.kDashed)
+                        lines.SetLineColorAlpha(ROOT.kMagenta-6, 0.15)
+                        markers.append(lines)
+                        lines = 0
 
                     # Add markers for front and end of track
                     offset = 0.075
