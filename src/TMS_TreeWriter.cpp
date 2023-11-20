@@ -463,7 +463,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
-    for (unsigned int j = 0; j > Candidates.size(); ++j) {
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergyOther[it][j] = Candidates[j].GetE();
       TrackHitTimeOther[it][j] = Candidates[j].GetT();
       TrackHitPosOther[it][j][0] = Candidates[j].GetZ();

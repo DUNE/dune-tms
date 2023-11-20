@@ -176,170 +176,175 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 elif reco_hit_energy < 0:
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
                 
-                for cluster in range(min(25, event.nClustersOne)):
-                    cluster_energy = event.ClusterEnergyOne[cluster]
-                    cluster_time = event.ClusterTimeOne[cluster]
-                    cluster_pos_z = event.ClusterPosMeanOne[cluster*2 + 0] / 1000.0
-                    cluster_pos_x = event.ClusterPosMeanOne[cluster*2 + 1] / 1000.0
-                    cluster_pos_z_std_dev = event.ClusterPosStdDevOne[cluster*2 + 0] / 1000.0
-                    cluster_pos_x_std_dev = event.ClusterPosStdDevOne[cluster*2 + 1] / 1000.0
-                    #cluster_total_std_dev = math.sqrt(cluster_pos_z_std_dev**2 + cluster_pos_x_std_dev**2)
-                    cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
-                    e = int(min(255, 255 * cluster_energy / 10.0))
-                    t = int(min(255, 255 * cluster_time / 10000.0))
-                    color = ROOT.kAzure # ROOT.TColor.GetColor(e, t, 128)
-                    x = cluster_pos_z
-                    y = cluster_pos_x
-                    #print("cluster:", cluster, e, t, 255 * cluster_energy / 10.0, 255 * cluster_time / 10000.0, color, x, y, cluster_total_std_dev)
+            for clusterOne in range(min(25, event.nClustersOne)):
+                cluster_energy = event.ClusterEnergyOne[clusterOne]
+                cluster_time = event.ClusterTimeOne[clusterOne]
+                cluster_pos_z = event.ClusterPosMeanOne[clusterOne*2 + 0] / 1000.0
+                cluster_pos_x = event.ClusterPosMeanOne[clusterOne*2 + 1] / 1000.0
+                cluster_pos_z_std_dev = event.ClusterPosStdDevOne[clusterOne*2 + 0] / 1000.0
+                cluster_pos_x_std_dev = event.ClusterPosStdDevOne[clusterOne*2 + 1] / 1000.0
+                #cluster_total_std_dev = math.sqrt(cluster_pos_z_std_dev**2 + cluster_pos_x_std_dev**2)
+                cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
+                e = int(min(255, 255 * cluster_energy / 10.0))
+                t = int(min(255, 255 * cluster_time / 10000.0))
+                color = ROOT.kAzure # ROOT.TColor.GetColor(e, t, 128)
+                x = cluster_pos_z
+                y = cluster_pos_x
+                #print("cluster:", cluster, e, t, 255 * cluster_energy / 10.0, 255 * cluster_time / 10000.0, color, x, y, cluster_total_std_dev)
                     
-                    marker = ROOT.TMarker(x, y, 53)
-                    marker.SetMarkerColor(color)
-                    marker.SetMarkerSize(20 * cluster_total_std_dev)
-                    markers.append(marker)
-                    marker = 0
-                    
-                    for ClusterHit in range(event.nHitsInClusterOne[cluster]):
-                        hit_z = event.ClusterHitPosOne[ClusterHit*2 + 0] / 1000.0
-                        hit_x = event.ClusterHitPosOne[ClusterHit*2 + 1] / 1000.0
+                marker = ROOT.TMarker(x, y, 53)
+                marker.SetMarkerColor(color)
+                marker.SetMarkerSize(20 * cluster_total_std_dev)
+                markers.append(marker)
+                marker = 0
 
-                        marker = ROOT.TMarker(hit_z, hit_x, 21)
-                        marker.SetMarkerColor(ROOT.kAzure-8)
-                        markers.append(marker)
-                        marker = 0
+                print("Hits in cluster One: ", event.nHitsInClusterOne[clusterOne])
+                for ClusterHit in range(event.nHitsInClusterOne[clusterOne]):
+                    hit_z = event.ClusterHitPosOne[ClusterHit*2 + 0] / 1000.0
+                    hit_x = event.ClusterHitPosOne[ClusterHit*2 + 1] / 1000.0
 
-                for cluster in range(min(25, event.nClustersOther)):
-                    cluster_energy = event.ClusterEnergyOther[cluster]
-                    cluster_time = event.ClusterTimeOther[cluster]
-                    cluster_pos_z = event.ClusterPosMeanOther[cluster*2 + 0] / 1000.0
-                    cluster_pos_x = event.ClusterPosMeanOther[cluster*2 + 1] / 1000.0
-                    cluster_pos_z_std_dev = event.ClusterPosStdDevOther[cluster*2 + 0] / 1000.0
-                    cluster_pos_x_std_dev = event.ClusterPosStdDevOther[cluster*2 + 1] / 1000.0
-
-                    cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
-                    e = int(min(255, 255*cluster_energy / 10.0))
-                    t = int(min(255, 255*cluster_time / 10000.0))
-                    color = ROOT.kMagenta
-                    x = cluster_pos_z
-                    y = cluster_pos_x
-
-                    marker = ROOT.TMarker(x, y, 53)
-                    marker.SetMarkerColor(color)
-                    marker.SetMarkerSize(20 * cluster_total_std_dev)
+                    marker = ROOT.TMarker(hit_z, hit_x, 21)
+                    marker.SetMarkerColor(ROOT.kAzure-8)
                     markers.append(marker)
                     marker = 0
 
-                    for ClusterHit in range(event.nHitsInClusterOther[cluster]):
-                        hit_z = event.ClusterHitPosOther[ClusterHit*2 + 0] / 1000.0
-                        hit_x = event.ClusterHitPosOther[ClusterHit*2 + 1] / 1000.0
+            for clusterOther in range(min(25, event.nClustersOther)):
+                cluster_energy = event.ClusterEnergyOther[clusterOther]
+                cluster_time = event.ClusterTimeOther[clusterOther]
+                cluster_pos_z = event.ClusterPosMeanOther[clusterOther*2 + 0] / 1000.0
+                cluster_pos_x = event.ClusterPosMeanOther[clusterOther*2 + 1] / 1000.0
+                cluster_pos_z_std_dev = event.ClusterPosStdDevOther[clusterOther*2 + 0] / 1000.0
+                cluster_pos_x_std_dev = event.ClusterPosStdDevOther[clusterOther*2 + 1] / 1000.0
 
-                        marker = ROOT.TMarker(hit_z, hit_x, 21)
-                        marker.SetMarkerColor(ROOT.kMagenta-8)
-                        markers.append(marker)
-                        marker = 0
+                cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
+                e = int(min(255, 255*cluster_energy / 10.0))
+                t = int(min(255, 255*cluster_time / 10000.0))
+                color = ROOT.kMagenta
+                x = cluster_pos_z
+                y = cluster_pos_x
 
-                for line in range(event.nLinesOne):
-                    #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
-                    #track_x = event.TrackHitPos[line*2 + 1] / 1000.0
-                    track_z = event.FirstHoughHitOne[line*2 + 0] / 1000.0
-                    track_x = event.FirstHoughHitOne[line*2 + 1] / 1000.0
-                    track_z2 = event.LastHoughHitOne[line*2 + 0] / 1000.0
-                    track_x2 = event.LastHoughHitOne[line*2 + 1] / 1000.0
-                    track_length = event.TrackLengthOne[line] / 1000.0
-                    direction_z = event.DirectionZOne[line]
-                    direction_x = event.DirectionXOne[line]
+                marker = ROOT.TMarker(x, y, 53)
+                marker.SetMarkerColor(color)
+                marker.SetMarkerSize(20 * cluster_total_std_dev)
+                markers.append(marker)
+                marker = 0
+
+                print("Hits In Cluster Other: ", event.nHitsInClusterOther[clusterOther])
+                for ClusterHit in range(event.nHitsInClusterOther[clusterOther]):
+                    hit_z = event.ClusterHitPosOther[ClusterHit*2 + 0] / 1000.0
+                    hit_x = event.ClusterHitPosOther[ClusterHit*2 + 1] / 1000.0
+ 
+                    marker = ROOT.TMarker(hit_z, hit_x, 21)
+                    marker.SetMarkerColor(ROOT.kMagenta-8)
+                    markers.append(marker)
+                    marker = 0
+
+            for lineOne in range(event.nLinesOne):
+                #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
+                #track_x = event.TrackHitPos[line*2 + 1] / 1000.0
+                track_z = event.FirstHoughHitOne[lineOne*2 + 0] / 1000.0
+                track_x = event.FirstHoughHitOne[lineOne*2 + 1] / 1000.0
+                track_z2 = event.LastHoughHitOne[lineOne*2 + 0] / 1000.0
+                track_x2 = event.LastHoughHitOne[lineOne*2 + 1] / 1000.0
+                track_length = event.TrackLengthOne[lineOne] / 1000.0
+                direction_z = event.DirectionZOne[lineOne]
+                direction_x = event.DirectionXOne[lineOne]
                     
                     
-                    if track_length == 0: continue
+                if track_length == 0: continue
+                
+                x = track_z
+                y = track_x
+                x2 = track_z2
+                y2 = track_x2
                     
-                    x = track_z
-                    y = track_x
-                    x2 = track_z2
-                    y2 = track_x2
+                diffx = x2 - x
+                diffy = y2 - y
+                track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
                     
-                    diffx = x2 - x
-                    diffy = y2 - y
-                    track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
+                if not simplify_tracks: 
+                    lines = ROOT.TLine(x, y, x2, y2)
+                    lines.SetLineWidth(4)
+                    lines.SetLineStyle(ROOT.kDotted)
+                    #lines.SetLineColorAlpha(ROOT.kBlue-6), 0.15)
+                    markers.append(lines)
+                    lines = 0
                     
-                    if not simplify_tracks: 
-                        line = ROOT.TLine(x, y, x2, y2)
-                        line.SetLineWidth(4)
-                        line.SetLineStyle(ROOT.kDotted)
-                        line.SetLineColorAlpha(ROOT.kBlue-6, 0.15)
-                        markers.append(line)
-                        line = 0
+                # Add markers for front and end of track
+                offset = 0.075
+                marker_start = ROOT.TMarker(x, y - offset, 22)
+                marker_start.SetMarkerColor(ROOT.kBlue-10)
+                marker_start.SetMarkerSize(2)
+                markers.append(marker_start)
+                marker_start = 0
+                marker_end = ROOT.TMarker(x2, y2 + offset, 23)
+                marker_end.SetMarkerColor(ROOT.kBlue+3)
+                marker_end.SetMarkerSize(2)
+                markers.append(marker_end)
+                marker_end = 0
+                
+                print("Hits in track One: ", event.nHitsInTrackOne[lineOne])
+                for TrackHitOne in range(event.nHitsInTrackOne[lineOne]):
+                    hit_z = event.TrackHitPosOne[TrackHitOne*2 + 0] / 1000.0
+                    hit_x = event.TrackHitPosOne[TrackHitOne*2 + 1] / 1000.0
+                    print(hit_z, hit_x)
+
+                    marker = ROOT.TMarker(hit_z, hit_x, 21)
+                    marker.SetMarkerColor(ROOT.kAzure-3)
+                    markers.append(marker)
+                    marker = 0
+
+            for lineOther in range(event.nLinesOther):                    
+                track_z = event.FirstHoughHitOther[lineOther*2 + 0] / 1000.0
+                track_x = event.FirstHoughHitOther[lineOther*2 + 1] / 1000.0
+                track_z2 = event.LastHoughHitOther[lineOther*2 + 0] / 1000.0
+                track_x2 = event.LastHoughHitOther[lineOther*2 + 1] / 1000.0
+                track_length = event.TrackLengthOther[lineOther] / 1000.0
+                direction_z = event.DirectionZOther[lineOther]
+                direction_x = event.DirectionXOther[lineOther]
+
+                if track_length == 0: continue
                     
-                    # Add markers for front and end of track
-                    offset = 0.075
-                    marker_start = ROOT.TMarker(x, y - offset, 22)
-                    marker_start.SetMarkerColor(ROOT.kBlue-10)
-                    marker_start.SetMarkerSize(2)
-                    markers.append(marker_start)
-                    marker_start = 0
-                    marker_end = ROOT.TMarker(x2, y2 + offset, 23)
-                    marker_end.SetMarkerColor(ROOT.kBlue+3)
-                    marker_end.SetMarkerSize(2)
-                    markers.append(marker_end)
-                    marker_end = 0
+                x = track_z
+                y = track_x
+                x2 = track_z2
+                y2 = track_x2
 
-                    for TrackHit in range(event.nHitsInTrackOne[line]):
-                        hit_z = event.TrackHitPosOne[TrackHit*2 + 0] / 1000.0
-                        hit_x = event.TrackHitPosOne[TrackHit*2 + 1] / 1000.0
+                diffx = x2 - x
+                diffy = y2 - y
+                track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
 
-                        marker = ROOT.TMarker(hit_z, hit_x, 21)
-                        marker.SetMarkerColor(ROOT.kAzure-3)
-                        markers.append(marker)
-                        marker = 0
+                if not simplify_tracks:
+                    lines = ROOT.TLine(x, y, x2, y2)
+                    lines.SetLineWidth(4)
+                    lines.SetLineStyle(ROOT.kDashed)
+                    #lines.SetLineColorAlpha(ROOT.kMagenta-6), 0.15)
+                    markers.append(lines)
+                    lines = 0
 
-                for line in range(event.nLinesOther):
-                    
-                    track_z = event.FirstHoughHitOther[line*2 + 0] / 1000.0
-                    track_x = event.FirstHoughHitOther[line*2 + 1] / 1000.0
-                    track_z2 = event.LastHoughHitOther[line*2 + 0] / 1000.0
-                    track_x2 = event.LastHoughHitOther[line*2 + 1] / 1000.0
-                    track_length = event.TrackLengthOther[line] / 1000.0
-                    direction_z = event.DirectionZOther[line]
-                    direction_x = event.DirectionXOther[line]
-
-                    if track_length == 0: continue
-
-                    x = track_z
-                    y = track_x
-                    x2 = track_z2
-                    y2 = track_x2
-
-                    diffx = x2 - x
-                    diffy = y2 - y
-                    track_length_from_first_last = math.sqrt(diffx**2 + diffy**2)
-
-                    if not simplify_tracks:
-                        line = ROOT.TLine(x, y, x2, y2)
-                        line.SetLineWidth(4)
-                        line.SetLineStyle(ROOT.kDashed)
-                        line.SetLineColorAlpha(ROOT.kMagenta-6, 0.15)
-                        markers.append(line)
-                        line = 0
-
-                    # Add markers for front and end of track
-                    offset = 0.075
-                    marker_start = ROOT.TMarker(x, y - offset, 22)
-                    marker_start.SetMarkerColor(ROOT.kMagenta-10)
-                    marker_start.SetMarkerSize(2)
-                    markers.append(marker_start)
-                    marker_start = 0
-                    marker_end = ROOT.TMarker(x2, y2 + offset, 23)
-                    marker_end.SetMarkerColor(ROOT.kMagenta+3)
-                    marker_end.SetMarkerSize(2)
-                    markers.append(marker_end)
-                    marker_end = 0
+                # Add markers for front and end of track
+                offset = 0.075
+                marker_start = ROOT.TMarker(x, y - offset, 22)
+                marker_start.SetMarkerColor(ROOT.kMagenta-10)
+                marker_start.SetMarkerSize(2)
+                markers.append(marker_start)
+                marker_start = 0
+                marker_end = ROOT.TMarker(x2, y2 + offset, 23)
+                marker_end.SetMarkerColor(ROOT.kMagenta+3)
+                marker_end.SetMarkerSize(2)
+                markers.append(marker_end)
+                marker_end = 0
                  
-                    for TrackHit in range(event.nHitsInTrackOther[line]):
-                        hit_z = event.TrackHitPosOther[TrackHit*2 + 0] / 1000.0
-                        hit_x = event.TrackHitPosOther[TrackHit*2 + 1] / 1000.0
-                        
-                        marker = ROOT.TMarker(hit_z, hit_x, 21)
-                        marker.SetMarkerColor(ROOT.kMagenta-3)
-                        markers.append(marker)
-                        marker = 0
+                print("Hits in track Other: ", event.nHitsInTrackOther[lineOther])
+                for TrackHitOther in range(event.nHitsInTrackOther[lineOther]):
+                    hit_z = event.TrackHitPosOther[TrackHitOther*2 + 0] / 1000.0
+                    hit_x = event.TrackHitPosOther[TrackHitOther*2 + 1] / 1000.0
+                    print(hit_z, "  ", hit_x)
+                      
+                    marker = ROOT.TMarker(hit_z, hit_x, 21)
+                    marker.SetMarkerColor(ROOT.kPink-9)
+                    markers.append(marker)
+                    marker = 0
             
         minimum_energy_to_print = 0
         if total_energy > minimum_energy_to_print:
