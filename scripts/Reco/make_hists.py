@@ -246,19 +246,19 @@ def run(c, truth, outfilename, nmax=-1):
         track_lengthsOther = [0] * ntracksOther
         areal_densitiesOther = [0] * ntracksOther
 
-        for track in range(ntracksOne):
-          track_start_x = event.FirstHoughHitOne[2*track+0]
-          track_start_y = event.FirstHoughHitOne[2*track+1]
-          track_end_x = event.LastHoughHitOne[2*track+0]
-          track_end_y = event.LastHoughHitOne[2*track+1]
+        for trackOne in range(ntracksOne):
+          track_start_x = event.FirstHoughHitOne[2*trackOne+0]
+          track_start_y = event.FirstHoughHitOne[2*trackOne+1]
+          track_end_x = event.LastHoughHitOne[2*trackOne+0]
+          track_end_y = event.LastHoughHitOne[2*trackOne+1]
           xdist = track_end_x - track_start_x
           ydist = track_end_y - track_start_y
           dist = math.sqrt(xdist*xdist+ydist*ydist)
-          TrackLength = event.TrackLengthOne[track]
+          TrackLength = event.TrackLengthOne[trackOne]
           
           # Check if this is the longest track by areal density
           if TrackLength > longtrack_lengthOne:
-            longtrackOne = track
+            longtrackOne = trackOne
             longtrack_lengthOne = TrackLength
             
           # Plot them in histograms
@@ -266,22 +266,22 @@ def run(c, truth, outfilename, nmax=-1):
           hist_TrackLengthOne.Fill(TrackLength)
             
           # Save them in these arrays
-          track_lengthsOne[track] = dist
-          areal_densitiesOne[track] = event.TrackLengthOne[track]
+          track_lengthsOne[trackOne] = dist
+          areal_densitiesOne[trackOne] = event.TrackLengthOne[trackOne]
 
-        for track in range(ntracksOther):
-          track_start_x = event.FirstHoughHitOther[2*track+0]
-          track_start_y = event.FirstHoughHitOther[2*track+1]
-          track_end_x = event.LastHoughHitOther[2*track+0]
-          track_end_y = event.LastHoughHitOther[2*track+1]
+        for trackOther in range(ntracksOther):
+          track_start_x = event.FirstHoughHitOther[2*trackOther+0]
+          track_start_y = event.FirstHoughHitOther[2*trackOther+1]
+          track_end_x = event.LastHoughHitOther[2*trackOther+0]
+          track_end_y = event.LastHoughHitOther[2*trackOther+1]
           xdist = track_end_x - track_start_x
           ydist = track_end_y - track_start_y
           dist = math.sqrt(xdist*xdist+ydist*ydist)
-          TrackLength = event.TrackLengthOther[track]
+          TrackLength = event.TrackLengthOther[trackOther]
 
           # Check if this is the longest track by areal density
           if TrackLength > longtrack_lengthOther:
-            longtrackOther = track
+            longtrackOther = trackOther
             longtrack_lengthOther = TrackLength
 
           # Plot them in histograms
@@ -289,8 +289,8 @@ def run(c, truth, outfilename, nmax=-1):
           hist_TrackLengthOther.Fill(TrackLength)
 
           # Save them in these arrays
-          track_lengthsOther[track] = dist
-          areal_densitiesOther[track] = event.TrackLengthOther[track]
+          track_lengthsOther[trackOther] = dist
+          areal_densitiesOther[trackOther] = event.TrackLengthOther[trackOther]
 
         best_tracklengthOne = -999.0
         reconstructed_muon_keOne = -999.0
@@ -626,7 +626,9 @@ def validate_then_run(args):
     
   nevents = args.nevents
   assert nevents >= -1, f"nevents <= -1, why? {nevents}"
-    
+  
+  print(f"Truth is {truth}")
+
   # Now finally run
   hists = run(c, truth, outfilename, nevents)
   

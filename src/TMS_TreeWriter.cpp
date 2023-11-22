@@ -530,6 +530,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
     int nhits = (*it).size();
+    std::cout << "Cluster One nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
       mean_z += (*it)[j].GetZ();
       mean_notz += (*it)[j].GetNotZ();
@@ -538,6 +539,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       total_energy += (*it)[j].GetE();
       float time = (*it)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
+      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
       ClusterHitPosOne[stdit][j][0] = (*it)[j].GetZ();
       ClusterHitPosOne[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergyOne[stdit][j] = (*it)[j].GetE();

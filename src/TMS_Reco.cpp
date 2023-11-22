@@ -312,22 +312,20 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CleanedHits = CleanHits(RawHits);
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;
- 
-  std::cout << "RawHits: " << RawHits.size() << " CleanedHits: " << CleanedHits.size() << std::endl;
 
   double clean_min_time = 1e9;
   double clean_max_time = -1e9;
   int n_in_slice = 0;
   int n_in_wrong_slice = 0;
   for (auto hit : CleanedHits) {
-    if (hit.GetPedSup()) std::cout<<"Cleaned hits, found a ped supped hit in slice"<<std::endl;
+    if (hit.GetPedSup()) std::cout << "Cleaned hits, found a ped supped hit in slice" << std::endl;
     clean_min_time = std::min(clean_min_time, hit.GetT());
     clean_max_time = std::max(clean_max_time, hit.GetT());
     if (hit.GetSlice() == slice) n_in_slice += 1;
     if (hit.GetSlice() != slice) n_in_wrong_slice += 1;
   }
   //if (clean_max_time - clean_min_time > (10000.0 / 52)) std::cout<<"In Reco CleanedHits, found a time range larger than expected: "<<(clean_max_time - clean_min_time)<<", min="<<clean_min_time<<", max="<<clean_max_time<<", slice="<<slice<<std::endl;
-  if (n_in_wrong_slice > 0) std::cout<<"Found "<<n_in_wrong_slice<<" in wrong slice and "<<n_in_slice<<" in correct slice for "<<slice<<std::endl;
+  if (n_in_wrong_slice > 0) std::cout << "Found " << n_in_wrong_slice << " in wrong slice and " << n_in_slice << " in correct slice for " << slice << std::endl;
 
 #ifdef DEBUG
   std::cout << "Raw hits: " << RawHits.size() << std::endl;
@@ -349,6 +347,11 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
     else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
   }
+
+  if ( (OneHitGroup.size() + OtherHitGroup.size()) != CleanedHits.size() ) {
+    std::cout << "Not all hits in separated hit groups!" << std::endl;
+    return;
+  }
    
   // Hough transform
   if (kTrackMethod == TrackMethod::kHough) {
@@ -361,15 +364,15 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       // Hand over each cluster from DBSCAN to a Hough transform
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesOne.begin(); it != DBScanCandidatesOne.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-        std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits, 1);
-        for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
+        std::vector<std::vector<TMS_Hit> > LinesOne = HoughTransform(hits, 1);
+        for (auto jt = LinesOne.begin(); jt != LinesOne.end(); ++jt) {
           HoughCandidatesOne.emplace_back(std::move(*jt));
         }
       }
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesOther.begin(); it != DBScanCandidatesOther.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-	      std::vector<std::vector<TMS_Hit> > Lines = HoughTransform(hits, 2);
-      	for (auto jt = Lines.begin(); jt != Lines.end(); ++jt) {
+	      std::vector<std::vector<TMS_Hit> > LinesOther = HoughTransform(hits, 2);
+      	for (auto jt = LinesOther.begin(); jt != LinesOther.end(); ++jt) {
       	  HoughCandidatesOther.emplace_back(std::move(*jt));
       	}
       }
@@ -730,10 +733,6 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // We'll be moving out TMS_xz and TMS_yz and putting them into candidates
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
-  //std::cout << "All hits" << std::endl;
-  //for (auto &hit: TMS_xz) {
-    //std::cout << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << std::endl;
-  //}
 
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
       TMS_xz.size() > nMinHits && 
@@ -787,15 +786,6 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 #ifdef DEBUG
   std::cout << "Ran " << nRuns << " Hough algo" << std::endl;
 #endif
-  //std::cout << LineCandidates.size() << " hough lines" << std::endl;
-
-  //std::cout << "Hough lines before cleaning: " << std::endl;
-  //for (auto &line: LineCandidates) {
-    //std::cout << "New line" << std::endl;
-    //for (auto &hit : line) {
-      //std::cout << hit.GetZ() << ", " << hit.GetNotZ() << "(" << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << ")" << std::endl;
-    //}
-  //}
 
   // Can clean up hough hits a little bit
   // We may have tracks that have their last candidate adjacent to the start of another track. If so, we should probably merge tracks
