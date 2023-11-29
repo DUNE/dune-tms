@@ -3,6 +3,7 @@ import argparse
 import os
 import math
 import ROOT
+import array
 # Tells root to be in batch mode so it doesn't try to create a canvas on your screen, which is slow
 ROOT.gROOT.SetBatch(True)
 # Don't draw the stats box on histograms
@@ -11,14 +12,17 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.TH1.AddDirectory(False)
 ROOT.TH2.AddDirectory(False)
 
-def inside_tms(x, y, z):
+def inside_tms(x, y, z, only_thin_section = False):
     """ Returns true if x,y,z are inside the TMS
     Currently rough estimates of the positions """
     is_inside = True
-    if not -4000 < x < 4000: is_inside = False
-    if not -1548-4000 < y < -1548+4000: is_inside = False
-    if not 11000 < z < 18000: is_inside = False
-    return is_inside
+    if not -3000 < x < 3000: is_inside = False
+    if not -2800 < y < 0: is_inside = False
+    if only_thin_section:
+        if not 11400 < z < 13500: is_inside = False
+    else:
+        if not 11400 < z < 18200: is_inside = False
+    return is_inside 
 
 def run(c, truth, outfilename, nmax=-1):
     """ This code does 3 things:
@@ -56,7 +60,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist_KE_estimated = ROOT.TH2D("hist_KE_estimated", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
         hist_KE_vs_track_length_max_dz = ROOT.TH2D("hist_KE_vs_track_length_max_dz", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
         hist_track_length_vs_max_dz_dist = ROOT.TH2D("hist_track_length_vs_max_dz_dist", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
-        hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV)", 100, 0, 5000)
+        hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
         
         # Additional estimators that only require a true muon start and stop inside the TMS (it's "interior")
         # These are not ideal because they're using truth information, but it's a nice way to test for issues with reco
@@ -73,24 +77,25 @@ def run(c, truth, outfilename, nmax=-1):
         
         # Vertex Resolution
         hist_track_start_vtx_z_resolution = ROOT.TH1D("hist_track_start_vtx_z_resolution", 
-            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
         hist_track_start_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span", 
-            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolution = ROOT.TH1D("hist_track_end_vtx_z_resolution", "End Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
+        hist_track_end_vtx_z_resolution = ROOT.TH1D("hist_track_end_vtx_z_resolution", "End Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
         hist_track_end_vtx_z_resolution_using_span = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span", 
-            "Track End Vtx Resolution Z;Reco - True Vtx Z (mm)", 51, -1000, 1000)
+            "Track End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
         hist_track_start_vtx_x_resolution = ROOT.TH1D("hist_track_start_vtx_x_resolution", 
-            "Track Start Vtx Resolution X;Reco - True Vtx X (mm)", 51, -1000, 1000)
+            "Track Start Vtx Resolution X;Reco - True Vtx X (mm);N events", 51, -1000, 1000)
         hist_track_end_vtx_x_resolution = ROOT.TH1D("hist_track_end_vtx_x_resolution", 
-            "Track End Vtx Resolution X;Reco - True Vtx X (mm)", 51, -1000, 1000)
+            "Track End Vtx Resolution X;Reco - True Vtx X (mm); N events", 51, -1000, 1000)
             
         # Can also calculate efficiency
-        hist_eff_track_finding_numerator = ROOT.TH1D("hist_eff_track_finding_numerator", "N Tracks Found;True KE (MeV);N Muons", 50, 0, 5000)
-        hist_eff_track_finding_after_cuts_numerator = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator", "N Tracks After Cuts;True KE (MeV);N Muons", 50, 0, 5000)
-        hist_eff_track_finding_denominator = ROOT.TH1D("hist_eff_track_finding_denominator", "N Tracks;True KE (MeV);N Muons", 50, 0, 5000)
-        hist_eff_track_finding = ROOT.TH1D("hist_eff_track_finding", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", 50, 0, 5000)
+        bin_edges = array.array('d', [0, 200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,3000,4000,5000])
+        hist_eff_track_finding_numerator = ROOT.TH1D("hist_eff_track_finding_numerator", "Tracking Finding Numerator;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_after_cuts_numerator = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator", "Tracking Finding After Cuts Numerator;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_denominator = ROOT.TH1D("hist_eff_track_finding_denominator", "Track Finding Denominator;True KE (MeV);N Muons",len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding = ROOT.TH1D("hist_eff_track_finding", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)
         hist_eff_track_finding_after_cuts = ROOT.TH1D("hist_eff_track_finding_after_cuts", 
-            "Eff. of Reco'ing TMS-Starting Muons After Cuts;True KE (MeV);Eff", 50, 0, 5000)
+            "Eff. of Reco'ing TMS-Starting Muons After Cuts;True KE (MeV);Eff",len(bin_edges) - 1, bin_edges)
         
         
         # We can also do some simple counts
@@ -212,9 +217,9 @@ def run(c, truth, outfilename, nmax=-1):
             occupancy = event.Occupancy[longtrack]
             hist_occupancy.Fill(occupancy)
             track_start_z = event.FirstHoughHit[2*longtrack+0]
-            track_end_z = event.FirstHoughHit[2*longtrack+0]
+            track_end_z = event.LastHoughHit[2*longtrack+0]
             track_start_x = event.FirstHoughHit[2*longtrack+1]
-            track_end_x = event.FirstHoughHit[2*longtrack+1]
+            track_end_x = event.LastHoughHit[2*longtrack+1]
             hist_track_start_x.Fill(track_start_x)
             hist_track_start_z.Fill(track_start_z)
             hist_track_start.Fill(track_start_z, track_start_x)
@@ -233,9 +238,9 @@ def run(c, truth, outfilename, nmax=-1):
             OccupancyCut = 0.5
             alldet = True
             track_start_z = event.FirstHoughHit[2*longtrack+0]
-            track_end_z = event.FirstHoughHit[2*longtrack+0]
+            track_end_z = event.LastHoughHit[2*longtrack+0]
             track_start_x = event.FirstHoughHit[2*longtrack+1]
-            track_end_x = event.FirstHoughHit[2*longtrack+1]
+            track_end_x = event.LastHoughHit[2*longtrack+1]
             # Check if the muon starts within the correct z range
             if alldet and track_start_z < 11362+55*2: best_muon_candidate = -1
             if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidate = -1 
@@ -283,7 +288,7 @@ def run(c, truth, outfilename, nmax=-1):
                 mdx = truth.Muon_Death[0]
                 mdy = truth.Muon_Death[1]
                 mdz = truth.Muon_Death[2]
-                start_inside_tms = inside_tms(mx, my, mz)
+                start_inside_tms = inside_tms(mx, my, mz, True)
                 end_inside_tms = inside_tms(mdx, mdy, mdz)
                 #print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms}")
                 
@@ -308,12 +313,12 @@ def run(c, truth, outfilename, nmax=-1):
                 # Plot vertex resolution of muon
                 # But only if it starts or ends in detector respectively
                 if longtrack >= 0:
-                    dz_start = event.FirstHoughHit[2*track+0] - mz
+                    dz_start = event.FirstHoughHit[2*longtrack+0] - mz
                     dz_start_span = z1 - mz
-                    dz_end = event.LastHoughHit[2*track+0] - mdz
+                    dz_end = event.LastHoughHit[2*longtrack+0] - mdz
                     dz_end_span = z2 - mdz
-                    dx_start = event.FirstHoughHit[2*track+1] - mx
-                    dx_end = event.LastHoughHit[2*track+1] - mdx
+                    dx_start = event.FirstHoughHit[2*longtrack+1] - mx
+                    dx_end = event.LastHoughHit[2*longtrack+1] - mdx
                     if start_inside_tms:
                         hist_track_start_vtx_z_resolution.Fill(dz_start)
                         hist_track_start_vtx_z_resolution_using_span.Fill(dz_start_span)
