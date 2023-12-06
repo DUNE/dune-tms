@@ -523,24 +523,39 @@ void TMS_TrackFinder::CalculateTrackEnergy() {
 void TMS_TrackFinder::CalculateTrackLength() {
   // Look at the reconstructed tracks
   if (HoughCandidates.size() == 0) return;
-
   // Loop over each Hough Candidate and find the track length
   for (auto it = HoughCandidates.begin(); it != HoughCandidates.end(); ++it) {
-    double total = 0;
+    double final_total = 0;
+    int max_n_nodes_used = 0;
 
-    // Sort by increasing z
-    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-
-    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-      auto nexthit = *(hit+1);
-      // Use the geometry to calculate the track length between hits
-      TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-      TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
-      if ((point2-point1).Mag() > 100) continue;
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-      total += tracklength;
+    // Loop through all bar types so we're only calculating along the same plane rotation type
+    // Otherwise it would overestimate the track length by zig-zagging between y and v
+    TMS_Bar::BarType bartypes[] = {TMS_Bar::kXBar, TMS_Bar::kYBar, TMS_Bar::kUBar, TMS_Bar::kVBar, TMS_Bar::kError};
+    for (auto itbartype = std::begin(bartypes); itbartype != std::end(bartypes); ++itbartype) {
+      // Get only the nodes with the current bar type
+      auto track_hits_only_matching_bar = ProjectHits((*it), (*itbartype));
+      double total = 0;
+      int n_nodes = 0;
+      for (auto hit = track_hits_only_matching_bar.begin(); hit != track_hits_only_matching_bar.end() \
+          && (hit+1) != track_hits_only_matching_bar.end(); ++hit) {
+        auto nexthit = *(hit+1);
+        // Use the geometry to calculate the track length between hits
+        TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
+        TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
+        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+        total += tracklength;
+        n_nodes += 1;
+      }
+      // Currently tracks are made with ProjectHits so tracks will only have one (y) bar exclusively
+      // So taking the only nonzero node is a good proxy
+      // In the future we might want to take an average or take the max length, etc, or really do it in 3d
+      // But this captures possible future cases where tracks might include both y and v views
+      if (n_nodes > max_n_nodes_used) {
+        final_total = total;
+        max_n_nodes_used = n_nodes;
+      }
     }
-    TrackLength.push_back(total);
+    TrackLength.push_back(final_total);
   }
 }
 
@@ -873,7 +888,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits) {
 
   // Check if we're in XZ view
-  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar);
+  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
 
   // Recalculate Hough parameters event by event... not fully tested!
   bool VariableHough = false;
@@ -1395,7 +1410,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Remember which orientation these hits are
   // needed when we potentially skip the air gap in xz (but not in yz!)
-  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kYBar);
+  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
   // Reset remembering where gaps are in xz
   if (IsXZ) PlanesNearGap.clear();
 
