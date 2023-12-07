@@ -214,7 +214,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     hit_z = FilteredClusterHitPosOne[usedClustersOne*2 + ClusterHit*2 + 0] / 1000.0
                     hit_x = FilteredClusterHitPosOne[usedClustersOne*2 + ClusterHit*2 + 1] / 1000.0
                     
-                    #print(hit_z, " ", hit_x)
+                    print(hit_z, " ", hit_x)
             
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
                     marker.SetMarkerColor(ROOT.kAzure-8)
@@ -257,7 +257,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 for ClusterHit in range(event.nHitsInClusterOther[clusterOther]):
                     hit_z = FilteredClusterHitPosOther[usedClustersOther*2 + ClusterHit*2 + 0] / 1000.0
                     hit_x = FilteredClusterHitPosOther[usedClustersOther*2 + ClusterHit*2 + 1] / 1000.0
-                    #print(hit_z, " ", hit_x)
+                    print(hit_z, " ", hit_x)
 
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
                     marker.SetMarkerColor(ROOT.kMagenta-8)
@@ -386,7 +386,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 for TrackHitOther in range(event.nHitsInTrackOther[lineOther]):
                     hit_z = FilteredTrackHitPosOther[usedTracksOther*2 + TrackHitOther*2 + 0] / 1000.0
                     hit_x = FilteredTrackHitPosOther[usedTracksOther*2 + TrackHitOther*2 + 1] / 1000.0
-                    #print(hit_z, "  ", hit_x)
+                    print(hit_z, "  ", hit_x)
                       
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
                     marker.SetMarkerColor(ROOT.kPink-9)

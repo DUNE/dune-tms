@@ -45,6 +45,14 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
       PlaneNumber = geom->GetCurrentNode()->GetNumber();
+      if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kYBar;     // pure y orientation?
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;// 6 degree rotated from kYBar orientation
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) BarOrient = kXBar;// not yet implemented
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName4) != std::string::npos) BarOrient = kUBar;// not yet implemented
+      else {
+        std::cout << "Error: Do not understand TMS_ModuleLayerName '" << NodeName << "'. This bar will have type kError." << std::endl;
+        BarOrient = kError;
+      }
     }
 
     // This is the furthest down hit we have: scintillator bar
@@ -101,16 +109,16 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   if (PlaneNumber % 2 == 0) BarOrient = kXBar;
   else BarOrient = kYBar;
   */
-  BarOrient = kYBar;
+  //BarOrient = kYBar;
 
   // If this is a y-bar, remove the y coordinate
-  if (BarOrient == kXBar) {
+  if (BarOrient == kXBar || BarOrient == kUBar) {
     x = -99999000;
     // Flip the widths
     double tempyw = yw;
     yw = xw;
     xw = tempyw; 
-  } else if (BarOrient == kYBar) {
+  } else if (BarOrient == kYBar || BarOrient == kVBar) {
     y = -99999000;
     // Don't need to flip the widths because they're already correct (yw = large, xw = 4cm)
   } else {

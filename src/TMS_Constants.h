@@ -100,6 +100,10 @@ namespace TMS_Const {
   const std::string TMS_EDepSim_VolumeName = "volTMS";
   // To find in z
   const std::string TMS_ModuleLayerName = "modulelayervol";
+  const std::string TMS_ModuleLayerName1 = "modulelayervol1"; // y orientation
+  const std::string TMS_ModuleLayerName2 = "modulelayervol2"; // v orientation
+  const std::string TMS_ModuleLayerName3 = "modulelayervol3"; // x orientation
+  const std::string TMS_ModuleLayerName4 = "modulelayervol4"; // u orientation
   // To find scintillator "box"
   const std::string TMS_ModuleName = "ModuleBoxvol";
   // To find scintillator "box"

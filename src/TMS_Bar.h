@@ -34,6 +34,7 @@ class TMS_Bar {
     double GetNotZ() const { 
       if (BarOrient == kXBar) return y;
       else if (BarOrient == kYBar) return x;
+      else if (BarOrient == kVBar) return x;
       return -9999999999;
     }
 
@@ -44,6 +45,7 @@ class TMS_Bar {
     double GetNotZw() const {
       if (BarOrient == kXBar) return yw;
       else if (BarOrient == kYBar) return xw;
+      else if (BarOrient == kVBar) return xw;
       return -9999999999;
     }
 
@@ -74,7 +76,7 @@ class TMS_Bar {
       if (BarOrient == kXBar) {
         xmin = GetY()-GetYw()/2;
         xmax = GetY()+GetYw()/2;
-      } else if (BarOrient == kYBar) {
+      } else if (BarOrient == kYBar || BarOrient == kVBar) {
         xmin = GetX()-GetXw()/2;
         xmax = GetX()+GetXw()/2;
       }

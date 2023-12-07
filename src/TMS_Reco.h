@@ -63,8 +63,8 @@ class aNode {
     }
 
     double CalculateGroundCost(aNode const &other) {
-      double deltax = abs(x-other.x);
-      double deltay = abs(y-other.y);
+      double deltax = std::abs(x-other.x);
+      double deltay = std::abs(y-other.y);
 
       // Allow for all connections that exceed 1 cell, but if they're not great make sure they're heavily penalised
       if (deltay > 1 || deltax > 1) {
@@ -73,13 +73,14 @@ class aNode {
 
       double GroundCost = 0;
       // First add up the individual distance
-      GroundCost += (deltax+2*deltay)*10;
+      //GroundCost += (deltax+2*deltay)*10;
+      GroundCost += (deltax*deltax + deltay*deltay)*(deltax*deltax + deltay*deltay);
 
       //if      (deltax+deltay == 2) GroundCost += 20;
       //if      (deltax+deltay == 2) GroundCost += 5;
 
       // Need to penalise diagonal connections to avoid them being preferred over non-diagonal
-      if (deltay == 1 && deltax == 1) GroundCost += 100;
+//      if (deltay == 1 && deltax == 1) GroundCost += 100;
       //if (deltax == 2 || deltay == 2) {
         //GroundCost += 10;
         //if (deltax == 2 && deltay == 2) {
@@ -118,14 +119,14 @@ class aNode {
       // x is the plane number, y is in mm
       // jumping one plane incurs 10 ground, so reflect that here; jumping 2 planes (i.e. adjacent) should be 10 ground, jumping 4 planes (i.e. next to adjacent) is double that
       //double deltax = (x-other.x)*5;
-      double deltax = (x-other.x)*10;
-      // Moving 1 plane up is 10 ground cost, so reflect that here too
-      double deltay = (y-other.y)*10;
+      double deltax = std::abs((x-other.x)*1);  //10->1
+      // Moving 1 'bar' up is 10 ground cost, so reflect that here too (the bar width is here assumed to be 1cm)
+      double deltay = std::abs((y-other.y)*1);  //10->1
 
-      if      (Heuristic == HeuristicType::kManhattan) return std::abs(deltax)+std::abs(deltay);
+      if      (Heuristic == HeuristicType::kManhattan) return deltax+deltay;
       else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
-      else if (Heuristic == HeuristicType::kDetectorZ) return std::abs(deltax);
-      else if (Heuristic == HeuristicType::kDetectorNotZ) return std::abs(deltay);
+      else if (Heuristic == HeuristicType::kDetectorZ) return deltax;
+      else if (Heuristic == HeuristicType::kDetectorNotZ) return deltay;
 
       return __LARGE_COST__;
     }
@@ -273,19 +274,21 @@ class TMS_TrackFinder {
           Accumulator[i][j] = 0;
         }
       }
+      
       // First run a simple Hough Transform
       for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
         TMS_Hit hit = (*it);
         double xhit = hit.GetNotZ();
         double zhit = hit.GetZ();
-
+        
         // If z position is above region of interest, ignore hit
         //if (IsXZ && zhit > zMaxHough) continue;
         if (zhit > zMaxHough) continue;
-
+        
         Accumulate(xhit, zhit);
+        
       }
-
+      
       // Find the maximum of the accumulator and which m,c bin the maximum occurs in
       double max_zy = 0;
       int max_zy_slope_bin = 0;
@@ -299,7 +302,6 @@ class TMS_TrackFinder {
           }
         }
       }
-
       intercept = InterceptMin+max_zy_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
       slope = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
     }
@@ -391,20 +393,20 @@ class TMS_TrackFinder {
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {
-
+      
       // Could probably multi-thread this operation
       // Now do the Hough
       for (int i = 0; i < nSlope; ++i) {
         double m = SlopeMin+i*SlopeWidth;
         if (m > SlopeMax) m = SlopeMax;
-
+        
         // Now calculate rho
         double c = xhit-m*zhit;
         if (c > InterceptMax) c = InterceptMax;
-
+        
         // Find which rho bin this corresponds to
         int c_bin = FindBin(c);
-
+        
         /*
            if (i > nSlope || c_bin > nIntercept) {
            std::cout << "c: " << c << std::endl;
