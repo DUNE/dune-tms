@@ -22,7 +22,7 @@ jobs:
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; cmake ../ -LAH
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; CMAKE_MODULE_PATH=$PWD/../../root/cmake ROOT_DIR=$PWD/../../root/cmake cmake ../ -LAH
     - name: Install edep-sim3
       run: make; cd ../..
     - name: Clone TOML
