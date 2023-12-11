@@ -20,7 +20,7 @@ jobs:
     - name: Install ROOT
       run: wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh
     - name: Install edep-sim
-      run: git clone https://github.com/ClarkMcGrew/edep-sim; cd edep-sim; source setup.sh; edep-build; cd -
+      run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
       run: cd edep-sim; source setup.sh
     - name: Install edep-sim3
