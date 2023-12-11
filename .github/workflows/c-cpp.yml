@@ -16,16 +16,16 @@ jobs:
     - name: Clone TOML
       run: git clone https://github.com/ToruNiina/toml11
     - name : Install Dependencies
-      run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev; export LIAM=$PWD
+      run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev; export LIAM=/home/runner/work/dune-tms/
     - name: Install Geant4
-      run: wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$PWD/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/Geant4-10.7.4-Linux/lib64/
+      run: cd /home/runner/work/dune-tms/; wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$PWD/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/Geant4-10.7.4-Linux/lib64/
     - name: Install ROOT
-      run: wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh; export ROOT_DIR=$PWD/root/cmake; export CMAKE_MODULE_PATH=$PWD/root/cmake
+      run: cd /home/runner/work/dune-tms/; wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh; export ROOT_DIR=$LIAM/root/cmake; export CMAKE_MODULE_PATH=$LIAM/root/cmake
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ ROOT_DIR=$PWD/../../root/cmake CMAKE_MODULE_PATH=$PWD/../../Geant4-10.7.4-Linux:$PWD/../../root/cmake cmake ../ -LAH -DVDT_LIBRARY=$PWD/../../root/lib/libvdt.so -DVDT_INCLUDE_DIR=$PWD/../../root/include/ -DCMAKE_MODULE_PATH=$PWD/../../root/cmake:$PWD/../../Geant4-10.7.4-Linux/ -DROOT_DIR=$PWD/../../root/cmake -DGeant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=$LIAM/Geant4-10.7.4-Linux/ ROOT_DIR=$LIAM/root/cmake CMAKE_MODULE_PATH=$LIAM/Geant4-10.7.4-Linux:$LIAM/root/cmake cmake ../ -LAH -DVDT_LIBRARY=$LIAM/root/lib/libvdt.so -DVDT_INCLUDE_DIR=$LIAM/root/include/ -DCMAKE_MODULE_PATH=$LIAM/root/cmake:$LIAM/Geant4-10.7.4-Linux/ -DROOT_DIR=$LIAM/root/cmake -DGeant4_DIR=$LIAM/Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
     - name: Install edep-sim3
-      run: make; cd ../..
-    - name: make
+      run: make
+    - name: pwd; cd ../..; make
       run: make
