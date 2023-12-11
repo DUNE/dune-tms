@@ -24,8 +24,6 @@ jobs:
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ ROOT_DIR=/home/runner/work/dune-tms//root/cmake CMAKE_MODULE_PATH=/home/runner/work/dune-tms//Geant4-10.7.4-Linux:/home/runner/work/dune-tms//root/cmake cmake ../ -LAH -DVDT_LIBRARY=/home/runner/work/dune-tms//root/lib/libvdt.so -DVDT_INCLUDE_DIR=/home/runner/work/dune-tms//root/include/ -DCMAKE_MODULE_PATH=/home/runner/work/dune-tms//root/cmake:/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DROOT_DIR=/home/runner/work/dune-tms//root/cmake -DGeant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
-    - name: Install edep-sim3
-      run: make
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ ROOT_DIR=/home/runner/work/dune-tms//root/cmake CMAKE_MODULE_PATH=/home/runner/work/dune-tms//Geant4-10.7.4-Linux:/home/runner/work/dune-tms//root/cmake cmake ../ -LAH -DVDT_LIBRARY=/home/runner/work/dune-tms//root/lib/libvdt.so -DVDT_INCLUDE_DIR=/home/runner/work/dune-tms//root/include/ -DCMAKE_MODULE_PATH=/home/runner/work/dune-tms//root/cmake:/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DROOT_DIR=/home/runner/work/dune-tms//root/cmake -DGeant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE; make
     - name: pwd; cd ../..; make
       run: make
