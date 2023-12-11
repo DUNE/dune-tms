@@ -18,11 +18,11 @@ jobs:
     - name: Install Geant4
       run: wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$PWD/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/Geant4-10.7.4-Linux/lib64/
     - name: Install ROOT
-      run: wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh
+      run: wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh; env
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; cmake ../
+      run: cd edep-sim; mkdir -p build; cd build; cmake ../ -LAH
     - name: Install edep-sim3
       run: make; cd ../..
     - name: Clone TOML
