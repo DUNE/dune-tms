@@ -22,7 +22,7 @@ jobs:
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; ls ../../; ROOT_DIR=$PWD/../../root/cmake CMAKE_MODULE_PATH=$PWD/../../root/cmake cmake ../ -LAH -DVDT_LIBRARY=$PWD/../../root/lib/libvdt.so -DVDT_INCLUDE_DIR=$PWD/../../root/include/vdt -DCMAKE_MODULE_PATH=$PWD/../../root/cmake:$PWD/../../Geant4-10.7.4-Linux/ -DROOT_DIR=$PWD/../../root/cmake -DGeant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ ROOT_DIR=$PWD/../../root/cmake CMAKE_MODULE_PATH=$PWD/../../Geant4-10.7.4-Linux:$PWD/../../root/cmake cmake ../ -LAH -DVDT_LIBRARY=$PWD/../../root/lib/libvdt.so -DVDT_INCLUDE_DIR=$PWD/../../root/include/vdt -DCMAKE_MODULE_PATH=$PWD/../../root/cmake:$PWD/../../Geant4-10.7.4-Linux/ -DROOT_DIR=$PWD/../../root/cmake -DGeant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
     - name: Install edep-sim3
       run: make; cd ../..
     - name: Clone TOML
