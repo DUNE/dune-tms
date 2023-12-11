@@ -22,9 +22,9 @@ jobs:
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; . setup.sh
+      run: cd edep-sim; mkdir -p build; cd build; cmake ../
     - name: Install edep-sim3
-      run: edep-build; cd -
+      run: make; cd ../..
     - name: Clone TOML
       run: git clone https://github.com/ToruNiina/toml11
     - name: make
