@@ -18,7 +18,7 @@ jobs:
     - name : Install Dependencies
       run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev; export LIAM=/home/runner/work/dune-tms/
     - name: Install Geant4
-      run: cd /home/runner/work/dune-tms/; wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$PWD/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/Geant4-10.7.4-Linux/lib64/
+      run: cd /home/runner/work/dune-tms/; wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$LIAM/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIAM/Geant4-10.7.4-Linux/lib64/
     - name: Install ROOT
       run: cd /home/runner/work/dune-tms/; wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source root/bin/thisroot.sh; export ROOT_DIR=$LIAM/root/cmake; export CMAKE_MODULE_PATH=$LIAM/root/cmake
     - name: Install edep-sim
