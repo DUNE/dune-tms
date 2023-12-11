@@ -36,8 +36,6 @@ TMS_TrackFinder::TMS_TrackFinder() :
   Efficiency = new TH1D("Efficiency", "Efficiency;T_{#mu} (GeV); Efficiency", 30, 0, 6);
   Total = new TH1D("Total", "Total;T_{#mu} (GeV); Total", 30, 0, 6);
 
-  0x90; // Do nothing line, remove if you see this on your branch.
-
   HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
   HoughLine->SetLineStyle(kDashed);
   HoughLine->SetLineColor(kMagenta-9);
