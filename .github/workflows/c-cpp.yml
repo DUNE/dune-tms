@@ -16,15 +16,15 @@ jobs:
     - name: Clone TOML
       run: git clone https://github.com/ToruNiina/toml11
     - name : Install Dependencies
-      run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev; export LIAM=/home/runner/work/dune-tms/
+      run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev
     - name: Install Geant4
-      run: cd /home/runner/work/dune-tms/; wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:$LIAM/Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIAM/Geant4-10.7.4-Linux/lib64/
+      run: cd /home/runner/work/dune-tms/; wget https://cern.ch/geant4-data/releases/lib4.10.7.p04/Linux-g++8.3.0-CC7.tar.gz; tar xzf Linux-g++8.3.0-CC7.tar.gz; export PATH=$PATH:/home/runner/work/dune-tms//Geant4-10.7.4-Linux/bin/; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/runner/work/dune-tms//Geant4-10.7.4-Linux/lib64/
     - name: Install ROOT
-      run: cd /home/runner/work/dune-tms/; wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source $LIAM/root/bin/thisroot.sh; export ROOT_DIR=$LIAM/root/cmake; export CMAKE_MODULE_PATH=$LIAM/root/cmake; cat $LIAM/root/bin/thisroot.sh
+      run: cd /home/runner/work/dune-tms/; wget https://root.cern/download/root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; tar xzf root_v6.30.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz; source /home/runner/work/dune-tms//root/bin/thisroot.sh; export ROOT_DIR=/home/runner/work/dune-tms//root/cmake; export CMAKE_MODULE_PATH=/home/runner/work/dune-tms//root/cmake; cat /home/runner/work/dune-tms//root/bin/thisroot.sh
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=$LIAM/Geant4-10.7.4-Linux/ ROOT_DIR=$LIAM/root/cmake CMAKE_MODULE_PATH=$LIAM/Geant4-10.7.4-Linux:$LIAM/root/cmake cmake ../ -LAH -DVDT_LIBRARY=$LIAM/root/lib/libvdt.so -DVDT_INCLUDE_DIR=$LIAM/root/include/ -DCMAKE_MODULE_PATH=$LIAM/root/cmake:$LIAM/Geant4-10.7.4-Linux/ -DROOT_DIR=$LIAM/root/cmake -DGeant4_DIR=$LIAM/Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ ROOT_DIR=/home/runner/work/dune-tms//root/cmake CMAKE_MODULE_PATH=/home/runner/work/dune-tms//Geant4-10.7.4-Linux:/home/runner/work/dune-tms//root/cmake cmake ../ -LAH -DVDT_LIBRARY=/home/runner/work/dune-tms//root/lib/libvdt.so -DVDT_INCLUDE_DIR=/home/runner/work/dune-tms//root/include/ -DCMAKE_MODULE_PATH=/home/runner/work/dune-tms//root/cmake:/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DROOT_DIR=/home/runner/work/dune-tms//root/cmake -DGeant4_DIR=/home/runner/work/dune-tms//Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
     - name: Install edep-sim3
       run: make
     - name: pwd; cd ../..; make
