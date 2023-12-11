@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Clone TOML
+      run: git clone https://github.com/ToruNiina/toml11
     - name : Install Dependencies
       run: sudo apt-get install gfortran libpcre3-dev xlibmesa-glu-dev libglew-dev libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev python3-dev python3-numpy libxml2-dev libkrb5-dev libgsl0-dev qtwebengine5-dev nlohmann-json3-dev; export LIAM=$PWD
     - name: Install Geant4
@@ -25,7 +27,5 @@ jobs:
       run: cd edep-sim; mkdir -p build; cd build; ls ../../; Geant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ ROOT_DIR=$PWD/../../root/cmake CMAKE_MODULE_PATH=$PWD/../../Geant4-10.7.4-Linux:$PWD/../../root/cmake cmake ../ -LAH -DVDT_LIBRARY=$PWD/../../root/lib/libvdt.so -DVDT_INCLUDE_DIR=$PWD/../../root/include/ -DCMAKE_MODULE_PATH=$PWD/../../root/cmake:$PWD/../../Geant4-10.7.4-Linux/ -DROOT_DIR=$PWD/../../root/cmake -DGeant4_DIR=$PWD/../../Geant4-10.7.4-Linux/ -DEDEPSIM_READONLY=FALSE
     - name: Install edep-sim3
       run: make; cd ../..
-    - name: Clone TOML
-      run: git clone https://github.com/ToruNiina/toml11
     - name: make
       run: make
