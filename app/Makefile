@@ -15,7 +15,7 @@ TMS_INC = -I../src
 
 TOML_INC = -I../toml11
 
-CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -g -fPIC
 ifdef DEBUG
   CXXFLAGS+=-Og
 else

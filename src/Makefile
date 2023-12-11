@@ -12,7 +12,7 @@ EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
 
 TOML_INC = -I../toml11/
 
-CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -g -fPIC
 ifdef DEBUG
   CXXFLAGS+=-Og
 else
