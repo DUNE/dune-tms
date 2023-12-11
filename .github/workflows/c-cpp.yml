@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
     - name: Clone TOML
       run: git clone https://github.com/ToruNiina/toml11
-    - uses: actions/checkout@v3
     - name: make
       run: make
