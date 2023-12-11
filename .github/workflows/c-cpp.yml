@@ -22,7 +22,7 @@ jobs:
     - name: Install edep-sim
       run: git clone https://github.com/ClarkMcGrew/edep-sim
     - name: Install edep-sim2
-      run: cd edep-sim; mkdir -p build; cd build; ls ../../; VDT_LIBRARY=$LIAM/root/lib/libvdt.so VDT_INCLUDE_DIR=$LIAM/root/include/vdt CMAKE_MODULE_PATH=$PWD/../../root/cmake ROOT_DIR=$PWD/../../root/cmake cmake ../ -LAH
+      run: cd edep-sim; mkdir -p build; cd build; ls ../../; cmake ../ -LAH -DVDT_LIBRARY=$LIAM/root/lib/libvdt.so -DVDT_INCLUDE_DIR=$LIAM/root/include/vdt -DCMAKE_MODULE_PATH=$PWD/../../root/cmake -DROOT_DIR=$PWD/../../root/cmake
     - name: Install edep-sim3
       run: make; cd ../..
     - name: Clone TOML
