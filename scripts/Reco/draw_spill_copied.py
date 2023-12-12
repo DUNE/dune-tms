@@ -330,7 +330,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedTracksOne += 1
+                usedTracksOne += event.nHitsInTrackOne[lineOne]
 
             TotalHitsInTracksOther = sum(numpy.array([event.nHitsInTrackOther[i] for i in range(event.nLinesOther)]))
             FilteredTrackHitPosOther = numpy.empty(TotalHitsInTracksOther*2)
@@ -393,7 +393,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedTracksOther += 1
+                usedTracksOther += event.nHitsInTrackOther[lineOther]
+
+        print("usedClustersOne: ", usedClustersOne, " usedClustersOther: ", usedClustersOther, " usedTracksOne: ", usedTracksOne, " usedTracksOther: ", usedTracksOther)
             
         minimum_energy_to_print = 0
         if total_energy > minimum_energy_to_print:

@@ -349,9 +349,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     //if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
     //else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
   }
-
-  std::cout << "OneHit 1: " << OneHitGroup[0].GetX() << " | " << OneHitGroup[0].GetY() << " | " << OneHitGroup[0].GetZ() << std::endl;
-  std::cout << "OtherHit 1: " << OtherHitGroup[0].GetX() << " | " << OtherHitGroup[0].GetY() << " | " << OtherHitGroup[0].GetZ() << std::endl;
   
   if ( (OneHitGroup.size() + OtherHitGroup.size()) != CleanedHits.size() ) {
     std::cout << "Not all hits in separated hit groups!" << std::endl;
@@ -424,9 +421,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   
   // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
   int linenoOne = 0;
-  //std::cout << "Event " << event.GetEventNumber() << std::endl;
   for (auto Lines: HoughCandidatesOne) {
-    //std::cout << "line  " << lineno << std::endl;
     std::pair<bool, TF1*> houghline = HoughLinesOne[linenoOne];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
@@ -1026,11 +1021,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
       //int nhoughhits = track.size();
       // Need to sort each line in z
-      std::cout << "size before SpatialPrio: " << (*it).size() << std::endl;
       SpatialPrio(*it);
-      std::cout << "size before A*: " << (*it).size() << std::endl;
       std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
-      std::cout << "Next size: " << CleanedHough.size() << std::endl;
       unsigned int ncleaned = CleanedHough.size();
 
       // Now replace the old hits with this cleaned version
@@ -1703,13 +1695,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
 std::vector<TMS_Hit> TMS_TrackFinder::ProjectHits(const std::vector<TMS_Hit> &TMS_Hits, TMS_Bar::BarType bartype) {
   std::vector<TMS_Hit> returned;
   if (TMS_Hits.empty()) return returned;
-  bool print = true;
   for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
     TMS_Hit hit = (*it);
-    if (print) { 
-      std::cout << "bartype: " << (*it).GetBar().GetBarType() << " " << (*it).GetX() << " | " << (*it).GetY() << " | " << (*it).GetZ() << std::endl;
-      print = false;
-    }
     if (hit.GetBar().GetBarType() == bartype) {
       returned.push_back(std::move(hit));
     }
@@ -1744,7 +1731,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     // Make the node
     aNode TempNode(x, y, NodeID);
     std::cout << "Node creation" << std::endl;
-    std::cout << "x, y = " << (*it).GetZ() << " " << (*it).GetX() << std::endl;
+    std::cout << "coordinates: x, y = " << (*it).GetZ() << " " << (*it).GetX() << std::endl;
     TempNode.Print();
 
     // Calculate the Heuristic cost for each of the nodes to the last point
@@ -1877,11 +1864,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   //if (nrem > 1) nrem--;
   pq.push(Nodes.at(nrem));
 
-  std::cout << "pq size: " << pq.size() << std::endl;
-  for (long unsigned int test = 0; test < Nodes.size(); ++test) {
-    Nodes[test].Print();
-  }
-
   cost_so_far[nrem] = 0;
   came_from[nrem] = 0;
   // Keep track when we hit the last point
@@ -1890,8 +1872,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     aNode current = pq.top();
     if (LastPoint) break;
     pq.pop();
-
-    //std::cout << "pq size (after pop): " << pq.size() << std::endl;
 
     // If this is the last point, need to calculate the final cost
     if (current == Nodes.back()) LastPoint = true;
@@ -1902,31 +1882,18 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       double new_cost = cost_so_far[current.NodeID] + // The current cost for getting to this node (irrespective of neighbours)
         neighbour.first->HeuristicCost + // Add up the Heuristic cost of moving to this neighbour
         neighbour.second; // Add up the ground cost of moving to this neighbour
-      
-      std::cout << "nodeID: " << current.NodeID << " to ID: " << neighbour.first->NodeID <<  " so far: " << cost_so_far[current.NodeID] << " heuristic: " << neighbour.first->HeuristicCost << " ground: " << neighbour.second << std::endl;
 
       // If we've never reached this node, or if this path to the node has less cost
       if (cost_so_far.find(neighbour.first->NodeID) == cost_so_far.end() ||
           new_cost < cost_so_far[neighbour.first->NodeID]) {
-        //std::cout << "new cost: " << new_cost << std::endl;
 //        cost_so_far[neighbour.first->NodeID] = new_cost; // Update the cost to get to this node via this path
         cost_so_far[neighbour.first->NodeID] = cost_so_far[current.NodeID] + neighbour.second; // Update the cost to get to this node via this path
         pq.push(Nodes.at(neighbour.first->NodeID)); // Add to the priority list
         came_from[neighbour.first->NodeID] = current.NodeID; // Update where this node came from
-        std::cout << "current NodeID: " << current.NodeID << std::endl;
-      } //else if (new_cost < cost_so_far[neighbour.first->NodeID]) {
-        //std::cout << "NEW COST: " << new_cost << std::endl;
-      //}
-      else {
-        std::cout << "missed NodeID: " << current.NodeID << " cost: " << new_cost << " | " << cost_so_far[neighbour.first->NodeID] << std::endl;
       }
     }
-    //std::cout << " pq size (after loop): " << pq.size() << std::endl;
   }
   std::cout << "size 6: " << Nodes.size() << std::endl;
-
-//  std::cout << "pq top size: " << pq.top().size() << std::endl;
-  std::cout << "pq top: " << pq.top().NodeID << std::endl;
   std::cout << "came_from size: " << came_from.size() << std::endl;
 
   NodeID = pq.top().NodeID;
