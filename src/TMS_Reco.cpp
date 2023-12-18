@@ -1189,11 +1189,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     SlopeWidth = (SlopeMax-SlopeMin)/nSlope;
   }
 
-  //std::cout << "All hits in Hough" << std::endl;
-  //for (auto &hit: TMS_Hits) {
-    //std::cout << hit.GetPlaneNumber() << ", " << hit.GetBarNumber() << std::endl;
-  //}
-
   double slope, intercept;
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
@@ -1254,6 +1249,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       continue;
     }
     
+    // Calculate 'x'-point of hit with Hough line
     double HoughPoint = -9999999999; //HoughLineOne->Eval(zhit);
     if (hitgroup == 1) {
       HoughPoint = HoughLineOne->Eval(zhit);
@@ -1262,6 +1258,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     }
 
     // Hough point is inside bar -> start clustering around bar
+    // (Check if 'x'-point is inside hit bar)
     if (( bar.Contains(HoughPoint, zhit) ||
           bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
           bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
