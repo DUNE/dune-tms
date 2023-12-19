@@ -1193,6 +1193,77 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Makes sense to do this right at the end when all the merging and cleaning has been run
   // Order them in z
   SpatialPrio(returned);
+
+  // Extrapolation of tracks to catch missing hits at end/start of tracks
+  // TODO get direction for correct extrapolation
+  // function that uses flag for front or back of track
+  // use first/last three hits to determine direction
+  struct {
+    double slope;
+    double intercept;
+  } front, end;
+  //TODO need handling for same z coordinates!!!
+  // get first three hits
+  std::vector<TMS_Hit> front_three;
+  std::vector<TMS_Hit>::iterator i = returned.begin();
+  int loop_iterator = 0;
+  while (loop_iterator < 3) {
+    if (front_three.size() >= 1 && (*i).GetZ() == front_three[loop_iterator-1].GetZ()) {
+      ++i;
+      continue;
+    }
+    front_three.push_back((*i));
+    ++loop_iterator;
+    ++i;
+    std::cout << (*i).GetZ() << " " << (*i).GetNotZ() << std::endl;
+  }
+
+  // get last three hits
+  std::vector<TMS_Hit> last_three;
+  loop_iterator = 0;
+  std::vector<TMS_Hit>::reverse_iterator ir = returned.rbegin();
+  while (loop_iterator < 3) {
+    if (last_three.size() >= 1 && (*ir).GetZ() == last_three[loop_iterator-1].GetZ()) {
+      ++ir;
+      continue;
+    }
+    last_three.push_back((*ir));
+    ++loop_iterator;
+    ++ir;
+    std::cout << (*ir).GetZ() << " " << (*ir).GetNotZ() << std::endl;
+  } 
+
+  double slopes_front[2];
+  double slopes_end[2];
+  for (int i = 0; i < 2; ++i) {
+    slopes_front[i] = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) / (front_three[i+1].GetZ() - front_three[i].GetZ());
+    slopes_end[i] = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) / (last_three[i+1].GetZ() - last_three[i].GetZ());
+  }
+
+  double intercepts_front[2];
+  double intercepts_end[2];
+  for (int i = 0; i < 2; ++i) {
+    intercepts_front[i] = front_three[i].GetNotZ() - front_three[i].GetZ() * slopes_front[i];
+    intercepts_end[i] = last_three[i].GetNotZ() - last_three[i].GetZ() * slopes_end[i];
+  }
+
+  front.slope = (slopes_front[0] + slopes_front[1]) / 2;
+  front.intercept = (intercepts_front[0] + intercepts_front[1]) / 2;
+
+  end.slope = (slopes_end[0] + slopes_end[1]) / 2;
+  end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
+
+  std::cout << front.slope << " " << front.intercept << std::endl;
+  std::cout << end.slope << " " << end.intercept << std::endl;
+
+
+  // TODO run AStar algorithm at start with parameters in correct direction
+  // TODO run AStar algorihtm at end with parameters in correct direction
+  // TODO merge tracks that are now potentially really close to each other
+
+
+
+
   // Now check that the Hough candidates are long enough
   /*
   double xend = (returned).back().GetNotZ();
