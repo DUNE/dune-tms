@@ -1195,15 +1195,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   SpatialPrio(returned);
 
   // Extrapolation of tracks to catch missing hits at end/start of tracks
-  // TODO get direction for correct extrapolation
-  // function that uses flag for front or back of track
-  // use first/last three hits to determine direction
+  // Get direction for correct extrapolation from first/last three hits
   struct {
     double slope;
     double intercept;
   } front, end;
-  //TODO need handling for same z coordinates!!!
-  // get first three hits
+  
+  // Get first three hits
   std::vector<TMS_Hit> front_three;
   std::vector<TMS_Hit>::iterator i = returned.begin();
   int loop_iterator = 0;
@@ -1215,10 +1213,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     front_three.push_back((*i));
     ++loop_iterator;
     ++i;
-    std::cout << (*i).GetZ() << " " << (*i).GetNotZ() << std::endl;
   }
-
-  // get last three hits
+  // TODO Shorten this with an external function that uses a flag for last/first hits
+  // Get last three hits
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
   std::vector<TMS_Hit>::reverse_iterator ir = returned.rbegin();
@@ -1230,34 +1227,31 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     last_three.push_back((*ir));
     ++loop_iterator;
     ++ir;
-    std::cout << (*ir).GetZ() << " " << (*ir).GetNotZ() << std::endl;
   } 
 
-  double slopes_front[2];
+  // Calculate slopes and intercepts of connecting lines of last/first hits
+  double slopes_front[2], slopes_end[2], intercepts_front[2], intercepts_end[2];
   double slopes_end[2];
   for (int i = 0; i < 2; ++i) {
     slopes_front[i] = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) / (front_three[i+1].GetZ() - front_three[i].GetZ());
     slopes_end[i] = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) / (last_three[i+1].GetZ() - last_three[i].GetZ());
-  }
-
-  double intercepts_front[2];
-  double intercepts_end[2];
-  for (int i = 0; i < 2; ++i) {
     intercepts_front[i] = front_three[i].GetNotZ() - front_three[i].GetZ() * slopes_front[i];
     intercepts_end[i] = last_three[i].GetNotZ() - last_three[i].GetZ() * slopes_end[i];
   }
 
+  // Take average of connecting lines as direction
   front.slope = (slopes_front[0] + slopes_front[1]) / 2;
   front.intercept = (intercepts_front[0] + intercepts_front[1]) / 2;
 
   end.slope = (slopes_end[0] + slopes_end[1]) / 2;
   end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
 
-  std::cout << front.slope << " " << front.intercept << std::endl;
-  std::cout << end.slope << " " << end.intercept << std::endl;
-
 
   // TODO run AStar algorithm at start with parameters in correct direction
+  // use distance from line for direction
+  // use parameters for extrapolation distance and limit with A*
+  
+
   // TODO run AStar algorihtm at end with parameters in correct direction
   // TODO merge tracks that are now potentially really close to each other
 
