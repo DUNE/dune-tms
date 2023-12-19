@@ -1231,7 +1231,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   // Calculate slopes and intercepts of connecting lines of last/first hits
   double slopes_front[2], slopes_end[2], intercepts_front[2], intercepts_end[2];
-  double slopes_end[2];
   for (int i = 0; i < 2; ++i) {
     slopes_front[i] = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) / (front_three[i+1].GetZ() - front_three[i].GetZ());
     slopes_end[i] = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) / (last_three[i+1].GetZ() - last_three[i].GetZ());
@@ -1247,12 +1246,55 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
 
 
-  // TODO run AStar algorithm at start with parameters in correct direction
-  // use distance from line for direction
-  // use parameters for extrapolation distance and limit with A*
+  // TODO run AStar algorithm at end with parameters in correct direction
   
+  // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from end of track away (Heuristic cost)
+  // and with a higher z at most +/- 2 bar widths away from the direction line
+  std::vector<TMS_Hit> end_extrapolation_cand;
+  for (std::vector<TMS_Hit>::iterator it = HitPool.begin(); it != HitPool.end(); ++it) {
+    // Check if hit is after the end of the track
+    if ((*it).GetZ() > returned.back().GetZ()) { 
+      // Check if within 2 bar widths above or below the direction line
+      if ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * (*it).GetBar().GetNotZw()) &&
+           (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * (*it).GetBar().GetNotZw())) {
+        // Calculate temporary node to check for distance
+        aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+        aNode track_end((returned).back().GetPlaneNumber(), (returned).back().GetBarNumber());
+        candidate.SetHeuristic(kHeuristic);
+        candidate.SetHeuristicCost(track_end);
+        // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
+        if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() + TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
+          // Move hit now into candidate hits
+          end_extrapolation_cand.push_back((*it));
+        }
+      }
+    }
+  }
 
-  // TODO run AStar algorihtm at end with parameters in correct direction
+  // If more than 2 candidate hits, run A* algorithm to connect the correct ones
+  if (end_extrapolation_cand.size() > 2 ) {
+    // Make sure the hits are ordered
+    SpatialPrio(end_extrapolation_cand);
+    std::vector<TMS_Hit> vec = RunAstar(end_extrapolation_cand);
+
+    // Now add the connected hits into the existing track
+    for (auto hit = vec.begin(); hit != vec.end(); ++hit) {
+      returned.emplace_back(std::move(hit));
+    }
+    // Now order the hits in the existing track
+    SpatialPrio(returned);
+  } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but they are some, just add them
+    // Make sure the hits are still ordered
+    SpatialPrio(end_extrapolation_cand);
+    // Add them
+    for (auto hit = end_extrapolation_cand.begin(); hit != end_extrapolation_cand.end(); ++hit) {
+      returned.emplace_back(std::move(hit));
+    }
+    // Now order the hits in the existing track
+    SpatialPrio(returned);
+  }
+
+  // TODO run AStar algorihtm at start with parameters in correct direction
   // TODO merge tracks that are now potentially really close to each other
 
 
