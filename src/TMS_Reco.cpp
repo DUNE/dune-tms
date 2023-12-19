@@ -1279,7 +1279,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
     // Now add the connected hits into the existing track
     for (auto hit = vec.begin(); hit != vec.end(); ++hit) {
-      returned.emplace_back(std::move(hit));
+      returned.push_back((*hit));
     }
     // Now order the hits in the existing track
     SpatialPrio(returned);
@@ -1288,7 +1288,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     SpatialPrio(end_extrapolation_cand);
     // Add them
     for (auto hit = end_extrapolation_cand.begin(); hit != end_extrapolation_cand.end(); ++hit) {
-      returned.emplace_back(std::move(hit));
+      returned.push_back((*hit));
     }
     // Now order the hits in the existing track
     SpatialPrio(returned);
