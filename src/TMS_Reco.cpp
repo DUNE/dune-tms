@@ -36,13 +36,9 @@ TMS_TrackFinder::TMS_TrackFinder() :
   Efficiency = new TH1D("Efficiency", "Efficiency;T_{#mu} (GeV); Efficiency", 30, 0, 6);
   Total = new TH1D("Total", "Total;T_{#mu} (GeV); Total", 30, 0, 6);
 
-  HoughLineOne = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLineOne->SetLineStyle(kDashed);
-  HoughLineOne->SetLineColor(kMagenta-9);
-
-  HoughLineOther = new TF1("LinearHough2", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLineOther->SetLineStyle(kDashed);
-  HoughLineOther->SetLineColor(kMagenta-8);
+  HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
+  HoughLine->SetLineStyle(kDashed);
+  HoughLine->SetLineColor(kMagenta-9);
 
   DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
   DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
@@ -73,6 +69,10 @@ TMS_TrackFinder::TMS_TrackFinder() :
     throw;
   }
 
+  std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;
+  std::cout << "Using AStar to clean up HoughTrack? " << TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar() << std::endl;
+  std::cout << "Using DBSCAN for clustering after main track finding? " << UseClustering << std::endl;
+  if (kTrackMethod == TrackMethod::kAStar) {
     std::cout << "Using " << heuristicname << " for A* heuristic cost calculation" << std::endl;
   }
 
@@ -1195,12 +1195,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   SpatialPrio(returned);
 
   // Extrapolation of tracks to catch missing hits at end/start of tracks
-  // Get direction for correct extrapolation (use first/last three hits to determine)
+  // TODO get direction for correct extrapolation
+  // function that uses flag for front or back of track
+  // use first/last three hits to determine direction
   struct {
     double slope;
     double intercept;
   } front, end;
-
+  //TODO need handling for same z coordinates!!!
   // get first three hits
   std::vector<TMS_Hit> front_three;
   std::vector<TMS_Hit>::iterator i = returned.begin();
@@ -1213,8 +1215,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     front_three.push_back((*i));
     ++loop_iterator;
     ++i;
+    std::cout << (*i).GetZ() << " " << (*i).GetNotZ() << std::endl;
   }
-  // TODO shorten this with an external function that uses a flag for last or first hits
+
   // get last three hits
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
@@ -1227,32 +1230,34 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     last_three.push_back((*ir));
     ++loop_iterator;
     ++ir;
+    std::cout << (*ir).GetZ() << " " << (*ir).GetNotZ() << std::endl;
   } 
 
-  // Calculate slopes and intercepts of connecting lines between hits
   double slopes_front[2];
   double slopes_end[2];
-  double intercepts_front[2];
-  double intercepts_end[2];
   for (int i = 0; i < 2; ++i) {
     slopes_front[i] = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) / (front_three[i+1].GetZ() - front_three[i].GetZ());
     slopes_end[i] = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) / (last_three[i+1].GetZ() - last_three[i].GetZ());
+  }
+
+  double intercepts_front[2];
+  double intercepts_end[2];
+  for (int i = 0; i < 2; ++i) {
     intercepts_front[i] = front_three[i].GetNotZ() - front_three[i].GetZ() * slopes_front[i];
     intercepts_end[i] = last_three[i].GetNotZ() - last_three[i].GetZ() * slopes_end[i];
   }
 
-  // Use average of the connecting lines as direction
   front.slope = (slopes_front[0] + slopes_front[1]) / 2;
   front.intercept = (intercepts_front[0] + intercepts_front[1]) / 2;
 
   end.slope = (slopes_end[0] + slopes_end[1]) / 2;
   end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
 
+  std::cout << front.slope << " " << front.intercept << std::endl;
+  std::cout << end.slope << " " << end.intercept << std::endl;
+
+
   // TODO run AStar algorithm at start with parameters in correct direction
-  // use distance from line for direction
-  // use parameters for extrapolation distance and limit with A*
-  
-  
   // TODO run AStar algorihtm at end with parameters in correct direction
   // TODO merge tracks that are now potentially really close to each other
 
@@ -1435,108 +1440,108 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
         nDuplicates++;
       }
     }
-        HitPool.push_back(std::move(*it));
-        it = returned.erase(it);
-      }
-      else it++;
+    // Now remove the duplicates
+    if (nDuplicates > 0) {
+      it = TMS_Hits_Cleaned.erase(it, it+nDuplicates);
+    } else it++;
+  }
+
+  // Remove zero entries
+  // Strip out hits that are outside the actual volume 
+  // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
+  // Figure out why these happen?
+  for (std::vector<TMS_Hit>::iterator jt = TMS_Hits_Cleaned.begin(); 
+      jt != TMS_Hits_Cleaned.end(); ) {
+
+    if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
+        (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
+      jt = TMS_Hits_Cleaned.erase(jt);
+    } else {
+      jt++;
     }
   }
+  return TMS_Hits_Cleaned;
+}
 
-  // Finally run A* to find the shortest path from start to end
-  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) { // RunAStarCleanUp flag
-    SpatialPrio(returned);
-    std::vector<TMS_Hit> vec = RunAstar(returned);
-    //std::cout << HitPool.size() << " before set_difference" << std::endl;
-    //std::cout << "return before a*" << returned.size() << std::endl;
+std::vector<TMS_Hit> TMS_TrackFinder::ProjectHits(const std::vector<TMS_Hit> &TMS_Hits, TMS_Bar::BarType bartype) {
+  std::vector<TMS_Hit> returned;
+  if (TMS_Hits.empty()) return returned;
 
-    // Only overwrite when necessary
-    if (vec.size() != returned.size()) {
-      // Put the missing hits back into the hit pool
-      for (auto it = vec.begin(); it != vec.end(); ++it) {
-        for (auto jt = returned.begin(); jt != returned.end(); ) {
-          if ((*it) == (*jt)) {
-            jt = returned.erase(jt);
-          } else {
-            ++jt;
-          }
-        }
-      }
-      for (auto &hit: returned) HitPool.emplace_back(std::move(hit));
-      //std::cout << "return after a*" << std::endl;
-      //std::cout << returned.size() << std::endl;
-      //std::cout << "a* vec" << std::endl;
-      //std::cout << vec.size() << std::endl;
-      returned = vec;
+  for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
+    TMS_Hit hit = (*it);
+    if (hit.GetBar().GetBarType() == bartype) {
+      returned.push_back(std::move(hit));
     }
-    //std::cout << HitPool.size() << " after set_difference" << std::endl;
   }
-
-  // Now finally check if any hough tracks are too short, or have too few hits
-  // Makes sense to do this right at the end when all the merging and cleaning has been run
-  // Order them in z
-  SpatialPrio(returned);
-  // Now check that the Hough candidates are long enough
-  /*
-  double xend = (returned).back().GetNotZ();
-  double zend = (returned).back().GetZ();
-  double xstart = (returned).front().GetNotZ();
-  double zstart = (returned).front().GetZ();
-  double xdist = xstart-xend;
-  double zdist = zstart-zend;
-  double dist = sqrt(xdist*xdist+zdist*zdist);
-  */
-  double xend = (returned).back().GetBarNumber();
-  double zend = (returned).back().GetPlaneNumber();
-  double xstart = (returned).front().GetBarNumber();
-  double zstart = (returned).front().GetPlaneNumber();
-  double xdist = xstart-xend;
-  double zdist = zstart-zend;
-  double dist = sqrt(xdist*xdist+zdist*zdist);
-  unsigned int nhits = (returned).size();
-  // Calculate the minimum distance in planes and bars instead of physical distance
-  if (dist < MinDistHough || nhits < nMinHits) {
-    //std::cout << "Failed distance or min hits cut" << std::endl;
-    std::vector<TMS_Hit> emptyvec;
-    return emptyvec;
-  }
-
   return returned;
 }
 
-// Find the bin for the accumulator
-int TMS_TrackFinder::FindBin(double c) {
-  // Since we're using uniform binning no need for binary search or similar
-  if (c > InterceptMax) c = InterceptMax;
-  int bin = (c-InterceptMin)/InterceptWidth;
-  return bin;
-}
+// Needs hits ordered in z
+std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_xz, bool ConnectAll) {
 
+  // Remember which orientation these hits are
+  // needed when we potentially skip the air gap in xz (but not in yz!)
+  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  // Reset remembering where gaps are in xz
+  if (IsXZ) PlanesNearGap.clear();
 
-// Convert Accumulator to a TH2D
-TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
+  // Set the first and last hit to calculate the heuristic to
+  //aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
+  aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetBarNumber());
 
-  std::string Name;
-  if (zy) {
-    Name = "TMS_TrackFinder_Accumulator_zy";
-  } else {
-    Name = "TMS_TrackFinder_Accumulator_zx";
+  // Also convert the TMS_Hit to our path-node
+  std::vector<aNode> Nodes;
+
+  // Give each node an ID
+  int NodeID = 0;
+  for (std::vector<TMS_Hit>::const_iterator it = TMS_xz.begin(); it != TMS_xz.end(); ++it, NodeID++) {
+
+    // Use the x position as plane number
+    double x = (*it).GetPlaneNumber();
+    double y = (*it).GetBarNumber();
+
+    // Make the node
+    aNode TempNode(x, y, NodeID);
+    // Calculate the Heuristic cost for each of the nodes to the last point
+    // This could probably be updated less often...
+    TempNode.SetHeuristic(kHeuristic);
+    TempNode.SetHeuristicCost(Last);
+
+    Nodes.push_back(std::move(TempNode));
   }
-  TH2D *accumulator = new TH2D(Name.c_str(), (Name+";m (slope);c (intercept) (mm)").c_str(), nSlope, SlopeMin, SlopeMax, nIntercept, InterceptMin, InterceptMax);
 
-  for (int i = 0; i < nSlope; ++i) {
-    for (int j = 0; j < nIntercept; ++j) {
-      accumulator->SetBinContent(i+1, j+1, Accumulator[i][j]);
+  // Now that we have the Heuristic cost calculated, we can set the first node as the node in the most upstream layer with the smallest Heuristic cost
+  int lowest_index = 0;
+  double lowest_heur = 999;
+  int firstlayer = 999;
+  for (size_t i = 0; i < Nodes.size(); ++i) {
+    // Check nodes is in first layers
+    int layer = Nodes[i].x;
+    if (layer > firstlayer) continue;
+    // Save the first layer
+    firstlayer = layer;
+    // Check if the heuristic cost is smaller
+    if (Nodes[i].HeuristicCost < lowest_heur && Nodes[i].Neighbours.size() > 0) {
+      lowest_heur = Nodes[i].HeuristicCost;
+      lowest_index = i;
     }
   }
+  //std::cout << "Index of lowest heuristic hit: " << lowest_index << " in layer " << firstlayer << " with heuristic = " << lowest_heur << std::endl;
+  std::swap(Nodes[0], Nodes[lowest_index]);
 
-  int maxx, maxy, maxz;
-  accumulator->GetMaximumBin(maxx, maxy, maxz);
-  double maxtheta = accumulator->GetXaxis()->GetBinCenter(maxx);
-  double maxrho = accumulator->GetYaxis()->GetBinCenter(maxy);
-  accumulator->SetTitle(Form("#splitline{%s}{m_{max}=%.2f c_{max}=%.2f}", accumulator->GetTitle(), maxtheta, maxrho));
+  // Can probably evaluate the last node here: if heuristic is large for the 5 nearest hits it's likely wrong?
 
-  // Set the minimum (easier to draw)
-  double maxcounts = accumulator->GetMaximum();
+  // Now find the neighbours of each node
+  for (std::vector<aNode>::iterator it = Nodes.begin(); it != Nodes.end(); ++it) {
+    for (std::vector<aNode>::iterator jt = Nodes.begin(); jt != Nodes.end(); ++jt) {
+
+      // First check this node isn't itself!
+      if ((*jt) == (*it)) continue;
+
+      // Get the address
+      aNode* Pointer = &(*jt);
+      // Only connect nearby nodes
+      // to make calculation much faster
       // This important can't be 1 though, because that would not connect split hits
       if (!ConnectAll) {
         if (abs((*jt).x - (*it).x) > 3 || 
@@ -2068,243 +2073,6 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         //double xcand = hits.GetZ();
         //double ycand = hits.GetNotZ();
         double xcand = hits.GetPlaneNumber();
-        double ycand = hits.GetBarNumber();
-
-        double grad_new = (ycand-y)/(xcand-x);
-
-        //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
-        //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
-        //std::cout << "and new gradient: " << grad_new << std::endl;
-
-        // If gradient is within 1 and the correct sign, accept
-        if (fabs(grad_new-grad_exp) <= 1.5) {
-          // If the gradient is zero we shouldn't do a sign check
-          // But if it's not, check the sign of the gradient doesn't flip
-          if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
-              fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
-              TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
-            ++it;
-            continue;
-          }
-          //std::cout << "Will be merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
-          // Now need to find position to insert
-          // Guaranteed sorted in z
-          // Need to find how many duplicates in z there are; don't necessarily want to insert right after this hit if it is followed by a hit in the same z
-          // If this is the largest z, just pop to the back
-          if (xcand <= vec.back().GetPlaneNumber()) {
-            vec.push_back(std::move(hits));
-            // Need to decrement iterator over line
-            // Sometimes we've missed one hit between Hough hits
-          } else {
-            for (std::vector<TMS_Hit>::iterator jt = vec.begin()+i; jt != vec.end(); ++jt) {
-              //double compx = (*jt).GetZ();
-              // Look one behind
-              //double compx1 = (*(jt-1)).GetZ();
-              double compx = (*jt).GetPlaneNumber();
-              // Look one behind
-              double compx1 = (*(jt-1)).GetPlaneNumber();
-              if (compx == x) continue;
-              //std::cout << "compared " << compx << " to candidate x: " << xcand << std::endl;
-              if (xcand <= compx) {
-                vec.insert(jt+1, std::move(hits));
-                break;
-              } else if (xcand > compx && xcand <= compx1) {
-                // Put in the previous
-                vec.insert(jt, std::move(hits));
-                break;
-              } else {
-                std::cout << "Didn't find anywhere to insert " << xcand << std::endl;
-              }
-            }
-          }
-          ++size;
-          // Remove off the end
-          it = full.erase(it);
-        } else {
-          it++;
-        }
-      }
-    }
-
-  }
-
-#include "TMS_Reco.h"
-
-TMS_TrackFinder::TMS_TrackFinder() :
-  nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
-  nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
-  InterceptMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinInterp()),
-  InterceptMax(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxInterp()),
-  SlopeMin(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinSlope()),
-  SlopeMax(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxSlope()),
-  InterceptWidth((InterceptMax-InterceptMin)/nIntercept),
-  SlopeWidth((SlopeMax-SlopeMin)/nSlope),
-  // Max z for us to do Hough in, here choose transition layer
-  zMinHough(TMS_Const::TMS_Thin_Start),
-  //zMaxHough(TMS_Const::TMS_Thick_Start),
-  zMaxHough(TMS_Const::TMS_Thick_End),
-  nMaxHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough()),
-  nThinCont(10),
-  nHits_Tol(TMS_Manager::GetInstance().Get_Reco_HOUGH_HitMult()),
-  // Minimum number of hits required to run track finding
-  nMinHits(TMS_Manager::GetInstance().Get_Reco_MinHits()),
-  // Maximum number of merges for one hit
-  nMaxMerges(1),
-  MinDistHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MinDist()), // Minimum distance for Hough in mm
-  // Is AStar greedy
-  IsGreedy(TMS_Manager::GetInstance().Get_Reco_ASTAR_IsGreedy()),
-  // Use DBSCAN clustering after track finding
-  UseClustering(TMS_Manager::GetInstance().Get_Reco_Clustering())
-{
-  // Apply the maximum Hough transform to the zx not zy: all bending happens in zx
-  Accumulator = new int*[nSlope];
-  for (int i = 0; i < nSlope; ++i) {
-    Accumulator[i] = new int[nIntercept];
-  }
-
-  // Keep track of the tracking efficiency
-  Efficiency = new TH1D("Efficiency", "Efficiency;T_{#mu} (GeV); Efficiency", 30, 0, 6);
-  Total = new TH1D("Total", "Total;T_{#mu} (GeV); Total", 30, 0, 6);
-
-  HoughLine = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLine->SetLineStyle(kDashed);
-  HoughLine->SetLineColor(kMagenta-9);
-
-  DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
-  DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
-
-  // Set up the tracker algorithm
-  std::string trackname = TMS_Manager::GetInstance().Get_Reco_TrackMethod();
-  if      (trackname == "Hough")  kTrackMethod = TrackMethod::kHough;
-  else if (trackname == "AStar")  kTrackMethod = TrackMethod::kAStar;
-  else if (trackname == "DBSCAN") kTrackMethod = TrackMethod::kDBSCAN;
-  else {
-    std::cerr << "Invalid track reconstruction method provided to TMS reconstruction" << std::endl;
-    std::cerr << "You provided: " << trackname << std::endl;
-    std::cerr << "Options are: Hough, AStar, DBSCAN" << std::endl;
-    kTrackMethod = TrackMethod::kUnknown;
-    throw;
-  }
-
-  std::string heuristicname = TMS_Manager::GetInstance().Get_Reco_ASTAR_CostMetric();
-  if      (heuristicname == "Euclidean") kHeuristic = HeuristicType::kEuclidean;
-  else if (heuristicname == "Manhattan") kHeuristic = HeuristicType::kManhattan;
-  else if (heuristicname == "DetectorZ") kHeuristic = HeuristicType::kDetectorZ;
-  else if (heuristicname == "DetectorNotZ") kHeuristic = HeuristicType::kDetectorNotZ;
-  else {
-    std::cerr << "Invalid AStar heuristic method provided to TMS reconstruction" << std::endl;
-    std::cerr << "You provided: " << heuristicname << std::endl;
-    std::cerr << "Options are: Euclidean, Manhattan, DetectorZ, DetectorNotZ" << std::endl;
-    kHeuristic = HeuristicType::kUnknown;
-    throw;
-  }
-
-  std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;
-  std::cout << "Using AStar to clean up HoughTrack? " << TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar() << std::endl;
-  std::cout << "Using DBSCAN for clustering after main track finding? " << UseClustering << std::endl;
-  if (kTrackMethod == TrackMethod::kAStar) {
-    std::cout << "Using " << heuristicname << " for A* heuristic cost calculation" << std::endl;
-  }
-
-
-}
-
-void TMS_TrackFinder::ClearClass() {
-
-  // Check through the Houghlines
-  for (auto &i: HoughLines) {
-    delete i.second;
-  }
-
-  // Reset the candidate vector
-  Candidates.clear();
-  RawHits.clear();
-  TotalCandidates.clear();
-  HoughLines.clear();
-  HoughLines_Upstream.clear();
-  HoughLines_Downstream.clear();
-  HoughCandidates.clear();
-  ClusterCandidates.clear();
-  TrackLength.clear();
-  TrackEnergy.clear();
-}
-
-int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
-  int nslices = 1;
-  // For now do the simplest thing and divide into N chunks
-  int nsliceswithoneormorehit = 0;
-  double spill_time = 10000; // ns
-  int n_slices_target = 1; //52;
-  double dt = spill_time / n_slices_target; // ns
-  auto hits = event.GetHitsRaw();
-  //std::cout<<"Running time slicer with n="<<hits.size()<<std::endl;
-  for (int slice_number = 1; slice_number <= n_slices_target; slice_number++) {
-    double start_time = dt * (slice_number - 1);
-    double end_time = dt * slice_number;
-    int nhitsinslice = 0;
-    //for (auto hit : hits) {
-    //for (std::vector<TMS_Hit>::iterator it = hits.begin(); it != hits.end(); it++) {
-    for (size_t i = 0; i < hits.size(); i++) {
-      //auto hit = (*it);
-      auto hit = hits[i];
-      // todo add back?
-      //if (hit.GetPedSup()) continue; // Skip ped supped hits
-      double hit_time = hit.GetT();
-      // If in time with slice, add this hit to slice
-      bool hit_is_in_slice = false;
-      if (start_time <= hit_time && hit_time < end_time) hit_is_in_slice = true;
-      // Special cases for hit times outside of standard range
-      // todo, understand why true hit_time < 0 is possible
-      if (slice_number == 1 && hit_time < 0) hit_is_in_slice = true;
-      if (slice_number == n_slices_target && hit_time >= spill_time) hit_is_in_slice = true;
-      if (hit_is_in_slice) {
-        if (hit.GetSlice() != 0) { std::cout<<"Trying to change a hit slice from "<<hit.GetSlice()<<" to "<<slice_number<<", t="<<hit_time<<std::endl; exit(0); }
-        //std::cout<<"Trying to change a hit slice from "<<hit.GetSlice()<<" to "<<slice_number<<", t="<<hit_time;
-        //hit.SetSlice(slice_number);
-        auto hit_pointer = &hits[i];
-        hit_pointer->SetSlice(slice_number);
-        nhitsinslice++;
-        //std::cout<<", Checking new slice number: "<<hit.GetSlice()<<", "<<hits[i].GetSlice()<<std::endl;
-      }
-    }
-    if (nhitsinslice > 0) nsliceswithoneormorehit += 1;
-    nslices += 1;
-  }
-  // Need to explicitly change the raw hits in the event since we're not dealing with pointers
-  event.SetHitsRaw(hits);
-  //std::cout<<"Found "<<nslices<<" slices. "<<nsliceswithoneormorehit<<" have more than one hit."<<std::endl;
-  
-  
-  auto hits2 = event.GetHitsRaw();
-  int n_hits_outside_slice0 = 0;
-  int n_hits_inside_slice0 = 0;
-  for (auto hit : hits2) {
-    //if (hit.GetSlice() != 0) std::cout<<"Checking new slice number: "<<hit.GetSlice()<<std::endl;
-    if (hit.GetSlice() != 0) n_hits_outside_slice0 += 1;
-    if (hit.GetSlice() == 0) n_hits_inside_slice0 += 1;
-    if (hit.GetSlice() == 0) std::cout<<"Hit in slice 0, T="<<hit.GetT()<<std::endl;
-  }
-  //std::cout<<"Found "<<n_hits_outside_slice0<<" hits with slice number != 0, and "<<n_hits_inside_slice0<<" inside slice 0"<<std::endl;
-  
-  
-  event.SetNSlices(nslices);
-  return nslices;
-}
-
-int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
-  int nslices = 1;
-  // Sort by T so slices are easier to find
-  event.SortHits(TMS_Hit::SortByT);
-  
-  
-  bool RunTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
-  bool RunSimpleTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunSimpleTimeSlicer();
-  if (RunTimeSlicer && RunSimpleTimeSlicer) nslices = SimpleTimeSlicer(event);
-  if (RunTimeSlicer && !RunSimpleTimeSlicer) {
-    // Here are all the constants
-    double threshold1 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdStart();
-    double threshold2 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdEnd();
-    int sliding_window_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerEnergyWindowInUnits();
         double ycand = hits.GetBarNumber();
 
         double grad_new = (ycand-y)/(xcand-x);
