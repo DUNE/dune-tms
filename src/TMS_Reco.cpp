@@ -1282,19 +1282,26 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 #endif
     // Make sure the hits are ordered
     SpatialPrio(end_extrapolation_cand);
-    // TODO Make sure the start is at most ExtrapolateDist away from end of track
-    std::vector<TMS_Hit> vec = RunAstar(end_extrapolation_cand);
 
-    // Now add the connected hits into the existing track
-    for (auto hit = vec.begin(); hit != vec.end(); ++hit) {
-      returned.push_back((*hit));
-    }
+    // Make sure the start is at most ExtrapolateDist away from end of track
+    aNode test(end_extrapolation_cand.front().GetPlaneNumber(), end_extrapolation_cand.front().GetBarNumber());
+    aNode track_end(returned.back().GetPlaneNumber(), returned.back().GetBarNumber());
+    test.SetHeuristic(kHeuristic);
+    test.SetHeuristicCost(track_end);
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      std::vector<TMS_Hit> vec = RunAstar(end_extrapolation_cand);
+
+      // Now add the connected hits into the existing track
+      for (auto hit = vec.begin(); hit != vec.end(); ++hit) {
+        returned.push_back((*hit));
+      }
+
 #ifdef DEBUG
-    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+      std::cout << "Hits added. Size now: " << returned.size() << std::endl;
 #endif
-    // Now order the hits in the existing track
-    SpatialPrio(returned);
-
+      // Now order the hits in the existing track
+      SpatialPrio(returned);
+    }
   } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
 #ifdef DEBUG
     std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
@@ -1303,16 +1310,24 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
     // Make sure the hits are still ordered
     SpatialPrio(end_extrapolation_cand);
-    // Add them
-    for (auto hit = end_extrapolation_cand.begin(); hit != end_extrapolation_cand.end(); ++hit) {
-      returned.push_back((*hit));
-    }
+    
+    // Make sure the start is at most ExtrapolateDist away from end of track
+    aNode test(end_extrapolation_cand.front().GetPlaneNumber(), end_extrapolation_cand.front().GetBarNumber());
+    aNode track_end(returned.back().GetPlaneNumber(), returned.back().GetBarNumber());
+    test.SetHeuristic(kHeuristic);
+    test.SetHeuristicCost(track_end);
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      // Add them
+      for (auto hit = end_extrapolation_cand.begin(); hit != end_extrapolation_cand.end(); ++hit) {
+        returned.push_back((*hit));
+      }
 #ifdef DEBUG
-    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+      std::cout << "Hits added. Size now: " << returned.size() << std::endl;
 #endif
 
-    // Now order the hits in the existing track
-    SpatialPrio(returned);
+      // Now order the hits in the existing track
+      SpatialPrio(returned);
+    }
   }
 
   // Do the same as for the end of the track just the other direction for the start
@@ -1327,9 +1342,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
           (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * (*it).GetBar().GetNotZw())) {
         // Calculate temporary node to check for distance
         aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
-        aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNUmber());
+        aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNumber());
         candidate.SetHeuristic(kHeuristic);
-        candidate.SetHeursisticCost(track_start);
+        candidate.SetHeuristicCost(track_start);
 #ifdef DEBUG
         std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Mananger::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
 #endif
@@ -1353,19 +1368,26 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 #endif
     // Make sure the hits are ordered
     SpatialPrio(front_extrapolation_cand);
-    //TODO Make sure the end is at most ExtrapolateDist away from start of track
-    std::vector<TMS_Hit> vec = RunAstar(front_extrapolation_cand);
+    
+    // Make sure the end is at most ExtrapolateDist away from start of track
+    aNode test(front_extrapolation_cand.back().GetPlaneNumber(), front_extrapolation_cand.back().GetBarNumber());
+    aNode track_start(returned.front().GetPlaneNumber(), returned.front().GetBarNumber());
+    test.SetHeuristic(kHeuristic);
+    test.SetHeuristicCost(track_start);
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      std::vector<TMS_Hit> vec = RunAstar(front_extrapolation_cand);
 
-    // Now add the connected hits into the existing track
-    for (auto hit = vec.begin(); hit != vec.end(); ++hit)  {
-      returned.push_back((*hit));
-    }
+      // Now add the connected hits into the existing track
+      for (auto hit = vec.begin(); hit != vec.end(); ++hit)  {
+        returned.push_back((*hit));
+      }
 #ifdef DEBUG
-    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+      std::cout << "Hits added. Size now: " << returned.size() << std::endl;
 #endif
 
-    // Now order the hits in the existing track
-    SpatialPrio(returned);
+      // Now order the hits in the existing track
+      SpatialPrio(returned);
+    }
   } else if (!front_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
 #ifdef DEBUG
     std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
@@ -1374,16 +1396,24 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
     // Make sure the hits are still ordered
     SpatialPrio(front_extrapolation_cand);
-    // Add them
-    for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
-      returned.push_back((*hit));
-    }
+    
+    // Make sure the end is at most ExtrapolateDist away from start of track
+    aNode test(front_extrapolation_cand.back().GetPlaneNumber(), front_extrapolation_cand.back().GetBarNumber());
+    aNode track_start(returned.front().GetPlaneNumber(), returned.front().GetBarNumber());
+    test.SetHeuristic(kHeuristic);
+    test.SetHeuristicCost(track_start);
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      // Add them
+      for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
+        returned.push_back((*hit));
+      } 
 #ifdef DEBUG
-    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+      std::cout << "Hits added. Size now: " << returned.size() << std::endl;
 #endif
 
-    // Now order the hits in the existing track
-    SpatialPrio(returned);
+      // Now order the hits in the existing track
+      SpatialPrio(returned);
+    }
   }
   // TODO merge tracks that are now potentially really close to each other
 
