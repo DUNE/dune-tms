@@ -196,7 +196,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
                     e = int(min(255, 255 * cluster_energy / 10.0))
                     t = int(min(255, 255 * cluster_time / 10000.0))
-                    color = ROOT.kBlack # ROOT.TColor.GetColor(e, t, 128)
+                    color = ROOT.kAzure #kBlack # ROOT.TColor.GetColor(e, t, 128)
                     x = cluster_pos_z
                     y = cluster_pos_x
                     #print("cluster:", cluster, e, t, 255 * cluster_energy / 10.0, 255 * cluster_time / 10000.0, color, x, y, cluster_total_std_dev)
@@ -212,7 +212,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                       hit_x = FilteredClusterHitPos[usedClusters*2 + ClusterHit*2 + 1] / 1000.0
 
                       marker = ROOT.TMarker(hit_z, hit_x, 21)
-                      marker.SetMarkerColor(ROOT.kMagenta-8)
+                      marker.SetMarkerColor(ROOT.kAzure-8)
                       marker.SetMarkerSize(0.5)
                       markers.append(marker)
                       marker = 0
@@ -273,7 +273,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                       hit_x = FilteredTrackHitPos[usedTracks*2 + TrackHit*2 + 1] / 1000.0
 
                       marker = ROOT.TMarker(hit_z, hit_x, 21)
-                      marker.SetMarkerColor(ROOT.kPink-9)
+                      marker.SetMarkerColor(ROOT.kPink-3)
                       marker.SetMarkerSize(0.5)
                       markers.append(marker)
                       marker = 0

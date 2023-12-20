@@ -73,13 +73,13 @@ class aNode {
 
       double GroundCost = 0;
       // First add up the individual distance
-      GroundCost += (deltax+2*deltay)*10;
+      GroundCost += (deltax*deltax+deltay*deltay)*(deltax*deltax+deltay*deltay); //(deltax+2*deltay)*10;
 
       //if      (deltax+deltay == 2) GroundCost += 20;
       //if      (deltax+deltay == 2) GroundCost += 5;
 
       // Need to penalise diagonal connections to avoid them being preferred over non-diagonal
-      if (deltay == 1 && deltax == 1) GroundCost += 100;
+//      if (deltay == 1 && deltax == 1) GroundCost += 100;
       //if (deltax == 2 || deltay == 2) {
         //GroundCost += 10;
         //if (deltax == 2 && deltay == 2) {
@@ -118,14 +118,14 @@ class aNode {
       // x is the plane number, y is in mm
       // jumping one plane incurs 10 ground, so reflect that here; jumping 2 planes (i.e. adjacent) should be 10 ground, jumping 4 planes (i.e. next to adjacent) is double that
       //double deltax = (x-other.x)*5;
-      double deltax = (x-other.x)*10;
+      double deltax = std::abs((x-other.x)*1);//0;
       // Moving 1 plane up is 10 ground cost, so reflect that here too
-      double deltay = (y-other.y)*10;
+      double deltay = std::abs((y-other.y)*1);//0;
 
-      if      (Heuristic == HeuristicType::kManhattan) return std::abs(deltax)+std::abs(deltay);
+      if      (Heuristic == HeuristicType::kManhattan) return deltax+deltay;
       else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
-      else if (Heuristic == HeuristicType::kDetectorZ) return std::abs(deltax);
-      else if (Heuristic == HeuristicType::kDetectorNotZ) return std::abs(deltay);
+      else if (Heuristic == HeuristicType::kDetectorZ) return deltax;
+      else if (Heuristic == HeuristicType::kDetectorNotZ) return deltay;
 
       return __LARGE_COST__;
     }

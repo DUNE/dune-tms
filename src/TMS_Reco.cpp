@@ -1244,9 +1244,6 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   end.slope = (slopes_end[0] + slopes_end[1]) / 2;
   end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
-
-
-  // TODO run AStar algorithm at end with parameters in correct direction
   
   // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from end of track away (Heuristic cost)
   // and with a higher z at most +/- 2 bar widths away from the direction line
@@ -1262,9 +1259,15 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
         aNode track_end((returned).back().GetPlaneNumber(), (returned).back().GetBarNumber());
         candidate.SetHeuristic(kHeuristic);
         candidate.SetHeuristicCost(track_end);
+#ifdef DEBUG
+        std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
+#endif
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
         if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() + TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
           // Move hit now into candidate hits
+#ifdef DEBUG          
+          std::cout << "Added to candidates" << std::endl;
+#endif
           end_extrapolation_cand.push_back((*it));
         }
       }
@@ -1273,28 +1276,115 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   // If more than 2 candidate hits, run A* algorithm to connect the correct ones
   if (end_extrapolation_cand.size() > 2 ) {
+#ifdef DEBUG
+    std::cout << "more than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
+    std::cout << "track initial size: " << returned.size() << std::endl;
+#endif
     // Make sure the hits are ordered
     SpatialPrio(end_extrapolation_cand);
+    // TODO Make sure the start is at most ExtrapolateDist away from end of track
     std::vector<TMS_Hit> vec = RunAstar(end_extrapolation_cand);
 
     // Now add the connected hits into the existing track
     for (auto hit = vec.begin(); hit != vec.end(); ++hit) {
       returned.push_back((*hit));
     }
+#ifdef DEBUG
+    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+#endif
     // Now order the hits in the existing track
     SpatialPrio(returned);
-  } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but they are some, just add them
+
+  } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
+#ifdef DEBUG
+    std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
+    std::cout << "track initial size: " << returned.size() << std::endl;
+#endif
+
     // Make sure the hits are still ordered
     SpatialPrio(end_extrapolation_cand);
     // Add them
     for (auto hit = end_extrapolation_cand.begin(); hit != end_extrapolation_cand.end(); ++hit) {
       returned.push_back((*hit));
     }
+#ifdef DEBUG
+    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+#endif
+
     // Now order the hits in the existing track
     SpatialPrio(returned);
   }
 
-  // TODO run AStar algorihtm at start with parameters in correct direction
+  // Do the same as for the end of the track just the other direction for the start
+  // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from start of track away (Heuristic cost)
+  // and with a smaller z at most +/- 2 bar widths away from the direction line
+  std::vector<TMS_Hit> front_extrapolation_cand;
+  for (std::vector<TMS_Hit>::iterator it = HitPool.begin(); it != HitPool.end(); ++it) {
+    // Check if hit is before the starto of the track
+    if ((*it).GetZ() < returned.front().GetZ()) {
+      // Check if within 2 bar widths above or below the direction line
+      if ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * (*it).GetBar().GetNotZw()) &&
+          (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * (*it).GetBar().GetNotZw())) {
+        // Calculate temporary node to check for distance
+        aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+        aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNUmber());
+        candidate.SetHeuristic(kHeuristic);
+        candidate.SetHeursisticCost(track_start);
+#ifdef DEBUG
+        std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Mananger::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
+#endif
+        // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
+        if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() + TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
+          // Move hit now into candidate hits
+#ifdef DEBUG
+          std::cout << "Added to candidates" << std::endl;
+#endif
+          front_extrapolation_cand.push_back((*it));
+        }
+      }
+    }
+  }
+
+  // If more than 2 candidate hits, run A* algorithm to connect the correct ones
+  if (front_extrapolation_cand.size() > 2 ) {
+#ifdef DEBUG
+    std::cout << "more than 2 candidates: " << front_extrapolation_cand.size() << std::endl;
+    std::cout << "track initial size: " << returned.size() << std::endl;
+#endif
+    // Make sure the hits are ordered
+    SpatialPrio(front_extrapolation_cand);
+    //TODO Make sure the end is at most ExtrapolateDist away from start of track
+    std::vector<TMS_Hit> vec = RunAstar(front_extrapolation_cand);
+
+    // Now add the connected hits into the existing track
+    for (auto hit = vec.begin(); hit != vec.end(); ++hit)  {
+      returned.push_back((*hit));
+    }
+#ifdef DEBUG
+    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+#endif
+
+    // Now order the hits in the existing track
+    SpatialPrio(returned);
+  } else if (!front_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
+#ifdef DEBUG
+    std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
+    std::cout << "track initial size: " << returned.size() << std::endl;
+#endif
+
+    // Make sure the hits are still ordered
+    SpatialPrio(front_extrapolation_cand);
+    // Add them
+    for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
+      returned.push_back((*hit));
+    }
+#ifdef DEBUG
+    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+#endif
+
+    // Now order the hits in the existing track
+    SpatialPrio(returned);
+  }
   // TODO merge tracks that are now potentially really close to each other
 
 
