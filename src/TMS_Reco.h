@@ -227,6 +227,8 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
 
+    std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
+
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
     // Get hits projected onto xz or yz
