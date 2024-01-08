@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to a modified version of [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 
+
+## [MAIN] - Unreleased
+- Changed MergeTracks default to True.
+- Hits trailing the end of a Hough Track can now be added to the track they 'should' correspond to. Currently defaults to on, will be switchable later.
+
 ## [Version 0.2] - 2023-12-13
 - Areal density calculation fixed, affected Muon KE reconstruction
 - Fixes to make larsoft work. Specifically scaling/units.
