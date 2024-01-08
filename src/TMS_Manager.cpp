@@ -41,6 +41,7 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_HitMult = toml::find<double>(data, "Recon", "Hough", "HitMult");
   _RECO_HOUGH_MergeTracks = toml::find<bool>(data, "Recon", "Hough", "MergeTracks");
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
+  _RECO_HOUGH_Extrapolation = toml::find<bool>(data, "Recon", "Hough", "Extrapolation");
   _RECO_HOUGH_ExtrapolateDist = toml::find<int>(data, "Recon", "Hough", "ExtrapolateDist");
   _RECO_HOUGH_ExtrapolateLimit = toml::find<int>(data, "Recon", "Hough", "ExtrapolateLimit");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");

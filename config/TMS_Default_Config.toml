@@ -48,6 +48,7 @@
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    Extrapolation = true
     ExtrapolateDist = 4
     ExtrapolateLimit = 20
 

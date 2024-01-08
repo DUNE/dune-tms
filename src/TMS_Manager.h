@@ -35,6 +35,7 @@ class TMS_Manager {
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
     double Get_Reco_HOUGH_MergeTracks() { return _RECO_HOUGH_MergeTracks; };
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
+    bool Get_Reco_HOUGH_Extrapolation() { return _RECO_HOUGH_Extrapolation; };
     int Get_Reco_HOUGH_ExtrapolateDist() { return _RECO_HOUGH_ExtrapolateDist; };
     int Get_Reco_HOUGH_ExtrapolateLimit() { return _RECO_HOUGH_ExtrapolateLimit; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
@@ -88,6 +89,7 @@ class TMS_Manager {
     double _RECO_HOUGH_HitMult;
     bool _RECO_HOUGH_MergeTracks;
     bool _RECO_HOUGH_RunAStar;
+    bool _RECO_HOUGH_Extrapolation;
     int _RECO_HOUGH_ExtrapolateDist;
     int _RECO_HOUGH_ExtrapolateLimit;
     bool _RECO_HOUGH_FirstCluster;

@@ -1196,8 +1196,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   SpatialPrio(returned);
 
   // Extrapolation of tracks to catch missing hits at end/start of tracks
-  returned = Extrapolation(returned, HitPool);
-  
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_Extrapolation()) {
+    returned = Extrapolation(returned, HitPool);
+  }
+
   // Now check that the Hough candidates are long enough
   /*
   double xend = (returned).back().GetNotZ();
