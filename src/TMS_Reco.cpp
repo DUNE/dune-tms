@@ -1200,6 +1200,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     returned = Extrapolation(returned, HitPool);
   }
 
+  if (returned.empty()) {
+    std::vector<TMS_Hit> emptyvec;
+    return emptyvec;
+  }
+
   // Now check that the Hough candidates are long enough
   /*
   double xend = (returned).back().GetNotZ();
@@ -1372,6 +1377,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     // and with a smaller z at most +/- 2 bar widths away from the direction line
     std::vector<TMS_Hit> front_extrapolation_cand;
     for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
+      if (returned.empty()) {
+        break;
+      }
       // Check if hit is before the starto of the track
       if ((*it).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
