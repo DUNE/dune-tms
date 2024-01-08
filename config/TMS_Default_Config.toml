@@ -44,10 +44,12 @@
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
     FirstCluster = false
     # Do we merge adjacent tracks afterwards?
-    MergeTracks = false
+    MergeTracks = true
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    ExtrapolateDist = 4
+    ExtrapolateLimit = 20
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -82,4 +84,4 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = -1
+  MaximumNEvents = 100
