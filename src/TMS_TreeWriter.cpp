@@ -606,6 +606,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
     ClusterPosStdDevOther[stdit][0] = std_dev_z;
     ClusterPosStdDevOther[stdit][1] = std_dev_notz;
+
   }
 
   // Write out the hit information

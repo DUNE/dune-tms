@@ -1679,8 +1679,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
       jt != TMS_Hits_Cleaned.end(); ) {
 
     if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
-        (*jt).GetZ() < TMS_Const::TMS_Start[2] ||  // Or upstream of the start...
-        (*jt).GetE() < TMS_Const::TMS_EnThres) { // Check energy threshold
+        (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
       jt = TMS_Hits_Cleaned.erase(jt);
     } else {
       jt++;

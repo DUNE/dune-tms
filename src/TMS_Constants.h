@@ -25,16 +25,6 @@ namespace TMS_KinConst {
 // Lots of these are hard-coded geometry constants that *NEED* to be updated for each production IF detectors move
 namespace TMS_Const {
 
-  // No idea what the units are
-  const double TMS_TimeThreshold = 1;
-
-  // Roughly the minimum energy that can be detected (MeV)
-  const double TMS_EnThres = 0.1;
-  //const double TMS_EnThres = 1;
-  
-  // The conversion factor from 1 MeV to 1 PE. 
-  const double TMS_EtoPE = 1000.0 / 20.0;
-
   // Number of planes, check against geometry
   const int TMS_nThinPlanes = 40;
   const int TMS_nThickPlanes = 60;
