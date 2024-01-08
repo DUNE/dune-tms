@@ -10,6 +10,7 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.TH1.AddDirectory(False)
 #ROOT.TImage.AddDirectory(False)
 ROOT.TH2.AddDirectory(False)
+import numpy
 
 
 ROOT.gStyle.SetPalette(52) # greyscale
@@ -174,6 +175,16 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 elif reco_hit_energy < 0:
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
                 
+                # Extract all hits in clusters and tracks that are not -999 for easier access later on
+                TotalHitsInClusters = sum(numpy.array([event.nHitsInCluster[i] for i in range(min(25, event.nClusters))]))
+                FilteredClusterHitPos = numpy.empty(TotalHitsInClusters*2)
+                j = 0
+                for i in range(len(event.ClusterHitPos)):
+                  if event.ClusterHitPos[i] != -999:
+                    FilteredClusterHitPos[j] = event.ClusterHitPos[i]
+                    j += 1
+
+                usedClusters = 0
                 for cluster in range(min(25, event.nClusters)):
                     cluster_energy = event.ClusterEnergy[cluster]
                     cluster_time = event.ClusterTime[cluster]
@@ -185,7 +196,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
                     e = int(min(255, 255 * cluster_energy / 10.0))
                     t = int(min(255, 255 * cluster_time / 10000.0))
-                    color = ROOT.kBlack # ROOT.TColor.GetColor(e, t, 128)
+                    color = ROOT.kAzure #kBlack # ROOT.TColor.GetColor(e, t, 128)
                     x = cluster_pos_z
                     y = cluster_pos_x
                     #print("cluster:", cluster, e, t, 255 * cluster_energy / 10.0, 255 * cluster_time / 10000.0, color, x, y, cluster_total_std_dev)
@@ -194,7 +205,28 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerColor(color)
                     marker.SetMarkerSize(20 * cluster_total_std_dev)
                     markers.append(marker)
-                    
+                    marker = 0
+
+                    for ClusterHit in range(event.nHitsInCluster[cluster]):
+                      hit_z = FilteredClusterHitPos[usedClusters*2 + ClusterHit*2 + 0] / 1000.0
+                      hit_x = FilteredClusterHitPos[usedClusters*2 + ClusterHit*2 + 1] / 1000.0
+
+                      marker = ROOT.TMarker(hit_z, hit_x, 21)
+                      marker.SetMarkerColor(ROOT.kAzure-8)
+                      marker.SetMarkerSize(0.5)
+                      markers.append(marker)
+                      marker = 0
+                    usedClusters += event.nHitsInCluster[cluster]
+
+                TotalHitsInTracks = sum(numpy.array([event.nHitsInTrack[i] for i in range(event.nLines)]))
+                FilteredTrackHitPos = numpy.empty(TotalHitsInTracks*2)
+                j = 0
+                for i in range(len(event.TrackHitPos)):
+                  if event.TrackHitPos[i] != -999:
+                    FilteredTrackHitPos[j] = event.TrackHitPos[i]
+                    j += 1
+
+                usedTracks = 0    
                 for line in range(event.nLines):
                     #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
                     #track_x = event.TrackHitPos[line*2 + 1] / 1000.0
@@ -223,6 +255,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         lines.SetLineWidth(4)
                         lines.SetLineColorAlpha(ROOT.kBlue, 0.15)
                         markers.append(lines)
+                        lines = 0
                     
                     # Add markers for front and end of track
                     offset = 0.075
@@ -234,6 +267,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker_end.SetMarkerColor(ROOT.kRed)
                     marker_end.SetMarkerSize(2)
                     markers.append(marker_end)
+
+                    for TrackHit in range(event.nHitsInTrack[line]):
+                      hit_z = FilteredTrackHitPos[usedTracks*2 + TrackHit*2 + 0] / 1000.0
+                      hit_x = FilteredTrackHitPos[usedTracks*2 + TrackHit*2 + 1] / 1000.0
+
+                      marker = ROOT.TMarker(hit_z, hit_x, 21)
+                      marker.SetMarkerColor(ROOT.kPink-3)
+                      marker.SetMarkerSize(0.5)
+                      markers.append(marker)
+                      marker = 0
+                    usedTracks += event.nHitsInTrack[line]
             
             
         minimum_energy_to_print = 0

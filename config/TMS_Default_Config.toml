@@ -44,10 +44,12 @@
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
     FirstCluster = false
     # Do we merge adjacent tracks afterwards?
-    MergeTracks = true #false
+
+    MergeTracks = true
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    Extrapolation = true
     ExtrapolateDist = 4
     ExtrapolateLimit = 20
 
