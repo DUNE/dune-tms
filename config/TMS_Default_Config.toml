@@ -44,7 +44,6 @@
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
     FirstCluster = false
     # Do we merge adjacent tracks afterwards?
-
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
