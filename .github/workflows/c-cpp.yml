@@ -2,7 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main", "Liam-CI-test" ]
+    branches: [ "main", "Liam-CI-test", "liam_dev" ]
   pull_request:
     branches: [ "main" ]
 
