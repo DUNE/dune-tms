@@ -88,6 +88,13 @@ class TMS_Hit {
     double GetZw() const { return Bar.GetZw(); };
     double GetNotZw() const { return Bar.GetNotZw(); };
 
+    // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
+    void SetRecoX(double x) { RecoX = x; };
+    void SetRecoY(double y) { RecoY = y; };
+
+    double GetRecoX() { return RecoX; };
+    double GetRecoY() { return RecoY; };
+
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
     
@@ -111,6 +118,8 @@ class TMS_Hit {
     double EnergyDepositVisible;
     // The timing of the hit
     double Time;
+    // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
+    double RecoX, RecoY; // Only to be filled after tracking performed
     
     int Slice;
     
