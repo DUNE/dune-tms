@@ -58,6 +58,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
   Branch_Lines->Branch("nLinesOne",   &nLinesOne,   "nLinesOne/I");
   Branch_Lines->Branch("nLinesOther", &nLinesOther, "nLinesOther/I");
+  Branch_Lines->Branch("nLines3D",    &nLines3D,    "nLines3D/I");
 
   Branch_Lines->Branch("SlopeOne",     SlopeOne,      "SlopeOne[nLinesOne]/F");
   Branch_Lines->Branch("InterceptOne", InterceptOne,  "InterceptOne[nLinesOne]/F");
@@ -112,6 +113,25 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TotalTrackEnergyOther", TotalTrackEnergyOther, "TotalTrackEnergyOther[nLinesOther]/F");
   Branch_Lines->Branch("TrackStoppingOne",      TrackStoppingOne,      "TrackStoppingOne[nLinesOne]/O");
   Branch_Lines->Branch("TrackStoppingOther",    TrackStoppingOther,    "TrackStoppingOther[nLinesOther]/O");
+
+  // 3D Track information
+  Branch_Lines->Branch("FirstHoughHit3D",        FirstHit3D,        "FirstHoughHit3D[nLines3D][3]/F");
+  Branch_Lines->Branch("LastHoughHit3D",         LastHit3D,         "LastHoughHit3D[nLines3D][3]/F");
+  Branch_Lines->Branch("FirstHoughHitTime3D",    FirstHitTime3D,    "FirstHitTime3D[nLines3D]/F");
+  Branch_Lines->Branch("LastHoughHitTime3D",     LastHitTime3D,     "LastHitTime3D[nLines3D]/F");
+  Branch_Lines->Branch("HoughEarliestHitTime3D", EarliestHitTime3D, "HoughEarliestHitTime3D[nLines3D]/F");
+  Branch_Lines->Branch("HoughLatestHitTime3D",   LatestHitTime3D,   "HoughLatestHitTime3D[nLines3D]/F");
+  Branch_Lines->Branch("FirstHoughPlane3D",      FirstPlane3D,      "FirstHoughPlane3D[nLines3D]/I");
+  Branch_Lines->Branch("LastHoughPlane3D",       LastPlane3D,       "LastHoughPlane3D[nLines3D]/I");
+  Branch_Lines->Branch("Occupancy3D",            Occupancy3D,       "Occupancy3D[nLines3D]/F");
+  Branch_Lines->Branch("TrackLength3D",          TrackLength3D,     "TrackLength3D[nLines3D]/F");
+  Branch_Lines->Branch("TotalTrackEnergy3D",     TotalTrackEnergy3D,"TotalTrackEnergy3D[nLines3D]/F");
+  Branch_Lines->Branch("TrackStopping3D",        TrackStopping3D,   "TrackStopping3D[nLines3D]/O");
+
+  Branch_Lines->Branch("nHitsInTrack3D",      &nHitsInTrack3D,    "nHitsInTrack3D[nLines3D]/I");
+  Branch_Lines->Branch("TrackHitEnergy3D",    TrackHitEnergy3D,   "TrackHitEnergy3D[10][200]/F");
+  Branch_Lines->Branch("TrackHitPos3D",       TrackHitPos3D,      "TrackHitPos3D[10][200][3]/F");
+  Branch_Lines->Branch("TrackHitTime3D",      TrackHitTime3D,     "TrackHitTime3D[10][200]/F");
 
   // Track hit energy
   Branch_Lines->Branch("nHitsInTrackOne",     &nHitsInTrackOne,    "nHitsInTrackOne[nLinesOne]/I");
@@ -489,6 +509,63 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     it++;
   }
+
+  std::vector<std::vector<TMS_Hit> > HoughCands3D = TMS_TrackFinder::GetFinder().GetHoughTrack3D();
+  it = 0;
+  for (auto &Candidates: HoughCands3D) {
+    // Loop over hits
+    for (auto &hit: Candidates) {
+      if (FirstTrack == NULL) {
+        FirstTrack = &hit;
+      } else if (hit.GetZ() < FirstTrack->GetZ()) {
+        FirstTrack = &hit;
+      }
+    }
+    nHitsInTrack3D[it] = Candidates.size();
+
+    // then save the hit info
+    FirstPlane3D[it] = Candidates.front().GetPlaneNumber();
+    FirstHit3D[it][0] = Candidates.front().GetZ();
+    FirstHit3D[it][1] = Candidates.front().GetNotZ();
+    FirstHitTime3D[it] = Candidates.front().GetT();
+
+    LastPlane3D[it] = Candidates.back().GetPlaneNumber();
+    LastHit3D[it][0] = Candidates.back().GetZ();
+    LastHit3D[it][1] = Candidates.back().GetNotZ();
+    LastHitTime3D[it] = Candidates.back().GetT();
+
+    TrackLength3D[it] = TMS_TrackFinder::GetFinder().GetTrackLength3D()[it];
+    TotalTrackEnergy3D[it] = TMS_TrackFinder::GetFinder().GetTrackEnergy3D()[it];
+    Occupancy3D[it] = double(HoughCands3D[it].size())/TotalHits;
+
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
+    // Get each hit in the track and save its energy
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
+      TrackHitEnergy3D[it][j] = Candidates[j].GetE();
+      TrackHitTime3D[it][j] = Candidates[j].GetT();
+      TrackHitPos3D[it][j][0] = Candidates[j].GetZ();
+      TrackHitPos3D[it][j][1] = Candidates[j].GetNotZ();
+
+      float time = Candidates[j].GetT();
+
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
+    }
+    EarliestHitTime3D[it] = earliest_hit_time;
+    LatestHitTime3D[it] = latest_hit_time;
+
+    double maxenergy = 0;
+    unsigned int nLastHits_temp = nLastHits;
+    if ((unsigned int)nLastHits > Candidates.size()) nLastHits_temp = Candidates.size();
+    for (unsigned int i = 0; i < nLastHits_temp; ++i) {
+      double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
+      if (hitenergy > maxenergy) maxenergy = hitenergy;
+    }
+    if (maxenergy > EnergyCut) TrackStopping3D[it] = true;
+
+    it++;
+  }
   
 
   // Was the first hit within the first 3 layers?
@@ -699,11 +776,24 @@ void TMS_TreeWriter::Clear() {
     nHitsInTrackOther[i] = -999;
     TrackStoppingOne[i] = false;
     TrackStoppingOther[i] = false;
+
+    Occupancy3D[i] = -999;
+    TrackLength3D[i] = -999;
+    TotalTrackEnergy3D[i] = -999;
+    FirstPlane3D[i] = -999;
+    LastPlane3D[i] = -999;
+    nHitsInTrack3D[i] = -999;
+    TrackStopping3D[i] = false;
+
     for (int j = 0; j < 2; ++j) {
       FirstHitOne[i][j] = -999;
       FirstHitOther[i][j] = -999;
       LastHitOne[i][j] = -999;
       LastHitOther[i][j] = -999;
+    }
+    for (int j = 0; j < 3; ++j) {
+      FirstHit3D[i][j] = -999;
+      LastHit3D[i][j] = -999;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
       TrackHitEnergyOne[i][j]=-999;
@@ -712,6 +802,11 @@ void TMS_TreeWriter::Clear() {
       TrackHitPosOne[i][j][1]=-999;
       TrackHitPosOther[i][j][0]=-999;
       TrackHitPosOther[i][j][1]=-999;
+
+      TrackHitEnergy3D[i][j] = -999;
+      TrackHitPos3D[i][j][0] = -999;
+      TrackHitPos3D[i][j][1] = -999;
+      TrackHitPos3D[i][j][2] = -999;
     }
   }
 

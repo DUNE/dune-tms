@@ -215,6 +215,8 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
 
+    std::vector<std::vector<TMS_Hit> > &GetHoughTrack3D() { return HoughTrack3D; };
+
     TH2D *AccumulatorToTH2D(bool zy);
 
     void SetZMaxHough(double z) { zMaxHough = z;};
@@ -228,6 +230,9 @@ class TMS_TrackFinder {
     void CalculateTrackEnergyOne(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackLengthOther(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyOther(const std::vector<std::vector<TMS_Hit> > &Hits);
+
+    void CalculateTrackLength3D();
+    void CalculateTrackEnergy3D();
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -244,6 +249,7 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > TrackMatching3D();
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
@@ -268,6 +274,9 @@ class TMS_TrackFinder {
     std::vector<double> &GetTrackLengthOther() { return TrackLengthOther; };
     std::vector<double> &GetTrackEnergyOne() { return TrackEnergyOne; };
     std::vector<double> &GetTrackEnergyOther() { return TrackEnergyOther; };
+
+    std::vector<double> &GetTrackLength3D() { return TrackLength3D; };
+    std::vector<double> &GetTrackEnergy3D() { return TrackEnergy3D; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
       // Reset the accumulator
@@ -345,6 +354,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesOne_Downstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Upstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Downstream;
+    std::vector<std::vector<TMS_Hit> > HoughTrack3D;
 
     int hitgroup;
 
@@ -392,6 +402,9 @@ class TMS_TrackFinder {
     std::vector<double> TrackEnergyOther;
     std::vector<double> TrackLengthOne;
     std::vector<double> TrackLengthOther;
+
+    std::vector<double> TrackEnergy3D;
+    std::vector<double> TrackLength3D;
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {

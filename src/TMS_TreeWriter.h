@@ -55,6 +55,8 @@ class TMS_TreeWriter {
     int EventNo;
     int nLinesOne;
     int nLinesOther;
+
+    int nLines3D;
     
     int SliceNo;
     int SpillNo;
@@ -122,6 +124,23 @@ class TMS_TreeWriter {
     float TotalTrackEnergyOther[__TMS_MAX_LINES__];
     bool TrackStoppingOne[__TMS_MAX_LINES__];
     bool TrackStoppingOther[__TMS_MAX_LINES__];
+
+    float FirstHit3D[__TMS_MAX_LINES__][3]; // [0] is Z, [1] is 'X', [2] is Y
+    float LastHit3D[__TMS_MAX_LINES__][3];
+    float FirstHitTime3D[__TMS_MAX_LINES__];
+    float LastHitTime3D[__TMS_MAX_LINES__];
+    float EarliestHitTime3D[__TMS_MAX_LINES__];
+    float LatestHitTime3D[__TMS_MAX_LINES__];
+    float FirstPlane3D[__TMS_MAX_LINES__];
+    float LastPlane3D[__TMS_MAX_LINES__];
+    float Occupancy3D[__TMS_MAX_LINES__];
+    float TrackLength3D[__TMS_MAX_LINES__];
+    float TotalTrackEnergy3D[__TMS_MAX_LINES__];
+    float TrackStopping3D[__TMS_MAX_LINES__];
+    float TrackHitEnergy3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTime3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitPos3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][3];
+    float nHitsInTrack3D[__TMS_MAX_LINES__];
 
     float TrackHitEnergyOne[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
     float TrackHitEnergyOther[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
