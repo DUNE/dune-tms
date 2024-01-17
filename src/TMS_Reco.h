@@ -250,6 +250,7 @@ class TMS_TrackFinder {
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<std::vector<TMS_Hit> > TrackMatching3D();
+    void CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit);
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
