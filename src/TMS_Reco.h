@@ -22,6 +22,8 @@
 #include "TMS_DBScan.h"
 #include "TMS_Utils.h"
 
+#include "TMS_Track.h"
+
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
 
@@ -215,7 +217,7 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
 
-    std::vector<std::vector<TMS_Hit> > &GetHoughTrack3D() { return HoughTrack3D; };
+    std::vector<TMS_Track> &GetHoughTrack3D() { return HoughTrack3D; };
 
     TH2D *AccumulatorToTH2D(bool zy);
 
@@ -231,8 +233,8 @@ class TMS_TrackFinder {
     void CalculateTrackLengthOther(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyOther(const std::vector<std::vector<TMS_Hit> > &Hits);
 
-    void CalculateTrackLength3D();
-    void CalculateTrackEnergy3D();
+    void CalculateTrackLength3D(const std::vector<std::vector<TMS_Hit>> &Hits);
+    void CalculateTrackEnergy3D(const std::vector<std::vector<TMS_Hit>> &Hits);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -355,7 +357,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesOne_Downstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Upstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Downstream;
-    std::vector<std::vector<TMS_Hit> > HoughTrack3D;
+    std::vector<TMS_Track> HoughTrack3D;
 
     int hitgroup;
 

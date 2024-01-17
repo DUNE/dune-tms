@@ -513,7 +513,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 
   // Call TrackMatching3D
-  HoughTrack3D = TrackMatching3D();
+  std::vector<std::vector<TMS_Hit>> TempTrack3D = TrackMatching3D();
 
   // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
   //if (nLines > 0) {
@@ -530,8 +530,42 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CalculateTrackLengthOther();
   CalculateTrackEnergyOther();
 
-  CalculateTrackLength3D();
-  CalculateTrackEnergy3D();
+  CalculateTrackLength3D(TempTrack3D);
+  CalculateTrackEnergy3D(TempTrack3D);
+
+  //TODO
+//  CalculateTrackDirection3D();
+
+  // Now fill information into HoughTrack3D
+  int iterator = 0;
+  for (auto track: TempTrack3D) {
+    TMS_Track aTrack;
+    if ((track).front().GetBar().GetBarType() != TMS_Bar::kXBar) {
+      aTrack.Start[0] = (track).front().GetNotZ();
+      aTrack.Start[1] = (track).front().GetRecoY();
+      aTrack.Start[2] = (track).front().GetZ();
+    } else if ((track).front().GetBar().GetBarType() == TMS_Bar::kXBar) {
+      aTrack.Start[0] = (track).front().GetRecoX();
+      aTrack.Start[1] = (track).front().GetNotZ();
+      aTrack.Start[2] = (track).front().GetZ();
+    }
+    if ((track).back().GetBar().GetBarType() != TMS_Bar::kXBar) {
+      aTrack.End[0] = (track).back().GetNotZ();
+      aTrack.End[1] = (track).back().GetRecoY();
+      aTrack.End[2] = (track).back().GetZ();
+    } else if ((track).back().GetBar().GetBarType() != TMS_Bar::kXBar) {
+      aTrack.End[0] = (track).back().GetRecoX();
+      aTrack.End[1] = (track).back().GetNotZ();
+      aTrack.End[2] = (track).back().GetZ();
+    }
+    aTrack.Length = GetTrackLength3D()[iterator];
+    // TODO Direction, EnergyDeposit, EnergyRange, Time
+  
+    HoughTrack3D.push_back(aTrack);
+
+    ++iterator;
+  }
+
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -746,12 +780,12 @@ void TMS_TrackFinder::CalculateTrackEnergyOther() {
   }
 }
 
-void TMS_TrackFinder::CalculateTrackEnergy3D() {
+void TMS_TrackFinder::CalculateTrackEnergy3D(const std::vector<std::vector<TMS_Hit> > &Track3DHits) {
   // Look at the reconstructed tracks
-  if (HoughTrack3D.size() == 0) return;
+  if (Track3DHits.size() == 0) return;
 
   // Loop over each Hough Candidate and find the track energy
-  for (auto it = HoughTrack3D.begin(); it != HoughTrack3D.end(); ++it) {
+  for (auto it = Track3DHits.begin(); it != Track3DHits.end(); ++it) {
     double total = 0;
     // Sort by increasing z
     std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
@@ -870,12 +904,12 @@ void TMS_TrackFinder::CalculateTrackLengthOther() {
   }
 }
 
-void TMS_TrackFinder::CalculateTrackLength3D() {
+void TMS_TrackFinder::CalculateTrackLength3D(const std::vector<std::vector<TMS_Hit>> &Track3DHits) {
   // Look at the reconstructed tracks
-  if (HoughTrack3D.size() == 0) return;
+  if (Track3DHits.size() == 0) return;
   
   // Loop over each Hough Candidate and find the track length
-  for (auto it = HoughTrack3D.begin(); it != HoughTrack3D.end(); ++it) {
+  for (auto it = Track3DHits.begin(); it != Track3DHits.end(); ++it) {
     double final_total = 0;
     int max_n_nodes_used = 0;
 

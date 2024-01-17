@@ -92,8 +92,8 @@ class TMS_Hit {
     void SetRecoX(double x) { RecoX = x; };
     void SetRecoY(double y) { RecoY = y; };
 
-    double GetRecoX() { return RecoX; };
-    double GetRecoY() { return RecoY; };
+    double GetRecoX() const { return RecoX; };
+    double GetRecoY() const { return RecoY; };
 
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
