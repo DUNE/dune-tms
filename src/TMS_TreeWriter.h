@@ -13,6 +13,7 @@
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
 #define __TMS_MAX_LINES__ 100 // Maximum number of lines in an event
+#define __TMS_MAX_TRACKS__ 100 // Maximum number of lines in an event
 #define __TMS_MAX_HITS__ 20000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
@@ -32,10 +33,20 @@ class TMS_TreeWriter {
     void Write() {
       Output->cd();
       Branch_Lines->Write();
+      Reco_Tree->Write();
       Truth_Info->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
+
+    // 3D Track Object Info
+    int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
+    float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEnergy[__TMS_MAX_TRACKS__];
+    float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
+    float RecoTrackLength[__TMS_MAX_TRACKS__];
 
   private:
     TMS_TreeWriter();
@@ -44,9 +55,10 @@ class TMS_TreeWriter {
     ~TMS_TreeWriter() {};
 
 
-    TFile *Output; // The output TFile
-    TTree *Branch_Lines; // The TTree
-    TTree *Truth_Info; // Truth info
+    TFile* Output; // The output TFile
+    TTree* Branch_Lines; // The TTree
+    TTree* Reco_Tree; // The TTree 
+    TTree* Truth_Info; // Truth info
 
     void Clear();
     void MakeBranches(); // Make the output branches

@@ -40,6 +40,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Branch_Lines->SetDirectory(Output);
   Branch_Lines->SetAutoSave(__TMS_AUTOSAVE__); // Every 1000 events (negative for MB)
 
+  Reco_Tree = new TTree("Reco_Tree", "Reco_Tree");
+  Reco_Tree->SetDirectory(Output);
+  Reco_Tree->SetAutoSave(__TMS_AUTOSAVE__); // Every 1000 events (negative for MB)
+
   Truth_Info = new TTree("Truth_Info", "Truth_Info");
   Truth_Info->SetDirectory(Output);
   Truth_Info->SetAutoSave(__TMS_AUTOSAVE__);
@@ -110,6 +114,20 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("RecoHitPos",    RecoHitPos, "RecoHitPos[nHits][4]/F");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
   Branch_Lines->Branch("RecoHitSlice", RecoHitSlice, "RecoHitSlice[nHits]/I");
+
+  // TODO: Fill these properly
+  Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
+  Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
+  Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
+
+  Reco_Tree->Branch("nHits",        &nHitsIn3DTrack,    "nHits[nTracks]/I");
+  Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
+  Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
+  Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
+  Reco_Tree->Branch("Energy",       RecoTrackEnergy,        "Energy[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
+
 
   // Truth information
   Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
@@ -426,6 +444,27 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill up the info only if all above has passed
   Branch_Lines->Fill();
+
+
+  // Fill the 3D Tracks
+  // First get the tracks for this event:
+  //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
+
+  int itTrack= 0;
+  std::vector<TMS_Track> Reco_Tracks;
+  for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
+    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    RecoTrackEnergy[itTrack]        =       RecoTrack->GetEnergyRange();
+    RecoTrackLength[itTrack]        =       RecoTrack->Length;
+    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->GetEnergyDeposit();
+    for (int j = 0; j < 3; j++) {
+      RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
+      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
+      RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
+    }
+  }
+
+  Reco_Tree->Fill();
 }
 
 // Reset the variables
