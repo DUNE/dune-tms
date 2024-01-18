@@ -21,6 +21,7 @@ class TMS_Track {
     double EnergyDeposit;
     double EnergyRange;
     double Time;         // TODO: Fill this in a sensible way
+    int Charge;
 
     double GetEnergyDeposit(){return EnergyDeposit;};
     double GetEnergyRange(){return EnergyRange;};
