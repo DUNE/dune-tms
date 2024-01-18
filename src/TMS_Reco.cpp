@@ -524,7 +524,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     //Vertex = -999;
   //}
 
-  // Now calculate the track length for each track
+  // Now calculate the track length and energy for each track
   CalculateTrackLengthOne();
   CalculateTrackEnergyOne();
   CalculateTrackLengthOther();
@@ -533,13 +533,11 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CalculateTrackLength3D(TempTrack3D);
   CalculateTrackEnergy3D(TempTrack3D);
 
-  //TODO
-//  CalculateTrackDirection3D();
-
   // Now fill information into HoughTrack3D
   int iterator = 0;
   for (auto track: TempTrack3D) {
     TMS_Track aTrack;
+    // Track Start
     if ((track).front().GetBar().GetBarType() != TMS_Bar::kXBar) {
       aTrack.Start[0] = (track).front().GetNotZ();
       aTrack.Start[1] = (track).front().GetRecoY();
@@ -549,6 +547,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       aTrack.Start[1] = (track).front().GetNotZ();
       aTrack.Start[2] = (track).front().GetZ();
     }
+    // Track End
     if ((track).back().GetBar().GetBarType() != TMS_Bar::kXBar) {
       aTrack.End[0] = (track).back().GetNotZ();
       aTrack.End[1] = (track).back().GetRecoY();
@@ -558,8 +557,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       aTrack.End[1] = (track).back().GetNotZ();
       aTrack.End[2] = (track).back().GetZ();
     }
+    // Track Length
     aTrack.Length = GetTrackLength3D()[iterator];
-    // TODO Direction, EnergyDeposit, EnergyRange, Time
+    // Track Direction
+    aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
+    aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
+    aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
+    // TODO EnergyDeposit, EnergyRange, Time
   
     HoughTrack3D.push_back(aTrack);
 
@@ -788,7 +792,7 @@ void TMS_TrackFinder::CalculateTrackEnergy3D(const std::vector<std::vector<TMS_H
   for (auto it = Track3DHits.begin(); it != Track3DHits.end(); ++it) {
     double total = 0;
     // Sort by increasing z
-    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
+    //std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
     for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
       total += (*hit).GetE();
     }
