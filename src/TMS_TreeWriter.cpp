@@ -459,8 +459,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->GetEnergyDeposit();
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
-      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
+      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
+    }
+
+    // Can manually compute direction if it hasn't been set
+    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
+    { // If true^ it seems the direction hasn't been set
+      for (int j = 0; j < 3; j++)
+      { // Right now no need to make sure this is a unit vector
+        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
+      }
     }
   }
 
