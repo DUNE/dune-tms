@@ -682,7 +682,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::TrackMatching3D() {
 }
 
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
-  OneHit.SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * (OneHit.GetNotZ() - OtherHit.GetNotZ())); // Placeholder (-1.) for 'anchor point' of bars in y, TODO figure this one out and then change x (NotZ) also to 'anchor point'
+  OneHit.SetRecoY(0.5 * 19.081137 * (OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
+  // 48 bars per module, 4 modules per layer, tilted and with gaps for outer 2 modules (due to coils)
   // tan(87 degrees) ~ 19.081137
   return;
 }
