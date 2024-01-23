@@ -736,8 +736,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
 
   int itTrack= 0;
-  std::vector<TMS_Track> Reco_Tracks = TMS_Reco::GetHoughTrack3D();
-  int nTracks = Reco_Tracks.size();
+  std::vector<TMS_Track> Reco_Tracks = GetHoughTracks3D();
+  nTracks = Reco_Tracks.size();
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
