@@ -214,6 +214,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
+
   // Now apply optical and timing models
   ApplyReconstructionEffects();
 
@@ -260,7 +261,8 @@ void TMS_Event::MergeCoincidentHits() {
     
     // Strip out hits that are outside the actual volume 
     // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
-    // todo figure out why these happen
+    // TODO figure out why these happen
+
     if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) {
       (*it).SetPedSup(true);
       continue;

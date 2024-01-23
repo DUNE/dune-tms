@@ -88,7 +88,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
-    
+
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
@@ -103,7 +103,7 @@ class TMS_Event {
     void SimulateTimingModel();
     void SimulateDarkCount();
     void SimulateReadoutNoise();
-    
+
     int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
@@ -143,12 +143,13 @@ class TMS_Event {
     double VisibleEnergyFromVertexInSlice;
     double TotalVisibleEnergyFromVertex;
     double VisibleEnergyFromOtherVerticesInSlice;
-    
+
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;
     std::vector<std::pair<float, float>> ReadChannelTimes;
-    
+
     std::default_random_engine generator;
+
 };
 
 #endif
