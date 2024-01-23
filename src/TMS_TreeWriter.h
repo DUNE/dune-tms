@@ -40,6 +40,7 @@ class TMS_TreeWriter {
     }
 
     // 3D Track Object Info
+    int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
     float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
