@@ -190,8 +190,11 @@ class TMS_TrackFinder {
     }
 
     void FindTracks(TMS_Event &event);
+
+    const std::vector<TMS_Track> & GetTotalTracks() { return TotalTracks; }; // Final reconstructed tracks
     const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
+
 
     const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
 
@@ -309,8 +312,8 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> Candidates;
     std::vector<TMS_Hit> RawHits;
 
+    std::vector<TMS_Track> TotalTracks;
     std::vector<TMS_Hit> CleanedHits;
-    std::vector<std::vector<TMS_Hit> > TotalCandidates;
     std::vector<std::pair<bool, TF1*> > HoughLines;
     std::vector<std::vector<TMS_Hit> > ClusterCandidates;
     std::vector<std::vector<TMS_Hit> > HoughCandidates;
