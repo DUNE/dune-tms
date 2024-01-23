@@ -218,7 +218,7 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
 
-    std::vector<TMS_Track> &GetHoughTrack3D() { return HoughTrack3D; };
+    std::vector<TMS_Track> &GetHoughTracks3D() { return HoughTracks3D; };
 
     TH2D *AccumulatorToTH2D(bool zy);
 
@@ -359,7 +359,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesOne_Downstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Upstream;
     std::vector<std::pair<double,double>> HoughLinesOther_Downstream;
-    std::vector<TMS_Track> HoughTrack3D;
+    std::vector<TMS_Track> HoughTracks3D;
 
     int hitgroup;
     int nIntercept;

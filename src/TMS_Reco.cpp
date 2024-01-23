@@ -117,7 +117,7 @@ void TMS_TrackFinder::ClearClass() {
   OneHitGroup.clear();
   OtherHitGroup.clear();
 
-  HoughTrack3D.clear();
+  HoughTracks3D.clear();
   TrackLength3D.clear();
   TrackEnergy3D.clear();
 }
@@ -565,7 +565,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
     // TODO EnergyDeposit, EnergyRange, Time
   
-    HoughTrack3D.push_back(aTrack);
+    HoughTracks3D.push_back(aTrack);
 
     ++iterator;
   }

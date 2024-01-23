@@ -530,7 +530,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     it++;
   }
 
-/*  std::vector<TMS_Track> HoughCands3D = TMS_TrackFinder::GetFinder().GetHoughTrack3D(); //TODO this should be done by Liam with Reco_Tree
+/*  std::vector<TMS_Track> HoughCands3D = TMS_TrackFinder::GetFinder().GetHoughTracks3D(); //TODO this should be done by Liam with Reco_Tree
   it = 0;
   for (auto &Candidates: HoughCands3D) {
     // Loop over hits
