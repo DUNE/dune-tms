@@ -234,8 +234,8 @@ class TMS_TrackFinder {
     void CalculateTrackLengthOther(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyOther(const std::vector<std::vector<TMS_Hit> > &Hits);
 
-    void CalculateTrackLength3D(const std::vector<std::vector<TMS_Hit>> &Hits);
-    void CalculateTrackEnergy3D(const std::vector<std::vector<TMS_Hit>> &Hits);
+    double CalculateTrackLength3D(const TMS_Track &Hits);
+    double CalculateTrackEnergy3D(const TMS_Track &Hits);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -252,7 +252,7 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > TrackMatching3D();
+    std::vector<TMS_Track> TrackMatching3D();
     void CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit);
 
     // Clean up the hits, removing duplicates and zero entries
@@ -278,9 +278,6 @@ class TMS_TrackFinder {
     std::vector<double> &GetTrackLengthOther() { return TrackLengthOther; };
     std::vector<double> &GetTrackEnergyOne() { return TrackEnergyOne; };
     std::vector<double> &GetTrackEnergyOther() { return TrackEnergyOther; };
-
-    std::vector<double> &GetTrackLength3D() { return TrackLength3D; };
-    std::vector<double> &GetTrackEnergy3D() { return TrackEnergy3D; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
       // Reset the accumulator
@@ -406,9 +403,6 @@ class TMS_TrackFinder {
     std::vector<double> TrackEnergyOther;
     std::vector<double> TrackLengthOne;
     std::vector<double> TrackLengthOther;
-
-    std::vector<double> TrackEnergy3D;
-    std::vector<double> TrackLength3D;
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {
