@@ -4,6 +4,7 @@
 #include "TTree.h"
 #include "TGeoManager.h"
 #include "TStopwatch.h"
+#include "TParameter.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
@@ -69,6 +70,20 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   bool DrawPDF = TMS_Manager::GetInstance().Get_DrawPDF();
 
+  int SpillNumber = 0;
+  // Do we have a spill that we need to combine?
+  bool Spill = false;
+  TParameter<float>* spillPeriod_s = (TParameter<float>*)input->Get("spillPeriod_s");
+  if (spillPeriod_s != NULL) Spill = true;
+  double SpillPeriod = 0;
+  if (Spill) {
+    std::cout<<"Combining spills"<<std::endl;
+    SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
+    std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<std::endl;
+  }
+  // The vector carrying our events that we want to overlay
+  std::vector<TMS_Event> spill_events;
+
   std::cout << "Starting loop over " << N_entries << " entries..." << std::endl;
   TStopwatch Timer;
   Timer.Start();
@@ -94,12 +109,60 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 #endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
+    
+    
+    double primary_event_time = -999;
+    if (event->Primaries.size() > 0)
+      primary_event_time = event->Primaries.begin()->Position.T(); // ns
 
+    // Remove spill time from truth info
+    // Need to subtract spill time from hit time
+    // Or else floats in tree writer will lose precision for spills > 0
+    // ie. 50 + 1e9 = 1e9 for floats but not doubles, but using doubles crashes
+    // But also we only care about hit time within spill anyway since we match by spill number
+    double timeoffset = SpillNumber * SpillPeriod;
+    // Check if end is beyond current spill
+    while (primary_event_time > timeoffset + SpillPeriod) { 
+      primary_event_time += SpillPeriod;
+      SpillNumber += 1;
+    }
+    if (Spill) {
+      //std::cout<<"Adjusting hit times with time offset of "<<timeoffset<<std::endl;
+      // ... interaction vertex
+      for (std::vector<TG4PrimaryVertex>::iterator v = event->Primaries.begin(); v != event->Primaries.end(); ++v) {
+        //v->Position.T() = event_time;
+        double old_event_time = v->Position.T();
+        double event_time = old_event_time - timeoffset;
+        v->Position.SetT(event_time);
+      }
+
+      // ... trajectories
+      for (std::vector<TG4Trajectory>::iterator t = event->Trajectories.begin(); t != event->Trajectories.end(); ++t) {
+        // loop over all points in the trajectory
+        for (std::vector<TG4TrajectoryPoint>::iterator p = t->Points.begin(); p != t->Points.end(); ++p) {
+          double new_time = p->Position.T() - timeoffset;
+          p->Position.SetT(new_time);
+        }
+      }
+
+      // ... and, finally, energy depositions
+      for (auto d = event->SegmentDetectors.begin(); d != event->SegmentDetectors.end(); ++d) {
+        for (std::vector<TG4HitSegment>::iterator h = d->second.begin(); h != d->second.end(); ++h) {
+          double start_time = h->Start.T() - timeoffset;
+          double stop_time = h->Stop.T() - timeoffset;
+          //std::cout<<"start time original: "<<h->Start.T()<<", start_time_new: "<<start_time<<std::endl;
+          h->Start.SetT(start_time);
+          h->Stop.SetT(stop_time);
+        }
+      }
+    }
+    
     // Make a TMS event
-    TMS_Event tms_event = TMS_Event(*event);
+    TMS_Event tms_event = TMS_Event(*event, true, timeoffset, SpillNumber);
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+      tms_event.FillAdditionalTruthFromGRooTracker(StdHepX4);
     }
 
     // Keep filling up the vector and move on to the next event
@@ -115,8 +178,58 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       overlay_events.clear();
     }
 
+    // Check if this event is part of the same spill, or the start of the next spill
+    if (Spill) {
+      // Need some truth info for the next part    
+      //tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+      //tms_event.FillAdditionalTruthFromGRooTracker(StdHepX4);
+      //std::cout<<"StdHepX4: "<<StdHepX4[0][0]<<","<<StdHepX4[0][1]<<","<<StdHepX4[0][2]<<","<<StdHepX4[0][3]<<std::endl;
+    
+      if (event->Primaries.size() > 0) {
+        //double event_time = tms_event.GetNeutrinoX4().T(); // This is always 0
+        //double alt_event_time = tms_event.GetHits().size() == 0 ? -9999 : tms_event.GetHits()[0].GetT();
+        double end_of_spill = (SpillNumber + 0.5) * SpillPeriod; 
+        //std::cout<<"i="<<i<<", event_time = "<<event_time<<", primary_event_time = "<<primary_event_time<<", alt_event_time = "<<alt_event_time<<",end of spill = "<<end_of_spill<<std::endl;
+        //std::cout<<"primary_event_time="<<primary_event_time<<", end_of_spill="<<end_of_spill<<std::endl;
+        if (primary_event_time <= end_of_spill) {
+          // This event is within the window of the current spill,
+          // so add to list and continue iterating
+          spill_events.push_back(tms_event);
+          // Continue to next event unless this is the last event in the file
+          if (i < N_entries - 1) continue;
+        }
+      }
+      else { 
+        std::cout<<"Warning: Found g4 event without a primary. Skipping"<<std::endl;
+      }
+    }
+
+    // Now combine the spills into a single tms_event
+    if (Spill) {
+      if (spill_events.size() == 0) { 
+        std::cout<<"Found empty spill_events "<<spill_events.size()<<" for spill number "<<SpillNumber<<std::endl;
+        continue; 
+      }
+      std::cout<<"Combining "<<spill_events.size()<<" events into a single spill"<<std::endl;
+      // Get the first event in the list
+      //auto temp_event = spill_events[0];
+      // Now add all the events pass the first event
+      //for (auto it = std::begin(spill_events) + 1; it != std::end(spill_events); ++it) temp_event.AddEvent(*it);
+      TMS_Event temp_event;
+      for (auto &event : spill_events) temp_event.AddEvent(event);
+      spill_events.clear();
+      // Now save the current event as the first event of the next spill
+      spill_events.push_back(tms_event);
+      // And finally run the next bit of code on the combined event
+      tms_event = temp_event;
+      SpillNumber += 1;
+    }
+
     // Dump information
     //tms_event.Print();
+    
+    // Now do the detector sim after overlay/spill code combines multiple events
+    tms_event.ApplyReconstructionEffects();
 
     // Calculate the mapping between vertex ID and visible energy for the primary event
     tms_event.GetVertexIdOfMostVisibleEnergy();

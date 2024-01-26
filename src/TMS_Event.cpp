@@ -9,6 +9,7 @@ TMS_Event::TMS_Event() {
   EventNumber = -999;
   SliceNumber = 0;
   SpillNumber = -999;
+  SpillTime = -999;
   nTrueTrajectories = -999;
   VertexIdOfMostEnergyInEvent = -999;
   LightWeight = true;
@@ -16,7 +17,7 @@ TMS_Event::TMS_Event() {
 
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
-TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
+TMS_Event::TMS_Event(TG4Event &event, bool FillEvent, double spill_time, int spillnumber) {
   //std::cout<<"Making TMS event"<<std::endl;
 
   // Maybe make these class members
@@ -39,9 +40,11 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   EventNumber = EventCounter;
   generator = std::default_random_engine(7890 + EventNumber); 
   SliceNumber = 0;
-  SpillNumber = EventCounter;
+  SpillNumber = spillnumber < 0 ? EventNumber : spillnumber;
+  SpillTime = spill_time;
   NSlices = 1; // By default there's at least one
   VertexIdOfMostEnergyInEvent = -999;
+  HasDetEffects = false;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -215,7 +218,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
   // Now apply optical and timing models
-  ApplyReconstructionEffects();
+  //ApplyReconstructionEffects();
 
   EventCounter++;
 }
@@ -700,6 +703,11 @@ void TMS_Event::SimulateTimingModel() {
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
+  if (HasDetEffects) { 
+    std::cout<<"Fatal: This function can't be called more than once"<<std::endl;
+    std::exit(6);
+  }
+  HasDetEffects = true;
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
   // Simulate an optical model 
   SimulateOpticalModel();
@@ -732,6 +740,15 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
 // Add a separate event to this event
 // Handy for making hacked overlays
 void TMS_Event::AddEvent(TMS_Event &Other_Event) {
+  // if this event is a blank event, use the params from the filled event
+  if (EventNumber < 0) EventNumber = Other_Event.GetEventNumber();
+  if (SpillNumber < 0) SetSpillNumber(Other_Event.GetSpillNumber());
+  if (SpillTime < 0) SetSpillTime(Other_Event.GetSpillTime());
+  if (nTrueTrajectories < 0) {
+    nTrueTrajectories = 0;
+    LightWeight = false;
+  }
+  
   std::cout << "Adding event " << Other_Event.GetEventNumber() << " to event " << GetEventNumber() << std::endl;
 
   // Get the other hits
