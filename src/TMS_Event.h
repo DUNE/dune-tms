@@ -18,7 +18,7 @@
 // The general event class
 class TMS_Event {
   public:
-    TMS_Event(TG4Event &event, bool FillEvent = true);
+    TMS_Event(TG4Event &event, bool FillEvent = true, double spill_time = -999, int spillnumber = -1);
     TMS_Event(TMS_Event &event, int slice);
     TMS_Event();
     //~TMS_Event();
@@ -69,6 +69,9 @@ class TMS_Event {
     int GetSliceNumber() { return SliceNumber; };
     void SetSliceNumber(int slice) { SliceNumber = slice; };
     
+    double GetSpillTime() { return SpillTime; };
+    void SetSpillTime(double spill_time) { SpillTime = spill_time; };
+    
     int GetSpillNumber() { return SpillNumber; };
     void SetSpillNumber(int spill) { SpillNumber = spill; };
     
@@ -89,13 +92,14 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
 
+    void ApplyReconstructionEffects();
+    
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
     
-    void ApplyReconstructionEffects();
     void MergeCoincidentHits();
     void SimulateOpticalModel();
     void SimulateDeadtime();
@@ -127,6 +131,7 @@ class TMS_Event {
     // Saves the event number for a constructed event
     int EventNumber;
     int SliceNumber;
+    double SpillTime;
     
     int NSlices;
     int SpillNumber;
@@ -149,7 +154,8 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ReadChannelTimes;
 
     std::default_random_engine generator;
-
+    
+    bool HasDetEffects;
 };
 
 #endif

@@ -23,7 +23,6 @@ class TMS_Track {
     double Time;         // TODO: Fill this in a sensible way
     double ActivityStart; // Measure of activity near start of track
     double ActivityEnd;   // Measure of activity near end of track
-    double Time;          // TODO: Fill this in a sensible way
     int Charge; // Positive or negative. Should this maybe be a double?
 
     double GetEnergyDeposit(){return EnergyDeposit;};
