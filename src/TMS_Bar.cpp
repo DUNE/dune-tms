@@ -111,6 +111,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   else BarOrient = kYBar;
   */
 
+
   // If this is a y-bar, remove the y coordinate
   if (BarOrient == kXBar || BarOrient == kUBar) {
     x = -99999000;

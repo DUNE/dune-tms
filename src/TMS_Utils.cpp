@@ -36,9 +36,10 @@ caf::SRTMS ConvertEvent() {
     caf.tracks.push_back(srtrack);
   }
 
-  std::vector<std::pair<bool, TF1*> > HoughLines = TMS_TrackFinder::GetFinder().GetHoughLines();
+  std::vector<std::pair<bool, TF1*> > HoughLinesOne = TMS_TrackFinder::GetFinder().GetHoughLinesOne();
+  std::vector<std::pair<bool, TF1*> > HoughLinesOther = TMS_TrackFinder::GetFinder().GetHoughLinesOther();
   int nit = 0;
-  for (auto it = HoughLines.begin(); it != HoughLines.end(); ++it, ++nit) {
+  for (auto it = HoughLinesOne.begin(); it != HoughLinesOne.end(); ++it, ++nit) {
     //double intercept = (*it).second->GetParameter(0);
     //double slope = (*it).second->GetParameter(1);
 
@@ -58,8 +59,30 @@ caf::SRTMS ConvertEvent() {
     tracks[nit].dir = dir;
 
     // Now do the track quality, track energy and track length
-    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLength()[nit];
-    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergy()[nit];
+    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOne()[nit];
+    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOne()[nit];
+  }
+  keeper_nit = nit;
+  nit = 0;
+  for (auto it = HoughLinesOther.begin(); it != HoughLinesOther.end(); ++it, ++nit)  {
+    // Calculate the z and x vectors by evaling the TF1 in thin and thick target
+    double zlow = TMS_Const::TMS_Thin_Start;
+    double zhi = TMS_Const::TMS_Thick_Start;
+    double xlow = (*it).second->Eval(zlow);
+    double xhi = (*it).second->Eval(zhi);
+
+    double zlen = zhi-zlow;
+    double xlen = xhi-xlow;
+    double len = sqrt(xlen*xlen+zlen*zlen);
+    zlen = zlen/len;
+    xlen = xlen/len;
+
+    caf::SRVector3D dir(xlen, 0, zlen); // Make the converted direction unit vector
+    tracks[nit+keeper_nit].dir = dir;
+
+    // Now do the track quality, track energy and track length
+    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOther()[nit];
+    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOther()[nit];
   }
 
   return caf;

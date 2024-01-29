@@ -113,8 +113,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // Now loop over previous events
       for (auto &event : overlay_events) tms_event.AddEvent(event);
       overlay_events.clear();
-    }
-
+    } 
+   
     // Dump information
     //tms_event.Print();
 
@@ -136,7 +136,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
       if (!TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer()) tms_event_slice = tms_event;
       else tms_event_slice = TMS_Event(tms_event, slice);
-      
+
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
       if (gRoo && (slice != 0 || nslices == 1)) {
         // First find the vertex which contributed most to the event
@@ -180,6 +180,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       int spill_number = i;
       tms_event_slice.SetSpillNumber(spill_number);
       
+      std::cout << "1: " << tms_event_slice.GetNHits() << std::endl;
+
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 

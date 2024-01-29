@@ -22,6 +22,8 @@
 #include "TMS_DBScan.h"
 #include "TMS_Utils.h"
 
+#include "TMS_Track.h"
+
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
 
@@ -63,8 +65,8 @@ class aNode {
     }
 
     double CalculateGroundCost(aNode const &other) {
-      double deltax = abs(x-other.x);
-      double deltay = abs(y-other.y);
+      double deltax = std::abs(x-other.x);
+      double deltay = std::abs(y-other.y);
 
       // Allow for all connections that exceed 1 cell, but if they're not great make sure they're heavily penalised
       if (deltay > 1 || deltax > 1) {
@@ -73,7 +75,8 @@ class aNode {
 
       double GroundCost = 0;
       // First add up the individual distance
-      GroundCost += (deltax*deltax+deltay*deltay)*(deltax*deltax+deltay*deltay); //(deltax+2*deltay)*10;
+      //GroundCost += (deltax+2*deltay)*10;
+      GroundCost += (deltax*deltax + deltay*deltay)*(deltax*deltax + deltay*deltay);
 
       //if      (deltax+deltay == 2) GroundCost += 20;
       //if      (deltax+deltay == 2) GroundCost += 5;
@@ -118,9 +121,9 @@ class aNode {
       // x is the plane number, y is in mm
       // jumping one plane incurs 10 ground, so reflect that here; jumping 2 planes (i.e. adjacent) should be 10 ground, jumping 4 planes (i.e. next to adjacent) is double that
       //double deltax = (x-other.x)*5;
-      double deltax = std::abs((x-other.x)*1);//0;
-      // Moving 1 plane up is 10 ground cost, so reflect that here too
-      double deltay = std::abs((y-other.y)*1);//0;
+      double deltax = std::abs((x-other.x)*1);  //10->1
+      // Moving 1 'bar' up is 10 ground cost, so reflect that here too (the bar width is here assumed to be 1cm)
+      double deltay = std::abs((y-other.y)*1);  //10->1
 
       if      (Heuristic == HeuristicType::kManhattan) return deltax+deltay;
       else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
@@ -190,28 +193,49 @@ class TMS_TrackFinder {
     }
 
     void FindTracks(TMS_Event &event);
-    const std::vector<TMS_Hit> & GetCandidates() { return Candidates; };
-    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidates() { return TotalCandidates; };
+    const std::vector<TMS_Hit> & GetCandidatesOne() { return CandidatesOne; };
+    const std::vector<TMS_Hit> & GetCandidatesOther() { return CandidatesOther; };
+    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesOne() { return TotalCandidatesOne; };
+    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesOther() { return TotalCandidatesOther; };
+
 
     const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
 
-    TF1* GetHoughLine() { return HoughLine; };
+    TF1* GetHoughLineOne() { return HoughLineOne; };
+    TF1* GetHoughLineOther() { return HoughLineOther; };
 
-    std::vector<std::pair<bool, TF1*> > GetHoughLines() { return HoughLines; };
-    std::vector<std::pair<double,double> > GetHoughLines_Upstream() { return HoughLines_Upstream; };
-    std::vector<std::pair<double,double> > GetHoughLines_Downstream() { return HoughLines_Downstream; };
+    std::vector<std::pair<bool, TF1*> > GetHoughLinesOne() { return HoughLinesOne; };
+    std::vector<std::pair<bool, TF1*> > GetHoughLinesOther() { return HoughLinesOther; };
+    std::vector<std::pair<double,double> > GetHoughLinesOne_Upstream() { return HoughLinesOne_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOne_Downstream() { return HoughLinesOne_Downstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOther_Upstream() { return HoughLinesOther_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesOther_Downstream() { return HoughLinesOther_Downstream; };
 
     int **GetAccumulator() { return Accumulator; };
 
-    std::vector<std::vector<TMS_Hit> > &GetClusterCandidates() { return ClusterCandidates; };
-    std::vector<std::vector<TMS_Hit> > &GetHoughCandidates() { return HoughCandidates; };
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesOne() { return ClusterCandidatesOne; };
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesOther() { return ClusterCandidatesOther; };
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOne() { return HoughCandidatesOne; };
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesOther() { return HoughCandidatesOther; };
+
+    std::vector<TMS_Track> &GetHoughTracks3D() { return HoughTracks3D; };
 
     TH2D *AccumulatorToTH2D(bool zy);
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
-    void CalculateTrackLength();
-    void CalculateTrackEnergy();
+    void CalculateTrackLengthOne();
+    void CalculateTrackLengthOther();
+    void CalculateTrackEnergyOne();
+    void CalculateTrackEnergyOther();
+    
+    void CalculateTrackLengthOne(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackEnergyOne(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackLengthOther(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackEnergyOther(const std::vector<std::vector<TMS_Hit> > &Hits);
+
+    void CalculateTrackLength3D(const std::vector<std::vector<TMS_Hit>> &Hits);
+    void CalculateTrackEnergy3D(const std::vector<std::vector<TMS_Hit>> &Hits);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -221,19 +245,24 @@ class TMS_TrackFinder {
     void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &Hits);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
+    std::vector<std::vector<TMS_Hit> > TrackMatching3D();
+    void CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit);
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
     // Get hits projected onto xz or yz
     std::vector<TMS_Hit> ProjectHits(const std::vector<TMS_Hit> &Hits, TMS_Bar::BarType bartype = TMS_Bar::kXBar);
     std::vector<TMS_Hit> RunAstar(const std::vector<TMS_Hit> &Hits, bool ConnectAll = false);
+
+    std::vector<TMS_Hit> OneHitGroup;
+    std::vector<TMS_Hit> OtherHitGroup;
 
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);
@@ -245,8 +274,13 @@ class TMS_TrackFinder {
 
     void ClearClass();
 
-    std::vector<double> &GetTrackLength() { return TrackLength; };
-    std::vector<double> &GetTrackEnergy() { return TrackEnergy; };
+    std::vector<double> &GetTrackLengthOne() { return TrackLengthOne; };
+    std::vector<double> &GetTrackLengthOther() { return TrackLengthOther; };
+    std::vector<double> &GetTrackEnergyOne() { return TrackEnergyOne; };
+    std::vector<double> &GetTrackEnergyOther() { return TrackEnergyOther; };
+
+    std::vector<double> &GetTrackLength3D() { return TrackLength3D; };
+    std::vector<double> &GetTrackEnergy3D() { return TrackEnergy3D; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
       // Reset the accumulator
@@ -255,19 +289,21 @@ class TMS_TrackFinder {
           Accumulator[i][j] = 0;
         }
       }
+      
       // First run a simple Hough Transform
       for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
         TMS_Hit hit = (*it);
         double xhit = hit.GetNotZ();
         double zhit = hit.GetZ();
-
+        
         // If z position is above region of interest, ignore hit
         //if (IsXZ && zhit > zMaxHough) continue;
         if (zhit > zMaxHough) continue;
-
+        
         Accumulate(xhit, zhit);
+        
       }
-
+      
       // Find the maximum of the accumulator and which m,c bin the maximum occurs in
       double max_zy = 0;
       int max_zy_slope_bin = 0;
@@ -281,7 +317,6 @@ class TMS_TrackFinder {
           }
         }
       }
-
       intercept = InterceptMin+max_zy_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
       slope = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
     }
@@ -306,17 +341,27 @@ class TMS_TrackFinder {
 
     int FindBin(double Rho);
     // The candidates for each particle
-    std::vector<TMS_Hit> Candidates;
+    std::vector<TMS_Hit> CandidatesOne;
+    std::vector<TMS_Hit> CandidatesOther;
     std::vector<TMS_Hit> RawHits;
 
+    std::vector<TMS_Track> TotalTracks;
     std::vector<TMS_Hit> CleanedHits;
-    std::vector<std::vector<TMS_Hit> > TotalCandidates;
-    std::vector<std::pair<bool, TF1*> > HoughLines;
-    std::vector<std::vector<TMS_Hit> > ClusterCandidates;
-    std::vector<std::vector<TMS_Hit> > HoughCandidates;
-    std::vector<std::pair<double,double>> HoughLines_Upstream;
-    std::vector<std::pair<double,double>> HoughLines_Downstream;
+    std::vector<std::vector<TMS_Hit> > TotalCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > TotalCandidatesOther;
+    std::vector<std::pair<bool, TF1*> > HoughLinesOne;
+    std::vector<std::pair<bool, TF1*> > HoughLinesOther;
+    std::vector<std::vector<TMS_Hit> > ClusterCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > ClusterCandidatesOther;
+    std::vector<std::vector<TMS_Hit> > HoughCandidatesOne;
+    std::vector<std::vector<TMS_Hit> > HoughCandidatesOther;
+    std::vector<std::pair<double,double>> HoughLinesOne_Upstream;
+    std::vector<std::pair<double,double>> HoughLinesOne_Downstream;
+    std::vector<std::pair<double,double>> HoughLinesOther_Upstream;
+    std::vector<std::pair<double,double>> HoughLinesOther_Downstream;
+    std::vector<TMS_Track> HoughTracks3D;
 
+    int hitgroup;
     int nIntercept;
     int nSlope;
     double InterceptMin;
@@ -338,7 +383,8 @@ class TMS_TrackFinder {
 
     int **Accumulator;
 
-    TF1 *HoughLine;
+    TF1 *HoughLineOne;
+    TF1 *HoughLineOther;
 
     unsigned int nMinHits;
     unsigned int nMaxMerges;
@@ -356,25 +402,30 @@ class TMS_TrackFinder {
     bool UseClustering;
     TrackMethod kTrackMethod;
 
-    std::vector<double> TrackEnergy;
-    std::vector<double> TrackLength;
+    std::vector<double> TrackEnergyOne;
+    std::vector<double> TrackEnergyOther;
+    std::vector<double> TrackLengthOne;
+    std::vector<double> TrackLengthOther;
+
+    std::vector<double> TrackEnergy3D;
+    std::vector<double> TrackLength3D;
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {
-
+      
       // Could probably multi-thread this operation
       // Now do the Hough
       for (int i = 0; i < nSlope; ++i) {
         double m = SlopeMin+i*SlopeWidth;
         if (m > SlopeMax) m = SlopeMax;
-
+        
         // Now calculate rho
         double c = xhit-m*zhit;
         if (c > InterceptMax) c = InterceptMax;
-
+        
         // Find which rho bin this corresponds to
         int c_bin = FindBin(c);
-
+        
         /*
            if (i > nSlope || c_bin > nIntercept) {
            std::cout << "c: " << c << std::endl;
