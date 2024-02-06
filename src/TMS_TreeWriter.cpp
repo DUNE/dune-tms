@@ -176,6 +176,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
+  // Track information
   // TODO: Fill these properly
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
@@ -183,6 +184,7 @@ void TMS_TreeWriter::MakeBranches() {
 
   Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
   Reco_Tree->Branch("nHits",        &nHitsIn3DTrack,        "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
   Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
@@ -750,6 +752,16 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
     }
+    for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
+      if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetNotZ();
+        RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
+      } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
+        RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
+      }
+      RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
+    }
 
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
@@ -829,13 +841,13 @@ void TMS_TreeWriter::Clear() {
     TrackStoppingOne[i] = false;
     TrackStoppingOther[i] = false;
 
-    Occupancy3D[i] = -999;
+/*    Occupancy3D[i] = -999;
     TrackLength3D[i] = -999;
     TotalTrackEnergy3D[i] = -999;
     FirstPlane3D[i] = -999;
     LastPlane3D[i] = -999;
     nHitsInTrack3D[i] = -999;
-    TrackStopping3D[i] = false;
+    TrackStopping3D[i] = false;*/
 
     for (int j = 0; j < 2; ++j) {
       FirstHitOne[i][j] = -999;
@@ -893,6 +905,24 @@ void TMS_TreeWriter::Clear() {
       ClusterHitPosOther[i][j][1] = -999;
       ClusterHitEnergyOther[i][j] = -999;
     }
+  }
+  
+  // Reset track information
+  nTracks = -999;
+  for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      RecoTrackStartPos[i][j] = -999;
+      RecoTrackDirection[i][j] = -999;
+      RecoTrackEndPos[i][j] = -999;
+    }
+    for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
+      RecoTrackHitPos[i][k][0] = -999;
+      RecoTrackHitPos[i][k][1] = -999;
+      RecoTrackHitPos[i][k][2] = -999;
+    }
+    RecoTrackEnergy[i] = -999;
+    RecoTrackEnergyDeposit[i] = -999;
+    RecoTrackLength[i] = -999;
   }
 
 }
