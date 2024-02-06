@@ -647,7 +647,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.Start[0] = OneTracks.front().GetNotZ();
                 aTrack.Start[1] = OneTracks.front().GetRecoY();
                 aTrack.Start[2] = OneTracks.front().GetZ();
-                std::cout << "OneTraack starts before OtherTrack" << std::endl;
+                std::cout << "OneTrack starts before OtherTrack" << std::endl;
                 (aTrack.Hits).push_back(OneTracks.front());
               } else {
                 // TODO
@@ -658,7 +658,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               }
             }
           }
-
+          
+          // Add hits to track
           for (std::vector<TMS_Hit>::iterator itOne = OneTracks.begin(); itOne != OneTracks.end(); ++itOne) {
             for (std::vector<TMS_Hit>::iterator itOther = OtherTracks.begin(); itOther != OtherTracks.end(); ++itOther) {
               if ((*itOne).GetPlaneNumber() == (*itOther).GetPlaneNumber()) {
@@ -674,12 +675,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               }
             }
           }
+          // If same start and end, assign start and end hit in track
           if (OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()) {
             bool stereo_view = (OneTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);
             if (stereo_view) {
               aTrack.Start[0] = OneTracks.front().GetNotZ();
               aTrack.Start[1] = OneTracks.front().GetRecoY();
               aTrack.Start[2] = OneTracks.front().GetZ();
+              std::cout << "Start equal assigned" << std::endl;
             } else {
               aTrack.Start[0] = OneTracks.front().GetRecoX();
               aTrack.Start[1] = OneTracks.front().GetNotZ();
@@ -692,13 +695,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = OtherTracks.back().GetNotZ();
               aTrack.End[1] = OtherTracks.back().GetRecoY();
               aTrack.End[2] = OtherTracks.back().GetZ();
+              std::cout << "End equal assigned" << std::endl;
             } else {
               aTrack.End[0] = OtherTracks.back().GetRecoX();
               aTrack.End[1] = OtherTracks.back().GetNotZ();
               aTrack.End[2] = OtherTracks.back().GetZ();
             }
           }
-          std::cout << "Added hits" << std::endl;
           // Track Length
           aTrack.Length = CalculateTrackLength3D(aTrack);
           std::cout << "Added TrackLength" << std::endl;
@@ -718,7 +721,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 }
 
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
-  OneHit.SetRecoY(0.5 * 19.081137 * (OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
+  OneHit.SetRecoY(-2510. - 0.5 * 19.081137 * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
   // 48 bars per module, 4 modules per layer, tilted and with gaps for outer 2 modules (due to coils)
   // tan(87 degrees) ~ 19.081137
   return;
@@ -952,15 +955,25 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   int n_nodes = 0;
   std::cout << "Start business" << std::endl;
   // Loop over each Hough Candidate and find the track length
-  for (auto it = (Track3D.Hits).begin(); it != (Track3D.Hits).end(); ++it) {
+  for (auto it = (Track3D.Hits).begin(); it != (Track3D.Hits).end()
+      && (it+1) != (Track3D.Hits).end(); ++it) {
     auto nexthit = *(it+1);
     if ((*it).GetBar().GetBarType() != TMS_Bar::kXBar) {
       std::cout << "not kXBar" << std::endl;
       // Use the geometry to calculate the track length between hits
       TVector3 point1((*it).GetNotZ(), (*it).GetRecoY(), (*it).GetZ());
+//      std::cout << "point1" << point1.Print() << std::endl;
+      std::cout << "point1 ";
+      point1.Print();
       TVector3 point2(nexthit.GetNotZ(), nexthit.GetRecoY(), nexthit.GetZ());
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-      total += tracklength;
+//      std::cout << "point2" << point2.Print() << std::endl;
+      std::cout<< "point2 ";
+      point2.Print();
+//      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);  //TODO this line seems to cause the issue with event 45!!!
+//      std::cout << "3" << std::endl;
+//      total += tracklength;
+      total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);    
+      std::cout << "3" << std::endl;
       n_nodes += 1;
       std::cout << "fine" << std::endl;
     } else if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
@@ -977,7 +990,8 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
     final_total = total;
     max_n_nodes_used = n_nodes;
   }
-  std::cout << "Exiting" << std::flush;
+  std::cout << "Exiting: tracklength = " << final_total << std::flush;
+  std::cout << std::endl;
   return final_total;
 }
 
