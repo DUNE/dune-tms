@@ -143,7 +143,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}")
             
             print(f"Event {i} has {event.nHits} hits, {event.nClustersOne} clusters(one) | {event.nClustersOther} clusters(other), and {event.nLinesOne} lines(one) | {event.nLinesOther} lines(other).")
-            
+           
+            print("number of events: ", event.nHits)
             
             for hit in range(event.nHits):
                 if event.RecoHitEnergy[hit] < 0: continue
@@ -175,6 +176,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 if reco_hit_energy > 0:
                     total_energy += reco_hit_energy
                 elif reco_hit_energy < 0:
+                    print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
             
             # Extract all hits in clusters and tracks that are not -999 for easier access later on
@@ -394,7 +396,6 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     markers.append(marker)
                     marker = 0
                 usedTracksOther += event.nHitsInTrackOther[lineOther]
-
         print("usedClustersOne: ", usedClustersOne, " usedClustersOther: ", usedClustersOther, " usedTracksOne: ", usedTracksOne, " usedTracksOther: ", usedTracksOther)
             
         minimum_energy_to_print = 0

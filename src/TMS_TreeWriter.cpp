@@ -183,7 +183,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
 
   Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",        &nHitsIn3DTrack,        "nHits[nTracks]/I");
+  Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
@@ -744,6 +744,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergy[itTrack]        =       RecoTrack->GetEnergyRange();
     RecoTrackLength[itTrack]        =       RecoTrack->Length;
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->GetEnergyDeposit();
@@ -761,8 +762,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
-    }
+    
 
+      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
+    }
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
     { // If true^ it seems the direction hasn't been set
