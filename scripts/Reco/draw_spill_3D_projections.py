@@ -1,28 +1,20 @@
 import ROOT
 import numpy as np
 import matplotlib.pyplot as mp
+import os
+import argparse
+import cppyy.ll
 
 # plotstyle
 red_cbf = '#d55e00'
 blue_cbf = '#0072b2'
 orange_cbf = '#e69f00'
+green_cbf = '#cc79a7'
 mp.style.use('seaborn-poster')
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
 mp.rc('ytick', labelsize = 12) # fontsize of the tick labels
-
-#def draw_spill(
-
-#TODO path to file
-
-#TODO create loop over all spills/events
-root_file = ROOT.TFile.Open("path/to/file.root");
-for spill in root_file.Reco_Tree: #or TChain???
-
-
-#TODO access ROOT Tree with hit information
-
 
 cos_3 = 0.99863
 sin_3 = 0.05234
@@ -34,39 +26,39 @@ delta_x = 0.0177    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
 delta_z = 0.02      # space of scintilattor with air gap
 
-### Function for lower limit of tilted bar 'hit'
-def lower_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'plus':   # dummy one here TODO exchange for correct one
-        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
-        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
-        if x < r:
-            return -tan_87 * x + tan_87 * r + s
-        elif x >= r:
-            return tan_3 * x - tan_3 * r + s
-    elif orientation_bar == 'minus':
-        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
-        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
-        if x < r:
-            return -tan_3 * x + tan_3 * r + s
-        elif x >= r:
-            return tan_87 * x - tan_87 * r + s
-
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'plus':
-        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
-        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
-        if x < r:
-            return tan_3 * x - tan_3 * r + s
-        elif x >= r:
-            return -tan_87 * x + tan_87 * r + s
-    elif orientation_bar == 'minus':
-        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
-        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
-        if x < r:
-            return tan_87 * x - tan_87 * r + s
-        elif x >= r:
-            return -tan_3 * x + tan_3 * r + s
+#    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and YBar then in negative #TODO change to U+V Bars
+    r = hit_x + cos_3 * delta_x - sin_3 * delta_y
+    s = hit_y + sin_3 * delta_x + cos_3 * delta_y
+    if x < r:
+    return tan_3 * x - tan_3 * r + s
+    elif x >= r:
+        return -tan_87 * x + tan_87 * r + s
+#    elif orientation_bar == 'kYBar':
+#        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
+#        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
+#        if x < r:
+#            return tan_87 * x - tan_87 * r + s
+#        elif x >= r:
+#            return -tan_3 * x + tan_3 * r + s
+
+### Function for lower limit of tilted bar 'hit'
+def lower_limit(hit_x, hit_y, x, orientation_bar):
+#    if orientation_bar == 'kVBar':
+    r = hit_x - cos_3 * delta_x + sin_3 * delta_y
+    s = hit_y - sin_3 * delta_x - cos_3 * delta_y
+    if x < r:
+        return -tan_87 * x + tan_87 * r + s
+    elif x >= r:
+        return tan_3 * x - tan_3 * r + s
+#    elif orientation_bar == 'kYBar':
+#        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
+#        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
+#        if x < r:
+#            return -tan_3 * x + tan_3 * r + s
+#        elif x >= r:
+#            return tan_87 * x - tan_87 * r + s
 
 ### Function for hits to appear in size
 def hit_size(hit_x, hit_y, orientation, orientation_bar):
@@ -75,7 +67,7 @@ def hit_size(hit_x, hit_y, orientation, orientation_bar):
         right_bottom = hit_x + cos_3 * delta_x + sin_3 * delta_y
         x_array = np.linspace(left_top, right_bottom, num = 50)
         return x_array, np.array([lower_limit(hit_x, hit_y, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x, hit_y, i, orientation_bar) for i in x_array])
-                       
+                            
     elif orientation == 'zy':
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x + delta_z
@@ -89,71 +81,181 @@ def hit_size(hit_x, hit_y, orientation, orientation_bar):
         size_array[0, 1] = hit_x - delta_z
         size_array[1, 0] = hit_y + delta_x
         size_array[1, 1] = hit_y - delta_x
-        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]      
+        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
+    if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
+    if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
+    if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
+    if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
+    
+    # Now configure some stuff
+    use_readout = True
+    if readout_filename == "": use_readout = False
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    if not os.path.exists(out_dir):
+       raise ValueError(f"Could not make out_dir {out_dir}")
+                                                                                                                                                                                                                                        
+    r = ROOT.TChain("Reco_Tree")
+    r.Add(input_filename)
+    print("N entries:", r.GetEntries())
+    if not r.GetEntries() > 0:
+        print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
+    
+    readout = None
+    if use_readout:
+        readout = ROOT.TChain("TMS")
+        readout.Add(readout_filename)
+        if not readout.GetEntries() > 0:
+        print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
+        
+    max_n_spills = 10000 # TODO (old) add some meta info to output file with n spill info for file
+    
+    simplify_tracks = False
+    
+    spill_number_cache = dict()
+    n_events = r.GetEntries()
+    
+    # First loop through all the slices and draw one overall spill
+    for current_spill_number in range(max_n_spills):
+        for i in range(n_events):
+            try:
+                spill_number = spill_number_cache[i]
+                event = None
+            except KeyError:
+                r.GetEntry(i)
+                event = r
+                spill_number = event.SpillNo
+                spill_number_cache[i] = spill_number
+            if spill_number < current_spill_number: continue
+            if spill_number > current_spill_number: break
+            if event == None:
+                r.GetEntry(i)
+                event = r
+            # Sync up the readout info if it's there. Note that it has one entry per spill, not timeslice
+            if readout != None: readout.GetEntry(current_spill_number)
 
+            ### Type cast from low-level code to something usable (numpy array)
+            StartPos = np.frombuffer(event.StartPos, dtype = np.float32)
+            
+            ### Check if a track exists in the event/spill, otherwise skip it
+            if len(StartPos) == 0: continue
+            
+            ### Create subplots
+            fig = mp.figure(constrained_layout = False)
+            gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
+            x_y = fig.add_subplot(gs[0, 0])
+            z_y = fig.add_subplot(gs[1, 0])
+            x_z = fig.add_subplot(gs[0:, 1:])
+            
+            ### Set labels and ticks
+            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-5, -4, -3])
+            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-5, -4, -3])
+            x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
+            x_y.text(3.6, -5, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            z_y.text(18.1, -4.8, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_z.text(18.1, -1, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            
+            ### Position plots efficient/nice in subplots
+            x_z.axis('equal')
+            x_z.axes.set_box_aspect(1)
+            z_y.axis('equal')
+            z_y.axes.set_box_aspect(0.5)
+            z_y.axes.set_anchor('NW')
+            x_y.axis('equal')
+            x_y.axes.set_box_aspect(0.5)
+            x_y.axes.set_anchor('SW')
+            
+            ### Put in outlines of scintillator parts
+            x_z.hlines(-3.5, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(3.5, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(-1.75, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(1.75, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(18, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            
+            z_y.hlines(-5.71, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(-2.51, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(11, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(18, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
+            
+            x_y.hlines(-5.71, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.hlines(-2.51, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.vlines(3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
+            x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
+            x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            
+            nHits = np.frombuffer(event.nHits, dtype = np.uint8)
+            print(nHits)
+            TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
+            for hit in range(sum(nHits)):
+                #print(TrackHitPos[hit])
+                hit_x = TrackHitPos[hit*3 + 0] / 1000.0
+                hit_y = TrackHitPos[hit*3 + 1] / 1000.0
+                hit_z = TrackHitPos[hit*3 + 2] / 1000.0
+                
+                #print(hit_x, hit_y, hit_z)
+                
+                if hit_x == -0.999 and hit_y == -0.999 and hit_z == -0.999: continue #TODO figure out why some hits are not filled properly!!!
+                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', 'test'), color = blue_cbf) #event.HitsGetBar().GetBarType()
+                z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', 'test'), color = blue_cbf)
+                x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', 'test'), color = blue_cbf, alpha = 0.5, linewidth = 0.5)  # if event.GetBar().GetBarType() == 'kVBar' else red_cbf
+                 
+                ### Test hit
+                #x_z.fill_between(*hit_size(15, -2, 'xz', 'plus'), color = blue_cbf)
+                #z_y.fill_between(*hit_size(15, -3, 'zy', 'plus'), color = blue_cbf)
+                #x_y.fill_between(*hit_size(-2, -3, 'xy', 'plus'), color = blue_cbf, alpha = 0.5, linewidth = 0.5)
+                #x_y.fill_between(*hit_size(-2, -3, 'xy', 'minus'), color = red_cbf, alpha = 0.5, linewidth = 0.5)
+                
+            ### Track start
+            #print(StartPos)
+            for i in range(int(len(StartPos) / 3)):
+                x_z.fill_between(*hit_size(StartPos[i*3 + 2] / 1000.0, StartPos[i*3 + 0] / 1000.0, 'xz', 'test'), color = green_cbf)
+                z_y.fill_between(*hit_size(StartPos[i*3 + 2] / 1000.0, StartPos[i*3 + 1] / 1000.0, 'zy', 'test'), color = green_cbf)
+                x_y.fill_between(*hit_size(StartPos[i*3 + 0] / 1000.0, StartPos[i*3 + 1] / 1000.0, 'xy', 'test'), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                 
+            ### Track end
+            EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
+            #print(EndPos)
+            for i in range(int(len(EndPos) / 3)):
+                x_z.fill_between(*hit_size(EndPos[i*3 + 2] / 1000.0, EndPos[i*3 + 0] / 1000.0, 'xz', 'test'), color = green_cbf)
+                z_y.fill_between(*hit_size(EndPos[i*3 + 2] / 1000.0, EndPos[i*3 + 1] / 1000.0, 'zy', 'test'), color = green_cbf)
+                x_y.fill_between(*hit_size(EndPos[i*3 + 0] / 1000.0, EndPos[i*3 + 1] / 1000.0, 'xy', 'test'), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                 
+            ### Track direction
+            Direction = np.frombuffer(event.Direction, dtype = np.float32)
+            #print(Direction)
+            for i in range(int(len(Direction) / 3)):
+                x_z.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
+                z_y.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
+                x_y.plot([StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
 
-### Create subplots
-fig = mp.figure(constrained_layout = False)
-gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
-x_y = fig.add_subplot(gs[0, 0])
-z_y = fig.add_subplot(gs[1, 0])
-x_z = fig.add_subplot(gs[0:, 1:])
+            output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
+            mp.savefig(output_filename + ".png", bbox_inches = 'tight')
+            mp.close()
+             
+    return
 
-### Set labels and ticks
-x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-5, -4, -3])
-z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-5, -4, -3])
-x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-x_y.text(2.2, -6, 'front view', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-z_y.text(16.8, -6, 'side view', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-x_z.text(16.9, -3.8, 'top view', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description = "Draws spills.")
+    parser.add_argument('--outdir', "-o", type = str, help = "The output dir. Will be made if it doesn't exist. Default = spills/", default = "spills")
+    parser.add_argument('--name', "-n", type = str, help = "The name of the output files. Will be <name>_<spill>_<slice>.png. Default = spill", default = "spill")
+    parser.add_argument('--input_filename', "-f", type = str, help = "The file with the events to draw.")
+    parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
+    parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
+    parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
+    parser.add_argument('--only_true_tms_muons', help = "Only draw events with true muons inside the TMS", action = argparse.BooleanOptionalAction)
+    
+    args = parser.parse_args()
+    
+    out_dir = args.outdir
+    name = args.name
+    input_filename = args.input_filename
+    spill_number = args.spillnum
+    time_slice = args.timeslice
+    readout_filename =  args.readout_filename
+    only_true_tms_muons = args.only_true_tms_muons
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons)
 
-### Position plots efficient/nice in subplots
-x_z.axis('equal')
-x_z.axes.set_box_aspect(1)
-z_y.axis('equal')
-z_y.axes.set_box_aspect(0.5)
-z_y.axes.set_anchor('NW')
-x_y.axis('equal')
-x_y.axes.set_box_aspect(0.5)
-x_y.axes.set_anchor('SW')
-
-### Put in outlines of scintillator parts
-x_z.hlines(-3.5, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_z.hlines(3.5, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_z.hlines(-1.75, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_z.hlines(1.75, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_z.vlines(11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_z.vlines(18, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-
-z_y.hlines(-5.71, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-z_y.hlines(-2.51, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-z_y.vlines(11, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
-z_y.vlines(18, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
-
-x_y.hlines(-5.71, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_y.hlines(-2.51, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-x_y.vlines(-3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-x_y.vlines(3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
-x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
-x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-
-### Test hit
-x_z.fill_between(*hit_size(15, -2, 'xz', 'plus'), color = blue_cbf)
-z_y.fill_between(*hit_size(15, -3, 'zy', 'plus'), color = blue_cbf)
-x_y.fill_between(*hit_size(-2, -3, 'xy', 'plus'), color = blue_cbf, alpha = 0.5, linewidth = 0.5)
-x_y.fill_between(*hit_size(-2, -3, 'xy', 'minus'), color = red_cbf, alpha = 0.5, linewidth = 0.5)
-
-mp.savefig('event_layout_test.png', bbox_inches = 'tight')
-mp.close()
-
-#TODO create subplots with all 2D projections and time?
-#TODO fill subplots with hit information necessary
-  #TODO make sure size of bars are reflected
-#TODO fill subplots with track information necessary
-#TODO save subplot in numeric variable name file
-
-
-
-
-#TODO make sure all arguments from old draw spill file also work here?

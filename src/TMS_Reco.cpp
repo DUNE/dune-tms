@@ -571,16 +571,21 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     for (auto OtherTracks: HoughCandidatesOther) {
       // Conditions for close enough tracks: within +/-1 plane numbers, +/-4 bar numbers and in same time slice within 30ns
       // start condition
+      std::cout << "OneTrack front: " << OneTracks.front().GetPlaneNumber() << " | " << OneTracks.front().GetBarNumber() << " | " << OneTracks.front().GetT() << "  back: " << OneTracks.back().GetPlaneNumber() << " | " << OneTracks.back().GetBarNumber() << " | " << OneTracks.back().GetT() << std::endl;
+
+      std::cout << "OtherTrack front: " << OtherTracks.front().GetPlaneNumber() << " | " << OtherTracks.front().GetBarNumber() << " | " << OtherTracks.front().GetT() << "  back: " << OtherTracks.back().GetPlaneNumber() << " | " << OtherTracks.back().GetBarNumber() << " | " << OtherTracks.back().GetT() << std::endl;
       if (std::abs(OneTracks.front().GetPlaneNumber() - OtherTracks.front().GetPlaneNumber()) < 2
           && std::abs(OneTracks.front().GetBarNumber() - OtherTracks.front().GetBarNumber()) <= 4
-          && OneTracks.front().GetSlice() == OtherTracks.front().GetSlice()
-          && std::abs(OneTracks.front().GetT() - OtherTracks.front().GetT()) <= 30) {
+          && OneTracks.front().GetSlice() == OtherTracks.front().GetSlice()) {
+//          && std::abs(OneTracks.front().GetT() - OtherTracks.front().GetT()) <= 30) { // TODO figure out what is going wrong with the hit time assignment!!!
         // end condition
         if (std::abs(OneTracks.back().GetPlaneNumber() - OtherTracks.back().GetPlaneNumber()) <= 2
             && std::abs(OneTracks.back().GetBarNumber() - OtherTracks.back().GetBarNumber()) <= 4
-            && OneTracks.back().GetSlice() == OtherTracks.back().GetSlice()
-            && std::abs(OneTracks.back().GetT() - OtherTracks.back().GetT()) <= 30) {
+            && OneTracks.back().GetSlice() == OtherTracks.back().GetSlice()) {
+//            && std::abs(OneTracks.back().GetT() - OtherTracks.back().GetT()) <= 30) {
           TMS_Track aTrack;
+          std::cout << "OneTrack FRONT: " << OneTracks.front().GetPlaneNumber() << " BACK: " << OneTracks.back().GetPlaneNumber() << std::endl;
+          std::cout << "OtherTrack FRONT: " << OtherTracks.front().GetPlaneNumber() << " BACK: " << OtherTracks.back().GetPlaneNumber() << std::endl;
           // If same plane number for start but different for end
           if (OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()
               && OneTracks.back().GetPlaneNumber() != OtherTracks.back().GetPlaneNumber()) {
