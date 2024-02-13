@@ -28,81 +28,86 @@ delta_z = 0.02      # space of scintilattor with air gap
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-#    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and YBar then in negative #TODO change to U+V Bars
-    r = hit_x + cos_3 * delta_x - sin_3 * delta_y
-    s = hit_y + sin_3 * delta_x + cos_3 * delta_y
-    if x < r:
-    return tan_3 * x - tan_3 * r + s
-    elif x >= r:
-        return -tan_87 * x + tan_87 * r + s
-#    elif orientation_bar == 'kYBar':
-#        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
-#        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
-#        if x < r:
-#            return tan_87 * x - tan_87 * r + s
-#        elif x >= r:
-#            return -tan_3 * x + tan_3 * r + s
+    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and YBar then in negative #TODO change to U+V Bars
+        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
+        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
+        if x < r:
+            return tan_3 * x - tan_3 * r + s
+        elif x >= r:
+            return -tan_87 * x + tan_87 * r + s
+    elif orientation_bar == 'kYBar':
+        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
+        s = hit_y + sin_3 * delta_x + cos_3 * delta_y
+        if x < r:
+            return tan_87 * x - tan_87 * r + s
+        elif x >= r:
+            return -tan_3 * x + tan_3 * r + s
 
 ### Function for lower limit of tilted bar 'hit'
 def lower_limit(hit_x, hit_y, x, orientation_bar):
-#    if orientation_bar == 'kVBar':
-    r = hit_x - cos_3 * delta_x + sin_3 * delta_y
-    s = hit_y - sin_3 * delta_x - cos_3 * delta_y
-    if x < r:
-        return -tan_87 * x + tan_87 * r + s
-    elif x >= r:
-        return tan_3 * x - tan_3 * r + s
-#    elif orientation_bar == 'kYBar':
-#        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
-#        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
-#        if x < r:
-#            return -tan_3 * x + tan_3 * r + s
-#        elif x >= r:
-#            return tan_87 * x - tan_87 * r + s
+    if orientation_bar == 'kVBar':
+        r = hit_x - cos_3 * delta_x + sin_3 * delta_y
+        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
+        if x < r:
+            return -tan_87 * x + tan_87 * r + s
+        elif x >= r:
+            return tan_3 * x - tan_3 * r + s
+    elif orientation_bar == 'kYBar':
+        r = hit_x + cos_3 * delta_x - sin_3 * delta_y
+        s = hit_y - sin_3 * delta_x - cos_3 * delta_y
+        if x < r:
+            return -tan_3 * x + tan_3 * r + s
+        elif x >= r:
+            return tan_87 * x - tan_87 * r + s
 
-### Function for hits to appear in size
-def hit_size(hit_x, hit_y, orientation, orientation_bar):
-    if orientation == 'xy':
-        left_top = hit_x - cos_3 * delta_x - sin_3 * delta_y
-        right_bottom = hit_x + cos_3 * delta_x + sin_3 * delta_y
+### Function for hits to appear in correct size (according to bar size, or reconstructed hit area size)
+def hit_size(hit_x, hit_y, orientation, hit_z):
+    if orientation == 'xy':   # here it is the reconstructed hit area
+        orientation_bar = check_orientation(int(hit_z))
+        left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
+        right_bottom = hit_x / 1000.0 + cos_3 * delta_x + sin_3 * delta_y
         x_array = np.linspace(left_top, right_bottom, num = 50)
-        return x_array, np.array([lower_limit(hit_x, hit_y, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x, hit_y, i, orientation_bar) for i in x_array])
+        return x_array, np.array([lower_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array])
                             
-    elif orientation == 'zy':
+    elif orientation == 'zy': # here it is the reconstructed hit area
         size_array = np.zeros((2,2))
-        size_array[0, 0] = hit_x + delta_z
-        size_array[0, 1] = hit_x - delta_z
-        size_array[1, 0] = hit_y + delta_y
-        size_array[1, 1] = hit_y - delta_y
-        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
-    elif orientation == 'xz':
-        size_array = np.zeros((2,2))
-        size_array[0, 0] = hit_x + delta_z
-        size_array[0, 1] = hit_x - delta_z
-        size_array[1, 0] = hit_y + delta_x
-        size_array[1, 1] = hit_y - delta_x
+        size_array[0, 0] = hit_x / 1000.0 + delta_z
+        size_array[0, 1] = hit_x / 1000.0 - delta_z
+        size_array[1, 0] = hit_y / 1000.0 + delta_y
+        size_array[1, 1] = hit_y / 1000.0 - delta_y
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
+    elif orientation == 'xz': # here it is only the bar size
+        size_array = np.zeros((2,2))
+        size_array[0, 0] = hit_x / 1000.0 + delta_z
+        size_array[0, 1] = hit_x / 1000.0 - delta_z
+        size_array[1, 0] = hit_y / 1000.0 + delta_x
+        size_array[1, 1] = hit_y / 1000.0 - delta_x
+        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
+
+### Actual function that loops through the spills
 def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
     if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
     
-    # Now configure some stuff
+    # Make sure we read in the correct file and have the output directory
     use_readout = True
     if readout_filename == "": use_readout = False
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     if not os.path.exists(out_dir):
        raise ValueError(f"Could not make out_dir {out_dir}")
-                                                                                                                                                                                                                                        
+    
+    # Read in the Reco_Tree that contains the TMS_Tracks
     r = ROOT.TChain("Reco_Tree")
     r.Add(input_filename)
     print("N entries:", r.GetEntries())
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
     
+    # Not used yet
     readout = None
     if use_readout:
         readout = ROOT.TChain("TMS")
@@ -187,42 +192,39 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
             x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
             
+            ###  Now fill with the hits
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             print(nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
             for hit in range(sum(nHits)):
                 #print(TrackHitPos[hit])
-                hit_x = TrackHitPos[hit*3 + 0] / 1000.0
-                hit_y = TrackHitPos[hit*3 + 1] / 1000.0
-                hit_z = TrackHitPos[hit*3 + 2] / 1000.0
+                hit_x = TrackHitPos[hit*3 + 0]
+                hit_y = TrackHitPos[hit*3 + 1]
+                hit_z = TrackHitPos[hit*3 + 2]
                 
                 #print(hit_x, hit_y, hit_z)
                 
-                if hit_x == -0.999 and hit_y == -0.999 and hit_z == -0.999: continue #TODO figure out why some hits are not filled properly!!!
-                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', 'test'), color = blue_cbf) #event.HitsGetBar().GetBarType()
-                z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', 'test'), color = blue_cbf)
-                x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', 'test'), color = blue_cbf, alpha = 0.5, linewidth = 0.5)  # if event.GetBar().GetBarType() == 'kVBar' else red_cbf
+                if hit_x == -999.0 and hit_y == -999.0 and hit_z == -999.0: continue #TODO figure out why some hits are not filled properly!!!
+                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
+                z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
+                x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf, alpha = 0.5, linewidth = 0.5)
                  
-                ### Test hit
-                #x_z.fill_between(*hit_size(15, -2, 'xz', 'plus'), color = blue_cbf)
-                #z_y.fill_between(*hit_size(15, -3, 'zy', 'plus'), color = blue_cbf)
-                #x_y.fill_between(*hit_size(-2, -3, 'xy', 'plus'), color = blue_cbf, alpha = 0.5, linewidth = 0.5)
-                #x_y.fill_between(*hit_size(-2, -3, 'xy', 'minus'), color = red_cbf, alpha = 0.5, linewidth = 0.5)
-                
             ### Track start
             #print(StartPos)
             for i in range(int(len(StartPos) / 3)):
-                x_z.fill_between(*hit_size(StartPos[i*3 + 2] / 1000.0, StartPos[i*3 + 0] / 1000.0, 'xz', 'test'), color = green_cbf)
-                z_y.fill_between(*hit_size(StartPos[i*3 + 2] / 1000.0, StartPos[i*3 + 1] / 1000.0, 'zy', 'test'), color = green_cbf)
-                x_y.fill_between(*hit_size(StartPos[i*3 + 0] / 1000.0, StartPos[i*3 + 1] / 1000.0, 'xy', 'test'), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                if StartPos[i*3 + 2] == 25.0: continue  #TODO figure out why some hits are not filled properly!!!
+                x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
+                z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
+                x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                  
             ### Track end
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             #print(EndPos)
             for i in range(int(len(EndPos) / 3)):
-                x_z.fill_between(*hit_size(EndPos[i*3 + 2] / 1000.0, EndPos[i*3 + 0] / 1000.0, 'xz', 'test'), color = green_cbf)
-                z_y.fill_between(*hit_size(EndPos[i*3 + 2] / 1000.0, EndPos[i*3 + 1] / 1000.0, 'zy', 'test'), color = green_cbf)
-                x_y.fill_between(*hit_size(EndPos[i*3 + 0] / 1000.0, EndPos[i*3 + 1] / 1000.0, 'xy', 'test'), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                if EndPos[i*3 + 2] == 0.0: continue #TODO figure out why some hits are not filled properly!!!
+                x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
+                z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
+                x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                  
             ### Track direction
             Direction = np.frombuffer(event.Direction, dtype = np.float32)
@@ -238,6 +240,37 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
              
     return
 
+### This is for plotting the hits according to their different orientations
+def check_orientation(hit_z):
+    return layer_dict["%s" % hit_z]
+
+### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
+first_z = 11368
+layer_dict = { "%s" % first_z : "kVBar" }
+
+def calculate_layers():
+    thin_layers = 39
+    thick_layers = 61
+    # Calculate the z position for each layer for the thin section
+    for i in range(thin_layers):
+        hit_z = first_z + i * 55
+        if ((hit_z - first_z) / 55) % 2 == 0: # even layers
+            layer_dict.update({ "%s" % hit_z : "kVBar" })
+        elif ((hit_z - first_z) / 55) % 2 == 1: # odd layers
+            layer_dict.update({ "%s" % hit_z : "kYBar" })
+    
+    # Calculate the z position for each layer for the thick section
+    start_thick = first_z + thin_layers * 55
+    for i in range(thick_layers):
+        hit_z = start_thick + i * 80
+        if ((hit_z - start_thick) / 80) % 2 == 0: # even layers
+            layer_dict.update({ "%s" % hit_z : "kVBar" })
+        elif ((hit_z - start_thick) / 80) % 2 == 1: # odd layers
+            layer_dict.update({ "%s" % hit_z : "kYBar" })
+
+    return
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Draws spills.")
     parser.add_argument('--outdir', "-o", type = str, help = "The output dir. Will be made if it doesn't exist. Default = spills/", default = "spills")
@@ -249,6 +282,8 @@ if __name__ == "__main__":
     parser.add_argument('--only_true_tms_muons', help = "Only draw events with true muons inside the TMS", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
+
+    calculate_layers()
     
     out_dir = args.outdir
     name = args.name
