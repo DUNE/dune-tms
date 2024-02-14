@@ -32,16 +32,28 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
-            return tan_3 * x - tan_3 * r + s
+            return_value = tan_3 * x - tan_3 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
         elif x >= r:
-            return -tan_87 * x + tan_87 * r + s
+            return_value = -tan_87 * x + tan_87 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
     elif orientation_bar == 'kYBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
-            return tan_87 * x - tan_87 * r + s
+            return_value = tan_87 * x - tan_87 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
         elif x >= r:
-            return -tan_3 * x + tan_3 * r + s
+            return_value = -tan_3 * x + tan_3 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
 
 ### Function for lower limit of tilted bar 'hit'
 def lower_limit(hit_x, hit_y, x, orientation_bar):
@@ -49,16 +61,28 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
-            return -tan_87 * x + tan_87 * r + s
+            return_value = -tan_87 * x + tan_87 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
         elif x >= r:
-            return tan_3 * x - tan_3 * r + s
+            return_value = tan_3 * x - tan_3 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
     elif orientation_bar == 'kYBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
-            return -tan_3 * x + tan_3 * r + s
+            return_value = -tan_3 * x + tan_3 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
         elif x >= r:
-            return tan_87 * x - tan_87 * r + s
+            return_value = tan_87 * x - tan_87 * r + s
+            if return_value >= -2.51: return -2.51
+            elif return_value <= -5.71: return -5.71
+            else: return return_value
 
 ### Function for hits to appear in correct size (according to bar size, or reconstructed hit area size)
 def hit_size(hit_x, hit_y, orientation, hit_z):
@@ -73,9 +97,15 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
-        size_array[1, 0] = hit_y / 1000.0 + delta_y
-        size_array[1, 1] = hit_y / 1000.0 - delta_y
-        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
+        if (hit_y / 1000.0 + delta_y) >= -2.51:
+            size_array[1, 0] = -2.51
+        else:
+            size_array[1, 0] = hit_y / 1000.0 + delta_y
+        if (hit_y / 1000.0 - delta_y) <= -5.71:
+            size_array[1, 1] = -5.71
+        else:
+            size_array[1, 1] = hit_y / 1000.0 - delta_y
+       return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
     elif orientation == 'xz': # here it is only the bar size
         size_array = np.zeros((2,2))
