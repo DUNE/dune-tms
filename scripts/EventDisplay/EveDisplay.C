@@ -3,6 +3,25 @@
 #include "TEveTrackPropagator.h"
 
 
+void DrawSpill(int iEvt = 0)
+{
+    0x90;
+    return;
+}
+
+void DropSpill()
+{
+    gEve->GetViewers()->DeleteAnnotations();   
+    gEve->GetCurrentEvent()->DestroyElements();
+}
+
+bool GoToSpill()
+{
+  DropSpill();
+  gEve->Redraw3D(kFALSE, kTRUE);
+  return true;
+}
+
 int EveDisplay()
 {
     TEveManager::Create();
@@ -45,8 +64,10 @@ int EveDisplay()
     ScintNodeR->GetDaughter(0)->GetVolume()->SetTransparency(90);
 
     TEveGeoTopNode* TMSTopNode= new TEveGeoTopNode(gGeoManager, TMSNode);
-    //gEve->AddGlobalElement(TMSTopNode);
+    TEveViewer *ev = gEve->GetDefaultViewer();
+    TGLViewer* gv = ev->GetGLViewer();
     gEve->GetGlobalScene()->AddElement(TMSTopNode);
+    //gEve->AddGlobalElement(TMSTopNode);
 
     //TEveTrack* track = new TEveTrack();
     //TEveStraightLineSet* tracks = new TEveStraightLineSet("loins");
@@ -55,54 +76,81 @@ int EveDisplay()
     //tracks->SetLine(0,0,0,0,0,1,1);
 
 
-    TEveElement* evt = gEve->GetEventScene();
 
-    auto prop = new TEveTrackPropagator();
-    prop->SetMaxR(400);
-    prop->SetMaxZ(400);
-    prop->SetMagField(0,0,0);
-    prop->SetMaxOrbs(3);
-    auto tHolder = new TEveCompound("traeks");
-    TParticle p;
-    p.SetProductionVertex(0,0,-300,1);
+    int nTracksMax = 50; // Hardcoded max tracks
 
-
-    float startPos[3];
-    float endPos[3];
-    float direction[3];
+    int nTracks; // tracks in the spill/event
+    float startPos[nTracksMax][3];
+    float endPos[nTracksMax][3];
+    float direction[nTracksMax][3];
     float length;
 
     double Theta;
     double Phi;
-    double momScale = 1.0;
+    double momScale = 1.0e3;
 
     TFile* RecoFile = new TFile("out.root");
-    TTree* Reco = RecoFile->Get("Reco_Tree");
+    TTree* Reco = (TTree*) RecoFile->Get("Reco_Tree");
+    int nEntries = Reco->GetEntries();
 
-    Reco->Branch("StartPos", startPos, "StartPos/F");
-    Reco->Branch("EndPos", endPos, "EndPos/F");
-    Reco->Branch("Direction", direction, "Direction/F");
-    Reco->Branch("Length", &length, "Length/F");
+    Reco->SetBranchAddress("nTracks", &nTracks);
+    Reco->SetBranchAddress("StartPos", startPos);
+    Reco->SetBranchAddress("EndPos", endPos);
+    Reco->SetBranchAddress("Direction", direction);
+    Reco->SetBranchAddress("Length", &length);
 
-//    for (int i=0; i<3; i++)
-//        trackLen[i] = endPos[i] - startPos[i];
+    TEveElement* evt = gEve->GetEventScene();
+
+    TEveCompound* tHolder = new TEveCompound("traeks");
+
+    TEveTrack* t;
+    TParticle* p;
+    //TEveTrackPropagator* prop;
+    TEveTrackPropagator* prop = new TEveTrackPropagator();
+
+    for (int i=0; i<nEntries; i++)
+    {
+        Reco->GetEntry(i);
+        if (nTracks <= 0)
+        { 
+            std::cout << "no tracks in event " << i << ", skipping..." << std::endl;
+            continue;
+        }
+
+        //TEveTrackPropagator* prop = new TEveTrackPropagator();
+        //prop = new TEveTrackPropagator();
+        prop->SetMaxR(352);
+        prop->SetMaxZ(352);
+        prop->SetMagField(0,0,0);
+        prop->SetMaxOrbs(3);
+        //TParticle* p = new TParticle;
+        p = new TParticle;
+
+        std::cout << "startPos: " << startPos[0][0]/10. << " " << startPos[0][1]/10. << " " << startPos[0][2]/10. << std::endl;
+        std::cout << "endPos: " << endPos[0][0]/10. << " " << endPos[0][1]/10. << " " << endPos[0][2]/10. << std::endl;
+        //std::cout << "dirPos: " << endPos[0][0] - startPos[0][0] << " " << endPos[0][1] - startPos[0][1] << " " << endPos[0][2] - startPos[0][2] << std::endl;
+        //std::cout << "dir: " << direction[0][0] << " " << direction[0][1] << " " << direction[0][2] << std::endl;
+        //std::cout << "length: " << length << std::endl;
+        p->SetProductionVertex(endPos[0][0]/10.,endPos[0][1]/10. + 390.0 ,endPos[0][2]/10. -1485.0 ,1);
+        //p->SetProductionVertex(startPos[0][0]/10.,startPos[0][1]/10. +350.0 ,startPos[0][2]/10. -1485.0 ,1);
 
 
-    p.SetPolarPhi(Phi);
-    p.SetPolarTheta(Theta);
-    p.SetMomentum(momScale*direction[0],momScale*direction[1],momScale*direction[2],1);
+        p->SetPolarPhi(0);
+        p->SetPolarTheta(0);
+        p->SetMomentum(-1*momScale*direction[0][0],-1*momScale*direction[0][1],-1*momScale*direction[0][2],1);
+        //p->SetMomentum(momScale*direction[0][0],momScale*direction[0][1],momScale*direction[0][2],1);
 
-    p.SetLabel("mu");
-    p.SetPdgCode(12);
-    //p.SetCharge(1);
-    auto t = new TEveTrack(&p, 1, prop);
-    t->SetName("AXIONS CONFIRMED");
-    t->SetMainColor(kOrange);
-    t->SetLineWidth(4);
-    t->MakeTrack();
-    tHolder->AddElement(t);
-    std::cout << prop->GetTrackLength() << std::endl;
-
+        //p.SetLabel("mu");
+        p->SetPdgCode(12);
+        //p.SetCharge(1);
+        //TEveTrack* t = new TEveTrack(p, 1, prop);
+        t = new TEveTrack(p, 1, prop);
+        t->SetName("AXIONS CONFIRMED");
+        t->SetMainColor(kOrange);
+        t->SetLineWidth(4);
+        t->MakeTrack();
+        tHolder->AddElement(t);
+    }
 
     /*
     TEveTrackList* tracklist = new TEveTrackList("shit tracks");
@@ -118,18 +166,16 @@ int EveDisplay()
     //TEveRecTrack
     //TEvePointSet()
 
-    TEveViewer *ev = gEve->GetDefaultViewer();
-    TGLViewer* gv = ev->GetGLViewer();
-    gv->SetGuideState(TGLUtil::kAxesOrigin, kTRUE, kFALSE, nullptr);
 
     evt->AddElement(tHolder);
-
     auto vnt = new TEveEventManager("vent", "fuck TEve and fuck ROOT in general");
     gEve->AddEvent(vnt);
     vnt->NextEvent();
 
+    gv->SetGuideState(TGLUtil::kAxesOrigin, kTRUE, kFALSE, nullptr);
     gEve->Redraw3D(kTRUE);
     tHolder->Paint();
+    vnt->NextEvent();
 
 
     return 0;
