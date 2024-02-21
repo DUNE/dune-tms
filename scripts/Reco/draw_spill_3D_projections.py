@@ -242,7 +242,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             ### Track start
             #print(StartPos)
             for i in range(int(len(StartPos) / 3)):
-                if StartPos[i*3 + 2] == 25.0: continue  #TODO figure out why some hits are not filled properly!!!
+                if StartPos[i*3 + 1] == 0.0: continue  #TODO figure out why some hits are not filled properly!!!
                 x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
                 z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
                 x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
@@ -251,7 +251,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             #print(EndPos)
             for i in range(int(len(EndPos) / 3)):
-                if EndPos[i*3 + 2] == 0.0: continue #TODO figure out why some hits are not filled properly!!!
+                if EndPos[i*3 + 1] == 0.0: continue #TODO figure out why some hits are not filled properly!!!
                 x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
                 z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
                 x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
@@ -260,6 +260,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             Direction = np.frombuffer(event.Direction, dtype = np.float32)
             #print(Direction)
             for i in range(int(len(Direction) / 3)):
+                if StartPos[i*3 + 1] == 0.0: continue
                 x_z.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
                 z_y.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
                 x_y.plot([StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
@@ -276,7 +277,7 @@ def check_orientation(hit_z):
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
 first_z = 11368
-layer_dict = { "%s" % first_z : "kVBar" }
+layer_dict = { "%s" % first_z : "kYBar" }
 
 def calculate_layers():
     thin_layers = 39
@@ -285,9 +286,9 @@ def calculate_layers():
     for i in range(thin_layers):
         hit_z = first_z + i * 55
         if ((hit_z - first_z) / 55) % 2 == 0: # even layers
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
-        elif ((hit_z - first_z) / 55) % 2 == 1: # odd layers
             layer_dict.update({ "%s" % hit_z : "kYBar" })
+        elif ((hit_z - first_z) / 55) % 2 == 1: # odd layers
+            layer_dict.update({ "%s" % hit_z : "kVBar" })
     
     # Calculate the z position for each layer for the thick section
     start_thick = first_z + thin_layers * 55

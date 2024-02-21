@@ -569,7 +569,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   // 3D matching of tracks
   for (auto OneTracks: HoughCandidatesOne) {
     for (auto OtherTracks: HoughCandidatesOther) {
-      // Conditions for close enough tracks: within +/-1 plane numbers, +/-4 bar numbers and in same time slice within 30ns
+      // Conditions for close enough tracks: within +/-1 plane numbers, +/-10 bar numbers and in same time slice within 30ns
       // start condition
 #ifdef DEBUG
       std::cout << "OneTrack front: " << OneTracks.front().GetPlaneNumber() << " | " << OneTracks.front().GetBarNumber() << " | " << OneTracks.front().GetT() << "  back: " << OneTracks.back().GetPlaneNumber() << " | " << OneTracks.back().GetBarNumber() << " | " << OneTracks.back().GetT() << std::endl;
@@ -690,8 +690,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif                  
                   (aTrack.Hits).push_back((*itOne));
                   (aTrack.Hits).push_back((*itOther));
+                } else {
+                  // TODO
+                  (aTrack.Hits).push_back((*itOne));
+                  (aTrack.Hits).push_back((*itOther));
                 }
-              }
+              } //else  // TODO !!!!!
             }
           }
           // If same start and end, assign start and end hit in track
@@ -739,7 +743,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif          
 
           returned.push_back(aTrack);
-          break;
+//          break;
         }
       }
     }
