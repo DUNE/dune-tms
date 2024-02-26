@@ -586,10 +586,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             && OneTracks.back().GetSlice() == OtherTracks.back().GetSlice()) {
 //            && std::abs(OneTracks.back().GetT() - OtherTracks.back().GetT()) <= 30) {
           TMS_Track aTrack;
-#ifdef DEBUG          
+//#ifdef DEBUG          
           std::cout << "OneTrack FRONT: " << OneTracks.front().GetPlaneNumber() << " BACK: " << OneTracks.back().GetPlaneNumber() << std::endl;
           std::cout << "OtherTrack FRONT: " << OtherTracks.front().GetPlaneNumber() << " BACK: " << OtherTracks.back().GetPlaneNumber() << std::endl;
-#endif          
+//#endif          
           // If same plane number for start but different for end
           if (OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()
               && OneTracks.back().GetPlaneNumber() != OtherTracks.back().GetPlaneNumber()) {
@@ -601,9 +601,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.End[0] = OneTracks.back().GetNotZ();
                 aTrack.End[1] = OneTracks.back().GetRecoY();
                 aTrack.End[2] = OneTracks.back().GetZ();
-#ifdef DEBUG                
+//#ifdef DEBUG                
                 std::cout << "OneTrack ends after OtherTrack" << std::endl;
-#endif                
+//#endif                
                 (aTrack.Hits).push_back(OneTracks.back());
               } else {
                 // TODO implement this for orthogonal view!!!
@@ -620,9 +620,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.End[0] = OtherTracks.back().GetNotZ();
                 aTrack.End[1] = OtherTracks.back().GetRecoY();
                 aTrack.End[2] = OtherTracks.back().GetZ();
-#ifdef DEBUG                
+//#ifdef DEBUG                
                 std::cout << "OneTracks ends before OtherTrack" << std::endl;
-#endif              
+//#endif              
                 (aTrack.Hits).push_back(OtherTracks.back());
               } else {
                 // TODO
@@ -643,9 +643,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.Start[0] = OtherTracks.front().GetNotZ();
                 aTrack.Start[1] = OtherTracks.front().GetRecoY();
                 aTrack.Start[2] = OtherTracks.front().GetZ();
-#ifdef DEBUG                
+//#ifdef DEBUG                
                 std::cout << "OneTrack starts after OtherTrack" << std::endl;
-#endif                
+//#endif                
                 (aTrack.Hits).push_back(OtherTracks.front());
               } else {
                 // TODO
@@ -677,7 +677,77 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           }
           
           // Add hits to track
-          for (std::vector<TMS_Hit>::iterator itOne = OneTracks.begin(); itOne != OneTracks.end(); ++itOne) {
+          //std::vector<TMS_Hit>::iterator itOne = OneTracks.begin();
+          //std::vector<TMS_Hit>::iterator itOther = OtherTracks.begin();
+          int OneLength = OneTracks.size();
+          int OtherLength = OtherTracks.size();
+          int track_length = (OneLength >= OtherLength) ? OneLength : OtherLength;
+          int iterator = 0;
+          while (iterator <= track_length) { //itOne != OneTracks.end()) {
+            bool stereo_view = ((OneTracks[iterator]).GetBar().GetBarType() != TMS_Bar::kXBar && (OtherTracks[iterator]).GetBar().GetBarType() != TMS_Bar::kXBar);
+            if ((OneTracks[iterator]).GetPlaneNumber() == (OtherTracks[iterator]).GetPlaneNumber()) {
+              // Calcualte Y info from bar crossing
+              if (stereo_view) {
+                CalculateRecoY((OneTracks[iterator]), (OtherTracks[iterator]));
+                CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator]));
+
+                std::cout << "same: " << std::endl;
+                std::cout << "Hit: " << OneTracks[iterator].GetNotZ() << " | " << OneTracks[iterator].GetRecoY() << " | " << OneTracks[iterator].GetZ() << std::endl;
+
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              } else {
+                // TODO
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              }
+            } else if ((OneTracks[iterator]).GetPlaneNumber() < (OtherTracks[iterator]).GetPlaneNumber()) {
+              if (iterator == 0) {
+                ++iterator;
+                continue;
+              } else if (iterator == track_length) {
+                break;
+              }
+              if (stereo_view) {
+                CalculateRecoY((OneTracks[iterator]), (OtherTracks[iterator -1 ]));
+                CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator + 1]));
+
+                std::cout << "First smaller" << std::endl;
+                std::cout << "Hit: " << OneTracks[iterator].GetNotZ() << " | " << OneTracks[iterator].GetRecoY() << " | " << OneTracks[iterator].GetZ() << std::endl;
+
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              } else {
+                // TODO
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              }
+            } else if ((OneTracks[iterator]).GetPlaneNumber() > (OtherTracks[iterator]).GetPlaneNumber()) {
+              if (iterator == 0) {
+                ++iterator;
+                continue;
+              } else if (iterator == track_length) {
+                break;
+              }
+              if (stereo_view) {
+                CalculateRecoY((OneTracks[iterator]), (OtherTracks[iterator + 1]));
+                CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator - 1]));
+
+                std::cout << "First bigger" << std::endl;
+                std::cout << "Hit: " << OneTracks[iterator].GetNotZ() << " | " << OneTracks[iterator].GetRecoY() << " | " << OneTracks[iterator].GetZ() << std::endl;
+
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              } else {
+                // TODO
+                (aTrack.Hits).push_back((OneTracks[iterator]));
+                (aTrack.Hits).push_back((OtherTracks[iterator]));
+              }
+            }
+            ++iterator;
+          }
+
+/*          for (std::vector<TMS_Hit>::iterator itOne = OneTracks.begin(); itOne != OneTracks.end(); ++itOne) {
             for (std::vector<TMS_Hit>::iterator itOther = OtherTracks.begin(); itOther != OtherTracks.end(); ++itOther) {
               if ((*itOne).GetPlaneNumber() == (*itOther).GetPlaneNumber()) {
                 bool stereo_view = ((*itOne).GetBar().GetBarType() != TMS_Bar::kXBar && (*itOther).GetBar().GetBarType() != TMS_Bar::kXBar);
@@ -697,7 +767,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 }
               } //else  // TODO !!!!!
             }
-          }
+          }*/
           // If same start and end, assign start and end hit in track
           if (OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()) {
             bool stereo_view = (OneTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);

@@ -170,12 +170,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 event = r
             # Sync up the readout info if it's there. Note that it has one entry per spill, not timeslice
             if readout != None: readout.GetEntry(current_spill_number)
-
-            ### Type cast from low-level code to something usable (numpy array)
-            StartPos = np.frombuffer(event.StartPos, dtype = np.float32)
-            
+           
             ### Check if a track exists in the event/spill, otherwise skip it
-            if len(StartPos) == 0: continue
+            nTracks = event.nTracks
+            if nTracks <= 0: continue
             
             ### Create subplots
             fig = mp.figure(constrained_layout = False)
@@ -222,48 +220,65 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
             x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
             
-            ###  Now fill with the hits
-            nHits = np.frombuffer(event.nHits, dtype = np.uint8)
-            print(nHits)
+            print("number of tracks: ", nTracks)
+            nHits = np.frombuffer(event.nHits), dtype = np.uint8)
+            nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
+            print("number of hits: ", nHits)
+            
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
-            for hit in range(sum(nHits)):
-                #print(TrackHitPos[hit])
-                hit_x = TrackHitPos[hit*3 + 0]
-                hit_y = TrackHitPos[hit*3 + 1]
-                hit_z = TrackHitPos[hit*3 + 2]
-                
-                #print(hit_x, hit_y, hit_z)
-                
-                if hit_x == -999.0 and hit_y == -999.0 and hit_z == -999.0: continue #TODO figure out why some hits are not filled properly!!!
-                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf, alpha = 0.5, linewidth = 0.5)
-                 
-            ### Track start
-            #print(StartPos)
-            for i in range(int(len(StartPos) / 3)):
-                if StartPos[i*3 + 1] == 0.0: continue  #TODO figure out why some hits are not filled properly!!!
-                x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
-                z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
-                x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
-                 
-            ### Track end
+            StartPos = np.frombuffer(event.StartPos, dtype = np.float32)
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
-            #print(EndPos)
-            for i in range(int(len(EndPos) / 3)):
-                if EndPos[i*3 + 1] == 0.0: continue #TODO figure out why some hits are not filled properly!!!
-                x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
-                z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
-                x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
-                 
-            ### Track direction
             Direction = np.frombuffer(event.Direction, dtype = np.float32)
-            #print(Direction)
-            for i in range(int(len(Direction) / 3)):
-                if StartPos[i*3 + 1] == 0.0: continue
-                x_z.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
-                z_y.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
-                x_y.plot([StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
+
+            for i in range(nTracks):
+
+                ###  Now fill with the hits
+                for hit in range(nHits[i]):
+                    #print(TrackHitPos[hit])
+                    hit_x = TrackHitPos[i*600 + hit*3 + 0]
+                    hit_y = TrackHitPos[i*600 + hit*3 + 1]
+                    hit_z = TrackHitPos[i*600 + hit*3 + 2]
+                
+                    #print(hit_x, hit_y, hit_z)
+
+                    #temporary fix
+                    if hit_y > -2000.0 or hit_z < 11000.: continue
+                    if np.abs(hit_x) > 10000. or np.aby(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
+                
+                    if hit_x == -999.0 and hit_y == -999.0 and hit_z == -999.0: continue
+                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf, alpha = 0.5, linewidth = 0.5)
+                 
+                ### Track start
+                #print(StartPos)
+                
+                #temporary fix
+                if not (StartPos[i*3 + 1] > -2000.0 or StartPos[i*3 + 2] < 11000.0):
+                    if not StartPos[i*3 + 1] == 0.0:
+                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                 
+                ### Track end
+                #print(EndPos)
+
+                #temporary fix
+                if not (EndPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 2] < 11000.0):
+                    if not EndPos[i*3 + 1] == 0.0: 
+                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                 
+                ### Track direction
+                #print(Direction)
+
+                #temporary fix
+                if not (StartPos[i*3 + 1] > -2000.0 or StartPos[i*3 + 2] < 11000.0 or EndPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 2] < 11000.0):
+                    if not StartPos[i*3 + 1] == 0.0:
+                        x_z.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
+                        z_y.plot([StartPos[i*3 + 2] / 1000.0, (StartPos[i*3 + 2] + Direction[i*3 + 2]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
+                        x_y.plot([StartPos[i*3 + 0] / 1000.0, (StartPos[i*3 + 0] + Direction[i*3 + 0]) / 1000.0], [StartPos[i*3 + 1] / 1000.0, (StartPos[i*3 + 1] + Direction[i*3 + 1]) / 1000.0], color = green_cbf, linewidth = 1.5, linestyle = '--')
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
