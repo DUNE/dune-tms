@@ -629,7 +629,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
     int nhits = (*it).size();
-    std::cout << "Cluster One nHits: " << nhits << std::endl;
+//    std::cout << "Cluster One nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
       mean_z += (*it)[j].GetZ();
       mean_notz += (*it)[j].GetNotZ();
@@ -638,7 +638,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       total_energy += (*it)[j].GetE();
       float time = (*it)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
+//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
       ClusterHitPosOne[stdit][j][0] = (*it)[j].GetZ();
       ClusterHitPosOne[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergyOne[stdit][j] = (*it)[j].GetE();
@@ -673,7 +673,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
     int nhits = (*it).size();
-    std::cout << "Cluster Other nHits: " << nhits << std::endl;
+//    std::cout << "Cluster Other nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
       mean_z += (*it)[j].GetZ();
       mean_notz += (*it)[j].GetNotZ();
@@ -682,7 +682,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       total_energy += (*it)[j].GetE();
       float time = (*it)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
+//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
       ClusterHitPosOther[stdit][j][0] = (*it)[j].GetZ();
       ClusterHitPosOther[stdit][j][1] = (*it)[j].GetNotZ();
       ClusterHitEnergyOther[stdit][j] = (*it)[j].GetE();
@@ -744,7 +744,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
+//    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergy[itTrack]        =       RecoTrack->GetEnergyRange();
     RecoTrackLength[itTrack]        =       RecoTrack->Length;
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->GetEnergyDeposit();
@@ -764,7 +764,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
     
 
-      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
+//      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
     }
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )

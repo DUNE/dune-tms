@@ -377,7 +377,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
         std::vector<TMS_Hit> hits = *it;
 	      std::vector<std::vector<TMS_Hit> > LinesOther = HoughTransform(hits, 2);
       	for (auto jt = LinesOther.begin(); jt != LinesOther.end(); ++jt) {
-          std::cout << "Next size: " << (*jt).size() << std::endl;
+//          std::cout << "Next size: " << (*jt).size() << std::endl;
       	  HoughCandidatesOther.emplace_back(std::move(*jt));
       	}
       }
@@ -595,10 +595,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           if (OneTracks.back().GetZ() > OneTracks.front().GetZ()) std::reverse(OneTracks.begin(), OneTracks.end());
           if (OtherTracks.back().GetZ() > OtherTracks.front().GetZ()) std::reverse(OtherTracks.begin(), OtherTracks.end());
 
-//#ifdef DEBUG          
+#ifdef DEBUG          
           std::cout << "OneTrack FRONT: " << OneTracks.back().GetPlaneNumber() << " BACK: " << OneTracks.front().GetPlaneNumber() << std::endl;
           std::cout << "OtherTrack FRONT: " << OtherTracks.back().GetPlaneNumber() << " BACK: " << OtherTracks.front().GetPlaneNumber() << std::endl;
-//#endif          
+#endif          
           // If same plane number for start/END but different for end/START
           if (//OneTracks.back().GetPlaneNumber() == OtherTracks.back().GetPlaneNumber() && //front()
                OneTracks.front().GetPlaneNumber() != OtherTracks.front().GetPlaneNumber()) {  //back()
@@ -610,9 +610,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.End[0] = OneTracks.front().GetNotZ();                //back().GetNotZ();
                 aTrack.End[1] = OneTracks.front().GetRecoY();               //back().GetRecoY();
                 aTrack.End[2] = OneTracks.front().GetZ();                   //back().GetZ();
-//#ifdef DEBUG                
+#ifdef DEBUG                
                 std::cout << "OneTrack ends/STARTS after OtherTrack" << std::endl;
-//#endif                
+#endif                
                 (aTrack.Hits).push_back(OneTracks.front()); //back());
               } else {
                 // TODO implement this for orthogonal view!!!
@@ -629,9 +629,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.End[0] = OtherTracks.front().GetNotZ();              //back().GetNotZ();
                 aTrack.End[1] = OtherTracks.front().GetRecoY();             //back().GetRecoY();
                 aTrack.End[2] = OtherTracks.front().GetZ();                 //back().GetZ();
-//#ifdef DEBUG                
+#ifdef DEBUG                
                 std::cout << "OneTracks ends/STARTS before OtherTrack" << std::endl;
-//#endif              
+#endif              
                 (aTrack.Hits).push_back(OtherTracks.front()); //back());
               } else {
                 // TODO
@@ -653,9 +653,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.Start[0] = OtherTracks.back().GetNotZ();           //front().GetNotZ();
                 aTrack.Start[1] = OtherTracks.back().GetRecoY();          //front().GetRecoY();
                 aTrack.Start[2] = OtherTracks.back().GetZ();              //front().GetZ();
-//#ifdef DEBUG                
+#ifdef DEBUG                
                 std::cout << "OneTrack starts/ENDS after OtherTrack" << std::endl;
-//#endif                
+#endif                
                 (aTrack.Hits).push_back(OtherTracks.back());  //front());
               } else {
                 // TODO
@@ -672,9 +672,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.Start[0] = OneTracks.back().GetNotZ();             //front().GetNotZ();
                 aTrack.Start[1] = OneTracks.back().GetRecoY();            //front().GetRecoY();
                 aTrack.Start[2] = OneTracks.back().GetZ();                //front().GetZ();
-//#ifdef DEBUG                
+#ifdef DEBUG                
                 std::cout << "OneTrack starts/ENDS before OtherTrack" << std::endl;
-//#endif                
+#endif                
                 (aTrack.Hits).push_back(OneTracks.back());  //front());
               } else {
                 // TODO
@@ -721,7 +721,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             } else if ((OneTracks[itOne]).GetPlaneNumber() > (OtherTracks[itOther]).GetPlaneNumber()) { //<
               if (stereo_view) {
                 //CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1 ]));
-                CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne - 1])); //+
+                if (itOne > 0) CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne - 1])); //+
+                else CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne + 1]));
 
 #ifdef DEBUG
                 std::cout << "First smaller" << std::endl;
@@ -743,7 +744,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 break;
               }*/
               if (stereo_view) {
-                CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther - 1]));
+                if (itOther > 0) CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther - 1]));
+                else CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1]));
                 //CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator + 1]));
 #ifdef DEBUG
                 std::cout << "First bigger" << std::endl;
@@ -767,9 +769,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = OneTracks.front().GetNotZ();  //Start[0]
               aTrack.End[1] = OneTracks.front().GetRecoY(); //Start[1]
               aTrack.End[2] = OneTracks.front().GetZ();     //Start[2]
-//#ifdef DEBUG              
+#ifdef DEBUG              
               std::cout << "Start/END equal assigned" << std::endl;
-//#endif              
+#endif              
             } else {
               aTrack.End[0] = OneTracks.front().GetRecoX(); //Start[0]
               aTrack.End[1] = OneTracks.front().GetNotZ();  //Start[1]
@@ -782,9 +784,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.Start[0] = OtherTracks.back().GetNotZ();   //End[0]
               aTrack.Start[1] = OtherTracks.back().GetRecoY();  //End[1]
               aTrack.Start[2] = OtherTracks.back().GetZ();      //End[2]
-//#ifdef DEBUG              
+#ifdef DEBUG              
               std::cout << "End/START equal assigned" << std::endl;
-//#endif              
+#endif              
             } else {
               aTrack.Start[0] = OtherTracks.back().GetRecoX();  //End[0]
               aTrack.Start[1] = OtherTracks.back().GetNotZ();   //End[1]
@@ -793,18 +795,18 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           }
           // Track Length
           aTrack.Length = CalculateTrackLength3D(aTrack);
-//#ifdef DEBUG
+#ifdef DEBUG
           std::cout << "Added TrackLength: " << aTrack.Length << std::endl;
-//#endif          
+#endif          
           // Track Direction
           aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
           aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
           aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
-//#ifdef DEBUG          
+#ifdef DEBUG          
           std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
           std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
           std::cout << "Added Direction: " << aTrack.Direction[0] << " | " << aTrack.Direction[1] << " | " << aTrack.Direction[2] << std::endl;
-//#endif          
+#endif          
 
           returned.push_back(aTrack);
         }
@@ -1054,12 +1056,10 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
       // Use the geometry to calculate the track length between hits
       TVector3 point1((*it).GetNotZ(), (*it).GetRecoY(), (*it).GetZ());
       TVector3 point2(nexthit.GetNotZ(), nexthit.GetRecoY(), nexthit.GetZ());
-      point1.Print();
-      point2.Print();
 //      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);  //TODO this line seems to cause the issue with event 45!!!
 //      total += tracklength;
       total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);    
-      std::cout << "length: " << TMS_Geom::GetInstance().GetTrackLength(point1, point2) << std::endl;
+//      std::cout << "length: " << TMS_Geom::GetInstance().GetTrackLength(point1, point2) << std::endl;
       n_nodes += 1;
 //      std::cout << "fine" << std::endl;
     } else if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
@@ -1075,8 +1075,8 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
     final_total = total;
     max_n_nodes_used = n_nodes;
   }
-  std::cout << "Exiting: tracklength = " << final_total << std::flush;
-  std::cout << std::endl;
+//  std::cout << "Exiting: tracklength = " << final_total << std::flush;
+//  std::cout << std::endl;
   return final_total;
 }
 
@@ -1187,7 +1187,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       int last_hit_z = lasthit.GetPlaneNumber();
       int last_hit_notz = lasthit.GetBarNumber();
 
-      std::cout << "Running on track with size: " << (*it).size() << std::endl;
+//      std::cout << "Running on track with size: " << (*it).size() << std::endl;
 
       double HoughOneInter_1 = 0.000;
       double HoughOneSlope_1 = 0.000;
@@ -1271,7 +1271,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
         //std::cout << "Track to merge (to be del) size: " << (*jt).size() << std::endl;
 
-        std::cout << "merged track" << std::endl;
+//        std::cout << "merged track" << std::endl;
 
         // Copy over the contents of hits_2 into hits
         for (TMS_Hit movehits: (*jt)) {
@@ -1480,7 +1480,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       double z = (*it).GetZ();
       double not_z = (*it).GetNotZ();
       if (print) {
-        std::cout << "hitgroup: " << hitgroup << " " << z << " | " << not_z << std::endl;
+//        std::cout << "hitgroup: " << hitgroup << " " << z << " | " << not_z << std::endl;
         print = false;
       }
       if (z > maxz) maxz = z;
@@ -1922,10 +1922,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
   // If more than 2 candidate hits, run A* algorithm to connect the correct ones
   if (end_extrapolation_cand.size() > 2) {
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "more than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
     std::cout << "track initial size: " << TrackHits.size() << std::endl;
-//#endif
+#endif
     // Make sure the hits are ordered
     SpatialPrio(end_extrapolation_cand);
 
@@ -1939,21 +1939,21 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
       // Now add the connected hits into the existing track
       for (auto hit = vec.rbegin(); hit != vec.rend(); ++hit) {
-        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
         returned.push_back((*hit));
       }
     }
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
     // Now order the hits in the existing track
     SpatialPrio(returned);
-    std::cout << "Extrapolation 1.1" << std::endl;
+//    std::cout << "Extrapolation 1.1" << std::endl;
   } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
     std::cout << "track initial size: " << TrackHits.size() << std::endl;
-//#endif
+#endif
 
     // Make sure the hits are still ordered
     SpatialPrio(end_extrapolation_cand);
@@ -1966,17 +1966,17 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
       // Add them
       for (auto hit = end_extrapolation_cand.rbegin(); hit != end_extrapolation_cand.rend(); ++hit) {
-        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
         returned.push_back((*hit));
       }
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
       // Now order the hits in the existing track
       SpatialPrio(returned);
     }
-    std::cout << "Extrapolation 1.2" << std::endl;
+//    std::cout << "Extrapolation 1.2" << std::endl;
   }
 
     // Do the same as for the end of the track just the other direction for the start
@@ -2000,12 +2000,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
           std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Mananger::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
             << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
- #endif
+#endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
           if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() +
               TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
             // Move hit now into candidate hits
- #ifdef DEBUG
+#ifdef DEBUG
               std::cout << "Added to candidates" << std::endl;
 #endif
             front_extrapolation_cand.push_back((*it));
@@ -2016,10 +2016,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
     // If more than 2 candidate hits, run A* algorithm to connect the correct ones
     if (front_extrapolation_cand.size() > 2 ) {
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "more than 2 candidates: " << front_extrapolation_cand.size() << std::endl;
       std::cout << "track initial size: " << returned.size() << std::endl;
-//#endif
+#endif
       // Make sure the hits are ordered
       SpatialPrio(front_extrapolation_cand);
     
@@ -2033,22 +2033,22 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   
         // Now add the connected hits into the existing track
         for (auto hit = vec.begin(); hit != vec.end(); ++hit)  {
-          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
           returned.push_back((*hit));
         }
-//#ifdef DEBUG
+#ifdef DEBUG
         std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
         // Now order the hits in the existing track
         SpatialPrio(returned);
       }
-      std::cout << "Extrapolation 2.1" << std::endl;
+//      std::cout << "Extrapolation 2.1" << std::endl;
     } else if (!front_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
       std::cout << "track initial size: " << returned.size() << std::endl;
-//#endif
+#endif
 
       // Make sure the hits are still ordered
       SpatialPrio(front_extrapolation_cand);
@@ -2061,17 +2061,17 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
         // Add them
         for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
-          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
           returned.push_back((*hit));
         } 
-//#ifdef DEBUG
+#ifdef DEBUG
         std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
         // Now order the hits in the existing track
         SpatialPrio(returned);
       }
-      std::cout << "Extrapolation 2.2" << std::endl;
+//      std::cout << "Extrapolation 2.2" << std::endl;
     }
   return returned;
 }
