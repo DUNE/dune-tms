@@ -720,35 +720,49 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               if (itOther > 0) --itOther;
             } else if ((OneTracks[itOne]).GetPlaneNumber() > (OtherTracks[itOther]).GetPlaneNumber()) { //<
               if (stereo_view) {
-                //CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1 ]));
-                if (itOne > 0) CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne - 1])); //+
-                else CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne + 1]));
-
 #ifdef DEBUG
-                std::cout << "First smaller" << std::endl;
+                std::cout << "First bigger" << std::endl;
                 std::cout << "Hit: (" << OneTracks[itOne].GetNotZ() << " | " << OneTracks[itOne].GetRecoY() << " | " << OneTracks[itOne].GetZ() << ") than: " << OtherTracks[itOther].GetNotZ() << " | " << OtherTracks[itOther].GetRecoY() << " | " << OtherTracks[itOther].GetZ() << std::endl;
 #endif
-                //(aTrack.Hits).push_back((OneTracks[itOne]));
-                (aTrack.Hits).push_back((OtherTracks[itOther]));
+                
+                //CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1 ]));
+                if (itOne > 0 && itOther > 0) {
+                  CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne - 1])); //+
+                  (aTrack.Hits).push_back((OtherTracks[itOther]));
+                  --itOther;
+                } else if (itOne == 0 && itOther > 0) {
+                  CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne]));
+                  (aTrack.Hits).push_back((OtherTracks[itOther]));
+                  --itOther;
+                } else if (itOne > 0 && itOther == 0) {
+                  CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther]));
+                  (aTrack.Hits).push_back((OneTracks[itOne]));
+                  --itOne;
+                }
               } else {
                 // TODO
                 //(aTrack.Hits).push_back((OneTracks[itOne]));
                 (aTrack.Hits).push_back((OtherTracks[itOther]));
+                --itOther;
               }
-              if (itOther > 0) --itOther;
             } else if ((OneTracks[itOne]).GetPlaneNumber() < (OtherTracks[itOther]).GetPlaneNumber()) { //>
-              /*if (iterator == track_length) {
-                --iterator;
-                continue;
-              } else if (iterator == 0) {
-                break;
-              }*/
               if (stereo_view) {
-                if (itOther > 0) CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther - 1]));
-                else CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1]));
+                if (itOther > 0 && itOne > 0) {
+                  CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther - 1]));
+                  (aTrack.Hits).push_back((OneTracks[itOne]));
+                  --itOne;
+                } else if (itOther == 0 && itOne > 0) {
+                  CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther]));
+                  (aTrack.Hits).push_back((OneTracks[itOne]));
+                  --itOne;
+                } else if (itOther > 0 && itOne == 0) {
+                  CalculateRecoY((OtherTracks[itOther]), (OneTracks[itOne]));
+                  (aTrack.Hits).push_back((OtherTracks[itOther]));
+                  --itOther;
+                }
                 //CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator + 1]));
 #ifdef DEBUG
-                std::cout << "First bigger" << std::endl;
+                std::cout << "First smaller" << std::endl;
                 std::cout << "Hit: " << OneTracks[itOne].GetNotZ() << " | " << OneTracks[itOne].GetRecoY() << " | " << OneTracks[itOne].GetZ() << " than: (" << OtherTracks[itOther].GetNotZ() << " | " << OtherTracks[itOther].GetRecoY() << " | " << OtherTracks[itOther].GetZ() << ")" << std::endl;
 #endif
                 (aTrack.Hits).push_back((OneTracks[itOne]));
@@ -757,8 +771,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 // TODO
                 (aTrack.Hits).push_back((OneTracks[itOne]));
                 //(aTrack.Hits).push_back((OtherTracks[iterator]));
+                --itOne;
               }
-              if (itOne > 0) --itOne;
             }
           }
 
