@@ -178,9 +178,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       
       event_counter += 1;
       int spill_number = i;
-      tms_event_slice.SetSpillNumber(spill_number);
-      
-      std::cout << "1: " << tms_event_slice.GetNHits() << std::endl;
+      tms_event_slice.SetSpillNumber(spill_number);      
 
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
