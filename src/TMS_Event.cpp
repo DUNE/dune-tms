@@ -870,8 +870,14 @@ double TMS_Event::GetMuonTrueKE() {
     // Get KE (E - m)
     double mass = sqrt(E*E-mom.Mag2());
     double KE = E-mass;
+    std::cout << "=============" << std::endl;
+    std::cout << "particle PDG: " << *it.GetPDG() << std::endl;
+    std::cout << "mass = " << mass << std::endl;
+    std::cout << "KE is = " << KE << std:endl;
+    std::cout << "=============" << std::endl;
     if (KE > HighestKE) HighestKE = KE;
   }
+  std::cout << "highest KE to be returned is......" << HighestKE << std::endl;
   return HighestKE;
 }
 
