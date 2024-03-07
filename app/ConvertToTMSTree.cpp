@@ -113,7 +113,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // Now loop over previous events
       for (auto &event : overlay_events) tms_event.AddEvent(event);
       overlay_events.clear();
-    } 
+    }
 
     // Dump information
     //tms_event.Print();
