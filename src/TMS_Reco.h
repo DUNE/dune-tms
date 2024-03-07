@@ -292,13 +292,12 @@ class TMS_TrackFinder {
         TMS_Hit hit = (*it);
         double xhit = hit.GetNotZ();
         double zhit = hit.GetZ();
-        
+
         // If z position is above region of interest, ignore hit
         //if (IsXZ && zhit > zMaxHough) continue;
         if (zhit > zMaxHough) continue;
-        
+
         Accumulate(xhit, zhit);
-        
       }
       
       // Find the maximum of the accumulator and which m,c bin the maximum occurs in
