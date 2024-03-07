@@ -133,7 +133,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
 
-	    std::cout << "TrueParticles.size() == " << TrueParticles.size() << std::endl;
+	    std::cout << "TrueParticles.size() == " << TMS_TrueParticles.size() << std::endl;
           } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
