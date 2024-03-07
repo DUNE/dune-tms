@@ -128,7 +128,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             //TMS_TrueParticle part(ParentId, TrackId, PDGcode, Momentum, Position);
             TMS_TrueParticle part(ParentId, TrackId, PDGcode);
 
-	    std::cout << "first time. part: " << part.GetPDG() << std::endl; 
+	    std::cout << "first time. part.GetPDG(): " << part.GetPDG() << std::endl;
 
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
@@ -144,10 +144,10 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Now push back the position and momentum for the true particle at this trajectory point
           TLorentzVector Position = pt.GetPosition();
           TVector3 Momentum = pt.GetMomentum();
-	  std::cout << "|Momentum^2|: " << Momentum.Mag2() << std::endl;
-	  std::cout << "|Momentum-X|: " << Momentum.X() << std::endl;
-	  std::cout << "|Momentum-Y|: " << Momentum.Y() << std::endl;
-	  std::cout << "|Momentum-Z|: " << Momentum.Z() << std::endl;
+//	  std::cout << "|Momentum^2|: " << Momentum.Mag2() << std::endl;
+//	  std::cout << "|Momentum-X|: " << Momentum.X() << std::endl;
+//	  std::cout << "|Momentum-Y|: " << Momentum.Y() << std::endl;
+//	  std::cout << "|Momentum-Z|: " << Momentum.Z() << std::endl;
 
           // Might not want to save this truth information?
           // See G4ProcessType.hh, G4HaronicprocessType.hh, G4EmProcessSubType.hh
@@ -878,9 +878,9 @@ void TMS_Event::Print() {
 double TMS_Event::GetMuonTrueKE() {
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
   double HighestKE = -999.99;
-  std::cout << "==============" << std::endl;
-  TMS_Event::Print();
-  std::cout << "==============" << std::endl;
+//  std::cout << "==============" << std::endl;
+//  TMS_Event::Print();
+//  std::cout << "==============" << std::endl;
   std::cout << "GetMuonTrueKE(), TrueParticles.size() = " << TrueParticles.size() << std::endl;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
