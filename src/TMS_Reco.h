@@ -299,7 +299,7 @@ class TMS_TrackFinder {
 
         Accumulate(xhit, zhit);
       }
-      
+
       // Find the maximum of the accumulator and which m,c bin the maximum occurs in
       double max_zy = 0;
       int max_zy_slope_bin = 0;
@@ -405,21 +405,19 @@ class TMS_TrackFinder {
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit) {
-      
       // Could probably multi-thread this operation
       // Now do the Hough
       for (int i = 0; i < nSlope; ++i) {
         double m = SlopeMin+i*SlopeWidth;
         if (m > SlopeMax) m = SlopeMax;
-        
+
         // Now calculate rho
         double c = xhit-m*zhit;
         if (c > InterceptMax) c = InterceptMax;
-        
+
         // Find which rho bin this corresponds to
         int c_bin = FindBin(c);
-        
-        /*
+           /*
            if (i > nSlope || c_bin > nIntercept) {
            std::cout << "c: " << c << std::endl;
            std::cout << "m: " << m << std::endl;
@@ -427,7 +425,6 @@ class TMS_TrackFinder {
            std::cout << "cbin: " << c_bin << std::endl;
            }
            */
-
         // Fill the accumulator
         Accumulator[i][c_bin]++;
       }
