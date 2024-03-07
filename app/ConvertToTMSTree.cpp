@@ -114,7 +114,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       for (auto &event : overlay_events) tms_event.AddEvent(event);
       overlay_events.clear();
     } 
-   
+
     // Dump information
     //tms_event.Print();
 
@@ -178,7 +178,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       
       event_counter += 1;
       int spill_number = i;
-      tms_event_slice.SetSpillNumber(spill_number);      
+      tms_event_slice.SetSpillNumber(spill_number);
 
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
