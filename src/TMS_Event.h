@@ -10,7 +10,7 @@
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
 #include <random>
-//#include "TMS_Tracks.h"
+#include "TMS_Track.h"
 
 // The edep-sim event class
 #include "EDepSim/TG4Event.h"
@@ -30,7 +30,7 @@ class TMS_Event {
     std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
     void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
     // Reconstructed tracks
-    //std::vector<TMS_Track> GetTracks() {return TMS_Tracks;};
+    std::vector<TMS_Track> GetTracks() {return TMS_Tracks;}; // Needs filled
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
 
@@ -88,7 +88,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
-    
+
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
@@ -103,7 +103,7 @@ class TMS_Event {
     void SimulateTimingModel();
     void SimulateDarkCount();
     void SimulateReadoutNoise();
-    
+
     int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
@@ -113,7 +113,7 @@ class TMS_Event {
     std::vector<TMS_TrueParticle> TMS_TruePrimaryParticles;
 
     // Reconstructed tracks
-    //std::vector<TMS_Track> TMS_Tracks;
+    std::vector<TMS_Track> TMS_Tracks;
 
     // The number of true trajectories right out of edep-sim
     // No energy cuts, or number of deposits etc checked
@@ -143,11 +143,11 @@ class TMS_Event {
     double VisibleEnergyFromVertexInSlice;
     double TotalVisibleEnergyFromVertex;
     double VisibleEnergyFromOtherVerticesInSlice;
-    
+
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;
     std::vector<std::pair<float, float>> ReadChannelTimes;
-    
+
     std::default_random_engine generator;
 };
 

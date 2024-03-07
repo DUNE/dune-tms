@@ -18,40 +18,64 @@ void muonke(std::string filename) {
   const int MAX_LINES = 20;
   const int MAX_HITS = 1500;
   const int MAX_CLUSTERS = 25;
-  int nLines;
-  float TotalTrackEnergy[MAX_LINES];
-  float TrackLength[MAX_LINES];
-  float Occupancy[MAX_LINES];
-  float FirstHoughHit[MAX_LINES][2];
-  float LastHoughHit[MAX_LINES][2];
+  int nLinesOne;
+  int nLinesOther;
+  float TotalTrackEnergyOne[MAX_LINES];
+  float TotalTrackEnergyOther[MAX_LINES];
+  float TrackLengthOne[MAX_LINES];
+  float TrackLengthOther[MAX_LINES];
+  float OccupancyOne[MAX_LINES];
+  float OccupancyOther[MAX_LINES];
+  float FirstHoughHitOne[MAX_LINES][2];
+  float FirstHoughHitOther[MAX_LINES][2];
+  float LastHoughHitOne[MAX_LINES][2];
+  float LastHoughHitOther[MAX_LINES][2];
   bool TMSStart;
   int EventNum_reco;
 
   float RecoHitEnergy[MAX_HITS];
-  float ClusterEnergy[MAX_CLUSTERS];
-  int nClusters;
+  float ClusterEnergyOne[MAX_CLUSTERS];
+  float ClusterEnergyOther[MAX_CLUSTERS];
+  int nClustersOne;
+  int nClustersOther;
 
   reco->SetBranchStatus("*", false);
 
-  reco->SetBranchStatus("nLines", true);
-  reco->SetBranchAddress("nLines", &nLines);
-  reco->SetBranchStatus("TotalTrackEnergy", true);
-  reco->SetBranchAddress("TotalTrackEnergy", TotalTrackEnergy);
-  reco->SetBranchStatus("TrackLength", true);
-  reco->SetBranchAddress("TrackLength", TrackLength);
-  reco->SetBranchStatus("Occupancy", true);
-  reco->SetBranchAddress("Occupancy", Occupancy);
-  reco->SetBranchStatus("FirstHoughHit", true);
-  reco->SetBranchAddress("FirstHoughHit", FirstHoughHit);
-  reco->SetBranchStatus("LastHoughHit", true);
-  reco->SetBranchAddress("LastHoughHit", LastHoughHit);
+  reco->SetBranchStatus("nLinesOne", true);
+  reco->SetBranchStatus("nLinesOther", true);
+  reco->SetBranchAddress("nLinesOne", &nLinesOne);
+  reco->SetBranchAddress("nLinesOther", &nLinesOther);
+  reco->SetBranchStatus("TotalTrackEnergyOne", true);
+  reco->SetBranchStatus("TotalTrackEnergyOther", true);
+  reco->SetBranchAddress("TotalTrackEnergyOne", TotalTrackEnergyOne);
+  reco->SetBranchAddress("TotalTrackEnergyOther", TotalTrackEnergyOther);
+  reco->SetBranchStatus("TrackLengthOne", true);
+  reco->SetBranchStatus("TrackLengthOther", true);
+  reco->SetBranchAddress("TrackLengthOne", TrackLengthOne);
+  reco->SetBranchAddress("TrackLengthOther", TrackLengthOther);
+  reco->SetBranchStatus("OccupancyOne", true);
+  reco->SetBranchStatus("OccupancyOther", true);
+  reco->SetBranchAddress("OccupancyOne", OccupancyOne);
+  reco->SetBranchAddress("OccupancyOther", OccupancyOther);
+  reco->SetBranchStatus("FirstHoughHitOne", true);
+  reco->SetBranchStatus("FirstHoughHitOther", true);
+  reco->SetBranchAddress("FirstHoughHitOne", FirstHoughHitOne);
+  reco->SetBranchAddress("FirstHoughHitOther", FirstHoughHitOther);
+  reco->SetBranchStatus("LastHoughHitOne", true);
+  reco->SetBranchStatus("LastHoughHitOther", true);
+  reco->SetBranchAddress("LastHoughHitOne", LastHoughHitOne);
+  reco->SetBranchAddress("LastHoughHitOther", LastHoughHitOther);
   reco->SetBranchStatus("RecoHitEnergy", true);
   reco->SetBranchAddress("RecoHitEnergy", RecoHitEnergy);
 
-  reco->SetBranchStatus("ClusterEnergy", true);
-  reco->SetBranchAddress("ClusterEnergy", ClusterEnergy);
-  reco->SetBranchStatus("nClusters", true);
-  reco->SetBranchAddress("nClusters", &nClusters);
+  reco->SetBranchStatus("ClusterEnergyOne", true);
+  reco->SetBranchStatus("ClusterEnergyOther", true);
+  reco->SetBranchAddress("ClusterEnergyOne", ClusterEnergyOne);
+  reco->SetBranchAddress("ClusterEnergyOther", ClusterEnergyOther);
+  reco->SetBranchStatus("nClustersOne", true);
+  reco->SetBranchStatus("nClustersOther", true);
+  reco->SetBranchAddress("nClustersOne", &nClustersOne);
+  reco->SetBranchAddress("nClustersOther", &nClustersOther);
 
   reco->SetBranchStatus("EventNo", true);
   reco->SetBranchAddress("EventNo", &EventNum_reco);
@@ -85,22 +109,35 @@ void muonke(std::string filename) {
   truth->SetBranchStatus("EventNo", true);
   truth->SetBranchAddress("EventNo", &EventNum_true);
 
-  TH2D *KE = new TH2D("KE", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
-  TH1D *h_Occupancy = new TH1D("Occ", "Occupancy; Occupancy of longest track; Number of events", 110, 0, 1.1);
+  TH2D *KEOne = new TH2D("KEOne", "KEOne;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
+  TH2D *KEOther = new TH2D("KEOther", "KEOther;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500);
+  TH1D *h_OccupancyOne = new TH1D("OccOne", "OccupancyOne; Occupancy of longest track; Number of events", 110, 0, 1.1);
+  TH1D *h_OccupancyOther = new TH1D("OccOther", "OccupancyOther; Occupancy of longest track; Number of events", 110, 0, 1.1);
 
-  TH2D *KEest = new TH2D("KEest", "KE estimator; True muon KE (MeV); KE estimate", 50, 0, 5000, 50, 0, 5000);
-  KE->GetYaxis()->SetTitleOffset(KE->GetYaxis()->GetTitleOffset()*1.4);
-  KE->GetZaxis()->SetTitleOffset(KE->GetZaxis()->GetTitleOffset()*1.4);
+  TH2D *KEestOne = new TH2D("KEestOne", "KEOne estimator; True muon KE (MeV); KE estimate", 50, 0, 5000, 50, 0, 5000);
+  KEOne->GetYaxis()->SetTitleOffset(KEOne->GetYaxis()->GetTitleOffset()*1.4);
+  KEOne->GetZaxis()->SetTitleOffset(KEOne->GetZaxis()->GetTitleOffset()*1.4);
 
-  KEest->GetYaxis()->SetTitleOffset(KEest->GetYaxis()->GetTitleOffset()*1.4);
-  KEest->GetZaxis()->SetTitleOffset(KEest->GetZaxis()->GetTitleOffset()*1.4);
+  TH2D *KEestOther = new TH2D("KEestOther", "KEOther estimator; True muon KE (MeV); KE estimate", 50, 0, 5000, 50, 0, 5000);
+  KEOther->GetYaxis()->SetTitleOffset(KEOther->GetYaxis()->GetTitleOffset()*1.4);
+  KEOther->GetZaxis()->SetTitleOffset(KEOther->GetZaxis()->GetTitleOffset()*1.4);
+
+  KEestOne->GetYaxis()->SetTitleOffset(KEestOne->GetYaxis()->GetTitleOffset()*1.4);
+  KEestOne->GetZaxis()->SetTitleOffset(KEestOne->GetZaxis()->GetTitleOffset()*1.4);
+
+  KEestOther->GetYaxis()->SetTitleOffset(KEestOther->GetYaxis()->GetTitleOffset()*1.4);
+  KEestOther->GetZaxis()->SetTitleOffset(KEestOther->GetZaxis()->GetTitleOffset()*1.4);
 
   int ngood = 0;
   int nentries = truth->GetEntries();
-  int trklen_counter = 0;
+  int trklenOne_counter = 0;
+  int trklenOther_counter = 0;
   std::cout << nentries << " events..." << std::endl;
   int true_entry = 0;
   int reco_entry = 0;
+
+  std::cout << "nLinesCut: " << nLinesCut << std::endl;
+
   for (int i = 0; i < nentries; ++i, ++true_entry, ++reco_entry) {
     truth->GetEntry(true_entry);
     reco->GetEntry(reco_entry);
@@ -114,6 +151,11 @@ void muonke(std::string filename) {
 
     if (i % int(nentries/100.) == 0) std::cout << "Event " << i << std::endl;
 
+//    if (nLinesOne) std::cout << "nLinesOne: " << nLinesOne << std::endl;
+//    if (nClustersOne) std::cout << "nClustersOne: " << nClustersOne << std::endl;
+//    if (nLinesOther) std::cout << "nLinesOther: " << nLinesOther << std::endl;
+//    if (nClustersOther) std::cout << "nClustersOther: " << nClustersOther << std::endl;
+
     // The event has to have a muon
     if (Muon_TrueKE < 0) continue;
 
@@ -121,74 +163,139 @@ void muonke(std::string filename) {
     if (CCmuOnly && Muon_Vertex[2] < 0) continue;
 
     // Only include events with lines
-    if (AtLeastOneLine && nLines < 1) continue;
+    if (AtLeastOneLine && nLinesOne < 1 && nLinesOther < 1) continue;
 
     // Run the cuts
-    if (nLines > nLinesCut) continue;
-    if (nClusters > nClustersCut) continue;
+    if ((nLinesOne > nLinesCut) && (nLinesOther > nLinesCut)) continue;
+    if ((nClustersOne > nClustersCut) && (nClustersOther > nClustersCut)) continue;
     // Sum up the total cluster energy
-    float cluster_en = 0;
-    for (int j = 0; j < nClusters; ++j) {
-      cluster_en += ClusterEnergy[j];
+    float clusterOne_en = 0;
+    float clusterOther_en = 0;
+    for (int j = 0; j < nClustersOne; ++j) {
+      clusterOne_en += ClusterEnergyOne[j];
     }
-    if (cluster_en > ClusterEnergyCut) continue;
+
+    for (int j = 0; j < nClustersOther; ++j) {
+      clusterOther_en += ClusterEnergyOther[j];
+    }
+    if ((clusterOne_en > ClusterEnergyCut) || (clusterOther_en > ClusterEnergyCut)) continue;
 
     // Find the best track
-    int besttrack = 0;
-    for (int j = 0; j < nLines; ++j) {
-      if (Occupancy[j] > Occupancy[besttrack]) besttrack = j;
+    int besttrackOne = 0;
+    for (int j = 0; j < nLinesOne; ++j) {
+      if (OccupancyOne[j] > OccupancyOne[besttrackOne]) besttrackOne = j;
     }
+    
+    if (nLinesOne) std::cout << "besttrackOne: " << besttrackOne << std::endl;
+
+    int besttrackOther = 0;
+    for (int j = 0; j < nLinesOther; ++j) {
+      if (OccupancyOther[j] > OccupancyOther[besttrackOther]) besttrackOther = j;
+    }
+
+    if (nLinesOther) std::cout << "besttrackOther: " << besttrackOther << std::endl;
 
     // Also check the track with the longest track length
-    int lon_trklen = 0;
-    for (int j = 0; j < nLines; ++j) {
-      if (TrackLength[j] > TrackLength[lon_trklen]) lon_trklen = j;
+    int lon_trklenOne = 0;
+    for (int j = 0; j < nLinesOne; ++j) {
+      if (TrackLengthOne[j] > TrackLengthOne[lon_trklenOne]) lon_trklenOne = j;
     }
+
+    if (nLinesOne) std::cout << "lon_trklenOne: " << lon_trklenOne << std::endl;
+
+    int lon_trklenOther = 0;
+    for (int j = 0; j < nLinesOther; ++j) {
+      if (TrackLengthOther[j] > TrackLengthOther[lon_trklenOther]) lon_trklenOther = j;
+    }
+
+    if (nLinesOther) std::cout << "lon_trklenOther: " << lon_trklenOther << std::endl;
 
     // And also check longest track
-    float longest = 0;
-    int longtrack = 0;
-    for (int j = 0; j < nLines; ++j) {
-      float xdist = LastHoughHit[j][0]-FirstHoughHit[j][0];
-      float ydist = LastHoughHit[j][1]-FirstHoughHit[j][1];
+    float longestOne = 0;
+    int longtrackOne = 0;
+    for (int j = 0; j < nLinesOne; ++j) {
+      float xdist = LastHoughHitOne[j][0]-FirstHoughHitOne[j][0];
+      float ydist = LastHoughHitOne[j][1]-FirstHoughHitOne[j][1];
       float dist = sqrt(xdist*xdist+ydist*ydist);
-      if (dist > longest) longtrack = j;
+      if (dist > longestOne) longtrackOne = j;
     }
 
-    if (longtrack != lon_trklen) {
-      trklen_counter++;
+    if (longtrackOne != lon_trklenOne) {
+      trklenOne_counter++;
+      if (nLinesOne) std::cout << "longtrackOne: " << longtrackOne << " | lon_trklenOne: " << lon_trklenOne << std::endl;
     }
-    longtrack = lon_trklen;
+    longtrackOne = lon_trklenOne;
+
+    if (nLinesOne) std::cout << "longtrackOne: " << longtrackOne << std::endl;
+
+    float longestOther = 0;
+    int longtrackOther = 0;
+    for (int j = 0; j < nLinesOther; ++j) {
+      float xdist = LastHoughHitOther[j][0]-FirstHoughHitOther[j][0];
+      float ydist = LastHoughHitOther[j][1]-FirstHoughHitOther[j][1];
+      float dist = sqrt(xdist*xdist+ydist*ydist);
+      if (dist > longestOther) longtrackOther = j;
+    }
+
+    if (longtrackOther != lon_trklenOther) {
+      trklenOther_counter++;
+      if (nLinesOther) std::cout << "longtrackOther: " << longtrackOther << " | lon_trklenOther: " << lon_trklenOther << std::endl;
+    }
+    longtrackOther = lon_trklenOther;
+
+    if (nLinesOther) std::cout << "longtrackOther: " << longtrackOther << std::endl;
 
     // Look only at events with true muons that die inside the detector
     if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
 
+    std::cout << "Muon didn't die outside" << std::endl;
+
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
-      if (FirstHoughHit[longtrack][0] < 11362+55*2) continue;
+      if (FirstHoughHitOne[longtrackOne][0] < 11362+55*2) continue;
+      if (FirstHoughHitOther[longtrackOther][0] < 11362+55*2) continue;
     } else {
-      if (FirstHoughHit[longtrack][0] < 11362+55*2 || FirstHoughHit[longtrack][0] > 13600) continue;
+      if (FirstHoughHitOne[longtrackOne][0] < 11362+55*2 || FirstHoughHitOne[longtrackOne][0] > 13600) continue;
+      if (FirstHoughHitOther[longtrackOther][0] < 11362+55*2 || FirstHoughHitOther[longtrackOther][0] > 13600) continue;
     }
-    if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
+    if (LastHoughHitOne[longtrackOne][0] > 18294-80*2) continue;
+    if (LastHoughHitOther[longtrackOther][0] > 18294-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 13600) continue;
 
+    std::cout << "Longest track stops in detector" << std::endl;
+
     // 20 cm inwards
-    if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;
-    if (fabs(LastHoughHit[longtrack][1]) > 3520-200) continue;
+    if ((fabs(FirstHoughHitOne[longtrackOne][1]) > 3520-200) || (fabs(FirstHoughHitOther[longtrackOther][1]) > 3520-200)) continue;
+    if ((fabs(LastHoughHitOne[longtrackOne][1]) > 3520-200) || (fabs(LastHoughHitOther[longtrackOther][1]) > 3520-200)) continue;
 
-    h_Occupancy->Fill(Occupancy[longtrack]);
+    h_OccupancyOne->Fill(OccupancyOne[longtrackOne]);
+    h_OccupancyOther->Fill(OccupancyOther[longtrackOther]);
 
+    std::cout << "20 cm inwards" << std::endl;
+    std::cout << "Occupancy Cut: " << OccupancyCut << std::endl;
+    
     // Ask for only small amount of other energy deposits
-    if (Occupancy[longtrack] < OccupancyCut) continue;
+    //if (OccupancyOne[longtrackOne] < OccupancyCut) continue;
+    //if (OccupancyOther[longtrackOther] < OccupancyCut) continue;
 
-    float best_tracklength = TrackLength[longtrack];
-    KEest->Fill(Muon_TrueKE, 82+1.75*best_tracklength);
-    KE->Fill(Muon_TrueKE, best_tracklength);
+    std::cout << "only small amount of other energy deposited" << std::endl;
+
+    float best_tracklengthOne = TrackLengthOne[longtrackOne];
+    KEestOne->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOne);
+    KEOne->Fill(Muon_TrueKE, best_tracklengthOne);
+    
+    float best_tracklengthOther = TrackLengthOther[longtrackOther];
+    KEestOther->Fill(Muon_TrueKE, 82+1.75*best_tracklengthOther);
+    KEOther->Fill(Muon_TrueKE, best_tracklengthOther);
+
+    if (nLinesOne) std::cout << "Best track length One: " << best_tracklengthOne << std::endl;
+    if (nLinesOther) std::cout << "Best track length Other: " << best_tracklengthOther << std::endl;
 
     ngood++;
   }
   std::cout << ngood << "/" << nentries << std::endl;
-  std::cout << trklen_counter << std::endl;
+  std::cout << trklenOne_counter << std::endl;
+  std::cout << trklenOther_counter << std::endl;
 
   TCanvas *canv = new TCanvas("canv", "canv", 1024, 1024);
   canv->SetLeftMargin(canv->GetLeftMargin()*1.5);
@@ -206,15 +313,21 @@ void muonke(std::string filename) {
   canv->Print(canvname+"[");
 
   gStyle->SetPalette(55);
-  KE->Draw("colz");
+  KEOne->Draw("colz");
   canv->Print(canvname);
-  h_Occupancy->Draw();
+  KEOther->Draw("colz");
+  canv->Print(canvname);
+  h_OccupancyOne->Draw();
+  canv->Print(canvname);
+  h_OccupancyOther->Draw();
   canv->Print(canvname);
 
-  TH1D *arith = new TH1D("arith", "arith", KE->GetXaxis()->GetNbins(), KE->GetXaxis()->GetBinLowEdge(1), KE->GetXaxis()->GetBinLowEdge(KE->GetXaxis()->GetNbins()+1));
+  TH1D *arithOne = new TH1D("arith", "arith", KEOne->GetXaxis()->GetNbins(), KEOne->GetXaxis()->GetBinLowEdge(1), KEOne->GetXaxis()->GetBinLowEdge(KEOne->GetXaxis()->GetNbins()+1));
+  gStyle->SetOptStat(1111);
+  TH1D *arithOther = new TH1D("arith", "arith", KEOther->GetXaxis()->GetNbins(), KEOther->GetXaxis()->GetBinLowEdge(1), KEOther->GetXaxis()->GetBinLowEdge(KEOther->GetXaxis()->GetNbins()+1));
   // Now make the muon KE
   gStyle->SetOptStat(1111);
-  for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
+  /*for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
     double center = KE->GetXaxis()->GetBinCenter(i);
     TH1D *proj = KE->ProjectionY(Form("KE %.2f", center), i, i);
     double mean = proj->GetMean();
@@ -225,24 +338,40 @@ void muonke(std::string filename) {
     proj->Draw();
     proj->SetStats(1);
     canv->Print(canvname);
-  }
-  TF1 *fit = new TF1("fit", "[0]+[1]*x", KE->GetYaxis()->GetBinLowEdge(1), KE->GetYaxis()->GetBinLowEdge(KE->GetYaxis()->GetNbins()+1));
+  }*/
+  TF1 *fitOne = new TF1("fit", "[0]+[1]*x", KEOne->GetYaxis()->GetBinLowEdge(1), KEOne->GetYaxis()->GetBinLowEdge(KEOne->GetYaxis()->GetNbins()+1));
   gStyle->SetOptStat(0);
-  KE->Draw("colz");
-  arith->Draw("same");
-  arith->Fit(fit, "S", "", 700, 2500);
-  TLegend *leg = new TLegend(0.2, 0.5, 0.6, 0.9);
-  leg->AddEntry(arith, "Artihmetic mean and RMS", "le");
-  leg->AddEntry(fit, Form("y=%.2f x + %.2f", fit->GetParameter(1), fit->GetParameter(0)), "l");
-  fit->SetLineColor(kRed);
-  arith->GetXaxis()->SetTitle("Muon True KE");
-  leg->Draw("same");
+  KEOne->Draw("colz");
+  arithOne->Draw("same");
+  arithOne->Fit(fitOne, "S", "", 700, 2500);
+  TLegend *legOne = new TLegend(0.2, 0.5, 0.6, 0.9);
+  legOne->AddEntry(arithOne, "Artihmetic mean and RMS", "le");
+  legOne->AddEntry(fitOne, Form("y=%.2f x + %.2f", fitOne->GetParameter(1), fitOne->GetParameter(0)), "l");
+  fitOne->SetLineColor(kRed);
+  arithOne->GetXaxis()->SetTitle("Muon True KE");
+  legOne->Draw("same");
 
   canv->Print(canvname);
 
-  KEest->Draw("colz");
+  TF1 *fitOther = new TF1("fit", "[0]+[1]*x", KEOther->GetYaxis()->GetBinLowEdge(1), KEOther->GetYaxis()->GetBinLowEdge(KEOther->GetYaxis()->GetNbins()+1));
+  gStyle->SetOptStat(0);
+  KEOther->Draw("colz");
+  arithOther->Draw("same");
+  arithOther->Fit(fitOther, "S", "", 700, 2500);
+  TLegend *legOther = new TLegend(0.2, 0.5, 0.6, 0.9);
+  legOther->AddEntry(arithOther, "Arithmetic mean and RMS", "le");
+  legOther->AddEntry(fitOther, Form("x=%.2f x + %.2f", fitOther->GetParameter(1), fitOther->GetParameter(0)), "l");
+  fitOther->SetLineColor(kRed);
+  arithOther->GetXaxis()->SetTitle("Muon True KE");
+  legOther->Draw("same");
+
   canv->Print(canvname);
 
+  KEestOne->Draw("colz");
+  canv->Print(canvname);
+
+  KEestOther->Draw("colz");
+  canv->Print(canvname);
 
   canv->Print(canvname+"]");
 }
