@@ -44,7 +44,7 @@ export PATH=${PATH}:${TMS_DIR}/bin
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
 
 # Debugging options passed to makefile
-export DEBUG=1
+#export DEBUG=1
 #export VERBOSE=1
 
 
