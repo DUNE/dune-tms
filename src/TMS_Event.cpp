@@ -133,8 +133,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
 
-	    std::cout << "TrueParticles.size() == " << TMS_TrueParticles.size() << std::endl;
-      std::cout << TMS_TrueParticle::Print() << std::endl;
+	    std::cout << "first time, TrueParticles.size() == " << TMS_TrueParticles.size() << std::endl;
+	    //	    TMS_TrueParticle::Print(); // not working 
           } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
@@ -159,6 +159,9 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           part->AddPoint(Position, Momentum, G4Process, G4Subprocess);
 
 	  // TODO: I think this is being saved AFTER the push_back(). So this info isn't saved.
+	  std::cout << "==============" << std::endl;
+	  TMS_Event::Print();
+	  std::cout << "==============" << std::endl;
         } // End loop over trajectory points
 
         // Save the birth and death points of trajectories that had a hit in a volume of interest
@@ -875,8 +878,10 @@ void TMS_Event::Print() {
 double TMS_Event::GetMuonTrueKE() {
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
   double HighestKE = -999.99;
+  std::cout << "==============" << std::endl;
   TMS_Event::Print();
-  std::cout << "TrueParticles.size() = " << TrueParticles.size() << std::endl;
+  std::cout << "==============" << std::endl;
+  std::cout << "GetMuonTrueKE(), TrueParticles.size() = " << TrueParticles.size() << std::endl;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;
