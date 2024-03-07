@@ -187,9 +187,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   nParticles = TrueParticles.size();
+  std::cout << nParticles << std::endl;
   // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-
+    std::cout << "paricle: " << (*it).GetPDG() << std::endl;
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;
     // Also make sure it's a fundamental muon
