@@ -149,7 +149,6 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ReadChannelTimes;
 
     std::default_random_engine generator;
-
 };
 
 #endif
