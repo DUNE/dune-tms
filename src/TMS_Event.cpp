@@ -74,6 +74,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       for (TG4TrajectoryContainer::iterator jt = event.Trajectories.begin(); jt != event.Trajectories.end(); ++jt) {
         TG4Trajectory traj = *jt;
 
+	// TODO: look here
         // Only the muon if requested
         int PDGcode = traj.GetPDGCode();
         if (OnlyMuon && abs(PDGcode) != 13) continue;
@@ -101,6 +102,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Check the point against the geometry
           TGeoNode *vol = TMS_Geom::GetInstance().FindNode(pt.GetPosition().X(), pt.GetPosition().Y(), pt.GetPosition().Z());
 
+	  //	  std::cout << "first time. Vol: " << vol << std::endl;
+
           // Very rarely but it does happen, the volume is null
           if (!vol) continue;
           std::string VolumeName = vol->GetName();
@@ -124,8 +127,13 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             // Can't set start momentum and position whe looping over the trajectory points, do this later
             //TMS_TrueParticle part(ParentId, TrackId, PDGcode, Momentum, Position);
             TMS_TrueParticle part(ParentId, TrackId, PDGcode);
+
+	    std::cout << "first time. part: " << part.GetPDG() << std::endl; 
+
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
+
+	    std::cout << "TrueParticles.size() == " << TrueParticles.size() << std::endl;
           } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
@@ -135,6 +143,10 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Now push back the position and momentum for the true particle at this trajectory point
           TLorentzVector Position = pt.GetPosition();
           TVector3 Momentum = pt.GetMomentum();
+	  std::cout << "|Momentum^2|: " << Momentum.Mag2() << std::endl;
+	  std::cout << "|Momentum-X|: " << Momentum.X() << std::endl;
+	  std::cout << "|Momentum-Y|: " << Momentum.Y() << std::endl;
+	  std::cout << "|Momentum-Z|: " << Momentum.Z() << std::endl;
 
           // Might not want to save this truth information?
           // See G4ProcessType.hh, G4HaronicprocessType.hh, G4EmProcessSubType.hh
@@ -144,6 +156,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Add the point
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
           part->AddPoint(Position, Momentum, G4Process, G4Subprocess);
+
+	  // TODO: I think this is being saved AFTER the push_back(). So this info isn't saved.
         } // End loop over trajectory points
 
         // Save the birth and death points of trajectories that had a hit in a volume of interest
@@ -860,6 +874,8 @@ void TMS_Event::Print() {
 double TMS_Event::GetMuonTrueKE() {
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
   double HighestKE = -999.99;
+  TMS_Event::Print();
+  std::cout << "TrueParticles.size() = " << TrueParticles.size() << std::endl;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;
@@ -871,9 +887,9 @@ double TMS_Event::GetMuonTrueKE() {
     double mass = sqrt(E*E-mom.Mag2());
     double KE = E-mass;
     std::cout << "=============" << std::endl;
-    std::cout << "particle PDG: " << *it.GetPDG() << std::endl;
+    std::cout << "particle PDG: " << (*it).GetPDG() << std::endl;
     std::cout << "mass = " << mass << std::endl;
-    std::cout << "KE is = " << KE << std:endl;
+    std::cout << "KE is = " << KE << std::endl;
     std::cout << "=============" << std::endl;
     if (KE > HighestKE) HighestKE = KE;
   }
