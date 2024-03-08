@@ -158,10 +158,28 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
           part->AddPoint(Position, Momentum, G4Process, G4Subprocess);
 
+	  std::cout << "GetPDG (saved in in 'firsttime'): " << part->GetPDG() << std::endl;
+	  std::cout << "============= using 'part' ===============" << std::endl;
+          for (const auto &point : part->GetPositionPoints()) {
+	    std::cout << "point: " << point.X() << ", " << point.Y() << ", " << point.Z() << std::endl;
+          }
+          for (const auto &p : part->GetMomentumPoints()) {
+	    std::cout << "momentum: " << p.X() << ", " << p.Y() << ", " << p.Z() << std::endl;
+          }
+	  std::cout << "============================" << std::endl;
+	  std::cout << "============== using 'TrueParticles' ==============" << std::endl;
+          for (const auto &point : TMS_TrueParticles.back().GetPositionPoints()) {
+	    std::cout << "point: " << point.X() << ", " << point.Y() << ", " << point.Z() << std::endl;
+          }
+          for (const auto &p : TMS_TrueParticles.back().GetMomentumPoints()) {
+	    std::cout << "momentum: " << p.X() << ", " << p.Y() << ", " << p.Z() << std::endl;
+          }
+	  std::cout << "============================" << std::endl;
+
 	  // TODO: I think this is being saved AFTER the push_back(). So this info isn't saved.
-	  std::cout << "==============" << std::endl;
-	  TMS_Event::Print();
-	  std::cout << "==============" << std::endl;
+	  //	  std::cout << "==============" << std::endl;
+	  //	  TMS_Event::Print();
+	  //	  std::cout << "==============" << std::endl;
         } // End loop over trajectory points
 
         // Save the birth and death points of trajectories that had a hit in a volume of interest
