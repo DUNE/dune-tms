@@ -346,7 +346,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // sorting hits into orientation groups
   // EDIT: Use BarType here instead TODO correct BarTypes???
     
-    if (hit.GetBar().GetBarType() == TMS_Bar::kYBar) OneHitGroup.push_back(hit); //add hit to one group (y hit)
+    if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) OneHitGroup.push_back(hit); //add hit to one group (y hit)
     else if (hit.GetBar().GetBarType() == TMS_Bar:: kVBar) OtherHitGroup.push_back(hit); // add hit to other group (v hit)
     //if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
     //else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
@@ -542,7 +542,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Start some reconstruction chain
   for (auto &i : TotalCandidatesOne) {
     // Get the xz and yz hits
-    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
+    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kUBar);
     size_t nHits = xz_hits.size();
     if (nHits < 1) continue; 
     KalmanFitter = TMS_Kalman(xz_hits);
@@ -1108,7 +1108,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   if (TMS_Hits_Cleaned.empty()) return LineCandidates;
 
   // Now split in yz and xz hits
-  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
+  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
   }
@@ -1478,7 +1478,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 
   // Check if we're in XZ view
-  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
 
   // Recalculate Hough parameters event by event... not fully tested!
   bool VariableHough = false;
@@ -2140,7 +2140,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
 
   // Now split in yz and xz hits
-   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
+  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
   }
@@ -2289,7 +2289,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Remember which orientation these hits are
   // needed when we potentially skip the air gap in xz (but not in yz!)
-  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
   // Reset remembering where gaps are in xz
   if (IsXZ) PlanesNearGap.clear();
 
