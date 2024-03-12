@@ -2030,8 +2030,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         // Now order the hits in the existing track
         SpatialPrio(returned);
     }
-  return returned;
   }
+  return returned;
 }
 
 
