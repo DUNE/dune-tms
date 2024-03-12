@@ -523,10 +523,24 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //}
 
   // Now calculate the track length and energy for each track
-  CalculateTrackLengthU();
-  CalculateTrackEnergyU();
-  CalculateTrackLengthV();
-  CalculateTrackEnergyV();
+  //CalculateTrackLengthU();
+  //CalculateTrackEnergyU();
+  //CalculateTrackLengthV();
+  //CalculateTrackEnergyV();
+
+  for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
+    double TrackEnergy = CalculateTrackEnergy((*it));
+    double TrackLength = CalculateTrackLength((*it));
+    TrackEnergyU.push_back(TrackEnergy);
+    TrackLengthU.push_back(TrackLength);
+  }
+
+  for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
+    double TrackEnergy = CalculateTrackEnergy((*it));
+    double TrackLength = CalculateTrackLength((*it));
+    TrackEnergyV.push_back(TrackEnergy);
+    TrackLengthV.push_back(TrackLength);
+  }
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -902,7 +916,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 }
 
 // Calculate the total track energy
-void TMS_TrackFinder::CalculateTrackEnergyU() {
+/*void TMS_TrackFinder::CalculateTrackEnergyU() {
   // Look at the reconstructed tracks
   if (HoughCandidatesU.size() == 0) return;
 
@@ -916,9 +930,24 @@ void TMS_TrackFinder::CalculateTrackEnergyU() {
     }
     TrackEnergyU.push_back(total);
   }
+}*/
+
+double TMS_TrackFinder::CalculateTrackEnergy(const std::vector<TMS_Hit> &Candidate) {
+  // Look at the reconstructred tracks
+  if (Candidate.size() == 0) return -999.;
+
+  // Sort by increasing z
+  //std::sort((*Candidate).begin(), (*Candidate).end(), TMS_Hit::SortByZInc);
+
+  double total = 0;
+  // Find the track energy
+  for (auto hit = Candidate.begin(); hit != Candidate.end(); ++hit) {
+    total += (*hit).GetE();
+  }
+  return total;
 }
 
-void TMS_TrackFinder::CalculateTrackEnergyV() {
+/*void TMS_TrackFinder::CalculateTrackEnergyV() {
   //Look at the reconstructed tracks
   if (HoughCandidatesV.size() == 0) return;
 
@@ -932,7 +961,7 @@ void TMS_TrackFinder::CalculateTrackEnergyV() {
     }
     TrackEnergyV.push_back(total);
   }
-}
+}*/
 
 double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
@@ -948,7 +977,7 @@ double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
 
 
 // Calculate the track length for each track
-void TMS_TrackFinder::CalculateTrackLengthU() {
+/*void TMS_TrackFinder::CalculateTrackLengthU() {
   // Look at the reconstructed tracks
   if (HoughCandidatesU.size() == 0) return;
 
@@ -958,7 +987,7 @@ void TMS_TrackFinder::CalculateTrackLengthU() {
     int max_n_nodes_used = 0;
 
     // Loop through all bar types so we're only calculating along the same plane rotation type
-    // Otherwise it would overestimate the track length by zig-zagging between y and v
+    // Otherwise it would overestimate the track length by zig-zagging between u and v
     TMS_Bar::BarType bartypes[] = {TMS_Bar::kXBar, TMS_Bar::kYBar, TMS_Bar::kUBar, TMS_Bar::kVBar, TMS_Bar::kError};
     for (auto itbartype = std::begin(bartypes); itbartype != std::end(bartypes); ++itbartype) {
       // Get only the nodes with the current bar type
@@ -999,9 +1028,47 @@ void TMS_TrackFinder::CalculateTrackLengthU() {
     //}
     TrackLengthU.push_back(final_total);
   }
+}*/
+
+double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candidate) {
+  // Look at the reconstructed track
+  if (Candidate.size() == 0) return 999.;
+
+  double final_total = 0;
+  int max_n_nodes_used = 0;
+
+  // Loop through all bar types so we're only calculating along the same plane rotation type
+  // Otherwise it would overestimate the track length by zig-zagging between u and v
+  TMS_Bar::BarType bartypes[] = {TMS_Bar::kXBar, TMS_Bar::kYBar, TMS_Bar::kUBar, TMS_Bar::kVBar, TMS_Bar::kError};
+  for (auto itbartype = std::begin(bartypes); itbartype != std::end(bartypes); ++itbartype) {
+    // Get only the nodes with the current bar type
+    auto track_hits_only_matching_bar = ProjectHits(Candidate, (*itbartype));
+    double total = 0;
+    int n_nodes = 0;
+    for (auto hit = track_hits_only_matching_bar.begin(); hit != track_hits_only_matching_bar.end()
+        && (hit+1) != track_hits_only_matching_bar.end(); ++hit) {
+      auto nexthit = *(hit+1);
+      // Use the geometry to calculate the track length between hits
+      TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
+      TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
+      // handle X bars correctly
+      if ((*itbartype) == TMS_Bar::kXBar) {
+        point1.SetXYZ(0, (*hit).GetNotZ(), (*hit).GetZ());
+        point2.SetXYZ(0, nexthit.GetNotZ(), nexthit.GetZ());
+      }
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      total += tracklength;
+      n_nodes += 1;
+    }
+    if (n_nodes > max_n_nodes_used) {
+      final_total = total;
+      max_n_nodes_used = n_nodes;
+    }
+  }
+  return final_total;
 }
 
-void TMS_TrackFinder::CalculateTrackLengthV() {
+/*void TMS_TrackFinder::CalculateTrackLengthV() {
   // Look at the reconstructed tracks
   if (HoughCandidatesV.size() == 0) return;
   
@@ -1052,7 +1119,7 @@ void TMS_TrackFinder::CalculateTrackLengthV() {
     //}
     TrackLengthV.push_back(final_total);
   }
-}
+}*/
 
 double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
