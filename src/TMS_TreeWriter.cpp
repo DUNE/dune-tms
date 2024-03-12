@@ -188,7 +188,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
   Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("Energy",       RecoTrackEnergy,        "Energy[nTracks]/F");
+  Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
   Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
 
@@ -745,9 +745,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
-    RecoTrackEnergy[itTrack]        =       RecoTrack->GetEnergyRange();
+    RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       RecoTrack->Length;
-    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->GetEnergyDeposit();
+    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
@@ -923,7 +923,7 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitPos[i][k][1] = -999;
       RecoTrackHitPos[i][k][2] = -999;
     }
-    RecoTrackEnergy[i] = -999;
+    RecoTrackEnergyRange[i] = -999;
     RecoTrackEnergyDeposit[i] = -999;
     RecoTrackLength[i] = -999;
   }

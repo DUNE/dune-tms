@@ -46,7 +46,7 @@ class TMS_TreeWriter {
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
     float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
-    float RecoTrackEnergy[__TMS_MAX_TRACKS__];
+    float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
 
@@ -139,7 +139,7 @@ class TMS_TreeWriter {
     bool TrackStoppingU[__TMS_MAX_LINES__];
     bool TrackStoppingV[__TMS_MAX_LINES__];
 
-    float FirstHit3D[__TMS_MAX_LINES__][3]; // [0] is Z, [1] is 'X', [2] is Y
+    /*float FirstHit3D[__TMS_MAX_LINES__][3]; // [0] is Z, [1] is 'X', [2] is Y
     float LastHit3D[__TMS_MAX_LINES__][3];
     float FirstHitTime3D[__TMS_MAX_LINES__];
     float LastHitTime3D[__TMS_MAX_LINES__];
@@ -154,7 +154,7 @@ class TMS_TreeWriter {
     float TrackHitEnergy3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitTime3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitPos3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][3];
-    float nHitsInTrack3D[__TMS_MAX_LINES__];
+    float nHitsInTrack3D[__TMS_MAX_LINES__];*/
 
     float TrackHitEnergyU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
     float TrackHitEnergyV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
