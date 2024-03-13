@@ -224,10 +224,12 @@ class TMS_TrackFinder {
 
     void SetZMaxHough(double z) { zMaxHough = z;};
 
-    void CalculateTrackLengthU();
-    void CalculateTrackLengthV();
-    void CalculateTrackEnergyU();
-    void CalculateTrackEnergyV();
+    //void CalculateTrackLengthU();
+    //void CalculateTrackLengthV();
+    //void CalculateTrackEnergyU();
+    //void CalculateTrackEnergyV();
+    double CalculateTrackLength(const std::vector<TMS_Hit> &Hits);
+    double CalculateTrackEnergy(const std::vector<TMS_Hit> &Hits);
     
     void CalculateTrackLengthU(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyU(const std::vector<std::vector<TMS_Hit> > &Hits);
