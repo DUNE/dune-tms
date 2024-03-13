@@ -69,7 +69,7 @@
     # How many ns can the ends/starts of the two simple tracks be away from each other?
     TimeLimit = 30
     # What is the 'anchor point' of the scintillator bars in y [mm]?
-    YAnchor = -2510.
+    YAnchor = -2510.0
     # Tilt angle of scintillator planes for calculation of y (tan(90-angle))
     TiltAngle = 19.0811366877 #tan(90-3=87)
 
