@@ -46,10 +46,10 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
       PlaneNumber = geom->GetCurrentNode()->GetNumber();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
-      if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kYBar;       // Pure y orientation(?)
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // 6 degrees rotated/tilted from kYBar orientation
+      if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
       else if (NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) BarOrient = kXBar;  // not yet implemented!
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName4) != std::string::npos) BarOrient = kUBar;  // not yet implemented!
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName4) != std::string::npos) BarOrient = kYBar;  // not yet implemented! Pure y orientation
       else {
         std::cout<<"Error: Do not understand TMS_ModuleLayerName '"<<NodeName<<"'. This bar will have type kError."<<std::endl;
         BarOrient = kError;
@@ -112,13 +112,13 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   */
 
   // If this is a y-bar, remove the y coordinate
-  if (BarOrient == kXBar || BarOrient == kUBar) {
+  if (BarOrient == kXBar) {
     x = -99999000;
     // Flip the widths
     double tempyw = yw;
     yw = xw;
     xw = tempyw; 
-  } else if (BarOrient == kYBar || BarOrient == kVBar) {
+  } else if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
     y = -99999000;
     // Don't need to flip the widths because they're already correct (yw = large, xw = 4cm)
   } else {

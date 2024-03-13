@@ -41,7 +41,7 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
             if return_value >= -2.51: return -2.51
             elif return_value <= -5.71: return -5.71
             else: return return_value
-    elif orientation_bar == 'kYBar':
+    elif orientation_bar == 'kUBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
@@ -70,7 +70,7 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
             if return_value >= -2.51: return -2.51
             elif return_value <= -5.71: return -5.71
             else: return return_value
-    elif orientation_bar == 'kYBar':
+    elif orientation_bar == 'kUBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
@@ -292,7 +292,7 @@ def check_orientation(hit_z):
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
 first_z = 11368
-layer_dict = { "%s" % first_z : "kYBar" }
+layer_dict = { "%s" % first_z : "kUBar" }
 
 def calculate_layers():
     thin_layers = 39
@@ -301,7 +301,7 @@ def calculate_layers():
     for i in range(thin_layers):
         hit_z = first_z + i * 55
         if ((hit_z - first_z) / 55) % 2 == 0: # even layers
-            layer_dict.update({ "%s" % hit_z : "kYBar" })
+            layer_dict.update({ "%s" % hit_z : "kUBar" })
         elif ((hit_z - first_z) / 55) % 2 == 1: # odd layers
             layer_dict.update({ "%s" % hit_z : "kVBar" })
     
@@ -312,7 +312,7 @@ def calculate_layers():
         if ((hit_z - start_thick) / 80) % 2 == 0: # even layers
             layer_dict.update({ "%s" % hit_z : "kVBar" })
         elif ((hit_z - start_thick) / 80) % 2 == 1: # odd layers
-            layer_dict.update({ "%s" % hit_z : "kYBar" })
+            layer_dict.update({ "%s" % hit_z : "kUBar" })
 
     return
 

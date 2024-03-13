@@ -36,10 +36,10 @@ caf::SRTMS ConvertEvent() {
     caf.tracks.push_back(srtrack);
   }
 
-  std::vector<std::pair<bool, TF1*> > HoughLinesOne = TMS_TrackFinder::GetFinder().GetHoughLinesOne();
-  std::vector<std::pair<bool, TF1*> > HoughLinesOther = TMS_TrackFinder::GetFinder().GetHoughLinesOther();
+  std::vector<std::pair<bool, TF1*> > HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
+  std::vector<std::pair<bool, TF1*> > HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
   int nit = 0;
-  for (auto it = HoughLinesOne.begin(); it != HoughLinesOne.end(); ++it, ++nit) {
+  for (auto it = HoughLinesU.begin(); it != HoughLinesU.end(); ++it, ++nit) {
     //double intercept = (*it).second->GetParameter(0);
     //double slope = (*it).second->GetParameter(1);
 
@@ -59,12 +59,12 @@ caf::SRTMS ConvertEvent() {
     tracks[nit].dir = dir;
 
     // Now do the track quality, track energy and track length
-    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOne()[nit];
-    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOne()[nit];
+    tracks[nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthU()[nit];
+    tracks[nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyU()[nit];
   }
   keeper_nit = nit;
   nit = 0;
-  for (auto it = HoughLinesOther.begin(); it != HoughLinesOther.end(); ++it, ++nit)  {
+  for (auto it = HoughLinesV.begin(); it != HoughLinesV.end(); ++it, ++nit)  {
     // Calculate the z and x vectors by evaling the TF1 in thin and thick target
     double zlow = TMS_Const::TMS_Thin_Start;
     double zhi = TMS_Const::TMS_Thick_Start;
@@ -81,8 +81,8 @@ caf::SRTMS ConvertEvent() {
     tracks[nit+keeper_nit].dir = dir;
 
     // Now do the track quality, track energy and track length
-    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthOther()[nit];
-    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyOther()[nit];
+    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthV()[nit];
+    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyV()[nit];
   }
 
   return caf;

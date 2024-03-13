@@ -35,120 +35,120 @@ def run(c, truth, outfilename, nmax=-1):
     # You can add any histograms you want. Just make sure that histogram name hasn't been used before.
       
     # Hists related to track length
-    hist_TrackLengthOne = ROOT.TH1D("hist_TrackLength_one", "TrackLength;Track Length (g/cm^{2});N Tracks", 50, 0, 2500)
-    hist_track_lengthOne = ROOT.TH1D("hist_track_length_one", "Track Length;Track Length (cm);N Tracks", 50, 0, 2500)
-    hist_track_length_longestOne = ROOT.TH1D("hist_track_length_longest_one", "Track Length of Muon Candidate;Track Length (cm);N Tracks", 50, 10, 10000)
+    hist_TrackLengthU = ROOT.TH1D("hist_TrackLength_U", "TrackLength;Track Length (g/cm^{2});N Tracks", 50, 0, 2500)
+    hist_track_lengthU = ROOT.TH1D("hist_track_length_U", "Track Length;Track Length (cm);N Tracks", 50, 0, 2500)
+    hist_track_length_longestU = ROOT.TH1D("hist_track_length_longest_U", "Track Length of Muon Candidate;Track Length (cm);N Tracks", 50, 10, 10000)
     hist_track_length_max_dz = ROOT.TH1D("hist_track_length_max_dz", "Longest Track Length by Max dz;Track Length (cm);N Tracks", 50, 10, 10000)
   
-    hist_TrackLengthOther = ROOT.TH1D("hist_TrackLength_other", "TrackLength;TrackLength (g/cm^{2};N Tracks", 50, 0, 2500)
-    hist_track_lengthOther = ROOT.TH1D("hist_track_length_other", "Track Length;Track Length (cm);N Tracks", 50, 0, 2500);
-    hist_track_length_longestOther = ROOT.TH1D("hist_track_length_longest_other", "Track Length of Muon Candidate;Track Length (cm);N Tracks", 50, 10, 10000)
+    hist_TrackLengthV = ROOT.TH1D("hist_TrackLength_V", "TrackLength;TrackLength (g/cm^{2};N Tracks", 50, 0, 2500)
+    hist_track_lengthV = ROOT.TH1D("hist_track_length_V", "Track Length;Track Length (cm);N Tracks", 50, 0, 2500);
+    hist_track_length_longestV = ROOT.TH1D("hist_track_length_longest_V", "Track Length of Muon Candidate;Track Length (cm);N Tracks", 50, 10, 10000)
 #   hist_track_length_max_dzOther = ROOT.TH1D("hist_track_length_max_dz_other", "Longest Track Length by Max dz;Track Length (cm);N Tracks", 50, 10, 10000)
     # Other hists
-    hist_n_tracksOne = ROOT.TH1D("hist_n_tracks_one", "N Tracks;N Tracks;N Events", 6, -0.5, 5.5)
+    hist_n_tracksU = ROOT.TH1D("hist_n_tracks_U", "N Tracks;N Tracks;N Events", 6, -0.5, 5.5)
     hist_n_hits = ROOT.TH1D("hist_n_hits", "N Hits;N Hits;N Events", 101, 0, 100)
-    hist_occupancyOne = ROOT.TH1D("hist_occupancy_one", "Occupancy;Occupancy of longest track;N Events", 110, 0, 1.1)
+    hist_occupancyU = ROOT.TH1D("hist_occupancy_U", "Occupancy;Occupancy of longest track;N Events", 110, 0, 1.1)
 
-    hist_n_tracksOther = ROOT.TH1D("hist_n_tracks_other", "N Tracks;N Tracks; N Events", 6, -0.5, 5.5)
-    hist_occupancyOther = ROOT.TH1D("hist_occupancy_other", "Occupancy;Occupancy of longest track;N Events", 110, 0, 1.1)
+    hist_n_tracksV = ROOT.TH1D("hist_n_tracks_V", "N Tracks;N Tracks; N Events", 6, -0.5, 5.5)
+    hist_occupancyV = ROOT.TH1D("hist_occupancy_V", "Occupancy;Occupancy of longest track;N Events", 110, 0, 1.1)
     # Track start and stop positions
-    hist_track_start_xOne = ROOT.TH1D("hist_track_start_x_one", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_start_zOne = ROOT.TH1D("hist_track_start_z_one", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
-    hist_track_end_xOne = ROOT.TH1D("hist_track_end_x_one", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_end_zOne = ROOT.TH1D("hist_track_end_z_one", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
-    hist_track_startOne = ROOT.TH2D("hist_track_start_one", 
+    hist_track_start_xU = ROOT.TH1D("hist_track_start_x_U", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
+    hist_track_start_zU = ROOT.TH1D("hist_track_start_z_U", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_end_xU = ROOT.TH1D("hist_track_end_x_U", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
+    hist_track_end_zU = ROOT.TH1D("hist_track_end_z_U", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_startU = ROOT.TH2D("hist_track_start_U", 
       "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
-    hist_track_endOne = ROOT.TH2D("hist_track_end_one", 
+    hist_track_endU = ROOT.TH2D("hist_track_end_U", 
       "Track End Position;Track End Position X (mm);Track End Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
-    hist_track_angleOne = ROOT.TH1D("hist_track_angle_one", "Track Angle;Angle (deg);N Events", 50, -180, 180)
+    hist_track_angleU = ROOT.TH1D("hist_track_angle_U", "Track Angle;Angle (deg);N Events", 50, -180, 180)
   
-    hist_track_start_xOther = ROOT.TH1D("hist_track_start_x_other", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_start_zOther = ROOT.TH1D("hist_track_start_z_other", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
-    hist_track_end_xOther = ROOT.TH1D("hist_track_end_x_other", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_end_zOther = ROOT.TH1D("hist_track_end_z_other", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
-    hist_track_startOther = ROOT.TH2D("hist_track_start_other",
+    hist_track_start_xV = ROOT.TH1D("hist_track_start_x_V", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
+    hist_track_start_zV = ROOT.TH1D("hist_track_start_z_V", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_end_xV = ROOT.TH1D("hist_track_end_x_V", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
+    hist_track_end_zV = ROOT.TH1D("hist_track_end_z_V", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_startV = ROOT.TH2D("hist_track_start_V",
       "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
-    hist_track_endOther = ROOT.TH2D("hist_track_end_other",
+    hist_track_endV = ROOT.TH2D("hist_track_end_V",
       "Track End Position;Track End Position X (mm); Track End Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
-    hist_track_angleOther = ROOT.TH1D("hist_track_angle_other", "Track Angle;Angle (deg);N Events", 50, -180, 180)
+    hist_track_angleV = ROOT.TH1D("hist_track_angle_V", "Track Angle;Angle (deg);N Events", 50, -180, 180)
   
     # Now make histograms that rely on truth information as well
     if truth != None:
         # KE estimators
-        hist_KEOne = ROOT.TH2D("hist_KE_one", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500)
-        hist_KE_estimatedOne = ROOT.TH2D("hist_KE_estimated_one", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
+        hist_KEU = ROOT.TH2D("hist_KE_U", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500)
+        hist_KE_estimatedU = ROOT.TH2D("hist_KE_estimated_U", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
         hist_KE_vs_track_length_max_dz = ROOT.TH2D("hist_KE_vs_track_length_max_dz", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
-        hist_track_length_vs_max_dz_distOne = ROOT.TH2D("hist_track_length_vs_max_dz_dist_one", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
+        hist_track_length_vs_max_dz_distU = ROOT.TH2D("hist_track_length_vs_max_dz_dist_U", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
         hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
   
-        hist_KEOther = ROOT.TH2D("hist_KE_other", "KE;True muon KE (MeV);Track length of best track (g/cm^{2}=)", 100, 0, 5000, 50, 0, 2500)
-        hist_KE_estimatedOther = ROOT.TH2D("hist_KE_estimated_other", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000) 
+        hist_KEV = ROOT.TH2D("hist_KE_V", "KE;True muon KE (MeV);Track length of best track (g/cm^{2}=)", 100, 0, 5000, 50, 0, 2500)
+        hist_KE_estimatedV = ROOT.TH2D("hist_KE_estimated_V", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000) 
 #        hist_KE_vs_track_length_max_dzOther = ROOT.TH2D("hist_KE_vs_track_length_max_dz_other", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
-        hist_track_length_vs_max_dz_distOther = ROOT.TH2D("hist_track_length_vs_max_dz_dist_other", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
+        hist_track_length_vs_max_dz_distV = ROOT.TH2D("hist_track_length_vs_max_dz_dist_V", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
 #        hist_KE_inside_TMSOther = ROOT.TH1D("hist_KE_inside_TMS_other", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
      
         # Additional estimators that only require a true muon start and stop inside the TMS (it's "interior")
         # These are not ideal because they're using truth information, but it's a nice way to test for issues with reco
         hist_true_interior_muon_ke_vs_track_length_dz = ROOT.TH2D("hist_true_interior_muon_ke_vs_track_length_dz", 
           "True KE vs Dist Between Widest dz Hits;True muon KE (MeV);Dist between two widest dz hits (mm)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_max_distOne = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_dist_one", 
+        hist_true_interior_muon_ke_vs_max_distU = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_dist_U", 
           "True KE vs Longest Track;True muon KE (MeV);Longest Track (mm)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_max_areal_densityOne = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_areal_density_one", 
+        hist_true_interior_muon_ke_vs_max_areal_densityU = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_areal_density_U", 
           "True KE vs Largest Areal Density Reco Track;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_estimated_keOne = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_one", 
+        hist_true_interior_muon_ke_vs_estimated_keU = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_U", 
           "True KE vs 3.5*(areal density);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_estimated_ke_originalOne = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_original_one", 
+        hist_true_interior_muon_ke_vs_estimated_ke_originalU = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_original_U", 
           "True KE vs 82+1.75*(areal density);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
      
 #        hist_true_interior_muon_ks_vs_track_length_dzOther = ROOT.TH2D("hist_true_interior_muon_ke_vs_track_length_dz_other",
 #          "True KE vs Dist Between Widest dz Hits;True muon KE (MeV);Dist between two widest dz hits (mm)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_max_distOther = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_dist_other",
+        hist_true_interior_muon_ke_vs_max_distV = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_dist_V",
           "True KE vs Longest Track;True muon KE (MeV);Longest Track (mm)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_max_areal_densityOther = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_areal_density_other",
+        hist_true_interior_muon_ke_vs_max_areal_densityV = ROOT.TH2D("hist_true_interior_muon_ke_vs_max_areal_density_V",
           "True KE vs Largest Areal Density Reco Track;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_estimated_keOther = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_other",
+        hist_true_interior_muon_ke_vs_estimated_keV = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_V",
           "True KE vs 3.5*(areal density);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)
-        hist_true_interior_muon_ke_vs_estimated_ke_originalOther = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_original_other",
+        hist_true_interior_muon_ke_vs_estimated_ke_originalV = ROOT.TH2D("hist_true_interior_muon_ke_vs_estimated_ke_original_V",
           "True KE vs 82+1.75*(areal density);True muon KE (MeV);Estimated KE (MeV)", 100, 0, 5000, 50, 0, 5000)                                                                   
 
         # Vertex Resolution
-        hist_track_start_vtx_z_resolutionOne = ROOT.TH1D("hist_track_start_vtx_z_resolution_one", 
+        hist_track_start_vtx_z_resolutionU = ROOT.TH1D("hist_track_start_vtx_z_resolution_U", 
           "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_start_vtx_z_resolution_using_spanOne = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span_one", 
+        hist_track_start_vtx_z_resolution_using_spanU = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span_U", 
           "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolutionOne = ROOT.TH1D("hist_track_end_vtx_z_resolution_one", "End Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolution_using_spanOne = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span_one", 
+        hist_track_end_vtx_z_resolutionU = ROOT.TH1D("hist_track_end_vtx_z_resolution_U", "End Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
+        hist_track_end_vtx_z_resolution_using_spanU = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span_U", 
           "Track End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
-        hist_track_start_vtx_x_resolutionOne = ROOT.TH1D("hist_track_start_vtx_x_resolution_one", 
+        hist_track_start_vtx_x_resolutionU = ROOT.TH1D("hist_track_start_vtx_x_resolution_U", 
           "Track Start Vtx Resolution X;Reco - True Vtx X (mm);N events", 51, -1000, 1000)
-        hist_track_end_vtx_x_resolutionOne = ROOT.TH1D("hist_track_end_vtx_x_resolution_one", 
+        hist_track_end_vtx_x_resolutionU = ROOT.TH1D("hist_track_end_vtx_x_resolution_U", 
           "Track End Vtx Resolution X;Reco - True Vtx X (mm); N events", 51, -1000, 1000)
        
-        hist_track_start_vtx_z_resolutionOther = ROOT.TH1D("hist_track_start_vtx_z_resolution_other",
+        hist_track_start_vtx_z_resolutionV = ROOT.TH1D("hist_track_start_vtx_z_resolution_V",
           "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_start_vtx_z_resolution_using_spanOther = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span_other",
+        hist_track_start_vtx_z_resolution_using_spanV = ROOT.TH1D("hist_track_start_vtx_z_resolution_using_span_V",
           "Track Start Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolutionOther = ROOT.TH1D("hist_track_end_vtx_z_resolution_other", "End Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
-        hist_track_end_vtx_z_resolution_using_spanOther = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span_other",
+        hist_track_end_vtx_z_resolutionV = ROOT.TH1D("hist_track_end_vtx_z_resolution_V", "End Vtx Resolution Z;Reco - True Vtx Z (mm); N events", 51, -1000, 1000)
+        hist_track_end_vtx_z_resolution_using_spanV = ROOT.TH1D("hist_track_end_vtx_z_resolution_using_span_V",
           "Track End Vtx Resolution Z;Reco - True Vtx Z (mm);N events", 51, -1000, 1000)
-        hist_track_start_vtx_x_resolutionOther = ROOT.TH1D("hist_track_start_vtx_x_resolution_other",
+        hist_track_start_vtx_x_resolutionV = ROOT.TH1D("hist_track_start_vtx_x_resolution_V",
           "Track Start Vtx Resolution X;Reco - True Vtx X (mm);N events", 51, -1000, 1000)
-        hist_track_end_vtx_x_resolutionOther = ROOT.TH1D("hist_track_end_vtx_x_resolution_other",
+        hist_track_end_vtx_x_resolutionV = ROOT.TH1D("hist_track_end_vtx_x_resolution_V",
           "Track End Vtx Resolution X; Reco - True Vtx X (mm); N events", 51, -1000, 1000)                                               
         # Can also calculate efficiency
         bin_edges = array.array('d', [0, 200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,3000,4000,5000])
-        hist_eff_track_finding_numeratorOne = ROOT.TH1D("hist_eff_track_finding_numerator_one", "N Tracks Found;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_after_cuts_numeratorOne = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator_one", "N Tracks After Cuts;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_denominatorOne = ROOT.TH1D("hist_eff_track_finding_denominator_one", "N Tracks;True KE (MeV);N Muons",len(bin_edges) - 1, bin_edges)
-        hist_eff_track_findingOne = ROOT.TH1D("hist_eff_track_finding_one", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_after_cutsOne = ROOT.TH1D("hist_eff_track_finding_after_cuts_one", 
+        hist_eff_track_finding_numeratorU = ROOT.TH1D("hist_eff_track_finding_numerator_U", "N Tracks Found;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_after_cuts_numeratorU = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator_U", "N Tracks After Cuts;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_denominatorU = ROOT.TH1D("hist_eff_track_finding_denominator_U", "N Tracks;True KE (MeV);N Muons",len(bin_edges) - 1, bin_edges)
+        hist_eff_track_findingU = ROOT.TH1D("hist_eff_track_finding_U", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_after_cutsU = ROOT.TH1D("hist_eff_track_finding_after_cuts_U", 
           "Eff. of Reco'ing TMS-Starting Muons After Cuts;True KE (MeV);Eff",len(bin_edges) - 1, bin_edges)
       
-        hist_eff_track_finding_numeratorOther = ROOT.TH1D("hist_eff_track_finding_numerator_other", "N Tracks Found;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_after_cuts_numeratorOther = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator_other", "N Tracks After Cuts; True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_denominatorOther = ROOT.TH1D("hist_eff_track_finding_denominator_other", "N Tracks;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_findingOther = ROOT.TH1D("hist_eff_track_finding_other", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)
-        hist_eff_track_finding_after_cutsOther = ROOT.TH1D("hist_eff_track_finding_after_cuts_other",
+        hist_eff_track_finding_numeratorV = ROOT.TH1D("hist_eff_track_finding_numerator_V", "N Tracks Found;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_after_cuts_numeratorV = ROOT.TH1D("hist_eff_track_finding_after_cuts_numerator_V", "N Tracks After Cuts; True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_denominatorV = ROOT.TH1D("hist_eff_track_finding_denominator_V", "N Tracks;True KE (MeV);N Muons", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_findingV = ROOT.TH1D("hist_eff_track_finding_V", "Eff. of Reco'ing TMS-Starting Muons;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)
+        hist_eff_track_finding_after_cutsV = ROOT.TH1D("hist_eff_track_finding_after_cuts_V",
           "Eff. of Reco'ing TMS-Starting Muons After Cuts;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)                                                 
 
         # We can also do some simple counts
@@ -185,18 +185,18 @@ def run(c, truth, outfilename, nmax=-1):
             if i % print_every == 0 and not carriage: print(f"On {i} / {nevents}")
             
             # Get some basic info
-            nLinesOne = event.nLinesOne
-            ntracksOne = nLinesOne
+            nLinesU = event.nLinesU
+            ntracksU = nLinesU
             nhits = event.nHits
            
-            nLinesOther = event.nLinesOther
-            ntracksOther = nLinesOther
+            nLinesV = event.nLinesV
+            ntracksV = nLinesV
     
             # And fill that basic info
-            hist_n_tracksOne.Fill(ntracksOne)
+            hist_n_tracksU.Fill(ntracksU)
             hist_n_hits.Fill(nhits)
         
-            hist_n_tracksOther.Fill(ntracksOther)
+            hist_n_tracksV.Fill(ntracksV)
   
             # This finds the two hits with the largest dz distance between them.
             # Then it calculates the distance between the two using dz and dx
@@ -237,184 +237,184 @@ def run(c, truth, outfilename, nmax=-1):
           # It's also not taking into account the curvature due to magnetic field
           # This code also plots all track lengths in a histogram
           # And saves them in an array for later use
-          longtrack_lengthOne = 0
-          longtrackOne = -1
-          track_lengthsOne = [0] * ntracksOne
-          areal_densitiesOne = [0] * ntracksOne
+          longtrack_lengthU = 0
+          longtrackU = -1
+          track_lengthsU = [0] * ntracksU
+          areal_densitiesU = [0] * ntracksU
   
-          longtrack_lengthOther = 0
-          longtrackOther = -1
-          track_lengthsOther = [0] * ntracksOther
-          areal_densitiesOther = [0] * ntracksOther
+          longtrack_lengthV = 0
+          longtrackV = -1
+          track_lengthsV = [0] * ntracksV
+          areal_densitiesVr = [0] * ntracksV
 
-          for trackOne in range(ntracksOne):
-              track_start_x = event.FirstHoughHitOne[2*trackOne+0]
-              track_start_y = event.FirstHoughHitOne[2*trackOne+1]
-              track_end_x = event.LastHoughHitOne[2*trackOne+0]
-              track_end_y = event.LastHoughHitOne[2*trackOne+1]
+          for trackU in range(ntracksU):
+              track_start_x = event.FirstHoughHitU[2*trackU+0]
+              track_start_y = event.FirstHoughHitU[2*trackU+1]
+              track_end_x = event.LastHoughHitU[2*trackU+0]
+              track_end_y = event.LastHoughHitU[2*trackU+1]
               xdist = track_end_x - track_start_x
               ydist = track_end_y - track_start_y
               dist = math.sqrt(xdist*xdist+ydist*ydist)
-              TrackLength = event.TrackLengthOne[trackOne]
+              TrackLength = event.TrackLengthU[trackU]
             
               # Check if this is the longest track by areal density
-              if TrackLength > longtrack_lengthOne:
-                  longtrackOne = trackOne
-                  longtrack_lengthOne = TrackLength
+              if TrackLength > longtrack_lengthU:
+                  longtrackU = trackU
+                  longtrack_lengthU = TrackLength
             
               # Plot them in histograms
-              hist_track_lengthOne.Fill(dist)
-              hist_TrackLengthOne.Fill(TrackLength)
+              hist_track_lengthU.Fill(dist)
+              hist_TrackLengthU.Fill(TrackLength)
             
               # Save them in these arrays
-              track_lengthsOne[trackOne] = dist
-              areal_densitiesOne[trackOne] = event.TrackLengthOne[trackOne]
+              track_lengthsU[trackU] = dist
+              areal_densitiesU[trackU] = event.TrackLengthU[trackU]
 
-          for trackOther in range(ntracksOther):
-              track_start_x = event.FirstHoughHitOther[2*trackOther+0]
-              track_start_y = event.FirstHoughHitOther[2*trackOther+1]
-              track_end_x = event.LastHoughHitOther[2*trackOther+0]
-              track_end_y = event.LastHoughHitOther[2*trackOther+1]
+          for trackV in range(ntracksV):
+              track_start_x = event.FirstHoughHitV[2*trackV+0]
+              track_start_y = event.FirstHoughHitV[2*trackV+1]
+              track_end_x = event.LastHoughHitV[2*trackV+0]
+              track_end_y = event.LastHoughHitV[2*trackV+1]
               xdist = track_end_x - track_start_x
               ydist = track_end_y - track_start_y
               dist = math.sqrt(xdist*xdist+ydist*ydist)
-              TrackLength = event.TrackLengthOther[trackOther]
+              TrackLength = event.TrackLengthV[trackV]
   
               # Check if this is the longest track by areal density
-              if TrackLength > longtrack_lengthOther:
-                  longtrackOther = trackOther
-                  longtrack_lengthOther = TrackLength
+              if TrackLength > longtrack_lengthV:
+                  longtrackV = trackV
+                  longtrack_lengthV = TrackLength
 
               # Plot them in histograms
-              hist_track_lengthOther.Fill(dist)
-              hist_TrackLengthOther.Fill(TrackLength)
+              hist_track_lengthV.Fill(dist)
+              hist_TrackLengthV.Fill(TrackLength)
   
               # Save them in these arrays
-              track_lengthsOther[trackOther] = dist
-              areal_densitiesOther[trackOther] = event.TrackLengthOther[trackOther]
+              track_lengthsV[trackV] = dist
+              areal_densitiesV[trackV] = event.TrackLengthV[trackV]
   
-          best_tracklengthOne = -999.0
-          reconstructed_muon_keOne = -999.0
-          if longtrackOne >= 0:
-              hist_track_length_longestOne.Fill(track_lengthsOne[longtrackOne])
+          best_tracklengthU = -999.0
+          reconstructed_muon_keU = -999.0
+          if longtrackU >= 0:
+              hist_track_length_longestU.Fill(track_lengthsU[longtrackU])
           hist_track_length_max_dz.Fill(track_length_max_dz)
          
-          best_tracklengthOther = -999.9
-          reconstructed_muon_keOther = -999.0
-          if longtrackOther >= 0:
-              hist_track_length_longestOther.Fill(track_lengthsOther[longtrackOther])
+          best_tracklengthV = -999.9
+          reconstructed_muon_keV = -999.0
+          if longtrackV >= 0:
+              hist_track_length_longestV.Fill(track_lengthsV[longtrackV])
 #          hist_track_length_max_dzOther.Fill(track_length_max_dzOther)
           
           # If there's a muon candidate, plot its occupancy, and start and stop positions
-          if longtrackOne >= 0:
-              occupancy = event.OccupancyOne[longtrackOne]
-              hist_occupancyOne.Fill(occupancy)
-              track_start_z = event.FirstHoughHitOne[2*longtrackOne+0]
-              track_end_z = event.LastHoughHitOne[2*longtrackOne+0]
-              track_start_x = event.FirstHoughHitOne[2*longtrackOne+1]
-              track_end_x = event.LastHoughHitOne[2*longtrackOne+1]
-              hist_track_start_xOne.Fill(track_start_x)
-              hist_track_start_zOne.Fill(track_start_z)
-              hist_track_startOne.Fill(track_start_z, track_start_x)
-              hist_track_end_xOne.Fill(track_end_x)
-              hist_track_end_zOne.Fill(track_end_z)
-              hist_track_endOne.Fill(track_end_z, track_end_x)
+          if longtrackU >= 0:
+              occupancy = event.OccupancyU[longtrackU]
+              hist_occupancyU.Fill(occupancy)
+              track_start_z = event.FirstHoughHitU[2*longtrackU+0]
+              track_end_z = event.LastHoughHitU[2*longtrackU+0]
+              track_start_x = event.FirstHoughHitU[2*longtrackU+1]
+              track_end_x = event.LastHoughHitU[2*longtrackU+1]
+              hist_track_start_xU.Fill(track_start_x)
+              hist_track_start_zU.Fill(track_start_z)
+              hist_track_startU.Fill(track_start_z, track_start_x)
+              hist_track_end_xU.Fill(track_end_x)
+              hist_track_end_zU.Fill(track_end_z)
+              hist_track_endU.Fill(track_end_z, track_end_x)
             
-              slope = event.SlopeOne[longtrackOne]
+              slope = event.SlopeU[longtrackU]
               angle = math.atan(slope) * 180 / math.pi
-              hist_track_angleOne.Fill(angle)
+              hist_track_angleU.Fill(angle)
         
-          if longtrackOther >= 0:
-              occupancy = event.OccupancyOther[longtrackOther]
-              hist_occupancyOther.Fill(occupancy)
-              track_start_z = event.FirstHoughHitOther[2*longtrackOther+0]
-              track_end_z = event.LastHoughHitOther[2*longtrackOther+0]
-              track_start_x = event.FirstHoughHitOther[2*longtrackOther+1]
-              track_end_x = event.LastHoughHitOther[2*longtrackOther+1]
-              hist_track_start_xOther.Fill(track_start_x)
-              hist_track_start_zOther.Fill(track_start_z)
-              hist_track_startOther.Fill(track_start_z, track_start_x)
-              hist_track_end_xOther.Fill(track_end_x)
-              hist_track_end_zOther.Fill(track_end_z)
-              hist_track_endOther.Fill(track_end_z, track_end_x)
+          if longtrackV >= 0:
+              occupancy = event.OccupancyV[longtrackV]
+              hist_occupancyV.Fill(occupancy)
+              track_start_z = event.FirstHoughHitV[2*longtrackV+0]
+              track_end_z = event.LastHoughHitV[2*longtrackV+0]
+              track_start_x = event.FirstHoughHitV[2*longtrackV+1]
+              track_end_x = event.LastHoughHitV[2*longtrackV+1]
+              hist_track_start_xV.Fill(track_start_x)
+              hist_track_start_zV.Fill(track_start_z)
+              hist_track_startV.Fill(track_start_z, track_start_x)
+              hist_track_end_xV.Fill(track_end_x)
+              hist_track_end_zV.Fill(track_end_z)
+              hist_track_end.Fill(track_end_z, track_end_x)
   
-              slope = event.SlopeOther[longtrackOther]
+              slope = event.SlopeV[longtrackV]
               angle = math.atan(slope) * 180 / math.pi
-              hist_track_angleOther.Fill(angle)
+              hist_track_angleV.Fill(angle)
 
           # Now check if the muon is a good candidate
           # Does this by checking a list of conditions. If any of them are false, don't fill the reco vs true ke plots.
-          best_muon_candidateOne = longtrackOne
-          best_muon_candidateOther = longtrackOther
-          if longtrackOne >= 0:
+          best_muon_candidateU = longtrackU
+          best_muon_candidateV = longtrackV
+          if longtrackU >= 0:
               OccupancyCut = 0.0  #0.5
               alldet = True
-              track_start_z = event.FirstHoughHitOne[2*longtrackOne+0]
-              track_end_z = event.LastHoughHitOne[2*longtrackOne+0]
-              track_start_x = event.FirstHoughHitOne[2*longtrackOne+1]
-              track_end_x = event.LastHoughHitOne[2*longtrackOne+1]
+              track_start_z = event.FirstHoughHitU[2*longtrackU+0]
+              track_end_z = event.LastHoughHitU[2*longtrackU+0]
+              track_start_x = event.FirstHoughHitU[2*longtrackU+1]
+              track_end_x = event.LastHoughHitU[2*longtrackU+1]
               # Check if the muon starts within the correct z range
-              if alldet and track_start_z < 11362+55*2: best_muon_candidateOne = -1
-              if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateOne = -1 
-              if track_end_z > 18294-80*2: best_muon_candidateOne = -1
+              if alldet and track_start_z < 11362+55*2: best_muon_candidateU = -1
+              if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateU = -1 
+              if track_end_z > 18294-80*2: best_muon_candidateU = -1
               # Check if the muon is in the right x position
-              if abs(track_start_x) > 3520-200: best_muon_candidateOne = -1
-              if abs(track_end_x) > 3520-200: best_muon_candidateOne = -1
+              if abs(track_start_x) > 3520-200: best_muon_candidateU = -1
+              if abs(track_end_x) > 3520-200: best_muon_candidateU = -1
               # Look only at events with true muons that die inside the detector
-              if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateOne = -1 
+              if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateU = -1 
               # Make sure that at least OccupancyCut of the hits are from the candidate
-              if event.OccupancyOne[longtrackOne] < OccupancyCut: best_muon_candidateOne = -1
+              if event.OccupancyU[longtrackU] < OccupancyCut: best_muon_candidateU = -1
           
-          if longtrackOther >= 0:
+          if longtrackV >= 0:
               OccupancyCut = 0.0  #0.5
               alldet = True
-              track_start_z = event.FirstHoughHitOther[2*longtrackOther+0]
-              track_end_z = event.LastHoughHitOther[2*longtrackOther+0]
-              track_start_x = event.FirstHoughHitOther[2*longtrackOther+1]
-              track_end_x = event.LastHoughHitOther[2*longtrackOther+1]
+              track_start_z = event.FirstHoughHitV[2*longtrackV+0]
+              track_end_z = event.LastHoughHitV[2*longtrackV+0]
+              track_start_x = event.FirstHoughHitV[2*longtrackV+1]
+              track_end_x = event.LastHoughHitV[2*longtrackV+1]
               # Check if the muon starts within the correct z range
-              if alldet and track_start_z < 11362+55*2: best_muon_candidateOther = -1
-              if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateOther = -1
-              if track_end_z > 18294-80*2: best_muon_candidateOther = -1
+              if alldet and track_start_z < 11362+55*2: best_muon_candidateV = -1
+              if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateV = -1
+              if track_end_z > 18294-80*2: best_muon_candidateV = -1
               # Check if the muon is in the right x position
-              if abs(track_start_x) > 3520-200: best_muon_candidateOther = -1
-              if abs(track_end_x) > 3520-200: best_muon_candidateOther = -1
+              if abs(track_start_x) > 3520-200: best_muon_candidateV = -1
+              if abs(track_end_x) > 3520-200: best_muon_candidateV = -1
               # Look only at events with true muons that die inside the detector
-              if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateOther = -1
+              if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateV = -1
               # Make sure that at least OccupancyCut of the hits are from the candidate
-              if event.OccupancyOther[longtrackOther] < OccupancyCut: best_muon_candidateOther = -1
+              if event.OccupancyV[longtrackV] < OccupancyCut: best_muon_candidateV = -1
             
           # Only fill if we found a good candidate
-          if best_muon_candidateOne >= 0:
-              best_tracklengthOne = event.TrackLengthOne[best_muon_candidateOne]
-              reconstructed_muon_keOne = 82+1.75*best_tracklengthOne
+          if best_muon_candidateU >= 0:
+              best_tracklengthU = event.TrackLengthU[best_muon_candidateU]
+              reconstructed_muon_keU = 82+1.75*best_tracklengthU
           
-          if best_muon_candidateOther >= 0:
-              best_tracklengthOther = event.TrackLengthOther[best_muon_candidateOther]
-              reconstructed_muon_keOther = 82+1.75*best_tracklengthOther
+          if best_muon_candidateV >= 0:
+              best_tracklengthV = event.TrackLengthV[best_muon_candidateV]
+              reconstructed_muon_keV = 82+1.75*best_tracklengthV
   
-          track_lengthOne = -999
-          track_distOne = -999
-          track_lengthOther = -999
-          track_distOther = -999
+          track_lengthU = -999
+          track_distU = -999
+          track_lengthV = -999
+          track_distV = -999
 
-          if best_muon_candidateOne >= 0: 
-              track_lengthOne = event.TrackLengthOne[best_muon_candidateOne]
-              track_distOne = track_lengthsOne[best_muon_candidateOne]
-          elif event.nLinesOne > 0: 
-              track_lengthOne = event.TrackLengthOne[0]
-              track_distOne = track_lengthsOne[0]
+          if best_muon_candidateU >= 0: 
+              track_lengthU = event.TrackLengthU[best_muon_candidateU]
+              track_distU = track_lengthsU[best_muon_candidateU]
+          elif event.nLinesU > 0: 
+              track_lengthU = event.TrackLengthU[0]
+              track_distU = track_lengthsU[0]
 
-          if best_muon_candidateOther >= 0:
-              track_lengthOther = event.TrackLengthOther[best_muon_candidateOther]
-              track_distOther = track_lengthsOther[best_muon_candidateOther]
-          elif event.nLinesOther > 0:
-              track_lengthOther = event.TrackLengthOther[0]
-              track_distOther = track_lengthsOther[0]
+          if best_muon_candidateV >= 0:
+              track_lengthV = event.TrackLengthV[best_muon_candidateV]
+              track_distV = track_lengthsV[best_muon_candidateV]
+          elif event.nLinesV > 0:
+              track_lengthV = event.TrackLengthV[0]
+              track_distV = track_lengthsV[0]
           #if track_length >= 0 or track_length_max_dz >= 0:
           #    print(f"True muon KE: {truth.Muon_TrueKE:0.2f}\tPath length: {track_length:0.2f}\tTrack Dist: {track_dist:0.2f}\tMax dz: {track_length_max_dz:0.2f}")
-          hist_track_length_vs_max_dz_distOne.Fill(track_distOne, track_length_max_dz)
-          hist_track_length_vs_max_dz_distOther.Fill(track_distOther, track_length_max_dz)
+          hist_track_length_vs_max_dz_distU.Fill(track_distU, track_length_max_dz)
+          hist_track_length_vs_max_dz_distV.Fill(track_distV, track_length_max_dz)
       
           # Get information that relies on truth information as well
           if truth != None:
@@ -424,10 +424,10 @@ def run(c, truth, outfilename, nmax=-1):
             
             # Only fill these hists if there is a true muon
               if has_true_muon: 
-                  hist_KEOne.Fill(Muon_TrueKE, best_tracklengthOne)
-                  hist_KEOther.Fill(Muon_TrueKE, best_tracklengthOther)
-                  hist_KE_estimatedOne.Fill(Muon_TrueKE, reconstructed_muon_keOne)
-                  hist_KE_estimatedOther.Fill(Muon_TrueKE, reconstructed_muon_keOther)
+                  hist_KEU.Fill(Muon_TrueKE, best_tracklengthU)
+                  hist_KEV.Fill(Muon_TrueKE, best_tracklengthV)
+                  hist_KE_estimatedU.Fill(Muon_TrueKE, reconstructed_muon_keU)
+                  hist_KE_estimatedV.Fill(Muon_TrueKE, reconstructed_muon_keV)
                   hist_KE_vs_track_length_max_dz.Fill(Muon_TrueKE, track_length_max_dz)
 #                  hist_KE_vs_track_length_max_dzOther.Fill(Muon_TrueKE, track_length_max_dzOther)
           
@@ -453,80 +453,80 @@ def run(c, truth, outfilename, nmax=-1):
                   # Plot KE estimators for muons which start and end in the detector
                   if start_inside_tms and end_inside_tms:
                       hist_true_interior_muon_ke_vs_track_length_dz.Fill(Muon_TrueKE, track_length_max_dz)
-                      if len(track_lengthsOne) > 0:
-                          hist_true_interior_muon_ke_vs_max_distOne.Fill(Muon_TrueKE, max(track_lengthsOne))
-                      if len(track_lengthsOther) > 0:
-                          hist_true_interior_muon_ke_vs_max_distOther.Fill(Muon_TrueKE, max(track_lengthsOther))
-                      if len(areal_densitiesOne) > 0:
-                          hist_true_interior_muon_ke_vs_max_areal_densityOne.Fill(Muon_TrueKE, max(areal_densitiesOne))
-                          hist_true_interior_muon_ke_vs_estimated_ke_originalOne.Fill(Muon_TrueKE, 82+1.75*max(areal_densitiesOne))
-                          hist_true_interior_muon_ke_vs_estimated_keOne.Fill(Muon_TrueKE, 2*1.75*max(areal_densitiesOne))
-                      if len(areal_densitiesOther) > 0:
-                          hist_true_interior_muon_ke_vs_max_areal_densityOther.Fill(Muon_TrueKE, max(areal_densitiesOther))
-                          hist_true_interior_muon_ke_vs_estimated_ke_originalOther.Fill(Muon_TrueKE, 82+1.75*max(areal_densitiesOther))
-                          hist_true_interior_muon_ke_vs_estimated_keOther.Fill(Muon_TrueKE, 2*1.75*max(areal_densitiesOther))
+                      if len(track_lengthsU) > 0:
+                          hist_true_interior_muon_ke_vs_max_distU.Fill(Muon_TrueKE, max(track_lengthsU))
+                      if len(track_lengthsV) > 0:
+                          hist_true_interior_muon_ke_vs_max_distV.Fill(Muon_TrueKE, max(track_lengthsV))
+                      if len(areal_densitiesU) > 0:
+                          hist_true_interior_muon_ke_vs_max_areal_densityU.Fill(Muon_TrueKE, max(areal_densitiesU))
+                          hist_true_interior_muon_ke_vs_estimated_ke_originalU.Fill(Muon_TrueKE, 82+1.75*max(areal_densitiesU))
+                          hist_true_interior_muon_ke_vs_estimated_keU.Fill(Muon_TrueKE, 2*1.75*max(areal_densitiesU))
+                      if len(areal_densitiesV) > 0:
+                          hist_true_interior_muon_ke_vs_max_areal_densityV.Fill(Muon_TrueKE, max(areal_densitiesV))
+                          hist_true_interior_muon_ke_vs_estimated_ke_originalV.Fill(Muon_TrueKE, 82+1.75*max(areal_densitiesV))
+                          hist_true_interior_muon_ke_vs_estimated_keV.Fill(Muon_TrueKE, 2*1.75*max(areal_densitiesV))
              
                   # Plot vertex resolution of muon
                   # But only if it starts or ends in detector respectively
-                  if longtrackOne >= 0:
-                      dz_start = event.FirstHoughHitOne[2*longtrackOne+0] - mz 
+                  if longtrackU >= 0:
+                      dz_start = event.FirstHoughHitU[2*longtrackU+0] - mz 
                       dz_start_span = z1 - mz
-                      dz_end = event.LastHoughHitOne[2*longtrackOne+0] - mdz
+                      dz_end = event.LastHoughHitU[2*longtrackU+0] - mdz
                       dz_end_span = z2 - mdz
-                      dx_start = event.FirstHoughHitOne[2*longtrackOne+1] - mx
-                      dx_end = event.LastHoughHitOne[2*longtrackOne+1] - mdx
+                      dx_start = event.FirstHoughHitU[2*longtrackU+1] - mx
+                      dx_end = event.LastHoughHitU[2*longtrackU+1] - mdx
                       if start_inside_tms:
-                          hist_track_start_vtx_z_resolutionOne.Fill(dz_start)
-                          hist_track_start_vtx_z_resolution_using_spanOne.Fill(dz_start_span)
-                          hist_track_start_vtx_x_resolutionOne.Fill(dx_start)
+                          hist_track_start_vtx_z_resolutionU.Fill(dz_start)
+                          hist_track_start_vtx_z_resolution_using_spanU.Fill(dz_start_span)
+                          hist_track_start_vtx_x_resolutionU.Fill(dx_start)
                       if end_inside_tms: 
-                          hist_track_end_vtx_z_resolutionOne.Fill(dz_end)
-                          hist_track_end_vtx_z_resolution_using_spanOne.Fill(dz_end_span)
-                          hist_track_end_vtx_x_resolutionOne.Fill(dx_end)
+                          hist_track_end_vtx_z_resolutionU.Fill(dz_end)
+                          hist_track_end_vtx_z_resolution_using_spanU.Fill(dz_end_span)
+                          hist_track_end_vtx_x_resolutionU.Fill(dx_end)
             
-                  if longtrackOther >= 0:
-                      dz_start = event.FirstHoughHitOther[2*longtrackOther+0] - mz
+                  if longtrackV >= 0:
+                      dz_start = event.FirstHoughHitV[2*longtrackV+0] - mz
                       dz_start_span = z1 - mz
-                      dz_end = event.LastHoughHitOther[2*longtrackOther+0] - mdz
+                      dz_end = event.LastHoughHitV[2*longtrackV+0] - mdz
                       dz_end_span = z2 - mdz
-                      dx_start = event.FirstHoughHitOther[2*longtrackOther+1] - mx
-                      dx_end = event.LastHoughHitOther[2*longtrackOther+1] - mdx
+                      dx_start = event.FirstHoughHitV[2*longtrackV+1] - mx
+                      dx_end = event.LastHoughHitV[2*longtrackV+1] - mdx
                       if start_inside_tms:
-                          hist_track_start_vtx_z_resolutionOther.Fill(dz_start)
-                          hist_track_start_vtx_z_resolution_using_spanOther.Fill(dz_start_span)
-                          hist_track_start_vtx_x_resolutionOther.Fill(dx_start)
+                          hist_track_start_vtx_z_resolutionV.Fill(dz_start)
+                          hist_track_start_vtx_z_resolution_using_spanV.Fill(dz_start_span)
+                          hist_track_start_vtx_x_resolutionV.Fill(dx_start)
                       if end_inside_tms:
-                          hist_track_end_vtx_z_resolutionOther.Fill(dz_end)
-                          hist_track_end_vtx_z_resolution_using_spanOther.Fill(dz_end_span)
-                          hist_track_end_vtx_x_resolutionOther.Fill(dx_end)
+                          hist_track_end_vtx_z_resolutionV.Fill(dz_end)
+                          hist_track_end_vtx_z_resolution_using_spanV.Fill(dz_end_span)
+                          hist_track_end_vtx_x_resolutionV.Fill(dx_end)
               
                   # For finding efficiency
                   # Plot true KE in all cases
                   # But for numerator, look if we found a candidate
                   # For now only consider muons starting in the TMS
                   if start_inside_tms:
-                      if longtrackOne >= 0:
-                          hist_eff_track_finding_numeratorOne.Fill(Muon_TrueKE)
+                      if longtrackU >= 0:
+                          hist_eff_track_finding_numeratorU.Fill(Muon_TrueKE)
                       #if longtrackOther >= 0:
                       #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
-                      if best_muon_candidateOne >= 0:
-                          hist_eff_track_finding_after_cuts_numeratorOne.Fill(Muon_TrueKE)
-                          hist_eff_track_finding_denominatorOne.Fill(Muon_TrueKE)
-                      if longtrackOther >= 0:
-                          hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
+                      if best_muon_candidateU >= 0:
+                          hist_eff_track_finding_after_cuts_numeratorU.Fill(Muon_TrueKE)
+                          hist_eff_track_finding_denominatorU.Fill(Muon_TrueKE)
+                      if longtrackV >= 0:
+                          hist_eff_track_finding_numeratorV.Fill(Muon_TrueKE)
                       #if longtrackOther >= 0:
                       #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
-                      if best_muon_candidateOther >= 0:
-                          hist_eff_track_finding_after_cuts_numeratorOther.Fill(Muon_TrueKE)
-                      hist_eff_track_finding_denominatorOther.Fill(Muon_TrueKE)
+                      if best_muon_candidateV >= 0:
+                          hist_eff_track_finding_after_cuts_numeratorV.Fill(Muon_TrueKE)
+                      hist_eff_track_finding_denominatorV.Fill(Muon_TrueKE)
       
       
         ## Calculate the efficiency
-        hist_eff_track_findingOne.Divide(hist_eff_track_finding_numeratorOne, hist_eff_track_finding_denominatorOne)
-        hist_eff_track_finding_after_cutsOne.Divide(hist_eff_track_finding_after_cuts_numeratorOne, hist_eff_track_finding_denominatorOne)
+        hist_eff_track_findingU.Divide(hist_eff_track_finding_numeratorU, hist_eff_track_finding_denominatorU)
+        hist_eff_track_finding_after_cutsU.Divide(hist_eff_track_finding_after_cuts_numeratorU, hist_eff_track_finding_denominatorU)
   
-        hist_eff_track_findingOther.Divide(hist_eff_track_finding_numeratorOther, hist_eff_track_finding_denominatorOther)
-        hist_eff_track_finding_after_cutsOther.Divide(hist_eff_track_finding_after_cuts_numeratorOther, hist_eff_track_finding_denominatorOther)
+        hist_eff_track_findingV.Divide(hist_eff_track_finding_numeratorV, hist_eff_track_finding_denominatorV)
+        hist_eff_track_finding_after_cutsV.Divide(hist_eff_track_finding_after_cuts_numeratorV, hist_eff_track_finding_denominatorV)
     
         ## Now save all the histograms
         if carriage: print("\r", end="") # Erase the current line
