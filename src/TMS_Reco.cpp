@@ -804,9 +804,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           }
           // Track Length
           aTrack.Length = CalculateTrackLength3D(aTrack);
-#ifdef DEBUG
+//#ifdef DEBUG
           std::cout << "Added TrackLength: " << aTrack.Length << std::endl;
-#endif          
+//#endif          
+          // Track Energy
+          aTrack.EnergyDeposit = CalculateTrackEnergy3D(aTrack);
+//#ifdef DEBUG
+          std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
+//#endif
           // Track Direction
           aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
           aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
@@ -1960,7 +1965,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           candidate.SetHeuristic(kHeuristic);
           candidate.SetHeuristicCost(track_start);
 #ifdef DEBUG
-          std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Mananger::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
+          std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
             << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
 #endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track

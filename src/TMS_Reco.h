@@ -208,7 +208,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<bool, TF1*> > GetHoughLinesV() { return HoughLinesV; };
     std::vector<std::pair<double,double> > GetHoughLinesU_Upstream() { return HoughLinesU_Upstream; };
     std::vector<std::pair<double,double> > GetHoughLinesU_Downstream() { return HoughLinesU_Downstream; };
-    std::vector<std::pair<double,double> > GetHoughLinesV_Upstream() { return HoughLinesU_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesV_Upstream() { return HoughLinesV_Upstream; };
     std::vector<std::pair<double,double> > GetHoughLinesV_Downstream() { return HoughLinesV_Downstream; };
 
     int **GetAccumulator() { return Accumulator; };
