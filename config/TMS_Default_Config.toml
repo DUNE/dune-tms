@@ -61,6 +61,14 @@
     # Distance in number of bars a hit can be away from the direction line at the start
     NumBarsStart = 2
 
+  [Recon.TrackMatch3D]
+    # How many plane layers can the ends/starts of the two simple tracks be away from each other?
+    PlaneLimit = 3
+    # How many bars can the ends/starts of the two simple tracks be away from each other?
+    BarLimit = 12
+    # How many ns can the ends/starts of the two simple tracks be away from each other?
+    TimeLimit = 30
+
   [Recon.AStar]
     #CostMetric = "Manhattan"
     CostMetric = "Euclidean"

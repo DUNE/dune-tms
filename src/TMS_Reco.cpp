@@ -575,15 +575,15 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
       std::cout << "VTrack front/BACK: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << "  back/FRONT: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
 #endif      
-      if (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < 3
-          && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= 12
+      if (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() //3
+          && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() //12
           && UTracks.front().GetSlice() == VTracks.front().GetSlice()
-          && std::abs(UTracks.front().GetT() - VTracks.front().GetT()) <= 30) {
+          && std::abs(UTracks.front().GetT() - VTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit()) { //30
         // end condition THIS IS ACTUALLY THE START CONDITION
-        if (std::abs(UTracks.back().GetPlaneNumber() - VTracks.back().GetPlaneNumber()) <= 3
-            && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= 12
+        if (std::abs(UTracks.back().GetPlaneNumber() - VTracks.back().GetPlaneNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() //3
+            && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit()  //12
             && UTracks.back().GetSlice() == VTracks.back().GetSlice()
-            && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= 30) {
+            && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit()) { //30
           TMS_Track aTrack;
 
           // Make sure that the hits are in the correct order
