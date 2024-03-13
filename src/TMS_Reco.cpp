@@ -1780,7 +1780,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   SpatialPrio(returned);
 
   // Extrapolation of tracks to catch missing hits at end/start of tracks
-  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_Extrapolation()) {
+  if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) {
     returned = Extrapolation(returned, HitPool);
   }
 
@@ -1875,12 +1875,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         candidate.SetHeuristic(kHeuristic);
         candidate.SetHeuristicCost(track_end);
 #ifdef DEBUG
-        std::cout << "Track end heuristic Cost: " << candidate.HeuristicCost << " "  << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
-          << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
+        std::cout << "Track end heuristic Cost: " << candidate.HeuristicCost << " "  << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()
+          << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << std::endl;
 #endif
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
-        if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() + 
-            TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
+        if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
+            TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()) {
           // Move hit now into candidate hits
 #ifdef DEBUG
           std::cout << "Added to candidates" << std::endl;
@@ -1905,7 +1905,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     aNode track_end(returned.back().GetPlaneNumber(), returned.back().GetBarNumber());
     test.SetHeuristic(kHeuristic);
     test.SetHeuristicCost(track_end);
-    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()) {
       std::vector<TMS_Hit> vec = RunAstar(end_extrapolation_cand);
 
       // Now add the connected hits into the existing track
@@ -1932,7 +1932,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     aNode track_end(returned.back().GetPlaneNumber(), returned.back().GetBarNumber());
     test.SetHeuristic(kHeuristic);
     test.SetHeuristicCost(track_end);
-    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+    if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()) {
       // Add them
       for (auto hit = end_extrapolation_cand.rbegin(); hit != end_extrapolation_cand.rend(); ++hit) {
         returned.push_back((*hit));
@@ -1965,12 +1965,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           candidate.SetHeuristic(kHeuristic);
           candidate.SetHeuristicCost(track_start);
 #ifdef DEBUG
-          std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
-            << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
+          std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()
+            << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << std::endl;
 #endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
-          if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() +
-              TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
+          if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
+              TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()) {
             // Move hit now into candidate hits
 #ifdef DEBUG
               std::cout << "Added to candidates" << std::endl;
@@ -1995,7 +1995,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       aNode track_start(returned.front().GetPlaneNumber(), returned.front().GetBarNumber());
       test.SetHeuristic(kHeuristic);
       test.SetHeuristicCost(track_start);
-      if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()) {
         std::vector<TMS_Hit> vec = RunAstar(front_extrapolation_cand);
   
         // Now add the connected hits into the existing track
@@ -2023,7 +2023,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       aNode track_start(returned.front().GetPlaneNumber(), returned.front().GetBarNumber());
       test.SetHeuristic(kHeuristic);
       test.SetHeuristicCost(track_start);
-      if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
+      if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()) {
         // Add them
         for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
           returned.push_back((*hit));

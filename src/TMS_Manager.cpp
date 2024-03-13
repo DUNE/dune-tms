@@ -41,11 +41,12 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_HitMult = toml::find<double>(data, "Recon", "Hough", "HitMult");
   _RECO_HOUGH_MergeTracks = toml::find<bool>(data, "Recon", "Hough", "MergeTracks");
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
-  _RECO_HOUGH_Extrapolation = toml::find<bool>(data, "Recon", "Hough", "Extrapolation");
-  _RECO_HOUGH_ExtrapolateDist = toml::find<int>(data, "Recon", "Hough", "ExtrapolateDist");
-  _RECO_HOUGH_ExtrapolateLimit = toml::find<int>(data, "Recon", "Hough", "ExtrapolateLimit");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");
   _RECO_HOUGH_MinDist = toml::find<double>(data, "Recon", "Hough", "MinDist");
+
+  _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
+  _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
+  _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");

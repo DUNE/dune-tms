@@ -35,11 +35,12 @@ class TMS_Manager {
     double Get_Reco_HOUGH_HitMult() { return _RECO_HOUGH_HitMult; };
     double Get_Reco_HOUGH_MergeTracks() { return _RECO_HOUGH_MergeTracks; };
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
-    bool Get_Reco_HOUGH_Extrapolation() { return _RECO_HOUGH_Extrapolation; };
-    int Get_Reco_HOUGH_ExtrapolateDist() { return _RECO_HOUGH_ExtrapolateDist; };
-    int Get_Reco_HOUGH_ExtrapolateLimit() { return _RECO_HOUGH_ExtrapolateLimit; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
+
+    bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
+    int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
+    int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
@@ -89,11 +90,12 @@ class TMS_Manager {
     double _RECO_HOUGH_HitMult;
     bool _RECO_HOUGH_MergeTracks;
     bool _RECO_HOUGH_RunAStar;
-    bool _RECO_HOUGH_Extrapolation;
-    int _RECO_HOUGH_ExtrapolateDist;
-    int _RECO_HOUGH_ExtrapolateLimit;
     bool _RECO_HOUGH_FirstCluster;
     double _RECO_HOUGH_MinDist;
+
+    bool _RECO_EXTRAPOLATION_Extrapolation;
+    int _RECO_EXTRAPOLATION_ExtrapolateDist;
+    int _RECO_EXTRAPOLATION_ExtrapolateLimit;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;

@@ -48,8 +48,13 @@
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+
+  [Recon.Extrapolation]
+    # Whether extrapolation should be performed or not
     Extrapolation = true
+    # Maximal distance from start/end hit to first added hit by extrapolation
     ExtrapolateDist = 4
+    # Maximal distance from first added hit (by extrapolation) to last added hit
     ExtrapolateLimit = 20
 
   [Recon.AStar]
