@@ -41,6 +41,8 @@ class TMS_Manager {
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
+    int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
+    int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
@@ -96,6 +98,8 @@ class TMS_Manager {
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;
     int _RECO_EXTRAPOLATION_ExtrapolateLimit;
+    int _RECO_EXTRAPOLATION_NumBarsEnd;
+    int _RECO_EXTRAPOLATION_NumBarsStart;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;

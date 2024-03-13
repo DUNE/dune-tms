@@ -56,6 +56,10 @@
     ExtrapolateDist = 4
     # Maximal distance from first added hit (by extrapolation) to last added hit
     ExtrapolateLimit = 20
+    # Distance in number of bars a hit can be away from the direction line at the end
+    NumBarsEnd = 4
+    # Distance in number of bars a hit can be away from the direction line at the start
+    NumBarsStart = 2
 
   [Recon.AStar]
     #CostMetric = "Manhattan"

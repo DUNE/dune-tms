@@ -1866,9 +1866,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
     // Check if hit is after the end of the track
     if ((*it).GetZ() > TrackHits.back().GetZ()) {
-      // Check if within 2 bar widths above or below the direction line
-      if ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 4 * (*it).GetBar().GetNotZw()) &&
-          (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 4 * (*it).GetBar().GetNotZw())) { // changed from 2 bar widths to 4
+      // Check if within 4 bar widths above or below the direction line
+      if ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) && //4
+          (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw())) { // changed from 2 bar widths to 4
         // Calculate temporary node to check for distance
         aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
         aNode track_end(TrackHits.back().GetPlaneNumber(), TrackHits.back().GetBarNumber());
@@ -1957,8 +1957,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       // Check if hit is before the starto of the track
       if ((*it).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
-        if ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * (*it).GetBar().GetNotZw()) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * (*it).GetBar().GetNotZw())) {  // keeping 2 bar widths here
+        if ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) && //2
+            (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw())) {  // keeping 2 bar widths here
           // Calculate temporary node to check for distance
           aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
           aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNumber());
