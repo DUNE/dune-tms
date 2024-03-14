@@ -217,7 +217,6 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent, double spill_time, int spi
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
-
   // Now apply optical and timing models
   //ApplyReconstructionEffects();
 
@@ -265,7 +264,6 @@ void TMS_Event::MergeCoincidentHits() {
     // Strip out hits that are outside the actual volume 
     // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
     // TODO figure out why these happen
-
     if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) {
       (*it).SetPedSup(true);
       continue;
@@ -820,8 +818,8 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
     total_energy += energy;
   }
   VertexIdOfMostEnergyInEvent = max_vertex_id;
-  VisibleEnergyFromVertexInSlice = max;
-  VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
+  VisibleEnergyFromUVertexInSlice = max;
+  VisibleEnergyFromVVerticesInSlice = total_energy - max;
   
   return VertexIdOfMostEnergyInEvent;
 }
@@ -850,9 +848,9 @@ void TMS_Event::Print() {
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;
   std::cout << "  Vertex ID of most energy: " << VertexIdOfMostEnergyInEvent << std::endl;
-  std::cout << "  Visible energy in slice: " << VisibleEnergyFromVertexInSlice << std::endl;
+  std::cout << "  Visible energy in slice: " << VisibleEnergyFromUVertexInSlice << std::endl;
   std::cout << "  Total visible energy: " << TotalVisibleEnergyFromVertex << std::endl;
-  std::cout << "  Other visible energy: " << VisibleEnergyFromOtherVerticesInSlice << std::endl;
+  std::cout << "  Other visible energy: " << VisibleEnergyFromVVerticesInSlice << std::endl;
 
   std::cout << "Printing primary particle stack: " << std::endl;
   int PartCount = 0;

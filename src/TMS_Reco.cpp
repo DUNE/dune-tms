@@ -36,13 +36,13 @@ TMS_TrackFinder::TMS_TrackFinder() :
   Efficiency = new TH1D("Efficiency", "Efficiency;T_{#mu} (GeV); Efficiency", 30, 0, 6);
   Total = new TH1D("Total", "Total;T_{#mu} (GeV); Total", 30, 0, 6);
 
-  HoughLineOne = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLineOne->SetLineStyle(kDashed);
-  HoughLineOne->SetLineColor(kMagenta-9);
+  HoughLineU = new TF1("LinearHough", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
+  HoughLineU->SetLineStyle(kDashed);
+  HoughLineU->SetLineColor(kMagenta-9);
 
-  HoughLineOther = new TF1("LinearHough2", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
-  HoughLineOther->SetLineStyle(kDashed);
-  HoughLineOther->SetLineColor(kMagenta-8);
+  HoughLineV = new TF1("LinearHough2", "[0]+[1]*x", TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_Start);
+  HoughLineV->SetLineStyle(kDashed);
+  HoughLineV->SetLineColor(kMagenta-8);
 
   DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
   DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
@@ -86,40 +86,38 @@ TMS_TrackFinder::TMS_TrackFinder() :
 void TMS_TrackFinder::ClearClass() {
 
   // Check through the Houghlines
-  for (auto &i: HoughLinesOne) {
+  for (auto &i: HoughLinesU) {
     delete i.second;
   }
-  for (auto &i: HoughLinesOther) {
+  for (auto &i: HoughLinesV) {
     delete i.second;
   }
 
   // Reset the candidate vector
-  CandidatesOne.clear();
-  CandidatesOther.clear();
+  CandidatesU.clear();
+  CandidatesV.clear();
   RawHits.clear();
-  TotalCandidatesOne.clear();
-  TotalCandidatesOther.clear();
-  HoughLinesOne.clear();
-  HoughLinesOther.clear();
-  HoughLinesOne_Upstream.clear();
-  HoughLinesOther_Upstream.clear();
-  HoughLinesOne_Downstream.clear();
-  HoughLinesOther_Downstream.clear();
-  HoughCandidatesOne.clear();
-  HoughCandidatesOther.clear();
-  ClusterCandidatesOne.clear();
-  ClusterCandidatesOther.clear();
-  TrackLengthOne.clear();
-  TrackLengthOther.clear();
-  TrackEnergyOne.clear();
-  TrackEnergyOther.clear();
+  TotalCandidatesU.clear();
+  TotalCandidatesV.clear();
+  HoughLinesU.clear();
+  HoughLinesV.clear();
+  HoughLinesU_Upstream.clear();
+  HoughLinesV_Upstream.clear();
+  HoughLinesU_Downstream.clear();
+  HoughLinesV_Downstream.clear();
+  HoughCandidatesU.clear();
+  HoughCandidatesV.clear();
+  ClusterCandidatesU.clear();
+  ClusterCandidatesV.clear();
+  TrackLengthU.clear();
+  TrackLengthV.clear();
+  TrackEnergyU.clear();
+  TrackEnergyV.clear();
 
-  OneHitGroup.clear();
-  OtherHitGroup.clear();
+  UHitGroup.clear();
+  VHitGroup.clear();
 
   HoughTracks3D.clear();
-  TrackLength3D.clear();
-  TrackEnergy3D.clear();
 }
 
 int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
@@ -348,13 +346,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // sorting hits into orientation groups
   // EDIT: Use BarType here instead TODO correct BarTypes???
     
-    if (hit.GetBar().GetBarType() == TMS_Bar::kYBar) OneHitGroup.push_back(hit); //add hit to one group (y hit)
-    else if (hit.GetBar().GetBarType() == TMS_Bar:: kVBar) OtherHitGroup.push_back(hit); // add hit to other group (v hit)
+    if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) UHitGroup.push_back(hit); //add hit to one group (y hit)
+    else if (hit.GetBar().GetBarType() == TMS_Bar:: kVBar) VHitGroup.push_back(hit); // add hit to other group (v hit)
     //if (hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation) OneHitGroup.push_back(hit); // add hit to one group
     //else if (!(hit.GetBar().GetPlaneNumber() % TMS_Const::LayerOrientation)) OtherHitGroup.push_back(hit); // add hit to other group
   }
   
-  if ( (OneHitGroup.size() + OtherHitGroup.size()) != CleanedHits.size() ) {
+  if ( (UHitGroup.size() + VHitGroup.size()) != CleanedHits.size() ) {
     std::cout << "Not all hits in separated hit groups!" << std::endl;
     return;
   }
@@ -365,68 +363,68 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
       // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
       //std::vector<std::vector<TMS_Hit> > DBScanCandidates = FindClusters(CleanedHits);
-      std::vector<std::vector<TMS_Hit> > DBScanCandidatesOne = FindClusters(OneHitGroup);
-      std::vector<std::vector<TMS_Hit> > DBScanCandidatesOther = FindClusters(OtherHitGroup);
+      std::vector<std::vector<TMS_Hit> > DBScanCandidatesU = FindClusters(UHitGroup);
+      std::vector<std::vector<TMS_Hit> > DBScanCandidatesV = FindClusters(VHitGroup);
       // Hand over each cluster from DBSCAN to a Hough transform
-      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesOne.begin(); it != DBScanCandidatesOne.end(); ++it) {
+      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesU.begin(); it != DBScanCandidatesU.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-        std::vector<std::vector<TMS_Hit> > LinesOne = HoughTransform(hits, 1);
-        for (auto jt = LinesOne.begin(); jt != LinesOne.end(); ++jt) {
-          HoughCandidatesOne.emplace_back(std::move(*jt));
+        std::vector<std::vector<TMS_Hit> > LinesU = HoughTransform(hits, 1);
+        for (auto jt = LinesU.begin(); jt != LinesU.end(); ++jt) {
+          HoughCandidatesU.emplace_back(std::move(*jt));
         }
       }
-      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesOther.begin(); it != DBScanCandidatesOther.end(); ++it) {
+      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesV.begin(); it != DBScanCandidatesV.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-	      std::vector<std::vector<TMS_Hit> > LinesOther = HoughTransform(hits, 2);
-      	for (auto jt = LinesOther.begin(); jt != LinesOther.end(); ++jt) {
-          std::cout << "Next size: " << (*jt).size() << std::endl;
-      	  HoughCandidatesOther.emplace_back(std::move(*jt));
+	      std::vector<std::vector<TMS_Hit> > LinesV = HoughTransform(hits, 2);
+      	for (auto jt = LinesV.begin(); jt != LinesV.end(); ++jt) {
+//          std::cout << "Next size: " << (*jt).size() << std::endl;
+      	  HoughCandidatesV.emplace_back(std::move(*jt));
       	}
       }
     } else {
       //HoughCandidates = HoughTransform(CleanedHits);
-      HoughCandidatesOne = HoughTransform(OneHitGroup, 1);
-      HoughCandidatesOther = HoughTransform(OtherHitGroup, 2);
+      HoughCandidatesU = HoughTransform(UHitGroup, 1);
+      HoughCandidatesV = HoughTransform(VHitGroup, 2);
     }
   } else if (kTrackMethod == TrackMethod::kAStar) {
     //BestFirstSearch(CleanedHits);
-    BestFirstSearch(OneHitGroup, 1);
-    BestFirstSearch(OtherHitGroup, 2);
+    BestFirstSearch(UHitGroup, 1);
+    BestFirstSearch(VHitGroup, 2);
   }
 
   //std::vector<TMS_Hit> Masked = CleanedHits;
-  std::vector<TMS_Hit> MaskedOne = OneHitGroup;
-  std::vector<TMS_Hit> MaskedOther = OtherHitGroup;
+  std::vector<TMS_Hit> MaskedU = UHitGroup;
+  std::vector<TMS_Hit> MaskedV = VHitGroup;
   // Loop over the Hough candidates
-  for (auto Lines: HoughCandidatesOne) {
+  for (auto Lines: HoughCandidatesU) {
 #ifdef DEBUG
-    std::cout << "Masked (one) size bef: " << MaskedOne.size() << std::endl;
+    std::cout << "Masked (u) size bef: " << MaskedU.size() << std::endl;
 #endif
-    MaskHits(MaskedOne, Lines);
+    MaskHits(MaskedU, Lines);
 #ifdef DEBUG
-    std::cout << "Masked (one) size aft: " << MaskedOne.size() << std::endl;
-#endif
-  }
-
-  for (auto Lines: HoughCandidatesOther) {
-#ifdef DEBUG
-    std::cout << "Masked (other) size bef: " << MaskedOther.size() << std::endl;
-#endif
-    MaskHits(MaskedOther, Lines);
-#ifdef DEBUG
-    std::cout << "Masked (other) size aft: " << MaskedOther.size() << std::endl;
+    std::cout << "Masked (u) size aft: " << MaskedU.size() << std::endl;
 #endif
   }
 
+  for (auto Lines: HoughCandidatesV) {
 #ifdef DEBUG
-  std::cout << "Masked (one) hits: " << MaskedOne.size() << std::endl;
-  std::cout << "Masked (other) hits: " << MaskedOther.size() << std::endl;
+    std::cout << "Masked (v) size bef: " << MaskedV.size() << std::endl;
+#endif
+    MaskHits(MaskedV, Lines);
+#ifdef DEBUG
+    std::cout << "Masked (v) size aft: " << MaskedV.size() << std::endl;
+#endif
+  }
+
+#ifdef DEBUG
+  std::cout << "Masked (u) hits: " << MaskedU.size() << std::endl;
+  std::cout << "Masked (v) hits: " << MaskedV.size() << std::endl;
 #endif
   
   // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
-  int linenoOne = 0;
-  for (auto Lines: HoughCandidatesOne) {
-    std::pair<bool, TF1*> houghline = HoughLinesOne[linenoOne];
+  int linenoU = 0;
+  for (auto Lines: HoughCandidatesU) {
+    std::pair<bool, TF1*> houghline = HoughLinesU[linenoU];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
     if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
@@ -436,8 +434,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
       //std::cout << "New intercept: " << intercept << std::endl;
 
-      HoughLinesOne[linenoOne].second->SetParameter(0, intercept);
-      HoughLinesOne[linenoOne].second->SetParameter(1, slope);
+      HoughLinesU[linenoU].second->SetParameter(0, intercept);
+      HoughLinesU[linenoU].second->SetParameter(1, slope);
     }
 
     // The number of hits in this track, take 20% and call upstream and dowstream segments
@@ -464,21 +462,21 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
     std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
 
-    HoughLinesOne_Upstream.push_back(upstreamline);
-    HoughLinesOne_Downstream.push_back(downstreamline);
+    HoughLinesU_Upstream.push_back(upstreamline);
+    HoughLinesU_Downstream.push_back(downstreamline);
 
-    linenoOne++;
+    linenoU++;
   }
 
-  int linenoOther = 0;
-  for (auto Lines: HoughCandidatesOther) {
-    std::pair<bool, TF1*> houghline = HoughLinesOther[linenoOther];
+  int linenoV = 0;
+  for (auto Lines: HoughCandidatesV) {
+    std::pair<bool, TF1*> houghline = HoughLinesV[linenoV];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
     if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
 	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-      HoughLinesOther[linenoOther].second->SetParameter(0, intercept);
-      HoughLinesOther[linenoOther].second->SetParameter(1, slope);
+      HoughLinesV[linenoV].second->SetParameter(0, intercept);
+      HoughLinesV[linenoV].second->SetParameter(1, slope);
     }
     
     // The number of hits in this track, trake 20% and call upstream and downstream segments
@@ -500,20 +498,20 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
 
-   HoughLinesOther_Upstream.push_back(upstreamline);
-   HoughLinesOther_Downstream.push_back(downstreamline);
+   HoughLinesV_Upstream.push_back(upstreamline);
+   HoughLinesV_Downstream.push_back(downstreamline);
 
-   linenoOther++;
+   linenoV++;
   }
 
   // Try finding some clusters after the Hough Transform
   if (UseClustering) {
-    ClusterCandidatesOne = FindClusters(MaskedOne);
-    ClusterCandidatesOther = FindClusters(MaskedOther);
+    ClusterCandidatesU = FindClusters(MaskedU);
+    ClusterCandidatesV = FindClusters(MaskedV);
   }
 
   // Call TrackMatching3D
-  std::vector<std::vector<TMS_Hit>> TempTrack3D = TrackMatching3D();
+  HoughTracks3D = TrackMatching3D();
 
   // Let's try to find a vertex now, just looking at most upstream point, or if there are multiple tracks let's see where they intersect
   //if (nLines > 0) {
@@ -525,51 +523,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //}
 
   // Now calculate the track length and energy for each track
-  CalculateTrackLengthOne();
-  CalculateTrackEnergyOne();
-  CalculateTrackLengthOther();
-  CalculateTrackEnergyOther();
-
-  CalculateTrackLength3D(TempTrack3D);
-  CalculateTrackEnergy3D(TempTrack3D);
-
-  // Now fill information into HoughTrack3D
-  int iterator = 0;
-  for (auto track: TempTrack3D) {
-    TMS_Track aTrack;
-    // Track Start
-    if ((track).front().GetBar().GetBarType() != TMS_Bar::kXBar) {
-      aTrack.Start[0] = (track).front().GetNotZ();
-      aTrack.Start[1] = (track).front().GetRecoY();
-      aTrack.Start[2] = (track).front().GetZ();
-    } else if ((track).front().GetBar().GetBarType() == TMS_Bar::kXBar) {
-      aTrack.Start[0] = (track).front().GetRecoX();
-      aTrack.Start[1] = (track).front().GetNotZ();
-      aTrack.Start[2] = (track).front().GetZ();
-    }
-    // Track End
-    if ((track).back().GetBar().GetBarType() != TMS_Bar::kXBar) {
-      aTrack.End[0] = (track).back().GetNotZ();
-      aTrack.End[1] = (track).back().GetRecoY();
-      aTrack.End[2] = (track).back().GetZ();
-    } else if ((track).back().GetBar().GetBarType() != TMS_Bar::kXBar) {
-      aTrack.End[0] = (track).back().GetRecoX();
-      aTrack.End[1] = (track).back().GetNotZ();
-      aTrack.End[2] = (track).back().GetZ();
-    }
-    // Track Length
-    aTrack.Length = GetTrackLength3D()[iterator];
-    // Track Direction
-    aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
-    aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
-    aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
-    // TODO EnergyDeposit, EnergyRange, Time
-  
-    HoughTracks3D.push_back(aTrack);
-
-    ++iterator;
-  }
-
+  CalculateTrackLengthU();
+  CalculateTrackEnergyU();
+  CalculateTrackLengthV();
+  CalculateTrackEnergyV();
 
   // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
@@ -583,9 +540,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Now have the TotalCandidates filled
   // Start some reconstruction chain
-  for (auto &i : TotalCandidatesOne) {
+  for (auto &i : TotalCandidatesU) {
     // Get the xz and yz hits
-    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kYBar);
+    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kUBar);
     size_t nHits = xz_hits.size();
     if (nHits < 1) continue; 
     KalmanFitter = TMS_Kalman(xz_hits);
@@ -597,7 +554,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
        */
   }
   
-  for (auto &i : TotalCandidatesOther) {
+  for (auto &i : TotalCandidatesV) {
     // Get the xz and yz hits
     std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kVBar);
     size_t nHits = xz_hits.size();
@@ -606,83 +563,275 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 }
 
-std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::TrackMatching3D() {
-
-  std::vector<std::vector<TMS_Hit> > returned;
+std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
+  std::cout << "3D matching" << std::endl;
+  std::vector<TMS_Track> returned;
+  
   // 3D matching of tracks
-  for (auto OneTracks: HoughCandidatesOne) {
-    for (auto OtherTracks: HoughCandidatesOther) {
-      // Conditions for close enough tracks: within +/-1 plane numbers, +/-4 bar numbers and in same time slice within 30ns
-      // start condition
-      if (std::abs(OneTracks.front().GetPlaneNumber() - OtherTracks.front().GetPlaneNumber()) < 2
-          && std::abs(OneTracks.front().GetBarNumber() - OtherTracks.front().GetBarNumber()) <= 4
-          && OneTracks.front().GetSlice() == OtherTracks.front().GetSlice()
-          && std::abs(OneTracks.front().GetT() - OtherTracks.front().GetT()) <= 30) {
-        // end condition
-        if (std::abs(OneTracks.back().GetPlaneNumber() - OtherTracks.back().GetPlaneNumber()) <= 2
-            && std::abs(OneTracks.back().GetBarNumber() - OtherTracks.back().GetBarNumber()) <= 4
-            && OneTracks.back().GetSlice() == OtherTracks.back().GetSlice()
-            && std::abs(OneTracks.back().GetT() - OtherTracks.back().GetT()) <= 30) {
-          // If same plane number for start but different for end
-          if (OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()
-              && OneTracks.back().GetPlaneNumber() != OtherTracks.back().GetPlaneNumber()) {
-            // If OneTrack ends after OtherTrack
-            if (OneTracks.back().GetPlaneNumber() > OtherTracks.back().GetPlaneNumber()) {
-              // TODO implement this for orthogonal view!!!
-              bool stereo_view = (OneTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar);
-              if (stereo_view) CalculateRecoY((OneTracks.back()), (OtherTracks.back()));
-//              OneTracks.back().SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * (OneTracks.back().GetNotZ() - OtherTracks.back().GetNotZ()));  // Placeholder (-1.) for 'anchor point' of bars in y
-            } // If OneTrack ends before OtherTrack
-              else if (OneTracks.back().GetPlaneNumber() < OtherTracks.back().GetPlaneNumber()) {
-              bool stereo_view = (OneTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar);
-              if (stereo_view) CalculateRecoY((OtherTracks.back()), (OneTracks.back()));
-//              OtherTracks.back().SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * (OneTracks.back().GetNotZ() - OtherTracks.back().GetNotZ()));  // Placeholder (-1.) for 'anchor point' of bars in y
-            }
-          } // If different plane number for start but same for end
-            else if (OneTracks.front().GetPlaneNumber() != OtherTracks.front().GetPlaneNumber()
-              && OneTracks.back().GetPlaneNumber() == OtherTracks.back().GetPlaneNumber()) {
-            // If OneTrack starts after OtherTrack  
-            if (OneTracks.front().GetPlaneNumber() > OtherTracks.front().GetPlaneNumber()) {
-              bool stereo_view = (OneTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);
-              if (stereo_view) CalculateRecoY((OtherTracks.front()), (OneTracks.front()));
-//              OtherTracks.front().SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * (OneTracks.front().GetNotZ() - OtherTracks.front().GetNotZ()));  // Placeholder (-1.) for 'anchor point' of bars in y
-            } // If OneTrack starts before OtherTrack
-              else if (OneTracks.front().GetPlaneNumber() < OtherTracks.front().GetPlaneNumber()) {
-              bool stereo_view = (OneTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && OtherTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);
-              if (stereo_view) CalculateRecoY((OneTracks.front()), (OtherTracks.front()));
-              //OneTracks.front().SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * (OneTracks.front().GetNotZ() - OtherTracks.front().GetNotZ()));  // Placeholder (-1.) for 'anchor point' of bars in y
-            }
-          }
+  for (auto UTracks: HoughCandidatesU) {
+    for (auto VTracks: HoughCandidatesV) {
+      // Conditions for close enough tracks: within +/-1 plane numbers, +/-10 bar numbers and in same time slice within 30ns
+      // start condition THIS IS ACTUALLY THE END CONDITION!!!
+      // Run spatial prio just because one last time
+      SpatialPrio(UTracks);
+      SpatialPrio(VTracks);
+#ifdef DEBUG
+      std::cout << "UTrack front/BACK: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << "  back/FRONT: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 
-          for (std::vector<TMS_Hit>::iterator itOne = OneTracks.begin(); itOne != OneTracks.end(); ++itOne) {
-            for (std::vector<TMS_Hit>::iterator itOther = OtherTracks.begin(); itOther != OtherTracks.end(); ++itOther) {
-              if ((*itOne).GetPlaneNumber() == (*itOther).GetPlaneNumber()) {
-                bool stereo_view = ((*itOne).GetBar().GetBarType() != TMS_Bar::kXBar && (*itOther).GetBar().GetBarType() != TMS_Bar::kXBar);
-                // Calculate Y info from bar crossing
-                if (stereo_view) {
-                  CalculateRecoY((*itOne), (*itOther));
-//                  (*itOne).SetRecoY(0.5 * (-1. + (-1.)) + 0.5 * 19.081137 * ((*itOne).GetNotZ() - (*itOther).GetNotZ()));   // Placeholder (-1.) for 'anchor point' of bars in y, TODO figure this one out and then change x (NotZ) also to 'anchor point'
-//                  (*itOther).SetRecoY(0.5 * (-1. + (-1.)) + 0.5 + 19.081137 * ((*itOne).GetNotZ() - (*itOther).GetNotZ())); // tan(87 degrees) ~ 19.081137
-                  CalculateRecoY((*itOther), (*itOne));
-                }
+      std::cout << "VTrack front/BACK: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << "  back/FRONT: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
+#endif      
+      if (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < 3
+          && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= 12
+          && UTracks.front().GetSlice() == VTracks.front().GetSlice()
+          && std::abs(UTracks.front().GetT() - VTracks.front().GetT()) <= 30) {
+        // end condition THIS IS ACTUALLY THE START CONDITION
+        if (std::abs(UTracks.back().GetPlaneNumber() - VTracks.back().GetPlaneNumber()) <= 3
+            && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= 12
+            && UTracks.back().GetSlice() == VTracks.back().GetSlice()
+            && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= 30) {
+          TMS_Track aTrack;
+
+          // Make sure that the hits are in the correct order
+          if (UTracks.back().GetZ() > UTracks.front().GetZ()) std::reverse(UTracks.begin(), UTracks.end());
+          if (VTracks.back().GetZ() > VTracks.front().GetZ()) std::reverse(VTracks.begin(), VTracks.end());
+
+#ifdef DEBUG          
+          std::cout << "UTrack FRONT: " << UTracks.back().GetPlaneNumber() << " BACK: " << UTracks.front().GetPlaneNumber() << std::endl;
+          std::cout << "VTrack FRONT: " << VTracks.back().GetPlaneNumber() << " BACK: " << VTracks.front().GetPlaneNumber() << std::endl;
+#endif          
+          // If same plane number for start/END but different for end/START
+          if (//OneTracks.back().GetPlaneNumber() == OtherTracks.back().GetPlaneNumber() && //front()
+               UTracks.front().GetPlaneNumber() != VTracks.front().GetPlaneNumber()) {  //back()
+            // If OneTrack ends/STARTS after OtherTrack
+            if (UTracks.front().GetPlaneNumber() > VTracks.front().GetPlaneNumber()) {  //back()
+              bool stereo_view = (UTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar); //back()
+              if (stereo_view) {
+                CalculateRecoY((UTracks.front()), (VTracks.front())); //back()), (OtherTracks.back()));
+                aTrack.End[0] = UTracks.front().GetNotZ();                //back().GetNotZ();
+                aTrack.End[1] = UTracks.front().GetRecoY();               //back().GetRecoY();
+                aTrack.End[2] = UTracks.front().GetZ();                   //back().GetZ();
+#ifdef DEBUG                
+                std::cout << "UTrack ends/STARTS after VTrack" << std::endl;
+#endif                
+                (aTrack.Hits).push_back(UTracks.front()); //back());
+              } else {
+                // TODO implement this for orthogonal view!!!
+                aTrack.End[0] = UTracks.front().GetRecoX(); //back().GetRecoX();
+                aTrack.End[1] = UTracks.front().GetNotZ();  //back().GetNotZ();
+                aTrack.End[2] = UTracks.front().GetZ();     //back().GetZ();
+                (aTrack.Hits).push_back(UTracks.front());   //back());
+              }
+            } // If OneTrack ends/STARTS before OtherTrack
+              else if (UTracks.front().GetPlaneNumber() < VTracks.front().GetPlaneNumber()) { //back()
+              bool stereo_view = (UTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);  //front()
+              if (stereo_view) {
+                CalculateRecoY((VTracks.front()), (UTracks.front())); //back()), (OneTracks.back()));
+                aTrack.End[0] = VTracks.front().GetNotZ();              //back().GetNotZ();
+                aTrack.End[1] = VTracks.front().GetRecoY();             //back().GetRecoY();
+                aTrack.End[2] = VTracks.front().GetZ();                 //back().GetZ();
+#ifdef DEBUG                
+                std::cout << "UTracks ends/STARTS before VTrack" << std::endl;
+#endif              
+                (aTrack.Hits).push_back(VTracks.front()); //back());
+              } else {
+                // TODO
+                aTrack.End[0] = VTracks.front().GetRecoX(); //back().GetRecoX();
+                aTrack.End[1] = VTracks.front().GetNotZ();  //back().GetNotZ();
+                aTrack.End[2] = VTracks.front().GetZ();     //back().GetZ();
+                (aTrack.Hits).push_back(VTracks.front());   //back());
+              }
+            }
+          } 
+          // If different plane number for start/END but same for end/START
+          if (UTracks.back().GetPlaneNumber() != VTracks.back().GetPlaneNumber() //front()
+                ){//&& OneTracks.front().GetPlaneNumber() == OtherTracks.front().GetPlaneNumber()) {  //back()
+            // If OneTrack starts/ENDS after OtherTrack  
+            if (UTracks.back().GetPlaneNumber() > VTracks.back().GetPlaneNumber()) {  //front()
+              bool stereo_view = (UTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar);  //front()
+              if (stereo_view) {
+                CalculateRecoY((VTracks.back()), (UTracks.back())); //front()), (OneTracks.front()));
+                aTrack.Start[0] = VTracks.back().GetNotZ();           //front().GetNotZ();
+                aTrack.Start[1] = VTracks.back().GetRecoY();          //front().GetRecoY();
+                aTrack.Start[2] = VTracks.back().GetZ();              //front().GetZ();
+#ifdef DEBUG                
+                std::cout << "OneTrack starts/ENDS after VTrack" << std::endl;
+#endif                
+                (aTrack.Hits).push_back(VTracks.back());  //front());
+              } else {
+                // TODO
+                aTrack.Start[0] = VTracks.back().GetRecoX();  //front().GetRecoX();
+                aTrack.Start[1] = VTracks.back().GetNotZ();   //front().GetNotZ();
+                aTrack.Start[2] = VTracks.back().GetZ();      //front().GetZ();
+                (aTrack.Hits).push_back(VTracks.back());      //front());
+              }
+            } // If OneTrack starts/ENDS before OtherTrack
+              else if (UTracks.back().GetPlaneNumber() < VTracks.back().GetPlaneNumber()) { //front()
+              bool stereo_view = (UTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar);  //front()
+              if (stereo_view) {
+                CalculateRecoY((UTracks.back()), (VTracks.back())); //front()), (OtherTracks.front()));
+                aTrack.Start[0] = UTracks.back().GetNotZ();             //front().GetNotZ();
+                aTrack.Start[1] = UTracks.back().GetRecoY();            //front().GetRecoY();
+                aTrack.Start[2] = UTracks.back().GetZ();                //front().GetZ();
+#ifdef DEBUG                
+                std::cout << "UTrack starts/ENDS before VTrack" << std::endl;
+#endif                
+                (aTrack.Hits).push_back(UTracks.back());  //front());
+              } else {
+                // TODO
+                aTrack.Start[0] = UTracks.back().GetRecoX();  //front().GetRecoX();
+                aTrack.Start[1] = UTracks.back().GetNotZ();   //front().GetNotZ();
+                aTrack.Start[2] = UTracks.back().GetZ();      //front().GetZ();
+                (aTrack.Hits).push_back(UTracks.back());      //front());
               }
             }
           }
-          break;
+          
+          // Add hits to track
+          int itU = UTracks.size() - 1;
+          int itV = VTracks.size() - 1;
+          
+          while (itU > 0 || itV > 0) {  // Track seems to be backwards, so run adding of hits backwards
+            bool stereo_view = ((UTracks[itU]).GetBar().GetBarType() != TMS_Bar::kXBar && (VTracks[itV]).GetBar().GetBarType() != TMS_Bar::kXBar);
+#ifdef DEBUG
+            std::cout << "itU: " << itU << " | itV: " << itV << std::endl;
+            std::cout << "U: " << UTracks[itU].GetNotZ() << " / " << UTracks[itU].GetZ() << " | V: " << VTracks[itV].GetNotZ() << " / " << VTracks[itV].GetZ() << std::endl;
+#endif            
+            if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetNotZ() == 0. 
+                || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) --itU;
+            if (std::abs(VTracks[itV].GetNotZ()) > 4000.0 or VTracks[itV].GetNotZ() == 0.
+                || VTracks[itV].GetZ() < 11000 || VTracks[itV].GetZ() > 20000) --itV;
+            if ((UTracks[itU]).GetPlaneNumber() == (VTracks[itV]).GetPlaneNumber()) {
+              // Calculate Y info from bar crossing
+              if (stereo_view) {
+                CalculateRecoY((UTracks[itU]), (VTracks[itV]));
+                CalculateRecoY((VTracks[itV]), (UTracks[itU]));
+#ifdef DEBUG
+                std::cout << "same " << std::endl;
+                std::cout << "Hit: " << UTracks[itU].GetNotZ() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " than: " << VTracks[itV].GetNotZ() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << std::endl;
+#endif
+                (aTrack.Hits).push_back((UTracks[itU]));
+                (aTrack.Hits).push_back((VTracks[itV]));
+              } else {
+                // TODO
+                (aTrack.Hits).push_back((UTracks[itU]));
+                (aTrack.Hits).push_back((VTracks[itV]));
+              }
+              if (itU > 0) --itU;
+              if (itV > 0) --itV;
+            } else if ((UTracks[itU]).GetPlaneNumber() > (VTracks[itV]).GetPlaneNumber()) { //<
+              if (stereo_view) {
+#ifdef DEBUG
+                std::cout << "First bigger" << std::endl;
+                std::cout << "Hit: (" << UTracks[itU].GetNotZ() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << ") than: " << VTracks[itV].GetNotZ() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << std::endl;
+#endif
+                
+                //CalculateRecoY((OneTracks[itOne]), (OtherTracks[itOther + 1 ]));
+                if (itU > 0 && itV > 0) {
+                  CalculateRecoY((VTracks[itV]), (UTracks[itU - 1])); //+
+                  (aTrack.Hits).push_back((VTracks[itV]));
+                  --itV;
+                } else if (itU == 0 && itV > 0) {
+                  CalculateRecoY((VTracks[itV]), (UTracks[itU]));
+                  (aTrack.Hits).push_back((VTracks[itV]));
+                  --itV;
+                } else if (itU > 0 && itV == 0) {
+                  CalculateRecoY((UTracks[itU]), (VTracks[itV]));
+                  (aTrack.Hits).push_back((UTracks[itU]));
+                  --itU;
+                }
+              } else {
+                // TODO
+                //(aTrack.Hits).push_back((OneTracks[itOne]));
+                (aTrack.Hits).push_back((VTracks[itV]));
+                --itV;
+              }
+            } else if ((UTracks[itU]).GetPlaneNumber() < (VTracks[itV]).GetPlaneNumber()) { //>
+              if (stereo_view) {
+                if (itV > 0 && itU > 0) {
+                  CalculateRecoY((UTracks[itU]), (VTracks[itV - 1]));
+                  (aTrack.Hits).push_back((UTracks[itU]));
+                  --itU;
+                } else if (itV == 0 && itU > 0) {
+                  CalculateRecoY((UTracks[itU]), (VTracks[itV]));
+                  (aTrack.Hits).push_back((UTracks[itU]));
+                  --itU;
+                } else if (itV > 0 && itU == 0) {
+                  CalculateRecoY((VTracks[itV]), (UTracks[itU]));
+                  (aTrack.Hits).push_back((VTracks[itV]));
+                  --itV;
+                }
+                //CalculateRecoY((OtherTracks[iterator]), (OneTracks[iterator + 1]));
+#ifdef DEBUG
+                std::cout << "First smaller" << std::endl;
+                std::cout << "Hit: " << UTracks[itU].GetNotZ() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " than: (" << VTracks[itV].GetNotZ() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << ")" << std::endl;
+#endif
+                (aTrack.Hits).push_back((UTracks[itU]));
+                //(aTrack.Hits).push_back((OtherTracks[iterator]));
+              } else {
+                // TODO
+                (aTrack.Hits).push_back((UTracks[itU]));
+                //(aTrack.Hits).push_back((OtherTracks[iterator]));
+                --itU;
+              }
+            }
+          }
+
+          // If same start and end, assign start and end hit in track
+          if (UTracks.front().GetPlaneNumber() == VTracks.front().GetPlaneNumber()) {
+            bool stereo_view = (UTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.front().GetBar().GetBarType() != TMS_Bar::kXBar);
+            if (stereo_view) {
+              aTrack.End[0] = UTracks.front().GetNotZ();  //Start[0]
+              aTrack.End[1] = UTracks.front().GetRecoY(); //Start[1]
+              aTrack.End[2] = UTracks.front().GetZ();     //Start[2]
+#ifdef DEBUG              
+              std::cout << "Start/END equal assigned" << std::endl;
+#endif              
+            } else {
+              aTrack.End[0] = UTracks.front().GetRecoX(); //Start[0]
+              aTrack.End[1] = UTracks.front().GetNotZ();  //Start[1]
+              aTrack.End[2] = UTracks.front().GetZ();     //Start[2]
+            }
+          }
+          if (UTracks.back().GetPlaneNumber() == VTracks.back().GetPlaneNumber()) {
+            bool stereo_view = (UTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar && VTracks.back().GetBar().GetBarType() != TMS_Bar::kXBar);
+            if (stereo_view) {
+              aTrack.Start[0] = VTracks.back().GetNotZ();   //End[0]
+              aTrack.Start[1] = VTracks.back().GetRecoY();  //End[1]
+              aTrack.Start[2] = VTracks.back().GetZ();      //End[2]
+#ifdef DEBUG              
+              std::cout << "End/START equal assigned" << std::endl;
+#endif              
+            } else {
+              aTrack.Start[0] = VTracks.back().GetRecoX();  //End[0]
+              aTrack.Start[1] = VTracks.back().GetNotZ();   //End[1]
+              aTrack.Start[2] = VTracks.back().GetZ();      //End[2]
+            }
+          }
+          // Track Length
+          aTrack.Length = CalculateTrackLength3D(aTrack);
+#ifdef DEBUG
+          std::cout << "Added TrackLength: " << aTrack.Length << std::endl;
+#endif          
+          // Track Direction
+          aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
+          aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
+          aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
+#ifdef DEBUG          
+          std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
+          std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
+          std::cout << "Added Direction: " << aTrack.Direction[0] << " | " << aTrack.Direction[1] << " | " << aTrack.Direction[2] << std::endl;
+#endif          
+
+          returned.push_back(aTrack);
         }
       }
     }
-  }
-  for (auto track: returned) {
-    // Sort in Z after matching the 2D tracks 
-    SpatialPrio(track);
-  }
-  
+  }  
   return returned;
 }
 
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
-  OneHit.SetRecoY(0.5 * 19.081137 * (OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
+  OneHit.SetRecoY(-2510. - 0.5 * 19.081137 * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
   // 48 bars per module, 4 modules per layer, tilted and with gaps for outer 2 modules (due to coils)
   // tan(87 degrees) ~ 19.081137
   return;
@@ -720,7 +869,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
     double z_true = TrueHit.Z();
     //double t_true = TrueHit.T();
     //std::cout << "Finding " << x_true << " " << z_true << std::endl;
-    for (auto &Track: TotalCandidatesOne) {
+    for (auto &Track: TotalCandidatesU) {
       // Loop over each hit in each track
       for (auto &Hit: Track) {
         // Get the bar of this hit
@@ -730,7 +879,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
         }
       }
     }
-    for (auto &Track: TotalCandidatesOther) {
+    for (auto &Track: TotalCandidatesV) {
       // Loop over each hit in each track
       for (auto &Hit: Track) {
         TMS_Bar bar = Hit.GetBar();
@@ -753,62 +902,58 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 }
 
 // Calculate the total track energy
-void TMS_TrackFinder::CalculateTrackEnergyOne() {
+void TMS_TrackFinder::CalculateTrackEnergyU() {
   // Look at the reconstructed tracks
-  if (HoughCandidatesOne.size() == 0) return;
+  if (HoughCandidatesU.size() == 0) return;
 
   // Loop over each Hough Candidate and find the track energy
-  for (auto it = HoughCandidatesOne.begin(); it != HoughCandidatesOne.end(); ++it) {
+  for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
     double total = 0;
     // Sort by increasing z
     std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
     for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
       total += (*hit).GetE();
     }
-    TrackEnergyOne.push_back(total);
+    TrackEnergyU.push_back(total);
   }
 }
 
-void TMS_TrackFinder::CalculateTrackEnergyOther() {
+void TMS_TrackFinder::CalculateTrackEnergyV() {
   //Look at the reconstructed tracks
-  if (HoughCandidatesOther.size() == 0) return;
+  if (HoughCandidatesV.size() == 0) return;
 
   //Lopp over each Hough Candidate and find the track energy
-  for (auto it = HoughCandidatesOther.begin(); it != HoughCandidatesOther.end(); ++it) {
+  for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
     double total = 0;
     // Sort by increasing z
     std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
     for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
       total += (*hit).GetE();
     }
-    TrackEnergyOther.push_back(total);
+    TrackEnergyV.push_back(total);
   }
 }
 
-void TMS_TrackFinder::CalculateTrackEnergy3D(const std::vector<std::vector<TMS_Hit> > &Track3DHits) {
+double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
-  if (Track3DHits.size() == 0) return;
-
+  if ((Track3D.Hits).size() == 0) return -999.;
+  
+  double total = 0;
   // Loop over each Hough Candidate and find the track energy
-  for (auto it = Track3DHits.begin(); it != Track3DHits.end(); ++it) {
-    double total = 0;
-    // Sort by increasing z
-    //std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-      total += (*hit).GetE();
-    }
-    TrackEnergy3D.push_back(total);
-  }
+  for (auto it = (Track3D.Hits).begin(); it != (Track3D.Hits).end(); ++it) {
+    total += (*it).GetE();
+  }  
+   return total;
 }
 
 
 // Calculate the track length for each track
-void TMS_TrackFinder::CalculateTrackLengthOne() {
+void TMS_TrackFinder::CalculateTrackLengthU() {
   // Look at the reconstructed tracks
-  if (HoughCandidatesOne.size() == 0) return;
+  if (HoughCandidatesU.size() == 0) return;
 
   // Loop over each Hough Candidate and find the track length
-  for (auto it = HoughCandidatesOne.begin(); it != HoughCandidatesOne.end(); ++it) {
+  for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
     double final_total = 0;
     int max_n_nodes_used = 0;
 
@@ -852,16 +997,16 @@ void TMS_TrackFinder::CalculateTrackLengthOne() {
     //  double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
     //  total += tracklength;
     //}
-    TrackLengthOne.push_back(final_total);
+    TrackLengthU.push_back(final_total);
   }
 }
 
-void TMS_TrackFinder::CalculateTrackLengthOther() {
+void TMS_TrackFinder::CalculateTrackLengthV() {
   // Look at the reconstructed tracks
-  if (HoughCandidatesOther.size() == 0) return;
+  if (HoughCandidatesV.size() == 0) return;
   
   // Loop over each Hough Candidate and finde the track length
-  for (auto it = HoughCandidatesOther.begin(); it != HoughCandidatesOther.end(); ++it) {
+  for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
     double final_total = 0;
     int max_n_nodes_used = 0;
 
@@ -905,47 +1050,48 @@ void TMS_TrackFinder::CalculateTrackLengthOther() {
     //  double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
     //  total += tracklength;
     //}
-    TrackLengthOther.push_back(final_total);
+    TrackLengthV.push_back(final_total);
   }
 }
 
-void TMS_TrackFinder::CalculateTrackLength3D(const std::vector<std::vector<TMS_Hit>> &Track3DHits) {
+double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
-  if (Track3DHits.size() == 0) return;
+  if ((Track3D.Hits).size() == 0) return -999.;
   
+  double final_total = 0;
+  int max_n_nodes_used = 0;
+  double total = 0;
+  int n_nodes = 0;
   // Loop over each Hough Candidate and find the track length
-  for (auto it = Track3DHits.begin(); it != Track3DHits.end(); ++it) {
-    double final_total = 0;
-    int max_n_nodes_used = 0;
-
-    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-      double total = 0;
-      int n_nodes = 0;
-
-      auto nexthit = *(hit+1);
-      
-      if ((*hit).GetBar().GetBarType() != TMS_Bar::kXBar) {
-        // Use the geometry to calculate the track length between hits
-        TVector3 point1((*hit).GetNotZ(), (*hit).GetRecoY(), (*hit).GetZ());
-        TVector3 point2(nexthit.GetNotZ(), nexthit.GetRecoY(), nexthit.GetZ());
-        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-        total += tracklength;
-        n_nodes += 1;
-      } else if ((*hit).GetBar().GetBarType() == TMS_Bar::kXBar) {
-        // Use the geometry to calculate the track length between hits
-        TVector3 point1((*hit).GetRecoX(), (*hit).GetNotZ(), (*hit).GetZ());
-        TVector3 point2(nexthit.GetRecoX(), nexthit.GetNotZ(), nexthit.GetZ());
-        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-        total += tracklength;
-        n_nodes += 1;
-      }
-      if (n_nodes > max_n_nodes_used) {
-        final_total = total;
-        max_n_nodes_used = n_nodes;
-      }
+  for (auto it = (Track3D.Hits).rbegin(); it != (Track3D.Hits).rend()
+      && (it+1) != (Track3D.Hits).rend(); ++it) { // turn direction around
+    auto nexthit = *(it+1); //+
+    if ((*it).GetBar().GetBarType() != TMS_Bar::kXBar) {
+      // Use the geometry to calculate the track length between hits
+      TVector3 point1((*it).GetNotZ(), (*it).GetRecoY(), (*it).GetZ());
+      TVector3 point2(nexthit.GetNotZ(), nexthit.GetRecoY(), nexthit.GetZ());
+//      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);  //TODO this line seems to cause the issue with event 45!!!
+//      total += tracklength;
+      total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);    
+//      std::cout << "length: " << TMS_Geom::GetInstance().GetTrackLength(point1, point2) << std::endl;
+      n_nodes += 1;
+//      std::cout << "fine" << std::endl;
+    } else if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
+      // Use the geometry to calculate the track length between hits
+      TVector3 point1((*it).GetRecoX(), (*it).GetNotZ(), (*it).GetZ());
+      TVector3 point2(nexthit.GetRecoX(), nexthit.GetNotZ(), nexthit.GetZ());
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      total += tracklength;
+      n_nodes += 1;
     }
-    TrackLength3D.push_back(final_total);
   }
+  if (n_nodes > max_n_nodes_used) {
+    final_total = total;
+    max_n_nodes_used = n_nodes;
+  }
+//  std::cout << "Exiting: tracklength = " << final_total << std::flush;
+//  std::cout << std::endl;
+  return final_total;
 }
 
 //void TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits) {
@@ -962,7 +1108,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   if (TMS_Hits_Cleaned.empty()) return LineCandidates;
 
   // Now split in yz and xz hits
-  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
+  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
   }
@@ -991,13 +1137,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     if (TMS_xz_cand.size() == 0) {
       nRuns++;
       if (hitgroup == 1) { // hitgroup 1 means OneHitGroup
-        delete HoughLinesOne.back().second;
+        delete HoughLinesU.back().second;
 
-        HoughLinesOne.pop_back(); // Remove the built Hough line
+        HoughLinesU.pop_back(); // Remove the built Hough line
       } else if (hitgroup == 2) { // hitgroup 2 means OtherHitGroup
-        delete HoughLinesOther.back().second;
+        delete HoughLinesV.back().second;
 	
-	      HoughLinesOther.pop_back();
+	      HoughLinesV.pop_back();
       } else {
           std::cout << "Removing built Hough lines goes wrong for hitgroups: hitgroup = " << hitgroup << std::endl;
           break;
@@ -1007,9 +1153,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
     if (hitgroup == 1) {
       // Move into the candidate vector
-      for (auto &i: TMS_xz_cand) CandidatesOne.push_back(std::move(i));
+      for (auto &i: TMS_xz_cand) CandidatesU.push_back(std::move(i));
     } else if (hitgroup == 2) {
-      for (auto &i: TMS_xz_cand) CandidatesOther.push_back(std::move(i));
+      for (auto &i: TMS_xz_cand) CandidatesV.push_back(std::move(i));
     }
 
     // Loop over vector and remove used hits
@@ -1022,9 +1168,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     
     if (hitgroup == 1) {
       // Push back the candidates into the total candidates
-      LineCandidates.push_back(std::move(CandidatesOne));
+      LineCandidates.push_back(std::move(CandidatesU));
     } else if (hitgroup == 2) {
-      LineCandidates.push_back(std::move(CandidatesOther));
+      LineCandidates.push_back(std::move(CandidatesV));
     }
       
     nRuns++;
@@ -1055,19 +1201,19 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       int last_hit_z = lasthit.GetPlaneNumber();
       int last_hit_notz = lasthit.GetBarNumber();
 
-      std::cout << "Running on track with size: " << (*it).size() << std::endl;
+//      std::cout << "Running on track with size: " << (*it).size() << std::endl;
 
-      double HoughOneInter_1 = 0.000;
-      double HoughOneSlope_1 = 0.000;
-      double HoughOtherInter_1 = 0.000;
-      double HoughOtherSlope_1 = 0.000;
+      double HoughUInter_1 = 0.000;
+      double HoughUSlope_1 = 0.000;
+      double HoughVInter_1 = 0.000;
+      double HoughVSlope_1 = 0.000;
 
       if (hitgroup == 1) {
-        HoughOneInter_1 = HoughLinesOne[lineit].second->GetParameter(0);
-        HoughOneSlope_1 = HoughLinesOne[lineit].second->GetParameter(1);
+        HoughUInter_1 = HoughLinesU[lineit].second->GetParameter(0);
+        HoughUSlope_1 = HoughLinesU[lineit].second->GetParameter(1);
       } else if (hitgroup == 2) {
-        HoughOtherInter_1 = HoughLinesOther[lineit].second->GetParameter(0);
-        HoughOtherSlope_1 = HoughLinesOther[lineit].second->GetParameter(1);
+        HoughVInter_1 = HoughLinesV[lineit].second->GetParameter(0);
+        HoughVSlope_1 = HoughLinesV[lineit].second->GetParameter(1);
       }
 
       // Now loop over the remaining hits
@@ -1106,17 +1252,17 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= 2 && 
                           abs(first_hit_notz_2 - last_hit_notz) <= 2);
 
-        double HoughOneInter_2 = 0.000;
-        double HoughOneSlope_2 = 0.000;
-        double HoughOtherInter_2 = 0.000;
-        double HoughOtherSlope_2 = 0.000;
+        double HoughUInter_2 = 0.000;
+        double HoughUSlope_2 = 0.000;
+        double HoughVInter_2 = 0.000;
+        double HoughVSlope_2 = 0.000;
 
         if (hitgroup == 1) {
-          HoughOneInter_2 = HoughLinesOne[lineit_2].second->GetParameter(0);
-          HoughOneSlope_2 = HoughLinesOne[lineit_2].second->GetParameter(1);
+          HoughUInter_2 = HoughLinesU[lineit_2].second->GetParameter(0);
+          HoughUSlope_2 = HoughLinesU[lineit_2].second->GetParameter(1);
 	      } else if (hitgroup == 2) {
-  	      HoughOtherInter_2 = HoughLinesOther[lineit_2].second->GetParameter(0);
-      	  HoughOtherSlope_2 = HoughLinesOther[lineit_2].second->GetParameter(1);
+  	      HoughVInter_2 = HoughLinesV[lineit_2].second->GetParameter(0);
+      	  HoughVSlope_2 = HoughLinesV[lineit_2].second->GetParameter(1);
       	}
 
         //std::cout << "Hough pars: " << std::endl;
@@ -1125,11 +1271,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         // Now check how similar the Hough lines are
         bool mergehough = false;
       	if (hitgroup == 1) {
-      	  mergehough = (fabs(HoughOneInter_2 - HoughOneInter_1) < 1000 &&   // 100 -> 1000
-                           fabs(HoughOneSlope_2 - HoughOneSlope_1) < 0.1);  // 0.01 -> 0.1
+      	  mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < 1000 &&   // 100 -> 1000
+                           fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
       	} else if (hitgroup == 2) {
-      	  mergehough = (fabs(HoughOtherInter_2 - HoughOtherInter_1) < 1000 && // 100 -> 1000
-			                 fabs(HoughOtherSlope_2 - HoughOtherSlope_1) < 0.1);    // 0.01 -> 0.1
+      	  mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < 1000 && // 100 -> 1000
+			                 fabs(HoughVSlope_2 - HoughVSlope_1) < 0.1);    // 0.01 -> 0.1
       	}   
 
         // Check if we should merge or not
@@ -1139,7 +1285,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
         //std::cout << "Track to merge (to be del) size: " << (*jt).size() << std::endl;
 
-        std::cout << "merged track" << std::endl;
+//        std::cout << "merged track" << std::endl;
 
         // Copy over the contents of hits_2 into hits
         for (TMS_Hit movehits: (*jt)) {
@@ -1179,9 +1325,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     if ((*it).size() == 0) {
       it = LineCandidates.erase(it);
       if (hitgroup == 1) {
-        HoughLinesOne.erase(HoughLinesOne.begin()+linenumber);
+        HoughLinesU.erase(HoughLinesU.begin()+linenumber);
       } else if (hitgroup == 2) {
-        HoughLinesOther.erase(HoughLinesOther.begin()+linenumber);
+        HoughLinesV.erase(HoughLinesV.begin()+linenumber);
       }
     } else {
       ++it;
@@ -1215,9 +1361,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       if (ncleaned < 1) {
         it = LineCandidates.erase(it);
 	      if (hitgroup == 1) {
-          HoughLinesOne.erase(HoughLinesOne.begin()+tracknumber);
+          HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
 	      } else if (hitgroup == 2) {
-	        HoughLinesOther.erase(HoughLinesOther.begin()+tracknumber);
+	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
         }
       } else {
         *it = CleanedHough;
@@ -1332,7 +1478,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 
   // Check if we're in XZ view
-  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
 
   // Recalculate Hough parameters event by event... not fully tested!
   bool VariableHough = false;
@@ -1348,7 +1494,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       double z = (*it).GetZ();
       double not_z = (*it).GetNotZ();
       if (print) {
-        std::cout << "hitgroup: " << hitgroup << " " << z << " | " << not_z << std::endl;
+//        std::cout << "hitgroup: " << hitgroup << " " << z << " | " << not_z << std::endl;
         print = false;
       }
       if (z > maxz) maxz = z;
@@ -1378,11 +1524,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
   if (hitgroup == 1) {
-    HoughLineOne->SetParameter(0, intercept);
-    HoughLineOne->SetParameter(1, slope);
+    HoughLineU->SetParameter(0, intercept);
+    HoughLineU->SetParameter(1, slope);
   } else if (hitgroup == 2) {
-    HoughLineOther->SetParameter(0, intercept);
-    HoughLineOther->SetParameter(1, slope);
+    HoughLineV->SetParameter(0, intercept);
+    HoughLineV->SetParameter(1, slope);
   }
 
   // Different fitting regions for XZ and YZ views: 
@@ -1391,14 +1537,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
   
-  TF1* HoughCopy = (TF1*)HoughLineOne->Clone();
+  TF1* HoughCopy = (TF1*)HoughLineU->Clone();
 
   if (hitgroup == 1) {
-    HoughLineOne->SetRange(zMinHough, zMaxHough);
-    HoughCopy = (TF1*)HoughLineOne->Clone();
+    HoughLineU->SetRange(zMinHough, zMaxHough);
+    HoughCopy = (TF1*)HoughLineU->Clone();
   } else if (hitgroup == 2) {
-    HoughLineOther->SetRange(zMinHough, zMaxHough);
-    HoughCopy = (TF1*)HoughLineOther->Clone();
+    HoughLineV->SetRange(zMinHough, zMaxHough);
+    HoughCopy = (TF1*)HoughLineV->Clone();
   } else {
 #ifdef DEBUG
     std::cout << "Something is going wrong with the assigning of hitgroup" << std::endl;
@@ -1408,9 +1554,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
   if (hitgroup == 1) {
-    HoughLinesOne.push_back(std::move(HoughPairs));
+    HoughLinesU.push_back(std::move(HoughPairs));
   } else if (hitgroup == 2) {
-    HoughLinesOther.push_back(std::move(HoughPairs));
+    HoughLinesV.push_back(std::move(HoughPairs));
   }
 
   // Then run a clustering on the Hough Transform
@@ -1437,9 +1583,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Calculate 'x'-point of hit with Hough line
     double HoughPoint = -9999999999; //HoughLineOne->Eval(zhit);
     if (hitgroup == 1) {
-      HoughPoint = HoughLineOne->Eval(zhit);
+      HoughPoint = HoughLineU->Eval(zhit);
     } else if (hitgroup == 2) {
-      HoughPoint = HoughLineOther->Eval(zhit);
+      HoughPoint = HoughLineV->Eval(zhit);
     }
 
     // Hough point is inside bar -> start clustering around bar
@@ -1790,10 +1936,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
   // If more than 2 candidate hits, run A* algorithm to connect the correct ones
   if (end_extrapolation_cand.size() > 2) {
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "more than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
     std::cout << "track initial size: " << TrackHits.size() << std::endl;
-//#endif
+#endif
     // Make sure the hits are ordered
     SpatialPrio(end_extrapolation_cand);
 
@@ -1807,21 +1953,21 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
       // Now add the connected hits into the existing track
       for (auto hit = vec.rbegin(); hit != vec.rend(); ++hit) {
-        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
         returned.push_back((*hit));
       }
     }
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
     // Now order the hits in the existing track
     SpatialPrio(returned);
-    std::cout << "Extrapolation 1.1" << std::endl;
+//    std::cout << "Extrapolation 1.1" << std::endl;
   } else if (!end_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
-//#ifdef DEBUG
+#ifdef DEBUG
     std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
     std::cout << "track initial size: " << TrackHits.size() << std::endl;
-//#endif
+#endif
 
     // Make sure the hits are still ordered
     SpatialPrio(end_extrapolation_cand);
@@ -1834,17 +1980,17 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
       // Add them
       for (auto hit = end_extrapolation_cand.rbegin(); hit != end_extrapolation_cand.rend(); ++hit) {
-        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//        std::cout << "extra end: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
         returned.push_back((*hit));
       }
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
       // Now order the hits in the existing track
       SpatialPrio(returned);
     }
-    std::cout << "Extrapolation 1.2" << std::endl;
+//    std::cout << "Extrapolation 1.2" << std::endl;
   }
 
     // Do the same as for the end of the track just the other direction for the start
@@ -1868,12 +2014,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
           std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Mananger::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()
             << " + " << TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit() << std::endl;
- #endif
+#endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
           if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist() +
               TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateLimit()) {
             // Move hit now into candidate hits
- #ifdef DEBUG
+#ifdef DEBUG
               std::cout << "Added to candidates" << std::endl;
 #endif
             front_extrapolation_cand.push_back((*it));
@@ -1884,10 +2030,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 
     // If more than 2 candidate hits, run A* algorithm to connect the correct ones
     if (front_extrapolation_cand.size() > 2 ) {
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "more than 2 candidates: " << front_extrapolation_cand.size() << std::endl;
       std::cout << "track initial size: " << returned.size() << std::endl;
-//#endif
+#endif
       // Make sure the hits are ordered
       SpatialPrio(front_extrapolation_cand);
     
@@ -1901,22 +2047,22 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   
         // Now add the connected hits into the existing track
         for (auto hit = vec.begin(); hit != vec.end(); ++hit)  {
-          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
           returned.push_back((*hit));
         }
-//#ifdef DEBUG
+#ifdef DEBUG
         std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
         // Now order the hits in the existing track
         SpatialPrio(returned);
       }
-      std::cout << "Extrapolation 2.1" << std::endl;
+//      std::cout << "Extrapolation 2.1" << std::endl;
     } else if (!front_extrapolation_cand.empty()) { // If less than 2 candidate hits, but there are some, just add them
-//#ifdef DEBUG
+#ifdef DEBUG
       std::cout << "less than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
       std::cout << "track initial size: " << returned.size() << std::endl;
-//#endif
+#endif
 
       // Make sure the hits are still ordered
       SpatialPrio(front_extrapolation_cand);
@@ -1929,17 +2075,17 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       if (test.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_HOUGH_ExtrapolateDist()) {
         // Add them
         for (auto hit = front_extrapolation_cand.begin(); hit != front_extrapolation_cand.end(); ++hit) {
-          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
+//          std::cout << "extra front: " << (*hit).GetZ() << " " << (*hit).GetNotZ() << std::endl;
           returned.push_back((*hit));
         } 
-//#ifdef DEBUG
+#ifdef DEBUG
         std::cout << "Hits added. Size now: " << returned.size() << std::endl;
-//#endif
+#endif
 
         // Now order the hits in the existing track
         SpatialPrio(returned);
       }
-      std::cout << "Extrapolation 2.2" << std::endl;
+//      std::cout << "Extrapolation 2.2" << std::endl;
     }
   return returned;
 }
@@ -1994,7 +2140,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
 
   // Now split in yz and xz hits
-   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
+  std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
   }
@@ -2050,9 +2196,9 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
     // Only push back if we have more than one candidate
     if (AStarHits_xz.size() > nMinHits) {
       if (hitgroup == 1) {    
-        HoughCandidatesOne.push_back(std::move(AStarHits_xz));
+        HoughCandidatesU.push_back(std::move(AStarHits_xz));
       } else if (hitgroup == 2) {
-        HoughCandidatesOther.push_back(std::move(AStarHits_xz));
+        HoughCandidatesV.push_back(std::move(AStarHits_xz));
       }
     }
     nRuns++;
@@ -2143,7 +2289,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
 
   // Remember which orientation these hits are
   // needed when we potentially skip the air gap in xz (but not in yz!)
-  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kYBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
   // Reset remembering where gaps are in xz
   if (IsXZ) PlanesNearGap.clear();
 

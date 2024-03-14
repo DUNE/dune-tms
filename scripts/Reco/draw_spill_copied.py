@@ -142,8 +142,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 if not end_inside_tms: continue
                 print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}")
             
-            print(f"Event {i} has {event.nHits} hits, {event.nClustersOne} clusters(one) | {event.nClustersOther} clusters(other), and {event.nLinesOne} lines(one) | {event.nLinesOther} lines(other).")
-            
+            print(f"Event {i} has {event.nHits} hits, {event.nClustersU} clusters(U) | {event.nClustersV} clusters(V), and {event.nLinesU} lines(U) | {event.nLinesV} lines(V).")
+           
+            print("number of events: ", event.nHits)
             
             for hit in range(event.nHits):
                 if event.RecoHitEnergy[hit] < 0: continue
@@ -176,24 +177,25 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     total_energy += reco_hit_energy
                 elif reco_hit_energy < 0:
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
+                    print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
             
             # Extract all hits in clusters and tracks that are not -999 for easier access later on
-            TotalHitsInClustersOne = sum(numpy.array([event.nHitsInClusterOne[i] for i in range(min(25, event.nClustersOne))]))
-            FilteredClusterHitPosOne = numpy.empty(TotalHitsInClustersOne*2)
+            TotalHitsInClustersU = sum(numpy.array([event.nHitsInClusterU[i] for i in range(min(25, event.nClustersU))]))
+            FilteredClusterHitPosU = numpy.empty(TotalHitsInClustersU*2)
             j = 0
-            for i in range(len(event.ClusterHitPosOne)):
-                if event.ClusterHitPosOne[i] != -999:
-                    FilteredClusterHitPosOne[j] = event.ClusterHitPosOne[i]
+            for i in range(len(event.ClusterHitPosU)):
+                if event.ClusterHitPosU[i] != -999:
+                    FilteredClusterHitPosU[j] = event.ClusterHitPosU[i]
                     j += 1
 
-            usedClustersOne = 0
-            for clusterOne in range(min(25, event.nClustersOne)):
-                cluster_energy = event.ClusterEnergyOne[clusterOne]
-                cluster_time = event.ClusterTimeOne[clusterOne]
-                cluster_pos_z = event.ClusterPosMeanOne[clusterOne*2 + 0] / 1000.0
-                cluster_pos_x = event.ClusterPosMeanOne[clusterOne*2 + 1] / 1000.0
-                cluster_pos_z_std_dev = event.ClusterPosStdDevOne[clusterOne*2 + 0] / 1000.0
-                cluster_pos_x_std_dev = event.ClusterPosStdDevOne[clusterOne*2 + 1] / 1000.0
+            usedClustersU = 0
+            for clusterU in range(min(25, event.nClustersU)):
+                cluster_energy = event.ClusterEnergyU[clusterU]
+                cluster_time = event.ClusterTimeU[clusterU]
+                cluster_pos_z = event.ClusterPosMeanU[clusterU*2 + 0] / 1000.0
+                cluster_pos_x = event.ClusterPosMeanU[clusterU*2 + 1] / 1000.0
+                cluster_pos_z_std_dev = event.ClusterPosStdDevU[clusterU*2 + 0] / 1000.0
+                cluster_pos_x_std_dev = event.ClusterPosStdDevU[clusterU*2 + 1] / 1000.0
                 #cluster_total_std_dev = math.sqrt(cluster_pos_z_std_dev**2 + cluster_pos_x_std_dev**2)
                 cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
                 e = int(min(255, 255 * cluster_energy / 10.0))
@@ -209,10 +211,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 markers.append(marker)
                 marker = 0
 
-                print("Hits in cluster One: ", event.nHitsInClusterOne[clusterOne])
-                for ClusterHit in range(event.nHitsInClusterOne[clusterOne]):
-                    hit_z = FilteredClusterHitPosOne[usedClustersOne*2 + ClusterHit*2 + 0] / 1000.0
-                    hit_x = FilteredClusterHitPosOne[usedClustersOne*2 + ClusterHit*2 + 1] / 1000.0
+                print("Hits in cluster U: ", event.nHitsInClusterU[clusterU])
+                for ClusterHit in range(event.nHitsInClusterU[clusterU]):
+                    hit_z = FilteredClusterHitPosU[usedClustersU*2 + ClusterHit*2 + 0] / 1000.0
+                    hit_x = FilteredClusterHitPosU[usedClustersU*2 + ClusterHit*2 + 1] / 1000.0
                     
                     print(hit_z, " ", hit_x)
             
@@ -221,24 +223,24 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedClustersOne += event.nHitsInClusterOne[clusterOne]
+                usedClustersU += event.nHitsInClusterU[clusterU]
 
-            TotalHitsInClustersOther = sum(numpy.array([event.nHitsInClusterOther[i] for i in range(min(25, event.nClustersOther))]))
-            FilteredClusterHitPosOther = numpy.empty(TotalHitsInClustersOther*2)
+            TotalHitsInClustersV = sum(numpy.array([event.nHitsInClusterV[i] for i in range(min(25, event.nClustersV))]))
+            FilteredClusterHitPosV = numpy.empty(TotalHitsInClustersV*2)
             j = 0
-            for i in range(len(event.ClusterHitPosOther)):
-                if event.ClusterHitPosOther[i] != -999:
-                    FilteredClusterHitPosOther[j] = event.ClusterHitPosOther[i]
+            for i in range(len(event.ClusterHitPosV)):
+                if event.ClusterHitPosV[i] != -999:
+                    FilteredClusterHitPosV[j] = event.ClusterHitPosV[i]
                     j += 1
             
-            usedClustersOther = 0
-            for clusterOther in range(min(25, event.nClustersOther)):
-                cluster_energy = event.ClusterEnergyOther[clusterOther]
-                cluster_time = event.ClusterTimeOther[clusterOther]
-                cluster_pos_z = event.ClusterPosMeanOther[clusterOther*2 + 0] / 1000.0
-                cluster_pos_x = event.ClusterPosMeanOther[clusterOther*2 + 1] / 1000.0
-                cluster_pos_z_std_dev = event.ClusterPosStdDevOther[clusterOther*2 + 0] / 1000.0
-                cluster_pos_x_std_dev = event.ClusterPosStdDevOther[clusterOther*2 + 1] / 1000.0
+            usedClustersV = 0
+            for clusterV in range(min(25, event.nClustersV)):
+                cluster_energy = event.ClusterEnergyV[clusterV]
+                cluster_time = event.ClusterTimeV[clusterV]
+                cluster_pos_z = event.ClusterPosMeanV[clusterV*2 + 0] / 1000.0
+                cluster_pos_x = event.ClusterPosMeanV[clusterV*2 + 1] / 1000.0
+                cluster_pos_z_std_dev = event.ClusterPosStdDevV[clusterV*2 + 0] / 1000.0
+                cluster_pos_x_std_dev = event.ClusterPosStdDevV[clusterV*2 + 1] / 1000.0
 
                 cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
                 e = int(min(255, 255*cluster_energy / 10.0))
@@ -253,10 +255,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 markers.append(marker)
                 marker = 0
 
-                print("Hits In Cluster Other: ", event.nHitsInClusterOther[clusterOther])
-                for ClusterHit in range(event.nHitsInClusterOther[clusterOther]):
-                    hit_z = FilteredClusterHitPosOther[usedClustersOther*2 + ClusterHit*2 + 0] / 1000.0
-                    hit_x = FilteredClusterHitPosOther[usedClustersOther*2 + ClusterHit*2 + 1] / 1000.0
+                print("Hits In Cluster V: ", event.nHitsInClusterV[clusterV])
+                for ClusterHit in range(event.nHitsInClusterV[clusterV]):
+                    hit_z = FilteredClusterHitPosV[usedClustersV*2 + ClusterHit*2 + 0] / 1000.0
+                    hit_x = FilteredClusterHitPosV[usedClustersV*2 + ClusterHit*2 + 1] / 1000.0
                     print(hit_z, " ", hit_x)
 
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
@@ -264,27 +266,27 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedClustersOther += event.nHitsInClusterOther[clusterOther]
+                usedClustersV += event.nHitsInClusterV[clusterV]
 
-            TotalHitsInTracksOne = sum(numpy.array([event.nHitsInTrackOne[i] for i in range(event.nLinesOne)]))
-            FilteredTrackHitPosOne = numpy.empty(TotalHitsInTracksOne*2)
+            TotalHitsInTracksU = sum(numpy.array([event.nHitsInTrackU[i] for i in range(event.nLinesU)]))
+            FilteredTrackHitPosU = numpy.empty(TotalHitsInTracksU*2)
             j = 0
-            for i in range(len(event.TrackHitPosOne)):
-                if event.TrackHitPosOne[i] != -999:
-                    FilteredTrackHitPosOne[j] = event.TrackHitPosOne[i]
+            for i in range(len(event.TrackHitPosU)):
+                if event.TrackHitPosU[i] != -999:
+                    FilteredTrackHitPosU[j] = event.TrackHitPosU[i]
                     j += 1
 
-            usedTracksOne = 0
-            for lineOne in range(event.nLinesOne):
+            usedTracksU = 0
+            for lineU in range(event.nLinesU):
                 #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
                 #track_x = event.TrackHitPos[line*2 + 1] / 1000.0
-                track_z = event.FirstHoughHitOne[lineOne*2 + 0] / 1000.0
-                track_x = event.FirstHoughHitOne[lineOne*2 + 1] / 1000.0
-                track_z2 = event.LastHoughHitOne[lineOne*2 + 0] / 1000.0
-                track_x2 = event.LastHoughHitOne[lineOne*2 + 1] / 1000.0
-                track_length = event.TrackLengthOne[lineOne] / 1000.0
-                direction_z = event.DirectionZOne[lineOne]
-                direction_x = event.DirectionXOne[lineOne]
+                track_z = event.FirstHoughHitU[lineU*2 + 0] / 1000.0
+                track_x = event.FirstHoughHitU[lineU*2 + 1] / 1000.0
+                track_z2 = event.LastHoughHitU[lineU*2 + 0] / 1000.0
+                track_x2 = event.LastHoughHitU[lineU*2 + 1] / 1000.0
+                track_length = event.TrackLengthU[lineU] / 1000.0
+                direction_z = event.DirectionZU[lineU]
+                direction_x = event.DirectionXU[lineU]
                     
                     
                 if track_length == 0: continue
@@ -319,10 +321,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 markers.append(marker_end)
                 marker_end = 0
                 
-                print("Hits in track One: ", event.nHitsInTrackOne[lineOne])
-                for TrackHitOne in range(event.nHitsInTrackOne[lineOne]):
-                    hit_z = FilteredTrackHitPosOne[usedTracksOne*2 + TrackHitOne*2 + 0] / 1000.0
-                    hit_x = FilteredTrackHitPosOne[usedTracksOne*2 + TrackHitOne*2 + 1] / 1000.0
+                print("Hits in track U: ", event.nHitsInTrackU[lineU])
+                for TrackHitU in range(event.nHitsInTrackU[lineU]):
+                    hit_z = FilteredTrackHitPosU[usedTracksU*2 + TrackHitU*2 + 0] / 1000.0
+                    hit_x = FilteredTrackHitPosU[usedTracksU*2 + TrackHitU*2 + 1] / 1000.0
                     print(hit_z, hit_x)
 
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
@@ -330,25 +332,25 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedTracksOne += event.nHitsInTrackOne[lineOne]
+                usedTracksU += event.nHitsInTrackU[lineU]
 
-            TotalHitsInTracksOther = sum(numpy.array([event.nHitsInTrackOther[i] for i in range(event.nLinesOther)]))
-            FilteredTrackHitPosOther = numpy.empty(TotalHitsInTracksOther*2)
+            TotalHitsInTracksV = sum(numpy.array([event.nHitsInTrackV[i] for i in range(event.nLinesV)]))
+            FilteredTrackHitPosV = numpy.empty(TotalHitsInTracksV*2)
             j = 0
-            for i in range(len(event.TrackHitPosOther)):
-                if event.TrackHitPosOther[i] != -999:
-                    FilteredTrackHitPosOther[j] = event.TrackHitPosOther[i]
+            for i in range(len(event.TrackHitPosV)):
+                if event.TrackHitPosV[i] != -999:
+                    FilteredTrackHitPosV[j] = event.TrackHitPosV[i]
                     j += 1
 
-            usedTracksOther = 0
-            for lineOther in range(event.nLinesOther):                    
-                track_z = event.FirstHoughHitOther[lineOther*2 + 0] / 1000.0
-                track_x = event.FirstHoughHitOther[lineOther*2 + 1] / 1000.0
-                track_z2 = event.LastHoughHitOther[lineOther*2 + 0] / 1000.0
-                track_x2 = event.LastHoughHitOther[lineOther*2 + 1] / 1000.0
-                track_length = event.TrackLengthOther[lineOther] / 1000.0
-                direction_z = event.DirectionZOther[lineOther]
-                direction_x = event.DirectionXOther[lineOther]
+            usedTracksV = 0
+            for lineV in range(event.nLinesV):                    
+                track_z = event.FirstHoughHitV[lineV*2 + 0] / 1000.0
+                track_x = event.FirstHoughHitV[lineV*2 + 1] / 1000.0
+                track_z2 = event.LastHoughHitV[lineV*2 + 0] / 1000.0
+                track_x2 = event.LastHoughHitV[lineV*2 + 1] / 1000.0
+                track_length = event.TrackLengthV[lineV] / 1000.0
+                direction_z = event.DirectionZV[lineV]
+                direction_x = event.DirectionXV[lineV]
 
                 if track_length == 0: continue
                     
@@ -382,10 +384,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 markers.append(marker_end)
                 marker_end = 0
                  
-                print("Hits in track Other: ", event.nHitsInTrackOther[lineOther])
-                for TrackHitOther in range(event.nHitsInTrackOther[lineOther]):
-                    hit_z = FilteredTrackHitPosOther[usedTracksOther*2 + TrackHitOther*2 + 0] / 1000.0
-                    hit_x = FilteredTrackHitPosOther[usedTracksOther*2 + TrackHitOther*2 + 1] / 1000.0
+                print("Hits in track V: ", event.nHitsInTrackV[lineV])
+                for TrackHitV in range(event.nHitsInTrackV[lineV]):
+                    hit_z = FilteredTrackHitPosV[usedTracksV*2 + TrackHitV*2 + 0] / 1000.0
+                    hit_x = FilteredTrackHitPosV[usedTracksV*2 + TrackHitV*2 + 1] / 1000.0
                     print(hit_z, "  ", hit_x)
                       
                     marker = ROOT.TMarker(hit_z, hit_x, 21)
@@ -393,9 +395,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     marker.SetMarkerSize(0.5)
                     markers.append(marker)
                     marker = 0
-                usedTracksOther += event.nHitsInTrackOther[lineOther]
-
-        print("usedClustersOne: ", usedClustersOne, " usedClustersOther: ", usedClustersOther, " usedTracksOne: ", usedTracksOne, " usedTracksOther: ", usedTracksOther)
+                usedTracksV += event.nHitsInTrackV[lineV]
+        print("usedClustersU: ", usedClustersU, " usedClustersV: ", usedClustersV, " usedTracksU: ", usedTracksU, " usedTracksV: ", usedTracksV)
             
         minimum_energy_to_print = 0
         if total_energy > minimum_energy_to_print:

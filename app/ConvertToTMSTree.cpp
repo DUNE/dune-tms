@@ -104,11 +104,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     if (gRoo)
       gRoo->GetEntry(i);
 
-#ifndef DEBUG
+//#ifndef DEBUG
     if (N_entries <= 10 || i % (N_entries/10) == 0) {
-#endif
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
+//#endif
     
     
     double primary_event_time = -999;
@@ -127,7 +127,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       SpillNumber += 1;
     }
     if (Spill) {
-      //std::cout<<"Adjusting hit times with time offset of "<<timeoffset<<std::endl;
+      std::cout<<"Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       // ... interaction vertex
       for (std::vector<TG4PrimaryVertex>::iterator v = event->Primaries.begin(); v != event->Primaries.end(); ++v) {
         //v->Position.T() = event_time;
@@ -137,6 +137,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       }
 
       // ... trajectories
+      std::cout<<"2Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       for (std::vector<TG4Trajectory>::iterator t = event->Trajectories.begin(); t != event->Trajectories.end(); ++t) {
         // loop over all points in the trajectory
         for (std::vector<TG4TrajectoryPoint>::iterator p = t->Points.begin(); p != t->Points.end(); ++p) {
@@ -146,6 +147,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       }
 
       // ... and, finally, energy depositions
+      std::cout<<"3Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       for (auto d = event->SegmentDetectors.begin(); d != event->SegmentDetectors.end(); ++d) {
         for (std::vector<TG4HitSegment>::iterator h = d->second.begin(); h != d->second.end(); ++h) {
           double start_time = h->Start.T() - timeoffset;
@@ -174,6 +176,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Add event information and truth from another event
     if (Overlay && i % nOverlays == 0) {
       // Now loop over previous events
+      std::cout << "Overlaying" << std::endl;
       for (auto &event : overlay_events) tms_event.AddEvent(event);
       overlay_events.clear();
     }
@@ -216,8 +219,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // Now add all the events pass the first event
       //for (auto it = std::begin(spill_events) + 1; it != std::end(spill_events); ++it) temp_event.AddEvent(*it);
       TMS_Event temp_event;
+      std::cout << "spill2 in" << std::endl << std::flush;
       for (auto &event : spill_events) temp_event.AddEvent(event);
       spill_events.clear();
+      std::cout << "spill2 oot" << std::endl << std::flush;
       // Now save the current event as the first event of the next spill
       spill_events.push_back(tms_event);
       // And finally run the next bit of code on the combined event
@@ -292,8 +297,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       event_counter += 1;
       int spill_number = i;
       tms_event_slice.SetSpillNumber(spill_number);
-      
-      std::cout << "1: " << tms_event_slice.GetNHits() << std::endl;
 
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);

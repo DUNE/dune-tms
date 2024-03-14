@@ -83,9 +83,9 @@ class TMS_Event {
     
     void SetTotalVisibleEnergyFromVertex(double energy) { TotalVisibleEnergyFromVertex = energy; };
     int GetVertexIdOfMostVisibleEnergy();
-    double GetVisibleEnergyFromVertexInSlice() { return VisibleEnergyFromVertexInSlice; };
+    double GetVisibleEnergyFromUVertexInSlice() { return VisibleEnergyFromUVertexInSlice; };
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
-    double GetVisibleEnergyFromOtherVerticesInSlice() { return VisibleEnergyFromOtherVerticesInSlice; };
+    double GetVisibleEnergyFromVVerticesInSlice() { return VisibleEnergyFromVVerticesInSlice; };
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
@@ -145,16 +145,16 @@ class TMS_Event {
     std::map<int, double> TrueVisibleEnergyPerVertex;
     
     int VertexIdOfMostEnergyInEvent;
-    double VisibleEnergyFromVertexInSlice;
+    double VisibleEnergyFromUVertexInSlice;
     double TotalVisibleEnergyFromVertex;
-    double VisibleEnergyFromOtherVerticesInSlice;
+    double VisibleEnergyFromVVerticesInSlice;
 
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;
     std::vector<std::pair<float, float>> ReadChannelTimes;
 
     std::default_random_engine generator;
-    
+
     bool HasDetEffects;
 };
 

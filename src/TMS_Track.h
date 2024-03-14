@@ -29,7 +29,7 @@ class TMS_Track {
     double GetEnergyRange(){return EnergyRange;};
 
     int nHits;
-    std::vector<TMS_Hit*> Hits;
+    std::vector<TMS_Hit> Hits;
 };
 
 
