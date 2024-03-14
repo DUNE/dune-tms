@@ -575,7 +575,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       // Run spatial prio just because one last time
       SpatialPrio(UTracks);
       SpatialPrio(VTracks);
-#ifdef DEBUG
+#ifndef DEBUG
       std::cout << "UTrack front/BACK: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << "  back/FRONT: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 
       std::cout << "VTrack front/BACK: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << "  back/FRONT: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
@@ -595,7 +595,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           if (UTracks.back().GetZ() > UTracks.front().GetZ()) std::reverse(UTracks.begin(), UTracks.end());
           if (VTracks.back().GetZ() > VTracks.front().GetZ()) std::reverse(VTracks.begin(), VTracks.end());
 
-#ifdef DEBUG          
+#ifndef DEBUG          
           std::cout << "UTrack FRONT: " << UTracks.back().GetPlaneNumber() << " BACK: " << UTracks.front().GetPlaneNumber() << std::endl;
           std::cout << "VTrack FRONT: " << VTracks.back().GetPlaneNumber() << " BACK: " << VTracks.front().GetPlaneNumber() << std::endl;
 #endif          
@@ -610,7 +610,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 aTrack.End[0] = UTracks.front().GetNotZ();                //back().GetNotZ();
                 aTrack.End[1] = UTracks.front().GetRecoY();               //back().GetRecoY();
                 aTrack.End[2] = UTracks.front().GetZ();                   //back().GetZ();
-#ifdef DEBUG                
+#ifndef DEBUG                
                 std::cout << "UTrack ends/STARTS after VTrack" << std::endl;
 #endif                
                 (aTrack.Hits).push_back(UTracks.front()); //back());

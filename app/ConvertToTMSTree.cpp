@@ -99,6 +99,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   std::vector<TMS_Event> overlay_events;
 
   for (; i < N_entries; ++i) {
+    std::cout << "Getting dat entry at " << i << std::endl << std::flush;
     events->GetEntry(i);
     // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
@@ -127,7 +128,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       SpillNumber += 1;
     }
     if (Spill) {
-      std::cout<<"Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       // ... interaction vertex
       for (std::vector<TG4PrimaryVertex>::iterator v = event->Primaries.begin(); v != event->Primaries.end(); ++v) {
         //v->Position.T() = event_time;
@@ -137,7 +137,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       }
 
       // ... trajectories
-      std::cout<<"2Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       for (std::vector<TG4Trajectory>::iterator t = event->Trajectories.begin(); t != event->Trajectories.end(); ++t) {
         // loop over all points in the trajectory
         for (std::vector<TG4TrajectoryPoint>::iterator p = t->Points.begin(); p != t->Points.end(); ++p) {
@@ -147,7 +146,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       }
 
       // ... and, finally, energy depositions
-      std::cout<<"3Adjusting hit times with time offset of "<<timeoffset<<std::endl;
       for (auto d = event->SegmentDetectors.begin(); d != event->SegmentDetectors.end(); ++d) {
         for (std::vector<TG4HitSegment>::iterator h = d->second.begin(); h != d->second.end(); ++h) {
           double start_time = h->Start.T() - timeoffset;
@@ -169,6 +167,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Keep filling up the vector and move on to the next event
     if (Overlay && i % nOverlays != 0) {
+      std::cout << "1 Overlaying event " << i << std::endl << std::flush;
       overlay_events.push_back(tms_event);
       continue;
     }
@@ -176,8 +175,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // Add event information and truth from another event
     if (Overlay && i % nOverlays == 0) {
       // Now loop over previous events
-      std::cout << "Overlaying" << std::endl;
+      std::cout << "2 Overlaying event " << i << std::endl << std::flush;
       for (auto &event : overlay_events) tms_event.AddEvent(event);
+      std::cout << "2 done " << i << std::endl << std::flush;
       overlay_events.clear();
     }
 
