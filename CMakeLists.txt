@@ -83,7 +83,6 @@ endif (Geant4_FOUND)
 # Check if edep-sim is available
 find_package(EDepSim)# CONFIG)
 if(EDepSim_FOUND)
-  message("Found EDEP_SIM ${EDepSim_DIR}")
   include(${EDepSim_DIR}/EDepSimConfig.cmake)
   set(EDEP_INCLUDES $ENV{EDEPSIM_INC})
   set(EDEP_LIBRARIES $ENV{EDEPSIM_LIB}/libedepsim.so $ENV{EDEPSIM_LIB}/libedepsim_io.so)
@@ -91,15 +90,7 @@ else(EDepSim_FOUND)
   message(FATAL_ERROR "Couldn't find edep-sim with find_package, maybe run edep-sim setup script?")
 endif(EDepSim_FOUND)
 
-# Check if edep-sim is available
-#find_package(toml11 REQUIRED)
-#if(TOML_FOUND)
-# include(${TOML_USE_FILE})
-#endif(TOML_FOUND)
-
-# Compile the really simple debugging display.  There are better
-# displays out there, but this is what I use to debug the code.  This
-# does not depend on geant4.
+# TODO: ... actually write an event display xd
 if(TMS_EVENT_DISPLAY)
   message("Building dune-tms event display")
   add_subdirectory(display)
@@ -110,10 +101,10 @@ add_subdirectory(src)
 add_subdirectory(app)
 add_subdirectory(toml11)
 
-# Install some extra files.  These are in subdirectories, but are not
-# really part of the package.  They are still useful for users to have
-# available as examples.
-
+# Install some extra files. These are in subdirectories, but are not
+# really part of the package. They are still useful for users to have
+# available as examples. This copied from edep-sim, maybe install configs
+# here later or geometries or whatever.
 install(DIRECTORY inputs DESTINATION share/dune-tms
   FILES_MATCHING
   PATTERN README*)
