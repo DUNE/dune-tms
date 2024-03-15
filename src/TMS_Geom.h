@@ -304,12 +304,6 @@ class TMS_Geom {
         std::cout << "  thickness*density = " << density*thickness << std::endl;
         */
 
-        // Skip if density or thickness is small
-        if (density*thickness < 0.1) {
-          //std::cout << "  Skipping material, to little path length to bother" << std::endl;
-          continue;
-        }
-
         TotalPathLength += density*thickness;
         TotalLength += thickness;
 
