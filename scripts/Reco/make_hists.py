@@ -227,7 +227,6 @@ def run(c, truth, outfilename, nmax=-1):
                 z2 = event.RecoHitPos[max_z_hit * 4 + 2]
                 track_length_max_dz = math.sqrt((x2 - x1)**2 + (z2 - z1)**2)
 
-
             # Loop over all tracks
             # Find the track with highest areal density (event.TrackLength)
             # This will be our primary muon candidate, longtrack
@@ -674,4 +673,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
    
     validate_then_run(args)
-
