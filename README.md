@@ -22,7 +22,7 @@ The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example set
 ## Building
 Once you have set your environment up, run `make`, which will get toml11, make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
-To build with CMake (currently experimental), create a directory for the build (e.g. `mkdir -p build; cd build` inside dune-tms/), run `cmake ../`, and if all goes well you can them run `make`. Standard CMake options available, e.g. `-DCMAKE_INSTALL_PREFIX=/path/to/install/dir`, -DCMAKE_CXX_FLAGS=`-fpermissive -O999 -funroll-all-loops`
+To build with CMake (currently experimental), create a directory for the build (e.g. `mkdir -p build; cd build` inside dune-tms/), run `cmake ../`, and if all goes well you can them run `make`. Standard CMake options available, e.g. `-DCMAKE_INSTALL_PREFIX=/path/to/install/dir`, `-DCMAKE_CXX_FLAGS="-fpermissive -O999 -funroll-all-loops"`
 
 ## toml submodule dependency
 We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The submodule setup is included in the default `make` recipe, so you shouldn't have to do anything else. If you for some reason want to run it on your own, do `git submodule init && git submodule update` to get the submodule.
