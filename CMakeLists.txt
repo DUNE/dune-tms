@@ -1,5 +1,4 @@
-# Hi, this is my first time setting up CMake to build something. Don't judge. :)
-
+# Hi, this is my first time setting up CMake to build something. Don't judge.
 cmake_minimum_required(VERSION 3.0)
 
 # Set the project name and version.  The project name will be used to
@@ -10,8 +9,7 @@ message("-- DUNE TMS Detector Sim and Reconstruction -- ${VERSION}")
 
 # If you got here without git good job honestly
 find_package(Git)
-#if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
-if(GIT_FOUND AND NOT EXISTS "${PROJECT_SOURCE_DIR}/toml11")
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
     # Update submodules as needed
     option(GIT_SUBMODULE "Check submodules during build" ON)
     if(GIT_SUBMODULE)
@@ -20,12 +18,11 @@ if(GIT_FOUND AND NOT EXISTS "${PROJECT_SOURCE_DIR}/toml11")
 #                        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 #                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
 #                      message(${GIT_SUBMOD_RESULT})
-#execute_process(COMMAND ${GIT_EXECUTALE} submodule update --init  --recursive
-        execute_process(COMMAND git submodule update --init  --recursive
+        execute_process(COMMAND git submodule update --init 
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                         RESULT_VARIABLE GIT_SUBMOD_RESULT)
         if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-          message(FATAL_ERROR "${GIT_EXECUTABLE} submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
         endif()
     endif()
 endif()
@@ -33,6 +30,9 @@ endif()
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/toml11/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
+
+set(TOML_INCLUDES "${PROJECT_SOURCE_DIR}/toml11")
+#set(toml11_DIR "${PROJECT_SOURCE_DIR}/toml11/cmake")
 
 # Define the options that can be set in the cache, or on the cmake
 # command line.
@@ -43,7 +43,6 @@ set(TMS_USE_NEST TRUE CACHE BOOL
 # Check to see if this is MACOS
 if(APPLE)
   message("Apple user: Good luck! I wrote this for Linux so let's hope it works.")
-  # If it doesn't just work @liam on slack
   set(CMAKE_MACOSX_RPATH 1)
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -64,44 +63,60 @@ find_package(Doxygen)
 #endif(DOXYGEN_FOUND)
 
 # Make sure that ROOT is available.  ROOT is absolutely required.
-find_package(ROOT REQUIRED
-  COMPONENTS Geom Physics Matrix MathCore Tree RIO)
+find_package(ROOT REQUIRED COMPONENTS Geom Physics Matrix MathCore Tree RIO)
+message(${ROOT_USE_FILE})
 if(ROOT_FOUND)
   include(${ROOT_USE_FILE})
+else(ROOT_FOUND)
+  message(FATAL_ERROR "Couldn't find ROOT with find_package")
 endif(ROOT_FOUND)
 
 # Look for GEANT4.  If it's found, then build the simulation.
+# Otherwise, this can be skipped, but only the i/o library is built.
 find_package(Geant4)
 if (Geant4_FOUND)
   include(${Geant4_USE_FILE})
-else (Geant4_FOUND)
-  message("GEANT not found")
+else(Geant4_FOUND)
+  message(FATAL_ERROR "Couldn't find Geant4 with find_package")
 endif (Geant4_FOUND)
 
 # Check if edep-sim is available
-find_package(EDepSim REQUIRED)
-if(EDEP_FOUND)
-  include(${EDEP_USE_FILE})
-endif(EDEP_FOUND)
+find_package(EDepSim)# CONFIG)
+if(EDepSim_FOUND)
+  message("Found EDEP_SIM ${EDepSim_DIR}")
+  include(${EDepSim_DIR}/EDepSimConfig.cmake)
+  set(EDEP_INCLUDES $ENV{EDEPSIM_INC})
+  set(EDEP_LIBRARIES $ENV{EDEPSIM_LIB}/libedepsim.so $ENV{EDEPSIM_LIB}/libedepsim_io.so)
+else(EDepSim_FOUND)
+  message(FATAL_ERROR "Couldn't find edep-sim with find_package, maybe run edep-sim setup script?")
+endif(EDepSim_FOUND)
 
-# Check if toml11 is available, which it should be because submodule
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/toml11/cmake")
-#set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/toml11/cmake")
-find_package(toml11 REQUIRED)
-if(TOML_FOUND)
-  include(${TOML_USE_FILE})
-endif(TOML_FOUND)
+# Check if edep-sim is available
+#find_package(toml11 REQUIRED)
+#if(TOML_FOUND)
+# include(${TOML_USE_FILE})
+#endif(TOML_FOUND)
+
+# Compile the really simple debugging display.  There are better
+# displays out there, but this is what I use to debug the code.  This
+# does not depend on geant4.
+if(TMS_EVENT_DISPLAY)
+  message("Building dune-tms event display")
+  add_subdirectory(display)
+endif(TMS_EVENT_DISPLAY)
 
 
 add_subdirectory(src)
 add_subdirectory(app)
+add_subdirectory(toml11)
 
 # Install some extra files.  These are in subdirectories, but are not
 # really part of the package.  They are still useful for users to have
 # available as examples.
-#install(DIRECTORY inputs DESTINATION share/dune-tms
-#  FILES_MATCHING
-#  PATTERN README*)
+
+install(DIRECTORY inputs DESTINATION share/dune-tms
+  FILES_MATCHING
+  PATTERN README*)
 
 #############################################################
 #

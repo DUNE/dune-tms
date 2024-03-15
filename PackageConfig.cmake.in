@@ -40,18 +40,6 @@ if(Geant4_FOUND)
   include(${Geant4_USE_FILE})
 endif(Geant4_FOUND)
 
-# need edep-sim
-find_package(EDepSim @EDepSim_VERSION@ REQUIRED)
-if(EDepSim_FOUND)
-  include(${EDepSim_USE_FILE})
-endif(EDepSim_FOUND)
-
-# need toml11
-find_package(toml11 @toml11_VERSION@ REQUIRED)
-if(TOML_FOUND)
-  include(${TOML_USE_FILE})
-endif(TOML_FOUND)
-
 #########################
 # Leave the next couple of  lines alone since it will automatically customize
 # for your package.
