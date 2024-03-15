@@ -12,7 +12,7 @@ EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
 
 TOML_INC = -I../toml11/
 
-CXXFLAGS = -Wall -Wextra -g -fPIC -Werror
+CXXFLAGS = -Wall -Wextra -g -fPIC
 ifdef DEBUG
   CXXFLAGS+=-Og
 else
@@ -37,7 +37,7 @@ MKDIR_P := mkdir -p
 # Library directory where we build to
 LIB_DIR=../lib
 
-TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o
+TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_Track.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o
 
 # Our lovely collection of libs
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)

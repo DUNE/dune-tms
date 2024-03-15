@@ -13,6 +13,7 @@
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
 #define __TMS_MAX_LINES__ 100 // Maximum number of lines in an event
+#define __TMS_MAX_TRACKS__ 100 // Maximum number of lines in an event
 #define __TMS_MAX_HITS__ 20000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
@@ -32,10 +33,22 @@ class TMS_TreeWriter {
     void Write() {
       Output->cd();
       Branch_Lines->Write();
+      Reco_Tree->Write();
       Truth_Info->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
+
+    // 3D Track Object Info
+    int nTracks;
+    int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
+    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
+    float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
+    float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
+    float RecoTrackLength[__TMS_MAX_TRACKS__];
 
   private:
     TMS_TreeWriter();
@@ -44,76 +57,135 @@ class TMS_TreeWriter {
     ~TMS_TreeWriter() {};
 
 
-    TFile *Output; // The output TFile
-    TTree *Branch_Lines; // The TTree
-    TTree *Truth_Info; // Truth info
+    TFile* Output; // The output TFile
+    TTree* Branch_Lines; // The TTree
+    TTree* Reco_Tree; // The TTree 
+    TTree* Truth_Info; // Truth info
 
     void Clear();
     void MakeBranches(); // Make the output branches
 
     // The variables
     int EventNo;
-    int nLines;
+    int nLinesU;
+    int nLinesV;
+
+    int nLines3D;
     
     int SliceNo;
     int SpillNo;
     
     int VertexIdOfMostEnergyInEvent;
-    float VisibleEnergyFromVertexInSlice;
+    float VisibleEnergyFromUVertexInSlice;
     float TotalVisibleEnergyFromVertex;
-    float VisibleEnergyFromOtherVerticesInSlice;
+    float VisibleEnergyFromVVerticesInSlice;
     float VertexVisibleEnergyFractionInSlice;
     float PrimaryVertexVisibleEnergyFraction;
 
-    float Slope[__TMS_MAX_LINES__];
-    float Intercept[__TMS_MAX_LINES__];
+    float SlopeU[__TMS_MAX_LINES__];
+    float SlopeV[__TMS_MAX_LINES__];
+    float InterceptU[__TMS_MAX_LINES__];
+    float InterceptV[__TMS_MAX_LINES__];
 
-    float Slope_Downstream[__TMS_MAX_LINES__];
-    float Intercept_Downstream[__TMS_MAX_LINES__];
+    float Slope_DownstreamU[__TMS_MAX_LINES__];
+    float Slope_DownstreamV[__TMS_MAX_LINES__];
+    float Intercept_DownstreamU[__TMS_MAX_LINES__];
+    float Intercept_DownstreamV[__TMS_MAX_LINES__];
 
-    float Slope_Upstream[__TMS_MAX_LINES__];
-    float Intercept_Upstream[__TMS_MAX_LINES__];
+    float Slope_UpstreamU[__TMS_MAX_LINES__];
+    float Slope_UpstreamV[__TMS_MAX_LINES__];
+    float Intercept_UpstreamU[__TMS_MAX_LINES__];
+    float Intercept_UpstreamV[__TMS_MAX_LINES__];
 
-    float DirectionZ[__TMS_MAX_LINES__];
-    float DirectionX[__TMS_MAX_LINES__];
+    float DirectionZU[__TMS_MAX_LINES__];
+    float DirectionZV[__TMS_MAX_LINES__];
+    float DirectionXU[__TMS_MAX_LINES__];
+    float DirectionXV[__TMS_MAX_LINES__];
 
-    float DirectionZ_Upstream[__TMS_MAX_LINES__];
-    float DirectionX_Upstream[__TMS_MAX_LINES__];
+    float DirectionZU_Upstream[__TMS_MAX_LINES__];
+    float DirectionZV_Upstream[__TMS_MAX_LINES__];
+    float DirectionXU_Upstream[__TMS_MAX_LINES__];
+    float DirectionXV_Upstream[__TMS_MAX_LINES__];
 
-    float DirectionZ_Downstream[__TMS_MAX_LINES__];
-    float DirectionX_Downstream[__TMS_MAX_LINES__];
+    float DirectionZU_Downstream[__TMS_MAX_LINES__];
+    float DirectionZV_Downstream[__TMS_MAX_LINES__];
+    float DirectionXU_Downstream[__TMS_MAX_LINES__];
+    float DirectionXV_Downstream[__TMS_MAX_LINES__];
 
-    float FirstHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
-    float LastHit[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
-    float FirstHitTime[__TMS_MAX_LINES__]; 
-    float LastHitTime[__TMS_MAX_LINES__];
-    float EarliestHitTime[__TMS_MAX_LINES__]; 
-    float LatestHitTime[__TMS_MAX_LINES__];
-    int FirstPlane[__TMS_MAX_LINES__];
-    int LastPlane[__TMS_MAX_LINES__];
+    float FirstHitU[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float FirstHitV[__TMS_MAX_LINES__][2];
+    float LastHitU[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
+    float LastHitV[__TMS_MAX_LINES__][2];
+    float FirstHitTimeU[__TMS_MAX_LINES__]; 
+    float FirstHitTimeV[__TMS_MAX_LINES__];
+    float LastHitTimeU[__TMS_MAX_LINES__];
+    float LastHitTimeV[__TMS_MAX_LINES__];
+    float EarliestHitTimeU[__TMS_MAX_LINES__]; 
+    float EarliestHitTimeV[__TMS_MAX_LINES__];
+    float LatestHitTimeU[__TMS_MAX_LINES__];
+    float LatestHitTimeV[__TMS_MAX_LINES__];
+    int FirstPlaneU[__TMS_MAX_LINES__];
+    int FirstPlaneV[__TMS_MAX_LINES__];
+    int LastPlaneU[__TMS_MAX_LINES__];
+    int LastPlaneV[__TMS_MAX_LINES__];
     bool TMSStart;
     float TMSStartTime;
-    float Occupancy[__TMS_MAX_LINES__];
-    float TrackLength[__TMS_MAX_LINES__];
-    float TotalTrackEnergy[__TMS_MAX_LINES__];
-    bool TrackStopping[__TMS_MAX_LINES__];
+    float OccupancyU[__TMS_MAX_LINES__];
+    float OccupancyV[__TMS_MAX_LINES__];
+    float TrackLengthU[__TMS_MAX_LINES__];
+    float TrackLengthV[__TMS_MAX_LINES__];
+    float TotalTrackEnergyU[__TMS_MAX_LINES__];
+    float TotalTrackEnergyV[__TMS_MAX_LINES__];
+    bool TrackStoppingU[__TMS_MAX_LINES__];
+    bool TrackStoppingV[__TMS_MAX_LINES__];
 
-    float TrackHitEnergy[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
-    float TrackHitTime[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
-    float TrackHitPos[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
-    int nHitsInTrack[__TMS_MAX_LINES__];
+    /*float FirstHit3D[__TMS_MAX_LINES__][3]; // [0] is Z, [1] is 'X', [2] is Y
+    float LastHit3D[__TMS_MAX_LINES__][3];
+    float FirstHitTime3D[__TMS_MAX_LINES__];
+    float LastHitTime3D[__TMS_MAX_LINES__];
+    float EarliestHitTime3D[__TMS_MAX_LINES__];
+    float LatestHitTime3D[__TMS_MAX_LINES__];
+    float FirstPlane3D[__TMS_MAX_LINES__];
+    float LastPlane3D[__TMS_MAX_LINES__];
+    float Occupancy3D[__TMS_MAX_LINES__];
+    float TrackLength3D[__TMS_MAX_LINES__];
+    float TotalTrackEnergy3D[__TMS_MAX_LINES__];
+    float TrackStopping3D[__TMS_MAX_LINES__];
+    float TrackHitEnergy3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTime3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitPos3D[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][3];
+    float nHitsInTrack3D[__TMS_MAX_LINES__];*/
+
+    float TrackHitEnergyU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
+    float TrackHitEnergyV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitPosU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
+    float TrackHitPosV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
+    int nHitsInTrackU[__TMS_MAX_LINES__];
+    int nHitsInTrackV[__TMS_MAX_LINES__];
 
     // Cluster information
-    int nClusters; // Number of clusters
-    float ClusterEnergy[__TMS_MAX_CLUSTERS__]; // Energy in cluster
-    float ClusterTime[__TMS_MAX_CLUSTERS__]; // Energy in cluster
-    int nHitsInCluster[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
-    float ClusterPosMean[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
-    float ClusterPosStdDev[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
-    float ClusterHitPos[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
-    float ClusterHitEnergy[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
-    float ClusterHitTime[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
-    int ClusterHitSlice[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
+    int nClustersU; // Number of clusters
+    int nClustersV;
+    float ClusterEnergyU[__TMS_MAX_CLUSTERS__]; // Energy in cluster
+    float ClusterEnergyV[__TMS_MAX_CLUSTERS__];
+    float ClusterTimeU[__TMS_MAX_CLUSTERS__]; // Time in cluster
+    float ClusterTimeV[__TMS_MAX_CLUSTERS__];
+    int nHitsInClusterU[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
+    int nHitsInClusterV[__TMS_MAX_CLUSTERS__];
+    float ClusterPosMeanU[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
+    float ClusterPosMeanV[__TMS_MAX_CLUSTERS__][2];
+    float ClusterPosStdDevU[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
+    float ClusterPosStdDevV[__TMS_MAX_CLUSTERS__][2];
+    float ClusterHitPosU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
+    float ClusterHitPosV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2];
+    float ClusterHitEnergyU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    float ClusterHitEnergyV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    float ClusterHitTimeU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
+    float ClusterHitTimeV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    int ClusterHitSliceU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
+    int ClusterHitSliceV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
 
     // Reco information
     int nHits; // How many hits in event
