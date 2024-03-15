@@ -73,7 +73,6 @@ def run(c, truth, outfilename, nmax=-1):
     hist_track_angleV = ROOT.TH1D("hist_track_angle_V", "Track Angle;Angle (deg);N Events", 50, -180, 180)
   
     # Now make histograms that rely on truth information as well
-    print("truth", truth)
     if truth != None:
         # KE estimators
         hist_KEU = ROOT.TH2D("hist_KE_U", "KE;True muon KE (MeV);Track length of best track (g/cm^{2})", 100, 0, 5000, 50, 0, 2500)
@@ -160,8 +159,6 @@ def run(c, truth, outfilename, nmax=-1):
 
     # User can request fewer events, so check how many we're looping over.
     nevents = c.GetEntries()
-    print("nmax", nmax)
-    print("nevents", nevents)
     if nmax >= 0 and nevents > nmax: nevents = nmax
     # Figure out how often to print progress information.
     # Setting carriage = True will use a carriage return which keeps the progress on a single line
@@ -213,7 +210,6 @@ def run(c, truth, outfilename, nmax=-1):
         max_z = -1e9
         min_z = 1e9
 
-        print("nhits", nhits)
         for hit in range(nhits):
             x = event.RecoHitPos[hit * 4 + 0]
             z = event.RecoHitPos[hit * 4 + 2]
@@ -249,9 +245,7 @@ def run(c, truth, outfilename, nmax=-1):
             longtrack_lengthV = 0
             longtrackV = -1
             track_lengthsV = [0] * ntracksV
-            areal_densitiesVr = [0] * ntracksV
-
-            print("ntracksU", ntracksU)
+            areal_densitiesV = [0] * ntracksV
 
             for trackU in range(ntracksU):
                 track_start_x = event.FirstHoughHitU[2*trackU+0]
@@ -275,8 +269,6 @@ def run(c, truth, outfilename, nmax=-1):
                 # Save them in these arrays
                 track_lengthsU[trackU] = dist
                 areal_densitiesU[trackU] = event.TrackLengthU[trackU]
-
-            print("ntracksV", ntracksV)
 
             for trackV in range(ntracksV):
                 track_start_x = event.FirstHoughHitV[2*trackV+0]
@@ -303,14 +295,12 @@ def run(c, truth, outfilename, nmax=-1):
 
             best_tracklengthU = -999.0
             reconstructed_muon_keU = -999.0
-            print("longtrackU", longtrackU)
             if longtrackU >= 0:
                 hist_track_length_longestU.Fill(track_lengthsU[longtrackU])
             hist_track_length_max_dz.Fill(track_length_max_dz)
 
             best_tracklengthV = -999.9
             reconstructed_muon_keV = -999.0
-            print("longtrackV", longtrackV)
             if longtrackV >= 0:
                 hist_track_length_longestV.Fill(track_lengthsV[longtrackV])
 #            hist_track_length_max_dzOther.Fill(track_length_max_dzOther)
@@ -346,7 +336,7 @@ def run(c, truth, outfilename, nmax=-1):
                 hist_track_startV.Fill(track_start_z, track_start_x)
                 hist_track_end_xV.Fill(track_end_x)
                 hist_track_end_zV.Fill(track_end_z)
-                hist_track_end.Fill(track_end_z, track_end_x)
+                hist_track_endV.Fill(track_end_z, track_end_x)
 
                 slope = event.SlopeV[longtrackV]
                 angle = math.atan(slope) * 180 / math.pi
@@ -395,12 +385,10 @@ def run(c, truth, outfilename, nmax=-1):
                 if event.OccupancyV[longtrackV] < OccupancyCut: best_muon_candidateV = -1
 
             # Only fill if we found a good candidate
-            print(best_muon_candidateU)
             if best_muon_candidateU >= 0:
                 best_tracklengthU = event.TrackLengthU[best_muon_candidateU]
                 reconstructed_muon_keU = 82+1.75*best_tracklengthU
 
-            print(best_muon_candidateV)
             if best_muon_candidateV >= 0:
                 best_tracklengthV = event.TrackLengthV[best_muon_candidateV]
                 reconstructed_muon_keV = 82+1.75*best_tracklengthV
@@ -409,9 +397,6 @@ def run(c, truth, outfilename, nmax=-1):
             track_distU = -999
             track_lengthV = -999
             track_distV = -999
-
-            print("nLinesU", event.nLinesU)
-            print("nLinesV", event.nLinesV)
 
             if best_muon_candidateU >= 0: 
                 track_lengthU = event.TrackLengthU[best_muon_candidateU]
@@ -481,59 +466,59 @@ def run(c, truth, outfilename, nmax=-1):
                             hist_true_interior_muon_ke_vs_estimated_ke_originalV.Fill(Muon_TrueKE, 82+1.75*max(areal_densitiesV))
                             hist_true_interior_muon_ke_vs_estimated_keV.Fill(Muon_TrueKE, 2*1.75*max(areal_densitiesV))
              
-            # Plot vertex resolution of muon
-            # But only if it starts or ends in detector respectively
-            if longtrackU >= 0:
-                dz_start = event.FirstHoughHitU[2*longtrackU+0] - mz 
-                dz_start_span = z1 - mz
-                dz_end = event.LastHoughHitU[2*longtrackU+0] - mdz
-                dz_end_span = z2 - mdz
-                dx_start = event.FirstHoughHitU[2*longtrackU+1] - mx
-                dx_end = event.LastHoughHitU[2*longtrackU+1] - mdx
-                if start_inside_tms:
-                    hist_track_start_vtx_z_resolutionU.Fill(dz_start)
-                    hist_track_start_vtx_z_resolution_using_spanU.Fill(dz_start_span)
-                    hist_track_start_vtx_x_resolutionU.Fill(dx_start)
-                if end_inside_tms: 
-                    hist_track_end_vtx_z_resolutionU.Fill(dz_end)
-                    hist_track_end_vtx_z_resolution_using_spanU.Fill(dz_end_span)
-                    hist_track_end_vtx_x_resolutionU.Fill(dx_end)
+                    # Plot vertex resolution of muon
+                    # But only if it starts or ends in detector respectively
+                    if longtrackU >= 0:
+                        dz_start = event.FirstHoughHitU[2*longtrackU+0] - mz 
+                        dz_start_span = z1 - mz
+                        dz_end = event.LastHoughHitU[2*longtrackU+0] - mdz
+                        dz_end_span = z2 - mdz
+                        dx_start = event.FirstHoughHitU[2*longtrackU+1] - mx
+                        dx_end = event.LastHoughHitU[2*longtrackU+1] - mdx
+                        if start_inside_tms:
+                            hist_track_start_vtx_z_resolutionU.Fill(dz_start)
+                            hist_track_start_vtx_z_resolution_using_spanU.Fill(dz_start_span)
+                            hist_track_start_vtx_x_resolutionU.Fill(dx_start)
+                        if end_inside_tms: 
+                            hist_track_end_vtx_z_resolutionU.Fill(dz_end)
+                            hist_track_end_vtx_z_resolution_using_spanU.Fill(dz_end_span)
+                            hist_track_end_vtx_x_resolutionU.Fill(dx_end)
 
-            if longtrackV >= 0:
-                dz_start = event.FirstHoughHitV[2*longtrackV+0] - mz
-                dz_start_span = z1 - mz
-                dz_end = event.LastHoughHitV[2*longtrackV+0] - mdz
-                dz_end_span = z2 - mdz
-                dx_start = event.FirstHoughHitV[2*longtrackV+1] - mx
-                dx_end = event.LastHoughHitV[2*longtrackV+1] - mdx
-                if start_inside_tms:
-                    hist_track_start_vtx_z_resolutionV.Fill(dz_start)
-                    hist_track_start_vtx_z_resolution_using_spanV.Fill(dz_start_span)
-                    hist_track_start_vtx_x_resolutionV.Fill(dx_start)
-                if end_inside_tms:
-                    hist_track_end_vtx_z_resolutionV.Fill(dz_end)
-                    hist_track_end_vtx_z_resolution_using_spanV.Fill(dz_end_span)
-                    hist_track_end_vtx_x_resolutionV.Fill(dx_end)
+                    if longtrackV >= 0:
+                        dz_start = event.FirstHoughHitV[2*longtrackV+0] - mz
+                        dz_start_span = z1 - mz
+                        dz_end = event.LastHoughHitV[2*longtrackV+0] - mdz
+                        dz_end_span = z2 - mdz
+                        dx_start = event.FirstHoughHitV[2*longtrackV+1] - mx
+                        dx_end = event.LastHoughHitV[2*longtrackV+1] - mdx
+                        if start_inside_tms:
+                            hist_track_start_vtx_z_resolutionV.Fill(dz_start)
+                            hist_track_start_vtx_z_resolution_using_spanV.Fill(dz_start_span)
+                            hist_track_start_vtx_x_resolutionV.Fill(dx_start)
+                        if end_inside_tms:
+                            hist_track_end_vtx_z_resolutionV.Fill(dz_end)
+                            hist_track_end_vtx_z_resolution_using_spanV.Fill(dz_end_span)
+                            hist_track_end_vtx_x_resolutionV.Fill(dx_end)
 
-            # For finding efficiency
-            # Plot true KE in all cases
-            # But for numerator, look if we found a candidate
-            # For now only consider muons starting in the TMS
-            if start_inside_tms:
-                if longtrackU >= 0:
-                    hist_eff_track_finding_numeratorU.Fill(Muon_TrueKE)
-                #if longtrackOther >= 0:
-                #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
-                if best_muon_candidateU >= 0:
-                    hist_eff_track_finding_after_cuts_numeratorU.Fill(Muon_TrueKE)
-                    hist_eff_track_finding_denominatorU.Fill(Muon_TrueKE)
-                if longtrackV >= 0:
-                    hist_eff_track_finding_numeratorV.Fill(Muon_TrueKE)
-                #if longtrackOther >= 0:
-                #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
-                if best_muon_candidateV >= 0:
-                    hist_eff_track_finding_after_cuts_numeratorV.Fill(Muon_TrueKE)
-                hist_eff_track_finding_denominatorV.Fill(Muon_TrueKE)
+                    # For finding efficiency
+                    # Plot true KE in all cases
+                    # But for numerator, look if we found a candidate
+                    # For now only consider muons starting in the TMS
+                    if start_inside_tms:
+                        if longtrackU >= 0:
+                            hist_eff_track_finding_numeratorU.Fill(Muon_TrueKE)
+                        #if longtrackOther >= 0:
+                        #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
+                        if best_muon_candidateU >= 0:
+                            hist_eff_track_finding_after_cuts_numeratorU.Fill(Muon_TrueKE)
+                            hist_eff_track_finding_denominatorU.Fill(Muon_TrueKE)
+                        if longtrackV >= 0:
+                            hist_eff_track_finding_numeratorV.Fill(Muon_TrueKE)
+                        #if longtrackOther >= 0:
+                        #    hist_eff_track_finding_numeratorOther.Fill(Muon_TrueKE)
+                        if best_muon_candidateV >= 0:
+                            hist_eff_track_finding_after_cuts_numeratorV.Fill(Muon_TrueKE)
+                        hist_eff_track_finding_denominatorV.Fill(Muon_TrueKE)
 
 
     ## Calculate the efficiency
@@ -608,10 +593,10 @@ def validate_then_run(args):
         # No output directory was specified so use the default
         # First we need the username
         username = os.environ["USER"]
-        outdir = f"/dune/data/users/{username}/dune-tms_hists"
+        outdir = f"/exp/dune/data/users/{username}/dune-tms_hists"
     else:
         # Check if it follows the correct conventions
-        good_locations = ["/dune/data/users", "/dune/data2/users", "/pnfs/dune/persistent", "/pnfs/dune/scratch"]
+        good_locations = ["/exp/dune/data/users", "/exp/dune/data2/users", "/pnfs/dune/persistent", "/pnfs/dune/scratch"]
         if not any(location in outdir for location in good_locations):
             print(f"Warning: outdir is not in list of good locations. Don't want to write root files to app area. {outdir}")
     # Make sure the output directory exists
@@ -636,7 +621,6 @@ def validate_then_run(args):
     if has_truth: truth = ROOT.TChain("Truth_Info")
     for f in files_to_use:
         c.Add(f)
-        print("Entries", c.GetEntries())
         if has_truth: truth.Add(f)
     assert c.GetEntries() > 0, "Didn't get any entries in Line_Candidates TChain." 
     if has_truth: assert truth.GetEntries() > 0, "Didn't get any entries in Truth_Info TChain."
