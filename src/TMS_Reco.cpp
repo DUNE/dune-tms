@@ -833,7 +833,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
   OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_YAnchor() - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
   // 48 bars per module, 4 modules per layer, tilted and with gaps for outer 2 modules (due to coils)
-  // tan(87 degrees) ~ 19.081137
   return;
 }
 
@@ -902,22 +901,6 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 }
 
 // Calculate the total track energy
-/*void TMS_TrackFinder::CalculateTrackEnergyU() {
-  // Look at the reconstructed tracks
-  if (HoughCandidatesU.size() == 0) return;
-
-  // Loop over each Hough Candidate and find the track energy
-  for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
-    double total = 0;
-    // Sort by increasing z
-    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-      total += (*hit).GetE();
-    }
-    TrackEnergyU.push_back(total);
-  }
-}*/
-
 double TMS_TrackFinder::CalculateTrackEnergy(const std::vector<TMS_Hit> &Candidate) {
   // Look at the reconstructred tracks
   if (Candidate.size() == 0) return -999.;
@@ -933,22 +916,6 @@ double TMS_TrackFinder::CalculateTrackEnergy(const std::vector<TMS_Hit> &Candida
   return total;
 }
 
-/*void TMS_TrackFinder::CalculateTrackEnergyV() {
-  //Look at the reconstructed tracks
-  if (HoughCandidatesV.size() == 0) return;
-
-  //Lopp over each Hough Candidate and find the track energy
-  for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
-    double total = 0;
-    // Sort by increasing z
-    std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-    for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-      total += (*hit).GetE();
-    }
-    TrackEnergyV.push_back(total);
-  }
-}*/
-
 double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
   if ((Track3D.Hits).size() == 0) return -999.;
@@ -963,59 +930,6 @@ double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
 
 
 // Calculate the track length for each track
-/*void TMS_TrackFinder::CalculateTrackLengthU() {
-  // Look at the reconstructed tracks
-  if (HoughCandidatesU.size() == 0) return;
-
-  // Loop over each Hough Candidate and find the track length
-  for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
-    double final_total = 0;
-    int max_n_nodes_used = 0;
-
-    // Loop through all bar types so we're only calculating along the same plane rotation type
-    // Otherwise it would overestimate the track length by zig-zagging between u and v
-    TMS_Bar::BarType bartypes[] = {TMS_Bar::kXBar, TMS_Bar::kYBar, TMS_Bar::kUBar, TMS_Bar::kVBar, TMS_Bar::kError};
-    for (auto itbartype = std::begin(bartypes); itbartype != std::end(bartypes); ++itbartype) {
-      // Get only the nodes with the current bar type
-      auto track_hits_only_matching_bar = ProjectHits((*it), (*itbartype));
-      double total = 0;
-      int n_nodes = 0;
-      for (auto hit = track_hits_only_matching_bar.begin(); hit != track_hits_only_matching_bar.end()
-          && (hit+1) != track_hits_only_matching_bar.end(); ++hit) {
-        auto nexthit = *(hit+1);
-        // Use the geometry to calculate the track length between hits
-        TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-        TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
-        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-        total += tracklength;
-        n_nodes += 1;
-      }
-      // Currently tracks are made with ProjectHits so tracks will only have one (y) bar exclusively
-      // So taking the only nonzero node is a good proxy
-      // In the future we might want to take an average or take the max length, etc, or really do it in 3D
-      // But this captures possible future cases where tracks might include both y and v views
-      if (n_nodes > max_n_nodes_used) {
-        final_total = total;
-        max_n_nodes_used = n_nodes;
-      }
-    }
-
-    //// Sort by increasing z
-    //std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-
-    //for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-    //  auto nexthit = *(hit+1);
-    //  // Use the geometry to calculate the track length between hits
-    //  TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-    //  TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
-    //  if ((point2-point1).Mag() > 100) continue;
-    //  double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-    //  total += tracklength;
-    //}
-    TrackLengthU.push_back(final_total);
-  }
-}*/
-
 double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candidate) {
   // Look at the reconstructed track
   if (Candidate.size() == 0) return 999.;
@@ -1054,59 +968,6 @@ double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candida
   return final_total;
 }
 
-/*void TMS_TrackFinder::CalculateTrackLengthV() {
-  // Look at the reconstructed tracks
-  if (HoughCandidatesV.size() == 0) return;
-  
-  // Loop over each Hough Candidate and finde the track length
-  for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
-    double final_total = 0;
-    int max_n_nodes_used = 0;
-
-    // Loop through all bar types so we're only calculating along the same plane rotation type
-    // Otherwise it would overestimate the track length by zig-zagging between y and v
-    TMS_Bar::BarType bartypes[] = {TMS_Bar::kXBar, TMS_Bar::kYBar, TMS_Bar::kUBar, TMS_Bar::kVBar, TMS_Bar::kError};
-    for (auto itbartype = std::begin(bartypes); itbartype != std::end(bartypes); ++itbartype) {
-      // Get only the nodes with the current bar type
-      auto track_hits_only_matching_bar = ProjectHits((*it), (*itbartype));
-      double total = 0;
-      int n_nodes = 0;
-      for (auto hit = track_hits_only_matching_bar.begin(); hit != track_hits_only_matching_bar.end()
-          && (hit+1) != track_hits_only_matching_bar.end(); ++hit) {
-        auto nexthit = *(hit+1);
-        // Use the geometry to calculate the track length between hits
-        TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-        TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
-        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-        total += tracklength;
-        n_nodes += 1;
-      }
-      // Currently tracks are made with ProjectHits so tracks will only have one (y) bar exclusively
-      // So taking the only nonzero node is a good proxy
-      // In the future we might want to take an average or take the max length, etc, or really do it in 3D
-      // But this captures possible future cases where tracke might include both y and v views
-      if (n_nodes > max_n_nodes_used) {
-        final_total = total;
-        max_n_nodes_used = n_nodes;
-      }
-    }
-    
-    //// Sort by increasing z
-    //std::sort((*it).begin(), (*it).end(), TMS_Hit::SortByZInc);
-    
-    //for (auto hit = (*it).begin(); hit != (*it).end(); ++hit) {
-    //  auto nexthit = *(hit+1);
-    //  // Ue the geometry to calculate the track length between hits
-    //  TVector3 point1((*hit).GetNotZ(), -200, (*hit).GetZ());
-    //  TVector3 point2(nexthit.GetNotZ(), -200, nexthit.GetZ());
-    //  if ((point2-point1).Mag() > 100) continue;
-    //  double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-    //  total += tracklength;
-    //}
-    TrackLengthV.push_back(final_total);
-  }
-}*/
-
 double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
   if ((Track3D.Hits).size() == 0) return -999.;
@@ -1143,7 +1004,6 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
 }
 
 std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
-
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
 
