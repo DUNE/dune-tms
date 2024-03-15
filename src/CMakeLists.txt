@@ -13,8 +13,6 @@ set(includes ${dune_tms_includes})
 # Build the library.
 add_library(TMS_Prod SHARED ${source})
 
-message("${EDEP_INCLUDES}")
-message("${EDEP_LIBRARIES}")
 target_include_directories(TMS_Prod PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/toml11/>" # TODO: No chance this is the most correct way
