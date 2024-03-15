@@ -1,4 +1,4 @@
-message("-- CMakeLists.txt in src/")
+message(STATUS "CMakeLists.txt in src/")
 
 # Suck up all of the .cc files for the source.  This isn't good CMAKE
 # practice, but it makes maintaining this file easier.
@@ -13,9 +13,6 @@ set(includes ${dune_tms_includes})
 # Build the library.
 add_library(TMS_Prod SHARED ${source})
 
-message("${EDEP_INCLUDES}")
-message("${EDEP_LIBRARIES}")
-#target_sources(TMS_Prod PRIVATE ${sources}
 target_include_directories(TMS_Prod PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/toml11/>" # TODO: No chance this is the most correct way
@@ -26,7 +23,7 @@ target_include_directories(TMS_Prod PUBLIC
 
 target_link_libraries(TMS_Prod PUBLIC ${EDEP_LIBRARIES} ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 
-# Install the library for edep-sim
+# Install the TMS_Prod.so library
 install(TARGETS TMS_Prod
   EXPORT DUNETMSTargets
   LIBRARY DESTINATION lib
