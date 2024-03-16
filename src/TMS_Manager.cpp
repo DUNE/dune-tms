@@ -41,11 +41,20 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_HitMult = toml::find<double>(data, "Recon", "Hough", "HitMult");
   _RECO_HOUGH_MergeTracks = toml::find<bool>(data, "Recon", "Hough", "MergeTracks");
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
-  _RECO_HOUGH_Extrapolation = toml::find<bool>(data, "Recon", "Hough", "Extrapolation");
-  _RECO_HOUGH_ExtrapolateDist = toml::find<int>(data, "Recon", "Hough", "ExtrapolateDist");
-  _RECO_HOUGH_ExtrapolateLimit = toml::find<int>(data, "Recon", "Hough", "ExtrapolateLimit");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");
   _RECO_HOUGH_MinDist = toml::find<double>(data, "Recon", "Hough", "MinDist");
+
+  _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
+  _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
+  _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
+  _RECO_EXTRAPOLATION_NumBarsEnd = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsEnd");
+  _RECO_EXTRAPOLATION_NumBarsStart = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsStart");
+
+  _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
+  _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");
+  _RECO_TRACKMATCH_TimeLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "TimeLimit");
+  _RECO_TRACKMATCH_YAnchor = toml::find<float>(data, "Recon", "TrackMatch3D", "YAnchor");
+  _RECO_TRACKMATCH_TiltAngle = toml::find<double>(data, "Recon", "TrackMatch3D", "TiltAngle");
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");

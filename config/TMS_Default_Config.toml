@@ -48,9 +48,31 @@
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+
+  [Recon.Extrapolation]
+    # Whether extrapolation should be performed or not
     Extrapolation = true
+    # Maximal distance from start/end hit to first added hit by extrapolation
     ExtrapolateDist = 4
+    # Maximal distance from first added hit (by extrapolation) to last added hit
     ExtrapolateLimit = 20
+    # Distance in number of bars a hit can be away from the direction line at the end
+    NumBarsEnd = 4
+    # Distance in number of bars a hit can be away from the direction line at the start
+    NumBarsStart = 2
+
+  [Recon.TrackMatch3D]
+    # How many plane layers can the ends/starts of the two simple tracks be away from each other?
+    PlaneLimit = 3
+    # How many bars can the ends/starts of the two simple tracks be away from each other?
+    BarLimit = 12
+    # How many ns can the ends/starts of the two simple tracks be away from each other?
+    TimeLimit = 30
+    # What is the 'anchor point' of the scintillator bars in y [mm]?
+    YAnchor = -2510.0
+    # Tilt angle of scintillator planes for calculation of y (tan(90-angle))
+    TiltAngle = 19.0811366877 #tan(90-3=87)
+
 
   [Recon.AStar]
     #CostMetric = "Manhattan"

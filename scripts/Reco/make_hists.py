@@ -151,74 +151,74 @@ def run(c, truth, outfilename, nmax=-1):
         hist_eff_track_finding_after_cutsV = ROOT.TH1D("hist_eff_track_finding_after_cuts_V",
           "Eff. of Reco'ing TMS-Starting Muons After Cuts;True KE (MeV);Eff", len(bin_edges) - 1, bin_edges)                                                 
 
-        # We can also do some simple counts
-        n_start_inside_tms = 0 
-        n_end_inside_tms = 0
-        n_start_and_end_inside_tms = 0
-        n_true_muons = 0
+    # We can also do some simple counts
+    n_start_inside_tms = 0 
+    n_end_inside_tms = 0
+    n_start_and_end_inside_tms = 0
+    n_true_muons = 0
 
-        # User can request fewer events, so check how many we're looping over.
-        nevents = c.GetEntries()
-        if nmax >= 0 and nevents > nmax: nevents = nmax
-        # Figure out how often to print progress information.
-        # Setting carriage = True will use a carriage return which keeps the progress on a single line
-        # But if you add print statements, it will be ugly so it's not default
-        carriage = False
-        if carriage:
-            if nevents <= 100: print_every = 1 
-            elif nevents <= 1000: print_every = 10
-            elif nevents <= 10000: print_every = 100
-            else: print_every = 1000
-        else:
-            if nevents < 100: print_every = 1 # Print every event if < 100 events
-            elif 100 <= nevents < 1000: print_every = 20
-            elif 1000 <= nevents < 10000: print_every = 100
-            elif 10000 <= nevents < 100000: print_every = 1000
-            else: print_every = 10000
+    # User can request fewer events, so check how many we're looping over.
+    nevents = c.GetEntries()
+    if nmax >= 0 and nevents > nmax: nevents = nmax
+    # Figure out how often to print progress information.
+    # Setting carriage = True will use a carriage return which keeps the progress on a single line
+    # But if you add print statements, it will be ugly so it's not default
+    carriage = False
+    if carriage:
+        if nevents <= 100: print_every = 1 
+        elif nevents <= 1000: print_every = 10
+        elif nevents <= 10000: print_every = 100
+        else: print_every = 1000
+    else:
+        if nevents < 100: print_every = 1 # Print every event if < 100 events
+        elif 100 <= nevents < 1000: print_every = 20
+        elif 1000 <= nevents < 10000: print_every = 100
+        elif 10000 <= nevents < 100000: print_every = 1000
+        else: print_every = 10000
        
-        # Now loop over all events
-        for i, event in enumerate(c):
-            if i > nevents: break
-            if truth != None: truth.GetEntry(i)
-            # Print current progress, with carriage return \r to prevent long list of progress and have everything on a singe line.
-            if i % print_every == 0 and carriage: print(f"\rOn {i} / {nevents}", end='')
-            if i % print_every == 0 and not carriage: print(f"On {i} / {nevents}")
-            
-            # Get some basic info
-            nLinesU = event.nLinesU
-            ntracksU = nLinesU
-            nhits = event.nHits
-           
-            nLinesV = event.nLinesV
-            ntracksV = nLinesV
-    
-            # And fill that basic info
-            hist_n_tracksU.Fill(ntracksU)
-            hist_n_hits.Fill(nhits)
-        
-            hist_n_tracksV.Fill(ntracksV)
-  
-            # This finds the two hits with the largest dz distance between them.
-            # Then it calculates the distance between the two using dz and dx
-            # If there was a nice muon, this would be roughly equivalent to the track length
-            # So this is used as a reconstruction-independent track length estimator
-            # in case there's an issue with the reconstruction.
-            max_dz = -999
-            track_length_max_dz = -999
-            min_z_hit = -999
-            max_z_hit = -999
-            max_z = -1e9
-            min_z = 1e9
-  
-            for hit in range(nhits):
-                x = event.RecoHitPos[hit * 4 + 0]
-                z = event.RecoHitPos[hit * 4 + 2]
-                if z > max_z:
-                    max_z_hit = hit
-                    max_z = z
-                if z < min_z:
-                    min_z_hit = hit
-                    min_z = z
+    # Now loop over all events
+    for i, event in enumerate(c):
+        if i > nevents: break
+        if truth != None: truth.GetEntry(i)
+        # Print current progress, with carriage return \r to prevent long list of progress and have everything on a singe line.
+        if i % print_every == 0 and carriage: print(f"\rOn {i} / {nevents}", end='')
+        if i % print_every == 0 and not carriage: print(f"On {i} / {nevents}")
+
+        # Get some basic info
+        nLinesU = event.nLinesU
+        ntracksU = nLinesU
+        nhits = event.nHits
+
+        nLinesV = event.nLinesV
+        ntracksV = nLinesV
+
+        # And fill that basic info
+        hist_n_tracksU.Fill(ntracksU)
+        hist_n_hits.Fill(nhits)
+
+        hist_n_tracksV.Fill(ntracksV)
+
+        # This finds the two hits with the largest dz distance between them.
+        # Then it calculates the distance between the two using dz and dx
+        # If there was a nice muon, this would be roughly equivalent to the track length
+        # So this is used as a reconstruction-independent track length estimator
+        # in case there's an issue with the reconstruction.
+        max_dz = -999
+        track_length_max_dz = -999
+        min_z_hit = -999
+        max_z_hit = -999
+        max_z = -1e9
+        min_z = 1e9
+
+        for hit in range(nhits):
+            x = event.RecoHitPos[hit * 4 + 0]
+            z = event.RecoHitPos[hit * 4 + 2]
+            if z > max_z:
+                max_z_hit = hit
+                max_z = z
+            if z < min_z:
+                min_z_hit = hit
+                min_z = z
             # Now if we found two hits, calculate the distance
             if max_z_hit >= 0 and min_z_hit < 1e8:
                 x1 = event.RecoHitPos[min_z_hit * 4 + 0]
@@ -226,8 +226,7 @@ def run(c, truth, outfilename, nmax=-1):
                 x2 = event.RecoHitPos[max_z_hit * 4 + 0]
                 z2 = event.RecoHitPos[max_z_hit * 4 + 2]
                 track_length_max_dz = math.sqrt((x2 - x1)**2 + (z2 - z1)**2)
-     
-  
+
             # Loop over all tracks
             # Find the track with highest areal density (event.TrackLength)
             # This will be our primary muon candidate, longtrack
@@ -241,11 +240,11 @@ def run(c, truth, outfilename, nmax=-1):
             longtrackU = -1
             track_lengthsU = [0] * ntracksU
             areal_densitiesU = [0] * ntracksU
-  
+
             longtrack_lengthV = 0
             longtrackV = -1
             track_lengthsV = [0] * ntracksV
-            areal_densitiesVr = [0] * ntracksV
+            areal_densitiesV = [0] * ntracksV
 
             for trackU in range(ntracksU):
                 track_start_x = event.FirstHoughHitU[2*trackU+0]
@@ -256,16 +255,16 @@ def run(c, truth, outfilename, nmax=-1):
                 ydist = track_end_y - track_start_y
                 dist = math.sqrt(xdist*xdist+ydist*ydist)
                 TrackLength = event.TrackLengthU[trackU]
-            
+
                 # Check if this is the longest track by areal density
                 if TrackLength > longtrack_lengthU:
                     longtrackU = trackU
                     longtrack_lengthU = TrackLength
-            
+
                 # Plot them in histograms
                 hist_track_lengthU.Fill(dist)
                 hist_TrackLengthU.Fill(TrackLength)
-            
+
                 # Save them in these arrays
                 track_lengthsU[trackU] = dist
                 areal_densitiesU[trackU] = event.TrackLengthU[trackU]
@@ -279,7 +278,7 @@ def run(c, truth, outfilename, nmax=-1):
                 ydist = track_end_y - track_start_y
                 dist = math.sqrt(xdist*xdist+ydist*ydist)
                 TrackLength = event.TrackLengthV[trackV]
-  
+
                 # Check if this is the longest track by areal density
                 if TrackLength > longtrack_lengthV:
                     longtrackV = trackV
@@ -288,23 +287,23 @@ def run(c, truth, outfilename, nmax=-1):
                 # Plot them in histograms
                 hist_track_lengthV.Fill(dist)
                 hist_TrackLengthV.Fill(TrackLength)
-  
+
                 # Save them in these arrays
                 track_lengthsV[trackV] = dist
                 areal_densitiesV[trackV] = event.TrackLengthV[trackV]
-  
+
             best_tracklengthU = -999.0
             reconstructed_muon_keU = -999.0
             if longtrackU >= 0:
                 hist_track_length_longestU.Fill(track_lengthsU[longtrackU])
             hist_track_length_max_dz.Fill(track_length_max_dz)
-         
+
             best_tracklengthV = -999.9
             reconstructed_muon_keV = -999.0
             if longtrackV >= 0:
                 hist_track_length_longestV.Fill(track_lengthsV[longtrackV])
 #            hist_track_length_max_dzOther.Fill(track_length_max_dzOther)
-          
+
             # If there's a muon candidate, plot its occupancy, and start and stop positions
             if longtrackU >= 0:
                 occupancy = event.OccupancyU[longtrackU]
@@ -319,11 +318,11 @@ def run(c, truth, outfilename, nmax=-1):
                 hist_track_end_xU.Fill(track_end_x)
                 hist_track_end_zU.Fill(track_end_z)
                 hist_track_endU.Fill(track_end_z, track_end_x)
-            
+
                 slope = event.SlopeU[longtrackU]
                 angle = math.atan(slope) * 180 / math.pi
                 hist_track_angleU.Fill(angle)
-    
+
             if longtrackV >= 0:
                 occupancy = event.OccupancyV[longtrackV]
                 hist_occupancyV.Fill(occupancy)
@@ -336,8 +335,8 @@ def run(c, truth, outfilename, nmax=-1):
                 hist_track_startV.Fill(track_start_z, track_start_x)
                 hist_track_end_xV.Fill(track_end_x)
                 hist_track_end_zV.Fill(track_end_z)
-                hist_track_end.Fill(track_end_z, track_end_x)
-  
+                hist_track_endV.Fill(track_end_z, track_end_x)
+
                 slope = event.SlopeV[longtrackV]
                 angle = math.atan(slope) * 180 / math.pi
                 hist_track_angleV.Fill(angle)
@@ -364,7 +363,7 @@ def run(c, truth, outfilename, nmax=-1):
                 if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateU = -1 
                 # Make sure that at least OccupancyCut of the hits are from the candidate
                 if event.OccupancyU[longtrackU] < OccupancyCut: best_muon_candidateU = -1
-          
+
             if longtrackV >= 0:
                 OccupancyCut = 0.0  #0.5
                 alldet = True
@@ -383,12 +382,12 @@ def run(c, truth, outfilename, nmax=-1):
                 if truth != None and (truth.Muon_Death[1] > 1159 or truth.Muon_Death[1] > -3864): best_muon_candidateV = -1
                 # Make sure that at least OccupancyCut of the hits are from the candidate
                 if event.OccupancyV[longtrackV] < OccupancyCut: best_muon_candidateV = -1
-            
+
             # Only fill if we found a good candidate
             if best_muon_candidateU >= 0:
                 best_tracklengthU = event.TrackLengthU[best_muon_candidateU]
                 reconstructed_muon_keU = 82+1.75*best_tracklengthU
-          
+
             if best_muon_candidateV >= 0:
                 best_tracklengthV = event.TrackLengthV[best_muon_candidateV]
                 reconstructed_muon_keV = 82+1.75*best_tracklengthV
@@ -415,22 +414,22 @@ def run(c, truth, outfilename, nmax=-1):
             #    print(f"True muon KE: {truth.Muon_TrueKE:0.2f}\tPath length: {track_length:0.2f}\tTrack Dist: {track_dist:0.2f}\tMax dz: {track_length_max_dz:0.2f}")
             hist_track_length_vs_max_dz_distU.Fill(track_distU, track_length_max_dz)
             hist_track_length_vs_max_dz_distV.Fill(track_distV, track_length_max_dz)
-      
+
             # Get information that relies on truth information as well
             if truth != None:
                 has_true_muon = truth.Muon_TrueKE >= 0
                 Muon_TrueKE = truth.Muon_TrueKE
                 #if has_true_muon: print(Muon_TrueKE, has_true_muon)
-            
+
                 # Only fill these hists if there is a true muon
                 if has_true_muon: 
                     hist_KEU.Fill(Muon_TrueKE, best_tracklengthU)
                     hist_KEV.Fill(Muon_TrueKE, best_tracklengthV)
                     hist_KE_estimatedU.Fill(Muon_TrueKE, reconstructed_muon_keU)
-#                   hist_KE_estimatedV.Fill(Muon_TrueKE, reconstructed_muon_keV)
+                    hist_KE_estimatedV.Fill(Muon_TrueKE, reconstructed_muon_keV)
                     hist_KE_vs_track_length_max_dz.Fill(Muon_TrueKE, track_length_max_dz)
-                    hist_KE_vs_track_length_max_dzOther.Fill(Muon_TrueKE, track_length_max_dzOther)
-          
+#                    hist_KE_vs_track_length_max_dzOther.Fill(Muon_TrueKE, track_length_max_dzOther)
+
                     # Now check if the muon started and ended in the TMS
                     mx = truth.Muon_Vertex[0]
                     my = truth.Muon_Vertex[1]
@@ -441,13 +440,13 @@ def run(c, truth, outfilename, nmax=-1):
                     start_inside_tms = inside_tms(mx, my, mz, True)
                     end_inside_tms = inside_tms(mdx, mdy, mdz)
                     #print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms}")
-          
+
                     # Does some simple counts which it prints later
                     n_true_muons += 1
                     if start_inside_tms: n_start_inside_tms += 1
                     if end_inside_tms: n_end_inside_tms += 1
                     if start_inside_tms and end_inside_tms: n_start_and_end_inside_tms += 1
-         
+             
                     if start_inside_tms:
                         hist_KE_inside_TMS.Fill(Muon_TrueKE)
                     # Plot KE estimators for muons which start and end in the detector
@@ -483,7 +482,7 @@ def run(c, truth, outfilename, nmax=-1):
                             hist_track_end_vtx_z_resolutionU.Fill(dz_end)
                             hist_track_end_vtx_z_resolution_using_spanU.Fill(dz_end_span)
                             hist_track_end_vtx_x_resolutionU.Fill(dx_end)
-            
+
                     if longtrackV >= 0:
                         dz_start = event.FirstHoughHitV[2*longtrackV+0] - mz
                         dz_start_span = z1 - mz
@@ -499,7 +498,7 @@ def run(c, truth, outfilename, nmax=-1):
                             hist_track_end_vtx_z_resolutionV.Fill(dz_end)
                             hist_track_end_vtx_z_resolution_using_spanV.Fill(dz_end_span)
                             hist_track_end_vtx_x_resolutionV.Fill(dx_end)
-              
+
                     # For finding efficiency
                     # Plot true KE in all cases
                     # But for numerator, look if we found a candidate
@@ -519,40 +518,40 @@ def run(c, truth, outfilename, nmax=-1):
                         if best_muon_candidateV >= 0:
                             hist_eff_track_finding_after_cuts_numeratorV.Fill(Muon_TrueKE)
                         hist_eff_track_finding_denominatorV.Fill(Muon_TrueKE)
-      
-      
-        ## Calculate the efficiency
-        hist_eff_track_findingU.Divide(hist_eff_track_finding_numeratorU, hist_eff_track_finding_denominatorU)
-        hist_eff_track_finding_after_cutsU.Divide(hist_eff_track_finding_after_cuts_numeratorU, hist_eff_track_finding_denominatorU)
+
+
+    ## Calculate the efficiency
+    hist_eff_track_findingU.Divide(hist_eff_track_finding_numeratorU, hist_eff_track_finding_denominatorU)
+    hist_eff_track_finding_after_cutsU.Divide(hist_eff_track_finding_after_cuts_numeratorU, hist_eff_track_finding_denominatorU)
   
-        hist_eff_track_findingV.Divide(hist_eff_track_finding_numeratorV, hist_eff_track_finding_denominatorV)
-        hist_eff_track_finding_after_cutsV.Divide(hist_eff_track_finding_after_cuts_numeratorV, hist_eff_track_finding_denominatorV)
+    hist_eff_track_findingV.Divide(hist_eff_track_finding_numeratorV, hist_eff_track_finding_denominatorV)
+    hist_eff_track_finding_after_cutsV.Divide(hist_eff_track_finding_after_cuts_numeratorV, hist_eff_track_finding_denominatorV)
     
-        ## Now save all the histograms
-        if carriage: print("\r", end="") # Erase the current line
-        print(f"Completed loop of {nevents} events. Saving to {outfilename}")
-        hists_to_save = []
-        # This is a pythonistic cheat to quickly find the histograms
-        # and add them to the list of files to save
-        # Otherwise we'd add them one by one, like: hists_to_save.append(hist1), etc.
-        for name, item in locals().items():
-            if "hist_" in name:
-                hists_to_save.append(item)
-       
-        tf = ROOT.TFile(outfilename, "recreate")
-        for hist in hists_to_save:
-            hist.Write()
-        tf.Close()
-        print("Done saving.")
-  
-        if truth != None:
-            print(f"N true muons: {n_true_muons}")
-            print(f"N true muons that start inside TMS: {n_start_inside_tms}")
-            print(f"N true muons that end inside TMS: {n_end_inside_tms}")
-            print(f"N true muons that start and end inside TMS: {n_start_and_end_inside_tms}")
-   
-        # Return this hists if the user requested previews
-        return hists_to_save 
+    ## Now save all the histograms
+    if carriage: print("\r", end="") # Erase the current line
+    print(f"Completed loop of {nevents} events. Saving to {outfilename}")
+    hists_to_save = []
+    # This is a pythonistic cheat to quickly find the histograms
+    # and add them to the list of files to save
+    # Otherwise we'd add them one by one, like: hists_to_save.append(hist1), etc.
+    for name, item in locals().items():
+        if "hist_" in name:
+            hists_to_save.append(item)
+
+    tf = ROOT.TFile(outfilename, "recreate")
+    for hist in hists_to_save:
+        hist.Write()
+    tf.Close()
+    print("Done saving.")
+
+    if truth != None:
+        print(f"N true muons: {n_true_muons}")
+        print(f"N true muons that start inside TMS: {n_start_inside_tms}")
+        print(f"N true muons that end inside TMS: {n_end_inside_tms}")
+        print(f"N true muons that start and end inside TMS: {n_start_and_end_inside_tms}")
+
+    # Return this hists if the user requested previews
+    return hists_to_save 
   
 
 def validate_then_run(args):
@@ -593,10 +592,10 @@ def validate_then_run(args):
         # No output directory was specified so use the default
         # First we need the username
         username = os.environ["USER"]
-        outdir = f"/dune/data/users/{username}/dune-tms_hists"
+        outdir = f"/exp/dune/data/users/{username}/dune-tms_hists"
     else:
         # Check if it follows the correct conventions
-        good_locations = ["/dune/data/users", "/dune/data2/users", "/pnfs/dune/persistent", "/pnfs/dune/scratch"]
+        good_locations = ["/exp/dune/data/users", "/exp/dune/data2/users", "/pnfs/dune/persistent", "/pnfs/dune/scratch"]
         if not any(location in outdir for location in good_locations):
             print(f"Warning: outdir is not in list of good locations. Don't want to write root files to app area. {outdir}")
     # Make sure the output directory exists
@@ -622,8 +621,8 @@ def validate_then_run(args):
     for f in files_to_use:
         c.Add(f)
         if has_truth: truth.Add(f)
-        assert c.GetEntries() > 0, "Didn't get any entries in Line_Candidates TChain." 
-        if has_truth: assert truth.GetEntries() > 0, "Didn't get any entries in Truth_Info TChain."
+    assert c.GetEntries() > 0, "Didn't get any entries in Line_Candidates TChain." 
+    if has_truth: assert truth.GetEntries() > 0, "Didn't get any entries in Truth_Info TChain."
     
     nevents = args.nevents
     assert nevents >= -1, f"nevents <= -1, why? {nevents}"
@@ -670,9 +669,7 @@ if __name__ == "__main__":
     parser.add_argument('--nevents', '-n', type=int, help="The maximum number of events to loop over", default=-1)
     parser.add_argument('--allow_overwrite', help="Allow the output file to overwrite", action=argparse.BooleanOptionalAction)
     parser.add_argument('--preview', help="Save preview images of the histograms", action=argparse.BooleanOptionalAction)
-    
+   
     args = parser.parse_args()
-    
+   
     validate_then_run(args)
-    
-    
