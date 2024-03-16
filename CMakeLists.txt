@@ -18,7 +18,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
 #                        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 #                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
 #                      message(${GIT_SUBMOD_RESULT})
-        execute_process(COMMAND git submodule update --init 
+        execute_process(COMMAND git submodule update --init
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                         RESULT_VARIABLE GIT_SUBMOD_RESULT)
         if(NOT GIT_SUBMOD_RESULT EQUAL "0")
@@ -143,3 +143,9 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/DUNETMSConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/DUNETMSConfigVersion.cmake
   DESTINATION lib/cmake/dune-tms)
+
+if(${CMAKE_INSTALL_PREFIX} STREQUAL "/usr/local")
+  message(WARNING "Install path is currently set to: ${CMAKE_INSTALL_PREFIX}
+When running `make install', make will try to install files to ${CMAKE_INSTALL_PREFIX}, requiring superuser access.
+If this is not where you want it installed, rerun cmake with the option -DCMAKE_INSTALL_PREFIX=/path/you/want")
+endif()
