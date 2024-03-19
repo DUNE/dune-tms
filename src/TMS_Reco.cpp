@@ -108,7 +108,7 @@ void TMS_TrackFinder::ClearClass() {
   RawHits.clear();
   TotalCandidatesU.clear();
   TotalCandidatesV.clear();
-  TotalCanddiatesX.clear();
+  TotalCandidatesX.clear();
   HoughLinesU.clear();
   HoughLinesV.clear();
   HoughLinesX.clear();
@@ -393,8 +393,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesX.begin(); it != DBScanCandidatesX.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
         std::vector<std::vector<TMS_Hit> > LinesX = HoughTransform(hits, 3);
-        for (autor jt = LinesX.begin(); jt != LinesX.end(); ++jt) {
-          HoughCandidatesX.emplace_back(std::move(*kt));
+        for (auto jt = LinesX.begin(); jt != LinesX.end(); ++jt) {
+          HoughCandidatesX.emplace_back(std::move(*jt));
         }
       }
     } else {
@@ -439,7 +439,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     MaskHits(MaskedX, Lines);
 #ifdef DEBUG
     std::cout << "Masked (x) size aft: " << MaskedX.size() << std::endl;
-
+#endif
+  }
 #ifdef DEBUG
   std::cout << "Masked (u) hits: " << MaskedU.size() << std::endl;
   std::cout << "Masked (v) hits: " << MaskedV.size() << std::endl;
@@ -728,7 +729,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 bool stereo_view = true;
                 if (VTracks.front().GetPlaneNumber() < 20 && std::abs(VTracks.front().GetZ() - XTracks.front().GetZ()) < 65) {
                   stereo_view = false;
-                } else if (VTracks.front().GetPlaneNumber >= 20 && std::abs(VTracks.front().GetZ() - XTracks.front().GetZ()) < 90) {
+                } else if (VTracks.front().GetPlaneNumber() >= 20 && std::abs(VTracks.front().GetZ() - XTracks.front().GetZ()) < 90) {
                   stereo_view = false;
                 }
                 if (stereo_view) {
@@ -889,27 +890,27 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     --itV;
                   } else if (itU > 0 && itV == 0) {
                     CalculateRecoY((UTracks[itU]), (VTracks[itV]));
-                    CalculcateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
+                    CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     (aTrack.Hits).push_back((UTracks[itU]));
                     --itU;
                   }
                 } else { //TODO implement time check
                   if (itU > 0 && itV > 0) {
-                    VTracks[itV].SetRecoY(XTracks[itX]);
+                    VTracks[itV].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], VTracks[itV]);
                     (aTrack.Hits).push_back(VTracks[itV]);
                     (aTrack.Hits).push_back(XTracks[itX]);
                     --itV;
                   } else if (itU == 0 && itV > 0) {
-                    VTracks[itV].SetRecoY(XTracks[itX]);
+                    VTracks[itV].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
                     (aTrack.Hits).push_back(VTracks[itV]);
                     (aTrack.Hits).push_back(XTracks[itX]);
                     --itV;
                   } else if (itU > 0 && itV == 0) {
-                    UTracks[itU].SetRecoY(XTracks[itX]);
+                    UTracks[itU].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     (aTrack.Hits).push_back(UTracks[itU]);
@@ -944,21 +945,21 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   //(aTrack.Hits).push_back((UTracks[itU]));
                 } else {
                   if (itV > 0 && itU > 0) {
-                    UTracks[itU].SetRecoY(XTracks[itX]);
+                    UTracks[itU].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], UTracks[itU]);
                     (aTrack.Hits).push_back(UTracks[itU]);
                     (aTrack.Hits).push_back(XTracks[itX]);
                     --itU;
                   } else if (itV == 0 && itU > 0) {
-                    UTracks[itU].SetRecoY(XTracks[itX]);
+                    UTracks[itU].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     (aTrack.Hits).push_back(UTracks[itU]);
                     (aTrack.Hits).push_back(XTracks[itX]);
                     --itU;
                   } else if (itV > 0 && itU == 0) {
-                    VTracks[itV].SetRecoY(XTracks[itX]);
+                    VTracks[itV].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
                     (aTrack.Hits).push_back(VTracks[itV]);
@@ -1103,7 +1104,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
       }
     }
 
-    for (auto &Track: TotalCandidateX) {
+    for (auto &Track: TotalCandidatesX) {
       for (auto &Hit: Track) {
         TMS_Bar bar = Hit.GetBar();
         if (bar.Contains(x_true, z_true)) {
@@ -1243,7 +1244,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
   } else if (hitgroup == 3) {
-    TMS_xZ = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
+    TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
+  }
 
   // Do a spatial analysis of the hits in y and x around low z to ignore hits that are disconnected from other hits
   // Includes a simple sort in decreasing z (plane number)
@@ -1277,7 +1279,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 	
 	      HoughLinesV.pop_back();
       } else if (hitgroup == 3) { // hitgroup 3 means XHitGroup
-        delete.HoughLinesX.back().second;
+        delete HoughLinesX.back().second;
 
         HoughLinesX.pop_back();
       } else {
@@ -1311,6 +1313,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       LineCandidates.push_back(std::move(CandidatesV));
     } else if (hitgroup == 3) {
       LineCandidates.push_back(std::move(CandidatesX));
+    }
       
     nRuns++;
   }
@@ -1344,6 +1347,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       double HoughUSlope_1 = 0.000;
       double HoughVInter_1 = 0.000;
       double HoughVSlope_1 = 0.000;
+      double HoughXInter_1 = 0.000;
+      double HoughXSlope_1 = 0.000;
 
       if (hitgroup == 1) {
         HoughUInter_1 = HoughLinesU[lineit].second->GetParameter(0);
@@ -1354,6 +1359,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       } else if (hitgroup == 3) {
         HoughXInter_1 = HoughLinesX[lineit].second->GetParameter(0);
         HoughXSlope_1 = HoughLinesX[lineit].second->GetParameter(1);
+      }
 
       // Now loop over the remaining hits
       // Need to keep a conventional iterator to remove the HoughLine vector entries
@@ -1376,9 +1382,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         TMS_Hit firsthit_2 = (*jt).front();
         TMS_Hit lasthit_2 = (*jt).back();
         // Check that it's not the same hit (this doesn't seem to work. Added check for same track above)
-        if (firsthit_2 == firsthit && lasthit_2 == lasthit) {
-          continue;
-        }
+        if (firsthit_2 == firsthit && lasthit_2 == lasthit) continue;
 
         int first_hit_z_2 = firsthit_2.GetPlaneNumber();
         int first_hit_notz_2 = firsthit_2.GetBarNumber();
@@ -1407,18 +1411,20 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       	} else if (hitgroup == 3) {
           HoughXInter_2 = HoughLinesX[lineit_2].second->GetParameter(0);
           HoughXSlope_2 = HoughLinesX[lineit_2].second->GetParameter(1);
+        }
 
         // Now check how similar the Hough lines are
         bool mergehough = false;
       	if (hitgroup == 1) {
       	  mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < 1000 &&   // 100 -> 1000
-                           fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
+                       fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
       	} else if (hitgroup == 2) {
       	  mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < 1000 && // 100 -> 1000
 			                 fabs(HoughVSlope_2 - HoughVSlope_1) < 0.1);    // 0.01 -> 0.1
       	} else if (hitgroup == 3) {
           mergehough = (fabs(HoughXInter_2 - HoughXInter_1) < 1000 &&
-              fabs(HoughXSlope_2 - HoughXSlope_1) < 0.1);
+                       fabs(HoughXSlope_2 - HoughXSlope_1) < 0.1);
+        }
 
         // Check if we should merge or not
         if (!mergehits && !mergehough) {
@@ -1483,12 +1489,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
         } else if (hitgroup == 3) {
           HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
+        }
       } else {
         *it = CleanedHough;
         it++;
         tracknumber++;
       }
-     }
+    }
   }
 
   return LineCandidates;
@@ -1572,7 +1579,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
 //TODO new orientation
   // Check if we're in XZ view
-  bool IsXZ = ((TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_Hits[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsXZ = (TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kUBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kVBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kXBar);
 
   // Recalculate Hough parameters event by event... not fully tested!
   bool VariableHough = false;
@@ -1584,7 +1591,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     double min_notz = TMS_Const::TMS_End_Exact[0];
     double max_notz =  TMS_Const::TMS_Start_Exact[0];
     bool print = true;
-    for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it!=TMS_Hits.end(); ++it) {
+    for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
       double z = (*it).GetZ();
       double not_z = (*it).GetNotZ();
       if (print) {
@@ -1596,8 +1603,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       if (not_z < min_notz) min_notz = not_z;
     }
     // 1.8 comes from wanting to cover vertices that are maximally 80% between min and max z
-    double slope = (max_notz-min_notz)*1.8/(maxz-minz);
-    double intercept = -1*slope*(minz+0.8*(maxz-minz));
+    double slope = (max_notz - min_notz) * 1.8 / (maxz - minz);
+    double intercept = -1 * slope * (minz + 0.8 * (maxz - minz));
 #ifdef DEBUG
     std::cout << "***" << std::endl;
     std::cout << "z range: " << minz << " " << maxz << std::endl;
@@ -1606,12 +1613,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     std::cout << "intercept: " << intercept << std::endl;
 #endif
     // now try setting these as the max/min
-    SlopeMin = -1*slope;
+    SlopeMin = -1 * slope;
     SlopeMax = slope;
-    InterceptMin = -1*intercept;
+    InterceptMin = -1 * intercept;
     InterceptMax = intercept;
-    InterceptWidth = (InterceptMax-InterceptMin)/nIntercept;
-    SlopeWidth = (SlopeMax-SlopeMin)/nSlope;
+    InterceptWidth = (InterceptMax - InterceptMin) / nIntercept;
+    SlopeWidth = (SlopeMax - SlopeMin) / nSlope;
   }
 
   double slope, intercept;
@@ -1623,6 +1630,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   } else if (hitgroup == 2) {
     HoughLineV->SetParameter(0, intercept);
     HoughLineV->SetParameter(1, slope);
+  } else if (hitgroup == 3) {
+    HoughLineX->SetParameter(0, intercept);
+    HoughLineX->SetParameter(1, slope);
   }
 
   // Different fitting regions for XZ and YZ views: 
@@ -1639,6 +1649,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   } else if (hitgroup == 2) {
     HoughLineV->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineV->Clone();
+  } else if (hitgroup == 3) {
+    HoughLineX->SetRange(zMinHough, zMaxHough);
+    HoughCopy = (TF1*)HoughLineX->Clone();
   } else {
 #ifdef DEBUG
     std::cout << "Something is going wrong with the assigning of hitgroup" << std::endl;
@@ -1651,6 +1664,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     HoughLinesU.push_back(std::move(HoughPairs));
   } else if (hitgroup == 2) {
     HoughLinesV.push_back(std::move(HoughPairs));
+  } else if (hitgroup == 3) {
+    HoughLinesX.push_back(std::move(HoughPairs));
   }
 
   // Then run a clustering on the Hough Transform
@@ -1680,6 +1695,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       HoughPoint = HoughLineU->Eval(zhit);
     } else if (hitgroup == 2) {
       HoughPoint = HoughLineV->Eval(zhit);
+    } else if (hitgroup == 3) {
+      HoughPoint = HoughLineX->Eval(zhit);
     }
 
     // Hough point is inside bar -> start clustering around bar
@@ -1831,7 +1848,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
         // Check the matching hit
         if (Point.x == hit.GetPlaneNumber() && 
             Point.y == hit.GetBarNumber()) {
-          ClusterHits[Point.ClusterID-1].push_back(std::move(hit));
+          ClusterHits[Point.ClusterID - 1].push_back(std::move(hit));
         }
       }
     }
@@ -1897,9 +1914,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double zend = (returned).back().GetPlaneNumber();   //GetZ();
   double xstart = (returned).front().GetBarNumber();  //GetNotZ();
   double zstart = (returned).front().GetPlaneNumber();//GetZ();
-  double xdist = xstart-xend;
-  double zdist = zstart-zend;
-  double dist = sqrt(xdist*xdist+zdist*zdist);
+  double xdist = xstart - xend;
+  double zdist = zstart - zend;
+  double dist = sqrt(xdist * xdist + zdist * zdist);
   unsigned int nhits = (returned).size();
   // Calculate the minimum distance in planes and bars instead of physical distance
   if (dist < MinDistHough || nhits < nMinHits) {
@@ -2147,7 +2164,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 int TMS_TrackFinder::FindBin(double c) {
   // Since we're using uniform binning no need for binary search or similar
   if (c > InterceptMax) c = InterceptMax;
-  int bin = (c-InterceptMin)/InterceptWidth;
+  int bin = (c - InterceptMin) / InterceptWidth;
   return bin;
 }
 
@@ -2165,7 +2182,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 
   for (int i = 0; i < nSlope; ++i) {
     for (int j = 0; j < nIntercept; ++j) {
-      accumulator->SetBinContent(i+1, j+1, Accumulator[i][j]);
+      accumulator->SetBinContent(i + 1, j + 1, Accumulator[i][j]);
     }
   }
 
@@ -2177,7 +2194,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 
   // Set the minimum (easier to draw)
   double maxcounts = accumulator->GetMaximum();
-  accumulator->SetMinimum(maxcounts*0.8);
+  accumulator->SetMinimum(maxcounts * 0.8);
 
   return accumulator;
 }
@@ -2194,6 +2211,8 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
   if (hitgroup == 2) {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
+  } else if (hitgroup == 3) {
+    TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
   }
   //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
 
@@ -2205,7 +2224,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
   int nRuns = 0;
   int nXZ_Hits_Start = TMS_xz.size();
 
-  while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
+  while (double(TMS_xz.size()) > nHits_Tol * nXZ_Hits_Start && 
       TMS_xz.size() > nMinHits && 
       nRuns < nMaxHough) {
     //std::cout << "yz = " << TMS_yz.size() << " before a = " << a << std::endl;
@@ -2238,8 +2257,8 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
        */
 
     // Loop over vector and remove used hits
-    for (auto jt = AStarHits_xz.begin(); jt!=AStarHits_xz.end();++jt) {
-      for (auto it = TMS_xz.begin(); it!=TMS_xz.end();) {
+    for (auto jt = AStarHits_xz.begin(); jt != AStarHits_xz.end(); ++jt) {
+      for (auto it = TMS_xz.begin(); it != TMS_xz.end();) {
         if ((*it) == (*jt)) it = TMS_xz.erase(it);
         else it++;
       }
@@ -2250,6 +2269,8 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
         HoughCandidatesU.push_back(std::move(AStarHits_xz));
       } else if (hitgroup == 2) {
         HoughCandidatesV.push_back(std::move(AStarHits_xz));
+      } else if (hitgroup == 3) {
+        HoughCandidatesX.push_back(std::move(AStarHits_xz));
       }
     }
     nRuns++;
@@ -2295,14 +2316,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
       // Merge
       //if (z == z2 && y == y2 && fabs(t2-(*it).GetT()) < TMS_Const::TMS_TimeThreshold)
       if (z == z2 && y == y2) {
-        (*it).SetE((*it).GetE()+e2);
-        (*it).SetT(((*it).GetT()+t2)/2);
+        (*it).SetE((*it).GetE() + e2);
+        (*it).SetT(((*it).GetT() + t2) / 2);
         nDuplicates++;
       }
     }
     // Now remove the duplicates
     if (nDuplicates > 0) {
-      it = TMS_Hits_Cleaned.erase(it, it+nDuplicates);
+      it = TMS_Hits_Cleaned.erase(it, it + nDuplicates);
     } else it++;
   }
 
@@ -2341,8 +2362,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   // Remember which orientation these hits are
   // needed when we potentially skip the air gap in xz (but not in yz!)
   bool IsXZ = ((TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kUBar || (TMS_xz[0].GetBar()).GetBarType() == TMS_Bar::kVBar);
+  bool IsX = (TMS_xz.front().GetBar().GetBarType() == TMS_Bar::kXBar);
   // Reset remembering where gaps are in xz
   if (IsXZ) PlanesNearGap.clear();
+  if (IsX) PlanesNearGap.clear();
 
   // Set the first and last hit to calculate the heuristic to
   //aNode Last(TMS_xz.back().GetPlaneNumber(), TMS_xz.back().GetNotZ(), TMS_xz.back().GetNotZw());
@@ -2573,6 +2596,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   return returned;
 }
 
+
+// This is only usable for U or V layers!!!!
 // Gaps are in xz view at x = -1717 to -1804
 // barpos is position of bar, width is width of bar
 bool TMS_TrackFinder::NextToGap(double barpos, double width) {
@@ -2718,7 +2743,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
 
     // Require continous hits for derivative calculation
     // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
-    int NeighbourIndex = i-1;
+    int NeighbourIndex = i - 1;
     // Previous plane number
     int PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
 
@@ -2748,9 +2773,9 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     //double xprev = vec[NeighbourIndex].GetZ();
     //double yprev = vec[NeighbourIndex].GetNotZ();
     double xprev = vec[NeighbourIndex].GetPlaneNumber();
-    double yprev = vec[NeighbourIndex].GetBarNumber();
+    double yprev = vec[NeighbourIndex].GetBarNumber();  //TODO adapt correctly to X layers!!!
 
-    double grad_exp = (y-yprev)/(x-xprev);
+    double grad_exp = (y - yprev) / (x - xprev);
 
     //std::cout << "Comparing hit " << x << "," << y << " to " << xprev << "," << yprev << " expecing gradient " << grad_exp << std::endl;
     //std::cout << "(" << PlaneNumber << ", " << vec[i].GetBarNumber() << "-" << PlaneNumber_prev << ", " << vec[NeighbourIndex].GetBarNumber() << ")" << std::endl;
@@ -2771,7 +2796,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         continue;
       }
 
-      if (abs(BarNumber_cand - BarNumber) > 2) {
+      if (abs(BarNumber_cand - BarNumber) > 2) {  // TODO adapt correctly to X layers!!!
         ++it;
         continue;
       }
@@ -2788,17 +2813,17 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double ycand = hits.GetBarNumber();
 
       // Calculate the new gradient between the points
-      double grad_new = (ycand-y)/(xcand-x);
+      double grad_new = (ycand - y) / (xcand - x);  //TODO adapt correctly to X layers!!!
 
       //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
       //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
       //std::cout << "and new gradient: " << grad_new << std::endl;
 
       // If gradient is within 0.6 and the correct sign, accept
-      if (fabs(grad_new-grad_exp) <= 2.0) {
+      if (fabs(grad_new - grad_exp) <= 2.0) { //TODO adapt correctly to X layers!!!
         // If the gradient is zero we shouldn't do a sign check
         // But if it's not, check the sign of the gradient doesn't flip
-        if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
+        if (fabs(grad_new) > TMS_Const::TMS_Small_Num && //TODO adapt correctly to X layers!!!
             fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
             TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
           ++it;
@@ -2862,7 +2887,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double x = vec[i].GetPlaneNumber();
       double y = vec[i].GetBarNumber();
       int PlaneNumber = vec[i].GetPlaneNumber();
-      int BarNumber = vec[i].GetBarNumber();
+      int BarNumber = vec[i].GetBarNumber();  //TODO X layers!!!
 
       // Require continous hits for derivative calculation
       // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
@@ -2895,7 +2920,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double xprev = vec[NeighbourIndex].GetPlaneNumber();
       double yprev = vec[NeighbourIndex].GetBarNumber();
 
-      double grad_exp = (y-yprev)/(x-xprev);
+      double grad_exp = (y - yprev) / (x - xprev);  //TODO X layers!!!
 
       //std::cout << "Comparing hit " << x << "," << y << " to " << xprev << "," << yprev << " expecing gradient " << grad_exp << std::endl;
       //std::cout << "(" << PlaneNumber << ", " << vec[i].GetBarNumber() << "-" << PlaneNumber_prev << ", " << vec[NeighbourIndex].GetBarNumber() << ")" << std::endl;
@@ -2911,7 +2936,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           continue;
         }
 
-        if (abs(BarNumber_cand - BarNumber) > 2) {
+        if (abs(BarNumber_cand - BarNumber) > 2) {  //TODO X layers!!!
           ++it;
           continue;
         }
@@ -2933,17 +2958,17 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         double xcand = hits.GetPlaneNumber();
         double ycand = hits.GetBarNumber();
 
-        double grad_new = (ycand-y)/(xcand-x);
+        double grad_new = (ycand - y) / (xcand - x);  //TODO X layers!!!
 
         //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
         //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
         //std::cout << "and new gradient: " << grad_new << std::endl;
 
         // If gradient is within 1 and the correct sign, accept
-        if (fabs(grad_new-grad_exp) <= 1.5) {
+        if (fabs(grad_new - grad_exp) <= 1.5) { //TODO X layers!!!
           // If the gradient is zero we shouldn't do a sign check
           // But if it's not, check the sign of the gradient doesn't flip
-          if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
+          if (fabs(grad_new) > TMS_Const::TMS_Small_Num && //TODO X layers!!!
               fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
               TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
             ++it;

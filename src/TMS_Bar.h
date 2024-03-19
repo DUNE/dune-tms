@@ -76,11 +76,11 @@ class TMS_Bar {
       double xmin = -9999999999999;
       double xmax = 9999999999999;
       if (BarOrient == kXBar) {
-        xmin = GetY()-GetYw()/2;
-        xmax = GetY()+GetYw()/2;
+        xmin = GetY() - GetYw() / 2;
+        xmax = GetY() + GetYw() / 2;
       } else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
-        xmin = GetX()-GetXw()/2;
-        xmax = GetX()+GetXw()/2;
+        xmin = GetX() - GetXw() / 2;
+        xmax = GetX() + GetXw() / 2;
       }
 
       if (x > xmax || x < xmin) return false;
