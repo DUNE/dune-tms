@@ -217,11 +217,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Get the Hough candidates
   std::vector<std::vector<TMS_Hit> > HoughCandidatesU = TMS_TrackFinder::GetFinder().GetHoughCandidatesU();
   std::vector<std::vector<TMS_Hit> > HoughCandidatesV = TMS_TrackFinder::GetFinder().GetHoughCandidatesV();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesX = TMS_TrackFinder::GetFinder().GetHoughCandidatesX();
   // Now loop over the cluster candidates, make them TGraphs
   int nLinesU = HoughCandidatesU.size();
   int nLinesV = HoughCandidatesV.size();
+  int nLinesX = HoughCandidatesX.size();
   std::vector<TGraph*> HoughGraphVectU(nLinesU);
   std::vector<TGraph*> HoughGraphVectV(nLinesV);
+  std::vector<TGraph*> HoughGraphVectX(nLinesX);
   for (int i = 0; i < nLinesU; ++i) {
     HoughGraphVectU[i] = new TGraph(HoughCandidatesU[i].size());
     HoughGraphVectU[i]->SetLineColor(i);
@@ -238,6 +241,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     HoughGraphVectV[i]->SetMarkerSize(1.5);
     HoughGraphVectV[i]->SetMarkerStyle(25);
   }
+  for (int i = 0; i < nLinesX; ++i) {
+    HoughGraphVectX[i] = new TGraph(HoughCandidatesX[i].size());
+    HoughGraphVectX[i]->SetLineColor(i);
+    HoughGraphVectX[i]->SetLineWidth(2);
+    HoughGraphVectX[i]->SetMarkerColor(i+1);
+    HoughGraphVectX[i]->SetMarkerSize(1.5);
+    HoughGraphVectX[i]->SetMarkerStyle(25);
+  } 
   int LineIt = 0;
   for (auto &Line: HoughCandidatesU) {
     int HitIt = 0;
@@ -256,15 +267,27 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     }
     LineIt++;
   }
-  
+  LineIt = 0;
+  for (auto &Line: HoughCandidatesX) {
+    int HitIt = 0;
+    for (auto HoughHit: Line) {
+      HoughGraphVectX[LineIt]->SetPoint(HitIt, HoughHit.GetZ()/1E3, HoughHit.GetNotZ()/1E3);
+      HitIt++;
+    }
+    LineIt++;
+  }
+
   // Get the cluster candidates
   std::vector<std::vector<TMS_Hit> > ClusterCandidatesU = TMS_TrackFinder::GetFinder().GetClusterCandidatesU();
   std::vector<std::vector<TMS_Hit> > ClusterCandidatesV = TMS_TrackFinder::GetFinder().GetClusterCandidatesV();
+  std::vector<std::vector<TMS_Hit> > ClusterCandidatesX = TMS_TrackFinder::GetFinder().GetClusterCandidatesX();
   // Now loop over the cluster candidates, make them TGraphs
   int nClustersU = ClusterCandidatesU.size();
   int nClustersV = ClusterCandidatesV.size();
+  int nClustersX = ClusterCandidatesX.size();
   std::vector<TGraph*> GraphVectU(nClustersU);
   std::vector<TGraph*> GraphVectV(nClustersV);
+  std::vector<TGraph*> GraphVectX(nClustersX);
   for (int i = 0; i < nClustersU; ++i) {
     GraphVectU[i] = new TGraph(ClusterCandidatesU[i].size());
     GraphVectU[i]->SetLineColor(nLinesU+i);
@@ -280,6 +303,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     GraphVectV[i]->SetMarkerColor(nLinesV+i);
     GraphVectV[i]->SetMarkerSize(1.2);
     GraphVectV[i]->SetMarkerStyle(4);
+  }
+  for (int i = 0; i < nClustersX; ++i) {
+    GraphVectX[i] = new TGraph(ClusterCandidatesX[i].size());
+    GraphVectX[i]->SetLineColor(nLinesX+i);
+    GraphVectX[i]->SetLineWidth(2);
+    GraphVectX[i]->SetMarkerColor(nLinesX+i);
+    GraphVectX[i]->SetMarkerSize(1.2);
+    GraphVectX[i]->SetMarkerStyle(4);
   }
   int ClusterIt = 0;
   for (auto &Cluster: ClusterCandidatesU) {
@@ -299,11 +330,20 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
     }
     ClusterIt++;
   }
-  
+  ClusterIt = 0;
+  for (auto &Cluster: ClusterCandidatesX) {
+    int HitIt = 0;
+    for (auto ClusterHit: Cluster) {
+      GraphVectX[ClusterIt]->SetPoint(HitIt, ClusterHit.GetZ()/1E3, ClusterHit.GetNotZ()/1E3);
+      HitIt++;
+    }
+    ClusterIt++;
+  } 
 
   // Get all the hough lines
   std::vector<std::pair<bool, TF1*> > HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*> > HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
+  std::vector<std::pair<bool, TF1*> > HoughLinesX = TMS_TrackFinder::GetFinder().GetHoughLinesX();
 
   int pdg = event.GetNeutrinoPDG();
   double enu = event.GetNeutrinoP4().E();
@@ -354,9 +394,11 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   // Draw the clusters first
   for (auto &graph: GraphVectU) graph->Draw("P,same");
   for (auto &graph: GraphVectV) graph->Draw("P,same");
+  for (auto &graph: GraphVectX) graph->Draw("P,same");
   // Then the track candidates
   for (auto &graph: HoughGraphVectU) graph->Draw("P,same");
   for (auto &graph: HoughGraphVectV) graph->Draw("P,same");
+  for (auto &graph: HoughGraphVectX) graph->Draw("P,same");
   it = 0;
   for (auto &i : HoughLinesU) {
     if (i.first == true) {
@@ -372,6 +414,14 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
       it++;
     }
   }
+  for (auto &i : HoughLinesX) {
+    if (i.first == true) {
+      i.second->SetLineColor(it+1);
+      i.second->Draw("same");
+      it++;
+    }
+  }
+  
   Canvas->Print(CanvasName+".pdf");
 
   if (DrawTrackFinding) {
@@ -398,11 +448,17 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   for (int i = 0; i < nClustersV; ++i) {
     delete GraphVectV[i];
   }
+  for(int i = 0; i < nClustersX; ++i) {
+    delete GraphVectX[i];
+  }
   for (int i = 0; i < nLinesU; ++i) {
     delete HoughGraphVectU[i];
   }
   for (int i = 0; i < nLinesV; ++i) {
     delete HoughGraphVectV[i];
+  }
+  for (int i = 0; i < nLinesX; ++i) {
+    delete HoughGraphVectX[i];
   }
 
   for (int i = 0; i < int(trajgraphs.size()); ++i) {
