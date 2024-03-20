@@ -90,6 +90,8 @@ else(EDepSim_FOUND)
   message(FATAL_ERROR "Couldn't find edep-sim with find_package, maybe run edep-sim setup script?")
 endif(EDepSim_FOUND)
 
+message("LIAM: ${EDEP_LIBRARIES}")
+
 # TODO: ... actually write an event display xd
 if(TMS_EVENT_DISPLAY)
   message("Building dune-tms event display")

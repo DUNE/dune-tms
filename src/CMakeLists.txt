@@ -21,6 +21,7 @@ target_include_directories(TMS_Prod PUBLIC
   "$<BUILD_INTERFACE:${EDEP_INCLUDES}>"
   "$<INSTALL_INTERFACE:include>")
 
+message("LIAM: ${EDEP_LIBRARIES} ${Geant4_LIBRARIES} ${ROOT_LIBRARIES}")
 target_link_libraries(TMS_Prod PUBLIC ${EDEP_LIBRARIES} ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 
 # Install the TMS_Prod.so library
