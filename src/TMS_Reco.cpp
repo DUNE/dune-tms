@@ -674,6 +674,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         SpatialPrio(UTracks);
         SpatialPrio(VTracks);
         if (run) SpatialPrio(XTracks);
+        std::cout << "UTrack back: " << UTracks.front().GetBar().GetBarNumber() << " vs. " << UTracks.front().GetBar().GetGlobalBarNumber() << " front: " << UTracks.back().GetBar().GetBarNumber() << " vs. " << UTracks.back().GetBar().GetGlobalBarNumber() << std::endl;
+        std::cout << "VTrack back: " << VTracks.front().GetBar().GetBarNumber() << " vs. " << VTracks.front().GetBar().GetGlobalBarNumber() << " front: " << VTracks.back().GetBar().GetBarNumber() << " vs. " << VTracks.back().GetBar().GetGlobalBarNumber() << std::endl;
+
 #ifdef DEBUG
         std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 

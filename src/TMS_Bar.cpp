@@ -131,7 +131,17 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TMS_Geom::GetInstance().FindNode(xval,yval,zval);
 
   // Update the bar number
-  BarNumber = (GetX()-TMS_Const::TMS_Start_Exact[0])/GetXw();
+  if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
+    BarNumber = (GetX() - TMS_Const::TMS_Start_Exact[0]) / GetXw();
+  } else if (BarOrient == kXBar) {
+    BarNumber = -2 * (GetY() - 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
+    if (GlobalBarNumber % 2 == 1) {
+      BarNumber += 1;
+    }
+  } else {
+    BarNumber = -999;
+  }
+
   CheckBar();
 
   return true;
