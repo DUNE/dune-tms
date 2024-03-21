@@ -92,7 +92,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionZX", DirectionZX, "DirectionZX[nLinesX]/F");
   Branch_Lines->Branch("DirectionXU", DirectionXU, "DirectionXU[nLinesU]/F");
   Branch_Lines->Branch("DirectionXV", DirectionXV, "DirectionXV[nLinesV]/F");
-  Branch_Lines->Branch("DirectionXX", DirectionXX, "DirectionXX[nLinesX]/F"); //TODO sane???
+  Branch_Lines->Branch("DirectionYX", DirectionYX, "DirectionYX[nLinesX]/F");
   Branch_Lines->Branch("DirectionZU_Downstream",   DirectionZU_Downstream,   "DirectionZU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionXU_Downstream",   DirectionXU_Downstream,   "DirectionXU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionZU_Upstream",     DirectionZU_Upstream,     "DirectionZU_Upstream[nLinesU]/F");
@@ -102,9 +102,9 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionZV_Upstream",   DirectionZV_Upstream,   "DirectionZV_Upstream[nLinesV]/F");
   Branch_Lines->Branch("DirectionXV_Upstream",   DirectionXV_Upstream,   "DirectionXV_Upstream[nLinesV]/F");
   Branch_Lines->Branch("DirectionZX_Downstream",  DirectionZX_Downstream, "DirectionZX_Downstream[nLinesX]/F");
-  Branch_Lines->Branch("DirectionXX_Downstream",  DirectionXX_Downstream, "DirectionXX_Downstream[nLinesX]/F"); //TODO sane???
+  Branch_Lines->Branch("DirectionYX_Downstream",  DirectionYX_Downstream, "DirectionYX_Downstream[nLinesX]/F");
   Branch_Lines->Branch("DirectionZX_Upstream",    DirectionZX_Upstream,   "DirectionZX_Upstream[nLinesX]/F");
-  Branch_Lines->Branch("DirectionXX_Upstream",    DirectionXX_Upstream,   "DirectionXX_Upstream[nLinesX]/F"); //TODO sane???
+  Branch_Lines->Branch("DirectionYX_Upstream",    DirectionYX_Upstream,   "DirectionYX_Upstream[nLinesX]/F");
 
   Branch_Lines->Branch("FirstHoughHitU",     FirstHitU,     "FirstHoughHitU[nLinesU][2]/F");
   Branch_Lines->Branch("FirstHoughHitV",     FirstHitV,     "FirstHoughHitV[nLinesV][2]/F");
@@ -492,13 +492,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
 
     DirectionZX[it] = xlen/len;
-    DirectionXX[it] = ylen/len; //TODO sane???
+    DirectionYX[it] = ylen/len;
 
     DirectionZX_Upstream[it] = xlen/len_upstream;
-    DirectionXX_Upstream[it] = ylen_upstream/len_upstream; //TODO sane???
+    DirectionYX_Upstream[it] = ylen_upstream/len_upstream;
 
     DirectionZX_Downstream[it] = xlen/len_downstream;
-    DirectionXX_Downstream[it] = ylen_downstream/len_downstream;  //TODO sane???
+    DirectionYX_Downstream[it] = ylen_downstream/len_downstream;
 
     it++;
   }
@@ -1046,11 +1046,11 @@ void TMS_TreeWriter::Clear() {
     DirectionXV_Downstream[i] = -999;
 
     DirectionZX[i] = -999;
-    DirectionXX[i] = -999;  //TODO sane???
+    DirectionYX[i] = -999;
     DirectionZX_Upstream[i] = -999;
-    DirectionXX_Upstream[i] = -999; //TODO sane???
+    DirectionYX_Upstream[i] = -999;
     DirectionZX_Downstream[i] = -999;
-    DirectionXX_Downstream[i] = -999; //TODO sane???
+    DirectionYX_Downstream[i] = -999;
 
     OccupancyU[i] = -999;
     OccupancyV[i] = -999;

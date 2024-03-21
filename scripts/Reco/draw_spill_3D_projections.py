@@ -9,7 +9,8 @@ import cppyy.ll
 red_cbf = '#d55e00'
 blue_cbf = '#0072b2'
 orange_cbf = '#e69f00'
-green_cbf = '#cc79a7'
+magenta_cbf = '#cc79a7'
+black_cbf = '#000000'
 mp.style.use('seaborn-poster')
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
@@ -28,7 +29,7 @@ delta_z = 0.02      # space of scintilattor with air gap
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and YBar then in negative #TODO change to U+V Bars
+    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and UBar then in negative
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
@@ -88,23 +89,48 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
 def hit_size(hit_x, hit_y, orientation, hit_z):
     if orientation == 'xy':   # here it is the reconstructed hit area
         orientation_bar = check_orientation(int(hit_z))
-        left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
-        right_bottom = hit_x / 1000.0 + cos_3 * delta_x + sin_3 * delta_y
-        x_array = np.linspace(left_top, right_bottom, num = 50)
-        return x_array, np.array([lower_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array])
+        if orientation_bar == 'kXBar':
+            size_array = np.zeros((2,2))
+            size_array[0, 0] = hit_x + delta_x
+            size_array[0, 1] = hit_x - delta_x
+            if (hit_y + delta_x) >= -2.51:
+                size_array[1, 0] = -2.51
+            else: 
+                size_array[1, 0] = hit_y + delta_x
+            if (hit_y - delta_x) <= -5.71:
+                size_array[1, 1] = -5.71
+            else:
+                size_array[1, 1] = hit_y - delta_x
+            return = np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
+        else: 
+            left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
+            right_bottom = hit_x / 1000.0 + cos_3 * delta_x + sin_3 * delta_y
+            x_array = np.linspace(left_top, right_bottom, num = 50)
+            return x_array, np.array([lower_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array])
                             
     elif orientation == 'zy': # here it is the reconstructed hit area
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
-        if (hit_y / 1000.0 + delta_y) >= -2.51:
-            size_array[1, 0] = -2.51
+        orientation_bar = check_orientation(int(hit_z))
+        if orientation_bar == 'kXBar':
+            if (hit_y + delta_x) >= -2.51:
+                size_array[1, 0] = -2.51
+            else:
+                size_array[1, 0] = hit_y / 1000.0 + delta_x
+            if (hit_y - delta_x) <= -5.71:
+                size_array[1, 1] = -5.71
+            else:
+                size_array[1, 1] = hit_y / 1000.0 - delta_x
         else:
-            size_array[1, 0] = hit_y / 1000.0 + delta_y
-        if (hit_y / 1000.0 - delta_y) <= -5.71:
-            size_array[1, 1] = -5.71
-        else:
-            size_array[1, 1] = hit_y / 1000.0 - delta_y
+            if (hit_y / 1000.0 + delta_y) >= -2.51:
+                size_array[1, 0] = -2.51
+            else:
+                size_array[1, 0] = hit_y / 1000.0 + delta_y
+            if (hit_y / 1000.0 - delta_y) <= -5.71:
+                size_array[1, 1] = -5.71
+            else:
+                size_array[1, 1] = hit_y / 1000.0 - delta_y
        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
     elif orientation == 'xz': # here it is only the bar size
@@ -244,11 +270,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #temporary fix
                     if hit_y > -2000.0 or hit_z < 11000.: continue
                     if np.abs(hit_x) > 10000. or np.aby(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
+
+                    color_cbf = red_cbf
+                    if check_orientation(int(hit_z)) == 'kVBar':
+                        color_cbf = blue_cbf
+                    elif check_orientation(int(hit_z)) == 'kXBar':
+                        color_cbf = black_cbf
                 
                     if hit_x == -999.0 and hit_y == -999.0 and hit_z == -999.0: continue
-                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf, alpha = 0.5, linewidth = 0.5)
+                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                  
                 ### Track start
                 #print(StartPos)

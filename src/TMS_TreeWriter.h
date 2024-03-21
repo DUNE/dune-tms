@@ -109,21 +109,21 @@ class TMS_TreeWriter {
     float DirectionZX[__TMS_MAX_LINES__];
     float DirectionXU[__TMS_MAX_LINES__];
     float DirectionXV[__TMS_MAX_LINES__];
-    float DirectionXX[__TMS_MAX_LINES__]; //TODO sane???
+    float DirectionYX[__TMS_MAX_LINES__];
 
     float DirectionZU_Upstream[__TMS_MAX_LINES__];
     float DirectionZV_Upstream[__TMS_MAX_LINES__];
     float DirectionZX_Upstream[__TMS_MAX_LINES__];
     float DirectionXU_Upstream[__TMS_MAX_LINES__];
     float DirectionXV_Upstream[__TMS_MAX_LINES__];
-    float DirectionXX_Upstream[__TMS_MAX_LINES__];  //TODO sane???
+    float DirectionYX_Upstream[__TMS_MAX_LINES__];
 
     float DirectionZU_Downstream[__TMS_MAX_LINES__];
     float DirectionZV_Downstream[__TMS_MAX_LINES__];
     float DirectionZX_Downstream[__TMS_MAX_LINES__];
     float DirectionXU_Downstream[__TMS_MAX_LINES__];
     float DirectionXV_Downstream[__TMS_MAX_LINES__];
-    float DirectionXX_Downstream[__TMS_MAX_LINES__];  //TODO sane???
+    float DirectionYX_Downstream[__TMS_MAX_LINES__];
 
     float FirstHitU[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     float FirstHitV[__TMS_MAX_LINES__][2];
