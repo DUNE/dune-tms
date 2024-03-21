@@ -125,8 +125,8 @@ class aNode {
       // Moving 1 'bar' up is 10 ground cost, so reflect that here too (the bar width is here assumed to be 1cm)
       double deltay = std::abs((y-other.y)*1);  //10->1
 
-      if      (Heuristic == HeuristicType::kManhattan) return deltax+deltay;
-      else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax*deltax+deltay*deltay);
+      if      (Heuristic == HeuristicType::kManhattan) return deltax + deltay;
+      else if (Heuristic == HeuristicType::kEuclidean) return sqrt(deltax * deltax + deltay * deltay);
       else if (Heuristic == HeuristicType::kDetectorZ) return deltax;
       else if (Heuristic == HeuristicType::kDetectorNotZ) return deltay;
 

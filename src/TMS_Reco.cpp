@@ -658,13 +658,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   for (auto UTracks: HoughCandidatesU) {
     for (auto VTracks: HoughCandidatesV) {
       // Run with matching of X tracks, if X X tracks exist. Otherwise match without
-      bool run = true;
+      bool Xrun = true;
       std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
-      while (run) {
-        if (HoughCandidatesX.empty()) run = false;
+      while (Xrun) {
+        if (HoughCandidatesX.empty()) Xrun = false;
         std::vector<std::vector<TMS_Hit> >::iterator helper;
         std::vector<TMS_Hit> XTracks;
-        if (run) {
+        if (Xrun) {
           helper = HoughCandidatesX.begin();
           XTracks = *helper;
         }
@@ -673,17 +673,19 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         // Run spatial prio just because one last time
         SpatialPrio(UTracks);
         SpatialPrio(VTracks);
-        if (run) SpatialPrio(XTracks);
+        if (Xrun) SpatialPrio(XTracks);
 #ifdef DEBUG
         std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 
         std::cout << "VTrack back: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << " front: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
 
-        if (run) std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
+        if (Xrun) std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
 #endif
         bool back_match = false;
         bool front_match = false;
-        if (run) {
+        bool Xback_match = false;
+        bool Xfront_match = false;
+        if (Xrun) {
           back_match = (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() 
               && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
               && UTracks.front().GetSlice() == VTracks.front().GetSlice() && XTracks.front().GetSlice() == UTracks.front().GetSlice() 
@@ -692,6 +694,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
               && UTracks.back().GetSlice() == VTracks.back().GetSlice() && XTracks.back().GetSlice() == UTracks.back().GetSlice()
               && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
+          Xback_match = (std::abs(UTracks.front().GetT() - XTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit());
+          Xfront_match = (std::abs(UTracks.back().GetT() - XTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit());
         } else {
           back_match = (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() 
               && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
@@ -711,21 +715,21 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             // Make sure that the hits are in the correct order
             if (UTracks.back().GetZ() > UTracks.front().GetZ()) std::reverse(UTracks.begin(), UTracks.end());
             if (VTracks.back().GetZ() > VTracks.front().GetZ()) std::reverse(VTracks.begin(), VTracks.end());
-            if (run) {
+            if (Xrun) {
               if (XTracks.back().GetZ() > XTracks.front().GetZ()) std::reverse(XTracks.begin(), XTracks.end());
             }
 
 #ifdef DEBUG          
             std::cout << "UTrack FRONT: " << UTracks.back().GetPlaneNumber() << " BACK: " << UTracks.front().GetPlaneNumber() << std::endl;
             std::cout << "VTrack FRONT: " << VTracks.back().GetPlaneNumber() << " BACK: " << VTracks.front().GetPlaneNumber() << std::endl;
-            if (run) std::cout << "XTrack FRONT: " << XTracks.back().GetPlaneNumber() << " Back: " << XTracks.front().GetPlaneNumber() << std::endl;
+            if (Xrun) std::cout << "XTrack FRONT: " << XTracks.back().GetPlaneNumber() << " Back: " << XTracks.front().GetPlaneNumber() << std::endl;
 #endif          
             // If same plane number for start/END but different for end/START
             if (UTracks.front().GetPlaneNumber() != VTracks.front().GetPlaneNumber()) {
               // If OneTrack ends/STARTS after OtherTrack
               if (UTracks.front().GetPlaneNumber() > VTracks.front().GetPlaneNumber()) {
                 bool stereo_view = true;
-                if (run) {
+                if (Xrun && Xback_match && Xfront_match) {
                   if (UTracks.front().GetPlaneNumber() < 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < 65) {
                     stereo_view = false;
                   } else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < 90) {
@@ -741,7 +745,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   std::cout << "UTrack ends/STARTS after VTrack" << std::endl;
 #endif                
                   (aTrack.Hits).push_back(UTracks.front());
-                } else { //TODO implement time check
+                } else {
                   if (UTracks.front().GetZ() > XTracks.front().GetZ()) {
                     aTrack.End[0] = 0.5 * (UTracks.front().GetNotZ() + VTracks.front().GetNotZ());
                     aTrack.End[1] = XTracks.front().GetNotZ();
@@ -757,7 +761,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               } // If OneTrack ends/STARTS before OtherTrack
                 else if (UTracks.front().GetPlaneNumber() < VTracks.front().GetPlaneNumber()) {
                 bool stereo_view = true;
-                if (run) {
+                if (Xrun && Xback_match && Xfront_match) {
                   if (VTracks.front().GetPlaneNumber() < 20 && std::abs(VTracks.front().GetZ() - XTracks.front().GetZ()) < 65) {
                     stereo_view = false;
                   } else if (VTracks.front().GetPlaneNumber() >= 20 && std::abs(VTracks.front().GetZ() - XTracks.front().GetZ()) < 90) {
@@ -773,7 +777,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   std::cout << "UTracks ends/STARTS before VTrack" << std::endl;
 #endif              
                   (aTrack.Hits).push_back(VTracks.front());
-                } else {  //TODO implement time check
+                } else {
                   if (VTracks.front().GetZ() > XTracks.front().GetZ()) {
                     aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
                     aTrack.End[1] = XTracks.front().GetNotZ();
@@ -793,7 +797,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               // If OneTrack starts/ENDS after OtherTrack  
               if (UTracks.back().GetPlaneNumber() > VTracks.back().GetPlaneNumber()) {
                 bool stereo_view = true;
-                if (run) {
+                if (Xrun && Xback_match && Xfront_match) {
                   if (VTracks.back().GetPlaneNumber() < 20 && std::abs(VTracks.back().GetZ() - XTracks.back().GetZ()) < 65) {
                     stereo_view = false;
                   } else if (VTracks.back().GetPlaneNumber() >= 20 && std::abs(VTracks.back().GetZ() - XTracks.back().GetZ()) < 90) {
@@ -809,7 +813,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   std::cout << "OneTrack starts/ENDS after VTrack" << std::endl;
 #endif                
                   (aTrack.Hits).push_back(VTracks.back());
-                } else {  //TODO implement time check
+                } else {
                   if (VTracks.back().GetZ() < XTracks.back().GetZ()) {
                     aTrack.Start[0] = 0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ());
                     aTrack.Start[1] = XTracks.back().GetNotZ();
@@ -825,7 +829,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               } // If OneTrack starts/ENDS before OtherTrack
                 else if (UTracks.back().GetPlaneNumber() < VTracks.back().GetPlaneNumber()) {
                 bool stereo_view = true;
-                if (run) {
+                if (Xrun && Xback_match && Xfront_match) {
                   if (UTracks.back().GetPlaneNumber() < 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < 65) {
                     stereo_view = false;
                   } else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < 90) {
@@ -841,7 +845,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   std::cout << "UTrack starts/ENDS before VTrack" << std::endl;
 #endif                
                   (aTrack.Hits).push_back(UTracks.back());
-                } else {  //TODO implement time check
+                } else {
                   if (UTracks.back().GetZ() < XTracks.back().GetZ()) {
                     aTrack.Start[0] = 0.5 * (UTracks.back().GetNotZ() + VTracks.back().GetNotZ());
                     aTrack.Start[1] = XTracks.back().GetNotZ();
@@ -863,11 +867,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             int itX = XTracks.size() - 1;
 
             bool sane = (itU > 0 || itV > 0);
-            if (run) sane = (itU > 0 || itV > 0 || itX > 0);
+            if (Xrun && Xback_match && Xfront_match) sane = (itU > 0 || itV > 0 || itX > 0);
             
             while (sane) {  // Track seems to be backwards, so run adding of hits backwards
               bool stereo_view = true;
-              if (run) {
+              if (Xrun && Xback_match && Xfront_match) {
                 if ((UTracks[itU].GetPlaneNumber() < 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 65))
                     || (VTracks[itV].GetPlaneNumber() < 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 65))) {
                   stereo_view = false;
@@ -879,7 +883,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
               std::cout << "itU: " << itU << " | itV: " << itV << std::endl;
               std::cout << "U: " << UTracks[itU].GetNotZ() << " / " << UTracks[itU].GetZ() << " | V: " << VTracks[itV].GetNotZ() << " / " << VTracks[itV].GetZ() << std::endl;
-              if (run) std::cout << "itX: " << itX <<  "| X: " << XTracks[itX].GetNotZ() << " / " << XTracks[itX].GetZ() << std::endl;
+              if (Xrun) std::cout << "itX: " << itX <<  "| X: " << XTracks[itX].GetNotZ() << " / " << XTracks[itX].GetZ() << std::endl;
 #endif            
               if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetNotZ() == 0. 
                   || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) --itU;
@@ -898,7 +902,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
                   (aTrack.Hits).push_back((UTracks[itU]));
                   (aTrack.Hits).push_back((VTracks[itV]));
-                } else {  //TODO implement time check
+                } else {
                   UTracks[itU].SetRecoY(XTracks[itX].GetNotZ());
                   VTracks[itV].SetRecoY(XTracks[itX].GetNotZ());
                   CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
@@ -936,7 +940,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     (aTrack.Hits).push_back((UTracks[itU]));
                     --itU;
                   }
-                } else { //TODO implement time check
+                } else {
                   if (itU > 0 && itV > 0) {
                     VTracks[itV].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX]);
@@ -1011,13 +1015,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 }
               }
             sane = (itU > 0 || itV > 0);
-            if (run) sane = (itU > 0 || itV > 0 || itX > 0);
+            if (Xrun && Xback_match && Xfront_match) sane = (itU > 0 || itV > 0 || itX > 0);
             }
   
             // If same start and end, assign start and end hit in track
             if (UTracks.front().GetPlaneNumber() == VTracks.front().GetPlaneNumber()) {
               bool stereo_view = true;
-              if (run) {
+              if (Xrun && Xback_match && Xfront_match) {
                 if (UTracks.front().GetPlaneNumber() < 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 65)) {
                   stereo_view = false;
                 } else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 90)) {
@@ -1039,7 +1043,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             }
             if (UTracks.back().GetPlaneNumber() == VTracks.back().GetPlaneNumber()) {
               bool stereo_view = true;
-              if (run) {
+              if (Xrun && Xback_match && Xfront_match) {
                 if (UTracks.back().GetPlaneNumber() < 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 65)) {
                   stereo_view = false;
                 } else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 90)) {
@@ -1082,10 +1086,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             returned.push_back(aTrack);
           }
         }
-        if (run) {
+        if (Xrun && Xback_match && Xfront_match) {
           if (helper != HoughCandidatesX.end()) {
             ++helper;
-          } else run = false;
+          } else Xrun = false;
         }
       }
     }
@@ -2039,8 +2043,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     // Check if hit is after the end of the track
     if ((*it).GetZ() > TrackHits.back().GetZ()) {
       // Check if within 4 bar widths above or below the direction line
-      if ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
-          (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw())) {
+      bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
+            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
+      if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
+        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
+            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
+      }
+      if (CloseBars) {
         // Calculate temporary node to check for distance
         aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
         aNode track_end(TrackHits.back().GetPlaneNumber(), TrackHits.back().GetBarNumber());
@@ -2051,8 +2060,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << std::endl;
 #endif
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
-        if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
-            TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()) {
+        bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
+              TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit());
+        if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) {
+          MaxDistance = (candidate.HeuristicCost <= 2 * (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
+              TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
+        }
+        if (MaxDistance) {
           // Move hit now into candidate hits
 #ifdef DEBUG
           std::cout << "Added to candidates" << std::endl;
@@ -2129,8 +2143,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       // Check if hit is before the starto of the track
       if ((*it).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
-        if ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw())) {
+        bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
+              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
+        if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) {
+          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
+              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
+        }
+        if (CloseBars) {
           // Calculate temporary node to check for distance
           aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
           aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNumber());
@@ -2438,7 +2457,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
     aNode TempNode(x, y, NodeID);
 #ifdef DEBUG
     std::cout << "Node creation" << std::endl;
-    std::cout << "coordinates: x, y = " << (*it).GetZ() << " " << (*it).GetX() << std::endl;
+    std::cout << "coordinates: x, y = " << (*it).GetZ() << " " << (*it).GetNotZ() << std::endl;
     TempNode.Print();
 #endif
 
@@ -2825,7 +2844,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
     //double xprev = vec[NeighbourIndex].GetZ();
     //double yprev = vec[NeighbourIndex].GetNotZ();
     double xprev = vec[NeighbourIndex].GetPlaneNumber();
-    double yprev = vec[NeighbourIndex].GetBarNumber();  //TODO adapt correctly to X layers!!!
+    double yprev = vec[NeighbourIndex].GetBarNumber();
 
     double grad_exp = (y - yprev) / (x - xprev);
 
@@ -2848,7 +2867,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         continue;
       }
 
-      if (abs(BarNumber_cand - BarNumber) > 2) {  // TODO adapt correctly to X layers!!!
+      if (abs(BarNumber_cand - BarNumber) > 2) {
         ++it;
         continue;
       }
@@ -2865,17 +2884,17 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double ycand = hits.GetBarNumber();
 
       // Calculate the new gradient between the points
-      double grad_new = (ycand - y) / (xcand - x);  //TODO adapt correctly to X layers!!!
+      double grad_new = (ycand - y) / (xcand - x);
 
       //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
       //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
       //std::cout << "and new gradient: " << grad_new << std::endl;
 
       // If gradient is within 0.6 and the correct sign, accept
-      if (fabs(grad_new - grad_exp) <= 2.0) { //TODO adapt correctly to X layers!!!
+      if (fabs(grad_new - grad_exp) <= 2.0) { 
         // If the gradient is zero we shouldn't do a sign check
         // But if it's not, check the sign of the gradient doesn't flip
-        if (fabs(grad_new) > TMS_Const::TMS_Small_Num && //TODO adapt correctly to X layers!!!
+        if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
             fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
             TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
           ++it;
@@ -2939,7 +2958,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double x = vec[i].GetPlaneNumber();
       double y = vec[i].GetBarNumber();
       int PlaneNumber = vec[i].GetPlaneNumber();
-      int BarNumber = vec[i].GetBarNumber();  //TODO X layers!!!
+      int BarNumber = vec[i].GetBarNumber();
 
       // Require continous hits for derivative calculation
       // If we can't find the previous hit at first go (might be two hits in the same plane, so adjacent hits would have an inifite slop), try moving down in the order
@@ -2972,7 +2991,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       double xprev = vec[NeighbourIndex].GetPlaneNumber();
       double yprev = vec[NeighbourIndex].GetBarNumber();
 
-      double grad_exp = (y - yprev) / (x - xprev);  //TODO X layers!!!
+      double grad_exp = (y - yprev) / (x - xprev);
 
       //std::cout << "Comparing hit " << x << "," << y << " to " << xprev << "," << yprev << " expecing gradient " << grad_exp << std::endl;
       //std::cout << "(" << PlaneNumber << ", " << vec[i].GetBarNumber() << "-" << PlaneNumber_prev << ", " << vec[NeighbourIndex].GetBarNumber() << ")" << std::endl;
@@ -2988,7 +3007,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           continue;
         }
 
-        if (abs(BarNumber_cand - BarNumber) > 2) {  //TODO X layers!!!
+        if (abs(BarNumber_cand - BarNumber) > 2) {
           ++it;
           continue;
         }
@@ -3010,17 +3029,17 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         double xcand = hits.GetPlaneNumber();
         double ycand = hits.GetBarNumber();
 
-        double grad_new = (ycand - y) / (xcand - x);  //TODO X layers!!!
+        double grad_new = (ycand - y) / (xcand - x);
 
         //std::cout << "testing merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
         //std::cout << "With hit info " << hits.GetZ() << ", " << hits.GetNotZ() << std::endl;
         //std::cout << "and new gradient: " << grad_new << std::endl;
 
         // If gradient is within 1 and the correct sign, accept
-        if (fabs(grad_new - grad_exp) <= 1.5) { //TODO X layers!!!
+        if (fabs(grad_new - grad_exp) <= 1.5) {
           // If the gradient is zero we shouldn't do a sign check
           // But if it's not, check the sign of the gradient doesn't flip
-          if (fabs(grad_new) > TMS_Const::TMS_Small_Num && //TODO X layers!!!
+          if (fabs(grad_new) > TMS_Const::TMS_Small_Num &&
               fabs(grad_exp) > TMS_Const::TMS_Small_Num &&
               TMS_Utils::sgn(grad_new) != TMS_Utils::sgn(grad_exp)) {
             ++it;
