@@ -187,7 +187,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("ClusterEnergyX",    ClusterEnergyX,    "ClusterEnergyX[nClustersX]/F");
   Branch_Lines->Branch("ClusterTimeU",      ClusterTimeU,      "ClusterTimeU[nClustersU]/F");
   Branch_Lines->Branch("ClusterTimeV",      ClusterTimeV,      "ClusterTimeV[nClustersV]/F");
-  Branch_Lines->Branch("ClusterTimeX",      ClusterTimeX,      "ClusterTimeX[nClusterX]/F");
+  Branch_Lines->Branch("ClusterTimeX",      ClusterTimeX,      "ClusterTimeX[nClustersX]/F");
   Branch_Lines->Branch("ClusterPosMeanU",   ClusterPosMeanU,   "ClusterPosMeanU[25][2]/F");
   Branch_Lines->Branch("ClusterPosMeanV",   ClusterPosMeanV,   "ClusterPosMeanV[25][2]/F");
   Branch_Lines->Branch("ClusterPosMeanX",   ClusterPosMeanX,   "ClusterPosMeanX[25][2]/F");
@@ -964,7 +964,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetNotZ();
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
       } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();

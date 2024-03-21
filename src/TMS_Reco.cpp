@@ -2045,7 +2045,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       // Check if within 4 bar widths above or below the direction line
       bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
             (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
-      if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
+      if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
         CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
             (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
       }
@@ -2062,7 +2062,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
         bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit());
-        if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) {
+        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
           MaxDistance = (candidate.HeuristicCost <= 2 * (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
         }
@@ -2145,7 +2145,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         // Check if within 2 bar widths above or below the direction line
         bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
               (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
-        if ((*it).GetBar().GetBarOrientation() == TMS_Bar::kXBar) {
+        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
           CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
               (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
         }
