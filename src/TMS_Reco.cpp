@@ -654,6 +654,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::cout << "3D matching" << std::endl;
   std::vector<TMS_Track> returned;
   
+  bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
+
   // 3D matching of tracks
   for (auto UTracks: HoughCandidatesU) {
     for (auto VTracks: HoughCandidatesV) {
@@ -685,7 +687,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         bool front_match = false;
         bool Xback_match = false;
         bool Xfront_match = false;
-        if (Xrun) {
+        if (Xrun && TimeSlicing) {
           back_match = (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() 
               && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
               && UTracks.front().GetSlice() == VTracks.front().GetSlice() && XTracks.front().GetSlice() == UTracks.front().GetSlice() 
@@ -696,7 +698,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
           Xback_match = (std::abs(UTracks.front().GetT() - XTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit());
           Xfront_match = (std::abs(UTracks.back().GetT() - XTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit());
-        } else {
+        } else if (!Xrun && TimeSlicing) {
           back_match = (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() 
               && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
               && UTracks.front().GetSlice() == VTracks.front().GetSlice()
@@ -705,6 +707,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit() 
               && UTracks.back().GetSlice() == VTracks.back().GetSlice()
               && std::abs(UTracks.back().GetT() - VTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
+        } else {
+          back_match = (std::abs(UTracks.front().GetPlaneNumber() - VTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() 
+              && std::abs(UTracks.front().GetBarNumber() - VTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit());
+          front_match = (std::abs(UTracks.back().GetPlaneNumber() - VTracks.back().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit()
+              && std::abs(UTracks.back().GetBarNumber() - VTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit());
+          Xback_match = true; // matching is pretty bad with time slicing turned off. Enable at least some matching with X 
+          Xfront_match = true;
         }
 
         if (back_match) { 
