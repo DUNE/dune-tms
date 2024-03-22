@@ -24,9 +24,9 @@ The framework depends on `edep-sim`, `ROOT`, `CLHEP`, and `toml`. An example set
 Once you have set your environment up, run `make`, which will get toml11, make the `src` directory and build the shared object (library) to `lib`, move onto the applications in `app` and build them into `bin`.
 
 ### With CMake (currentlty experimental)
-To build with CMake, directories for the build and installation must be chosen. If you are unsure, following is an example.
+To build with CMake, directories for the build and installation must be chosen. A basic example is provided here.
 Inside `dune-tms/` create a directory for the build `mkdir -p build; cd build`, then run `cmake -DCMAKE_INSTALL_PREFIX=../Linux ../`. This should detect the dependencies for the build and generate the build files.
-You can now `make && make install`, and the software will be install into `dune-tms/Linux/{bin,lib}`.
+You can now `make && make install`, and the software will be installed into `dune-tms/Linux/{bin,lib}`.
 If cmake is run without setting the install prefix, the installation location will default to `/usr/local`, which will require `sudo` or equivalent permissions to write to.
 
 ## toml submodule dependency
