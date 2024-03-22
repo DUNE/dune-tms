@@ -27,6 +27,7 @@ Once you have set your environment up, run `make`, which will get toml11, make t
 To build with CMake, directories for the build and installation must be chosen. If you are unsure, following is an example.
 Inside `dune-tms/` create a directory for the build `mkdir -p build; cd build`, then run `cmake -DCMAKE_INSTALL_PREFIX=../Linux ../`. This should detect the dependencies for the build and generate the build files.
 You can now `make && make install`, and the software will be install into `dune-tms/Linux/{bin,lib}`.
+If cmake is run without setting the install prefix, the installation location will default to `/usr/local`, which will require `sudo` or equivalent permissions to write to.
 
 ## toml submodule dependency
 We read parameter settings using `toml`. I particularly like [ToruNiina](https://github.com/ToruNiina/toml11/)'s repo, so have included it as a submodule here. The submodule setup is included in the default `make` recipe, so you shouldn't have to do anything else. If you for some reason want to run it on your own, do `git submodule init && git submodule update` to get the submodule.
