@@ -80,9 +80,11 @@ def run(c, truth, outfilename, nmax=-1):
         hist_KE_vs_track_length_max_dz = ROOT.TH2D("hist_KE_vs_track_length_max_dz", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
         hist_track_length_vs_max_dz_distU = ROOT.TH2D("hist_track_length_vs_max_dz_dist_U", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
         hist_KE_inside_TMS = ROOT.TH1D("hist_KE_inside_TMS", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
-  
+        hist_KE_U_Res_vs_KETrue = ROOT.TH2D("hist_KE_U_Res_vs_KETrue", "Resolution vs. True Muon KE; (Estimated KE U - True MuonKE) (MeV); True Muon KE (MeV)", 20, -1, 1, 50, 0, 10000)
+
         hist_KEV = ROOT.TH2D("hist_KE_V", "KE;True muon KE (MeV);Track length of best track (g/cm^{2}=)", 100, 0, 5000, 50, 0, 2500)
-        hist_KE_estimatedV = ROOT.TH2D("hist_KE_estimated_V", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000) 
+        hist_KE_estimatedV = ROOT.TH2D("hist_KE_estimated_V", "KE estimator;True muon KE (MeV);Reco muon KE (MeV)", 100, 0, 5000, 50, 0, 5000)
+        hist_KE_V_Res_vs_KETrue = ROOT.TH2D("hist_KE_C_Res_vs_KETrue", "Resolution vs. True Muon KE; (Estimated KE V - True MuonKE) (MeV); True Muon KE (MeV)", 20, -1, 1, 50, 0, 10000)
 #        hist_KE_vs_track_length_max_dzOther = ROOT.TH2D("hist_KE_vs_track_length_max_dz_other", "KE vs Track Length;True muon KE (MeV);Track Length (mm)", 100, 0, 5000, 50, 0, 10000)
         hist_track_length_vs_max_dz_distV = ROOT.TH2D("hist_track_length_vs_max_dz_dist_V", "Track Dist;Track Length (mm);Max dz Dist (mm)", 50, 0, 10000, 50, 0, 10000)
 #        hist_KE_inside_TMSOther = ROOT.TH1D("hist_KE_inside_TMS_other", "KE of Muons Starting in TMS;True muon KE (MeV);N events", 100, 0, 5000)
@@ -426,6 +428,8 @@ def run(c, truth, outfilename, nmax=-1):
                     hist_KEU.Fill(Muon_TrueKE, best_tracklengthU)
                     hist_KEV.Fill(Muon_TrueKE, best_tracklengthV)
                     hist_KE_estimatedU.Fill(Muon_TrueKE, reconstructed_muon_keU)
+                    hist_KE_U_Res_vs_KETrue.Fill(Muon_TrueKE, reconstructed_muon_keU - Muon_TrueKE)
+                    hist_KE_V_Res_vs_KETrue.Fill(Muon_TrueKE, reconstructed_muon_keV - Muon_TrueKE)
                     hist_KE_estimatedV.Fill(Muon_TrueKE, reconstructed_muon_keV)
                     hist_KE_vs_track_length_max_dz.Fill(Muon_TrueKE, track_length_max_dz)
 #                    hist_KE_vs_track_length_max_dzOther.Fill(Muon_TrueKE, track_length_max_dzOther)
