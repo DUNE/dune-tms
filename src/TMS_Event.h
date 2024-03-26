@@ -83,6 +83,7 @@ class TMS_Event {
     double GetVisibleEnergyFromUVertexInSlice() { return VisibleEnergyFromUVertexInSlice; };
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
     double GetVisibleEnergyFromVVerticesInSlice() { return VisibleEnergyFromVVerticesInSlice; };
+    double GetVisibleEnergyFromXVerticesInSlice() { return VisibleEnergyFromXVerticesInSlice; };
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
@@ -143,6 +144,7 @@ class TMS_Event {
     double VisibleEnergyFromUVertexInSlice;
     double TotalVisibleEnergyFromVertex;
     double VisibleEnergyFromVVerticesInSlice;
+    double VisibleEnergyFromXVerticesInSlice;
 
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;

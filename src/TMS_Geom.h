@@ -57,9 +57,12 @@ class TMS_Geom {
       if (dx == 600000) ScaleFactor = 1;
       else if (dx == 60000) ScaleFactor = 10;
       else {
+       std::cout << "DX: " << box->GetDX() << std::endl;
        std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
        throw;
       }
+      // set ScaleFactor temporarilty to 10
+      //ScaleFactor = 10;
       std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
       std::cout << "Geometry scale factor: " << ScaleFactor;
       std::cout << ". Factor is 1 if 1 unit = 1mm (aka edep sim), 10 if 1 unit = 1cm (aka larsoft)." << std::endl;

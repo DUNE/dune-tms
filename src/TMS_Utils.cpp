@@ -38,6 +38,7 @@ caf::SRTMS ConvertEvent() {
 
   std::vector<std::pair<bool, TF1*> > HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*> > HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
+  std::vector<std::pair<bool, TF1*> > HoughLinesX = TMS_TrackFinder::GetFinder().GetHoughLinesX();
   int nit = 0;
   for (auto it = HoughLinesU.begin(); it != HoughLinesU.end(); ++it, ++nit) {
     //double intercept = (*it).second->GetParameter(0);
@@ -84,6 +85,30 @@ caf::SRTMS ConvertEvent() {
     tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthV()[nit];
     tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyV()[nit];
   }
+
+  keeper_nit += nit;
+  nit = 0;
+  for (auto it = HoughLinesX.begin(); it != HoughLinesX.end(); ++it, ++nit)  {
+    // Calculate the z and x vectors by evaling the TF1 in thin and thick target
+    double zlow = TMS_Const::TMS_Thin_Start;
+    double zhi = TMS_Const::TMS_Thick_Start;
+    double xlow = (*it).second->Eval(zlow);
+    double xhi = (*it).second->Eval(zhi);
+
+    double zlen = zhi-zlow;
+    double xlen = xhi-xlow;
+    double len = sqrt(xlen*xlen+zlen*zlen);
+    zlen = zlen/len;
+    xlen = xlen/len;
+
+    caf::SRVector3D dir(xlen, 0, zlen); // Make the converted direction unit vector
+    tracks[nit+keeper_nit].dir = dir;
+
+    // Now do the track quality, track energy and track length
+    tracks[nit+keeper_nit].TrackLength_gcm3 = TMS_TrackFinder::GetFinder().GetTrackLengthX()[nit];
+    tracks[nit+keeper_nit].TrackEnergy = TMS_TrackFinder::GetFinder().GetTrackEnergyX()[nit];
+  }
+ 
 
   return caf;
 }

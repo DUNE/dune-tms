@@ -41,14 +41,13 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // cd up in the geometry to find the right name
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
   while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
       PlaneNumber = geom->GetCurrentNode()->GetNumber();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
       if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
       else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) BarOrient = kXBar;  // not yet implemented!
+      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) BarOrient = kXBar;  // 90 degrees rotated/tiled from vertical
       else if (NodeName.find(TMS_Const::TMS_ModuleLayerName4) != std::string::npos) BarOrient = kYBar;  // not yet implemented! Pure y orientation
       else {
         std::cout<<"Error: Do not understand TMS_ModuleLayerName '"<<NodeName<<"'. This bar will have type kError."<<std::endl;
@@ -84,7 +83,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
       GlobalBarNumber = geom->GetCurrentNode()->GetNumber();
     }
-
+   
     geom->CdUp();
     NodeName = std::string(geom->GetCurrentNode()->GetName());
   }
@@ -131,7 +130,17 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TMS_Geom::GetInstance().FindNode(xval,yval,zval);
 
   // Update the bar number
-  BarNumber = (GetX()-TMS_Const::TMS_Start_Exact[0])/GetXw();
+  if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
+    BarNumber = (GetX() - TMS_Const::TMS_Start_Exact[0]) / GetXw();
+  } else if (BarOrient == kXBar) {
+    BarNumber = -2 * (GetY() - 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
+    if (GlobalBarNumber % 2 == 1) {
+      BarNumber += 1;
+    }
+  } else {
+    BarNumber = -999;
+  }
+
   CheckBar();
 
   return true;

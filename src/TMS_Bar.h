@@ -20,9 +20,9 @@ class TMS_Bar {
     std::string BarType_ToString(BarType bar) const;
 
     // Getter functions
-    int GetBarNumber() const { return BarNumber; };
-    int GetPlaneNumber() const { return PlaneNumber; };
-    int GetGlobalBarNumber() const { return GlobalBarNumber; };
+    int GetBarNumber() const { return BarNumber; }; // Number of bar (start counting from -3520mm onwards)
+    int GetPlaneNumber() const { return PlaneNumber; }; // Plane or layer number through the detector starting at smallest z
+    int GetGlobalBarNumber() const { return GlobalBarNumber; }; // Number of hit Scintillator Module (4 modules)
 
     BarType GetBarType() const { return BarOrient; };
 
@@ -76,11 +76,11 @@ class TMS_Bar {
       double xmin = -9999999999999;
       double xmax = 9999999999999;
       if (BarOrient == kXBar) {
-        xmin = GetY()-GetYw()/2;
-        xmax = GetY()+GetYw()/2;
+        xmin = GetY() - GetYw() / 2;
+        xmax = GetY() + GetYw() / 2;
       } else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
-        xmin = GetX()-GetXw()/2;
-        xmax = GetX()+GetXw()/2;
+        xmin = GetX() - GetXw() / 2;
+        xmax = GetX() + GetXw() / 2;
       }
 
       if (x > xmax || x < xmin) return false;

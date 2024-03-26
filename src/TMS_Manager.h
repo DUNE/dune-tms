@@ -47,6 +47,7 @@ class TMS_Manager {
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
     int Get_Reco_TRACKMATCH_BarLimit() { return _RECO_TRACKMATCH_BarLimit; };
     int Get_Reco_TRACKMATCH_TimeLimit() { return _RECO_TRACKMATCH_TimeLimit; };
+    int Get_Reco_TRACKMATCH_XTimeLimit() { return _RECO_TRACKMATCH_XTimeLimit; };
     float Get_Reco_TRACKMATCH_YAnchor() { return _RECO_TRACKMATCH_YAnchor; };
     double Get_Reco_TRACKMATCH_TiltAngle() { return _RECO_TRACKMATCH_TiltAngle; };
 
@@ -110,6 +111,7 @@ class TMS_Manager {
     int _RECO_TRACKMATCH_PlaneLimit;
     int _RECO_TRACKMATCH_BarLimit;
     int _RECO_TRACKMATCH_TimeLimit;
+    int _RECO_TRACKMATCH_XTimeLimit;
     float _RECO_TRACKMATCH_YAnchor;
     double _RECO_TRACKMATCH_TiltAngle;
 

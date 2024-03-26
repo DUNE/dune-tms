@@ -63,6 +63,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
   Branch_Lines->Branch("nLinesU", &nLinesU, "nLinesU/I");
   Branch_Lines->Branch("nLinesV", &nLinesV, "nLinesV/I");
+  Branch_Lines->Branch("nLinesX", &nLinesX, "nLinesX/I");
   Branch_Lines->Branch("nLines3D",    &nLines3D,    "nLines3D/I");
 
   Branch_Lines->Branch("SlopeU",     SlopeU,      "SlopeU[nLinesU]/F");
@@ -74,15 +75,24 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("SlopeV",     SlopeV,     "SlopeV[nLinesV]/F");
   Branch_Lines->Branch("InterceptV", InterceptV, "InterceptV[nLinesV]/F");
-  Branch_Lines->Branch("Slope_DownstreamV",     Slope_DownstreamV,     "Slope_DownstreamV[nLinesV]/F");
-  Branch_Lines->Branch("Intercept_DownstreamV", Intercept_DownstreamV, "Intercept_DownstreamV[nLinesV]/F");
-  Branch_Lines->Branch("Slope_UpstreamV",       Slope_UpstreamV,       "Slope_UpstreamV[nLinesV]/F");
-  Branch_Lines->Branch("Intercept_UpstreamV",   Intercept_UpstreamV,   "Intercept_UpstreamV[nLinesV]/F");
+  Branch_Lines->Branch("Slope_DownstreamV",     Slope_DownstreamV,      "Slope_DownstreamV[nLinesV]/F");
+  Branch_Lines->Branch("Intercept_DownstreamV", Intercept_DownstreamV,  "Intercept_DownstreamV[nLinesV]/F");
+  Branch_Lines->Branch("Slope_UpstreamV",       Slope_UpstreamV,        "Slope_UpstreamV[nLinesV]/F");
+  Branch_Lines->Branch("Intercept_UpstreamV",   Intercept_UpstreamV,    "Intercept_UpstreamV[nLinesV]/F");
+
+  Branch_Lines->Branch("SlopeX",                SlopeX,                 "SlopeX[nLinesX]/F");
+  Branch_Lines->Branch("InterceptX",            InterceptX,             "InterceptX[nLinesX]/F");
+  Branch_Lines->Branch("Slope_DownstreamX",     Slope_DownstreamX,      "Slope_DownstreamX[nLinesX]/F");
+  Branch_Lines->Branch("Intercept_DownstreamX", Intercept_DownstreamX,  "Intercept_DownstreamX[nLinesX]/F");
+  Branch_Lines->Branch("Slope_UpstreamX",       Slope_UpstreamX,        "Slope_UpstreamX[nLinesX]/F");
+  Branch_Lines->Branch("Intercept_UpstreamX",   Intercept_UpstreamX,    "Intercept_UpstreamX[nLinesX]/F");
 
   Branch_Lines->Branch("DirectionZU", DirectionZU, "DirectionZU[nLinesU]/F");
   Branch_Lines->Branch("DirectionZV", DirectionZV, "DirectionZV[nLinesV]/F");
+  Branch_Lines->Branch("DirectionZX", DirectionZX, "DirectionZX[nLinesX]/F");
   Branch_Lines->Branch("DirectionXU", DirectionXU, "DirectionXU[nLinesU]/F");
   Branch_Lines->Branch("DirectionXV", DirectionXV, "DirectionXV[nLinesV]/F");
+  Branch_Lines->Branch("DirectionYX", DirectionYX, "DirectionYX[nLinesX]/F");
   Branch_Lines->Branch("DirectionZU_Downstream",   DirectionZU_Downstream,   "DirectionZU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionXU_Downstream",   DirectionXU_Downstream,   "DirectionXU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionZU_Upstream",     DirectionZU_Upstream,     "DirectionZU_Upstream[nLinesU]/F");
@@ -91,33 +101,49 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionXV_Downstream", DirectionXV_Downstream, "DirectionXV_Downstream[nLinesV]/F");
   Branch_Lines->Branch("DirectionZV_Upstream",   DirectionZV_Upstream,   "DirectionZV_Upstream[nLinesV]/F");
   Branch_Lines->Branch("DirectionXV_Upstream",   DirectionXV_Upstream,   "DirectionXV_Upstream[nLinesV]/F");
+  Branch_Lines->Branch("DirectionZX_Downstream",  DirectionZX_Downstream, "DirectionZX_Downstream[nLinesX]/F");
+  Branch_Lines->Branch("DirectionYX_Downstream",  DirectionYX_Downstream, "DirectionYX_Downstream[nLinesX]/F");
+  Branch_Lines->Branch("DirectionZX_Upstream",    DirectionZX_Upstream,   "DirectionZX_Upstream[nLinesX]/F");
+  Branch_Lines->Branch("DirectionYX_Upstream",    DirectionYX_Upstream,   "DirectionYX_Upstream[nLinesX]/F");
 
   Branch_Lines->Branch("FirstHoughHitU",     FirstHitU,     "FirstHoughHitU[nLinesU][2]/F");
   Branch_Lines->Branch("FirstHoughHitV",     FirstHitV,     "FirstHoughHitV[nLinesV][2]/F");
+  Branch_Lines->Branch("FirstHoughHitX",     FirstHitX,     "FirstHoughHitX[nLinesX][2]/F");
   Branch_Lines->Branch("LastHoughHitU",      LastHitU,      "LastHoughHitU[nLinesU][2]/F");
   Branch_Lines->Branch("LastHoughHitV",      LastHitV,      "LastHoughHitV[nLinesV][2]/F");
+  Branch_Lines->Branch("LastHoughHitX",      LastHitX,      "LastHoughHitX[nLinesX][2]/F");
   Branch_Lines->Branch("FirstHoughHitTimeU", FirstHitTimeU, "FirstHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("FirstHoughHitTimeV", FirstHitTimeV, "FirstHoughHitTimeV[nLinesV]/F"); 
+  Branch_Lines->Branch("FirstHoughHitTimeX", FirstHitTimeX, "FirstHoughHitTimeX[nLinesX]/F");
   Branch_Lines->Branch("LastHoughHitTimeU",  LastHitTimeU,  "LastHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("LastHoughHitTimeV",  LastHitTimeV,  "LastHoughHitTimeV[nLinesV]/F");
+  Branch_Lines->Branch("LastHoughHitTImeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeU", EarliestHitTimeU, "HoughEarliestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeV", EarliestHitTimeV, "HoughEarliestHitTimeV[nLinesV]/F");
+  Branch_Lines->Branch("HoughEarliestHitTimeX", EarliestHitTimeX, "HoughEarliestHitTimeX[nLinesX]/F");
   Branch_Lines->Branch("HoughLatestHitTimeU",   LatestHitTimeU,   "HoughLatestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughLatestHitTimeV",   LatestHitTimeV,   "HoughLatestHitTimeV[nLinesV]/F");
+  Branch_Lines->Branch("HoughLatestHitTimeX",   LatestHitTimeX,   "HoughLatestHitTimeX[nLinesX]/F");
   Branch_Lines->Branch("FirstHoughPlaneU", FirstPlaneU,   "FirstHoughPlaneU[nLinesU]/I");
   Branch_Lines->Branch("FirstHoughPlaneV", FirstPlaneV,   "FirstHoughPlaneV[nLinesV]/I");
+  Branch_Lines->Branch("FirstHoughPlaneX", FirstPlaneX,   "FirstHoughPlaneX[nLinesX]/I");
   Branch_Lines->Branch("LastHoughPlaneU",  LastPlaneU,    "LastHoughPlaneU[nLinesU]/I");
   Branch_Lines->Branch("LastHoughPlaneV",  LastPlaneV,    "LastHoughPlaneV[nLinesV]/I");
+  Branch_Lines->Branch("LastHoughPlaneX",  LastPlaneX,    "LastHoughPlaneX[nLinesX]/I");
   Branch_Lines->Branch("TMSStart",         &TMSStart,     "TMSStart/O");
   Branch_Lines->Branch("TMSStartTime",     &TMSStartTime, "TMSStartTime/F");
   Branch_Lines->Branch("OccupancyU",       OccupancyU,    "OccupancyU[nLinesU]/F");
   Branch_Lines->Branch("OccupancyV",       OccupancyV,    "OccupancyV[nLinesV]/F");
+  Branch_Lines->Branch("OccupancyX",       OccupancyX,    "OccupancyX[nLinesX]/F");
   Branch_Lines->Branch("TrackLengthU",     TrackLengthU,  "TrackLengthU[nLinesU]/F");
   Branch_Lines->Branch("TrackLengthV",     TrackLengthV,  "TrackLengthV[nLinesV]/F");
+  Branch_Lines->Branch("TrackLengthX",     TrackLengthX,  "TrackLengthX[nLinesX]/F");
   Branch_Lines->Branch("TotalTrackEnergyU", TotalTrackEnergyU, "TotalTrackEnergyU[nLinesU]/F");
   Branch_Lines->Branch("TotalTrackEnergyV", TotalTrackEnergyV, "TotalTrackEnergyV[nLinesV]/F");
+  Branch_Lines->Branch("TotalTrackEnergyX", TotalTrackEnergyX, "TotalTrackEnergyX[nLinesX]/F");
   Branch_Lines->Branch("TrackStoppingU",    TrackStoppingU,    "TrackStoppingU[nLinesU]/O");
   Branch_Lines->Branch("TrackStoppingV",    TrackStoppingV,    "TrackStoppingV[nLinesV]/O");
+  Branch_Lines->Branch("TrackStoppingX",    TrackStoppingX,    "TrackStoppingX[nLinesX]/O");
 
 /*  // 3D Track information
   Branch_Lines->Branch("FirstHoughHit3D",        FirstHit3D,        "FirstHoughHit3D[nLines3D][3]/F");
@@ -141,34 +167,48 @@ void TMS_TreeWriter::MakeBranches() {
   // Track hit energy
   Branch_Lines->Branch("nHitsInTrackU",   &nHitsInTrackU,  "nHitsInTrackU[nLinesU]/I");
   Branch_Lines->Branch("nHitsInTrackV",   &nHitsInTrackV,  "nHitsInTrackV[nLinesV]/I");
+  Branch_Lines->Branch("nHitsInTrackX",   &nHitsInTrackX,  "nHitsInTrackX[nLinesX]/I");
   Branch_Lines->Branch("TrackHitEnergyU", TrackHitEnergyU, "TrackHitEnergyU[10][200]/F");
   Branch_Lines->Branch("TrackHitEnergyV", TrackHitEnergyV, "TrackHitEnergyV[10][200]/F");
+  Branch_Lines->Branch("TrackHitEnergyX", TrackHitEnergyX, "TrackHitEnergyX[10][200]/F");
   Branch_Lines->Branch("TrackHitPosU",    TrackHitPosU,    "TrackHitPosU[10][200][2]/F");
   Branch_Lines->Branch("TrackHitPosV",    TrackHitPosV,    "TrackHitPosV[10][200][2]/F");
+  Branch_Lines->Branch("TrackHitPosX",    TrackHitPosX,    "TrackHitPosX[10][200][2]/F");
   Branch_Lines->Branch("TrackHitTimeU",   TrackHitTimeU,   "TrackHitTimeU[10][200]/F");
   Branch_Lines->Branch("TrackHitTimeV",   TrackHitTimeV,   "TrackHitTimeV[10][200]/F");
+  Branch_Lines->Branch("TrackHitTimeX",   TrackHitTimeX,   "TrackHitTimeX[10][200]/F");
 
   // Cluster information
   Branch_Lines->Branch("nClustersU",        &nClustersU,       "nClustersU/I");
   Branch_Lines->Branch("nClustersV",        &nClustersV,       "nClustersV/I");
+  Branch_Lines->Branch("nClusterX",         &nClustersX,       "nClustersX/I");
   Branch_Lines->Branch("ClusterEnergyU",    ClusterEnergyU,    "ClusterEnergyU[nClustersU]/F");
   Branch_Lines->Branch("ClusterEnergyV",    ClusterEnergyV,    "ClusterEnergyV[nClustersV]/F");
+  Branch_Lines->Branch("ClusterEnergyX",    ClusterEnergyX,    "ClusterEnergyX[nClustersX]/F");
   Branch_Lines->Branch("ClusterTimeU",      ClusterTimeU,      "ClusterTimeU[nClustersU]/F");
   Branch_Lines->Branch("ClusterTimeV",      ClusterTimeV,      "ClusterTimeV[nClustersV]/F");
+  Branch_Lines->Branch("ClusterTimeX",      ClusterTimeX,      "ClusterTimeX[nClustersX]/F");
   Branch_Lines->Branch("ClusterPosMeanU",   ClusterPosMeanU,   "ClusterPosMeanU[25][2]/F");
   Branch_Lines->Branch("ClusterPosMeanV",   ClusterPosMeanV,   "ClusterPosMeanV[25][2]/F");
+  Branch_Lines->Branch("ClusterPosMeanX",   ClusterPosMeanX,   "ClusterPosMeanX[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevU", ClusterPosStdDevU, "ClusterPosStdDevU[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevV", ClusterPosStdDevV, "ClusterPosStdDevV[25][2]/F");
+  Branch_Lines->Branch("ClusterPosStdDevX", ClusterPosStdDevX, "ClusterPosStdDevX[25][2]/F");
   Branch_Lines->Branch("nHitsInClusterU",   nHitsInClusterU,   "nHitsInClusterU[nClustersU]/I");
   Branch_Lines->Branch("nHitsInClusterV",   nHitsInClusterV,   "nHitsInClusterV[nClustersV]/I");
+  Branch_Lines->Branch("nHitsInClusterX",   nHitsInClusterX,   "nHitsInClusterX[nClustersX]/I");
   Branch_Lines->Branch("ClusterHitPosU",    ClusterHitPosU,    "ClusterHitPosU[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitPosV",    ClusterHitPosV,    "ClusterHitPosV[25][200][2]/F");
+  Branch_Lines->Branch("ClusterHitPosX",    ClusterHitPosX,    "ClusterHitPosX[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergyU", ClusterHitEnergyU, "ClusterHitEnergyU[25][200]/F");
   Branch_Lines->Branch("ClusterHitEnergyV", ClusterHitEnergyV, "ClusterHitEnergyV[25][200]/F");
+  Branch_Lines->Branch("ClusterHitEnergyX", ClusterHitEnergyX, "ClusterHitEnergyX[25][200]/F");
   Branch_Lines->Branch("ClusterHitTimeU",   ClusterHitTimeU,   "ClusterHitTimeU[25][200]/F");
   Branch_Lines->Branch("ClusterHitTimeV",   ClusterHitTimeV,   "ClusterHitTimeV[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTimeX",   ClusterHitTimeX,   "ClusterHitTimeX[25][200]/F");
   Branch_Lines->Branch("ClusterHitSliceU",  ClusterHitSliceU,  "ClusterHitSliceU[25][200]/I");
   Branch_Lines->Branch("ClusterHitSliceV",  ClusterHitSliceV,  "ClusterHitSliceV[25][200]/I");
+  Branch_Lines->Branch("ClusterHitSliceX",  ClusterHitSliceX,  "ClusterHitSliceX[25][200]/I");
 
   // Hit information
   Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
@@ -297,11 +337,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*>> HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
+  std::vector<std::pair<bool, TF1*>> HoughLinesX = TMS_TrackFinder::GetFinder().GetHoughLinesX();
   // Also get the size of the hits to get a measure of relative goodness
   std::vector<std::vector<TMS_Hit> > HoughCandidatesU = TMS_TrackFinder::GetFinder().GetHoughCandidatesU();
   std::vector<std::vector<TMS_Hit> > HoughCandidatesV = TMS_TrackFinder::GetFinder().GetHoughCandidatesV();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesX = TMS_TrackFinder::GetFinder().GetHoughCandidatesX();
   nLinesU = HoughCandidatesU.size();
   nLinesV = HoughCandidatesV.size();
+  nLinesX = HoughCandidatesX.size();
 
 
   // Skip the event if there aren't any Hough Lines
@@ -317,6 +360,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
     std::cerr << "Number of lines in event (v): " << nLinesV << std::endl;
+    std::cerr << "Not writing evet" << std::endl;
+    return;
+  }
+
+  if (nLinesX > __TMS_MAX_LINES__) {
+    std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
+    std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
+    std::cerr << "Number of lines in event (x): " << nLinesX << std::endl;
     std::cerr << "Not writing evet" << std::endl;
     return;
   }
@@ -407,6 +458,51 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     it++;
   }
+
+  it = 0;
+  for (auto &Lines: HoughLinesX) {
+    // Get the slopes saved down
+    InterceptX[it] = Lines.second->GetParameter(0);
+    Intercept_UpstreamX[it] = TMS_TrackFinder::GetFinder().GetHoughLinesX_Upstream()[it].first;
+    Intercept_DownstreamX[it] = TMS_TrackFinder::GetFinder().GetHoughLinesX_Downstream()[it].first;
+    SlopeX[it] = Lines.second->GetParameter(1);
+    Slope_UpstreamX[it] = TMS_TrackFinder::GetFinder().GetHoughLinesX_Upstream()[it].second;
+    Slope_DownstreamX[it] = TMS_TrackFinder::GetFinder().GetHoughLinesX_Downstream()[it].second;
+
+    // Calculate the z and x vectors by evaling the TF1 in thin and thick target
+    double xlow = TMS_Const::TMS_Thin_Start;
+    double xhi = TMS_Const::TMS_Thick_Start;
+    double ylow = Lines.second->Eval(xlow);
+    double yhi = Lines.second->Eval(xhi);
+    // Do the same for up and downstream portions
+    double ylow_upstream = Intercept_UpstreamX[it]+xlow*Slope_UpstreamX[it];
+    double yhi_upstream = Intercept_UpstreamX[it]+xhi*Slope_UpstreamX[it];
+
+    double ylow_downstream = Intercept_DownstreamX[it]+xlow*Slope_DownstreamX[it];
+    double yhi_downstream = Intercept_DownstreamX[it]+xhi*Slope_DownstreamX[it];
+
+    double xlen = xhi-xlow;
+    double ylen = yhi-ylow;
+    double len = sqrt(xlen*xlen+ylen*ylen);
+
+    double ylen_upstream = yhi_upstream - ylow_upstream;
+    double ylen_downstream = yhi_downstream - ylow_downstream;
+
+    double len_upstream = sqrt(xlen*xlen+ylen_upstream*ylen_upstream);
+    double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
+
+    DirectionZX[it] = xlen/len;
+    DirectionYX[it] = ylen/len;
+
+    DirectionZX_Upstream[it] = xlen/len_upstream;
+    DirectionYX_Upstream[it] = ylen_upstream/len_upstream;
+
+    DirectionZX_Downstream[it] = xlen/len_downstream;
+    DirectionYX_Downstream[it] = ylen_downstream/len_downstream;
+
+    it++;
+  }
+
 
   // Find where the first hough hit is
   TMSStart = false;
@@ -532,6 +628,66 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     it++;
   }
 
+  std::vector<std::vector<TMS_Hit> > HoughCandsX = TMS_TrackFinder::GetFinder().GetHoughCandidatesX();
+  it = 0;
+  for (auto &Candidates: HoughCandsX) {
+    // Loop over hits
+    for (auto &hit: Candidates) {
+      if (FirstTrack == NULL) {
+        FirstTrack = &hit;
+      } else if (hit.GetZ() < FirstTrack->GetZ()) {
+        FirstTrack = &hit;
+      }
+    }
+    nHitsInTrackX[it] = Candidates.size();
+
+    // Then save the hit info
+    FirstPlaneX[it] = Candidates.front().GetPlaneNumber();
+    FirstHitX[it][0] = Candidates.front().GetZ();
+    FirstHitX[it][1] = Candidates.front().GetNotZ();
+    FirstHitTimeX[it] = Candidates.front().GetT();
+
+    LastPlaneX[it] = Candidates.back().GetPlaneNumber();
+    LastHitX[it][0] = Candidates.back().GetZ();
+    LastHitX[it][1] = Candidates.back().GetNotZ();
+    LastHitTimeX[it] = Candidates.back().GetT();
+
+    TrackLengthX[it] = TMS_TrackFinder::GetFinder().GetTrackLengthX()[it];
+    TotalTrackEnergyX[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyX()[it];
+    OccupancyX[it] = double(HoughCandsX[it].size())/TotalHits;
+    
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
+    // Get each hit in the track and save its energy
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
+      TrackHitEnergyX[it][j] = Candidates[j].GetE();
+      TrackHitTimeX[it][j] = Candidates[j].GetT();
+      TrackHitPosX[it][j][0] = Candidates[j].GetZ();
+      TrackHitPosX[it][j][1] = Candidates[j].GetNotZ();
+      
+      float time = Candidates[j].GetT();
+      
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
+    }
+    EarliestHitTimeX[it] = earliest_hit_time;
+    LatestHitTimeX[it] = latest_hit_time;
+    
+
+    double maxenergy = 0;
+    unsigned int nLastHits_temp = nLastHits;
+    if ((unsigned int)nLastHits > Candidates.size()) nLastHits_temp = Candidates.size();
+    for (unsigned int i = 0; i < nLastHits_temp; ++i) {
+      double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
+      if (hitenergy > maxenergy) maxenergy = hitenergy;
+    }
+    if (maxenergy > EnergyCut) TrackStoppingX[it] = true;
+
+
+    it++;
+  }
+
+
 /*  std::vector<TMS_Track> HoughCands3D = TMS_TrackFinder::GetFinder().GetHoughTracks3D(); //TODO this should be done by Liam with Reco_Tree
   it = 0;
   for (auto &Candidates: HoughCands3D) {
@@ -600,8 +756,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Save down cluster information
   std::vector<std::vector<TMS_Hit> > ClustersU = TMS_TrackFinder::GetFinder().GetClusterCandidatesU();
   std::vector<std::vector<TMS_Hit> > ClustersV = TMS_TrackFinder::GetFinder().GetClusterCandidatesV();
+  std::vector<std::vector<TMS_Hit> > ClustersX = TMS_TrackFinder::GetFinder().GetClusterCandidatesX();
   nClustersU = ClustersU.size();
   nClustersV = ClustersV.size();
+  nClustersX = ClustersX.size();
   if (nClustersU > __TMS_MAX_CLUSTERS__) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
@@ -612,6 +770,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
     std::cerr << "nClustersV in event: " << nClustersV << std::endl;
+    return;
+  }
+  if (nClustersX > __TMS_MAX_CLUSTERS__) {
+    std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
+    std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
+    std::cerr << "nClustersX in event: " << nClustersX << std::endl;
     return;
   }
 
@@ -707,8 +871,53 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
     ClusterPosStdDevV[stdit][0] = std_dev_z;
     ClusterPosStdDevV[stdit][1] = std_dev_notz;
-
   }
+  stdit = 0;
+  for (auto it = ClustersX.begin(); it != ClustersX.end(); ++it, ++stdit) {
+    double total_energy = 0;
+    // Mean of cluster in z and not z
+    double mean_z = 0;
+    double mean_notz = 0;
+    // Mean of square of cluster in z and not z
+    double mean2_z = 0;
+    double mean2_notz = 0;
+    double min_cluster_time = 1e10;
+    int nhits = (*it).size();
+//    std::cout << "Cluster One nHits: " << nhits << std::endl;
+    for (int j = 0; j < nhits; ++j) {
+      mean_z += (*it)[j].GetZ();
+      mean_notz += (*it)[j].GetNotZ();
+      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
+      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
+      total_energy += (*it)[j].GetE();
+      float time = (*it)[j].GetT();
+      if (time < min_cluster_time) min_cluster_time = time;
+//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
+      ClusterHitPosX[stdit][j][0] = (*it)[j].GetZ();
+      ClusterHitPosX[stdit][j][1] = (*it)[j].GetNotZ();
+      ClusterHitEnergyX[stdit][j] = (*it)[j].GetE();
+      ClusterHitTimeX[stdit][j] = (*it)[j].GetT();
+      ClusterHitSliceX[stdit][j] = (*it)[j].GetSlice();
+    }
+    mean_z /= nhits;
+    mean_notz /= nhits;
+
+    mean2_z /= nhits;
+    mean2_notz /= nhits;
+
+    ClusterEnergyX[stdit] = total_energy;
+    ClusterTimeX[stdit] = min_cluster_time;
+    nHitsInClusterX[stdit] = nhits;
+    ClusterPosMeanX[stdit][0] = mean_z;
+    ClusterPosMeanX[stdit][1] = mean_notz;
+    // Calculate the standard deviation
+    double std_dev_z = mean2_z-mean_z*mean_z;
+    double std_dev_notz = mean2_z-mean_z*mean_z;
+    if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
+    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
+    ClusterPosStdDevX[stdit][0] = std_dev_z;
+    ClusterPosStdDevX[stdit][1] = std_dev_notz;
+  } 
 
   // Write out the hit information
   std::vector<TMS_Hit> CleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
@@ -755,7 +964,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetNotZ();
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
       } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
@@ -801,48 +1010,69 @@ void TMS_TreeWriter::Clear() {
   TMSStart = false;
   nLinesU = -999;
   nLinesV = -999;
+  nLinesX = -999;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    SlopeU[i]=-999;
-    SlopeV[i]=-999;
-    InterceptU[i]=-999;
-    InterceptV[i]=-999;
-    Slope_DownstreamU[i]=-999;
-    Slope_DownstreamV[i]=-999;
-    Intercept_DownstreamU[i]=-999;
-    Intercept_DownstreamV[i]=-999;
-    Slope_UpstreamU[i]=-999;
-    Slope_UpstreamV[i]=-999;
-    Intercept_UpstreamU[i]=-999;
-    Intercept_UpstreamV[i]=-999;
+    SlopeU[i] = -999;
+    SlopeV[i] = -999;
+    SlopeX[i] = -999;
+    InterceptU[i] = -999;
+    InterceptV[i] = -999;
+    InterceptX[i] = -999;
+    Slope_DownstreamU[i] = -999;
+    Slope_DownstreamV[i] = -999;
+    Slope_DownstreamX[i] = -999;
+    Intercept_DownstreamU[i] = -999;
+    Intercept_DownstreamV[i] = -999;
+    Intercept_DownstreamX[i] = -999;
+    Slope_UpstreamU[i] = -999;
+    Slope_UpstreamV[i] = -999;
+    Slope_UpstreamX[i] = -999;
+    Intercept_UpstreamU[i] = -999;
+    Intercept_UpstreamV[i] = -999;
+    Intercept_UpstreamX[i] = -999;
 
-    DirectionZU[i]=-999;
-    DirectionXU[i]=-999;
-    DirectionZU_Upstream[i]=-999;
-    DirectionXU_Upstream[i]=-999;
-    DirectionZU_Downstream[i]=-999;
-    DirectionXU_Downstream[i]=-999;
+    DirectionZU[i] = -999;
+    DirectionXU[i] = -999;
+    DirectionZU_Upstream[i] = -999;
+    DirectionXU_Upstream[i] = -999;
+    DirectionZU_Downstream[i] = -999;
+    DirectionXU_Downstream[i] = -999;
 
-    DirectionZV[i]=-999;
-    DirectionXV[i]=-999;
-    DirectionZV_Upstream[i]=-999;
-    DirectionXV_Upstream[i]=-999;
-    DirectionZV_Downstream[i]=-999;
-    DirectionXV_Downstream[i]=-999;
+    DirectionZV[i] = -999;
+    DirectionXV[i] = -999;
+    DirectionZV_Upstream[i] = -999;
+    DirectionXV_Upstream[i] = -999;
+    DirectionZV_Downstream[i] = -999;
+    DirectionXV_Downstream[i] = -999;
 
-    OccupancyU[i]=-999;
-    OccupancyV[i]=-999;
-    TrackLengthU[i]=-999;
-    TrackLengthV[i]=-999;
-    TotalTrackEnergyU[i]=-999;
-    TotalTrackEnergyV[i]=-999;
-    FirstPlaneU[i]=-999;
-    FirstPlaneV[i]=-999;
-    LastPlaneU[i]=-999;
-    LastPlaneV[i]=-999;
+    DirectionZX[i] = -999;
+    DirectionYX[i] = -999;
+    DirectionZX_Upstream[i] = -999;
+    DirectionYX_Upstream[i] = -999;
+    DirectionZX_Downstream[i] = -999;
+    DirectionYX_Downstream[i] = -999;
+
+    OccupancyU[i] = -999;
+    OccupancyV[i] = -999;
+    OccupancyX[i] = -999;
+    TrackLengthU[i] = -999;
+    TrackLengthV[i] = -999;
+    TrackLengthX[i] = -999;
+    TotalTrackEnergyU[i] = -999;
+    TotalTrackEnergyV[i] = -999;
+    TotalTrackEnergyX[i] = -999;
+    FirstPlaneU[i] = -999;
+    FirstPlaneV[i] = -999;
+    FirstPlaneX[i] = -999;
+    LastPlaneU[i] = -999;
+    LastPlaneV[i] = -999;
+    LastPlaneX[i] = -999;
     nHitsInTrackU[i] = -999;
     nHitsInTrackV[i] = -999;
+    nHitsInTrackX[i] = -999;
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
+    TrackStoppingX[i] = false;
   }
 /*    Occupancy3D[i] = -999;
     TrackLength3D[i] = -999;
@@ -887,17 +1117,23 @@ void TMS_TreeWriter::Clear() {
   // Reset Cluster info
   nClustersU = -999;
   nClustersV = -999;
+  nClustersX = -999;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
     ClusterEnergyU[i] = -999;
     ClusterEnergyV[i] = -999;
+    ClusterEnergyX[i] = -999;
     nHitsInClusterU[i] = -999;
     nHitsInClusterV[i] = -999;
+    nHitsInClusterX[i] = -999;
     for (int j = 0; j < 2; ++j) {
       ClusterPosMeanU[i][j] = -999;
       ClusterPosStdDevU[i][j] = -999;
       
       ClusterPosMeanV[i][j] = -999;
       ClusterPosStdDevV[i][j] = -999;
+
+      ClusterPosMeanX[i][j] = -999;
+      ClusterPosStdDevX[i][j] = -999;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
       ClusterHitPosU[i][j][0] = -999;
@@ -907,6 +1143,10 @@ void TMS_TreeWriter::Clear() {
       ClusterHitPosV[i][j][0] = -999;
       ClusterHitPosV[i][j][1] = -999;
       ClusterHitEnergyV[i][j] = -999;
+
+      ClusterHitPosX[i][j][0] = -999;
+      ClusterHitPosX[i][j][1] = -999;
+      ClusterHitEnergyX[i][j] = -999;
     }
   }
 

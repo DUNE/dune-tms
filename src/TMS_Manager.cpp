@@ -53,6 +53,7 @@ TMS_Manager::TMS_Manager() {
   _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
   _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");
   _RECO_TRACKMATCH_TimeLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "TimeLimit");
+  _RECO_TRACKMATCH_XTimeLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "XTimeLimit");
   _RECO_TRACKMATCH_YAnchor = toml::find<float>(data, "Recon", "TrackMatch3D", "YAnchor");
   _RECO_TRACKMATCH_TiltAngle = toml::find<double>(data, "Recon", "TrackMatch3D", "TiltAngle");
 

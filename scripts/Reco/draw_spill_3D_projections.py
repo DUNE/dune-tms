@@ -9,7 +9,8 @@ import cppyy.ll
 red_cbf = '#d55e00'
 blue_cbf = '#0072b2'
 orange_cbf = '#e69f00'
-green_cbf = '#cc79a7'
+magenta_cbf = '#cc79a7'
+black_cbf = '#000000'
 mp.style.use('seaborn-poster')
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
@@ -28,31 +29,31 @@ delta_z = 0.02      # space of scintilattor with air gap
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and YBar then in negative #TODO change to U+V Bars
+    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and UBar then in negative
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
 
 ### Function for lower limit of tilted bar 'hit'
@@ -62,49 +63,74 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
 
 ### Function for hits to appear in correct size (according to bar size, or reconstructed hit area size)
 def hit_size(hit_x, hit_y, orientation, hit_z):
     if orientation == 'xy':   # here it is the reconstructed hit area
         orientation_bar = check_orientation(int(hit_z))
-        left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
-        right_bottom = hit_x / 1000.0 + cos_3 * delta_x + sin_3 * delta_y
-        x_array = np.linspace(left_top, right_bottom, num = 50)
-        return x_array, np.array([lower_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array])
+        if orientation_bar == 'kXBar':
+            size_array = np.zeros((2,2))
+            size_array[0, 0] = hit_x + delta_x
+            size_array[0, 1] = hit_x - delta_x
+            if (hit_y + delta_x) >= -0.91:
+                size_array[1, 0] = -0.91
+            else: 
+                size_array[1, 0] = hit_y + delta_x
+            if (hit_y - delta_x) <= -4.11:
+                size_array[1, 1] = -4.11
+            else:
+                size_array[1, 1] = hit_y - delta_x
+            return = np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
+        else: 
+            left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
+            right_bottom = hit_x / 1000.0 + cos_3 * delta_x + sin_3 * delta_y
+            x_array = np.linspace(left_top, right_bottom, num = 50)
+            return x_array, np.array([lower_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array]), np.array([upper_limit(hit_x / 1000.0, hit_y / 1000.0, i, orientation_bar) for i in x_array])
                             
     elif orientation == 'zy': # here it is the reconstructed hit area
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
-        if (hit_y / 1000.0 + delta_y) >= -2.51:
-            size_array[1, 0] = -2.51
+        orientation_bar = check_orientation(int(hit_z))
+        if orientation_bar == 'kXBar':
+            if (hit_y + delta_x) >= -0.91:
+                size_array[1, 0] = -0.91
+            else:
+                size_array[1, 0] = hit_y / 1000.0 + delta_x
+            if (hit_y - delta_x) <= -4.11:
+                size_array[1, 1] = -4.11
+            else:
+                size_array[1, 1] = hit_y / 1000.0 - delta_x
         else:
-            size_array[1, 0] = hit_y / 1000.0 + delta_y
-        if (hit_y / 1000.0 - delta_y) <= -5.71:
-            size_array[1, 1] = -5.71
-        else:
-            size_array[1, 1] = hit_y / 1000.0 - delta_y
+            if (hit_y / 1000.0 + delta_y) >= -0.91:
+                size_array[1, 0] = -0.91
+            else:
+                size_array[1, 0] = hit_y / 1000.0 + delta_y
+            if (hit_y / 1000.0 - delta_y) <= -4.11:
+                size_array[1, 1] = -4.11
+            else:
+                size_array[1, 1] = hit_y / 1000.0 - delta_y
        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
     elif orientation == 'xz': # here it is only the bar size
@@ -183,11 +209,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_z = fig.add_subplot(gs[0:, 1:])
             
             ### Set labels and ticks
-            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-5, -4, -3])
-            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-5, -4, -3])
+            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-4, -3, -2, -1])
+            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-4, -3, -2, -1])
             x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-            x_y.text(3.6, -5, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            z_y.text(18.1, -4.8, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_y.text(3.6, -3, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            z_y.text(18.1, -3, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             x_z.text(18.1, -1, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
             ### Position plots efficient/nice in subplots
@@ -208,17 +234,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_z.vlines(11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
             x_z.vlines(18, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
             
-            z_y.hlines(-5.71, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.hlines(-2.51, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(11, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(18, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(-4.11, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(-0.91, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(11, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(18, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')
             
-            x_y.hlines(-5.71, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.hlines(-2.51, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.vlines(-3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-            x_y.vlines(3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
-            x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
-            x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.hlines(-4.11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.hlines(-0.91, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-3.5, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.vlines(3.5, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
+            x_y.vlines(-1.75, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
+            x_y.vlines(1.75, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
             
             print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits), dtype = np.uint8)
@@ -244,11 +270,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #temporary fix
                     if hit_y > -2000.0 or hit_z < 11000.: continue
                     if np.abs(hit_x) > 10000. or np.aby(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
+
+                    color_cbf = red_cbf
+                    if check_orientation(int(hit_z)) == 'kVBar':
+                        color_cbf = blue_cbf
+                    elif check_orientation(int(hit_z)) == 'kXBar':
+                        color_cbf = black_cbf
                 
                     if hit_x == -999.0 and hit_y == -999.0 and hit_z == -999.0: continue
-                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf)
-                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = blue_cbf if check_orientation(int(hit_z)) == 'kVBar' else red_cbf, alpha = 0.5, linewidth = 0.5)
+                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                  
                 ### Track start
                 #print(StartPos)
