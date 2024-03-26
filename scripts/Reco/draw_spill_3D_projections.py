@@ -34,26 +34,26 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
 
 ### Function for lower limit of tilted bar 'hit'
@@ -63,26 +63,26 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
         elif x >= r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= -2.51: return -2.51
-            elif return_value <= -5.71: return -5.71
+            if return_value >= -0.91: return -0.91
+            elif return_value <= -4.11: return -4.11
             else: return return_value
 
 ### Function for hits to appear in correct size (according to bar size, or reconstructed hit area size)
@@ -93,12 +93,12 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x + delta_x
             size_array[0, 1] = hit_x - delta_x
-            if (hit_y + delta_x) >= -2.51:
-                size_array[1, 0] = -2.51
+            if (hit_y + delta_x) >= -0.91:
+                size_array[1, 0] = -0.91
             else: 
                 size_array[1, 0] = hit_y + delta_x
-            if (hit_y - delta_x) <= -5.71:
-                size_array[1, 1] = -5.71
+            if (hit_y - delta_x) <= -4.11:
+                size_array[1, 1] = -4.11
             else:
                 size_array[1, 1] = hit_y - delta_x
             return = np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
@@ -114,21 +114,21 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array[0, 1] = hit_x / 1000.0 - delta_z
         orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'kXBar':
-            if (hit_y + delta_x) >= -2.51:
-                size_array[1, 0] = -2.51
+            if (hit_y + delta_x) >= -0.91:
+                size_array[1, 0] = -0.91
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y - delta_x) <= -5.71:
-                size_array[1, 1] = -5.71
+            if (hit_y - delta_x) <= -4.11:
+                size_array[1, 1] = -4.11
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
         else:
-            if (hit_y / 1000.0 + delta_y) >= -2.51:
-                size_array[1, 0] = -2.51
+            if (hit_y / 1000.0 + delta_y) >= -0.91:
+                size_array[1, 0] = -0.91
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_y
-            if (hit_y / 1000.0 - delta_y) <= -5.71:
-                size_array[1, 1] = -5.71
+            if (hit_y / 1000.0 - delta_y) <= -4.11:
+                size_array[1, 1] = -4.11
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_y
        return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
@@ -209,11 +209,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_z = fig.add_subplot(gs[0:, 1:])
             
             ### Set labels and ticks
-            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-5, -4, -3])
-            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-5, -4, -3])
+            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [-4, -3, -2, -1, 0, 1, 2, 3, 4], yticks = [-4, -3, -2, -1])
+            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-4, -3, -2, -1])
             x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-            x_y.text(3.6, -5, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            z_y.text(18.1, -4.8, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_y.text(3.6, -3, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            z_y.text(18.1, -3, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             x_z.text(18.1, -1, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
             ### Position plots efficient/nice in subplots
@@ -234,17 +234,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_z.vlines(11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
             x_z.vlines(18, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
             
-            z_y.hlines(-5.71, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.hlines(-2.51, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(11, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(18, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(-4.11, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(-0.91, 11, 18, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(11, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(18, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')
             
-            x_y.hlines(-5.71, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.hlines(-2.51, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.vlines(-3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-            x_y.vlines(3.5, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
-            x_y.vlines(-1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
-            x_y.vlines(1.75, -2.51, -5.71, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.hlines(-4.11, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.hlines(-0.91, -3.5, 3.5, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-3.5, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.vlines(3.5, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
+            x_y.vlines(-1.75, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
+            x_y.vlines(1.75, -0.91, -4.11, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
             
             print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits), dtype = np.uint8)

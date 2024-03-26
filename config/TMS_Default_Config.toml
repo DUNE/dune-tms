@@ -109,4 +109,4 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = 100
+  MaximumNEvents = -1
