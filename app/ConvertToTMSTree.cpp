@@ -95,18 +95,28 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
 
+    std::cout << "Step 1" << std::endl;
+
     // Make a TMS event
+    std::cout << &event << std::endl << std::flush;
     TMS_Event tms_event = TMS_Event(*event);
+
+    std::cout << "Step 1.1" << std::flush;
+
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
     }
+
+    std::cout << "Step 2" << std::flush;
 
     // Keep filling up the vector and move on to the next event
     if (Overlay && i % nOverlays != 0) {
       overlay_events.push_back(tms_event);
       continue;
     }
+
+    std::cout << "Step 3" << std::endl;
 
     // Add event information and truth from another event
     if (Overlay && i % nOverlays == 0) {
@@ -115,17 +125,25 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       overlay_events.clear();
     }
 
+    std::cout << "Step 4" << std::endl;
+
     // Dump information
     //tms_event.Print();
 
     // Calculate the mapping between vertex ID and visible energy for the primary event
     tms_event.GetVertexIdOfMostVisibleEnergy();
     
+    std::cout << "Step 5" << std::endl;
+
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
+    std::cout << "Step 6" << std::endl;
+
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     
+    std::cout << "Step 7" << std::endl;
+
     // Could save per spill info here
     
     //std::cout<<"Ran time slicer"<<std::endl;
@@ -193,6 +211,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // Write it
       TMS_TreeWriter::GetWriter().Fill(tms_event_slice);
     }
+    std::cout << "Step 8" << std::endl;
   } // End loop over all the events
 
   Timer.Stop();

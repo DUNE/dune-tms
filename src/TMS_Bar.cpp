@@ -41,7 +41,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // cd up in the geometry to find the right name
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
   while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
       PlaneNumber = geom->GetCurrentNode()->GetNumber();
@@ -84,7 +83,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
       GlobalBarNumber = geom->GetCurrentNode()->GetNumber();
     }
-
+    std::cout << "first condition: " << (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) << "/t second: " << (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) << std::flush;
     geom->CdUp();
     NodeName = std::string(geom->GetCurrentNode()->GetName());
   }
