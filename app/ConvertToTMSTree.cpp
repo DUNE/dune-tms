@@ -97,6 +97,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    //tms_event.Print();
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
@@ -181,6 +182,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       tms_event_slice.SetSpillNumber(spill_number);
 
       // Try finding some tracks
+      std::cout << "Hits into Reconstruction: " << tms_event_slice.GetNHits() << std::endl;
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 
 #ifdef DUNEANAOBJ_ENABLED

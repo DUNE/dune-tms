@@ -317,7 +317,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   RawHits = event.GetHitsRaw(); //GetHits needs variables transferred. Try out GetHitsRaw that doesn't need those
   //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
   //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
-  
+  std::cout << "Hits in Reconstruction: " << RawHits.size() << std::endl;
+
   double min_time = 1e9;
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
@@ -330,6 +331,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Clean hits (check duplicate hits, and energy threshold)
   CleanedHits = CleanHits(RawHits);
+  std::cout << "Hits after cleaning: " << CleanedHits.size() << std::endl;
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;
 
@@ -357,9 +359,21 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // 90 degree rotated -> horizontal layers in X group
   for (auto hit : CleanedHits) {
     // Sorting hits into orientation groups  
-    if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) UHitGroup.push_back(hit);
-    else if (hit.GetBar().GetBarType() == TMS_Bar::kVBar) VHitGroup.push_back(hit);
-    else if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) XHitGroup.push_back(hit);
+    if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) {
+      UHitGroup.push_back(hit);
+      std::cout << "U hit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    }
+    else if (hit.GetBar().GetBarType() == TMS_Bar::kVBar) {
+      VHitGroup.push_back(hit);
+      std::cout << "V hit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    }
+    else if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+      XHitGroup.push_back(hit);
+      std::cout << "X hit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    }
+    else {
+      hit.GetBar().Print();
+    }
   }
   
   if ( (UHitGroup.size() + VHitGroup.size() + XHitGroup.size()) != CleanedHits.size() ) {
@@ -676,13 +690,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         SpatialPrio(UTracks);
         SpatialPrio(VTracks);
         if (Xrun) SpatialPrio(XTracks);
-#ifdef DEBUG
+//#ifdef DEBUG
         std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 
         std::cout << "VTrack back: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << " front: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
 
         if (Xrun) std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
-#endif
+//#endif
         bool back_match = false;
         bool front_match = false;
         bool Xback_match = false;
@@ -2372,11 +2386,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
 
   // First sort in z so overlapping hits are next to each other in the arrays
   SpatialPrio(TMS_Hits_Cleaned);
-
+  std::cout << "Step 1: " << TMS_Hits_Cleaned.size() << std::endl;
   // Loop over the original hits
   for (std::vector<TMS_Hit>::iterator it = TMS_Hits_Cleaned.begin(); 
       it != TMS_Hits_Cleaned.end(); ) {
-
+    std::cout << "Bar orienations: " << (*it).GetZ() << " | " << (*it).GetBar().BarType_ToString((*it).GetBar().GetBarType()) << std::endl;
     // Look ahead to find duplicates
     int nDuplicates = 0;
     for (std::vector<TMS_Hit>::iterator jt = it+1; jt != TMS_Hits_Cleaned.end(); ++jt) {
@@ -2404,6 +2418,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
     // Now remove the duplicates
     if (nDuplicates > 0) {
       it = TMS_Hits_Cleaned.erase(it, it + nDuplicates);
+      std::cout << "Step 2: erase " << nDuplicates << " : " << (*it).GetNotZ() << " | " << (*it).GetZ() << " (" << (*it).GetBar().GetBarType() << ")" << std::endl;
     } else it++;
   }
 
@@ -2417,6 +2432,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
     if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
         (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
       jt = TMS_Hits_Cleaned.erase(jt);
+      std::cout << "Step 3: erase " << (*jt).GetZ() << std::endl;
     } else {
       jt++;
     }

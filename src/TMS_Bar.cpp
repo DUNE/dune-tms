@@ -183,6 +183,7 @@ std::string TMS_Bar::BarType_ToString(BarType bar) const {
   else if (bar == kYBar) return std::string("Y-bar");
   else if (bar == kUBar) return std::string("U-bar");
   else if (bar == kVBar) return std::string("V-bar");
+  else if (bar == kXBar) return std::string("X-bar");
   return std::string("ERROR");
 }
 
