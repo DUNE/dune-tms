@@ -311,16 +311,16 @@ def run(c, truth, outfilename, nmax=-1):
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon)
    
- # Before the division operation
-if n_region1_total != 0:
-    n_region1_contained_percentage = (n_region1_total - n_region1_not_contained) / n_region1_total
-else:
+    # Before the division operation
+    if n_region1_total != 0:
+        n_region1_contained_percentage = (n_region1_total - n_region1_not_contained) / n_region1_total
+    else:
     # Handle the case where n_region1_total is zero
-    n_region1_contained_percentage = 0  
+        n_region1_contained_percentage = 0  
   
-    n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
-    n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total  
-    correct_percentage=n_correct/n_total
+        n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
+        n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total  
+        correct_percentage=n_correct/n_total
         # Now check if the muon is a good candidate
         # Does this by checking a list of conditions. If any of them are false, don't fill the reco vs true ke plots.
        
@@ -395,8 +395,8 @@ def validate_then_run(args):
             raise ValueError(f"Did not find any files in {inlist}")
         print(f"Found {nfiles} files in {inlist}")
     if infile != "":
-        # In this case, the user specified exactly one file. Usually they'd hadd many files together.
-# Return this hists if the user requested previews                  files_to_use = [infile]
+        # In this case, the user specified exactly one file. Usually they'd hadd many files together. # Return this hists if the user requested previews        
+        files_to_use = [infile]
         
     outdir = args.outdir
     if outdir == "":
