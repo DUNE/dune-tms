@@ -2022,11 +2022,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
   std::vector<TMS_Hit>::const_reverse_iterator ir = TrackHits.rbegin();
-  int n_skipped = 0;
   while (loop_iterator < 3 && ir != TrackHits.rend()) {
     if (last_three.size() >= 1 && (*ir).GetZ() == last_three[loop_iterator-1].GetZ()) {
       ++ir;
-      n_skipped += 1;
       continue;
     }
     last_three.push_back((*ir));
