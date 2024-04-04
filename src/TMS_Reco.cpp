@@ -2004,7 +2004,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   std::vector<TMS_Hit> front_three;
   std::vector<TMS_Hit>::const_iterator it = TrackHits.begin();
   int loop_iterator = 0;
-  while (loop_iterator < 3) {
+  while (loop_iterator < 3 && it != TrackHits.end()) {
     if (front_three.size() >= 1 && (*it).GetZ() == front_three[loop_iterator-1].GetZ()) {
       ++it;
       continue;
@@ -2013,13 +2013,16 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     ++loop_iterator;
     ++it;
   };
+  
+  // Not enough hits to do the extrapolation
+  if (front_three.size() < 3) return returned;
 
   // TODO Shorten this with an external function that uses a flag for last/three hits
   // Get last three hits
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
   std::vector<TMS_Hit>::const_reverse_iterator ir = TrackHits.rbegin();
-  while (loop_iterator < 3) {
+  while (loop_iterator < 3 && ir != TrackHits.rend()) {
     if (last_three.size() >= 1 && (*ir).GetZ() == last_three[loop_iterator-1].GetZ()) {
       ++ir;
       continue;
@@ -2028,6 +2031,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     ++loop_iterator;
     ++ir;
   }
+  
+  // Not enough hits to do the extrapolation
+  if (last_three.size() < 3) return returned;
 
   // Calculate slopes and intercepts of connecting lines of last/first hits
   double slopes_front[2], slopes_end[2], intercepts_front[2], intercepts_end[2];
