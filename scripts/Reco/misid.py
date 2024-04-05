@@ -121,7 +121,7 @@ def run(c, truth, outfilename, nmax=-1):
     n_correct=0
     correct_percentage=0
 
-
+    n_region2_count = 0
 
     # Now loop over all events
     for i, event in enumerate(c):
@@ -222,8 +222,12 @@ def run(c, truth, outfilename, nmax=-1):
                               n_region1_not_contained+=1
                               break
 
+                    if region2(track_start_x) == False or region2(mdx) == False: n_region2_count+=1
 
+                    # print('region2(track_start_x) and region2(mdx) --> ', region2(track_start_x), ', ', region2(mdx))
                     if region2(track_start_x) and region2(mdx):
+                        print('I am here.')
+
                         n_total+=1
                         n_region2_total+=1
                         k=(mx-track_start_x)/(mz-track_start_z)
@@ -310,14 +314,16 @@ def run(c, truth, outfilename, nmax=-1):
    
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon)
-   
- # Before the division operation
-if n_region1_total != 0:
+
+    # check if anything is 0:
+    print ('n_region1_total = ', n_region1_total)
+    print ('n_region2_total = ', n_region2_total)
+    print ('n_region3_total = ', n_region3_total)
+
+    print('nregion2count = ', n_region2_count)
+
+    # calculate percentages
     n_region1_contained_percentage = (n_region1_total - n_region1_not_contained) / n_region1_total
-else:
-    # Handle the case where n_region1_total is zero
-    n_region1_contained_percentage = 0  
-  
     n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
     n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total  
     correct_percentage=n_correct/n_total
