@@ -14,10 +14,12 @@ class TMS_Track {
     };
     void Print();
 
+    int    Charge;
     double Start[3];     // Start point in x,y,z
     double End[3];       // End point in x,y,z
     double Direction[3]; // Unit vector in track direction
     double Length;
+    double Occupancy;
     double EnergyDeposit;
     double EnergyRange;
     double Time;         // TODO: Fill this in a sensible way
