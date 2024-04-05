@@ -41,6 +41,7 @@ def region1(x):
 
 def region2(x):
     is_region2= True
+    print('x is = ', x)
     if not -1500 < x < 1500: is_region2= False
     return is_region2
 
@@ -222,7 +223,7 @@ def run(c, truth, outfilename, nmax=-1):
                               n_region1_not_contained+=1
                               break
 
-                    if region2(track_start_x) == False or region2(mdx) == False: n_region2_count+=1
+                    if region2(track_start_x) is False or region2(mdx) is False: n_region2_count+=1
 
                     # print('region2(track_start_x) and region2(mdx) --> ', region2(track_start_x), ', ', region2(mdx))
                     if region2(track_start_x) and region2(mdx):
