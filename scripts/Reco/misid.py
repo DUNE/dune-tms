@@ -401,8 +401,8 @@ def validate_then_run(args):
             raise ValueError(f"Did not find any files in {inlist}")
         print(f"Found {nfiles} files in {inlist}")
     if infile != "":
-        # In this case, the user specified exactly one file. Usually they'd hadd many files together.
-# Return this hists if the user requested previews                  files_to_use = [infile]
+        # In this case, the user specified exactly one file. Usually they'd hadd many files together. # Return this hists if the user requested previews
+        files_to_use = [infile]
         
     outdir = args.outdir
     if outdir == "":
