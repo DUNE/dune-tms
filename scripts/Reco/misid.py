@@ -122,7 +122,9 @@ def run(c, truth, outfilename, nmax=-1):
     n_correct=0
     correct_percentage=0
 
+    n_region1_count = 0
     n_region2_count = 0
+    n_region3_count = 0
 
     # Now loop over all events
     for i, event in enumerate(c):
@@ -321,7 +323,9 @@ def run(c, truth, outfilename, nmax=-1):
     print ('n_region2_total = ', n_region2_total)
     print ('n_region3_total = ', n_region3_total)
 
+    print('nregion1count = ', n_region1_count)
     print('nregion2count = ', n_region2_count)
+    print('nregion3count = ', n_region3_count)
 
     # calculate percentages
     n_region1_contained_percentage = (n_region1_total - n_region1_not_contained) / n_region1_total
