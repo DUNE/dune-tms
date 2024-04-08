@@ -1,7 +1,5 @@
 #include "TMS_Reco.h"
 
-#undef DEBUG
-
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
