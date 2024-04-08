@@ -244,6 +244,7 @@ class TMS_TrackFinder {
 
     double CalculateTrackLength3D(const TMS_Track &Hits);
     double CalculateTrackEnergy3D(const TMS_Track &Hits);
+    double CalculateTrackKEByRange(const TMS_Track &Hits);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
