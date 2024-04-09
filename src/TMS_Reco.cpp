@@ -690,13 +690,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         SpatialPrio(UTracks);
         SpatialPrio(VTracks);
         if (Xrun) SpatialPrio(XTracks);
-//#ifdef DEBUG
+#ifdef DEBUG
         std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
 
         std::cout << "VTrack back: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << " front: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
 
         if (Xrun) std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
-//#endif
+#endif
         bool back_match = false;
         bool front_match = false;
         bool Xback_match = false;
@@ -1121,7 +1121,15 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 }
 
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
-  OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_YAnchor() - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ())); // 'Anchor point' of bars in y is 0m, in x this should be the hit coordinate in NotZ
+  TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
+  Double_t localOne[3] = {OneHit.GetNotZ(), 0, OneHit.GetZ()};
+  Double_t localOther[3] = {OtherHit.GetNotZ(), 0, OtherHit.GetZ()};
+  Double_t positionOne[3];
+  Double_t positionOther[3];
+  geom->GetCurrentMatrix()->LocalToMaster(localOne, positionOne);     // This gives us the position of the bars in x, y and z. Use only the y for now!
+  geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
+ 
+  OneHit.SetRecoY(0.5 * (positionOne[1] + positionOther[1]) - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ())); 
   // 48 bars per module, 4 modules per layer, tilted and with gaps for outer 2 modules (due to coils)
   return;
 }
@@ -2386,11 +2394,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
 
   // First sort in z so overlapping hits are next to each other in the arrays
   SpatialPrio(TMS_Hits_Cleaned);
-  std::cout << "Step 1: " << TMS_Hits_Cleaned.size() << std::endl;
+//  std::cout << "Step 1: " << TMS_Hits_Cleaned.size() << std::endl;
   // Loop over the original hits
   for (std::vector<TMS_Hit>::iterator it = TMS_Hits_Cleaned.begin(); 
       it != TMS_Hits_Cleaned.end(); ) {
-    std::cout << "Bar orienations: " << (*it).GetZ() << " | " << (*it).GetBar().BarType_ToString((*it).GetBar().GetBarType()) << std::endl;
+//    std::cout << "Bar orientations: " << (*it).GetZ() << " | " << (*it).GetBar().BarType_ToString((*it).GetBar().GetBarType()) << std::endl;
     // Look ahead to find duplicates
     int nDuplicates = 0;
     for (std::vector<TMS_Hit>::iterator jt = it+1; jt != TMS_Hits_Cleaned.end(); ++jt) {
@@ -2418,7 +2426,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
     // Now remove the duplicates
     if (nDuplicates > 0) {
       it = TMS_Hits_Cleaned.erase(it, it + nDuplicates);
-      std::cout << "Step 2: erase " << nDuplicates << " : " << (*it).GetNotZ() << " | " << (*it).GetZ() << " (" << (*it).GetBar().GetBarType() << ")" << std::endl;
+//      std::cout << "Step 2: erase " << nDuplicates << " : " << (*it).GetNotZ() << " | " << (*it).GetZ() << " (" << (*it).GetBar().GetBarType() << ")" << std::endl;
     } else it++;
   }
 
@@ -2432,7 +2440,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
     if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
         (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
       jt = TMS_Hits_Cleaned.erase(jt);
-      std::cout << "Step 3: erase " << (*jt).GetZ() << std::endl;
+//      std::cout << "Step 3: erase " << (*jt).GetZ() << std::endl;
     } else {
       jt++;
     }
