@@ -111,7 +111,11 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             // Check the TMS volume first
             if (VolumeName.find(TMS_Const::TMS_VolumeName) == std::string::npos && 
                 VolumeName.find(TMS_Const::TMS_ModuleLayerName) == std::string::npos &&
-                VolumeName.find(TMS_Const::TMS_EDepSim_VolumeName) == std::string::npos) continue;
+                VolumeName.find(TMS_Const::TMS_EDepSim_VolumeName) == std::string::npos) 
+                { 
+                  std::cout << "LIAM:\t" << VolumeName << std::endl;
+                  continue;
+                }
 
             // check the LAr volume
             if (TMSLArOnly) {
