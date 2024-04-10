@@ -73,4 +73,6 @@ TMS_Manager::TMS_Manager() {
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
   
   _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
+
+  _GEOMETRY_YMIDDLE = toml::find<double>(data, "Geometry", "YBarMiddle");
 }

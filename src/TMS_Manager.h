@@ -76,6 +76,8 @@ class TMS_Manager {
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
+    double Get_Geometry_YMIDDLE() { return _GEOMETRY_YMIDDLE; };
+
   private:
     TMS_Manager();
     TMS_Manager(TMS_Manager const &) = delete;
@@ -140,6 +142,8 @@ class TMS_Manager {
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
+
+    double _GEOMETRY_YMIDDLE;
 };
 
 #endif
