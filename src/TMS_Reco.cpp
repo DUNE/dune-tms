@@ -392,21 +392,21 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       // Hand over each cluster from DBSCAN to a Hough transform
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesU.begin(); it != DBScanCandidatesU.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-        std::vector<std::vector<TMS_Hit> > LinesU = HoughTransform(hits, 1);
+        std::vector<std::vector<TMS_Hit> > LinesU = HoughTransform(hits, 'U');
         for (auto jt = LinesU.begin(); jt != LinesU.end(); ++jt) {
           HoughCandidatesU.emplace_back(std::move(*jt));
         }
       }
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesV.begin(); it != DBScanCandidatesV.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-	      std::vector<std::vector<TMS_Hit> > LinesV = HoughTransform(hits, 2);
+	      std::vector<std::vector<TMS_Hit> > LinesV = HoughTransform(hits, 'V');
       	for (auto jt = LinesV.begin(); jt != LinesV.end(); ++jt) {
       	  HoughCandidatesV.emplace_back(std::move(*jt));
       	}
       }
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesX.begin(); it != DBScanCandidatesX.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
-        std::vector<std::vector<TMS_Hit> > LinesX = HoughTransform(hits, 3);
+        std::vector<std::vector<TMS_Hit> > LinesX = HoughTransform(hits, 'X');
         for (auto jt = LinesX.begin(); jt != LinesX.end(); ++jt) {
           HoughCandidatesX.emplace_back(std::move(*jt));
         }
@@ -1315,7 +1315,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   return final_total;
 }
 
-std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
 
@@ -1328,9 +1328,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
-  if (hitgroup == 2) {
+  if (hitgroup == 'V') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
-  } else if (hitgroup == 3) {
+  } else if (hitgroup == 'X') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
   }
 
@@ -1357,15 +1357,15 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
     
     if (TMS_xz_cand.size() == 0) {
       nRuns++;
-      if (hitgroup == 1) { // hitgroup 1 means UHitGroup
+      if (hitgroup == 'U') {
         delete HoughLinesU.back().second;
 
         HoughLinesU.pop_back(); // Remove the built Hough line
-      } else if (hitgroup == 2) { // hitgroup 2 means VHitGroup
+      } else if (hitgroup == 'V') {
         delete HoughLinesV.back().second;
 	
 	      HoughLinesV.pop_back();
-      } else if (hitgroup == 3) { // hitgroup 3 means XHitGroup
+      } else if (hitgroup == 'X') {
         delete HoughLinesX.back().second;
 
         HoughLinesX.pop_back();
@@ -1376,12 +1376,12 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       break;
       }
 
-    if (hitgroup == 1) {
+    if (hitgroup == 'U') {
       // Move into the candidate vector
       for (auto &i: TMS_xz_cand) CandidatesU.push_back(std::move(i));
-    } else if (hitgroup == 2) {
+    } else if (hitgroup == 'V') {
       for (auto &i: TMS_xz_cand) CandidatesV.push_back(std::move(i));
-    } else if (hitgroup == 3) {
+    } else if (hitgroup == 'X') {
       for (auto &i: TMS_xz_cand) CandidatesX.push_back(std::move(i));
     }
 
@@ -1393,12 +1393,12 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       }
     }
     
-    if (hitgroup == 1) {
+    if (hitgroup == 'U') {
       // Push back the candidates into the total candidates
       LineCandidates.push_back(std::move(CandidatesU));
-    } else if (hitgroup == 2) {
+    } else if (hitgroup == 'V') {
       LineCandidates.push_back(std::move(CandidatesV));
-    } else if (hitgroup == 3) {
+    } else if (hitgroup == 'X') {
       LineCandidates.push_back(std::move(CandidatesX));
     }
       
@@ -1437,13 +1437,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       double HoughXInter_1 = 0.000;
       double HoughXSlope_1 = 0.000;
 
-      if (hitgroup == 1) {
+      if (hitgroup == 'U') {
         HoughUInter_1 = HoughLinesU[lineit].second->GetParameter(0);
         HoughUSlope_1 = HoughLinesU[lineit].second->GetParameter(1);
-      } else if (hitgroup == 2) {
+      } else if (hitgroup == 'V') {
         HoughVInter_1 = HoughLinesV[lineit].second->GetParameter(0);
         HoughVSlope_1 = HoughLinesV[lineit].second->GetParameter(1);
-      } else if (hitgroup == 3) {
+      } else if (hitgroup == 'X') {
         HoughXInter_1 = HoughLinesX[lineit].second->GetParameter(0);
         HoughXSlope_1 = HoughLinesX[lineit].second->GetParameter(1);
       }
@@ -1489,26 +1489,26 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         double HoughXInter_2 = 0.000;
         double HoughXSlope_2 = 0.000;
 
-        if (hitgroup == 1) {
+        if (hitgroup == 'U') {
           HoughUInter_2 = HoughLinesU[lineit_2].second->GetParameter(0);
           HoughUSlope_2 = HoughLinesU[lineit_2].second->GetParameter(1);
-	      } else if (hitgroup == 2) {
+	      } else if (hitgroup == 'V') {
   	      HoughVInter_2 = HoughLinesV[lineit_2].second->GetParameter(0);
       	  HoughVSlope_2 = HoughLinesV[lineit_2].second->GetParameter(1);
-      	} else if (hitgroup == 3) {
+      	} else if (hitgroup == 'X') {
           HoughXInter_2 = HoughLinesX[lineit_2].second->GetParameter(0);
           HoughXSlope_2 = HoughLinesX[lineit_2].second->GetParameter(1);
         }
 
         // Now check how similar the Hough lines are
         bool mergehough = false;
-      	if (hitgroup == 1) {
+      	if (hitgroup == 'U') {
       	  mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < 1000 &&   // 100 -> 1000
                        fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
-      	} else if (hitgroup == 2) {
+      	} else if (hitgroup == 'V') {
       	  mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < 1000 && // 100 -> 1000
 			                 fabs(HoughVSlope_2 - HoughVSlope_1) < 0.1);    // 0.01 -> 0.1
-      	} else if (hitgroup == 3) {
+      	} else if (hitgroup == 'X') {
           mergehough = (fabs(HoughXInter_2 - HoughXInter_1) < 1000 &&
                        fabs(HoughXSlope_2 - HoughXSlope_1) < 0.1);
         }
@@ -1541,11 +1541,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
     if ((*it).size() == 0) {
       it = LineCandidates.erase(it);
-      if (hitgroup == 1) {
+      if (hitgroup == 'U') {
         HoughLinesU.erase(HoughLinesU.begin()+linenumber);
-      } else if (hitgroup == 2) {
+      } else if (hitgroup == 'V') {
         HoughLinesV.erase(HoughLinesV.begin()+linenumber);
-      } else if (hitgroup == 3) {
+      } else if (hitgroup == 'X') {
         HoughLinesX.erase(HoughLinesX.begin()+linenumber);
       }
     } else {
@@ -1570,11 +1570,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Also remember to remove the line
       if (ncleaned < 1) {
         it = LineCandidates.erase(it);
-	      if (hitgroup == 1) {
+	      if (hitgroup == 'U') {
           HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
-	      } else if (hitgroup == 2) {
+	      } else if (hitgroup == 'V') {
 	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
-        } else if (hitgroup == 3) {
+        } else if (hitgroup == 'X') {
           HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
         }
       } else {
@@ -1663,7 +1663,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 }
 
 // Requires hits to be ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
 //TODO new orientation
   // Check if we're in XZ view
   bool IsXZ = (TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kUBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kVBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kXBar);
@@ -1711,13 +1711,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double slope, intercept;
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
-  if (hitgroup == 1) {
+  if (hitgroup == 'U') {
     HoughLineU->SetParameter(0, intercept);
     HoughLineU->SetParameter(1, slope);
-  } else if (hitgroup == 2) {
+  } else if (hitgroup == 'V') {
     HoughLineV->SetParameter(0, intercept);
     HoughLineV->SetParameter(1, slope);
-  } else if (hitgroup == 3) {
+  } else if (hitgroup == 'X') {
     HoughLineX->SetParameter(0, intercept);
     HoughLineX->SetParameter(1, slope);
   }
@@ -1730,13 +1730,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   
   TF1* HoughCopy = (TF1*)HoughLineU->Clone();
 
-  if (hitgroup == 1) {
+  if (hitgroup == 'U') {
     HoughLineU->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineU->Clone();
-  } else if (hitgroup == 2) {
+  } else if (hitgroup == 'V') {
     HoughLineV->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineV->Clone();
-  } else if (hitgroup == 3) {
+  } else if (hitgroup == 'X') {
     HoughLineX->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineX->Clone();
   } else {
@@ -1747,11 +1747,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   }
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
-  if (hitgroup == 1) {
+  if (hitgroup == 'U') {
     HoughLinesU.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 2) {
+  } else if (hitgroup == 'V') {
     HoughLinesV.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 3) {
+  } else if (hitgroup == 'X') {
     HoughLinesX.push_back(std::move(HoughPairs));
   }
 
@@ -1778,11 +1778,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     
     // Calculate 'x'-point of hit with Hough line
     double HoughPoint = -9999999999; //HoughLineOne->Eval(zhit);
-    if (hitgroup == 1) {
+    if (hitgroup == 'U') {
       HoughPoint = HoughLineU->Eval(zhit);
-    } else if (hitgroup == 2) {
+    } else if (hitgroup == 'V') {
       HoughPoint = HoughLineV->Eval(zhit);
-    } else if (hitgroup == 3) {
+    } else if (hitgroup == 'X') {
       HoughPoint = HoughLineX->Eval(zhit);
     }
 
@@ -2302,7 +2302,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 }
 
 // Implement A* algorithm for track finding, starting with most upstream to most downstream hit
-void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, const int &hitgroup) {
+void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
 
   // Set the Heuristic cost calculator
 
@@ -2311,9 +2311,9 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
-  if (hitgroup == 2) {
+  if (hitgroup == 'V') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
-  } else if (hitgroup == 3) {
+  } else if (hitgroup == 'X') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
   }
   //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
@@ -2367,11 +2367,11 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
     }
     // Only push back if we have more than one candidate
     if (AStarHits_xz.size() > nMinHits) {
-      if (hitgroup == 1) {    
+      if (hitgroup == 'U') {    
         HoughCandidatesU.push_back(std::move(AStarHits_xz));
-      } else if (hitgroup == 2) {
+      } else if (hitgroup == 'V') {
         HoughCandidatesV.push_back(std::move(AStarHits_xz));
-      } else if (hitgroup == 3) {
+      } else if (hitgroup == 'X') {
         HoughCandidatesX.push_back(std::move(AStarHits_xz));
       }
     }

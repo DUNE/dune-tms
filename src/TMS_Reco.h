@@ -253,11 +253,11 @@ class TMS_TrackFinder {
     void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
@@ -376,7 +376,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesX_Downstream;
     std::vector<TMS_Track> HoughTracks3D;
 
-    int hitgroup;
+    char hitgroup;
     int nIntercept;
     int nSlope;
     double InterceptMin;
