@@ -281,7 +281,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   Truth_Info->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
   Truth_Info->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
-  Truth_Info->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/I");
+  Truth_Info->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
   
   Truth_Info->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
   Truth_Info->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
