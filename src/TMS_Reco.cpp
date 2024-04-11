@@ -319,6 +319,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
   std::cout << "Hits in Reconstruction: " << RawHits.size() << std::endl;
 
+  for (auto hit: RawHits) {
+    if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) std::cout << "U RawHit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    else if (hit.GetBar().GetBarType() == TMS_Bar::kVBar) std::cout << "V RawHit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    else if (hit.GetBar().GetBarType() == TMS_Bar:: kXBar) std::cout << "X RawHit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
+    else std::cout << "Hit not assigned" << std::endl;
+  }
+
   double min_time = 1e9;
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
