@@ -240,9 +240,19 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) {
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
+      TMS_TrueParticles(event.TMS_TrueParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
+      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
+      TrueNeutrino(event.TrueNeutrino), 
+      TrueNeutrinoPosition(event.TrueNeutrinoPosition),
+      TrueLeptonPosition(event.TrueLeptonPosition), 
+      TrueLeptonMomentum(event.TrueLeptonMomentum),  
+      TrueVisibleEnergyPerVertex(event.TrueVisibleEnergyPerVertex), 
+      TrueVisibleEnergyPerParticle(event.TrueVisibleEnergyPerParticle), 
+      ChannelPositions(event.ChannelPositions), 
+      DeadChannelTimes(event.DeadChannelTimes), ReadChannelTimes(event.ReadChannelTimes),
+      generator(event.generator) {
   // Create an event from a slice of another event
-  TMS_Hits = event.GetHits(slice);
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
   
