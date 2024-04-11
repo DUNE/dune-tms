@@ -28,6 +28,47 @@ class TMS_Geom {
       static TMS_Geom Instance;
       return Instance;
     }
+    
+    inline double GetXStartOfLAr() const { return -4500; };
+    inline double GetYStartOfLAr() const { return -3200; };
+    inline double GetZStartOfLAr() const { return 4100; };
+    inline TVector3 GetStartOfLAr() const { return TVector3(GetXStartOfLAr(), GetYStartOfLAr(), GetZStartOfLAr()); };
+    inline double GetXEndOfLAr() const { return 4500; };
+    inline double GetYEndOfLAr() const { return 1000; };
+    inline double GetZEndOfLAr() const { return 9200; };
+    inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
+    inline double GetXStartOfTMS() const { return -3500; };
+    inline double GetYStartOfTMS() const { return -2900; };
+    inline double GetZStartOfTMS() const { return 11400; };
+    inline TVector3 GetStartOfTMS() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMS(), GetZStartOfTMS()); };
+    inline double GetXEndOfTMS() const { return 3500; };
+    inline double GetYEndOfTMS() const { return 200; };
+    inline double GetZEndOfTMS() const { return 18200; };
+    inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
+    inline double GetZEndOfTMSThin() const { return 13500; };
+    inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
+    inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
+    inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
+    
+    bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
+      if (position.X() < start.X()) return false;
+      if (position.Y() < start.Y()) return false;
+      if (position.Z() < start.Z()) return false;
+      if (position.X() > end.X()) return false;
+      if (position.Y() > end.Y()) return false;
+      if (position.Z() > end.Z()) return false;
+      return true;
+    };
+    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLAr(), GetEndOfLAr()); };
+    static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
+    bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMS()); };
+    static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
+    bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSThin()); };
+    static bool StaticIsInsideTMSThin(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSThin(position); };
+    bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSFirstTwoModules()); };
+    static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
+    
+    
 
     // Get the geometry
     TGeoManager* GetGeometry() {
