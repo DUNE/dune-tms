@@ -139,6 +139,7 @@ class TMS_Event {
     TLorentzVector TrueLeptonPosition;
     TLorentzVector TrueLeptonMomentum;
     std::map<int, double> TrueVisibleEnergyPerVertex;
+    std::map<int, double> TrueVisibleEnergyPerParticle;
     
     int VertexIdOfMostEnergyInEvent;
     double VisibleEnergyFromUVertexInSlice;
@@ -151,6 +152,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ReadChannelTimes;
 
     std::default_random_engine generator;
+    
 };
 
 #endif

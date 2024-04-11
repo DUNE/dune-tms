@@ -192,12 +192,21 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
       int track_id = edep_hit.GetPrimaryId();
-      int vertex_id = mapping_track_to_vertex_id[track_id];
+      int vertex_id = -999;
+      auto value = mapping_track_to_vertex_id.find(track_id);
+      if (value == mapping_track_to_vertex_id.end()) {
+        //std::cout<<"Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<std::endl;
+        // TODO fix that this can't happen anymore. Would need to map all trajectories to their parent vertices
+      }
+      else vertex_id = value->second;
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
       TMS_Hits.push_back(std::move(hit));
       
       // todo, maybe skip for michel electrons or late neutrons
-      TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexId()] += hit.GetTrueHit().GetE();
+      for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
+        TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+        TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+      }
 
       // Loop through the True Particle list and associate
       /*
@@ -213,6 +222,17 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       */
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+  
+  // Now update truth info per particle
+  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+    double energy = 0;
+    // If it's not in the map, don't create it
+    auto it = TrueVisibleEnergyPerParticle.find(i);
+    if (it != TrueVisibleEnergyPerParticle.end()) {
+      energy = it->second;
+    }
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
+  }
   
   // Now apply optical and timing models
   ApplyReconstructionEffects();
@@ -783,10 +803,13 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   TrueVisibleEnergyPerVertex.clear();
   // First find how much energy is in each variable
   for (auto& hit : TMS_Hits) {
-    int vertex_id = hit.GetTrueHit().GetVertexId();
-    // todo, true or reco energy?
-    double energy = hit.GetTrueHit().GetE();
-    TrueVisibleEnergyPerVertex[vertex_id] += energy;
+    for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
+      int vertex_id = hit.GetTrueHit().GetVertexIds(i);
+      // todo, true or reco energy?
+      double energy = hit.GetTrueHit().GetEnergyShare(i);
+      //std::cout<<"vertex_id = "<<vertex_id<<", energy = "<<energy<<std::endl;
+      TrueVisibleEnergyPerVertex[vertex_id] += energy;
+    }
   }
   
   // Now find the most energetic vertex
@@ -796,7 +819,6 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   for (auto it : TrueVisibleEnergyPerVertex) {
     double vertex = it.first;
     double energy = it.second;
-    //std::cout<<"Vertex "<<vertex<<" has E: "<<energy<<std::endl;
     if (energy > max) { max = energy; max_vertex_id = vertex; }
     total_energy += energy;
   }
