@@ -88,7 +88,7 @@
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not
     
   [Recon.Time]
-    RunTimeSlicer = true # Whether to run a time slicer
+    RunTimeSlicer = false # Whether to run a time slicer
     TimeSlicerThresholdStart = 10.0 # The minimum window energy to start a slice
     TimeSlicerThresholdEnd = 5.0 # The window energy to end a slice
     SliceUnit = 1.0 # ns, the algorithm splits an array into TimeSlicerMaxTime/SliceUnit chunks. Each array represents 1 SliceUnit of time

@@ -104,6 +104,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           // Very rarely but it does happen, the volume is null
           if (!vol) continue;
           std::string VolumeName = vol->GetName();
+          //if (( (std::string) (vol->GetName())).find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) std::cout << vol->GetName() << "\t";
 
           // If asked to only look at LAr and TMS trajectories
           //
@@ -112,10 +113,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             if (VolumeName.find(TMS_Const::TMS_VolumeName) == std::string::npos && 
                 VolumeName.find(TMS_Const::TMS_ModuleLayerName) == std::string::npos &&
                 VolumeName.find(TMS_Const::TMS_EDepSim_VolumeName) == std::string::npos) 
-                { 
-                  std::cout << "LIAM:\t" << VolumeName << std::endl;
                   continue;
-                }
 
             // check the LAr volume
             if (TMSLArOnly) {
@@ -149,6 +147,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TMS_TrueParticle *part = &(TMS_TrueParticles.back());
           part->AddPoint(Position, Momentum, G4Process, G4Subprocess);
         } // End loop over trajectory points
+        //std::cout << std::endl << std::endl;
 
         // Save the birth and death points of trajectories that had a hit in a volume of interest
         if (!firsttime) {
@@ -198,6 +197,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       int track_id = edep_hit.GetPrimaryId();
       int vertex_id = mapping_track_to_vertex_id[track_id];
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
+      std::cout << (hit.GetBar().GetBarType()) << std::endl; // TODO LIAM
+      //(hit.GetBar().GetBarType() == 0) && std::cout << (hit.GetBar().GetBarType()) << std::endl; // TODO LIAM
       TMS_Hits.push_back(std::move(hit));
       
       // todo, maybe skip for michel electrons or late neutrons
@@ -219,7 +220,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
   // Now apply optical and timing models
-  ApplyReconstructionEffects();
+  //ApplyReconstructionEffects();
 
   EventCounter++;
 }

@@ -25,7 +25,7 @@ TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) :
 
 bool TMS_Hit::NextToGap() {
   // There are no gaps in xy view, only xz view
-  if (Bar.GetBarType() != TMS_Bar::kUBar) return false;
+  //if (Bar.GetBarType() != TMS_Bar::kUBar) return false; // TODO: wha?
 
   double pos = GetNotZ() + GetNotZw();
   double neg = GetNotZ() - GetNotZw();

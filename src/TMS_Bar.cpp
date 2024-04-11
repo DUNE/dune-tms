@@ -44,6 +44,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
       PlaneNumber = geom->GetCurrentNode()->GetNumber();
+      //std::cout << "NOOMBA: " << PlaneNumber << std::endl;
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
       if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
       else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation

@@ -89,11 +89,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     if (gRoo)
       gRoo->GetEntry(i);
 
-#ifndef DEBUG
-    if (N_entries <= 10 || i % (N_entries/10) == 0) {
-#endif
-      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
-    }
+//#ifndef DEBUG
+//    if (N_entries <= 10 || i % (N_entries/10) == 0) {
+//#endif
+//      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
+//    }
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
@@ -130,7 +130,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     //std::cout<<"Ran time slicer"<<std::endl;
     for (int slice = 0; slice < nslices; slice++) {
-      if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
+      //if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
       // First make an event based on the slice
       TMS_Event tms_event_slice;
       // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
