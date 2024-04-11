@@ -355,14 +355,11 @@ void TMS_Event::SimulateOpticalModel() {
   const double readout_coupling_eff = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_ReadoutCouplingEff();
   
   for (auto& hit : TMS_Hits) {
-    std::cout << "Hit type: " << hit.GetBar().GetBarType() << std::endl;
     double pe = hit.GetPE();
-    std::cout << "PE: " << hit.GetPE() << std::endl;
     
     // Applies birk's suppression
     double de = hit.GetTrueHit().GetE();
     double dx = hit.GetTrueHit().GetdX();
-    std::cout << "TrueHit E: " << hit.GetTrueHit().GetE() << " | TrueHit dX: " << hit.GetTrueHit().GetdX() << std::endl;
     double dedx = 0;
     if (dx > 1e-8) dedx = de / dx;
     else dedx = de / 1.0;
@@ -386,7 +383,6 @@ void TMS_Event::SimulateOpticalModel() {
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
       if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
-      std::cout << "TrueHit Y: " << true_y << std::endl;
       // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math

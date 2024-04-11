@@ -182,7 +182,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       tms_event_slice.SetSpillNumber(spill_number);
 
       // Try finding some tracks
-      std::cout << "Hits into Reconstruction: " << tms_event_slice.GetNHits() << std::endl;
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 
 #ifdef DUNEANAOBJ_ENABLED
