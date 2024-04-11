@@ -19,7 +19,7 @@ TMS_TrueHit::TMS_TrueHit(double x, double y, double z, double t, double E) {
 }
 */
 
-TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) : VertexId(vertex_id) {
+TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) {
 
   // Set the energy
   SetE(edep_seg.GetEnergyDeposit());
@@ -40,27 +40,54 @@ TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) : VertexId(vert
   SetPEAfterFibersLongPath(0);
   SetPEAfterFibersShortPath(GetPE());
 
-  PrimaryId = edep_seg.GetPrimaryId();
+  PrimaryIds.push_back(edep_seg.GetPrimaryId());
+  VertexIds.push_back(vertex_id);
+  EnergyShare.push_back(GetE());
 }
 
 void TMS_TrueHit::Print() const {
   std::cout << "TMS_TrueHit: " << std::endl;
   std::cout << "(x,y,z,t,E): (" << GetX() << ", " << GetY() << ", " << GetZ() << ", " << GetT() << ", " << GetE() << ")" << std::endl;
-  std::cout << "PrimaryId: " << PrimaryId  << std::endl;
+  std::cout << "PrimaryId: " << GetPrimaryId()  << std::endl;
 }
 
 void TMS_TrueHit::MergeWith(TMS_TrueHit& hit) {
+  // All these variables are simply sums
   double new_true_e = GetE() + hit.GetE();
   double new_true_pe = GetPE() + hit.GetPE();
   double new_true_short_path_pe = GetPEAfterFibersShortPath() + hit.GetPEAfterFibersShortPath();
   double new_true_long_path_pe = GetPEAfterFibersLongPath() + hit.GetPEAfterFibersLongPath();
+  // T is defined as the first hit, so take the minimum
   double new_true_t = std::min(GetT(), hit.GetT());
+  
+  // Take energy weighted average of positions
+  // Doesn't make sense in some cases:
+  // like two ~same E hits on opposite lengths of scint bar would have an average in the middle
+  double new_x = (GetX() * GetE() + hit.GetX() * hit.GetE()) / new_true_e;
+  double new_y = (GetY() * GetE() + hit.GetY() * hit.GetE()) / new_true_e;
+  double new_z = (GetZ() * GetE() + hit.GetZ() * hit.GetE()) / new_true_e;
+  
+  // Is dx just a sum of all the parts? For a single particle that would make sense. Not sure about multiple particles
+  double new_dx = GetdX() + hit.GetdX();
+  
+  // Now set the new variables
+  // Make sure to calculate above this line or else values get adjusted
+  SetX(new_x);
+  SetY(new_y);
+  SetZ(new_z);
+  SetdX(new_dx);
   SetE(new_true_e);
   SetT(new_true_t);
   SetPE(new_true_pe);
   SetPEAfterFibersShortPath(new_true_short_path_pe);
   SetPEAfterFibersLongPath(new_true_long_path_pe);
-  // TODO how do we handle dedx? and x/y positions?
+  
+  // Add to the pid vectors
+  for (size_t i = 0; i < hit.PrimaryIds.size(); i++) {
+    PrimaryIds.push_back(hit.PrimaryIds[i]);
+    VertexIds.push_back(hit.VertexIds[i]);
+    EnergyShare.push_back(hit.EnergyShare[i]);
+  }
 }
 
 
