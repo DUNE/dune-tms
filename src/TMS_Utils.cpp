@@ -121,7 +121,6 @@ caf::SRTMS ConvertEvent() {
 
 namespace TMS_Utils {
   TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits) { 
-      std::cout<<"Starting GetPrimaryIdsByEnergy"<<std::endl;
       std::unordered_map<int, double> totalMap;
 
       // Iterate through the list of hits
