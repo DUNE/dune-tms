@@ -330,7 +330,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
   for (auto hit : RawHits) {
+#ifdef DEBUG
     if (hit.GetPedSup()) std::cout<<"Raw hits, found a ped supped hit in slice"<<std::endl;
+#endif
     min_time = std::min(min_time, hit.GetT());
     max_time = std::max(max_time, hit.GetT());
   }
@@ -347,7 +349,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   int n_in_slice = 0;
   int n_in_wrong_slice = 0;
   for (auto hit : CleanedHits) {
+#ifdef DEBUG
     if (hit.GetPedSup()) std::cout << "Cleaned hits, found a ped supped hit in slice" << std::endl;
+#endif
     clean_min_time = std::min(clean_min_time, hit.GetT());
     clean_max_time = std::max(clean_max_time, hit.GetT());
     if (hit.GetSlice() == slice) n_in_slice += 1;
@@ -672,7 +676,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 }
 
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
+#ifdef DEBUG
   std::cout << "3D matching" << std::endl;
+#endif
   std::vector<TMS_Track> returned;
   
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
@@ -682,7 +688,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     for (auto VTracks: HoughCandidatesV) {
       // Run with matching of X tracks, if X X tracks exist. Otherwise match without
       bool Xrun = true;
+#ifdef DEBUG
       std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
+#endif
       while (Xrun) {
         if (HoughCandidatesX.empty()) Xrun = false;
         std::vector<std::vector<TMS_Hit> >::iterator helper;
@@ -1247,6 +1255,11 @@ double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
    return total;
 }
 
+double TMS_TrackFinder::CalculateTrackKEByRange(const TMS_Track &Track3D) {
+  if (Track3D.Length <= 0.0) return -999.0;
+
+  return 82. + 1.75*Track3D.Length; // Magic Clarence number
+}
 
 // Calculate the track length for each track
 double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candidate) {
@@ -2033,7 +2046,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   std::vector<TMS_Hit> front_three;
   std::vector<TMS_Hit>::const_iterator it = TrackHits.begin();
   int loop_iterator = 0;
-  while (loop_iterator < 3) {
+  while (loop_iterator < 3 && it != TrackHits.end()) {
     if (front_three.size() >= 1 && (*it).GetZ() == front_three[loop_iterator-1].GetZ()) {
       ++it;
       continue;
@@ -2042,13 +2055,16 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     ++loop_iterator;
     ++it;
   };
+  
+  // Not enough hits to do the extrapolation
+  if (front_three.size() < 3) return returned;
 
   // TODO Shorten this with an external function that uses a flag for last/three hits
   // Get last three hits
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
   std::vector<TMS_Hit>::const_reverse_iterator ir = TrackHits.rbegin();
-  while (loop_iterator < 3) {
+  while (loop_iterator < 3 && ir != TrackHits.rend()) {
     if (last_three.size() >= 1 && (*ir).GetZ() == last_three[loop_iterator-1].GetZ()) {
       ++ir;
       continue;
@@ -2057,6 +2073,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     ++loop_iterator;
     ++ir;
   }
+  
+  // Not enough hits to do the extrapolation
+  if (last_three.size() < 3) return returned;
 
   // Calculate slopes and intercepts of connecting lines of last/first hits
   double slopes_front[2], slopes_end[2], intercepts_front[2], intercepts_end[2];
