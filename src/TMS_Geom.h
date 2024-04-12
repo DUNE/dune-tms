@@ -29,23 +29,25 @@ class TMS_Geom {
       return Instance;
     }
     
-    inline double GetXStartOfLAr() const { return -4500; };
-    inline double GetYStartOfLAr() const { return -3200; };
-    inline double GetZStartOfLAr() const { return 4100; };
+    // Positions are fidicual volume
+    const double fiducial_volume_cut = 500;
+    inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0] + fiducial_volume_cut; };
+    inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1] + fiducial_volume_cut; };
+    inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2] + fiducial_volume_cut; };
     inline TVector3 GetStartOfLAr() const { return TVector3(GetXStartOfLAr(), GetYStartOfLAr(), GetZStartOfLAr()); };
-    inline double GetXEndOfLAr() const { return 4500; };
-    inline double GetYEndOfLAr() const { return 1000; };
-    inline double GetZEndOfLAr() const { return 9200; };
+    inline double GetXEndOfLAr() const { return TMS_Const::LAr_End_Exact[0] - fiducial_volume_cut; };
+    inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1] - fiducial_volume_cut; };
+    inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2] - fiducial_volume_cut; };
     inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
-    inline double GetXStartOfTMS() const { return -3500; };
-    inline double GetYStartOfTMS() const { return -2900; };
-    inline double GetZStartOfTMS() const { return 11400; };
+    inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Exact[0] + fiducial_volume_cut;; };
+    inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Exact[1] + fiducial_volume_cut;; };
+    inline double GetZStartOfTMS() const { return TMS_Const::TMS_Thin_Start; };
     inline TVector3 GetStartOfTMS() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMS(), GetZStartOfTMS()); };
-    inline double GetXEndOfTMS() const { return 3500; };
-    inline double GetYEndOfTMS() const { return 200; };
-    inline double GetZEndOfTMS() const { return 18200; };
+    inline double GetXEndOfTMS() const { return TMS_Const::TMS_End_Exact[0] - fiducial_volume_cut; };
+    inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Exact[1] - fiducial_volume_cut; };
+    inline double GetZEndOfTMS() const { return TMS_Const::TMS_Thick_End - fiducial_volume_cut; };
     inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
-    inline double GetZEndOfTMSThin() const { return 13500; };
+    inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
     inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
     inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
