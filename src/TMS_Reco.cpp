@@ -314,7 +314,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   ClearClass();
 
   // Get the raw unmerged and untracked hits
-  RawHits = event.GetHitsRaw(); //GetHits needs variables transferred. Try out GetHitsRaw that doesn't need those
+  RawHits = event.GetHits(); //GetHits needs variables transferred. Try out GetHitsRaw that doesn't need those
   //std::cout<<"Working on raw hits with n="<<RawHits.size()<<std::endl;
   //if (RawHits.size() > 0) std::cout<<"Slice "<<slice<<" has "<<RawHits.size()<<" hits."<<std::endl;
   

@@ -18,6 +18,7 @@
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
+#define __TMS_MAX_TRUE_PARTICLES__ 500 // Maximum number of true particles to save info about
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
@@ -248,6 +249,59 @@ class TMS_TreeWriter {
     float LeptonX4[4];
     float Muon_TrueTrackLength;
     bool IsCC;
+    
+    int nTrueParticles;
+    
+    int VertexID[__TMS_MAX_TRUE_PARTICLES__];
+    int Parent[__TMS_MAX_TRUE_PARTICLES__];
+    int TrackId[__TMS_MAX_TRUE_PARTICLES__];
+    int PDG[__TMS_MAX_TRUE_PARTICLES__];
+    float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
+
+    float BirthMomentum[__TMS_MAX_TRUE_PARTICLES__][4];
+    float BirthPosition[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float DeathMomentum[__TMS_MAX_TRUE_PARTICLES__][4];
+    float DeathPosition[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumZIsLArEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionZIsLArEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumLArStart[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionLArStart[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumLArEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionLArEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumZIsTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionZIsTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumZIsTMSEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionZIsTMSEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumTMSFirstTwoModulesEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionTMSFirstTwoModulesEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumTMSThinEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionTMSThinEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+
+    float MomentumTMSEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    float PositionTMSEnd[__TMS_MAX_TRUE_PARTICLES__][4];
+    
+    int RecoTrackN;
+    float RecoTrackTrueVisibleEnergy[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleIndex[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__];
+    int RecoTrackSecondaryParticleIndex[__TMS_MAX_LINES__];
+    float RecoTrackSecondaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__]; 
+
+    float RecoTrackPrimaryParticleTrueMomentumTrackStart[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionTrackStart[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTrueMomentumTrackEnd[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionTrackEnd[__TMS_MAX_LINES__][4];
 };
 
 

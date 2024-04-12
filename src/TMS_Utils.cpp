@@ -1,5 +1,9 @@
 #include "TMS_Utils.h"
 
+#include "TMS_Reco.h"
+
+
+
 //caf::SRTMS TMS_CAF_converter::ConvertEvent(TMS_Event &event) {
 #ifdef DUNEANAOBJ_ENABLED
 caf::SRTMS ConvertEvent() {
@@ -113,3 +117,71 @@ caf::SRTMS ConvertEvent() {
   return caf;
 }
 #endif
+
+
+namespace TMS_Utils {
+  TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits) { 
+      std::unordered_map<int, double> totalMap;
+
+      // Iterate through the list of hits
+      int total_n_true_particles = 0;
+      for (const auto& hit : hits) {
+        auto true_hit = hit.GetTrueHit();
+        total_n_true_particles += true_hit.GetNTrueParticles();
+        for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+          int pid = true_hit.GetPrimaryIds(i);
+          double energy = true_hit.GetEnergyShare(i);
+          // Add the utility to the corresponding pid in the map
+          totalMap[pid] += energy;
+        }
+      }
+
+      auto out = TMS_Utils::GetSumAndHighest(totalMap);
+      // todo, remove when dark noise is added
+      if (total_n_true_particles == 0 && hits.size() > 0) {
+        std::cout<<"Warning: Did not find true particles in GetPrimaryIdsByEnergy.\n";
+        std::cout<<"This could only happen with dark noise but that's not a thing yet\n";
+        std::cout<<"Starting with n hits: "<<hits.size()<<"\n";
+        std::cout<<"that contain this many n true particles: "<<total_n_true_particles<<"\n";
+        std::cout<<"Found total energy: "<<out.total_energy<<"\n";
+        std::cout<<"Found n indices: "<<out.indices.size()<<"\n";
+        std::cout<<"Found total energy: "<<out.energies.size()<<std::endl;
+      }
+      return out;
+  }
+
+  struct ParticlePair {
+    int index;
+    double energy;
+    
+    ParticlePair(int i, double e) : index(i), energy(e) {}
+  };
+
+  static bool CompareByEnergy(const ParticlePair& a, const ParticlePair& b) {
+      return a.energy > b.energy;
+  }
+
+
+  TMS_Utils::ParticleInfo GetSumAndHighest(const std::unordered_map<int, double>& map) {
+      // First make a vector and sort it
+      std::vector<ParticlePair> pairs;
+      for (const auto& pair : map) {
+          pairs.push_back(ParticlePair(pair.first, pair.second));
+      }
+      std::sort(pairs.begin(), pairs.end(), CompareByEnergy);
+
+      TMS_Utils::ParticleInfo out;
+      for (const auto& pair : pairs) {
+        out.total_energy += pair.energy;
+        out.indices.push_back(pair.index);
+        out.energies.push_back(pair.energy);
+      }
+      
+      return out;
+  }
+
+}
+
+
+
+
