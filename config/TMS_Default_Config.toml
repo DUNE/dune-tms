@@ -69,7 +69,7 @@
     # How many ns can the ends/starts of the two simple tracks be away from each other?
     TimeLimit = 30
     # How many ns can the ends/starts of a X simple track be away from U simple track?
-    XTimeLimit = 20 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
+    XTimeLimit = 15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
     # What is the 'anchor point' of the scintillator bars in y [mm]?
     YAnchor = -910.0
     # Tilt angle of scintillator planes for calculation of y (tan(90-angle))
@@ -109,7 +109,7 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = 100
+  MaximumNEvents = -1
 
 # Variables that have to do with the geometry or location of the detector 
 [Geometry]
