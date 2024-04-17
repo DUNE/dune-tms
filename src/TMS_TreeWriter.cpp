@@ -224,6 +224,8 @@ void TMS_TreeWriter::MakeBranches() {
 
   Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
   Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
+  Reco_Tree->Branch("RecoHitsRaw",  RecoHitsRaw,            "RecoHitsRaw[nTracks][nHits]/i");
+  //Reco_Tree->Branch("RecoHitsRaw",  RecoHitsRaw);
   Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
@@ -953,7 +955,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) { // Loop over tracks
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    RecoHitsRaw = RecoTrack->Hits; // This makes a direct copy of the RecoTrack->Hits vector
+
+    //RecoHitsRaw[itTrack]            = RecoTrack->Hits; // This makes a direct copy of the RecoTrack->Hits vector
+    //std::cout << "LIAM:)    ";
+    for (int _i=0; _i<RecoTrack->Hits.size() && _i<__TMS_MAX_HITS__; ++_i) {
+      //std::cout << _i << "\t";
+      RecoHitsRaw[itTrack][_i] = RecoTrack->Hits.at(_i);
+    }
+    //std::cout << std::endl;
+
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       RecoTrack->Length;

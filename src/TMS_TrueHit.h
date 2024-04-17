@@ -13,6 +13,7 @@
 class TMS_TrueHit {
   public:
     TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id);
+    TMS_TrueHit();
 
     double GetX() const {return x;};
     double GetY() const {return y;};

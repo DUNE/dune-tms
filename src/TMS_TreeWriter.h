@@ -19,7 +19,8 @@
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 
-// Just a simple tree writer for the output tree
+class TMS_Hit;
+
 class TMS_TreeWriter {
 
   public:
@@ -229,7 +230,8 @@ class TMS_TreeWriter {
 
     // Reco information
     int nHits; // How many hits in event
-    std::vector<TMS_Hit> RecoHitsRaw; // Raw TMS_Hit objects, can call their methods etc.
+    TMS_Hit RecoHitsRaw[__TMS_MAX_TRACKS__][__TMS_MAX_HITS__]; // Raw TMS_Hit objects, can call their methods etc.
+    //std::vector<TMS_Hit> RecoHitsRaw[__TMS_MAX_TRACKS__]; // Raw TMS_Hit objects, can call their methods etc.
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
     int RecoHitSlice[__TMS_MAX_HITS__];

@@ -1,15 +1,15 @@
 #include "TMS_TrueHit.h"
 #include "TMS_Readout_Manager.h"
 
-/*
 TMS_TrueHit::TMS_TrueHit() :
-  x(-999.99),
-  y(-999.99),
-  z(-999.99),
-  t(-999.99),
-  EnergyDeposit(-999.99)
+  x(-99999999),
+  y(-99999999),
+  z(-99999999),
+  t(-99999999),
+  EnergyDeposit(-99999999)
 {};
 
+/*
 TMS_TrueHit::TMS_TrueHit(double x, double y, double z, double t, double E) {
   SetX(x);
   SetY(y);

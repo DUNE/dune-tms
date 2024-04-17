@@ -25,6 +25,8 @@ TMS_Bar::TMS_Bar(TG4HitSegment &edep_seg) {
   FindModules(x, y, z);
 }
 
+TMS_Bar::TMS_Bar() {};
+
 // Find which bar a given x,y,z position corresponds to
 // Maybe this function should be moved to the singleton instead
 bool TMS_Bar::FindModules(double xval, double yval, double zval) {

@@ -28,6 +28,12 @@ class TMS_Hit {
     // The constructor for the TMS hit
     TMS_Hit(TG4HitSegment &edep_seg, int vertex_id);
 
+    TMS_Hit();
+    ~TMS_Hit() {};
+
+    //TMS_Hit();
+
+
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
 
