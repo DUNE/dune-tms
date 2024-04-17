@@ -951,18 +951,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
   nTracks = Reco_Tracks.size();
 
-  for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
+  for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) { // Loop over tracks
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    RecoHitsRaw = RecoTrack->Hits; // This makes a direct copy of the RecoTrack->Hits vector
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       RecoTrack->Length;
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
-    for (int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++) { // loop over x/y/z
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
-    }
-    for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
+    } // end loop over x/y/z
+    for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) { // loop over hits in track
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
@@ -974,7 +975,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
 
 //      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
-    }
+    } // end for j in RecoHits.size()
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
     { // If true^ it seems the direction hasn't been set
