@@ -31,7 +31,7 @@ void TMS_TrueParticle::Print() {
 }
 
 TVector3 TMS_TrueParticle::GetMomentumAtZ(double z) {
-  TVector3 out(-9999, -9999, -9999);
+  TVector3 out(-99999999, -99999999, -99999999);
   double z_dist_found = 999999;
   const double max_z_dist = 110; // About 2 planes is the max z distance we'll tolerate
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -48,7 +48,7 @@ TVector3 TMS_TrueParticle::GetMomentumAtZ(double z) {
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z) {
-  TLorentzVector out(-9999, -9999, -9999, -9999);
+  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   double z_dist_found = 999999;
   const double max_z_dist = 110; // About 2 planes is the max z distance we'll tolerate
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -65,7 +65,7 @@ TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z) {
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInside) {
-  TLorentzVector out(-9999, -9999, -9999, -9999);
+  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
     if (isInside(GetPositionPoints()[i].Vect())) {
@@ -77,7 +77,7 @@ TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInsi
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInside) {
-  TLorentzVector out(-9999, -9999, -9999, -9999);
+  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -100,7 +100,7 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
 }
 
 TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
-  TVector3 out(-9999, -9999, -9999);
+  TVector3 out(-99999999, -99999999, -99999999);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
     if (isInside(GetPositionPoints()[i].Vect())) {
@@ -112,7 +112,7 @@ TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
 }
 
 TVector3 TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
-  TVector3 out(-9999, -9999, -9999);
+  TVector3 out(-99999999, -99999999, -99999999);
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
