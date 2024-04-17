@@ -97,6 +97,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);

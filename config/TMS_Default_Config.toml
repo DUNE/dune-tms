@@ -110,3 +110,7 @@
 [Applications]
   DrawPDF = false
   MaximumNEvents = -1
+
+# Variables that have to do with the geometry or location of the detector 
+[Geometry]
+  YBarMiddle = -1.35  #m

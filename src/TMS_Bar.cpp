@@ -53,7 +53,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     }
 
     // This is the furthest down hit we have: scintillator bar
-    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
+    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos) {
       BarNumber = geom->GetCurrentNode()->GetNumber();
 
       // Get the width
@@ -75,9 +75,10 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
       // Do a sanity check (CHEATING!)
       // Know the bars are 1cm in z and 3.542cm in x
-      if (zw != 10 || xw != 35.42) {
+      if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
         std::cerr << "width of " << NodeName << " not as expected!" << std::endl;
         std::cerr << "xwidth: " << xw << std::endl;
+        std::cerr << "ywidth: " << yw << std::endl;
         std::cerr << "zwidth: " << zw << std::endl;
         throw;
       }
@@ -177,6 +178,7 @@ std::string TMS_Bar::BarType_ToString(BarType bar) const {
   else if (bar == kYBar) return std::string("Y-bar");
   else if (bar == kUBar) return std::string("U-bar");
   else if (bar == kVBar) return std::string("V-bar");
+  else if (bar == kXBar) return std::string("X-bar");
   return std::string("ERROR");
 }
 

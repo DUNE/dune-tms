@@ -164,6 +164,11 @@ class TMS_Geom {
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
 
+      // The returned vector of materials
+      // Also want how much of the material was passed through
+      std::vector<std::pair<TGeoMaterial*,double> > Materials;     
+
+      if ((point1 - point2).Mag() == 0) return Materials;
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
 
@@ -174,10 +179,6 @@ class TMS_Geom {
       geom->SetCurrentDirection((point2-point1).Unit().X(), 
           (point2-point1).Unit().Y(), 
           (point2-point1).Unit().Z());
-
-      // The returned vector of materials
-      // Also want how much of the material was passed through
-      std::vector<std::pair<TGeoMaterial*,double> > Materials;
 
       // To step through the volumes, can't use IsSameLocation because the volume between LAr and TMS is same as the volume after/next to TMS and in front/beside LAr.
       // Instead check the step size and current Point, making sure it doesn't pass point2

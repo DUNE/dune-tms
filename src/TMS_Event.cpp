@@ -334,7 +334,7 @@ void TMS_Event::MergeCoincidentHits() {
 }
 
 void TMS_Event::SimulateDarkCount() {
-  // todo Add noise hits. They can fake readout
+  // TODO Add noise hits. They can fake readout
   // One issue is that there's no truth info about the particles to save. 
 }
 
@@ -411,15 +411,17 @@ void TMS_Event::SimulateOpticalModel() {
     
       // Calculate the long and short path lengths
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+      // In case of orthogonal (X) layers change to GetX()
+      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
       // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
-      double distance_from_middle = -1.54799 - true_y;
+      double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
       
       // In reality, light bounces so there's a multiplier
-      // todo, it may be more realistic to make this non-linear
+      // TODO it may be more realistic to make this non-linear
       distance_from_end *= wsf_length_multiplier;
       long_way_distance_from_end *= wsf_length_multiplier;
       
@@ -446,7 +448,7 @@ void TMS_Event::SimulateOpticalModel() {
     hit.GetAdjustableTrueHit().SetPEAfterFibers(pe);
     hit.GetAdjustableTrueHit().SetPEAfterFibersLongPath(pe_long);
     hit.GetAdjustableTrueHit().SetPEAfterFibersShortPath(pe_short);
-    
+
     // Now save the reconstructed information
     hit.SetPE(pe);
     // Need to convert from PE to MeV. Could use 1/LY but have to account for additional effects.
@@ -476,8 +478,8 @@ int TMS_Event::GetUniqIDForDeadtime(const TMS_Hit& hit) const {
   // For a per-channel deadtime, this can return a unique id for a channel
   // But some detectors have deadtime for a whole board. 
   // In that case, this should return a single id for the whole board.
-  int id = hit.GetX() + 100000 * hit.GetZ(); // TODO make sure it's unique
-  //std::cout<<"x: "<<hit.GetX()<<", z: "<<hit.GetZ()<<", id: "<<id<<std::endl;
+  int id = hit.GetNotZ() + 100000 * hit.GetZ(); // TODO make sure it's unique
+  //std::cout<<"x: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", id: "<<id<<std::endl;
   return id;
 }
 
@@ -533,9 +535,9 @@ void TMS_Event::SimulateDeadtime() {
         double t_read = it_read->second;
         double t_dead = it_dead->second;
         double t_zombie = it_zombie->second;
-        if (deadtime_verbose) std::cout<<"Found channel we found already with x: "<<hit.GetX()<<", z: "<<hit.GetZ()<<", id: "<<id<<"\n";
-        if (deadtime_verbose) std::cout<<"Compare with previous channel x: "<<x_map[id]<<", z: "<<z_map[id]<<", t: "<<t_map[id]<<"\n";
-        if (x_map[id] != hit.GetX() || z_map[id] != hit.GetZ()) std::cout<<"\n** Found mismatch in x,z **\n"<<std::endl;
+        if (deadtime_verbose) std::cout<<"Found channel we found already with Notz: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", id: "<<id<<"\n";
+        if (deadtime_verbose) std::cout<<"Compare with previous channel Notz: "<<x_map[id]<<", z: "<<z_map[id]<<", t: "<<t_map[id]<<"\n";
+        if (x_map[id] != hit.GetNotZ() || z_map[id] != hit.GetZ()) std::cout<<"\n** Found mismatch in Notz,z **\n"<<std::endl;
         if (deadtime_verbose) std::cout<<"i="<<i<<", t="<<t<<", t_read="<<t_read<<", t_dead="<<t_dead<<", t_zombie="<<t_zombie<<", dt="<<(t-t_read+readout_time)<<", dt_map: "<<(t-t_map[id])<<std::endl;
         if (t < t_read) {
           // We can do a regular read
@@ -587,11 +589,11 @@ void TMS_Event::SimulateDeadtime() {
         double t_zombie = t_dead - zombie_time;
         zombie_map[id] = t_zombie;
         
-        x_map[id] = hit.GetX();
+        x_map[id] = hit.GetNotZ();
         z_map[id] = hit.GetZ();
         t_map[id] = t;
         
-        auto position = std::make_pair(hit.GetX(), hit.GetZ());
+        auto position = std::make_pair(hit.GetNotZ(), hit.GetZ());
         auto deadtime_range = std::make_pair(t_read, t_dead);
         auto readout_range = std::make_pair(t, t_read);
         ChannelPositions.push_back(position);
@@ -647,11 +649,13 @@ void TMS_Event::SimulateTimingModel() {
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    // Making sure this gets changed for orthogonal (X) layers
+    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
     //miny = std::min(miny, true_y);
     //maxy = std::max(maxy, true_y);
     // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
     // TODO manually found this center. Want a better way in case things change
-    double distance_from_middle = -1.54799 - true_y; 
+    double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
     
     // In reality, light bounces so there's a multiplier to the distance

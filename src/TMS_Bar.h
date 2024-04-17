@@ -75,13 +75,15 @@ class TMS_Bar {
       // Now check 2D point is inside in not z
       double xmin = -9999999999999;
       double xmax = 9999999999999;
-      if (BarOrient == kXBar) {
-        xmin = GetY() - GetYw() / 2;
-        xmax = GetY() + GetYw() / 2;
-      } else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
-        xmin = GetX() - GetXw() / 2;
-        xmax = GetX() + GetXw() / 2;
-      }
+      //if (BarOrient == kXBar) {
+      //  xmin = GetY() - GetYw() / 2;
+      //  xmax = GetY() + GetYw() / 2;
+      //} else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
+      //  xmin = GetX() - GetXw() / 2;
+      //  xmax = GetX() + GetXw() / 2;
+      //}
+      xmin = GetNotZ() - GetNotZw() / 2;
+      xmax = GetNotZ() + GetNotZw() / 2;
 
       if (x > xmax || x < xmin) return false;
 
