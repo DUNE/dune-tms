@@ -6,11 +6,11 @@
 int TMS_Event::EventCounter = 0;
 
 TMS_Event::TMS_Event() {
-  EventNumber = -999;
+  EventNumber = __TMS_BAD_NUMBER__;
   SliceNumber = 0;
-  SpillNumber = -999;
-  nTrueTrajectories = -999;
-  VertexIdOfMostEnergyInEvent = -999;
+  SpillNumber = __TMS_BAD_NUMBER__;
+  nTrueTrajectories = __TMS_BAD_NUMBER__;
+  VertexIdOfMostEnergyInEvent = __TMS_BAD_NUMBER__;
   LightWeight = true;
 }
 
@@ -41,7 +41,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
-  VertexIdOfMostEnergyInEvent = -999;
+  VertexIdOfMostEnergyInEvent = __TMS_BAD_NUMBER__;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -192,7 +192,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
       int track_id = edep_hit.GetPrimaryId();
-      int vertex_id = -999;
+      int vertex_id =__TMS_BAD_NUMBER__ ;
       auto value = mapping_track_to_vertex_id.find(track_id);
       if (value == mapping_track_to_vertex_id.end()) {
         //std::cout<<"Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<std::endl;
@@ -257,8 +257,8 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   SpillNumber = event.SpillNumber;
   
   
-  nTrueTrajectories = -999;
-  VertexIdOfMostEnergyInEvent = -999;
+  nTrueTrajectories = __TMS_BAD_NUMBER__;
+  VertexIdOfMostEnergyInEvent = __TMS_BAD_NUMBER__;
   LightWeight = true;
   GetVertexIdOfMostVisibleEnergy();
   
@@ -828,7 +828,7 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   
   // Now find the most energetic vertex
   double max = -1e9;
-  int max_vertex_id = -999;
+  int max_vertex_id = __TMS_BAD_NUMBER__;
   double total_energy = 0;
   for (auto it : TrueVisibleEnergyPerVertex) {
     double vertex = it.first;
@@ -895,7 +895,7 @@ void TMS_Event::Print() {
 
 double TMS_Event::GetMuonTrueKE() {
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
-  double HighestKE = -999.99;
+  double HighestKE = __TMS_BAD_NUMBER__;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
     if (abs((*it).GetPDG()) != 13) continue;

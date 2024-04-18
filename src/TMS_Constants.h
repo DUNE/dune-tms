@@ -7,7 +7,9 @@
 // Number of maximum particles in an edep-sim event
 #define __EDEP_SIM_MAX_PART__ 4000
 
-#define __TMS_BAD_NUMBER__ -999.99
+#define __TMS_BAD_NUMBER__ -99999999
+
+#define __TMS_NAN__ std::numeric_limits<double>::quiet_NaN()
 
 // Constants
 namespace TMS_KinConst {
