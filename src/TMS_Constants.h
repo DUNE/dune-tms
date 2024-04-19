@@ -9,8 +9,6 @@
 
 #define __TMS_BAD_NUMBER__ -99999999
 
-#define __TMS_NAN__ std::numeric_limits<double>::quiet_NaN()
-
 // Constants
 namespace TMS_KinConst {
   const double mass_mu = 105.6583755; // Muon mass in MeV/c2

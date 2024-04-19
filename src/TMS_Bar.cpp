@@ -107,18 +107,18 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // If this is a y-bar, remove the y coordinate
   if (BarOrient == kXBar) {
-    x = __TMS_NAN__;
+    x = NAN;
     // Flip the widths
     double tempyw = yw;
     yw = xw;
     xw = tempyw; 
   } else if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
-    y = __TMS_NAN__;
+    y = NAN;
     // Don't need to flip the widths because they're already correct (yw = large, xw = 4cm)
   } else {
-    x = __TMS_NAN__;
-    y = __TMS_NAN__;
-    z = __TMS_NAN__;
+    x = NAN;
+    y = NAN;
+    z = NAN;
   }
 
   // Reset the geom navigator node level in case it's used again

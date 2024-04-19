@@ -36,7 +36,7 @@ class TMS_Bar {
       else if (BarOrient == kYBar) return x;
       else if (BarOrient == kVBar) return x;
       else if (BarOrient == kUBar) return x;
-      return __TMS_NAN__;
+      return NAN;
     }
 
     double GetXw() const { return xw; };
@@ -48,7 +48,7 @@ class TMS_Bar {
       else if (BarOrient == kYBar) return xw;
       else if (BarOrient == kVBar) return xw;
       else if (BarOrient == kUBar) return xw;
-      return __TMS_NAN__;
+      return NAN;
     }
 
     void Print() const;
@@ -73,8 +73,8 @@ class TMS_Bar {
       if (z > zmax || z < zmin) return false;
 
       // Now check 2D point is inside in not z
-      double xmin = __TMS_NAN__;
-      double xmax = __TMS_NAN__;
+      double xmin = NAN;
+      double xmax = NAN;
       //if (BarOrient == kXBar) {
       //  xmin = GetY() - GetYw() / 2;
       //  xmax = GetY() + GetYw() / 2;

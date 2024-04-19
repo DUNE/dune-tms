@@ -311,7 +311,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
 }
 
-static void setMomentum(float *branch, TVector3 momentum, double energy = __TMS_NAN__) {
+static void setMomentum(float *branch, TVector3 momentum, double energy = NAN) {
     branch[0] = momentum.X();
     branch[1] = momentum.Y();
     branch[2] = momentum.Z();
@@ -369,7 +369,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromUVertexInSlice / (VisibleEnergyFromVVerticesInSlice + VisibleEnergyFromUVertexInSlice);
 
   //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
-  Muon_TrueTrackLength = __TMS_NAN__;
+  Muon_TrueTrackLength = NAN;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
 
@@ -624,7 +624,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Find where the first hough hit is
   TMSStart = false;
-  TMSStartTime = __TMS_NAN__;
+  TMSStartTime = NAN;
 
   std::vector<std::vector<TMS_Hit> > HoughCandsU = TMS_TrackFinder::GetFinder().GetHoughCandidatesU();
   int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
@@ -1103,8 +1103,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     // Now fill truth info
     double total_true_visible_energy = 0;
-    double true_primary_visible_energy = __TMS_NAN__;
-    double true_secondary_visible_energy = __TMS_NAN__;
+    double true_primary_visible_energy = NAN;
+    double true_secondary_visible_energy = NAN;
     int true_primary_particle_index = __TMS_BAD_NUMBER__;
     int true_secondary_particle_index = __TMS_BAD_NUMBER__;
     auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
@@ -1156,17 +1156,17 @@ void TMS_TreeWriter::Clear() {
 
   // Reset truth information
   EventNo = nParticles = NeutrinoPDG = LeptonPDG = VertexIdOfMostEnergyInEvent = VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = __TMS_BAD_NUMBER__;
-  Muon_TrueKE = Muon_TrueTrackLength = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = __TMS_NAN__;
+  Muon_TrueKE = Muon_TrueTrackLength = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = NAN;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
-    MuonP4[i]=__TMS_NAN__;
-    Muon_Vertex[i]=__TMS_NAN__;
-    Muon_Death[i]=__TMS_NAN__;
-    NeutrinoP4[i]=__TMS_NAN__;
-    NeutrinoX4[i]=__TMS_NAN__;
-    LeptonP4[i]=__TMS_NAN__;
-    LeptonX4[i]=__TMS_NAN__;
+    MuonP4[i]=NAN;
+    Muon_Vertex[i]=NAN;
+    Muon_Death[i]=NAN;
+    NeutrinoP4[i]=NAN;
+    NeutrinoX4[i]=NAN;
+    LeptonP4[i]=NAN;
+    LeptonX4[i]=NAN;
   }
 
   // Reset line information
@@ -1175,61 +1175,61 @@ void TMS_TreeWriter::Clear() {
   nLinesV = __TMS_BAD_NUMBER__;
   nLinesX = __TMS_BAD_NUMBER__;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    SlopeU[i] = __TMS_NAN__;
-    SlopeV[i] = __TMS_NAN__;
-    SlopeX[i] = __TMS_NAN__;
-    InterceptU[i] = __TMS_NAN__;
-    InterceptV[i] = __TMS_NAN__;
-    InterceptX[i] = __TMS_NAN__;
-    Slope_DownstreamU[i] = __TMS_NAN__;
-    Slope_DownstreamV[i] = __TMS_NAN__;
-    Slope_DownstreamX[i] = __TMS_NAN__;
-    Intercept_DownstreamU[i] = __TMS_NAN__;
-    Intercept_DownstreamV[i] = __TMS_NAN__;
-    Intercept_DownstreamX[i] = __TMS_NAN__;
-    Slope_UpstreamU[i] = __TMS_NAN__;
-    Slope_UpstreamV[i] = __TMS_NAN__;
-    Slope_UpstreamX[i] = __TMS_NAN__;
-    Intercept_UpstreamU[i] = __TMS_NAN__;
-    Intercept_UpstreamV[i] = __TMS_NAN__;
-    Intercept_UpstreamX[i] = __TMS_NAN__;
+    SlopeU[i] = NAN;
+    SlopeV[i] = NAN;
+    SlopeX[i] = NAN;
+    InterceptU[i] = NAN;
+    InterceptV[i] = NAN;
+    InterceptX[i] = NAN;
+    Slope_DownstreamU[i] = NAN;
+    Slope_DownstreamV[i] = NAN;
+    Slope_DownstreamX[i] = NAN;
+    Intercept_DownstreamU[i] = NAN;
+    Intercept_DownstreamV[i] = NAN;
+    Intercept_DownstreamX[i] = NAN;
+    Slope_UpstreamU[i] = NAN;
+    Slope_UpstreamV[i] = NAN;
+    Slope_UpstreamX[i] = NAN;
+    Intercept_UpstreamU[i] = NAN;
+    Intercept_UpstreamV[i] = NAN;
+    Intercept_UpstreamX[i] = NAN;
 
-    DirectionZU[i] = __TMS_NAN__;
-    DirectionXU[i] = __TMS_NAN__;
-    DirectionZU_Upstream[i] = __TMS_NAN__;
-    DirectionXU_Upstream[i] = __TMS_NAN__;
-    DirectionZU_Downstream[i] = __TMS_NAN__;
-    DirectionXU_Downstream[i] = __TMS_NAN__;
+    DirectionZU[i] = NAN;
+    DirectionXU[i] = NAN;
+    DirectionZU_Upstream[i] = NAN;
+    DirectionXU_Upstream[i] = NAN;
+    DirectionZU_Downstream[i] = NAN;
+    DirectionXU_Downstream[i] = NAN;
 
-    DirectionZV[i] = __TMS_NAN__;
-    DirectionXV[i] = __TMS_NAN__;
-    DirectionZV_Upstream[i] = __TMS_NAN__;
-    DirectionXV_Upstream[i] = __TMS_NAN__;
-    DirectionZV_Downstream[i] = __TMS_NAN__;
-    DirectionXV_Downstream[i] = __TMS_NAN__;
+    DirectionZV[i] = NAN;
+    DirectionXV[i] = NAN;
+    DirectionZV_Upstream[i] = NAN;
+    DirectionXV_Upstream[i] = NAN;
+    DirectionZV_Downstream[i] = NAN;
+    DirectionXV_Downstream[i] = NAN;
 
-    DirectionZX[i] = __TMS_NAN__;
-    DirectionYX[i] = __TMS_NAN__;
-    DirectionZX_Upstream[i] = __TMS_NAN__;
-    DirectionYX_Upstream[i] = __TMS_NAN__;
-    DirectionZX_Downstream[i] = __TMS_NAN__;
-    DirectionYX_Downstream[i] = __TMS_NAN__;
+    DirectionZX[i] = NAN;
+    DirectionYX[i] = NAN;
+    DirectionZX_Upstream[i] = NAN;
+    DirectionYX_Upstream[i] = NAN;
+    DirectionZX_Downstream[i] = NAN;
+    DirectionYX_Downstream[i] = NAN;
 
-    OccupancyU[i] = __TMS_NAN__;
-    OccupancyV[i] = __TMS_NAN__;
-    OccupancyX[i] = __TMS_NAN__;
-    TrackLengthU[i] = __TMS_NAN__;
-    TrackLengthV[i] = __TMS_NAN__;
-    TrackLengthX[i] = __TMS_NAN__;
-    TotalTrackEnergyU[i] = __TMS_NAN__;
-    TotalTrackEnergyV[i] = __TMS_NAN__;
-    TotalTrackEnergyX[i] = __TMS_NAN__;
-    FirstPlaneU[i] = __TMS_NAN__;
-    FirstPlaneV[i] = __TMS_NAN__;
-    FirstPlaneX[i] = __TMS_NAN__;
-    LastPlaneU[i] = __TMS_NAN__;
-    LastPlaneV[i] = __TMS_NAN__;
-    LastPlaneX[i] = __TMS_NAN__;
+    OccupancyU[i] = NAN;
+    OccupancyV[i] = NAN;
+    OccupancyX[i] = NAN;
+    TrackLengthU[i] = NAN;
+    TrackLengthV[i] = NAN;
+    TrackLengthX[i] = NAN;
+    TotalTrackEnergyU[i] = NAN;
+    TotalTrackEnergyV[i] = NAN;
+    TotalTrackEnergyX[i] = NAN;
+    FirstPlaneU[i] = __TMS_BAD_NUMBER__;
+    FirstPlaneV[i] = __TMS_BAD_NUMBER__;
+    FirstPlaneX[i] = __TMS_BAD_NUMBER__;
+    LastPlaneU[i] = __TMS_BAD_NUMBER__;
+    LastPlaneV[i] = __TMS_BAD_NUMBER__;
+    LastPlaneX[i] = __TMS_BAD_NUMBER__;
     nHitsInTrackU[i] = __TMS_BAD_NUMBER__;
     nHitsInTrackV[i] = __TMS_BAD_NUMBER__;
     nHitsInTrackX[i] = __TMS_BAD_NUMBER__;
@@ -1237,44 +1237,44 @@ void TMS_TreeWriter::Clear() {
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
   }
-/*    Occupancy3D[i] = __TMS_NAN__;
-    TrackLength3D[i] = __TMS_NAN__;
-    TotalTrackEnergy3D[i] = __TMS_NAN__;
-    FirstPlane3D[i] = __TMS_NAN__;
-    LastPlane3D[i] = __TMS_NAN__;
-    nHitsInTrack3D[i] = __TMS_NAN__;
+/*    Occupancy3D[i] = NAN;
+    TrackLength3D[i] = NAN;
+    TotalTrackEnergy3D[i] = NAN;
+    FirstPlane3D[i] = NAN;
+    LastPlane3D[i] = NAN;
+    nHitsInTrack3D[i] = NAN;
     TrackStopping3D[i] = false;
 
     for (int j = 0; j < 2; ++j) {
-      FirstHitOne[i][j] = __TMS_NAN__;
-      FirstHitOther[i][j] = __TMS_NAN__;
-      LastHitOne[i][j] = __TMS_NAN__;
-      LastHitOther[i][j] = __TMS_NAN__;
+      FirstHitOne[i][j] = NAN;
+      FirstHitOther[i][j] = NAN;
+      LastHitOne[i][j] = NAN;
+      LastHitOther[i][j] = NAN;
     }
     for (int j = 0; j < 3; ++j) {
-      FirstHit3D[i][j] = __TMS_NAN__;
-      LastHit3D[i][j] = __TMS_NAN__;
+      FirstHit3D[i][j] = NAN;
+      LastHit3D[i][j] = NAN;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      TrackHitEnergyOne[i][j]=__TMS_NAN__;
-      TrackHitEnergyOther[i][j]=__TMS_NAN__;
-      TrackHitPosOne[i][j][0]=__TMS_NAN__;
-      TrackHitPosOne[i][j][1]=__TMS_NAN__;
-      TrackHitPosOther[i][j][0]=__TMS_NAN__;
-      TrackHitPosOther[i][j][1]=__TMS_NAN__;
+      TrackHitEnergyOne[i][j]=NAN;
+      TrackHitEnergyOther[i][j]=NAN;
+      TrackHitPosOne[i][j][0]=NAN;
+      TrackHitPosOne[i][j][1]=NAN;
+      TrackHitPosOther[i][j][0]=NAN;
+      TrackHitPosOther[i][j][1]=NAN;
 
-      TrackHitEnergy3D[i][j] = __TMS_NAN__;
-      TrackHitPos3D[i][j][0] = __TMS_NAN__;
-      TrackHitPos3D[i][j][1] = __TMS_NAN__;
-      TrackHitPos3D[i][j][2] = __TMS_NAN__;
+      TrackHitEnergy3D[i][j] = NAN;
+      TrackHitPos3D[i][j][0] = NAN;
+      TrackHitPos3D[i][j][1] = NAN;
+      TrackHitPos3D[i][j][2] = NAN;
     }
   }*/
 
   // Reset hit information
   nHits = __TMS_BAD_NUMBER__;
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
-    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = __TMS_NAN__;
-    RecoHitEnergy[i] = __TMS_NAN__;
+    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = NAN;
+    RecoHitEnergy[i] = NAN;
   }
 
   // Reset Cluster info
@@ -1282,34 +1282,34 @@ void TMS_TreeWriter::Clear() {
   nClustersV = __TMS_BAD_NUMBER__;
   nClustersX = __TMS_BAD_NUMBER__;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
-    ClusterEnergyU[i] = __TMS_NAN__;
-    ClusterEnergyV[i] = __TMS_NAN__;
-    ClusterEnergyX[i] = __TMS_NAN__;
+    ClusterEnergyU[i] = NAN;
+    ClusterEnergyV[i] = NAN;
+    ClusterEnergyX[i] = NAN;
     nHitsInClusterU[i] = __TMS_BAD_NUMBER__;
     nHitsInClusterV[i] = __TMS_BAD_NUMBER__;
     nHitsInClusterX[i] = __TMS_BAD_NUMBER__;
     for (int j = 0; j < 2; ++j) {
-      ClusterPosMeanU[i][j] = __TMS_NAN__;
-      ClusterPosStdDevU[i][j] = __TMS_NAN__;
+      ClusterPosMeanU[i][j] = NAN;
+      ClusterPosStdDevU[i][j] = NAN;
       
-      ClusterPosMeanV[i][j] = __TMS_NAN__;
-      ClusterPosStdDevV[i][j] = __TMS_NAN__;
+      ClusterPosMeanV[i][j] = NAN;
+      ClusterPosStdDevV[i][j] = NAN;
 
-      ClusterPosMeanX[i][j] = __TMS_NAN__;
-      ClusterPosStdDevX[i][j] = __TMS_NAN__;
+      ClusterPosMeanX[i][j] = NAN;
+      ClusterPosStdDevX[i][j] = NAN;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      ClusterHitPosU[i][j][0] = __TMS_NAN__;
-      ClusterHitPosU[i][j][1] = __TMS_NAN__;
-      ClusterHitEnergyU[i][j] = __TMS_NAN__;
+      ClusterHitPosU[i][j][0] = NAN;
+      ClusterHitPosU[i][j][1] = NAN;
+      ClusterHitEnergyU[i][j] = NAN;
 
-      ClusterHitPosV[i][j][0] = __TMS_NAN__;
-      ClusterHitPosV[i][j][1] = __TMS_NAN__;
-      ClusterHitEnergyV[i][j] = __TMS_NAN__;
+      ClusterHitPosV[i][j][0] = NAN;
+      ClusterHitPosV[i][j][1] = NAN;
+      ClusterHitEnergyV[i][j] = NAN;
 
-      ClusterHitPosX[i][j][0] = __TMS_NAN__;
-      ClusterHitPosX[i][j][1] = __TMS_NAN__;
-      ClusterHitEnergyX[i][j] = __TMS_NAN__;
+      ClusterHitPosX[i][j][0] = NAN;
+      ClusterHitPosX[i][j][1] = NAN;
+      ClusterHitEnergyX[i][j] = NAN;
     }
   }
 
@@ -1317,18 +1317,18 @@ void TMS_TreeWriter::Clear() {
   nTracks = __TMS_BAD_NUMBER__;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
-      RecoTrackStartPos[i][j] = __TMS_NAN__;
-      RecoTrackDirection[i][j] = __TMS_NAN__;
-      RecoTrackEndPos[i][j] = __TMS_NAN__;
+      RecoTrackStartPos[i][j] = NAN;
+      RecoTrackDirection[i][j] = NAN;
+      RecoTrackEndPos[i][j] = NAN;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
-      RecoTrackHitPos[i][k][0] = __TMS_NAN__;
-      RecoTrackHitPos[i][k][1] = __TMS_NAN__;
-      RecoTrackHitPos[i][k][2] = __TMS_NAN__;
+      RecoTrackHitPos[i][k][0] = NAN;
+      RecoTrackHitPos[i][k][1] = NAN;
+      RecoTrackHitPos[i][k][2] = NAN;
     }
-    RecoTrackEnergyRange[i] = __TMS_NAN__;
-    RecoTrackEnergyDeposit[i] = __TMS_NAN__;
-    RecoTrackLength[i] = __TMS_NAN__;
+    RecoTrackEnergyRange[i] = NAN;
+    RecoTrackEnergyDeposit[i] = NAN;
+    RecoTrackLength[i] = NAN;
   }
 
 
