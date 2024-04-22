@@ -112,7 +112,7 @@ class TMS_TrueParticle {
     TVector3       &GetInitialMomentum() { return MomentumPoints.back(); };
     TLorentzVector &GetInitialPoint() { return PositionPoints.back(); };
     
-    TLorentzVector GetPositionAtZ(double z);
+    TLorentzVector GetPositionAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
     TLorentzVector GetPositionZIsLArEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
     TLorentzVector GetPositionZIsTMSStart() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
     TLorentzVector GetPositionZIsTMSEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
@@ -128,7 +128,7 @@ class TMS_TrueParticle {
     TLorentzVector GetPositionLeavingLAr() { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
     
     
-    TVector3 GetMomentumAtZ(double z);
+    TVector3 GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
     TVector3 GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
     TVector3 GetMomentumZIsTMSStart() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
     TVector3 GetMomentumZIsTMSEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };

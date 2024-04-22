@@ -1131,11 +1131,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       TMS_TrueParticle tp = TrueParticles[true_primary_particle_index];
       double start_z = RecoTrack->Start[2];
       double end_z = RecoTrack->End[2];
+      const double max_z_distance = 1e9; // Want the closest possible starting and ending points, regardless of distance
       if (itTrack < __TMS_MAX_LINES__) {
-        setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackStart[itTrack], tp.GetMomentumAtZ(start_z));
-        setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z));
-        setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z));
-        setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z));
+        setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackStart[itTrack], tp.GetMomentumAtZ(start_z, max_z_distance));
+        setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
+        setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
+        setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
       }
     }
     
