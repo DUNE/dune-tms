@@ -620,41 +620,14 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Look at the first hits of each of the Hough lines
   // Also check that the hits are continuous
 
+  for (auto &trk : HoughTracks3D) {
+    KalmanFitter = TMS_Kalman(trk);
+  }
+
   // Skip the Kalman filter for now
   return;
-
-  // Now have the TotalCandidates filled
-  // Start some reconstruction chain
-  for (auto &i : TotalCandidatesU) {
-    // Get the xz and yz hits
-    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kUBar);
-    size_t nHits = xz_hits.size();
-    if (nHits < 1) continue; 
-    KalmanFitter = TMS_Kalman(xz_hits);
-
-    /*
-       std::vector<TMS_Hit> yz_hits = ProjectHits(i, TMS_Bar::kXBar);
-       std::cout << "yz hits: " << yz_hits.size() << std::endl;
-       KalmanFitter = TMS_Kalman(yz_hits);
-       */
-  }
-  
-  for (auto &i : TotalCandidatesV) {
-    // Get the xz and yz hits
-    std::vector<TMS_Hit> xz_hits = ProjectHits(i, TMS_Bar::kVBar);
-    size_t nHits = xz_hits.size();
-    if (nHits < 1) continue;
-    KalmanFitter = TMS_Kalman(xz_hits);
-  }
-
-  for (auto &i: TotalCandidatesX) {
-    // Get the x hist
-    std::vector<TMS_Hit> x_hits = ProjectHits(i, TMS_Bar::kXBar);
-    size_t nHits = x_hits.size();
-    if (nHits < 1) continue;
-    KalmanFitter = TMS_Kalman(x_hits);
-  }
 }
+
 
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
