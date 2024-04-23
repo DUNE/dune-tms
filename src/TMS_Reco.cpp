@@ -1198,6 +1198,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 90)) stereo_view = false;
               }
               if (stereo_view) {
+                CalculateRecoY(VTracks.front(), UTracks.front());
                 aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
                 aTrack.End[1] = VTracks.front().GetRecoY();
                 aTrack.End[2] = VTracks.front().GetZ();
@@ -1220,6 +1221,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 90)) stereo_view = false;
               }
               if (stereo_view) {
+                CalculateRecoY(UTracks.back(), VTracks.back());
                 aTrack.Start[0] = 0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ());
                 aTrack.Start[1] = VTracks.back().GetRecoY();
                 aTrack.Start[2] = VTracks.back().GetZ();
