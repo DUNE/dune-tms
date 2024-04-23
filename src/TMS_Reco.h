@@ -265,6 +265,7 @@ class TMS_TrackFinder {
     void FindPseudoXTrack();
     void CalculateRecoY(TMS_Hit &UHit, TMS_Hit &VHit);
     void CalculateRecoX(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit);
+    double CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit);
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
