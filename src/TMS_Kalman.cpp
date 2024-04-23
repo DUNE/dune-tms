@@ -24,10 +24,12 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   // And muon mass
   mass = BetheBloch_Utils::Mm;
 
-  std::cout << "Front: " << Candidates.front().GetZ() << std::endl;
-  if (ForwardFitting) std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
-  else                std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
-  std::cout << "After sort front: " << Candidates.front().GetZ() << std::endl;
+//  std::cout << "Front: " << Candidates.front().GetZ() << std::endl;
+//  if (ForwardFitting) std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
+//  else                std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
+//  std::cout << "After sort front: " << Candidates.front().GetZ() << std::endl;
+
+  std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZPosInc);
 
   // Make a new Kalman state for each hit
   KalmanNodes.reserve(nCand);
@@ -35,13 +37,15 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
 
     TMS_Hit hit = Candidates[i];
     //if (hit.GetBar().GetBarType() != TMS_Bar::kYBar) continue;
-    double x = hit.GetNotZ();
-    double y = hit.GetTrueHit().GetY();
+    //double x = hit.GetNotZ();
+    //double y = hit.GetTrueHit().GetY();
+    double x = hit.GetRecoX();
+    double y = hit.GetRecoY();
     double z = hit.GetZ();
     double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
 
     double DeltaZ = future_z-z;
-    std::cout << "hit: " <<  i << " z: " << z << " deltaz: " << DeltaZ << std::endl;
+    //std::cout << "hit: " <<  i << " z: " << z << " deltaz: " << DeltaZ << std::endl;
 
     // This also initialises the state vectors in each of the nodes
     TMS_KalmanNode Node(x, y, z, DeltaZ);
@@ -100,7 +104,11 @@ void TMS_Kalman::RunKalman() {
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
   }
-  std::cout << "Momentum of last hit: " << 1./KalmanNodes.back().CurrentState.qp << std::endl;
+
+  SetMomentum(1./KalmanNodes.back().CurrentState.qp);
+  if (std::isnan(momentum) || std::isinf(momentum)){
+    std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
+  }
 }
 
 void TMS_Kalman::Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode) {
@@ -129,14 +137,15 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Propagate the current state
   TMatrixD &Transfer = Node.TransferMatrix;
-  std::cout << "Transfer matrix: " << std::endl;
-  Transfer.Print();
+  if (Talk) std::cout << "Transfer matrix: " << std::endl;
+  if (Talk) Transfer.Print();
   TVectorD PreviousVec(5);
   PreviousVec[0] = PreviousState.x;
   PreviousVec[1] = PreviousState.y;
   PreviousVec[2] = PreviousState.dxdz;
   PreviousVec[3] = PreviousState.dydz;
   PreviousVec[4] = PreviousState.qp;
+
   // Just the propagator matrix influence
   TVectorD UpdateVec = Transfer*(PreviousVec);
   // Now construct the current state (z of CurrentState is already set to be z+dz)
@@ -147,14 +156,15 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // Don't update q/p until later (when we've done the energy loss calculation)
 
 
-  std::cout << "Previous vector: " << std::endl;
-  PreviousState.Print();
-  std::cout << "Current vector (before energy loss): " << std::endl;
-  CurrentState.Print();
+  if (Talk) std::cout << "\nPrevious vector: " << std::endl;
+  if (Talk) PreviousState.Print();
+  if (Talk) std::cout << "Current vector (before energy loss): " << std::endl;
+  if (Talk) CurrentState.Print();
 
 
   // Update the energy
   double mom = 1./PreviousState.qp;
+  if (std::isinf(mom)) mom = 4000; // set to 4 GeV
   // Initial energy before energy loss
   double en_initial = sqrt(mom*mom+mass*mass);
   // The energy we'll be changing
@@ -202,7 +212,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
     density /= std::pow(scale_factor, 3);
     thickness = TMS_Geom::GetInstance().Scale(thickness);
-    material.first->Print();
+    if (Talk) material.first->Print();
 
     if (Talk) {
       std::cout << "Material " << counter << " = " << material.first->GetName() << std::endl;
@@ -262,13 +272,12 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     std::cerr << "negative momentum squared, setting momentum to 1 MeV" << std::endl;
     p_up = 1;
   }
-  std::cout << "momentum: " << p_up << std::endl;
 
   // Update the state's q/p
   CurrentState.qp = 1./p_up;
 
-  std::cout << "Current vector (after energy loss): " << std::endl;
-  CurrentState.Print();
+  if (Talk) std::cout << "Current vector (after energy loss): " << std::endl;
+  if (Talk) CurrentState.Print();
 
   if (Talk) {
     std::cout << "total energy variation: " << total_en_var << std::endl;
@@ -331,6 +340,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   NoiseMatrix(3,1) = NoiseMatrix(3,1) = (Sign)*covAyAy * TotalPathLength/2.;
 
   NoiseMatrix(3,2) = NoiseMatrix(2,3) =    covAxAy;
+
+  if (Talk) std::cout << "Noise matrix: " << std::endl;
+  if (Talk) NoiseMatrix.Print();
 
   // I think that's it
   // Other than the B-field...!

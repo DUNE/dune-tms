@@ -97,6 +97,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
@@ -146,32 +147,38 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
           
+          if (map.find(primary_vertex_id) == map.end()) 
+              std::cout<<"Warning: Didn't find primary_vertex_id "<<primary_vertex_id<<" inside map of size "<<map.size()<<std::endl;
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
           
-          // Now set the remaining information from the gRoo tchain.
-          auto primary_vertex = event->Primaries[primary_vertex_id];
-          int interaction_number = primary_vertex.GetInteractionNumber();
-          gRoo->GetEntry(interaction_number);
-          tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
-          tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
-          // And the lepton info
-          int lepton_index = -1;
-          int current_index = 0;
-          for (auto particle : primary_vertex.Particles) {
-            int pdg = std::abs(particle.GetPDGCode());
-            if (pdg >= 11 && pdg <= 16) {
-              lepton_index = current_index;
-              break;
+          if ((unsigned long) primary_vertex_id >= event->Primaries.size())
+              std::cout<<"Warning: primary_vertex_id "<<primary_vertex_id<<" is above event->Primaries.size "<<event->Primaries.size()<<std::endl;
+          else {
+            // Now set the remaining information from the gRoo tchain.
+            auto primary_vertex = event->Primaries[primary_vertex_id];
+            int interaction_number = primary_vertex.GetInteractionNumber();
+            gRoo->GetEntry(interaction_number);
+            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+            tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
+            // And the lepton info
+            int lepton_index = -1;
+            int current_index = 0;
+            for (auto particle : primary_vertex.Particles) {
+              int pdg = std::abs(particle.GetPDGCode());
+              if (pdg >= 11 && pdg <= 16) {
+                lepton_index = current_index;
+                break;
+              }
+              current_index += 1;
             }
-            current_index += 1;
-          }
-          if (lepton_index >= 0) {
-            auto lepton = primary_vertex.Particles[lepton_index];
-            int lepton_pdg = lepton.GetPDGCode();
-            auto lepton_position = primary_vertex.GetPosition();
-            auto lepton_momentum = lepton.GetMomentum();
-            tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
+            if (lepton_index >= 0) {
+              auto lepton = primary_vertex.Particles[lepton_index];
+              int lepton_pdg = lepton.GetPDGCode();
+              auto lepton_position = primary_vertex.GetPosition();
+              auto lepton_momentum = lepton.GetMomentum();
+              tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
+            }
           }
         }
       }

@@ -35,9 +35,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   // Find which node this position is equivalent too
   std::string NodeName = std::string(TMS_Geom::GetInstance().FindNode(xval,yval,zval)->GetName());
 
-  // The position of the hit bar
-  double Translation[] = {0., 0., 0.};
-
   // cd up in the geometry to find the right name
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
   while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
@@ -56,7 +53,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     }
 
     // This is the furthest down hit we have: scintillator bar
-    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
+    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos) {
       BarNumber = geom->GetCurrentNode()->GetNumber();
 
       // Get the width
@@ -67,17 +64,25 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       zw = 2*box->GetDZ();
       TMS_Geom::GetInstance().Scale(xw, yw, zw);
 
+      Double_t position[3];
+      const Double_t local[3] = {0, 0, 0};
+      geom->GetCurrentMatrix()->LocalToMaster(local, position);
+      TMS_Geom::GetInstance().Scale(position[0], position[1], position[2]);
+      // Update the hit value to be the bar, not the exact hit position
+      x = position[0];
+      y = position[1];
+      z = position[2];
+
       // Do a sanity check (CHEATING!)
       // Know the bars are 1cm in z and 3.542cm in x
-      if (zw != 10 || xw != 35.42) {
+      if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
         std::cerr << "width of " << NodeName << " not as expected!" << std::endl;
         std::cerr << "xwidth: " << xw << std::endl;
+        std::cerr << "ywidth: " << yw << std::endl;
         std::cerr << "zwidth: " << zw << std::endl;
         throw;
       }
 
-      for (int i = 0; i < 3; ++i) Translation[i] = geom->GetCurrentMatrix()->GetTranslation()[i];
-      TMS_Geom::GetInstance().Scale(Translation[0], Translation[1], Translation[2]);
     }
 
     else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
@@ -87,16 +92,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     geom->CdUp();
     NodeName = std::string(geom->GetCurrentNode()->GetName());
   }
-
-  // Update the hit value to be the bar, not the exact hit position
-  x = Translation[0];
-  // y-bar information doesn't seem to work?
-  y = Translation[1];
-  z = Translation[2];
-
-  // For the y-bar hack around it
-  // Know y start and end points of detector, so split up into 40mm slices and see in which slice this falls in
-  //y = FindYbar(y); 
 
   // If we've reached the world volume we don't have a scintillator hit -> return some mad bad value
   if (BarNumber == -1 || PlaneNumber == -1 || GlobalBarNumber == -1) {
@@ -183,6 +178,7 @@ std::string TMS_Bar::BarType_ToString(BarType bar) const {
   else if (bar == kYBar) return std::string("Y-bar");
   else if (bar == kUBar) return std::string("U-bar");
   else if (bar == kVBar) return std::string("V-bar");
+  else if (bar == kXBar) return std::string("X-bar");
   return std::string("ERROR");
 }
 

@@ -192,12 +192,21 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
       int track_id = edep_hit.GetPrimaryId();
-      int vertex_id = mapping_track_to_vertex_id[track_id];
+      int vertex_id = -999;
+      auto value = mapping_track_to_vertex_id.find(track_id);
+      if (value == mapping_track_to_vertex_id.end()) {
+        //std::cout<<"Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<std::endl;
+        // TODO fix that this can't happen anymore. Would need to map all trajectories to their parent vertices
+      }
+      else vertex_id = value->second;
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
       TMS_Hits.push_back(std::move(hit));
       
       // todo, maybe skip for michel electrons or late neutrons
-      TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexId()] += hit.GetTrueHit().GetE();
+      for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
+        TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+        TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+      }
 
       // Loop through the True Particle list and associate
       /*
@@ -214,15 +223,36 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   
+  // Now update truth info per particle
+  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+    double energy = 0;
+    // If it's not in the map, don't create it
+    auto it = TrueVisibleEnergyPerParticle.find(i);
+    if (it != TrueVisibleEnergyPerParticle.end()) {
+      energy = it->second;
+    }
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
+  }
+  
   // Now apply optical and timing models
   ApplyReconstructionEffects();
 
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) {
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
+      TMS_TrueParticles(event.TMS_TrueParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
+      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
+      TrueNeutrino(event.TrueNeutrino), 
+      TrueNeutrinoPosition(event.TrueNeutrinoPosition),
+      TrueLeptonPosition(event.TrueLeptonPosition), 
+      TrueLeptonMomentum(event.TrueLeptonMomentum),  
+      TrueVisibleEnergyPerVertex(event.TrueVisibleEnergyPerVertex), 
+      TrueVisibleEnergyPerParticle(event.TrueVisibleEnergyPerParticle), 
+      ChannelPositions(event.ChannelPositions), 
+      DeadChannelTimes(event.DeadChannelTimes), ReadChannelTimes(event.ReadChannelTimes),
+      generator(event.generator) {
   // Create an event from a slice of another event
-  TMS_Hits = event.GetHits(slice);
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
   
@@ -304,7 +334,7 @@ void TMS_Event::MergeCoincidentHits() {
 }
 
 void TMS_Event::SimulateDarkCount() {
-  // todo Add noise hits. They can fake readout
+  // TODO Add noise hits. They can fake readout
   // One issue is that there's no truth info about the particles to save. 
 }
 
@@ -381,15 +411,17 @@ void TMS_Event::SimulateOpticalModel() {
     
       // Calculate the long and short path lengths
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+      // In case of orthogonal (X) layers change to GetX()
+      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
       // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
-      double distance_from_middle = -1.54799 - true_y;
+      double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
       
       // In reality, light bounces so there's a multiplier
-      // todo, it may be more realistic to make this non-linear
+      // TODO it may be more realistic to make this non-linear
       distance_from_end *= wsf_length_multiplier;
       long_way_distance_from_end *= wsf_length_multiplier;
       
@@ -416,7 +448,7 @@ void TMS_Event::SimulateOpticalModel() {
     hit.GetAdjustableTrueHit().SetPEAfterFibers(pe);
     hit.GetAdjustableTrueHit().SetPEAfterFibersLongPath(pe_long);
     hit.GetAdjustableTrueHit().SetPEAfterFibersShortPath(pe_short);
-    
+
     // Now save the reconstructed information
     hit.SetPE(pe);
     // Need to convert from PE to MeV. Could use 1/LY but have to account for additional effects.
@@ -446,8 +478,8 @@ int TMS_Event::GetUniqIDForDeadtime(const TMS_Hit& hit) const {
   // For a per-channel deadtime, this can return a unique id for a channel
   // But some detectors have deadtime for a whole board. 
   // In that case, this should return a single id for the whole board.
-  int id = hit.GetX() + 100000 * hit.GetZ(); // TODO make sure it's unique
-  //std::cout<<"x: "<<hit.GetX()<<", z: "<<hit.GetZ()<<", id: "<<id<<std::endl;
+  int id = hit.GetNotZ() + 100000 * hit.GetZ(); // TODO make sure it's unique
+  //std::cout<<"x: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", id: "<<id<<std::endl;
   return id;
 }
 
@@ -503,9 +535,9 @@ void TMS_Event::SimulateDeadtime() {
         double t_read = it_read->second;
         double t_dead = it_dead->second;
         double t_zombie = it_zombie->second;
-        if (deadtime_verbose) std::cout<<"Found channel we found already with x: "<<hit.GetX()<<", z: "<<hit.GetZ()<<", id: "<<id<<"\n";
-        if (deadtime_verbose) std::cout<<"Compare with previous channel x: "<<x_map[id]<<", z: "<<z_map[id]<<", t: "<<t_map[id]<<"\n";
-        if (x_map[id] != hit.GetX() || z_map[id] != hit.GetZ()) std::cout<<"\n** Found mismatch in x,z **\n"<<std::endl;
+        if (deadtime_verbose) std::cout<<"Found channel we found already with Notz: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", id: "<<id<<"\n";
+        if (deadtime_verbose) std::cout<<"Compare with previous channel Notz: "<<x_map[id]<<", z: "<<z_map[id]<<", t: "<<t_map[id]<<"\n";
+        if (x_map[id] != hit.GetNotZ() || z_map[id] != hit.GetZ()) std::cout<<"\n** Found mismatch in Notz,z **\n"<<std::endl;
         if (deadtime_verbose) std::cout<<"i="<<i<<", t="<<t<<", t_read="<<t_read<<", t_dead="<<t_dead<<", t_zombie="<<t_zombie<<", dt="<<(t-t_read+readout_time)<<", dt_map: "<<(t-t_map[id])<<std::endl;
         if (t < t_read) {
           // We can do a regular read
@@ -557,11 +589,11 @@ void TMS_Event::SimulateDeadtime() {
         double t_zombie = t_dead - zombie_time;
         zombie_map[id] = t_zombie;
         
-        x_map[id] = hit.GetX();
+        x_map[id] = hit.GetNotZ();
         z_map[id] = hit.GetZ();
         t_map[id] = t;
         
-        auto position = std::make_pair(hit.GetX(), hit.GetZ());
+        auto position = std::make_pair(hit.GetNotZ(), hit.GetZ());
         auto deadtime_range = std::make_pair(t_read, t_dead);
         auto readout_range = std::make_pair(t, t_read);
         ChannelPositions.push_back(position);
@@ -617,11 +649,13 @@ void TMS_Event::SimulateTimingModel() {
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    // Making sure this gets changed for orthogonal (X) layers
+    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
     //miny = std::min(miny, true_y);
     //maxy = std::max(maxy, true_y);
     // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
     // TODO manually found this center. Want a better way in case things change
-    double distance_from_middle = -1.54799 - true_y; 
+    double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
     
     // In reality, light bounces so there's a multiplier to the distance
@@ -783,10 +817,13 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   TrueVisibleEnergyPerVertex.clear();
   // First find how much energy is in each variable
   for (auto& hit : TMS_Hits) {
-    int vertex_id = hit.GetTrueHit().GetVertexId();
-    // todo, true or reco energy?
-    double energy = hit.GetTrueHit().GetE();
-    TrueVisibleEnergyPerVertex[vertex_id] += energy;
+    for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
+      int vertex_id = hit.GetTrueHit().GetVertexIds(i);
+      // todo, true or reco energy?
+      double energy = hit.GetTrueHit().GetEnergyShare(i);
+      //std::cout<<"vertex_id = "<<vertex_id<<", energy = "<<energy<<std::endl;
+      TrueVisibleEnergyPerVertex[vertex_id] += energy;
+    }
   }
   
   // Now find the most energetic vertex
@@ -796,7 +833,6 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   for (auto it : TrueVisibleEnergyPerVertex) {
     double vertex = it.first;
     double energy = it.second;
-    //std::cout<<"Vertex "<<vertex<<" has E: "<<energy<<std::endl;
     if (energy > max) { max = energy; max_vertex_id = vertex; }
     total_energy += energy;
   }

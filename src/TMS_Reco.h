@@ -254,16 +254,18 @@ class TMS_TrackFinder {
     void WalkUpStream(std::vector<TMS_Hit> &Orig, std::vector<TMS_Hit> &Mask);
 
     // Run a best first search
-    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    void BestFirstSearch(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
-    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const int &hitgroup);
+    std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
+    void FindPseudoXTrack();
     void CalculateRecoY(TMS_Hit &UHit, TMS_Hit &VHit);
     void CalculateRecoX(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit);
+    double CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit);
 
     // Clean up the hits, removing duplicates and zero entries
     std::vector<TMS_Hit> CleanHits(const std::vector<TMS_Hit> &Hits);
@@ -292,44 +294,7 @@ class TMS_TrackFinder {
     std::vector<double> &GetTrackEnergyV() { return TrackEnergyV; };
     std::vector<double> &GetTrackEnergyX() { return TrackEnergyX; };
 
-    void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept) {
-      // Reset the accumulator
-      for (int i = 0; i < nSlope; ++i) {
-        for (int j = 0; j < nIntercept; ++j) {
-          Accumulator[i][j] = 0;
-        }
-      }
-      
-      // First run a simple Hough Transform
-      for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
-        TMS_Hit hit = (*it);
-        double xhit = hit.GetNotZ();
-        double zhit = hit.GetZ();
-
-        // If z position is above region of interest, ignore hit
-        //if (IsXZ && zhit > zMaxHough) continue;
-        if (zhit > zMaxHough) continue;
-
-        Accumulate(xhit, zhit);
-      }
-
-      // Find the maximum of the accumulator and which m,c bin the maximum occurs in
-      double max_zy = 0;
-      int max_zy_slope_bin = 0;
-      int max_zy_inter_bin = 0;
-      for (int i = 0; i < nSlope; ++i) {
-        for (int j = 0; j < nIntercept; ++j) {
-          if (Accumulator[i][j] > max_zy) {
-            max_zy = Accumulator[i][j];
-            max_zy_slope_bin = i;
-            max_zy_inter_bin = j;
-          }
-        }
-      }
-      intercept = InterceptMin+max_zy_inter_bin*(InterceptMax-InterceptMin)/nIntercept;
-      slope = SlopeMin+max_zy_slope_bin*(SlopeMax-SlopeMin)/nSlope;
-    }
-
+    void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept);
 
     TH1D* GetEfficiencyHist() { return Efficiency; };
     TH1D* GetTotalHist() { return Total; };
@@ -377,7 +342,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesX_Downstream;
     std::vector<TMS_Track> HoughTracks3D;
 
-    int hitgroup;
+    char hitgroup;
     int nIntercept;
     int nSlope;
     double InterceptMin;
@@ -427,31 +392,7 @@ class TMS_TrackFinder {
     std::vector<double> TrackLengthX;
 
     // xvalue is x-axis, y value is y-axis
-    void Accumulate(double xhit, double zhit) {
-      // Could probably multi-thread this operation
-      // Now do the Hough
-      for (int i = 0; i < nSlope; ++i) {
-        double m = SlopeMin+i*SlopeWidth;
-        if (m > SlopeMax) m = SlopeMax;
-
-        // Now calculate rho
-        double c = xhit-m*zhit;
-        if (c > InterceptMax) c = InterceptMax;
-
-        // Find which rho bin this corresponds to
-        int c_bin = FindBin(c);
-           /*
-           if (i > nSlope || c_bin > nIntercept) {
-           std::cout << "c: " << c << std::endl;
-           std::cout << "m: " << m << std::endl;
-           std::cout << "i: " <<  i << std::endl;
-           std::cout << "cbin: " << c_bin << std::endl;
-           }
-           */
-        // Fill the accumulator
-        Accumulator[i][c_bin]++;
-      }
-    }
+    void Accumulate(double xhit, double zhit); 
 };
 
 #endif

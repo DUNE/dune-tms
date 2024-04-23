@@ -39,7 +39,7 @@ class TMS_KalmanState {
     double z; // the dependent variable of the state vector
 
     void Print() {
-      std::cout << "Printing Kalman node: " << std::endl;
+      //std::cout << "Printing Kalman node: " << std::endl;
       std::cout << "  {x, y, dx/dz, dy/dz, q/p, z} = {" << x << ", " << y << ", " << dxdz << ", " << dydz << ", " << qp << ", " << z << "}" << std::endl;
     }
 
@@ -53,6 +53,7 @@ class TMS_KalmanNode {
   public:
   TMS_KalmanNode() = delete;
 
+  // x,y,z, delta_z = distance from previous hit to current in z
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar), 
     CurrentState(x, y, z+dz, 0.1, 0.1, 1./20.), // Initialise the state vectors
@@ -110,6 +111,10 @@ class TMS_Kalman {
 
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
+    void SetMomentum(double mom) {momentum = mom;}
+
+    double GetMomentum() {return momentum;}
+
   private:
     // Energy-loss calculator
     BetheBloch_Calculator Bethe;
@@ -128,6 +133,7 @@ class TMS_Kalman {
 
     double total_en;
     double mass;
+    double momentum;
 
     bool Talk;
 };

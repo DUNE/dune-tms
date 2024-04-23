@@ -98,6 +98,7 @@ namespace TMS_Const {
   const std::string TMS_ModuleName = "ModuleBoxvol";
   // To find scintillator "box"
   const std::string TMS_ScintLayerName = "scinBoxlvTMS";
+  const std::string TMS_ScintLayerOrthoName = "scinBoxlv_orthoTMS";
   // The top layer name
   const std::string TMS_TopLayerName = "volWorld";
   // The detector enclosure

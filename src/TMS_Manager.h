@@ -50,6 +50,7 @@ class TMS_Manager {
     int Get_Reco_TRACKMATCH_XTimeLimit() { return _RECO_TRACKMATCH_XTimeLimit; };
     float Get_Reco_TRACKMATCH_YAnchor() { return _RECO_TRACKMATCH_YAnchor; };
     double Get_Reco_TRACKMATCH_TiltAngle() { return _RECO_TRACKMATCH_TiltAngle; };
+    float Get_Reco_TRACKMATCH_YDifference() { return _RECO_TRACKMATCH_YDifference; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
@@ -75,6 +76,8 @@ class TMS_Manager {
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
+
+    double Get_Geometry_YMIDDLE() { return _GEOMETRY_YMIDDLE; };
 
   private:
     TMS_Manager();
@@ -114,6 +117,7 @@ class TMS_Manager {
     int _RECO_TRACKMATCH_XTimeLimit;
     float _RECO_TRACKMATCH_YAnchor;
     double _RECO_TRACKMATCH_TiltAngle;
+    float _RECO_TRACKMATCH_YDifference;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;
@@ -140,6 +144,8 @@ class TMS_Manager {
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
+
+    double _GEOMETRY_YMIDDLE;
 };
 
 #endif

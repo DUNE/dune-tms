@@ -22,6 +22,7 @@ class TMS_Bar {
     // Getter functions
     int GetBarNumber() const { return BarNumber; }; // Number of bar (start counting from -3520mm onwards)
     int GetPlaneNumber() const { return PlaneNumber; }; // Plane or layer number through the detector starting at smallest z
+    int GetPlaneZPos() const { return z; }; // Return the z of the plane. Some geometries we've been given have lots of same plane numbers
     int GetGlobalBarNumber() const { return GlobalBarNumber; }; // Number of hit Scintillator Module (4 modules)
 
     BarType GetBarType() const { return BarOrient; };
@@ -75,13 +76,15 @@ class TMS_Bar {
       // Now check 2D point is inside in not z
       double xmin = -9999999999999;
       double xmax = 9999999999999;
-      if (BarOrient == kXBar) {
-        xmin = GetY() - GetYw() / 2;
-        xmax = GetY() + GetYw() / 2;
-      } else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
-        xmin = GetX() - GetXw() / 2;
-        xmax = GetX() + GetXw() / 2;
-      }
+      //if (BarOrient == kXBar) {
+      //  xmin = GetY() - GetYw() / 2;
+      //  xmax = GetY() + GetYw() / 2;
+      //} else if (BarOrient == kYBar || BarOrient == kVBar || BarOrient == kUBar) {
+      //  xmin = GetX() - GetXw() / 2;
+      //  xmax = GetX() + GetXw() / 2;
+      //}
+      xmin = GetNotZ() - GetNotZw() / 2;
+      xmax = GetNotZ() + GetNotZw() / 2;
 
       if (x > xmax || x < xmin) return false;
 

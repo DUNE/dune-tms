@@ -91,16 +91,16 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'kXBar':
             size_array = np.zeros((2,2))
-            size_array[0, 0] = hit_x + delta_x
-            size_array[0, 1] = hit_x - delta_x
-            if (hit_y + delta_x) >= -0.91:
+            size_array[0, 0] = hit_x / 1000.0 + delta_x
+            size_array[0, 1] = hit_x / 1000.0- delta_x
+            if (hit_y / 1000.0 + delta_x) >= -0.91:
                 size_array[1, 0] = -0.91
             else: 
-                size_array[1, 0] = hit_y + delta_x
-            if (hit_y - delta_x) <= -4.11:
+                size_array[1, 0] = hit_y / 1000.0 + delta_x
+            if (hit_y / 1000.0- delta_x) <= -4.11:
                 size_array[1, 1] = -4.11
             else:
-                size_array[1, 1] = hit_y - delta_x
+                size_array[1, 1] = hit_y / 1000.0 - delta_x
             return = np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
         else: 
             left_top = hit_x / 1000.0 - cos_3 * delta_x - sin_3 * delta_y
@@ -114,11 +114,11 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array[0, 1] = hit_x / 1000.0 - delta_z
         orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'kXBar':
-            if (hit_y + delta_x) >= -0.91:
+            if (hit_y / 1000.0 + delta_x) >= -0.91:
                 size_array[1, 0] = -0.91
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y - delta_x) <= -4.11:
+            if (hit_y / 1000.0 - delta_x) <= -4.11:
                 size_array[1, 1] = -4.11
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
@@ -332,19 +332,23 @@ def calculate_layers():
     # Calculate the z position for each layer for the thin section
     for i in range(thin_layers):
         hit_z = first_z + i * 55
-        if ((hit_z - first_z) / 55) % 2 == 0: # even layers
+        if (((hit_z - first_z) / 55) % 2) == 0: # even layers
             layer_dict.update({ "%s" % hit_z : "kUBar" })
-        elif ((hit_z - first_z) / 55) % 2 == 1: # odd layers
+        elif (((hit_z - first_z) / 55) % 2) == 1: # odd layers
             layer_dict.update({ "%s" % hit_z : "kVBar" })
+        if (((hit_z - first_z) / 55) % 3) == 0:
+            layer_dict.update({ "%s" % hit_z : "kXBar" })
     
     # Calculate the z position for each layer for the thick section
     start_thick = first_z + thin_layers * 55
     for i in range(thick_layers):
         hit_z = start_thick + i * 80
-        if ((hit_z - start_thick) / 80) % 2 == 0: # even layers
+        if (((hit_z - start_thick) / 80) % 2) == 0: # even layers
             layer_dict.update({ "%s" % hit_z : "kVBar" })
-        elif ((hit_z - start_thick) / 80) % 2 == 1: # odd layers
+        elif (((hit_z - start_thick) / 80) % 2) == 1: # odd layers
             layer_dict.update({ "%s" % hit_z : "kUBar" })
+        if (((hit_z - start_thick) / 80) % 3) == 0:
+            layer_dict.update({ "%s" % hit_z : "kXBar" })
 
     return
 
