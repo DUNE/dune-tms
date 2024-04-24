@@ -128,23 +128,23 @@ class TMS_TrueParticle {
     TLorentzVector GetPositionLeavingLAr() { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
     
     
-    TVector3 GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
-    TVector3 GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
-    TVector3 GetMomentumZIsTMSStart() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
-    TVector3 GetMomentumZIsTMSEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
+    TLorentzVector GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
+    TLorentzVector GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
+    TLorentzVector GetMomentumZIsTMSStart() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
+    TLorentzVector GetMomentumZIsTMSEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
     
-    TVector3 GetMomentumEntering(IsInsideFunctionType isInside);
-    TVector3 GetMomentumLeaving(IsInsideFunctionType isInside);
-    TVector3 GetMomentumEnteringTMS() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
-    TVector3 GetMomentumLeavingTMS() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
-    TVector3 GetMomentumEnteringTMSThin() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
-    TVector3 GetMomentumLeavingTMSThin() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
-    TVector3 GetMomentumEnteringTMSFirstTwoModules() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TVector3 GetMomentumLeavingTMSFirstTwoModules() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TVector3 GetMomentumEnteringLAr() { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
-    TVector3 GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
-
-    double GetBirthEnergy() { 
+    TLorentzVector GetMomentumEntering(IsInsideFunctionType isInside);
+    TLorentzVector GetMomentumLeaving(IsInsideFunctionType isInside);
+    TLorentzVector GetMomentumEnteringTMS() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetMomentumLeavingTMS() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetMomentumEnteringTMSThin() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetMomentumLeavingTMSThin() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetMomentumEnteringTMSFirstTwoModules() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetMomentumLeavingTMSFirstTwoModules() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetMomentumEnteringLAr() { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
+    
+    double GetEnergyFromMomentum(TVector3 momentum) {
       double mass = 0;
       if      (abs(PDG) == 13)  mass = TMS_KinConst::mass_mu;
       else if (abs(PDG) == 11)  mass = TMS_KinConst::mass_e;
@@ -153,7 +153,15 @@ class TMS_TrueParticle {
       else if (abs(PDG) == 111) mass = TMS_KinConst::mass_pi0;
       else if (abs(PDG) == 2212) mass = TMS_KinConst::mass_proton;
       else if (abs(PDG) == 2112) mass = TMS_KinConst::mass_neutron;
-      return sqrt(BirthMomentum.Mag2()+mass*mass);
+      return sqrt(momentum.Mag2()+mass*mass);
+    }
+
+    double GetBirthEnergy() { 
+      return GetEnergyFromMomentum(BirthMomentum);
+    }
+
+    double GetDeathEnergy() { 
+      return GetEnergyFromMomentum(DeathMomentum);
     }
 
   private:

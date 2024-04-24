@@ -30,7 +30,7 @@ void TMS_TrueParticle::Print() {
   }
 }
 
-TVector3 TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
+TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   TVector3 out(-99999999, -99999999, -99999999);
   double z_dist_found = 999999;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -43,7 +43,8 @@ TVector3 TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
       }
     }
   } 
-  return out;
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
@@ -97,7 +98,7 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
   return out;
 }
 
-TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
   TVector3 out(-99999999, -99999999, -99999999);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -106,10 +107,11 @@ TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
       break;
     }
   } 
-  return out;
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
-TVector3 TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
   TVector3 out(-99999999, -99999999, -99999999);
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -130,5 +132,6 @@ TVector3 TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
     // Update the momentum as long as we're inside the volume
     if (areInside) out = GetMomentumPoints()[i];
   } 
-  return out;
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }

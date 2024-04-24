@@ -312,10 +312,17 @@ void TMS_TreeWriter::MakeBranches() {
 }
 
 static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
-    branch[0] = momentum.X();
-    branch[1] = momentum.Y();
-    branch[2] = momentum.Z();
+    branch[0] = momentum.Px();
+    branch[1] = momentum.Py();
+    branch[2] = momentum.Pz();
     branch[3] = energy;
+}
+
+static void setMomentum(float *branch, TLorentzVector momentum) {
+    branch[0] = momentum.Px();
+    branch[1] = momentum.Py();
+    branch[2] = momentum.Pz();
+    branch[3] = momentum.E();
 }
 
 static void setPosition(float *branch, TLorentzVector position) {
@@ -420,7 +427,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
     
-    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum());
+    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
     setPosition(DeathPosition[index], (*it).GetDeathPosition());
     
     setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
@@ -1125,7 +1132,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       std::cout<<"Error: Found true_primary_particle_index < 0. There should be at least one particle creating energy (assuming no dark noise) but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
     }
     else if ((size_t)true_primary_particle_index >= TrueParticles.size()) {
-      std::cout<<"Error: Found true_primary_particle_index >= TrueParticles.size(). This shouldn't happen since each index should point to a true particle"<<std::endl;
+      std::cout<<"Error: Found true_primary_particle_index >= TrueParticles.size(). This shouldn't happen since each index should point to a true particle: "<<true_primary_particle_index<<" vs "<<TrueParticles.size()<<std::endl;
     }
     else {
       TMS_TrueParticle tp = TrueParticles[true_primary_particle_index];
