@@ -10,7 +10,6 @@ class TMS_Track {
     TMS_Track() //std::vector<TMS_Hit>& OneTrack, std::vector<TMS_Hit>& OtherTrack)
     {
       // TODO: Take first and last hits and do the maffs
-      //0;
     };
     void Print();
 
