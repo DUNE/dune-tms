@@ -29,7 +29,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
 //  else                std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
 //  std::cout << "After sort front: " << Candidates.front().GetZ() << std::endl;
 
-  std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZPosInc);
+  std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
 
   // Make a new Kalman state for each hit
   KalmanNodes.reserve(nCand);
