@@ -745,8 +745,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
   std::cout << "3D matching" << std::endl;
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
-
 #endif
+
   std::vector<TMS_Track> returned;
   
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
@@ -1271,15 +1271,15 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 }
 
 void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
-//  TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
-//  Double_t localOne[3] = {OneHit.GetNotZ(), 0, OneHit.GetZ()};
-//  Double_t localOther[3] = {OtherHit.GetNotZ(), 0, OtherHit.GetZ()};
-//  Double_t positionOne[3];
-//  Double_t positionOther[3];
-//  geom->GetCurrentMatrix()->LocalToMaster(localOne, positionOne);     // This gives us the position of the bars in x, y and z. Use only the y for now!
-//  geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
+  TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
+  Double_t localOne[3] = {OneHit.GetNotZ(), 0, OneHit.GetZ()};
+  Double_t localOther[3] = {OtherHit.GetNotZ(), 0, OtherHit.GetZ()};
+  Double_t positionOne[3];
+  Double_t positionOther[3];
+  geom->GetCurrentMatrix()->LocalToMaster(localOne, positionOne);     // This gives us the position of the bars in x, y and z. Use only the y for now!
+  geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
    
-  OneHit.SetRecoY(-1350 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
+  OneHit.SetRecoY(0.5 * (positionOne[1] + positionOther[1])  - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
   // USING THIS -1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
   return;
 }
