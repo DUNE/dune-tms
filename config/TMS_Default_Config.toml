@@ -75,7 +75,7 @@
     # Tilt angle of scintillator planes for calculation of y (tan(90-angle))
     TiltAngle = 19.0811366877 #tan(90-3=87)
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
-    YDifference = 3000.0
+    YDifference = 300.0
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
