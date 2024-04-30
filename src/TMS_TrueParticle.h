@@ -10,6 +10,13 @@
 #include <iostream>
 #include "TMS_Constants.h"
 
+#include "TMS_Geom.h"
+
+#include <functional>
+
+using IsInsideFunctionType = std::function<bool(TVector3)>;
+//using IsInsideFunctionType = bool (TMS_Geom::*InInsideFunction)(Vector3);
+
 class TMS_TrueParticle {
   public:
 
@@ -17,7 +24,8 @@ class TMS_TrueParticle {
       VertexID(-999), 
       Parent(-999), 
       TrackId(-999), 
-      PDG(-999) {
+      PDG(-999),
+      TrueVisibleEnergy(-999) {
     }
 
     // Copy over the edep-sim info
@@ -26,6 +34,7 @@ class TMS_TrueParticle {
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
+      TrueVisibleEnergy(-999),
       BirthMomentum(edep_part.GetMomentum().Vect()) {
     }
 
@@ -34,6 +43,7 @@ class TMS_TrueParticle {
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
+      TrueVisibleEnergy(-999),
       BirthMomentum(edep_part.GetMomentum().Vect()),
       BirthPosition(vtx.GetPosition()) {
     }
@@ -43,7 +53,8 @@ class TMS_TrueParticle {
       VertexID(-999),
       Parent(ParentVal), 
       TrackId(TrackVal), 
-      PDG(PDGVal) {
+      PDG(PDGVal), 
+      TrueVisibleEnergy(-999) {
     }
 
     // Print
@@ -74,6 +85,8 @@ class TMS_TrueParticle {
     int GetParent() { return Parent; };
     int GetTrackId() { return TrackId; };
     int GetVertexID() { return VertexID; };
+    double GetTrueVisibleEnergy() { return TrueVisibleEnergy; };
+    void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
@@ -98,6 +111,38 @@ class TMS_TrueParticle {
 
     TVector3       &GetInitialMomentum() { return MomentumPoints.back(); };
     TLorentzVector &GetInitialPoint() { return PositionPoints.back(); };
+    
+    TLorentzVector GetPositionAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
+    TLorentzVector GetPositionZIsLArEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
+    TLorentzVector GetPositionZIsTMSStart() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
+    TLorentzVector GetPositionZIsTMSEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
+    TLorentzVector GetPositionEntering(IsInsideFunctionType isInside);
+    TLorentzVector GetPositionLeaving(IsInsideFunctionType isInside);
+    TLorentzVector GetPositionEnteringTMS() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetPositionLeavingTMS() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetPositionEnteringTMSThin() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetPositionLeavingTMSThin() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetPositionEnteringTMSFirstTwoModules() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetPositionLeavingTMSFirstTwoModules() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetPositionEnteringLAr() { return GetPositionEntering(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetPositionLeavingLAr() { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
+    
+    
+    TVector3 GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
+    TVector3 GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
+    TVector3 GetMomentumZIsTMSStart() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
+    TVector3 GetMomentumZIsTMSEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
+    
+    TVector3 GetMomentumEntering(IsInsideFunctionType isInside);
+    TVector3 GetMomentumLeaving(IsInsideFunctionType isInside);
+    TVector3 GetMomentumEnteringTMS() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
+    TVector3 GetMomentumLeavingTMS() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
+    TVector3 GetMomentumEnteringTMSThin() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
+    TVector3 GetMomentumLeavingTMSThin() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
+    TVector3 GetMomentumEnteringTMSFirstTwoModules() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TVector3 GetMomentumLeavingTMSFirstTwoModules() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TVector3 GetMomentumEnteringLAr() { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
+    TVector3 GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
 
     double GetBirthEnergy() { 
       double mass = 0;
@@ -116,6 +161,7 @@ class TMS_TrueParticle {
     int Parent;
     int TrackId;
     int PDG;
+    double TrueVisibleEnergy;
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;
