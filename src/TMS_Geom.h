@@ -359,6 +359,29 @@ class TMS_Geom {
       TotalPathLength = Scale(TotalPathLength);
       return TotalPathLength;
     };
+    
+    // Walks through all the pairs of nodes and returns the total track length
+    double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
+      double out = 0;
+      // for unsigned ints, 0-1 = MAX_UNSIGNED_INT, so need to verify that size > 0
+      if (nodes.size() > 1) { 
+        // Loop over all pairs of vectors
+        for (size_t i = 0; i < nodes.size() - 1; i++) {
+          auto p1 = nodes.at(i);
+          auto p2 = nodes.at(i+1);
+          if (ignore_y) {
+            TVector3 p1_without_y(p1);
+            TVector3 p2_without_y(p2);
+            p1_without_y.SetY(-200);
+            p2_without_y.SetY(-200);
+            p1 = p1_without_y;
+            p2 = p2_without_y;
+          }
+          out += GetTrackLength(p1, p2);
+        }
+      }
+      return out;
+    }
 
     std::vector<std::pair<std::string, TVector3> > GetNodes(const TVector3 &point1_temp, const TVector3 &point2_temp) {
       // Make vectors have geometry scale
