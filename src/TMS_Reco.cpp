@@ -726,7 +726,17 @@ void TMS_TrackFinder::FindPseudoXTrack() {
 
 double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
   // Calculate UV reconstruction of y and X hit y position
-  double UV_y = -1350 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ());
+  TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
+  Double_t localU[3] = {UHit.GetNotZ(), 0, UHit.GetZ()};
+  Double_t localV[3] = {VHit.GetNotZ(), 0, VHit.GetZ()};
+  Double_t positionU[3];
+  Double_t positionV[3];
+  geom->GetCurrentMatrix()->LocalToMaster(localU, positionU);     // This gives us the position of the bars in x, y and z. Use only the y for now!
+  geom->GetCurrentMatrix()->LocalToMaster(localV, positionV);
+  TMS_Geom::GetInstance().Scale(positionU[0], positionU[1], positionU[2]);
+  TMS_Geom::GetInstance().Scale(positionV[0], positionV[1], positionV[2]);
+  
+  double UV_y = 0.5 * (positionU[1] + positionV[1]) - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350
   double X_y = XHit.GetNotZ();
 
   double compared_y = -999999;
@@ -1278,6 +1288,8 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
   Double_t positionOther[3];
   geom->GetCurrentMatrix()->LocalToMaster(localOne, positionOne);     // This gives us the position of the bars in x, y and z. Use only the y for now!
   geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
+  TMS_Geom::GetInstance().Scale(positionOne[0], positionOne[1], positionOne[2]);
+  TMS_Geom::GetInstance().Scale(positionOther[0], positionOther[1], positionOther[2]);
    
   OneHit.SetRecoY(0.5 * (positionOne[1] + positionOther[1])  - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
   // USING THIS -1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
