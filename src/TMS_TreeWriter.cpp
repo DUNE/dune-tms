@@ -275,13 +275,33 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueMomentumTrackEnd[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionTrackEnd", RecoTrackPrimaryParticleTruePositionTrackEnd,
                      "RecoTrackPrimaryParticleTruePositionTrackEnd[RecoTrackN][4]/F"); 
-                 
+
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthAsMeasured",
+                      RecoTrackPrimaryParticleTrueTrackLengthAsMeasured,
+                     "RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY",
+                      RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY,
+                     "RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLength", RecoTrackPrimaryParticleTrueTrackLength,
+                     "RecoTrackPrimaryParticleTrueTrackLength[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthIgnoreY", RecoTrackPrimaryParticleTrueTrackLengthIgnoreY,
+                     "RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMS", RecoTrackPrimaryParticleTrueTrackLengthInTMS,
+                     "RecoTrackPrimaryParticleTrueTrackLengthInTMS[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY",
+                      RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY,
+                     "RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[RecoTrackN]/F");
+
   Truth_Info->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
   Truth_Info->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
   Truth_Info->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   Truth_Info->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
   Truth_Info->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
   Truth_Info->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
+  Truth_Info->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
+  Truth_Info->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
+  Truth_Info->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
+  Truth_Info->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
   
   Truth_Info->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
   Truth_Info->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
@@ -430,7 +450,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
     setPosition(DeathPosition[index], (*it).GetDeathPosition());
-    
+
+    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
+    TruePathLengthIgnoreY[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
+    TruePathLengthInTMS[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
+    TruePathLengthInTMSIgnoreY[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
+
     setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
     setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
     
@@ -1110,6 +1138,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     
     // Now fill truth info
+    if (itTrack >= __TMS_MAX_LINES__) {
+      std::cout<<"Warning: RecoTrackN < __TMS_MAX_LINES__. If this happens often, increase __TMS_MAX_LINES__"<<std::endl;
+      RecoTrackN = __TMS_MAX_LINES__;
+      continue;
+    }
     double total_true_visible_energy = 0;
     double true_primary_visible_energy = -999;
     double true_secondary_visible_energy = -999;
@@ -1153,6 +1186,27 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
+
+        // Now calulate the true track length from true start to true end
+        RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, end_z));
+        RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, end_z), true);
+        // Again from true start to particle's end
+        // Picking 10x TMS_Const::TMS_Thick_End breaks geometry
+        // Picking 2x TMS_Const::TMS_Thick_End causes infinite loop
+        // Or maybe crazy slowdown in sand?
+        // So let's go slightly beyond end of TMS
+        const double LARGE_Z = TMS_Const::TMS_Thick_End + 1000;
+        RecoTrackPrimaryParticleTrueTrackLength[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z));
+        RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z), true);
+        // Again from true start to particle's end within tms
+        RecoTrackPrimaryParticleTrueTrackLengthInTMS[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z, true));
+        RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z, true), true);
       }
     }
     
@@ -1360,6 +1414,14 @@ void TMS_TreeWriter::Clear() {
     RecoTrackPrimaryParticleTrueVisibleEnergy[i] = -999;
     RecoTrackSecondaryParticleIndex[i] = -999;
     RecoTrackSecondaryParticleTrueVisibleEnergy[i] = -999;
+
+    RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLength[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthInTMS[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[i] = -999;
+
     for (int j = 0; j < 4; ++j) {
       RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = -999;
       RecoTrackPrimaryParticleTruePositionTrackStart[i][j] = -999;

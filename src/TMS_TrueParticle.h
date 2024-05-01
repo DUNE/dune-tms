@@ -127,6 +127,7 @@ class TMS_TrueParticle {
     TLorentzVector GetPositionEnteringLAr() { return GetPositionEntering(TMS_Geom::StaticIsInsideLAr); };
     TLorentzVector GetPositionLeavingLAr() { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
     
+    std::vector<TVector3> GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS = false);
     
     TLorentzVector GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
     TLorentzVector GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };

@@ -47,6 +47,25 @@ TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
+std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS) {
+  std::vector<TVector3> out;
+  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
+    double z = GetPositionPoints()[i].Z();
+    if (z >= z_start && z <= z_end) {
+      double x = GetPositionPoints()[i].X();
+      double y = GetPositionPoints()[i].Y();
+      TVector3 point(x, y, z);
+      bool add = false;
+      if (onlyInsideTMS) {
+        add = TMS_Geom::StaticIsInsideTMS(point);
+      }
+      else add = TMS_Geom::StaticIsInsideReasonableSize(point);
+      if (add) out.push_back(point);
+    }
+  }
+  return out;
+}
+
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   double z_dist_found = 999999;

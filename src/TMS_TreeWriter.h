@@ -257,6 +257,10 @@ class TMS_TreeWriter {
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
+    float TruePathLength[__TMS_MAX_TRUE_PARTICLES__];
+    float TruePathLengthIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
+    float TruePathLengthInTMS[__TMS_MAX_TRUE_PARTICLES__];
+    float TruePathLengthInTMSIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
 
     float BirthMomentum[__TMS_MAX_TRUE_PARTICLES__][4];
     float BirthPosition[__TMS_MAX_TRUE_PARTICLES__][4];
@@ -302,6 +306,13 @@ class TMS_TreeWriter {
     float RecoTrackPrimaryParticleTruePositionTrackStart[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTrueMomentumTrackEnd[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionTrackEnd[__TMS_MAX_LINES__][4];
+
+    float RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLength[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthInTMS[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[__TMS_MAX_LINES__];
 };
 
 

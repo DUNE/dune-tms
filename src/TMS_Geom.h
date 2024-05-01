@@ -70,6 +70,8 @@ class TMS_Geom {
     bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSFirstTwoModules()); };
     static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
     
+    bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
+    static bool StaticIsInsideReasonableSize(TVector3 position) { return TMS_Geom::GetInstance().IsInsideReasonableSize(position); };
     
 
     // Get the geometry
