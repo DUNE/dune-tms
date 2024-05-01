@@ -2,6 +2,8 @@
 #define _TMSCONSTANTS_H_SEEN_
 
 #include <string>
+#include "TDatabasePDG.h"
+
 
 // Hidden from us inside edep-sim EDepSimRooTrackerKinematicsGenerator.hh
 // Number of maximum particles in an edep-sim event
@@ -11,14 +13,19 @@
 
 // Constants
 namespace TMS_KinConst {
-  const double mass_mu = 105.6583755; // Muon mass in MeV/c2
-  const double mass_e = 0.510998950; // electron mass in MeV/c2
-  const double mass_tau = 1776.86; // tau mass in MeV/c2
-  const double mass_pic = 139.57039; // charged pion mass in MeV/c2
-  const double mass_pi0 = 134.9768; // neutral pion mass in MeV/c2
+  static double GetMass(int pdg) {
+    TDatabasePDG *database = TDatabasePDG::Instance();
+    double out = 0;
+    // The only particles not in the database are nuclei, and zero is a fine guess for their mass
+    auto particle = database->GetParticle(pdg);
+    if (particle) {
+      out = particle->Mass() * 1000; // Convert from GeV to MeV
+    }
+    return out;
+  }
 
-  const double mass_proton = 938.27208816; // proton mass in MeV/c2
-  const double mass_neutron = 939.56542052; // neutron mass in MeV/c2
+  const double mass_mu = GetMass(13); // Used in Kalman filter
+
 }
 
 // General constants for the TMS

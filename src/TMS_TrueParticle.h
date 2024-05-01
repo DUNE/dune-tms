@@ -145,14 +145,7 @@ class TMS_TrueParticle {
     TLorentzVector GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
     
     double GetEnergyFromMomentum(TVector3 momentum) {
-      double mass = 0;
-      if      (abs(PDG) == 13)  mass = TMS_KinConst::mass_mu;
-      else if (abs(PDG) == 11)  mass = TMS_KinConst::mass_e;
-      else if (abs(PDG) == 15)  mass = TMS_KinConst::mass_tau;
-      else if (abs(PDG) == 211) mass = TMS_KinConst::mass_pic;
-      else if (abs(PDG) == 111) mass = TMS_KinConst::mass_pi0;
-      else if (abs(PDG) == 2212) mass = TMS_KinConst::mass_proton;
-      else if (abs(PDG) == 2112) mass = TMS_KinConst::mass_neutron;
+      double mass = TMS_KinConst::GetMass(PDG);
       return sqrt(momentum.Mag2()+mass*mass);
     }
 
