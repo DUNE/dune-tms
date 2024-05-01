@@ -1,5 +1,6 @@
 #include "TMS_Event.h"
 #include "TMS_Readout_Manager.h"
+#include "TDatabasePDG.h"
 #include <random>
 
 // Initialise the event counter to 0
@@ -25,6 +26,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool TMSOnly = false;
   bool TMSLArOnly = false;
   bool OnlyPrimary = true;
+  bool OnlyPrimaryOrInteresting = false;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   /*
   if (LightWeight) {
@@ -34,6 +36,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     OnlyPrimary = true;
   }
   */
+
+  TDatabasePDG *database = TDatabasePDG::Instance();
 
   // Save down the event number
   EventNumber = EventCounter;
@@ -47,6 +51,12 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   //CheckIntegrity();
 
   int vtxcounter = 0;
+  int nPrimary = 0;
+  int nInteresting = 0;
+  int nTotal = 0;
+  int nCharged = 0;
+  int nHighMomentum = 0;
+  int nChargedAndLowMomentum = 0;
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
     //std::cout<<"for each event.Primaries "<<vtxcounter<<std::endl;
@@ -72,6 +82,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       nTrueTrajectories = event.Trajectories.size();
       // Now loop over the true trajectories (tracks) in the event
       for (TG4TrajectoryContainer::iterator jt = event.Trajectories.begin(); jt != event.Trajectories.end(); ++jt) {
+        nTotal += 1;
         TG4Trajectory traj = *jt;
 
         // Only the muon if requested
@@ -81,6 +92,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         // Only from fundamental vertex if requested
         int ParentId = traj.GetParentId();
         if (OnlyPrimary && ParentId != -1) continue;
+        bool isPrimary = ParentId == -1;
 
         // The id of this trajectory
         int TrackId = traj.GetTrackId();
@@ -91,6 +103,44 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             //(traj.Points.size() < 3 || PDGcode == 22 || PDGcode == 2112)) continue;
             (PDGcode == 22 || PDGcode == 2112)) continue;
             //ParentId != -1) continue;
+
+        bool isCharged = false;
+        bool isHighMomentum = false;
+        if (PDGcode > 1000000000) {
+          // Numbers above 1000000000 are nuclei, and so aren't in the database
+          // They are charged though, but unlikely to have enough momentum to go far
+          isCharged = true;
+        } else {
+          auto particle = database->GetParticle(PDGcode);
+          if (!particle) {
+            std::cout<<"Warning: Couldn't find pdg code "<<PDGcode<<" in pdg database"<<std::endl;
+          }
+          else {
+            // Check if it's neutral or not
+            isCharged = std::abs(particle->Charge()) > 0.2;
+          }
+        }
+        if (traj.Points.size() > 0) {
+          TVector3 initial_momentum = traj.Points[0].GetMomentum();
+          if (initial_momentum.Mag() > 50) isHighMomentum = true;
+          //if (isCharged && isHighMomentum && !isPrimary) {
+          //    std::cout<<"Found interesting non-primary particle "<<PDGcode<<", momentum="<<initial_momentum.Mag()<<std::endl;
+          //}
+        }
+        bool isInteresting = isHighMomentum && isCharged;
+
+        if (isPrimary) nPrimary += 1;
+        if (!isPrimary && isInteresting) nInteresting += 1;
+        if (!isPrimary) {
+          if (isCharged) nCharged += 1;
+          if (isHighMomentum) nHighMomentum += 1;
+          if (isCharged && !isHighMomentum) nChargedAndLowMomentum += 1;
+        }
+
+        // Skip if neither interesting nor primary
+        if (OnlyPrimaryOrInteresting) {
+          if ((!isPrimary) || (!isInteresting)) continue;
+        }
 
         // Is this the first time we encounter this particle in the trajectory point loop?
         bool firsttime = true;
@@ -169,6 +219,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
   
+  //std::cout<<"N total: "<<nTotal<<", N Primary: "<<nPrimary<<", N Interesting: "<<nInteresting<<", N charged: "<<nCharged<<", N high P: "<<nHighMomentum<<", N charged and low P: "<<nChargedAndLowMomentum<<", n TMS_TruePrimaryParticles: "<<TMS_TruePrimaryParticles.size()<<std::endl;
+
   // First create a mapping so we don't loop multiple times
   std::map<int, int> mapping_track_to_vertex_id;
   int vertex_index = 0;
