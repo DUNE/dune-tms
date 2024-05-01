@@ -410,6 +410,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   
     
   nTrueParticles = TrueParticles.size();
+  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     int index = it - TrueParticles.begin();
     
@@ -1125,14 +1126,22 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       true_secondary_particle_index = particle_info.indices[1];
     }
     // Now for the primary index, find the true starting and ending momentum and position
-    // TODO add back
     if (true_primary_particle_index < 0) {
       // Do nothing, this means we didn't find a true particle associated with a reco track
       // This can't happen unless dark noise existed which is currently doesn't
       std::cout<<"Error: Found true_primary_particle_index < 0. There should be at least one particle creating energy (assuming no dark noise) but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
     }
     else if ((size_t)true_primary_particle_index >= TrueParticles.size()) {
-      std::cout<<"Error: Found true_primary_particle_index >= TrueParticles.size(). This shouldn't happen since each index should point to a true particle: "<<true_primary_particle_index<<" vs "<<TrueParticles.size()<<std::endl;
+      // This can happen if TMS_Event.OnlyPrimary is false
+      // A primary particle is a genie particle, while secondary particles are particles created by
+      // interactions in geant4 simulation. 
+      // todo save info of "special" secondary particles, such as secondary muons or michel electrons
+      // We don't care about the potentially 1000s of low-energy particles, but do care about
+      // ones long enough to make a track
+      // Another idea is to save pdg information regardless
+      // We clear the vector elements in the clear function so there's no reason to override it here
+      // But we do need to clear the index so we don't grab the wrong element
+      true_primary_particle_index = -999999999;
     }
     else {
       TMS_TrueParticle tp = TrueParticles[true_primary_particle_index];
@@ -1145,6 +1154,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
       }
+    }
+    
+    // Again, we're not saving the geant4 particles right now, so we can't save info about them here
+    if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
+      true_secondary_particle_index = -999999999;
     }
     
     RecoTrackTrueVisibleEnergy[itTrack] = total_true_visible_energy;
@@ -1337,6 +1351,36 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = -999;
     RecoTrackEnergyDeposit[i] = -999;
     RecoTrackLength[i] = -999;
+  }
+  
+  RecoTrackN = 0;
+  for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
+    RecoTrackTrueVisibleEnergy[i] = -999;
+    RecoTrackPrimaryParticleIndex[i] = -999;
+    RecoTrackPrimaryParticleTrueVisibleEnergy[i] = -999;
+    RecoTrackSecondaryParticleIndex[i] = -999;
+    RecoTrackSecondaryParticleTrueVisibleEnergy[i] = -999;
+    for (int j = 0; j < 4; ++j) {
+      RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionTrackStart[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentumTrackEnd[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionTrackEnd[i][j] = -999;
+    }
+  }
+    
+  nTrueParticles = 0;
+  for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
+    VertexID[i] = -999;
+    Parent[i] = -999;
+    TrackId[i] = -999;
+    PDG[i] = -999;
+    TrueVisibleEnergy[i] = -999;
+    for (int j = 0; j < 4; ++j) {
+      BirthMomentum[i][j] = -999;
+      BirthPosition[i][j] = -999;
+      DeathMomentum[i][j] = -999;
+      DeathPosition[i][j] = -999;
+    }
   }
 
 
