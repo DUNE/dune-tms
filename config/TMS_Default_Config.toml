@@ -51,7 +51,7 @@
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
-    Extrapolation = true
+    Extrapolation = false #true
     # Maximal distance from start/end hit to first added hit by extrapolation
     ExtrapolateDist = 4
     # Maximal distance from first added hit (by extrapolation) to last added hit
@@ -110,7 +110,7 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = -1
+  MaximumNEvents = 10000
 
 # Variables that have to do with the geometry or location of the detector 
 [Geometry]
