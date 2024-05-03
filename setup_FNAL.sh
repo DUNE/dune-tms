@@ -32,6 +32,13 @@ if [ "${EDEP_ROOT}x" != "x" ]; then
     LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
 fi
 
+# Add edep-sim library path if available
+which clhep-config > /dev/null 2>&1
+if [ $? ]; then
+    CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
+fi
+
 echo "TMS_DIR = ${TMS_DIR}"
 echo "LD_LIBRARY_PATH = ${LD_LIBRARY_PATH}"
 echo "Setup TMS environment :)"
