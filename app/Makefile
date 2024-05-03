@@ -13,10 +13,12 @@ CLHEP_LIBS = $(shell clhep-config --libs)
 CLHEP_INC = $(shell clhep-config --prefix)/include/
 
 ifndef CLHEP_INC # If not defined, normal build. 
-CLHEP_INC = $(shell clhep-config --prefix)/include/
+CLHEP_INC = $(shell clhep-config --prefix)/include
 CLHEP_LIBS = $(shell clhep-config --libs)
 else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
-CLHEP_LIBS = $(CLHEP_INC)/../../lib64
+  ifndef CLHEP_LIBS
+  CLHEP_LIBS = $(CLHEP_INC)/../lib64
+  endif
 endif
 
 EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)
