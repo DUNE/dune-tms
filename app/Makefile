@@ -19,6 +19,9 @@ else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
 CLHEP_LIBS = $(CLHEP_INC)/../../lib64
 endif
 
+EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)
+EDEP_INC = -I$(EDEPSIM_INC) -I$(GEANT4_INC) -I$(CLHEP_INC)
+
 # The TMS includes
 TMS_INC = -I../src
 
