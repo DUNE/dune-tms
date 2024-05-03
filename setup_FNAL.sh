@@ -21,12 +21,17 @@ spack load edep-sim@3.2%gcc@12.2.0  && echo "Setup edep-sim..."
 
 export TMS_DIR=${PWD}
 export PATH=${PATH}:${TMS_DIR}/bin
-
-if [ ${LD_LIBRARY_PATH} == "" ]; then
-    export LD_LIBRARY_PATH=${TMS_DIR}/lib
+if [ "${LD_LIBRARY_PATH}x" == "x" ]; then
+    LD_LIBRARY_PATH=${TMS_DIR}/lib
 else
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
+fi
+
+# Add edep-sim library path if available
+if [ "${EDEP_ROOT}x" != "x" ]; then
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
 fi
 
 echo "TMS_DIR = ${TMS_DIR}"
+echo "LD_LIBRARY_PATH = ${LD_LIBRARY_PATH}"
 echo "Setup TMS environment :)"
