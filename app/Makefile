@@ -12,8 +12,12 @@ GEANT4_INC =  $(shell geant4-config --prefix)/include/
 CLHEP_LIBS = $(shell clhep-config --libs)
 CLHEP_INC = $(shell clhep-config --prefix)/include/
 
-EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)
-EDEP_INC = -I$(EDEPSIM_INC) -I$(GEANT4_INC) -I$(CLHEP_INC)
+ifndef CLHEP_INC
+CLHEP_INC = $(shell clhep-config --prefix)/include/
+CLHEP_LIBS = $(shell clhep-config --libs)
+else
+CLHEP_LIBS = $(CLHEP_INC)/../lib
+endif
 
 # The TMS includes
 TMS_INC = -I../src
