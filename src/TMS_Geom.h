@@ -30,7 +30,7 @@ class TMS_Geom {
     }
     
     // Positions are fidicual volume
-    const double fiducial_volume_cut = 500;
+    const double fiducial_volume_cut = TMS_Manager::GetInstance().Get_LightWeight_Truth();
     inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0] + fiducial_volume_cut; };
     inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1] + fiducial_volume_cut; };
     inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2] + fiducial_volume_cut; };

@@ -70,6 +70,7 @@ TMS_Manager::TMS_Manager() {
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
+  _TRUTH_LAR_FIDUCIAL_CUT = toml::find<double> (data, "Truth", "LArFiducialCut");
 
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
   

@@ -106,6 +106,7 @@
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
 [Truth]
   LightWeight = false
+  LArFiducialCut = 200.0 # mm
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
