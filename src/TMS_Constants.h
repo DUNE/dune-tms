@@ -62,8 +62,13 @@ namespace TMS_Const {
   const double LAr_End_Exact[] = {3478.48, 829.282, 9135.88};
 
   // More exact locations of bars
+  // This seems to contain the steel as well
   const double TMS_Start_Exact[] = {-3520, -3864, TMS_Thin_Start};
   const double TMS_End_Exact[] = {3520, 1159, TMS_Thick_End};
+
+  // Plot TrueHitX,Y,Z and zoom in to see where the last hits are
+  const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
+  const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
 
   // Gap for TMS region that is thin iron layer (mm)
   const double TMS_Thin_gap = 55;
