@@ -16,8 +16,8 @@ ifndef CLHEP_INC # If not defined, normal build.
 CLHEP_INC = $(shell clhep-config --prefix)/include
 CLHEP_LIBS = $(shell clhep-config --libs)
 else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
-  ifndef CLHEP_LIBS
-  CLHEP_LIBS = $(CLHEP_INC)/../lib64
+  ifndef CLHEP_LIBS # If this is defined here it was set in src/Makefile
+  CLHEP_LIBS = -L$(CLHEP_INC)/../lib64
   endif
 endif
 
