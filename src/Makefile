@@ -9,11 +9,11 @@ ROOT_INC = $(shell root-config --cflags)
 GEANT4_LIBS = $(shell geant4-config --libs)
 GEANT4_INC =  $(shell geant4-config --prefix)/include/
 
-ifndef CLHEP_INC
+ifndef CLHEP_INC # If not defined, normal build. 
 CLHEP_INC = $(shell clhep-config --prefix)/include/
 CLHEP_LIBS = $(shell clhep-config --libs)
-else
-CLHEP_LIBS = $(CLHEP_INC)/../lib
+else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
+CLHEP_LIBS = $(CLHEP_INC)/../../lib
 endif
 
 EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)

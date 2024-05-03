@@ -12,11 +12,11 @@ GEANT4_INC =  $(shell geant4-config --prefix)/include/
 CLHEP_LIBS = $(shell clhep-config --libs)
 CLHEP_INC = $(shell clhep-config --prefix)/include/
 
-ifndef CLHEP_INC
+ifndef CLHEP_INC # If not defined, normal build. 
 CLHEP_INC = $(shell clhep-config --prefix)/include/
 CLHEP_LIBS = $(shell clhep-config --libs)
-else
-CLHEP_LIBS = $(CLHEP_INC)/../lib
+else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
+CLHEP_LIBS = $(CLHEP_INC)/../../lib
 endif
 
 # The TMS includes
