@@ -9,9 +9,6 @@ ROOT_INC = $(shell root-config --cflags)
 GEANT4_LIBS = $(shell geant4-config --libs)
 GEANT4_INC =  $(shell geant4-config --prefix)/include/
 
-CLHEP_LIBS = $(shell clhep-config --libs)
-CLHEP_INC = $(shell clhep-config --prefix)/include/
-
 ifndef CLHEP_INC # If not defined, normal build. 
 CLHEP_INC = $(shell clhep-config --prefix)/include
 CLHEP_LIBS = $(shell clhep-config --libs)
