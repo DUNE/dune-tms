@@ -20,15 +20,10 @@ mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
 mp.rc('ytick', labelsize = 12) # fontsize of the tick labels
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
+def draw_performance(out_dir, input_filename):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
-    if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
-    if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
-    if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
     
     # Make sure we read in the correct file and have the output directory
-    use_readout = True
-    if readout_filename == "": use_readout = False
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     if not os.path.exists(out_dir):
@@ -45,18 +40,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     truth.Add(input_filename)
     if not truth.GetEntries() > 0:
         print("Didn't get any entries in Truth_Info, are you sure the input_filename is right?\n", input_filename)
-    
-    # Not used yet
-    readout = None
-    if use_readout:
-        readout = ROOT.TChain("TMS")
-        readout.Add(readout_filename)
-        if not readout.GetEntries() > 0:
-            print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
             
     max_n_spills = 10000 # TODO (old) add some meta info to output file with n spill info for file
-    
-    simplify_tracks = False
     
     spill_number_cache = dict()
     n_events = r.GetEntries()
@@ -64,7 +49,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     Reco_Start = np.ones((n_events, 3), dtype = float) * -9999.
     Reco_End = np.ones((n_events, 3), dtype = float) * -9999.
     Primary_True_Start = np.ones((n_events, 3), dtype = float) * -9999.
-    Primary_True_End = np.ones((n_events, 3), dtype = float) * -9999.    
+    Primary_True_End = np.ones((n_events, 3), dtype = float) * -9999.
+    True_TrackLength = np.ones(n_events, dtype = float) * -9999.
+    Reco_TrackLength = np.ones(n_events, dtype = float) * -9999.
     
     for current_spill_number in range(max_n_spills):
         for i in range(n_events):
@@ -94,22 +81,29 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
-            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)            
+            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
+            Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
+            Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
             
             if RecoTrackPrimaryParticleTruePositionTrackStart[0] > -8000. and not StartPos.size == 0:
-                Reco_Start[i, 0] = StartPos[0]
-                Reco_Start[i, 1] = StartPos[1]
-                Reco_Start[i, 2] = StartPos[2]
-                Primary_True_Start[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
-                Primary_True_Start[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
-                Primary_True_Start[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
+                # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
+                if (EndPos[2] - StartPos[2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[2] - RecoTrackPrimaryParticleTruePositionTrackStart[2]) > 890.:
+                    Reco_Start[i, 0] = StartPos[0]
+                    Reco_Start[i, 1] = StartPos[1]
+                    Reco_Start[i, 2] = StartPos[2]
+                    Primary_True_Start[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
+                    Primary_True_Start[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
+                    Primary_True_Start[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
+                    True_TrackLength[i] = Muon_TrueTrackLength
+                    Reco_TrackLength[i] = Reco_Track_Length
             if RecoTrackPrimaryParticleTruePositionTrackEnd[0] > -8000. and not EndPos.size == 0:
-                Reco_End[i, 0] = EndPos[0]
-                Reco_End[i, 1] = EndPos[1]
-                Reco_End[i, 2] = EndPos[2]
-                Primary_True_End[i, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[0]
-                Primary_True_End[i, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[1]
-                Primary_True_End[i, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[2]
+                if (EndPos[2] - StartPos[2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[2] - RecoTrackPrimaryParticleTruePositionTrackStart[2]) > 890.:            
+                    Reco_End[i, 0] = EndPos[0]
+                    Reco_End[i, 1] = EndPos[1]
+                    Reco_End[i, 2] = EndPos[2]
+                    Primary_True_End[i, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[0]
+                    Primary_True_End[i, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[1]
+                    Primary_True_End[i, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[2]
     
     # filter out not filled indice
     boolean_Reco_Start = (Reco_Start[:, 0] != -9999.)
@@ -120,13 +114,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     Primary_True_Start = Primary_True_Start[boolean_Primary_Start]
     boolean_Primary_End = (Primary_True_End[:, 0] != -9999.)
     Primary_True_End = Primary_True_End[boolean_Primary_End]
+    boolean_True_TrackLength = (True_TrackLength != -9999.)
+    True_TrackLength = True_TrackLength[boolean_True_TrackLength]
+    boolean_Reco_TrackLength = (Reco_TrackLength != -9999.)
+    Reco_TrackLength = Reco_TrackLength[boolean_Reco_TrackLength]
     
     # subtract reconstruction from truth for all directions
     Diff_Start_x = Primary_True_Start[:, 0] - Reco_Start[:, 0]
-    Diff_Start_y = Primary_True_Start[:, 1] - Reco_Start[:, 1]
+    Diff_Start_y = Primary_True_Start[:, 1] - Reco_Start[:, 1]# - 915
     Diff_Start_z = Primary_True_Start[:, 2] - Reco_Start[:, 2]
     Diff_End_x = Primary_True_End[:, 0] - Reco_End[:, 0]
-    Diff_End_y = Primary_True_End[:, 1] - Reco_End[:, 1]
+    Diff_End_y = Primary_True_End[:, 1] - Reco_End[:, 1]# - 915
     Diff_End_z = Primary_True_End[:, 2] - Reco_End[:, 2]
 
     # create histograms for the differences
@@ -144,74 +142,116 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     Diff_End_y_histX, Diff_End_y_histY = histogram_arr_handle(Diff_End_y_hist, Diff_End_y_bins)
     Diff_End_z_histX, Diff_End_z_histY = histogram_arr_handle(Diff_End_z_hist, Diff_End_z_bins)
     
+    mean_Start_x = np.mean(Diff_Start_x)
+    mean_Start_y = np.mean(Diff_Start_y)
+    mean_Start_z = np.mean(Diff_Start_z)
+    mean_End_x = np.mean(Diff_End_x)
+    mean_End_y = np.mean(Diff_End_y)
+    mean_End_z = np.mean(Diff_End_z)
+    std_Start_x = np.std(Diff_Start_x)
+    std_Start_y = np.std(Diff_Start_y)
+    std_Start_z = np.std(Diff_Start_z)
+    std_End_x = np.std(Diff_End_x)
+    std_End_y = np.std(Diff_End_y)
+    std_End_z = np.std(Diff_End_z)
+    
+    print("Start x: ", mean_Start_x, "±", std_Start_x, "    y: ", mean_Start_y, "±", std_Start_y, "    z: ", mean_Start_z, "±", std_Start_z)
+    print("End   x: ", mean_End_x, "±", std_End_x, "    y: ", mean_End_y, "±", std_End_y, "    z: ", mean_End_z, "±", std_End_z)
+    
     # plot
-    mp.plot(Diff_Start_x_histX, Diff_Start_x_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_Start_x_histX, Diff_Start_x_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_Start_x_histX, 0, Diff_Start_x_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_Start_x, 0, max(Diff_Start_x_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_Start_x - std_Start_x, mean_Start_x + std_Start_x, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('x')
+    mp.title('Start x', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_Start_X_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
-    mp.plot(Diff_Start_y_histX, Diff_Start_y_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_Start_y_histX, Diff_Start_y_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_Start_y_histX, 0, Diff_Start_y_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_Start_y, 0, max(Diff_Start_y_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_Start_y - std_Start_y, mean_Start_y + std_Start_y, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('y')
+    mp.title('Start y', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_Start_Y_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
-    mp.plot(Diff_Start_z_histX, Diff_Start_z_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_Start_z_histX, Diff_Start_z_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_Start_z_histX, 0, Diff_Start_z_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_Start_z, 0, max(Diff_Start_z_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_Start_z - std_Start_z, mean_Start_z + std_Start_z, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('z')   
+    mp.title('Start z', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_Start_Z_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
-    mp.plot(Diff_End_x_histX, Diff_End_x_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_End_x_histX, Diff_End_x_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_End_x_histX, 0, Diff_End_x_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_End_x, 0, max(Diff_End_x_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_End_x - std_End_x, mean_End_x + std_End_x, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('x')
+    mp.title('End x', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_End_X_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
-    mp.plot(Diff_End_y_histX, Diff_End_y_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_End_y_histX, Diff_End_y_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_End_y_histX, 0, Diff_End_y_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_End_y, 0, max(Diff_End_y_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_End_y - std_End_y, mean_End_y + std_End_y, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('y')
+    mp.title('End y', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_End_Y_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
-    mp.plot(Diff_End_z_histX, Diff_End_z_histY, color = blue_cbf, linestyle = '--', linewidth = 2)
+    mp.plot(Diff_End_z_histX, Diff_End_z_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
     mp.fill_between(Diff_End_z_histX, 0, Diff_End_z_histY, alpha = 0.6, hatch = '//', color = blue_cbf)
+    mp.vlines(mean_End_z, 0, max(Diff_End_z_histY), color = red_cbf, linestyle = ':', linewidth = 3, label = 'mean')
+    mp.axvspan(mean_End_z - std_End_z, mean_End_z + std_End_z, alpha = 0.2, color = red_cbf, label = '1$\\sigma$')
     mp.grid(True, linestyle = '--', alpha = 0.2)
     mp.xlabel('Difference truth – reconstruction [mm]')
     mp.ylabel('#')
-    mp.title('z')   
+    mp.title('End z', fontsize = 'x-large')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
-    mp.close()  
+    mp.close() 
         
     # create histograms for all directions for truth and reconstruction 
-    Reco_Start_x_hist, Reco_Start_x_bins = np.histogram(Reco_Start[:, 0], bins = 48)#, range = (-3400., 3400.))
-    Reco_Start_y_hist, Reco_Start_y_bins = np.histogram(Reco_Start[:, 1], bins = 40)#, range = (-4110., -910.))
-    Reco_Start_z_hist, Reco_Start_z_bins = np.histogram(Reco_Start[:, 2], bins = 100)#, range = (11360., 18320.))
-    Reco_End_x_hist, Reco_End_x_bins = np.histogram(Reco_End[:, 0], bins = 48)#, range = (-3400., 3400.))
-    Reco_End_y_hist, Reco_End_y_bins = np.histogram(Reco_End[:, 1], bins = 40)#, range = (-4110., -910.))
-    Reco_End_z_hist, Reco_End_z_bins = np.histogram(Reco_End[:, 2], bins = 100)#, range = (11360., 18320.))
-    Primary_True_Start_x_hist, Primary_True_Start_x_bins = np.histogram(Primary_True_Start[:, 0], bins = 48)
-    Primary_True_Start_y_hist, Primary_True_Start_y_bins = np.histogram(Primary_True_Start[:, 1], bins = 20)
-    Primary_True_Start_z_hist, Primary_True_Start_z_bins = np.histogram(Primary_True_Start[:, 2], bins = 100)
-    Primary_True_End_x_hist, Primary_True_End_x_bins = np.histogram(Primary_True_End[:, 0], bins = 48)
-    Primary_True_End_y_hist, Primary_True_End_y_bins = np.histogram(Primary_True_End[:, 1], bins = 20)
-    Primary_True_End_z_hist, Primary_True_End_z_bins = np.histogram(Primary_True_End[:, 2], bins = 100)
+    z_bins = np.zeros(101, dtype = float)
+    z_bins[0] = 11362
+    for i in range(1, 101):
+        if i < 40:
+            z_bins[i] = z_bins[0] + i * 55.
+        if i >= 40:
+            z_bins[i] = 13507. + (i - 40) * 80.
+    
+    Reco_Start_x_hist, Reco_Start_x_bins = np.histogram(Reco_Start[:, 0], bins = 48, range = (-3520., 3520.))
+    Reco_Start_y_hist, Reco_Start_y_bins = np.histogram(Reco_Start[:, 1], bins = 20, range = (-2949., 244.))    #+915
+    Reco_Start_z_hist, Reco_Start_z_bins = np.histogram(Reco_Start[:, 2], bins = z_bins)
+    Reco_End_x_hist, Reco_End_x_bins = np.histogram(Reco_End[:, 0], bins = Reco_Start_x_bins)
+    Reco_End_y_hist, Reco_End_y_bins = np.histogram(Reco_End[:, 1], bins = Reco_Start_y_bins)   #+915
+    Reco_End_z_hist, Reco_End_z_bins = np.histogram(Reco_End[:, 2], bins = Reco_Start_z_bins)
+    Primary_True_Start_x_hist, Primary_True_Start_x_bins = np.histogram(Primary_True_Start[:, 0], bins = Reco_Start_x_bins)
+    Primary_True_Start_y_hist, Primary_True_Start_y_bins = np.histogram(Primary_True_Start[:, 1], bins = Reco_Start_y_bins)
+    Primary_True_Start_z_hist, Primary_True_Start_z_bins = np.histogram(Primary_True_Start[:, 2], bins = Reco_Start_z_bins)
+    Primary_True_End_x_hist, Primary_True_End_x_bins = np.histogram(Primary_True_End[:, 0], bins = Reco_Start_x_bins)
+    Primary_True_End_y_hist, Primary_True_End_y_bins = np.histogram(Primary_True_End[:, 1], bins = Reco_Start_y_bins)
+    Primary_True_End_z_hist, Primary_True_End_z_bins = np.histogram(Primary_True_End[:, 2], bins = Reco_Start_z_bins)
     
     # make the histograms usable
     Reco_Start_x_histX, Reco_Start_x_histY = histogram_arr_handle(Reco_Start_x_hist, Reco_Start_x_bins)
@@ -236,7 +276,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('Start in TMS [mm]')
     mp.ylabel('#')
-    mp.title('x')   
+    mp.title('Start x', fontsize = 'x-large')
     mp.savefig('%s/Track_Start_X_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
@@ -248,7 +288,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('Start in TMS [mm]')
     mp.ylabel('#')
-    mp.title('y')   
+    mp.title('Start y', fontsize = 'x-large')   
     mp.savefig('%s/Track_Start_Y_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
@@ -260,7 +300,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('Start in TMS [mm]')
     mp.ylabel('#')
-    mp.title('z')
+    mp.title('Start z', fontsize = 'x-large')
     mp.savefig('%s/Track_Start_Z_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
@@ -272,7 +312,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('End in TMS [mm]')
     mp.ylabel('#')
-    mp.title('x')   
+    mp.title('End x', fontsize = 'x-large')   
     mp.savefig('%s/Track_End_X_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
@@ -284,7 +324,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('End in TMS [mm]')
     mp.ylabel('#')
-    mp.title('y')
+    mp.title('End y', fontsize = 'x-large')
     mp.savefig('%s/Track_End_Y_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
@@ -296,12 +336,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.xlabel('End in TMS [mm]')
     mp.ylabel('#')
-    mp.title('z')
+    mp.title('End z', fontsize = 'x-large')
     mp.savefig('%s/Track_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
     mp.close()
     
     ### plot difference in dependence of hit position
     # create 2d histograms
+    print(min(min(Primary_True_Start[:, 1]), min(Primary_True_End[:, 1])), max(max(Primary_True_Start[:, 1]), max(Primary_True_End[:, 1])), min(min(Reco_Start[:, 1]), min(Reco_End[:, 1])), max(max(Reco_Start[:, 1]), max(Reco_End[:, 1])))
+    
     dependence_Start_x_hist, dependence_Start_x_binsX, dependence_Start_x_binsY = np.histogram2d(Primary_True_Start[:, 0], Diff_Start_x, bins = [Primary_True_Start_x_bins, Diff_Start_x_bins])
     dependence_Start_y_hist, dependence_Start_y_binsX, dependence_Start_y_binsY = np.histogram2d(Primary_True_Start[:, 1], Diff_Start_y, bins = [Primary_True_Start_y_bins, Diff_Start_y_bins])
     dependence_Start_z_hist, dependence_Start_z_binsX, dependence_Start_z_binsY = np.histogram2d(Primary_True_Start[:, 2], Diff_Start_z, bins = [Primary_True_Start_z_bins, Diff_Start_z_bins])
@@ -314,7 +356,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_Start_x_binsX, dependence_Start_x_binsY, np.transpose(dependence_Start_x_hist), cmap = cmap);
     mp.xlabel('Start in TMS (X) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('x')
+    mp.title('Start x', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/Start_X_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
@@ -322,7 +364,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_Start_y_binsX, dependence_Start_y_binsY, np.transpose(dependence_Start_y_hist), cmap = cmap);
     mp.xlabel('Start in TMS (Y) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('y')
+    mp.title('Start y', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/Start_Y_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
@@ -330,7 +372,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_Start_z_binsX, dependence_Start_z_binsY, np.transpose(dependence_Start_z_hist), cmap = cmap);
     mp.xlabel('Start in TMS (Z) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('z')
+    mp.title('Start z', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/Start_Z_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
@@ -338,7 +380,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_End_x_binsX, dependence_End_x_binsY, np.transpose(dependence_End_x_hist), cmap = cmap);
     mp.xlabel('End in TMS (X) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('x')
+    mp.title('End x', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/End_X_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
@@ -346,7 +388,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_End_y_binsX, dependence_End_y_binsY, np.transpose(dependence_End_y_hist), cmap = cmap);
     mp.xlabel('End in TMS (Y) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('y')
+    mp.title('End y', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/End_Y_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
@@ -354,10 +396,40 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     im = mp.pcolormesh(dependence_End_z_binsX, dependence_End_z_binsY, np.transpose(dependence_End_z_hist), cmap = cmap);
     mp.xlabel('End in TMS (Z) [mm]')
     mp.ylabel('Difference truth - reco [mm]')
-    mp.title('z')
+    mp.title('End z', fontsize = 'x-large')
     mp.colorbar(im);
     mp.savefig('%s/End_Z_real_and_difference.png' % out_dir, bbox_inches = 'tight');
     mp.close();
+
+    # Track length
+    # histogram
+    
+    # single histogram as well
+    reco_tracklength_hist, reco_tracklength_bins = np.histogram(Reco_TrackLength / 10, bins = 40, range = (min(min(Reco_TrackLength / 10), min(True_TrackLength)), max(max(Reco_TrackLength / 10), max(True_TrackLength))))
+    true_tracklength_hist, true_tracklength_bins = np.histogram(True_TrackLength, bins = reco_tracklength_bins)
+    
+    reco_tracklength_histX, reco_tracklength_histY = histogram_arr_handle(reco_tracklength_hist, reco_tracklength_bins)
+    true_tracklength_histX, true_tracklength_histY = histogram_arr_handle(true_tracklength_hist, true_tracklength_bins)
+    
+    mp.plot(true_tracklength_histX, true_tracklength_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'truth')
+    mp.plot(reco_tracklength_histX, reco_tracklength_histY, color = orange_cbf, linestyle = ':', linewidth = 2, label = 'reco')
+    mp.fill_between(true_tracklength_histX, 0, true_tracklength_histY, alpha = 0.6, color = blue_cbf, hatch = '\\\\')
+    mp.fill_between(reco_tracklength_histX, 0, reco_tracklength_histY, alpha = 0.6, color = orange_cbf, hatch = '//')
+    mp.xlabel('Reco track length [$\\frac{g}{cm^2}$]')
+    mp.ylabel('#')
+    mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
+    mp.grid(True, linestyle = '--', alpha = 0.2)
+    mp.savefig('%s/Reco_tracklength.png' % out_dir, bbox_inches = 'tight')
+    mp.close()    
+    
+    tracklength_hist, tracklength_binsX, tracklength_binsY = np.histogram2d(True_TrackLength, Reco_TrackLength / 10, bins = [true_tracklength_bins, reco_tracklength_bins])
+    
+    im = mp.pcolormesh(tracklength_binsX, tracklength_binsY, np.transpose(tracklength_hist), cmap = cmap)
+    mp.xlabel('True track length [$\\frac{g}{cm^2}$]')
+    mp.ylabel('Reco track length [$\\frac{g}{cm^2}$]')
+    mp.colorbar(im)
+    mp.savefig('%s/Tracklength.png' % out_dir, bbox_inches = 'tight')
+    mp.close()
            
     return
 
@@ -393,21 +465,11 @@ def histogram_arr_handle(bins, edges):#(u bins,v edges)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Draws spills.")
     parser.add_argument('--outdir', "-o", type = str, help = "The output dir. Will be made if it doesn't exist. Default = spills/", default = "spills")
-    parser.add_argument('--name', "-n", type = str, help = "The name of the output files. Will be <name>_<spill>_<slice>.png. Default = spill", default = "spill")
     parser.add_argument('--input_filename', "-f", type = str, help = "The file with the events to draw.")
-    parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
-    parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
-    parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
-    parser.add_argument('--only_true_tms_muons', help = "Only draw events with true muons inside the TMS", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
     out_dir = args.outdir
-    name = args.name
     input_filename = args.input_filename
-    spill_number = args.spillnum
-    time_slice = args.timeslice
-    readout_filename =  args.readout_filename
-    only_true_tms_muons = args.only_true_tms_muons
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons)
+    draw_performance(out_dir, input_filename)
 
