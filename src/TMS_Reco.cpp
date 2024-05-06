@@ -736,7 +736,7 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 //  TMS_Geom::GetInstance().Scale(positionU[0], positionU[1], positionU[2]);
 //  TMS_Geom::GetInstance().Scale(positionV[0], positionV[1], positionV[2]);
   
-  double UV_y = -2949 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350
+  double UV_y = 244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350/-2949
   double X_y = XHit.GetNotZ();
 
   double compared_y = -999999;
@@ -1291,7 +1291,7 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
 //  TMS_Geom::GetInstance().Scale(positionOne[0], positionOne[1], positionOne[2]);
 //  TMS_Geom::GetInstance().Scale(positionOther[0], positionOther[1], positionOther[2]);
    
-  OneHit.SetRecoY(-2949 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
+  OneHit.SetRecoY(244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
   // USING THIS -2949/1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
   return;
 }
