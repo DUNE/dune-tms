@@ -5,6 +5,7 @@ import os
 import argparse
 import cppyy.ll
 import matplotlib.cm as cm
+from matplotlib_venn import venn2, venn2_circles
 
 # plotstyle
 red_cbf = '#d55e00'
@@ -41,7 +42,7 @@ def draw_performance(out_dir, input_filename):
     if not truth.GetEntries() > 0:
         print("Didn't get any entries in Truth_Info, are you sure the input_filename is right?\n", input_filename)
             
-    max_n_spills = 10000 # TODO (old) add some meta info to output file with n spill info for file
+    max_n_spills = 121000 # TODO (old) add some meta info to output file with n spill info for file
     
     spill_number_cache = dict()
     n_events = r.GetEntries()
@@ -82,8 +83,8 @@ def draw_performance(out_dir, input_filename):
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
-            Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
-            Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
+            #Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
+            #Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
             
             if RecoTrackPrimaryParticleTruePositionTrackStart[0] > -8000. and not StartPos.size == 0:
                 # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
@@ -91,11 +92,13 @@ def draw_performance(out_dir, input_filename):
                     Reco_Start[i, 0] = StartPos[0]
                     Reco_Start[i, 1] = StartPos[1]
                     Reco_Start[i, 2] = StartPos[2]
+                    #if RecoTrackPrimaryParticleTruePositionTrackStart[2] < 11362:
+                    #    print('PDG: ', true_event.PDG[np.frombuffer(true_event.RecoTrackPrimaryParticleIndex, dtype = np.uint8)[0]], ' End: ', RecoTrackPrimaryParticleTruePositionTrackEnd[2])
                     Primary_True_Start[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
                     Primary_True_Start[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
                     Primary_True_Start[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
-                    True_TrackLength[i] = Muon_TrueTrackLength
-                    Reco_TrackLength[i] = Reco_Track_Length
+                    #True_TrackLength[i] = Muon_TrueTrackLength
+                    #Reco_TrackLength[i] = Reco_Track_Length
             if RecoTrackPrimaryParticleTruePositionTrackEnd[0] > -8000. and not EndPos.size == 0:
                 if (EndPos[2] - StartPos[2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[2] - RecoTrackPrimaryParticleTruePositionTrackStart[2]) > 890.:            
                     Reco_End[i, 0] = EndPos[0]
@@ -118,6 +121,9 @@ def draw_performance(out_dir, input_filename):
     True_TrackLength = True_TrackLength[boolean_True_TrackLength]
     boolean_Reco_TrackLength = (Reco_TrackLength != -9999.)
     Reco_TrackLength = Reco_TrackLength[boolean_Reco_TrackLength]
+    
+    # total number of events after filtering
+    print("#events reconstruction: ", len(Reco_Start), "# events truth: ", len(Primary_True_Start))
     
     # subtract reconstruction from truth for all directions
     Diff_Start_x = Primary_True_Start[:, 0] - Reco_Start[:, 0]
@@ -229,12 +235,12 @@ def draw_performance(out_dir, input_filename):
     mp.title('End z', fontsize = 'x-large')
     mp.legend(loc = 'best', fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
     mp.savefig('%s/Difference_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
-    mp.close() 
+    mp.close()
         
     # create histograms for all directions for truth and reconstruction 
-    z_bins = np.zeros(101, dtype = float)
+    z_bins = np.zeros(102, dtype = float)
     z_bins[0] = 11362
-    for i in range(1, 101):
+    for i in range(1, 102):
         if i < 40:
             z_bins[i] = z_bins[0] + i * 55.
         if i >= 40:
@@ -342,7 +348,7 @@ def draw_performance(out_dir, input_filename):
     
     ### plot difference in dependence of hit position
     # create 2d histograms
-    print(min(min(Primary_True_Start[:, 1]), min(Primary_True_End[:, 1])), max(max(Primary_True_Start[:, 1]), max(Primary_True_End[:, 1])), min(min(Reco_Start[:, 1]), min(Reco_End[:, 1])), max(max(Reco_Start[:, 1]), max(Reco_End[:, 1])))
+    #print(min(min(Primary_True_Start[:, 1]), min(Primary_True_End[:, 1])), max(max(Primary_True_Start[:, 1]), max(Primary_True_End[:, 1])), min(min(Reco_Start[:, 1]), min(Reco_End[:, 1])), max(max(Reco_Start[:, 1]), max(Reco_End[:, 1])))
     
     dependence_Start_x_hist, dependence_Start_x_binsX, dependence_Start_x_binsY = np.histogram2d(Primary_True_Start[:, 0], Diff_Start_x, bins = [Primary_True_Start_x_bins, Diff_Start_x_bins])
     dependence_Start_y_hist, dependence_Start_y_binsX, dependence_Start_y_binsY = np.histogram2d(Primary_True_Start[:, 1], Diff_Start_y, bins = [Primary_True_Start_y_bins, Diff_Start_y_bins])
@@ -430,8 +436,125 @@ def draw_performance(out_dir, input_filename):
     mp.colorbar(im)
     mp.savefig('%s/Tracklength.png' % out_dir, bbox_inches = 'tight')
     mp.close()
-           
+    
+    
+    ### Stopping vs exiting evaluation
+    opposite_direction_counter = 0
+    stopping_and_exiting_counter = 0
+    stopping_counter = 0
+    exiting_counter = 0
+    exiting_truth = 0
+    exiting_reco = 0
+    stopping_truth = 0
+    stopping_reco = 0
+    
+    for i in range(len(Reco_Start)):
+        true_slope, true_intercept = line_slope_intercept(Primary_True_Start[i, 1], Primary_True_End[i, 1], Primary_True_Start[i, 2], Primary_True_End[i, 2])
+        reco_slope, reco_intercept = line_slope_intercept(Reco_Start[i, 1], Reco_End[i, 1], Reco_Start[i, 2], Reco_End[i, 2])
+        
+        truth_exiting = False
+        truth_stopping = False
+        reco_exiting = False
+        reco_stopping = False
+        
+        # check if line crosses detector volume in yz
+        if (true_slope * 18294 + true_intercept) < -2949 and Primary_True_End[i, 1] < (-2949 + 338.3):
+            truth_exiting = True
+        elif Primary_True_End[i, 2] < 17750:
+            truth_stopping = True
+        if (reco_slope * 18294 + reco_intercept) < -2949 and Reco_End[i, 1] < (-2949 + 338.3):
+            reco_exiting = True
+        elif Reco_End[i, 2] < 17750:
+            reco_stopping = True
+        
+        if truth_exiting:
+            exiting_truth += 1
+        elif truth_stopping:
+            stopping_truth += 1
+        
+        if reco_exiting:
+            exiting_reco += 1
+        elif reco_stopping:
+            stopping_reco += 1
+        
+        if truth_exiting and reco_exiting:
+            stopping_and_exiting_counter += 1
+            exiting_counter += 1
+        elif truth_stopping and reco_stopping:
+            stopping_and_exiting_counter += 1
+            stopping_counter += 1
+        
+        if (true_slope < 0 and reco_slope > 0) or (true_slope > 0 and reco_slope < 0):
+            opposite_direction_counter += 1
+    
+    efficiency_stop, purity_stop, accuracy_stop = eff_pur_acc(stopping_counter, stopping_truth, stopping_reco)
+    efficiency_exit, purity_exit, accuracy_exit = eff_pur_acc(exiting_counter, exiting_truth, exiting_reco)
+    
+    
+    print("Number of opposite directions: ", opposite_direction_counter, " (", opposite_direction_counter / len(Reco_Start) * 100, "%)")
+    print("Stopping and exiting total: ", stopping_and_exiting_counter, " (", stopping_and_exiting_counter / len(Reco_Start) * 100, "%)")
+    print("Exiting: ", exiting_counter, " (", exiting_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_stop * 100, " , pur.: ", purity_stop * 100, " , acc.: ", accuracy_stop * 100)
+    print("Stopping: ", stopping_counter, " (", stopping_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_exit * 100, " , pur.: ", purity_exit * 100, " , acc.: ", accuracy_exit * 100)
+    print("Truth: exiting: ", exiting_truth, " stopping: ", stopping_truth)
+    print("Reco: exiting: ", exiting_reco, " stopping: ", stopping_reco)
+    
+    v = venn2(subsets = (stopping_truth - stopping_counter, stopping_reco - stopping_counter, stopping_counter), set_labels = ('Truth', 'Reco'), set_colors = ('#03558e', '#e95125', '#f39e92'), alpha = 1)
+    c = venn2_circles(subsets = (stopping_truth - stopping_counter, stopping_reco - stopping_counter, stopping_counter), color = 'grey', linestyle = 'dashed', linewidth = 1.5)
+    v.get_label_by_id('10').set_text('%i' % stopping_truth)
+    v.get_label_by_id('10').set_color('lightgrey')
+    v.get_label_by_id('10').set_fontsize('x-large')
+    v.get_label_by_id('A').set_color('#03558e')
+    v.get_label_by_id('A').set_fontsize('xx-large')
+    v.get_patch_by_id('10').set_color('#03558e')
+    v.get_label_by_id('01').set_text('%i' % stopping_reco)
+    v.get_label_by_id('01').set_color('black')
+    v.get_label_by_id('01').set_fontsize('x-large')
+    v.get_label_by_id('B').set_color('#e95125')
+    v.get_label_by_id('B').set_fontsize('xx-large')
+    v.get_patch_by_id('01').set_color('#e95125')
+    v.get_label_by_id('11').set_text('%i' % stopping_counter)
+    v.get_label_by_id('11').set_color('black')
+    v.get_label_by_id('11').set_fontsize('x-large')
+    v.get_patch_by_id('11').set_color('#f39e92')
+    mp.title('Stopping')
+    mp.savefig('%s/Stopping_venn.png' % out_dir, bbox_inches = 'tight')
+    mp.close()
+    
+    v = venn2(subsets = (exiting_truth - exiting_counter, exiting_reco - exiting_counter, exiting_counter), set_labels = ('Truth', 'Reco'), set_colors = ('#03558e', '#e95125', '#f39e92'), alpha = 1)
+    c = venn2_circles(subsets = (exiting_truth - exiting_counter, exiting_reco - exiting_counter, exiting_counter), color = 'grey', linestyle = 'dashed', linewidth = 1.5)
+    v.get_label_by_id('10').set_text('%i' % exiting_truth)
+    v.get_label_by_id('10').set_color('lightgrey')
+    v.get_label_by_id('10').set_fontsize('x-large')
+    v.get_label_by_id('A').set_color('#03558e')
+    v.get_label_by_id('A').set_fontsize('xx-large')
+    v.get_patch_by_id('10').set_color('#03558e')
+    v.get_label_by_id('01').set_text('%i' % exiting_reco)
+    v.get_label_by_id('01').set_color('black')
+    v.get_label_by_id('01').set_fontsize('x-large')
+    v.get_label_by_id('B').set_color('#e95125')
+    v.get_label_by_id('B').set_fontsize('xx-large')
+    v.get_patch_by_id('01').set_color('#e95125')
+    v.get_label_by_id('11').set_text('%i' % exiting_counter)
+    v.get_label_by_id('11').set_color('black')
+    v.get_label_by_id('11').set_fontsize('x-large')
+    v.get_patch_by_id('11').set_color('#f39e92')
+    mp.title('Exiting')
+    mp.savefig('%s/Exiting_venn.png' % out_dir, bbox_inches = 'tight')
+    mp.close()
+    
     return
+
+def eff_pur_acc(overlap, truth, reco):
+    efficiency = overlap / truth
+    purity = overlap / reco
+    accuracy = overlap / (truth + reco - overlap)
+    return efficiency, purity, accuracy
+
+
+def line_slope_intercept(y_start, y_end, z_start, z_end):
+    slope = (y_end - y_start) / (z_end - z_start)
+    intercept = y_start - slope * z_start
+    return slope, intercept
 
 def histogram_arr_handle(bins, edges):#(u bins,v edges)
     """Function to calculated x- and y-values from np.histogram
