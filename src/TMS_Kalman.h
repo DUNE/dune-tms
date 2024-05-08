@@ -5,6 +5,7 @@
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
+#include "TRandom3.h"
 
 // Include the physics for propgataion
 #include "BetheBloch.h"
@@ -106,6 +107,7 @@ class TMS_KalmanNode {
 
 class TMS_Kalman {
   public:
+    TRandom3 RNG;
     TMS_Kalman();
     TMS_Kalman(std::vector<TMS_Hit> &Candidates);
 
@@ -115,6 +117,8 @@ class TMS_Kalman {
 
     double GetMomentum() {return momentum;}
 
+    TVectorD GetNoiseVector(TMS_KalmanNode Node);
+
   private:
     // Energy-loss calculator
     BetheBloch_Calculator Bethe;
@@ -123,6 +127,7 @@ class TMS_Kalman {
     void Predict(TMS_KalmanNode &Node);
     void Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode);
     void RunKalman();
+
 
     // State vector
     // x, y, dx/dz, dy/dz, q/p

@@ -15,6 +15,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   Talk(false)
   //Talk(true)
 {
+  TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
 
   // Empty the KalmanStates
   KalmanNodes.clear();
@@ -90,8 +91,6 @@ double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double st
   if (endz > TMS_Const::TMS_Thick_Start) KEest = 101.5+0.133*dist;
   else KEest = -1.13+0.234*dist;
 
-  std::cout << "dist: " << dist << " KE: " << KEest << std::endl;
-
   return KEest;
 }
 
@@ -103,6 +102,7 @@ void TMS_Kalman::RunKalman() {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
+    KalmanNodes[i].CurrentState.Print();
   }
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
@@ -118,7 +118,7 @@ void TMS_Kalman::Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNod
 // Predict the next step
 // Here we use the previous state to predict the current state
 // We also calculate the updated noise matrix from multiple scattering and energy loss
-// Account for energy loss, multiple scattering, and bending due to the magnetic field
+//jAccount for energy loss, multiple scattering, and bending due to the magnetic field
 void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Right out of MINOS
@@ -148,11 +148,18 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Just the propagator matrix influence
   TVectorD UpdateVec = Transfer*(PreviousVec);
+  TVectorD NoiseVec; NoiseVec.ResizeTo(5); NoiseVec.Zero();
+  //std::cout << "Noisey shite: " << NoiseVec[0] << ", " << NoiseVec[1] << ", "  << NoiseVec[2] << ", "  << NoiseVec[3] << ", "  << NoiseVec[4] << std::endl;
+
   // Now construct the current state (z of CurrentState is already set to be z+dz)
   CurrentState.x = UpdateVec[0];
   CurrentState.y = UpdateVec[1];
   CurrentState.dxdz = UpdateVec[2];
   CurrentState.dydz = UpdateVec[3];
+  //CurrentState.x = UpdateVec[0] + NoiseVec[0];
+  //CurrentState.y = UpdateVec[1] + NoiseVec[1];
+  //CurrentState.dxdz = UpdateVec[2] + NoiseVec[2];
+  //CurrentState.dydz = UpdateVec[3] + NoiseVec[3];
   // Don't update q/p until later (when we've done the energy loss calculation)
 
 
@@ -162,9 +169,10 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (Talk) CurrentState.Print();
 
 
+  std::cout << "LIAM : " << PreviousState.qp << std::endl;
   // Update the energy
   double mom = 1./PreviousState.qp;
-  if (std::isinf(mom)) mom = 4000; // set to 4 GeV
+  //if (std::isinf(mom)) mom = 4800; // set to 1 GeV
   // Initial energy before energy loss
   double en_initial = sqrt(mom*mom+mass*mass);
   // The energy we'll be changing
@@ -191,7 +199,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
 
   // Get the materials between the two points
-  std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop);
+  std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop, true);
 
   if (Talk) std::cout << "Looping over " << Materials.size() << " materials" << std::endl;
   double TotalPathLength = 0;
@@ -214,6 +222,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     thickness = TMS_Geom::GetInstance().Scale(thickness);
     if (Talk) material.first->Print();
 
+    //std::cout << "\n\n\n";
     if (Talk) {
       std::cout << "Material " << counter << " = " << material.first->GetName() << std::endl;
       std::cout << "  density: " << density << std::endl;
@@ -224,6 +233,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     // Skip if density or thickness is small
     if (density*thickness < 0.1) {
       if (Talk) std::cout << "  Skipping material, to little path length to bother" << std::endl;
+      continue;
+    } else if (thickness > 200) {
+      std::cout << "[TMS_Kalman.cpp] Weirdness  --  Skipping material, too long path length: " << thickness << "mm (rejected as >200mm)" << std::endl;
       continue;
     }
 
@@ -270,7 +282,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (p_2_up > 0) p_up = sqrt(p_2_up);
   else {
     std::cerr << "negative momentum squared, setting momentum to 1 MeV" << std::endl;
-    p_up = 1;
+    //p_up = 1;
+    p_up = sqrt(en*en); // not 1 MeV (:
   }
 
   // Update the state's q/p
@@ -344,9 +357,45 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (Talk) std::cout << "Noise matrix: " << std::endl;
   if (Talk) NoiseMatrix.Print();
 
+  NoiseVec = GetNoiseVector(Node);
+
+  CurrentState.x += NoiseVec[0];
+  CurrentState.y += NoiseVec[1];
+  CurrentState.dxdz += NoiseVec[2];
+  CurrentState.dydz += NoiseVec[3];
+
   // I think that's it
   // Other than the B-field...!
 
 }
 
+// Use the NoiseMatrix from the Kalman state to throw a vector of random noise
+// to add to the state measurement
+TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
+  TVectorD rand_vec;
+  rand_vec.ResizeTo(KALMAN_DIM);
+  for(int i = 0; i < KALMAN_DIM; i++)
+    rand_vec[i] = RNG.Gaus();
 
+
+  TVectorD toy;
+  toy.ResizeTo(5);
+  toy.Zero();
+  for(int j = 0; j < KALMAN_DIM; j++)
+  {
+    for(int k = 0; k < KALMAN_DIM; k++)
+    {
+      if (std::isnan(Node.NoiseMatrix[j][k]))
+      {
+        //std::cout << "[TMS_Kalman.cpp] Weirdness  --  NoiseMat[" << j << "][" << k << "] = " << Node.NoiseMatrix[j][k] << std::endl;
+        Node.NoiseMatrix[j][k] = RNG.Gaus();
+        //continue;
+      }
+
+      toy[j] += Node.NoiseMatrix[j][k] * rand_vec[k];
+    }
+  }
+  //std::cout << "Noisey shite: " << toy[0] << ", " << toy[1] << ", "  << toy[2] << ", "  << toy[3] << ", "  << toy[4] << std::endl;
+
+  return toy;
+}
