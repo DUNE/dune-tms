@@ -702,7 +702,17 @@ void TMS_TrackFinder::FindPseudoXTrack() {
 
 double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
   // Calculate UV reconstruction of y and X hit y position
-  double UV_y = -1350 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ());
+//  TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
+//  Double_t localU[3] = {UHit.GetNotZ(), 0, UHit.GetZ()};
+//  Double_t localV[3] = {VHit.GetNotZ(), 0, VHit.GetZ()};
+//  Double_t positionU[3];
+//  Double_t positionV[3];
+//  geom->GetCurrentMatrix()->LocalToMaster(localU, positionU);     // This gives us the position of the bars in x, y and z. Use only the y for now!
+//  geom->GetCurrentMatrix()->LocalToMaster(localV, positionV);
+//  TMS_Geom::GetInstance().Scale(positionU[0], positionU[1], positionU[2]);
+//  TMS_Geom::GetInstance().Scale(positionV[0], positionV[1], positionV[2]);
+  
+  double UV_y = -2949 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350
   double X_y = XHit.GetNotZ();
 
   double compared_y = -999999;
@@ -721,8 +731,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
   std::cout << "3D matching" << std::endl;
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
-
 #endif
+
   std::vector<TMS_Track> returned;
   
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
@@ -1174,6 +1184,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 90)) stereo_view = false;
               }
               if (stereo_view) {
+                CalculateRecoY(VTracks.front(), UTracks.front());
                 aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
                 aTrack.End[1] = VTracks.front().GetRecoY();
                 aTrack.End[2] = VTracks.front().GetZ();
@@ -1196,6 +1207,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                 else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 90)) stereo_view = false;
               }
               if (stereo_view) {
+                CalculateRecoY(UTracks.back(), VTracks.back());
                 aTrack.Start[0] = 0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ());
                 aTrack.Start[1] = VTracks.back().GetRecoY();
                 aTrack.Start[2] = VTracks.back().GetZ();
@@ -1252,9 +1264,11 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &OtherHit) {
 //  Double_t positionOther[3];
 //  geom->GetCurrentMatrix()->LocalToMaster(localOne, positionOne);     // This gives us the position of the bars in x, y and z. Use only the y for now!
 //  geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
+//  TMS_Geom::GetInstance().Scale(positionOne[0], positionOne[1], positionOne[2]);
+//  TMS_Geom::GetInstance().Scale(positionOther[0], positionOther[1], positionOther[2]);
    
-  OneHit.SetRecoY(-1350 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())
-  // USING THIS -1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
+  OneHit.SetRecoY(-2949 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(OneHit.GetNotZ() - OtherHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
+  // USING THIS -2949/1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
   return;
 }
 

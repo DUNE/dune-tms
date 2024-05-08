@@ -369,8 +369,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   VertexVisibleEnergyFractionInSlice = VisibleEnergyFromUVertexInSlice / TotalVisibleEnergyFromVertex;
   PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromUVertexInSlice / (VisibleEnergyFromVVerticesInSlice + VisibleEnergyFromUVertexInSlice);
 
-  //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
-  Muon_TrueTrackLength = -999.99;
+  Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
+  //Muon_TrueTrackLength = -999.99;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
 
@@ -1098,7 +1098,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
-    { // If true^ it seems the direction hasn't been set
+    { // If true it seems the direction hasn't been set
       for (int j = 0; j < 3; j++)
       { // Right now no need to make sure this is a unit vector
         RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
