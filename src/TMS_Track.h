@@ -1,4 +1,5 @@
 #include "TMS_Hit.h"
+#include "TMS_TrueParticle.h"
 
 #ifndef _TMS_TRACK_H_SEEN_
 #define _TMS_TRACK_H_SEEN_
@@ -28,6 +29,8 @@ class TMS_Track {
     double GetEnergyRange()   {return EnergyRange;};
     double GetMomentum()      {return Momentum;};
 
+    TMS_TrueParticle GetTrueParticle() {return fTrueParticle;};
+
     // Manually set variables
     void SetEnergyDeposit(double val) {EnergyDeposit = val;};
     void SetEnergyRange  (double val) {EnergyRange   = val;};
@@ -35,6 +38,12 @@ class TMS_Track {
 
     int nHits;
     std::vector<TMS_Hit> Hits;
+
+
+  // a lot of the vars from above can be moved into this in future
+  private:
+    TMS_TrueParticle fTrueParticle;
+
 };
 
 
