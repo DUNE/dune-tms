@@ -84,7 +84,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist_total_charge_id_antimuon = ROOT.TH1D("hist_total_charge_id_antimuon", "Antimuons total charge number (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_correct_charge_id_percentage_antimuon = ROOT.TH1D("hist_correct_charge_id_percentage_antimuon", "Antimuons correct charge percentage (using truth_info);True antimuon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance_antimuon = ROOT.TH1D("hist_signed_distance_antimuon", "Antimuons signed distance: (x_extropolate - x_truth) (using truth_info) ;True signed distance(mm); Number of antimuons", 100, -2000, 2000)
-  
+        hist_signed_distance_vs_endpoints_z = ROOT.TH2D("hist_signed_distance_vs_endpoints_z", "Muons signed distance vs endpoint in z (using truth_info);True endpoint in z (mm);True signed distance(mm) ", 100, 10000, 19000,100,-500,2000)
        
       
         
@@ -117,9 +117,15 @@ def run(c, truth, outfilename, nmax=-1):
     
 
     n_true_muons=0
+    n_true_antimuons=0
     n_muon_total_lar_start_tms_end =0
-    n_correct=0
+    n_antimuon_total_lar_start_tms_end =0
+    n_correct_muon=0
+    n_incorrect_muon =0 
+    n_correct_antimuon=0
+    n_incorrect_antimuon=0
     correct_percentage_total =0
+    correct_percentage_total_antimuon =0
 
     # Now loop over all events
     for i, event in enumerate(c):
@@ -157,11 +163,13 @@ def run(c, truth, outfilename, nmax=-1):
                         signed_dist = x_end - x_extrapolate
                         hist_signed_distance.Fill(signed_dist)
                         hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
                         if signed_dist > 0 :
                             hist_correct_charge_id.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_muon+=1
                         else:  
-                            hist_incorrect_charge_id.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id.Fill(truth.Muon_TrueKE)
+                            n_incorrect_muon +=1
                 
                 
                 
@@ -176,11 +184,13 @@ def run(c, truth, outfilename, nmax=-1):
                         signed_dist = -(x_end - x_extrapolate)
                         hist_signed_distance.Fill(signed_dist)
                         hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
                         if signed_dist > 0 :
                             hist_correct_charge_id.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_muon+=1
                         else:  
                             hist_incorrect_charge_id.Fill(truth.Muon_TrueKE) 
+                            n_incorrect_muon +=1
                 
                 
                 
@@ -195,13 +205,20 @@ def run(c, truth, outfilename, nmax=-1):
                         signed_dist = x_end - x_extrapolate
                         hist_signed_distance.Fill(signed_dist)
                         hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
                         if signed_dist > 0 :
                             hist_correct_charge_id.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_muon+=1
                         else:  
                             hist_incorrect_charge_id.Fill(truth.Muon_TrueKE) 
+                            n_incorrect_muon +=1
  
+            
+            
+            
+            
             if truth.PDG[index] == -13:
+                n_true_antimuons+=1
                 x_start = truth.BirthPosition[4*index+0]
                 y_start = truth.BirthPosition[4*index+1]
                 z_start = truth.BirthPosition[4*index+2]
@@ -212,6 +229,7 @@ def run(c, truth, outfilename, nmax=-1):
                 z_start_tms = truth.PositionTMSStart[4*index+2]
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
+                    n_antimuon_total_lar_start_tms_end +=1
                     if region1(x_start_tms) and region1(x_end):
                         p_z = truth.MomentumTMSStart[4*index+2]
                         p_x = truth.MomentumTMSStart[4*index+0]
@@ -224,9 +242,10 @@ def run(c, truth, outfilename, nmax=-1):
                         hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
                         if signed_dist < 0 :
                             hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_antimuon +=1
                         else:  
                             hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE) 
+                            n_incorrect_antimuon +=1
                 
                 
                 
@@ -244,9 +263,10 @@ def run(c, truth, outfilename, nmax=-1):
                         hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
                         if signed_dist < 0 :
                             hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_antimuon +=1
                         else:  
-                            hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE)
+                            n_incorrect_antimuon +=1 
                 
                 
                 
@@ -263,19 +283,21 @@ def run(c, truth, outfilename, nmax=-1):
                         hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
                         if signed_dist < 0 :
                             hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct+=1
+                            n_correct_antimuon +=1
                         else:  
                             hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE) 
+                            n_incorrect_antimuon +=1
  
     
    
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon) 
-    correct_percentage_total = n_correct/n_muon_total_lar_start_tms_end
+    correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
+    correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
     #n_region1_contained_percentage=   (n_region1_total-n_region1_not_contained)/n_region1_total   
     #n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
     #n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total
-    #correct_percentage=n_correct/(n_region1_total+n_region2_total+n_region3_total)    
+    #correct_percentage=n_correct_muon/(n_region1_total+n_region2_total+n_region3_total)    
        
 
 
@@ -301,8 +323,16 @@ def run(c, truth, outfilename, nmax=-1):
     
     if truth != None:
         print(f"N true muons: {n_true_muons}")
-        print(f"total correct percentage: {correct_percentage_total}")
-        
+        print(f"N true antimuons: {n_true_antimuons}")
+        print(f"total correct percentage for muons: {correct_percentage_total}")
+        print(f"total correct percentage for antimuons: {correct_percentage_total_antimuon}")
+        print(f"correct signed distance muons: {n_correct_muon}")
+        print(f"incorrect signed distance muons: {n_incorrect_muon}")
+        print(f"correct signed distance antimuons: {n_correct_antimuon}")
+        print(f"incorrect signed distance antimuons: {n_incorrect_antimuon}")
+        print(f"N lar start tms end muons: {n_muon_total_lar_start_tms_end}")
+        print(f"N lar start tms end antimuons: {n_antimuon_total_lar_start_tms_end}")
+
 
     
     # Return this hists if the user requested previews

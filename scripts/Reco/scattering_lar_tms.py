@@ -72,9 +72,14 @@ def run(c, truth, outfilename, nmax=-1):
         hist_delta_x = ROOT.TH1D("hist_delta_x", "True absolute delta x: abs(x_tms_start - x_extrapolate) (using truth_info);True absolute distance(mm) ;Number of muons", 100, 0, 2000)
         hist_delta_theta_signed = ROOT.TH1D("hist_delta_theta_signed", "Delta theta: (theta_tms - theta_lar) (using truth_info);True angle difference(radian) ;Number of muons", 100, -1, 1)
         hist_delta_x_signed = ROOT.TH1D("hist_delta_x_signed", "True delta x: (x_tms_start - x_extrapolate) (using truth_info);True distance(mm) ;Number of muons", 100, -2000, 2000)
-        hist_theta_tms_signed = ROOT.TH1D("hist_theta_tms_signed", "True tms angle;True tmsangle (radian) ;Number of muons", 100, -1, 1)
+        hist_theta_tms_signed = ROOT.TH1D("hist_theta_tms_signed", "True tms angle;True tms angle (radian) ;Number of muons", 100, -1, 1)
         hist_theta_lar_signed = ROOT.TH1D("hist_theta_lar_signed", "True lar angle;True angle (radian) ;Number of muons", 100, -1, 1)
-    
+        hist_delta_theta_antimuons = ROOT.TH1D("hist_delta_theta_antimuons", "True absolute delta theta: abs(theta_tms - theta_lar) (using truth_info);True absolute angle difference(radian) ;Number of antimuons", 100, 0, 1)
+        hist_delta_x_antimuons = ROOT.TH1D("hist_delta_x_antimuons", "True absolute delta x: abs(x_tms_start - x_extrapolate) (using truth_info);True absolute distance(mm) ;Number of antimuons", 100, 0, 2000)
+        hist_delta_theta_signed_antimuons = ROOT.TH1D("hist_delta_theta_signed_antimuons", "Delta theta: (theta_tms - theta_lar) (using truth_info);True angle difference(radian) ;Number of antimuons", 100, -1, 1)
+        hist_delta_x_signed_antimuons = ROOT.TH1D("hist_delta_x_signed_antimuons", "True delta x: (x_tms_start - x_extrapolate) (using truth_info);True distance(mm) ;Number of antimuons", 100, -2000, 2000)
+        hist_theta_tms_signed_antimuons = ROOT.TH1D("hist_theta_tms_signed_antimuons", "True tms angle;True tms angle (radian) ;Number of antimuons", 100, -1, 1)
+        hist_theta_lar_signed_antimuons = ROOT.TH1D("hist_theta_lar_signed_antimuons", "True lar angle;True angle (radian) ;Number of antimuons", 100, -1, 1)
     # User can request fewer events, so check how many we're looping over.
     nevents = c.GetEntries()
     if nmax >= 0 and nevents > nmax: nevents = nmax
@@ -95,8 +100,11 @@ def run(c, truth, outfilename, nmax=-1):
         else: print_every = 10000
     
     n_true_muons = 0
+    n_true_antimuons=0
     n_matched_muons =0
-    matched_percentage=0
+    n_matched_antimuons =0
+    matched_percentage_muons=0
+    matched_percentage_antimuons=0
     
 
 
@@ -159,13 +167,62 @@ def run(c, truth, outfilename, nmax=-1):
                     hist_delta_theta.Fill(delta_theta)
                     hist_delta_theta_signed.Fill(delta_theta_signed)
                     if delta_x < 400 and delta_theta < 0.31 :  n_matched_muons += 1
-                        
+            
+            
+            
+            if truth.PDG[index] == -13:
+
+                x_start_lar = truth.PositionLArEnd[4*index+0]
+                z_start_lar = truth.PositionLArEnd[4*index+2]
+                
+                x_start_tms = truth.PositionTMSStart[4*index+0]
+                z_start_tms = truth.PositionTMSStart[4*index+2]
+                
+               
+                x_birth = truth.BirthPosition[4*index+0]
+                y_birth = truth.BirthPosition[4*index+1]
+                z_birth = truth.BirthPosition[4*index+2]
+                
+                x_death = truth.DeathPosition[4*index+0]
+                y_death = truth.DeathPosition[4*index+1]
+                z_death = truth.DeathPosition[4*index+2]
+
+
+                if inside_lar(x_birth,y_birth,z_birth) and inside_tms(x_death,y_death,z_death):
+                    p_z = truth.MomentumLArEnd[4*index+2]
+                    p_x = truth.MomentumLArEnd[4*index+0]
+                    p_z_tms = truth.MomentumTMSStart[4*index+2]
+                    p_x_tms = truth.MomentumTMSStart[4*index+0]
+                    if p_z ==0 or p_z_tms ==0 : continue
+                    if p_z <0 or p_z_tms <0 : continue
+                    m= p_x / p_z 
+                    m2= p_x_tms/p_z_tms
+                    theta_tms = math.atan(m2)
+                    theta_lar = math.atan(m)
+                    #if abs(theta_tms)> 0.7 or abs(theta_lar)>0.7 : continue
+
+                    n_true_antimuons+=1
+                    x_extrapolate =m*(z_start_tms-z_start_lar) + x_start_lar
+                    delta_x= abs(x_start_tms-x_extrapolate)
+                    delta_x_signed= x_start_tms-x_extrapolate
+                    hist_delta_x_signed_antimuons.Fill(delta_x_signed)
+                    hist_delta_x_antimuons.Fill(delta_x)
+                    
+
+                    hist_theta_tms_signed_antimuons.Fill(theta_tms)
+                    hist_theta_lar_signed_antimuons.Fill(theta_lar)
+                    delta_theta =abs(theta_tms-theta_lar)
+                    delta_theta_signed =theta_tms-theta_lar
+                    hist_delta_theta_antimuons.Fill(delta_theta)
+                    hist_delta_theta_signed_antimuons.Fill(delta_theta_signed)
+                    if delta_x < 400 and delta_theta < 0.31 :  n_matched_antimuons += 1           
 
 
                      
 
    
-    matched_percentage = n_matched_muons/n_true_muons
+    matched_percentage_muons = n_matched_muons/n_true_muons
+    matched_percentage_antimuons = n_matched_antimuons/n_true_antimuons
     
     ## Now save all the histograms
     if carriage: print("\r", end="") # Erase the current line
@@ -186,7 +243,10 @@ def run(c, truth, outfilename, nmax=-1):
     if truth != None:
         print(f"N true muons: {n_true_muons}")
         print(f"N matched muons: {n_matched_muons}")
-        print(f"matched percentage: {matched_percentage}")
+        print(f"matched percentage: {matched_percentage_muons}")
+        print(f"N true muons: {n_true_antimuons}")
+        print(f"N matched muons: {n_matched_antimuons}")
+        print(f"matched percentage: {matched_percentage_antimuons}")
    
        
 
