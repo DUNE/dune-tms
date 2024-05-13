@@ -339,6 +339,8 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("EventNo", &EventNo, "EventNo/I");
   Truth_Spill->Branch("IsCC", &IsCC, "IsCC/O");
   Truth_Spill->Branch("Interaction", &Reaction);
+  Truth_Spill->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
+  Truth_Spill->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
   Truth_Spill->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   Truth_Spill->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   Truth_Spill->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
@@ -1280,7 +1282,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   Truth_Info->Fill();
 }
 
-void TMS_TreeWriter::FillSpill(TMS_Event &event) {
+void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
   // Clear old info
   Clear();
 
@@ -1289,6 +1291,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event) {
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
   Reaction = event.GetReaction();
+  TruthInfoIndex = truth_info_entry_number;
+  TruthInfoNSlices = truth_info_n_slices;
 
   NeutrinoPDG = event.GetNeutrinoPDG();
   NeutrinoP4[0] = event.GetNeutrinoP4().X();

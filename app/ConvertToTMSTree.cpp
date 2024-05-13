@@ -74,6 +74,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   Timer.Start();
 
   int i = 0;
+  int truth_info_entry_number = 0;
   //N_entries = 500;
 
   // Do we overlay events
@@ -124,9 +125,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
-    TMS_TreeWriter::GetWriter().FillSpill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    
+    TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
+    truth_info_entry_number += nslices;
     
     // Could save per spill info here
     

@@ -30,7 +30,7 @@ class TMS_TreeWriter {
     }
 
     void Fill(TMS_Event &event);
-    void FillSpill(TMS_Event &event);
+    void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
 
     void Write() {
       Output->cd();
@@ -316,6 +316,9 @@ class TMS_TreeWriter {
     float RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthInTMS[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[__TMS_MAX_LINES__];
+    
+    int TruthInfoIndex;
+    int TruthInfoNSlices;
 };
 
 
