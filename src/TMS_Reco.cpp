@@ -738,11 +738,11 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
   double UV_y = 2000;
   bool above = false;
   if ((UHit.GetNotZ() > 0 && VHit.GetNotZ() > 0) || (UHit.GetNotZ() < 0 && VHit.GetNotZ() < 0)) {
-    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = true;
-    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = false;
+    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = false;
+    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = true;
   }
-  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = false;
-  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = true;
+  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = true;
+  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = false;
 
   if (above) {
     UV_y = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ());
@@ -1307,11 +1307,11 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &UHit, TMS_Hit &VH
 
   bool above = false;
   if ((UHit.GetNotZ() > 0 && VHit.GetNotZ() > 0) || (UHit.GetNotZ() < 0 && VHit.GetNotZ() < 0)) {
-    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = true;
-    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = false;
+    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = false;
+    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = true;
   }
-  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = false;
-  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = true;
+  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = true;
+  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = false;
 
   if (above) {
     OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
