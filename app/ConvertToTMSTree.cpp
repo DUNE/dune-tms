@@ -124,6 +124,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
+    TMS_TreeWriter::GetWriter().FillSpill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     

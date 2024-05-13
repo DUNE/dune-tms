@@ -30,12 +30,14 @@ class TMS_TreeWriter {
     }
 
     void Fill(TMS_Event &event);
+    void FillSpill(TMS_Event &event);
 
     void Write() {
       Output->cd();
       Branch_Lines->Write();
       Reco_Tree->Write();
       Truth_Info->Write();
+      Truth_Spill->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
@@ -62,6 +64,7 @@ class TMS_TreeWriter {
     TTree* Branch_Lines; // The TTree
     TTree* Reco_Tree; // The TTree 
     TTree* Truth_Info; // Truth info
+    TTree* Truth_Spill; // Truth spill
 
     void Clear();
     void MakeBranches(); // Make the output branches

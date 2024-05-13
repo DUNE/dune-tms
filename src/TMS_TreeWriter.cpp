@@ -50,6 +50,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Truth_Info->SetDirectory(Output);
   Truth_Info->SetAutoSave(__TMS_AUTOSAVE__);
 
+  Truth_Spill = new TTree("Truth_Spill", "Truth_Spill");
+  Truth_Spill->SetDirectory(Output);
+  Truth_Spill->SetAutoSave(__TMS_AUTOSAVE__);
+
   // Make a metadata branch
   //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
 
@@ -329,6 +333,55 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
   Truth_Info->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
   Truth_Info->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
+  
+  
+  // Truth information saved per spill only
+  Truth_Spill->Branch("EventNo", &EventNo, "EventNo/I");
+  Truth_Spill->Branch("IsCC", &IsCC, "IsCC/O");
+  Truth_Spill->Branch("Interaction", &Reaction);
+  Truth_Spill->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
+  Truth_Spill->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
+  Truth_Spill->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
+  
+  
+
+  Truth_Spill->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
+  Truth_Spill->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
+  Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
+  Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
+  Truth_Spill->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
+  Truth_Spill->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
+  
+  Truth_Spill->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
+  Truth_Spill->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
+  Truth_Spill->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
+  Truth_Spill->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
+  
+  // IsInside-based start/end
+  Truth_Spill->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F"); 
+  Truth_Spill->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F"); 
+  Truth_Spill->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F"); 
+  
+  // Z-based start/end
+  Truth_Spill->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
 }
 
 static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
@@ -1225,6 +1278,91 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
+}
+
+void TMS_TreeWriter::FillSpill(TMS_Event &event) {
+  // Clear old info
+  Clear();
+
+  // Fill the truth info
+  EventNo = event.GetEventNumber();
+  SliceNo = event.GetSliceNumber();
+  SpillNo = event.GetSpillNumber();
+  Reaction = event.GetReaction();
+
+  NeutrinoPDG = event.GetNeutrinoPDG();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();
+  NeutrinoP4[1] = event.GetNeutrinoP4().Y();
+  NeutrinoP4[2] = event.GetNeutrinoP4().Z();
+  NeutrinoP4[3] = event.GetNeutrinoP4().T();
+  NeutrinoX4[0] = event.GetNeutrinoX4().X();
+  NeutrinoX4[1] = event.GetNeutrinoX4().Y();
+  NeutrinoX4[2] = event.GetNeutrinoX4().Z();
+  NeutrinoX4[3] = event.GetNeutrinoX4().T();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();
+  IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
+    
+  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  nTrueParticles = TrueParticles.size();
+  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    int index = it - TrueParticles.begin();
+    
+    if (index >= __TMS_MAX_TRUE_PARTICLES__) {
+      std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
+      break;
+    }
+  
+    VertexID[index] = (*it).GetVertexID();
+    Parent[index] = (*it).GetParent();
+    TrackId[index] = (*it).GetTrackId();
+    PDG[index] = (*it).GetPDG();
+    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+    
+    setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
+    setPosition(BirthPosition[index], (*it).GetBirthPosition());
+    
+    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
+    setPosition(DeathPosition[index], (*it).GetDeathPosition());
+
+    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
+    TruePathLengthIgnoreY[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
+    TruePathLengthInTMS[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
+    TruePathLengthInTMSIgnoreY[index] =
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
+
+    setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
+    setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
+    
+    setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
+    setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
+    
+    setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
+    setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
+    
+    setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
+    setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
+    
+    setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
+    setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
+    
+    setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
+    setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
+    
+    setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
+    setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
+    
+    setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
+    setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
+    
+    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
+    setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
+    
+  }
+
+  Truth_Spill->Fill();
 }
 
 // Reset the variables
