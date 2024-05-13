@@ -735,8 +735,22 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 //  geom->GetCurrentMatrix()->LocalToMaster(localV, positionV);
 //  TMS_Geom::GetInstance().Scale(positionU[0], positionU[1], positionU[2]);
 //  TMS_Geom::GetInstance().Scale(positionV[0], positionV[1], positionV[2]);
+  double UV_y = 2000;
+  bool above = false;
+  if ((UHit.GetNotZ() > 0 && VHit.GetNotZ() > 0) || (UHit.GetNotZ() < 0 && VHit.GetNotZ() < 0)) {
+    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = true;
+    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = false;
+  }
+  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = false;
+  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = true;
+
+  if (above) {
+    UV_y = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ());
+  } else {
+    UV_y = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ());
+  }
+  //double UV_y = 244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350/-2949
   
-  double UV_y = 244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()); //-1350/-2949
   double X_y = XHit.GetNotZ();
 
   double compared_y = -999999;
@@ -1290,8 +1304,22 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &UHit, TMS_Hit &VH
 //  geom->GetCurrentMatrix()->LocalToMaster(localOther, positionOther);
 //  TMS_Geom::GetInstance().Scale(positionOne[0], positionOne[1], positionOne[2]);
 //  TMS_Geom::GetInstance().Scale(positionOther[0], positionOther[1], positionOther[2]);
-   
-  OneHit.SetRecoY(244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
+
+  bool above = false;
+  if ((UHit.GetNotZ() > 0 && VHit.GetNotZ() > 0) || (UHit.GetNotZ() < 0 && VHit.GetNotZ() < 0)) {
+    if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ())) above = true;
+    else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ())) above = false;
+  }
+  else if (UHit.GetNotZ() > 0 && VHit.GetNotZ() < 0) above = false;
+  else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = true;
+
+  if (above) {
+    OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
+  } else {
+    OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
+  }
+
+  //OneHit.SetRecoY(244 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));  //positionOne[1], positionOther[1] //0.5 * (OneHit.GetY() + OtherHit.GetY())//-1350
   // USING THIS -2949/1350 ALSO IN CompareY FUNCTION. CHANGE THERE AS WELL IF CHANGED HERE!!!!!
   return;
 }
@@ -1308,16 +1336,20 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   // Get the true muon
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   TMS_TrueParticle muon;
-  bool FoundMuon = false;
+  //bool FoundMuon = false;
   for (auto &particle: TrueParticles) {
-    if (particle.GetPDG() == 13 && 
-        particle.GetParent() == -1) {
+    //if (particle.GetPDG() == 13 && 
+    //    particle.GetParent() == -1) {
       muon = particle;
-      FoundMuon = true;
-    }
+    //  FoundMuon = true;
+    //}
   }
 
-  if (!FoundMuon) return;
+  for (auto &TrueHit: muon.GetPositionPoints()) {
+    std::cout << "Truth: " << TrueHit.X() << " | " << TrueHit.Y() << " | " << TrueHit.Z() << std::endl;
+  }
+
+  /*if (!FoundMuon) return;
 
   // Now compare this to our tracks and see how many of the muon hits are included
   // Loop over the candidate tracks that have been built
@@ -1371,7 +1403,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   if (efficiency > 0) {
     Efficiency->Fill(muonke, efficiency);
     Total->Fill(muonke);
-  }
+  }*/
 }
 
 // Calculate the total track energy

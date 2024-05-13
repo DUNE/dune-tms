@@ -1083,7 +1083,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetNotZ();//GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
       } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
