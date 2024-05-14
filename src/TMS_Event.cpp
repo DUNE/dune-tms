@@ -11,6 +11,7 @@ TMS_Event::TMS_Event() {
   SliceNumber = 0;
   SpillNumber = -999;
   nTrueTrajectories = -999;
+  nVertices = -999;
   VertexIdOfMostEnergyInEvent = -999;
   LightWeight = true;
 }
@@ -46,6 +47,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
   VertexIdOfMostEnergyInEvent = -999;
+  nVertices = 0;
 
   // Check the integrity of the event
   //CheckIntegrity();
@@ -218,6 +220,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       vtxcounter++;
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
+  nVertices = vtxcounter;
   
   //std::cout<<"N total: "<<nTotal<<", N Primary: "<<nPrimary<<", N Interesting: "<<nInteresting<<", N charged: "<<nCharged<<", N high P: "<<nHighMomentum<<", N charged and low P: "<<nChargedAndLowMomentum<<", n TMS_TruePrimaryParticles: "<<TMS_TruePrimaryParticles.size()<<std::endl;
 
@@ -834,25 +837,23 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
 
+  nVertices += Other_Event.nVertices;
+
 }
 
 // For now just fill the true neutrino
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
-void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4]) {
+void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], double x4[__EDEP_SIM_MAX_PART__][4]) {
   TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
-  
-}
-
-void TMS_Event::FillAdditionalTruthFromGRooTracker(double x4[__EDEP_SIM_MAX_PART__][4]) {
-
-  TrueNeutrinoPosition.SetX(x4[0][0]);
-  TrueNeutrinoPosition.SetY(x4[0][1]);
-  TrueNeutrinoPosition.SetZ(x4[0][2]);
-  TrueNeutrinoPosition.SetT(x4[0][3]);
+  // Save in mm
+  TrueNeutrinoPosition.SetX(x4[0][0] * 1000);
+  TrueNeutrinoPosition.SetY(x4[0][1] * 1000);
+  TrueNeutrinoPosition.SetZ(x4[0][2] * 1000);
+  TrueNeutrinoPosition.SetT(x4[0][3] * 1000);
 }
 
 void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum) {

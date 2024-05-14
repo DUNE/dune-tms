@@ -51,8 +51,7 @@ class TMS_Event {
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
-    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
-    void FillAdditionalTruthFromGRooTracker(double x4[100][4]);
+    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double x4[100][4]);
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
@@ -84,6 +83,7 @@ class TMS_Event {
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
     double GetVisibleEnergyFromVVerticesInSlice() { return VisibleEnergyFromVVerticesInSlice; };
     double GetVisibleEnergyFromXVerticesInSlice() { return VisibleEnergyFromXVerticesInSlice; };
+    int GetNVertices() { return nVertices; };
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
@@ -119,6 +119,7 @@ class TMS_Event {
     // The number of true trajectories right out of edep-sim
     // No energy cuts, or number of deposits etc checked
     int nTrueTrajectories;
+    int nVertices;
 
     std::string Reaction;
  

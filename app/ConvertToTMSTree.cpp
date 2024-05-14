@@ -101,7 +101,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Fill up truth information from the GRooTracker object
     if (gRoo){
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
     }
 
     // Keep filling up the vector and move on to the next event
@@ -128,6 +128,15 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     
+    // Check if this is not pileup
+    if (event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
+      // Fill the info of the one and only true vertex in the spill
+      auto primary_vertex = event->Primaries[0];
+      int interaction_number = primary_vertex.GetInteractionNumber();
+      gRoo->GetEntry(interaction_number);
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
+    }
+
     TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
     truth_info_entry_number += nslices;
     
@@ -163,8 +172,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
             auto primary_vertex = event->Primaries[primary_vertex_id];
             int interaction_number = primary_vertex.GetInteractionNumber();
             gRoo->GetEntry(interaction_number);
-            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
-            tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
+            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
             // And the lepton info
             int lepton_index = -1;
             int current_index = 0;

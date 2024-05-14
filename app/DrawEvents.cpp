@@ -56,12 +56,15 @@ int main(int argc, char** argv) {
   // Get the true neutrino vector from the gRooTracker object
   int StdHepPdg[__EDEP_SIM_MAX_PART__];
   double StdHepP4[__EDEP_SIM_MAX_PART__][4];
+  double StdHepX4[__EDEP_SIM_MAX_PART__][4];
   if (gRoo) {
     gRoo->SetBranchStatus("*", false);
     gRoo->SetBranchStatus("StdHepPdg", true);
     gRoo->SetBranchStatus("StdHepP4", true);
+    gRoo->SetBranchStatus("StdHepX4", true);
     gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
     gRoo->SetBranchAddress("StdHepP4", StdHepP4);
+    gRoo->SetBranchStatus("StdHepX4", true);
   }
 
   // Get the event
@@ -187,7 +190,7 @@ int main(int argc, char** argv) {
 
     TMS_Event tms_event = TMS_Event(*event, true);
     if (gRoo){
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
     }
 
     int pdg = tms_event.GetNeutrinoPDG();
