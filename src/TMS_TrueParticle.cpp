@@ -30,10 +30,9 @@ void TMS_TrueParticle::Print() {
   }
 }
 
-TVector3 TMS_TrueParticle::GetMomentumAtZ(double z) {
+TVector3 TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   TVector3 out(-99999999, -99999999, -99999999);
   double z_dist_found = 999999;
-  const double max_z_dist = 110; // About 2 planes is the max z distance we'll tolerate
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     double distance = abs(GetPositionPoints()[i].Z() - z);
     if (distance <= max_z_dist) {
@@ -47,10 +46,9 @@ TVector3 TMS_TrueParticle::GetMomentumAtZ(double z) {
   return out;
 }
 
-TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z) {
+TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   double z_dist_found = 999999;
-  const double max_z_dist = 110; // About 2 planes is the max z distance we'll tolerate
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     double distance = abs(GetPositionPoints()[i].Z() - z);
     if (distance <= max_z_dist) {

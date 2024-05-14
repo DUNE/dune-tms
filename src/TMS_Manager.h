@@ -50,6 +50,8 @@ class TMS_Manager {
     int Get_Reco_TRACKMATCH_XTimeLimit() { return _RECO_TRACKMATCH_XTimeLimit; };
     float Get_Reco_TRACKMATCH_YAnchor() { return _RECO_TRACKMATCH_YAnchor; };
     double Get_Reco_TRACKMATCH_TiltAngle() { return _RECO_TRACKMATCH_TiltAngle; };
+    float Get_Reco_TRACKMATCH_YDifference() { return _RECO_TRACKMATCH_YDifference; };
+    int Get_Reco_TRACKMATCH_DirectionDistance() { return _RECO_TRACKMATCH_DirectionDistance; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
@@ -116,6 +118,8 @@ class TMS_Manager {
     int _RECO_TRACKMATCH_XTimeLimit;
     float _RECO_TRACKMATCH_YAnchor;
     double _RECO_TRACKMATCH_TiltAngle;
+    float _RECO_TRACKMATCH_YDifference;
+    int _RECO_TRACKMATCH_DirectionDistance;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;

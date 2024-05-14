@@ -56,6 +56,8 @@ TMS_Manager::TMS_Manager() {
   _RECO_TRACKMATCH_XTimeLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "XTimeLimit");
   _RECO_TRACKMATCH_YAnchor = toml::find<float>(data, "Recon", "TrackMatch3D", "YAnchor");
   _RECO_TRACKMATCH_TiltAngle = toml::find<double>(data, "Recon", "TrackMatch3D", "TiltAngle");
+  _RECO_TRACKMATCH_YDifference = toml::find<float>(data, "Recon", "TrackMatch3D", "YDifference");
+  _RECO_TRACKMATCH_DirectionDistance = toml::find<int>(data, "Recon", "TrackMatch3D", "DirectionDistance");
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
