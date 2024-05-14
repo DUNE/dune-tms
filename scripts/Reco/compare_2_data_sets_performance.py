@@ -61,15 +61,15 @@ def draw_comparison(out_dir, input_filename1, input_filename2):
     
     n_events_2 = r2.GetEntries()
     
-    Reco_Start_1 = np.ones((n_events_1, 3), dtype = float) * -9999.
-    Reco_End_1 = np.ones((n_events_1, 3), dtype = float) * -9999.
-    Primary_True_Start_1 = np.ones((n_events_1, 3), dtype = float) * -9999.
-    Primary_True_End_1 = np.ones((n_events_1, 3), dtype = float) * -9999.  
+    Reco_Start_1 = np.ones((n_events_1, 5, 3), dtype = float) * -9999.
+    Reco_End_1 = np.ones((n_events_1, 5, 3), dtype = float) * -9999.
+    Primary_True_Start_1 = np.ones((n_events_1, 5, 3), dtype = float) * -9999.
+    Primary_True_End_1 = np.ones((n_events_1, 5, 3), dtype = float) * -9999.  
     
-    Reco_Start_2 = np.ones((n_events_2, 3), dtype = float) * -9999.
-    Reco_End_2 = np.ones((n_events_2, 3), dtype = float) * -9999.
-    Primary_True_Start_2 = np.ones((n_events_2, 3), dtype = float) * -9999.
-    Primary_True_End_2 = np.ones((n_events_2, 3), dtype = float) * -9999.  
+    Reco_Start_2 = np.ones((n_events_2, 5, 3), dtype = float) * -9999.
+    Reco_End_2 = np.ones((n_events_2, 5, 3), dtype = float) * -9999.
+    Primary_True_Start_2 = np.ones((n_events_2, 5, 3), dtype = float) * -9999.
+    Primary_True_End_2 = np.ones((n_events_2, 5, 3), dtype = float) * -9999.  
     
     for current_spill_number in range(max_n_spills):
         for i in range(n_events_1):
@@ -92,29 +92,34 @@ def draw_comparison(out_dir, input_filename1, input_filename2):
             if true_event == None:
                 truth1.GetEntry(i)
                 true_event = truth1
-            
-            nTracks = event.nTracks
-            if nTracks <= 0: continue
 
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
-            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)            
+            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             
-            if RecoTrackPrimaryParticleTruePositionTrackStart[0] > -8000. and not StartPos.size == 0:
-                Reco_Start_1[i, 0] = StartPos[0]
-                Reco_Start_1[i, 1] = StartPos[1]
-                Reco_Start_1[i, 2] = StartPos[2]
-                Primary_True_Start_1[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
-                Primary_True_Start_1[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
-                Primary_True_Start_1[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
-            if RecoTrackPrimaryParticleTruePositionTrackEnd[0] > -8000. and not EndPos.size == 0:
-                Reco_End_1[i, 0] = EndPos[0]
-                Reco_End_1[i, 1] = EndPos[1]
-                Reco_End_1[i, 2] = EndPos[2]
-                Primary_True_End_1[i, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[0]
-                Primary_True_End_1[i, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[1]
-                Primary_True_End_1[i, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[2]
+            nTracks = event.nTracks
+            if nTracks <= 0: continue
+            if nTracks > 4: print("Too many tracks in event. Limit to first 5")
+            for j in range(nTracks):
+                if j > 4: break
+            
+                if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] > -8000. and not StartPos.size == 0:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
+                        Reco_Start_1[i, j, 0] = StartPos[j*3 + 0]
+                        Reco_Start_1[i, j, 1] = StartPos[j*3 + 1]
+                        Reco_Start_1[i, j, 2] = StartPos[j*3 + 2]
+                        Primary_True_Start_1[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0]
+                        Primary_True_Start_1[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1]
+                        Primary_True_Start_1[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]
+                if RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] > -8000. and not EndPos.size == 0:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
+                        Reco_End_1[i, j, 0] = EndPos[j*3 + 0]
+                        Reco_End_1[i, j, 1] = EndPos[j*3 + 1]
+                        Reco_End_1[i, j, 2] = EndPos[j*3 + 2]
+                        Primary_True_End_1[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0]
+                        Primary_True_End_1[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1]
+                        Primary_True_End_1[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2]
         
         for i in range(n_events_2):
             try:
@@ -136,47 +141,52 @@ def draw_comparison(out_dir, input_filename1, input_filename2):
             if true_event2 == None:
                 truth2.GetEntry(i)
                 true_event2 = truth2
-            
-            nTracks = event2.nTracks
-            if nTracks <= 0: continue
 
             StartPos = np.frombuffer(event2.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event2.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event2.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
-            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event2.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)            
+            RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event2.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             
-            if RecoTrackPrimaryParticleTruePositionTrackStart[0] > -8000. and not StartPos.size == 0:
-                Reco_Start_2[i, 0] = StartPos[0]
-                Reco_Start_2[i, 1] = StartPos[1]
-                Reco_Start_2[i, 2] = StartPos[2]
-                Primary_True_Start_2[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
-                Primary_True_Start_2[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
-                Primary_True_Start_2[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
-            if RecoTrackPrimaryParticleTruePositionTrackEnd[0] > -8000. and not EndPos.size == 0:
-                Reco_End_2[i, 0] = EndPos[0]
-                Reco_End_2[i, 1] = EndPos[1]
-                Reco_End_2[i, 2] = EndPos[2]
-                Primary_True_End_2[i, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[0]
-                Primary_True_End_2[i, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[1]
-                Primary_True_End_2[i, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[2]
+            nTracks = event2.nTracks
+            if nTracks <= 0: continue
+            if nTracks > 4: print("Too many tracks in event. Limit to first 5")
+            for j in range(nTracks):
+                if j > 4: break
+            
+                if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] > -8000. and not StartPos.size == 0:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
+                        Reco_Start_2[i, j, 0] = StartPos[j*3 + 0]
+                        Reco_Start_2[i, j, 1] = StartPos[j*3 + 1]
+                        Reco_Start_2[i, j, 2] = StartPos[j*3 + 2]
+                        Primary_True_Start_2[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0]
+                        Primary_True_Start_2[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1]
+                        Primary_True_Start_2[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]
+                if RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] > -8000. and not EndPos.size == 0:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
+                        Reco_End_2[i, j, 0] = EndPos[j*3 + 0]
+                        Reco_End_2[i, j, 1] = EndPos[j*3 + 1]
+                        Reco_End_2[i, j, 2] = EndPos[j*3 + 2]
+                        Primary_True_End_2[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0]
+                        Primary_True_End_2[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1]
+                        Primary_True_End_2[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2]
     
     # filter out not filled indice
-    boolean_Reco_Start_1 = (Reco_Start_1[:, 0] != -9999.)
+    boolean_Reco_Start_1 = (Reco_Start_1[:, :, 0] != -9999.)
     Reco_Start_1 = Reco_Start_1[boolean_Reco_Start_1]
-    boolean_Reco_End_1 = (Reco_End_1[:, 0] != -9999.)
+    boolean_Reco_End_1 = (Reco_End_1[:, :, 0] != -9999.)
     Reco_End_1 = Reco_End_1[boolean_Reco_End_1]
-    boolean_Primary_Start_1 = (Primary_True_Start_1[:, 0] != -9999.)
+    boolean_Primary_Start_1 = (Primary_True_Start_1[:, :, 0] != -9999.)
     Primary_True_Start_1 = Primary_True_Start_1[boolean_Primary_Start_1]
-    boolean_Primary_End_1 = (Primary_True_End_1[:, 0] != -9999.)
+    boolean_Primary_End_1 = (Primary_True_End_1[:, :, 0] != -9999.)
     Primary_True_End_1 = Primary_True_End_1[boolean_Primary_End_1]
     
-    boolean_Reco_Start_2 = (Reco_Start_2[:, 0] != -9999.)
+    boolean_Reco_Start_2 = (Reco_Start_2[:, :, 0] != -9999.)
     Reco_Start_2 = Reco_Start_2[boolean_Reco_Start_2]
-    boolean_Reco_End_2 = (Reco_End_2[:, 0] != -9999.)
+    boolean_Reco_End_2 = (Reco_End_2[:, :, 0] != -9999.)
     Reco_End_2 = Reco_End_2[boolean_Reco_End_2]
-    boolean_Primary_Start_2 = (Primary_True_Start_2[:, 0] != -9999.)
+    boolean_Primary_Start_2 = (Primary_True_Start_2[:, :, 0] != -9999.)
     Primary_True_Start_2 = Primary_True_Start_2[boolean_Primary_Start_2]
-    boolean_Primary_End_2 = (Primary_True_End_2[:, 0] != -9999.)
+    boolean_Primary_End_2 = (Primary_True_End_2[:, :, 0] != -9999.)
     Primary_True_End_2 = Primary_True_End_2[boolean_Primary_End_2]
     
     # subtract reconstruction from truth for all directions
@@ -299,7 +309,7 @@ def draw_comparison(out_dir, input_filename1, input_filename2):
     # create histograms for all directions for truth and reconstruction 
 
 
-    Reco_Start_x_1_hist, Reco_Start_x_1_bins = np.histogram(Reco_Start_1[:, 0], bins = 3, range = (-35.42, 35.42)) #int((max(Reco_Start_1[:, 0]) - min(Reco_Start_1[:, 0])) / 35.42)) #48
+    Reco_Start_x_1_hist, Reco_Start_x_1_bins = np.histogram(Reco_Start_1[:, 0], bins = int((max(Reco_Start_1[:, 0]) - min(Reco_Start_1[:, 0])) / 35.42))#3, range = (-35.42, 35.42)) # #48
     Reco_Start_y_1_hist, Reco_Start_y_1_bins = np.histogram(Reco_Start_1[:, 1], bins = 40)#, range = (-4110., -910.))
     Reco_Start_z_1_hist, Reco_Start_z_1_bins = np.histogram(Reco_Start_1[:, 2], bins = 100)#, range = (11360., 18320.))
     Reco_End_x_1_hist, Reco_End_x_1_bins = np.histogram(Reco_End_1[:, 0], bins = int((max(Reco_End_1[:, 0]) - min(Reco_End_1[:, 0])) / 35.42))#48)#, range = (-3400., 3400.))
@@ -312,7 +322,7 @@ def draw_comparison(out_dir, input_filename1, input_filename2):
     Primary_True_End_y_1_hist, Primary_True_End_y_1_bins = np.histogram(Primary_True_End_1[:, 1], bins = Reco_End_y_1_bins)#20)
     Primary_True_End_z_1_hist, Primary_True_End_z_1_bins = np.histogram(Primary_True_End_1[:, 2], bins = 100)
     
-    Reco_Start_x_2_hist, Reco_Start_x_2_bins = np.histogram(Reco_Start_2[:, 0], bins = 3, range = (-35.42, 35.42))#10)#int((max(Reco_Start_2[:, 0]) - min(Reco_Start_2[:, 0])) / 35.42)) #48)#, range = (-3400., 3400.))
+    Reco_Start_x_2_hist, Reco_Start_x_2_bins = np.histogram(Reco_Start_2[:, 0], bins = int((max(Reco_Start_2[:, 0]) - min(Reco_Start_2[:, 0])) / 35.42))#3, range = (-35.42, 35.42))#10)# #48)#
     Reco_Start_y_2_hist, Reco_Start_y_2_bins = np.histogram(Reco_Start_2[:, 1], bins = 40)#, range = (-4110., -910.))
     Reco_Start_z_2_hist, Reco_Start_z_2_bins = np.histogram(Reco_Start_2[:, 2], bins = 100)#, range = (11360., 18320.))
     Reco_End_x_2_hist, Reco_End_x_2_bins = np.histogram(Reco_End_2[:, 0], bins = int((max(Reco_End_2[:, 0]) - min(Reco_End_2[:, 0])) / 35.42)) #48)#, range = (-3400., 3400.))

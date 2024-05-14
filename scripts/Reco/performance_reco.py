@@ -47,12 +47,12 @@ def draw_performance(out_dir, input_filename):
     spill_number_cache = dict()
     n_events = r.GetEntries()
     
-    Reco_Start = np.ones((n_events, 3), dtype = float) * -9999.
-    Reco_End = np.ones((n_events, 3), dtype = float) * -9999.
-    Primary_True_Start = np.ones((n_events, 3), dtype = float) * -9999.
-    Primary_True_End = np.ones((n_events, 3), dtype = float) * -9999.
-    True_TrackLength = np.ones(n_events, dtype = float) * -9999.
-    Reco_TrackLength = np.ones(n_events, dtype = float) * -9999.
+    Reco_Start = np.ones((n_events, 5, 3), dtype = float) * -9999.
+    Reco_End = np.ones((n_events, 5, 3), dtype = float) * -9999.
+    Primary_True_Start = np.ones((n_events, 5, 3), dtype = float) * -9999.
+    Primary_True_End = np.ones((n_events, 5, 3), dtype = float) * -9999.
+    True_TrackLength = np.ones((n_events, 5), dtype = float) * -9999.
+    Reco_TrackLength = np.ones((n_events, 5), dtype = float) * -9999.
     
     for current_spill_number in range(max_n_spills):
         for i in range(n_events):
@@ -75,63 +75,83 @@ def draw_performance(out_dir, input_filename):
             if true_event == None:
                 truth.GetEntry(i)
                 true_event = truth
-            
-            nTracks = event.nTracks
-            if nTracks <= 0: continue
 
+                
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
-            #Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
-            #Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
+            Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
+            Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
             
-            if RecoTrackPrimaryParticleTruePositionTrackStart[0] > -8000. and not StartPos.size == 0:
-                # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
-                if (EndPos[2] - StartPos[2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[2] - RecoTrackPrimaryParticleTruePositionTrackStart[2]) > 890.:
-                    Reco_Start[i, 0] = StartPos[0]
-                    Reco_Start[i, 1] = StartPos[1]
-                    Reco_Start[i, 2] = StartPos[2]
-                    #if RecoTrackPrimaryParticleTruePositionTrackStart[2] < 11362:
-                    #    print('PDG: ', true_event.PDG[np.frombuffer(true_event.RecoTrackPrimaryParticleIndex, dtype = np.uint8)[0]], ' End: ', RecoTrackPrimaryParticleTruePositionTrackEnd[2])
-                    Primary_True_Start[i, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[0]
-                    Primary_True_Start[i, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[1]
-                    Primary_True_Start[i, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[2]
-                    #True_TrackLength[i] = Muon_TrueTrackLength
-                    #Reco_TrackLength[i] = Reco_Track_Length
-            if RecoTrackPrimaryParticleTruePositionTrackEnd[0] > -8000. and not EndPos.size == 0:
-                if (EndPos[2] - StartPos[2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[2] - RecoTrackPrimaryParticleTruePositionTrackStart[2]) > 890.:            
-                    Reco_End[i, 0] = EndPos[0]
-                    Reco_End[i, 1] = EndPos[1]
-                    Reco_End[i, 2] = EndPos[2]
-                    Primary_True_End[i, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[0]
-                    Primary_True_End[i, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[1]
-                    Primary_True_End[i, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[2]
+            nTracks = event.nTracks
+            if nTracks <= 0: continue
+            if nTracks > 4: print("Too many tracks in event. Limit to first 5")
+            for j in range(nTracks):
+                if j > 4: break
+           
+                if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] > -8000. and not StartPos.size == 0:
+                    # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
+                        Reco_Start[i, j, 0] = StartPos[j*3 + 0]
+                        Reco_Start[i, j, 1] = StartPos[j*3 + 1]
+                        Reco_Start[i, j, 2] = StartPos[j*3 + 2]
+                        #if RecoTrackPrimaryParticleTruePositionTrackStart[2] < 11362:
+                        #    print('PDG: ', true_event.PDG[np.frombuffer(true_event.RecoTrackPrimaryParticleIndex, dtype = np.uint8)[0]], ' End: ', RecoTrackPrimaryParticleTruePositionTrackEnd[2])
+                        Primary_True_Start[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0]
+                        Primary_True_Start[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1]
+                        Primary_True_Start[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]
+                        True_TrackLength[i, j] = Muon_TrueTrackLength
+                        Reco_TrackLength[i, j] = Reco_Track_Length[j]
+                if RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] > -8000. and not EndPos.size == 0:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:            
+                        Reco_End[i, j, 0] = EndPos[j*3 + 0]
+                        Reco_End[i, j, 1] = EndPos[j*3 + 1]
+                        Reco_End[i, j, 2] = EndPos[j*3 + 2]
+                        Primary_True_End[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0]
+                        Primary_True_End[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1]
+                        Primary_True_End[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2]
     
     # filter out not filled indice
-    boolean_Reco_Start = (Reco_Start[:, 0] != -9999.)
+    boolean_Reco_Start = (Reco_Start[:, :, 0] != -9999.)
     Reco_Start = Reco_Start[boolean_Reco_Start]
-    boolean_Reco_End = (Reco_End[:, 0] != -9999.)
+    boolean_Reco_End = (Reco_End[:, :, 0] != -9999.)
     Reco_End = Reco_End[boolean_Reco_End]
-    boolean_Primary_Start = (Primary_True_Start[:, 0] != -9999.)
+    boolean_Primary_Start = (Primary_True_Start[:, :, 0] != -9999.)
     Primary_True_Start = Primary_True_Start[boolean_Primary_Start]
-    boolean_Primary_End = (Primary_True_End[:, 0] != -9999.)
+    boolean_Primary_End = (Primary_True_End[:, :, 0] != -9999.)
     Primary_True_End = Primary_True_End[boolean_Primary_End]
     boolean_True_TrackLength = (True_TrackLength != -9999.)
     True_TrackLength = True_TrackLength[boolean_True_TrackLength]
     boolean_Reco_TrackLength = (Reco_TrackLength != -9999.)
     Reco_TrackLength = Reco_TrackLength[boolean_Reco_TrackLength]
     
+    # flatten arrays
+    Reco_Start_x = Reco_Start[:, 0]#.flatten()
+    Reco_Start_y = Reco_Start[:, 1]#.flatten()
+    Reco_Start_z = Reco_Start[:, 2]#.flatten()
+    Reco_End_x = Reco_End[:, 0]#.flatten()
+    Reco_End_y = Reco_End[:, 1]#.flatten()
+    Reco_End_z = Reco_End[:, 2]#.flatten()
+    Primary_True_Start_x = Primary_True_Start[:, 0]#.flatten()
+    Primary_True_Start_y = Primary_True_Start[:, 1]#.flatten()
+    Primary_True_Start_z = Primary_True_Start[:, 2]#.flatten()
+    Primary_True_End_x = Primary_True_End[:, 0]#.flatten()
+    Primary_True_End_y = Primary_True_End[:, 1]#.flatten()
+    Primary_True_End_z = Primary_True_End[:, 2]#.flatten()
+    #True_TrackLength.flatten()
+    #Reco_TrackLength.flatten()
+    
     # total number of events after filtering
     print("#events reconstruction: ", len(Reco_Start), "# events truth: ", len(Primary_True_Start))
     
     # subtract reconstruction from truth for all directions
-    Diff_Start_x = Primary_True_Start[:, 0] - Reco_Start[:, 0]
-    Diff_Start_y = Primary_True_Start[:, 1] - Reco_Start[:, 1]# - 915
-    Diff_Start_z = Primary_True_Start[:, 2] - Reco_Start[:, 2]
-    Diff_End_x = Primary_True_End[:, 0] - Reco_End[:, 0]
-    Diff_End_y = Primary_True_End[:, 1] - Reco_End[:, 1]# - 915
-    Diff_End_z = Primary_True_End[:, 2] - Reco_End[:, 2]
+    Diff_Start_x = Primary_True_Start_x - Reco_Start_x
+    Diff_Start_y = Primary_True_Start_y - Reco_Start_y
+    Diff_Start_z = Primary_True_Start_z - Reco_Start_z
+    Diff_End_x = Primary_True_End_x - Reco_End_x
+    Diff_End_y = Primary_True_End_y - Reco_End_y
+    Diff_End_z = Primary_True_End_z - Reco_End_z
 
     # create histograms for the differences
     Diff_Start_x_hist, Diff_Start_x_bins = np.histogram(Diff_Start_x, bins = 50)
@@ -246,18 +266,18 @@ def draw_performance(out_dir, input_filename):
         if i >= 40:
             z_bins[i] = 13507. + (i - 40) * 80.
     
-    Reco_Start_x_hist, Reco_Start_x_bins = np.histogram(Reco_Start[:, 0], bins = 48, range = (-3520., 3520.))
-    Reco_Start_y_hist, Reco_Start_y_bins = np.histogram(Reco_Start[:, 1], bins = 20, range = (-2949., 244.))    #+915
-    Reco_Start_z_hist, Reco_Start_z_bins = np.histogram(Reco_Start[:, 2], bins = z_bins)
-    Reco_End_x_hist, Reco_End_x_bins = np.histogram(Reco_End[:, 0], bins = Reco_Start_x_bins)
-    Reco_End_y_hist, Reco_End_y_bins = np.histogram(Reco_End[:, 1], bins = Reco_Start_y_bins)   #+915
-    Reco_End_z_hist, Reco_End_z_bins = np.histogram(Reco_End[:, 2], bins = Reco_Start_z_bins)
-    Primary_True_Start_x_hist, Primary_True_Start_x_bins = np.histogram(Primary_True_Start[:, 0], bins = Reco_Start_x_bins)
-    Primary_True_Start_y_hist, Primary_True_Start_y_bins = np.histogram(Primary_True_Start[:, 1], bins = Reco_Start_y_bins)
-    Primary_True_Start_z_hist, Primary_True_Start_z_bins = np.histogram(Primary_True_Start[:, 2], bins = Reco_Start_z_bins)
-    Primary_True_End_x_hist, Primary_True_End_x_bins = np.histogram(Primary_True_End[:, 0], bins = Reco_Start_x_bins)
-    Primary_True_End_y_hist, Primary_True_End_y_bins = np.histogram(Primary_True_End[:, 1], bins = Reco_Start_y_bins)
-    Primary_True_End_z_hist, Primary_True_End_z_bins = np.histogram(Primary_True_End[:, 2], bins = Reco_Start_z_bins)
+    Reco_Start_x_hist, Reco_Start_x_bins = np.histogram(Reco_Start_x, bins = 48, range = (-3520., 3520.))
+    Reco_Start_y_hist, Reco_Start_y_bins = np.histogram(Reco_Start_y, bins = 20, range = (-2949., 244.)) 
+    Reco_Start_z_hist, Reco_Start_z_bins = np.histogram(Reco_Start_z, bins = z_bins)
+    Reco_End_x_hist, Reco_End_x_bins = np.histogram(Reco_End_x, bins = Reco_Start_x_bins)
+    Reco_End_y_hist, Reco_End_y_bins = np.histogram(Reco_End_y, bins = Reco_Start_y_bins)
+    Reco_End_z_hist, Reco_End_z_bins = np.histogram(Reco_End_z, bins = Reco_Start_z_bins)
+    Primary_True_Start_x_hist, Primary_True_Start_x_bins = np.histogram(Primary_True_Start_x, bins = Reco_Start_x_bins)
+    Primary_True_Start_y_hist, Primary_True_Start_y_bins = np.histogram(Primary_True_Start_y, bins = Reco_Start_y_bins)
+    Primary_True_Start_z_hist, Primary_True_Start_z_bins = np.histogram(Primary_True_Start_z, bins = Reco_Start_z_bins)
+    Primary_True_End_x_hist, Primary_True_End_x_bins = np.histogram(Primary_True_End_x, bins = Reco_Start_x_bins)
+    Primary_True_End_y_hist, Primary_True_End_y_bins = np.histogram(Primary_True_End_y, bins = Reco_Start_y_bins)
+    Primary_True_End_z_hist, Primary_True_End_z_bins = np.histogram(Primary_True_End_z, bins = Reco_Start_z_bins)
     
     # make the histograms usable
     Reco_Start_x_histX, Reco_Start_x_histY = histogram_arr_handle(Reco_Start_x_hist, Reco_Start_x_bins)
@@ -350,12 +370,12 @@ def draw_performance(out_dir, input_filename):
     # create 2d histograms
     #print(min(min(Primary_True_Start[:, 1]), min(Primary_True_End[:, 1])), max(max(Primary_True_Start[:, 1]), max(Primary_True_End[:, 1])), min(min(Reco_Start[:, 1]), min(Reco_End[:, 1])), max(max(Reco_Start[:, 1]), max(Reco_End[:, 1])))
     
-    dependence_Start_x_hist, dependence_Start_x_binsX, dependence_Start_x_binsY = np.histogram2d(Primary_True_Start[:, 0], Diff_Start_x, bins = [Primary_True_Start_x_bins, Diff_Start_x_bins])
-    dependence_Start_y_hist, dependence_Start_y_binsX, dependence_Start_y_binsY = np.histogram2d(Primary_True_Start[:, 1], Diff_Start_y, bins = [Primary_True_Start_y_bins, Diff_Start_y_bins])
-    dependence_Start_z_hist, dependence_Start_z_binsX, dependence_Start_z_binsY = np.histogram2d(Primary_True_Start[:, 2], Diff_Start_z, bins = [Primary_True_Start_z_bins, Diff_Start_z_bins])
-    dependence_End_x_hist, dependence_End_x_binsX, dependence_End_x_binsY = np.histogram2d(Primary_True_End[:, 0], Diff_End_x, bins = [Primary_True_End_x_bins, Diff_End_x_bins])
-    dependence_End_y_hist, dependence_End_y_binsX, dependence_End_y_binsY = np.histogram2d(Primary_True_End[:, 1], Diff_End_y, bins = [Primary_True_End_y_bins, Diff_End_y_bins])
-    dependence_End_z_hist, dependence_End_z_binsX, dependence_End_z_binsY = np.histogram2d(Primary_True_End[:, 2], Diff_End_z, bins = [Primary_True_End_z_bins, Diff_End_z_bins])
+    dependence_Start_x_hist, dependence_Start_x_binsX, dependence_Start_x_binsY = np.histogram2d(Primary_True_Start_x, Diff_Start_x, bins = [Primary_True_Start_x_bins, Diff_Start_x_bins])
+    dependence_Start_y_hist, dependence_Start_y_binsX, dependence_Start_y_binsY = np.histogram2d(Primary_True_Start_y, Diff_Start_y, bins = [Primary_True_Start_y_bins, Diff_Start_y_bins])
+    dependence_Start_z_hist, dependence_Start_z_binsX, dependence_Start_z_binsY = np.histogram2d(Primary_True_Start_z, Diff_Start_z, bins = [Primary_True_Start_z_bins, Diff_Start_z_bins])
+    dependence_End_x_hist, dependence_End_x_binsX, dependence_End_x_binsY = np.histogram2d(Primary_True_End_x, Diff_End_x, bins = [Primary_True_End_x_bins, Diff_End_x_bins])
+    dependence_End_y_hist, dependence_End_y_binsX, dependence_End_y_binsY = np.histogram2d(Primary_True_End_y, Diff_End_y, bins = [Primary_True_End_y_bins, Diff_End_y_bins])
+    dependence_End_z_hist, dependence_End_z_binsX, dependence_End_z_binsY = np.histogram2d(Primary_True_End_z, Diff_End_z, bins = [Primary_True_End_z_bins, Diff_End_z_bins])
     
     cmap = cm.get_cmap('cividis');
     
@@ -411,7 +431,7 @@ def draw_performance(out_dir, input_filename):
     # histogram
     
     # single histogram as well
-    reco_tracklength_hist, reco_tracklength_bins = np.histogram(Reco_TrackLength / 10, bins = 40, range = (min(min(Reco_TrackLength / 10), min(True_TrackLength)), max(max(Reco_TrackLength / 10), max(True_TrackLength))))
+    reco_tracklength_hist, reco_tracklength_bins = np.histogram(Reco_TrackLength / 10, bins = 40, range = (50, 500))#(min(min(Reco_TrackLength / 10), min(True_TrackLength)), max(max(Reco_TrackLength / 10), max(True_TrackLength))))
     true_tracklength_hist, true_tracklength_bins = np.histogram(True_TrackLength, bins = reco_tracklength_bins)
     
     reco_tracklength_histX, reco_tracklength_histY = histogram_arr_handle(reco_tracklength_hist, reco_tracklength_bins)
@@ -493,8 +513,8 @@ def draw_performance(out_dir, input_filename):
     
     print("Number of opposite directions: ", opposite_direction_counter, " (", opposite_direction_counter / len(Reco_Start) * 100, "%)")
     print("Stopping and exiting total: ", stopping_and_exiting_counter, " (", stopping_and_exiting_counter / len(Reco_Start) * 100, "%)")
-    print("Exiting: ", exiting_counter, " (", exiting_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_stop * 100, " , pur.: ", purity_stop * 100, " , acc.: ", accuracy_stop * 100)
-    print("Stopping: ", stopping_counter, " (", stopping_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_exit * 100, " , pur.: ", purity_exit * 100, " , acc.: ", accuracy_exit * 100)
+    print("Exiting: ", exiting_counter, " (", exiting_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_exit * 100, " , pur.: ", purity_exit * 100, " , acc.: ", accuracy_exit * 100)
+    print("Stopping: ", stopping_counter, " (", stopping_counter / len(Reco_Start) * 100, "%) | eff.: ", efficiency_stop * 100, " , pur.: ", purity_stop * 100, " , acc.: ", accuracy_stop * 100)
     print("Truth: exiting: ", exiting_truth, " stopping: ", stopping_truth)
     print("Reco: exiting: ", exiting_reco, " stopping: ", stopping_reco)
     
@@ -512,10 +532,11 @@ def draw_performance(out_dir, input_filename):
     v.get_label_by_id('B').set_color('#e95125')
     v.get_label_by_id('B').set_fontsize('xx-large')
     v.get_patch_by_id('01').set_color('#e95125')
-    v.get_label_by_id('11').set_text('%i' % stopping_counter)
-    v.get_label_by_id('11').set_color('black')
-    v.get_label_by_id('11').set_fontsize('x-large')
-    v.get_patch_by_id('11').set_color('#f39e92')
+    if stopping_counter > 0:
+        v.get_label_by_id('11').set_text('%i' % stopping_counter)
+        v.get_label_by_id('11').set_color('black')
+        v.get_label_by_id('11').set_fontsize('x-large')
+        v.get_patch_by_id('11').set_color('#f39e92')
     mp.title('Stopping')
     mp.savefig('%s/Stopping_venn.png' % out_dir, bbox_inches = 'tight')
     mp.close()
@@ -534,10 +555,11 @@ def draw_performance(out_dir, input_filename):
     v.get_label_by_id('B').set_color('#e95125')
     v.get_label_by_id('B').set_fontsize('xx-large')
     v.get_patch_by_id('01').set_color('#e95125')
-    v.get_label_by_id('11').set_text('%i' % exiting_counter)
-    v.get_label_by_id('11').set_color('black')
-    v.get_label_by_id('11').set_fontsize('x-large')
-    v.get_patch_by_id('11').set_color('#f39e92')
+    if exiting_counter > 0:
+        v.get_label_by_id('11').set_text('%i' % exiting_counter)
+        v.get_label_by_id('11').set_color('black')
+        v.get_label_by_id('11').set_fontsize('x-large')
+        v.get_patch_by_id('11').set_color('#f39e92')
     mp.title('Exiting')
     mp.savefig('%s/Exiting_venn.png' % out_dir, bbox_inches = 'tight')
     mp.close()
@@ -545,9 +567,14 @@ def draw_performance(out_dir, input_filename):
     return
 
 def eff_pur_acc(overlap, truth, reco):
-    efficiency = overlap / truth
-    purity = overlap / reco
-    accuracy = overlap / (truth + reco - overlap)
+    if truth == 0 or reco == 0:
+        efficiency = 0
+        purity = 0
+        accuracy = 0
+    else:
+        efficiency = overlap / truth
+        purity = overlap / reco
+        accuracy = overlap / (truth + reco - overlap)
     return efficiency, purity, accuracy
 
 
