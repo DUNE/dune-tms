@@ -90,7 +90,7 @@ class TMS_TrueHit {
     int GetPrimaryId() const { return PrimaryIds.at(0); };
     int GetVertexId() const { 
       if (VertexIds.size() == 1) return VertexIds.at(0); 
-      else if (VertexIds.size() == 0) return __TMS_BAD_NUMBER__;
+      else if (VertexIds.size() == 0) return __TMS_BAD_INT__;
       std::cout<<"Fatal: Using GetVertexId with > 1 possible VertexId. Use GetVertexIds instead."<<std::endl;
       exit(1);
     };

@@ -1104,8 +1104,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double total_true_visible_energy = 0;
     double true_primary_visible_energy = NAN;
     double true_secondary_visible_energy = NAN;
-    int true_primary_particle_index = __TMS_BAD_NUMBER__;
-    int true_secondary_particle_index = __TMS_BAD_NUMBER__;
+    int true_primary_particle_index = __TMS_BAD_INT__;
+    int true_secondary_particle_index = __TMS_BAD_INT__;
     auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
@@ -1155,7 +1155,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 void TMS_TreeWriter::Clear() {
 
   // Reset truth information
-  EventNo = nParticles = NeutrinoPDG = LeptonPDG = VertexIdOfMostEnergyInEvent = VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = __TMS_BAD_NUMBER__;
+  EventNo = nParticles = NeutrinoPDG = LeptonPDG = VertexIdOfMostEnergyInEvent = VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = __TMS_BAD_INT__;
   Muon_TrueKE = Muon_TrueTrackLength = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = NAN;
   Reaction = "";
   IsCC = false;
@@ -1171,9 +1171,9 @@ void TMS_TreeWriter::Clear() {
 
   // Reset line information
   TMSStart = false;
-  nLinesU = __TMS_BAD_NUMBER__;
-  nLinesV = __TMS_BAD_NUMBER__;
-  nLinesX = __TMS_BAD_NUMBER__;
+  nLinesU = __TMS_BAD_INT__;
+  nLinesV = __TMS_BAD_INT__;
+  nLinesX = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     SlopeU[i] = NAN;
     SlopeV[i] = NAN;
@@ -1224,15 +1224,15 @@ void TMS_TreeWriter::Clear() {
     TotalTrackEnergyU[i] = NAN;
     TotalTrackEnergyV[i] = NAN;
     TotalTrackEnergyX[i] = NAN;
-    FirstPlaneU[i] = __TMS_BAD_NUMBER__;
-    FirstPlaneV[i] = __TMS_BAD_NUMBER__;
-    FirstPlaneX[i] = __TMS_BAD_NUMBER__;
-    LastPlaneU[i] = __TMS_BAD_NUMBER__;
-    LastPlaneV[i] = __TMS_BAD_NUMBER__;
-    LastPlaneX[i] = __TMS_BAD_NUMBER__;
-    nHitsInTrackU[i] = __TMS_BAD_NUMBER__;
-    nHitsInTrackV[i] = __TMS_BAD_NUMBER__;
-    nHitsInTrackX[i] = __TMS_BAD_NUMBER__;
+    FirstPlaneU[i] = __TMS_BAD_INT__;
+    FirstPlaneV[i] = __TMS_BAD_INT__;
+    FirstPlaneX[i] = __TMS_BAD_INT__;
+    LastPlaneU[i] = __TMS_BAD_INT__;
+    LastPlaneV[i] = __TMS_BAD_INT__;
+    LastPlaneX[i] = __TMS_BAD_INT__;
+    nHitsInTrackU[i] = __TMS_BAD_INT__;
+    nHitsInTrackV[i] = __TMS_BAD_INT__;
+    nHitsInTrackX[i] = __TMS_BAD_INT__;
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
@@ -1271,23 +1271,23 @@ void TMS_TreeWriter::Clear() {
   }*/
 
   // Reset hit information
-  nHits = __TMS_BAD_NUMBER__;
+  nHits = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = NAN;
     RecoHitEnergy[i] = NAN;
   }
 
   // Reset Cluster info
-  nClustersU = __TMS_BAD_NUMBER__;
-  nClustersV = __TMS_BAD_NUMBER__;
-  nClustersX = __TMS_BAD_NUMBER__;
+  nClustersU = __TMS_BAD_INT__;
+  nClustersV = __TMS_BAD_INT__;
+  nClustersX = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
     ClusterEnergyU[i] = NAN;
     ClusterEnergyV[i] = NAN;
     ClusterEnergyX[i] = NAN;
-    nHitsInClusterU[i] = __TMS_BAD_NUMBER__;
-    nHitsInClusterV[i] = __TMS_BAD_NUMBER__;
-    nHitsInClusterX[i] = __TMS_BAD_NUMBER__;
+    nHitsInClusterU[i] = __TMS_BAD_INT__;
+    nHitsInClusterV[i] = __TMS_BAD_INT__;
+    nHitsInClusterX[i] = __TMS_BAD_INT__;
     for (int j = 0; j < 2; ++j) {
       ClusterPosMeanU[i][j] = NAN;
       ClusterPosStdDevU[i][j] = NAN;
@@ -1314,7 +1314,7 @@ void TMS_TreeWriter::Clear() {
   }
 
   // Reset track information
-  nTracks = __TMS_BAD_NUMBER__;
+  nTracks = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
       RecoTrackStartPos[i][j] = NAN;

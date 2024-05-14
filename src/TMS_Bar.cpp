@@ -133,7 +133,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       BarNumber += 1;
     }
   } else {
-    BarNumber = __TMS_BAD_NUMBER__;
+    BarNumber = __TMS_BAD_INT__;
   }
 
   CheckBar();
