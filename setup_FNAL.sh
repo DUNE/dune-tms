@@ -21,6 +21,8 @@ spack load edep-sim@3.2%gcc@12.2.0  && echo "Setup edep-sim..."
 
 export TMS_DIR=${PWD}
 export PATH=${PATH}:${TMS_DIR}/bin
+
+# Check if LD_LIBRARY_PATH is set, create if not, append if so
 if [ "${LD_LIBRARY_PATH}x" == "x" ]; then
     LD_LIBRARY_PATH=${TMS_DIR}/lib
 else
@@ -32,11 +34,28 @@ if [ "${EDEP_ROOT}x" != "x" ]; then
     LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
 fi
 
+
+# Do some housekeeping here to keep users happy, nominally this should already be set but *insert permissible spack joke*
+
 # Add edep-sim library path if available
 which clhep-config > /dev/null 2>&1
 if [ $? ]; then
     CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
     LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
+fi
+
+# Check if we have Geant4 libraries in the LD_LIBRARY_PATH
+echo ${LD_LIBRARY_PATH} | grep geant >/dev/null 2>&1 # 0(true) if 'geant' found in path, 1(false) otherwise
+if [ $? ]; then
+    echo "Geant4 library path not found in LD_LIBRARY_PATH, adding it..."
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`geant4-config --prefix`/lib64
+fi
+
+# Check if we have root libraries in the LD_LIBRARY_PATH
+echo ${LD_LIBRARY_PATH} | grep "root-" >/dev/null 2>&1 # 0(true) if 'geant' found in path, 1(false) otherwise
+if [ $? ]; then
+    echo "ROOT library path not found in LD_LIBRARY_PATH, adding it..."
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`root-config --prefix`/lib/root
 fi
 
 echo "TMS_DIR = ${TMS_DIR}"
