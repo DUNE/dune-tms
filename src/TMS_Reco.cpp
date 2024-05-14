@@ -1408,7 +1408,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
 // Calculate the total track energy
 double TMS_TrackFinder::CalculateTrackEnergy(const std::vector<TMS_Hit> &Candidate) {
   // Look at the reconstructred tracks
-  if (Candidate.size() == 0) return -999.;
+  if (Candidate.size() == 0) return NAN;
 
   // Sort by increasing z
   //std::sort((*Candidate).begin(), (*Candidate).end(), TMS_Hit::SortByZInc);
@@ -1423,7 +1423,7 @@ double TMS_TrackFinder::CalculateTrackEnergy(const std::vector<TMS_Hit> &Candida
 
 double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
-  if ((Track3D.Hits).size() == 0) return -999.;
+  if ((Track3D.Hits).size() == 0) return NAN;
   
   double total = 0;
   // Loop over each Hough Candidate and find the track energy
@@ -1434,7 +1434,7 @@ double TMS_TrackFinder::CalculateTrackEnergy3D(const TMS_Track &Track3D) {
 }
 
 double TMS_TrackFinder::CalculateTrackKEByRange(const TMS_Track &Track3D) {
-  if (Track3D.Length <= 0.0) return -999.0;
+  if (Track3D.Length <= 0.0) return NAN;
 
   return 82. + 1.75*Track3D.Length; // Magic Clarence number
 }
@@ -1442,7 +1442,7 @@ double TMS_TrackFinder::CalculateTrackKEByRange(const TMS_Track &Track3D) {
 // Calculate the track length for each track
 double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candidate) {
   // Look at the reconstructed track
-  if (Candidate.size() == 0) return 999.;
+  if (Candidate.size() == 0) return NAN;
 
   double final_total = 0;
   int max_n_nodes_used = 0;
@@ -1480,7 +1480,7 @@ double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candida
 
 double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
-  if ((Track3D.Hits).size() == 0) return -999.;
+  if ((Track3D.Hits).size() == 0) return NAN;
   
   double final_total = 0;
   int max_n_nodes_used = 0;
@@ -1978,7 +1978,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     }
     
     // Calculate 'x'-point of hit with Hough line
-    double HoughPoint = -9999999999; //HoughLineOne->Eval(zhit);
+    double HoughPoint = NAN; //HoughLineOne->Eval(zhit);
     if (hitgroup == 'U') {
       HoughPoint = HoughLineU->Eval(zhit);
     } else if (hitgroup == 'V') {

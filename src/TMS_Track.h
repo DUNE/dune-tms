@@ -15,17 +15,17 @@ class TMS_Track {
     void Print();
 
     int    Charge;
-    double Start[3];     // Start point in x,y,z
-    double End[3];       // End point in x,y,z
+    double Start[3];     // Start point in x,y,z, in mm
+    double End[3];       // End point in x,y,z, in mm
     double Direction[3]; // Unit vector in track direction
-    double Length;
+    double Length;       // in mm
     double Occupancy;
-    double EnergyDeposit;
-    double EnergyRange;
+    double EnergyDeposit;// MeV
+    double EnergyRange;  // MeV
     double Time;         // TODO: Fill this in a sensible way
 
-    double GetEnergyDeposit(){return EnergyDeposit;};
-    double GetEnergyRange(){return EnergyRange;};
+    double GetEnergyDeposit(){return EnergyDeposit;}; // MeV
+    double GetEnergyRange(){return EnergyRange;};     // MeV
 
     int nHits;
     std::vector<TMS_Hit> Hits;

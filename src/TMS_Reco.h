@@ -51,7 +51,7 @@ class aNode {
     //aNode(double xval, double yval, double ywval): 
     aNode(double xval, double yval) :
       x(xval), y(yval),
-      HeuristicCost(__LARGE_COST__), NodeID(-999),
+      HeuristicCost(__LARGE_COST__), NodeID(__TMS_BAD_INT__),
       //Heuristic(kManhattan) { // what calculator
       Heuristic(HeuristicType::kEuclidean) { // what calculator
     };

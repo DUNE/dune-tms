@@ -107,18 +107,18 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // If this is a y-bar, remove the y coordinate
   if (BarOrient == kXBar) {
-    x = -99999000;
+    x = NAN;
     // Flip the widths
     double tempyw = yw;
     yw = xw;
     xw = tempyw; 
   } else if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
-    y = -99999000;
+    y = NAN;
     // Don't need to flip the widths because they're already correct (yw = large, xw = 4cm)
   } else {
-    x = -99999000;
-    y = -99999000;
-    z = -99999000;
+    x = NAN;
+    y = NAN;
+    z = NAN;
   }
 
   // Reset the geom navigator node level in case it's used again
@@ -133,7 +133,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       BarNumber += 1;
     }
   } else {
-    BarNumber = -999;
+    BarNumber = __TMS_BAD_INT__;
   }
 
   CheckBar();

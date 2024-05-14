@@ -311,7 +311,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
 }
 
-static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
+static void setMomentum(float *branch, TVector3 momentum, double energy = NAN) {
     branch[0] = momentum.X();
     branch[1] = momentum.Y();
     branch[2] = momentum.Z();
@@ -369,7 +369,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromUVertexInSlice / (VisibleEnergyFromVVerticesInSlice + VisibleEnergyFromUVertexInSlice);
 
   Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
-  //Muon_TrueTrackLength = -999.99;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
 
@@ -624,7 +623,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Find where the first hough hit is
   TMSStart = false;
-  TMSStartTime = -9999.0;
+  TMSStartTime = NAN;
 
   std::vector<std::vector<TMS_Hit> > HoughCandsU = TMS_TrackFinder::GetFinder().GetHoughCandidatesU();
   int TotalHits = TMS_TrackFinder::GetFinder().GetCleanedHits().size();
@@ -1103,10 +1102,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     // Now fill truth info
     double total_true_visible_energy = 0;
-    double true_primary_visible_energy = -999;
-    double true_secondary_visible_energy = -999;
-    int true_primary_particle_index = -999;
-    int true_secondary_particle_index = -999;
+    double true_primary_visible_energy = NAN;
+    double true_secondary_visible_energy = NAN;
+    int true_primary_particle_index = __TMS_BAD_INT__;
+    int true_secondary_particle_index = __TMS_BAD_INT__;
     auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
@@ -1156,180 +1155,180 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 void TMS_TreeWriter::Clear() {
 
   // Reset truth information
-  EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
-  VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = -999;
+  EventNo = nParticles = NeutrinoPDG = LeptonPDG = VertexIdOfMostEnergyInEvent = VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = __TMS_BAD_INT__;
+  Muon_TrueKE = Muon_TrueTrackLength = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = NAN;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
-    MuonP4[i]=-999;
-    Muon_Vertex[i]=-999;
-    Muon_Death[i]=-999;
-    NeutrinoP4[i]=-999;
-    NeutrinoX4[i]=-999;
-    LeptonP4[i]=-999;
-    LeptonX4[i]=-999;
+    MuonP4[i]=NAN;
+    Muon_Vertex[i]=NAN;
+    Muon_Death[i]=NAN;
+    NeutrinoP4[i]=NAN;
+    NeutrinoX4[i]=NAN;
+    LeptonP4[i]=NAN;
+    LeptonX4[i]=NAN;
   }
 
   // Reset line information
   TMSStart = false;
-  nLinesU = -999;
-  nLinesV = -999;
-  nLinesX = -999;
+  nLinesU = __TMS_BAD_INT__;
+  nLinesV = __TMS_BAD_INT__;
+  nLinesX = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    SlopeU[i] = -999;
-    SlopeV[i] = -999;
-    SlopeX[i] = -999;
-    InterceptU[i] = -999;
-    InterceptV[i] = -999;
-    InterceptX[i] = -999;
-    Slope_DownstreamU[i] = -999;
-    Slope_DownstreamV[i] = -999;
-    Slope_DownstreamX[i] = -999;
-    Intercept_DownstreamU[i] = -999;
-    Intercept_DownstreamV[i] = -999;
-    Intercept_DownstreamX[i] = -999;
-    Slope_UpstreamU[i] = -999;
-    Slope_UpstreamV[i] = -999;
-    Slope_UpstreamX[i] = -999;
-    Intercept_UpstreamU[i] = -999;
-    Intercept_UpstreamV[i] = -999;
-    Intercept_UpstreamX[i] = -999;
+    SlopeU[i] = NAN;
+    SlopeV[i] = NAN;
+    SlopeX[i] = NAN;
+    InterceptU[i] = NAN;
+    InterceptV[i] = NAN;
+    InterceptX[i] = NAN;
+    Slope_DownstreamU[i] = NAN;
+    Slope_DownstreamV[i] = NAN;
+    Slope_DownstreamX[i] = NAN;
+    Intercept_DownstreamU[i] = NAN;
+    Intercept_DownstreamV[i] = NAN;
+    Intercept_DownstreamX[i] = NAN;
+    Slope_UpstreamU[i] = NAN;
+    Slope_UpstreamV[i] = NAN;
+    Slope_UpstreamX[i] = NAN;
+    Intercept_UpstreamU[i] = NAN;
+    Intercept_UpstreamV[i] = NAN;
+    Intercept_UpstreamX[i] = NAN;
 
-    DirectionZU[i] = -999;
-    DirectionXU[i] = -999;
-    DirectionZU_Upstream[i] = -999;
-    DirectionXU_Upstream[i] = -999;
-    DirectionZU_Downstream[i] = -999;
-    DirectionXU_Downstream[i] = -999;
+    DirectionZU[i] = NAN;
+    DirectionXU[i] = NAN;
+    DirectionZU_Upstream[i] = NAN;
+    DirectionXU_Upstream[i] = NAN;
+    DirectionZU_Downstream[i] = NAN;
+    DirectionXU_Downstream[i] = NAN;
 
-    DirectionZV[i] = -999;
-    DirectionXV[i] = -999;
-    DirectionZV_Upstream[i] = -999;
-    DirectionXV_Upstream[i] = -999;
-    DirectionZV_Downstream[i] = -999;
-    DirectionXV_Downstream[i] = -999;
+    DirectionZV[i] = NAN;
+    DirectionXV[i] = NAN;
+    DirectionZV_Upstream[i] = NAN;
+    DirectionXV_Upstream[i] = NAN;
+    DirectionZV_Downstream[i] = NAN;
+    DirectionXV_Downstream[i] = NAN;
 
-    DirectionZX[i] = -999;
-    DirectionYX[i] = -999;
-    DirectionZX_Upstream[i] = -999;
-    DirectionYX_Upstream[i] = -999;
-    DirectionZX_Downstream[i] = -999;
-    DirectionYX_Downstream[i] = -999;
+    DirectionZX[i] = NAN;
+    DirectionYX[i] = NAN;
+    DirectionZX_Upstream[i] = NAN;
+    DirectionYX_Upstream[i] = NAN;
+    DirectionZX_Downstream[i] = NAN;
+    DirectionYX_Downstream[i] = NAN;
 
-    OccupancyU[i] = -999;
-    OccupancyV[i] = -999;
-    OccupancyX[i] = -999;
-    TrackLengthU[i] = -999;
-    TrackLengthV[i] = -999;
-    TrackLengthX[i] = -999;
-    TotalTrackEnergyU[i] = -999;
-    TotalTrackEnergyV[i] = -999;
-    TotalTrackEnergyX[i] = -999;
-    FirstPlaneU[i] = -999;
-    FirstPlaneV[i] = -999;
-    FirstPlaneX[i] = -999;
-    LastPlaneU[i] = -999;
-    LastPlaneV[i] = -999;
-    LastPlaneX[i] = -999;
-    nHitsInTrackU[i] = -999;
-    nHitsInTrackV[i] = -999;
-    nHitsInTrackX[i] = -999;
+    OccupancyU[i] = NAN;
+    OccupancyV[i] = NAN;
+    OccupancyX[i] = NAN;
+    TrackLengthU[i] = NAN;
+    TrackLengthV[i] = NAN;
+    TrackLengthX[i] = NAN;
+    TotalTrackEnergyU[i] = NAN;
+    TotalTrackEnergyV[i] = NAN;
+    TotalTrackEnergyX[i] = NAN;
+    FirstPlaneU[i] = __TMS_BAD_INT__;
+    FirstPlaneV[i] = __TMS_BAD_INT__;
+    FirstPlaneX[i] = __TMS_BAD_INT__;
+    LastPlaneU[i] = __TMS_BAD_INT__;
+    LastPlaneV[i] = __TMS_BAD_INT__;
+    LastPlaneX[i] = __TMS_BAD_INT__;
+    nHitsInTrackU[i] = __TMS_BAD_INT__;
+    nHitsInTrackV[i] = __TMS_BAD_INT__;
+    nHitsInTrackX[i] = __TMS_BAD_INT__;
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
   }
-/*    Occupancy3D[i] = -999;
-    TrackLength3D[i] = -999;
-    TotalTrackEnergy3D[i] = -999;
-    FirstPlane3D[i] = -999;
-    LastPlane3D[i] = -999;
-    nHitsInTrack3D[i] = -999;
+/*    Occupancy3D[i] = NAN;
+    TrackLength3D[i] = NAN;
+    TotalTrackEnergy3D[i] = NAN;
+    FirstPlane3D[i] = NAN;
+    LastPlane3D[i] = NAN;
+    nHitsInTrack3D[i] = NAN;
     TrackStopping3D[i] = false;
 
     for (int j = 0; j < 2; ++j) {
-      FirstHitOne[i][j] = -999;
-      FirstHitOther[i][j] = -999;
-      LastHitOne[i][j] = -999;
-      LastHitOther[i][j] = -999;
+      FirstHitOne[i][j] = NAN;
+      FirstHitOther[i][j] = NAN;
+      LastHitOne[i][j] = NAN;
+      LastHitOther[i][j] = NAN;
     }
     for (int j = 0; j < 3; ++j) {
-      FirstHit3D[i][j] = -999;
-      LastHit3D[i][j] = -999;
+      FirstHit3D[i][j] = NAN;
+      LastHit3D[i][j] = NAN;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      TrackHitEnergyOne[i][j]=-999;
-      TrackHitEnergyOther[i][j]=-999;
-      TrackHitPosOne[i][j][0]=-999;
-      TrackHitPosOne[i][j][1]=-999;
-      TrackHitPosOther[i][j][0]=-999;
-      TrackHitPosOther[i][j][1]=-999;
+      TrackHitEnergyOne[i][j]=NAN;
+      TrackHitEnergyOther[i][j]=NAN;
+      TrackHitPosOne[i][j][0]=NAN;
+      TrackHitPosOne[i][j][1]=NAN;
+      TrackHitPosOther[i][j][0]=NAN;
+      TrackHitPosOther[i][j][1]=NAN;
 
-      TrackHitEnergy3D[i][j] = -999;
-      TrackHitPos3D[i][j][0] = -999;
-      TrackHitPos3D[i][j][1] = -999;
-      TrackHitPos3D[i][j][2] = -999;
+      TrackHitEnergy3D[i][j] = NAN;
+      TrackHitPos3D[i][j][0] = NAN;
+      TrackHitPos3D[i][j][1] = NAN;
+      TrackHitPos3D[i][j][2] = NAN;
     }
   }*/
 
   // Reset hit information
-  nHits = -999;
+  nHits = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
-    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = -999;
-    RecoHitEnergy[i] = -999;
+    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = NAN;
+    RecoHitEnergy[i] = NAN;
   }
 
   // Reset Cluster info
-  nClustersU = -999;
-  nClustersV = -999;
-  nClustersX = -999;
+  nClustersU = __TMS_BAD_INT__;
+  nClustersV = __TMS_BAD_INT__;
+  nClustersX = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
-    ClusterEnergyU[i] = -999;
-    ClusterEnergyV[i] = -999;
-    ClusterEnergyX[i] = -999;
-    nHitsInClusterU[i] = -999;
-    nHitsInClusterV[i] = -999;
-    nHitsInClusterX[i] = -999;
+    ClusterEnergyU[i] = NAN;
+    ClusterEnergyV[i] = NAN;
+    ClusterEnergyX[i] = NAN;
+    nHitsInClusterU[i] = __TMS_BAD_INT__;
+    nHitsInClusterV[i] = __TMS_BAD_INT__;
+    nHitsInClusterX[i] = __TMS_BAD_INT__;
     for (int j = 0; j < 2; ++j) {
-      ClusterPosMeanU[i][j] = -999;
-      ClusterPosStdDevU[i][j] = -999;
+      ClusterPosMeanU[i][j] = NAN;
+      ClusterPosStdDevU[i][j] = NAN;
       
-      ClusterPosMeanV[i][j] = -999;
-      ClusterPosStdDevV[i][j] = -999;
+      ClusterPosMeanV[i][j] = NAN;
+      ClusterPosStdDevV[i][j] = NAN;
 
-      ClusterPosMeanX[i][j] = -999;
-      ClusterPosStdDevX[i][j] = -999;
+      ClusterPosMeanX[i][j] = NAN;
+      ClusterPosStdDevX[i][j] = NAN;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      ClusterHitPosU[i][j][0] = -999;
-      ClusterHitPosU[i][j][1] = -999;
-      ClusterHitEnergyU[i][j] = -999;
+      ClusterHitPosU[i][j][0] = NAN;
+      ClusterHitPosU[i][j][1] = NAN;
+      ClusterHitEnergyU[i][j] = NAN;
 
-      ClusterHitPosV[i][j][0] = -999;
-      ClusterHitPosV[i][j][1] = -999;
-      ClusterHitEnergyV[i][j] = -999;
+      ClusterHitPosV[i][j][0] = NAN;
+      ClusterHitPosV[i][j][1] = NAN;
+      ClusterHitEnergyV[i][j] = NAN;
 
-      ClusterHitPosX[i][j][0] = -999;
-      ClusterHitPosX[i][j][1] = -999;
-      ClusterHitEnergyX[i][j] = -999;
+      ClusterHitPosX[i][j][0] = NAN;
+      ClusterHitPosX[i][j][1] = NAN;
+      ClusterHitEnergyX[i][j] = NAN;
     }
   }
 
   // Reset track information
-  nTracks = -999;
+  nTracks = __TMS_BAD_INT__;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
-      RecoTrackStartPos[i][j] = -999;
-      RecoTrackDirection[i][j] = -999;
-      RecoTrackEndPos[i][j] = -999;
+      RecoTrackStartPos[i][j] = NAN;
+      RecoTrackDirection[i][j] = NAN;
+      RecoTrackEndPos[i][j] = NAN;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
-      RecoTrackHitPos[i][k][0] = -999;
-      RecoTrackHitPos[i][k][1] = -999;
-      RecoTrackHitPos[i][k][2] = -999;
+      RecoTrackHitPos[i][k][0] = NAN;
+      RecoTrackHitPos[i][k][1] = NAN;
+      RecoTrackHitPos[i][k][2] = NAN;
     }
-    RecoTrackEnergyRange[i] = -999;
-    RecoTrackEnergyDeposit[i] = -999;
-    RecoTrackLength[i] = -999;
+    RecoTrackEnergyRange[i] = NAN;
+    RecoTrackEnergyDeposit[i] = NAN;
+    RecoTrackLength[i] = NAN;
   }
 
 

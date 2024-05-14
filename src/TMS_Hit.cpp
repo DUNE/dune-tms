@@ -12,8 +12,8 @@ TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) :
   Time((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2), 
   Slice(0), 
   #ifdef RECORD_HIT_DEADTIME
-  DeadtimeStart(-999.0),
-  DeadtimeStop(-999.0),
+  DeadtimeStart(NAN),
+  DeadtimeStop(NAN),
   #endif
   PedSuppressed(false), 
   PE(edep_seg.GetEnergyDeposit() * TMS_Readout_Manager::GetInstance().Get_Sim_Optical_LightYield()) {

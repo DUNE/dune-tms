@@ -460,7 +460,7 @@ class TMS_Geom {
       while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Plane, bar, global
         int *Plane = new int[3];
-        for (int i = 0; i < 3; ++i) Plane[i] = -999;
+        for (int i = 0; i < 3; ++i) Plane[i] = __TMS_BAD_INT__;
 
         std::string NodeName = std::string(geom->GetCurrentNode()->GetName());
         const double *pt = geom->GetCurrentPoint();
@@ -502,7 +502,7 @@ class TMS_Geom {
         }
 
         // Don't push back if we're missing info; likely means the volume wasn't a scintillator bar
-        if (Plane[0] == -999 || Plane[1] == -999 || Plane[2] == -999) continue;
+        if (Plane[0] == __TMS_BAD_INT__|| Plane[1] == __TMS_BAD_INT__|| Plane[2] == __TMS_BAD_INT__) continue;
 
         // Push back the information
         std::pair<int*, TVector3> temp(Plane, Scale(pt_vec));
