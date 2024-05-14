@@ -1258,9 +1258,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
 #endif
             // Track Direction
-            aTrack.Direction[0] = aTrack.End[0] - aTrack.Start[0];
-            aTrack.Direction[1] = aTrack.End[1] - aTrack.Start[1];
-            aTrack.Direction[2] = aTrack.End[2] - aTrack.Start[2];
+            aTrack.Direction[0] = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX() - aTrack.Start[0];  //aTrack.End[0] - aTrack.Start[0];
+            aTrack.Direction[1] = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY() - aTrack.Start[1];  //aTrack.End[1] - aTrack.Start[1];
+            aTrack.Direction[2] = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetNotZ() - aTrack.Start[2];   //aTrack.End[2] - aTrack.Start[2];
 #ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
