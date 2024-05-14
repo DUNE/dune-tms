@@ -1339,20 +1339,16 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   // Get the true muon
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   TMS_TrueParticle muon;
-  //bool FoundMuon = false;
+  bool FoundMuon = false;
   for (auto &particle: TrueParticles) {
-    //if (particle.GetPDG() == 13 && 
-    //    particle.GetParent() == -1) {
+    if (particle.GetPDG() == 13 && 
+        particle.GetParent() == -1) {
       muon = particle;
-    //  FoundMuon = true;
-    //}
+      FoundMuon = true;
+    }
   }
 
-  for (auto &TrueHit: muon.GetPositionPoints()) {
-    std::cout << "Truth: " << TrueHit.X() << " | " << TrueHit.Y() << " | " << TrueHit.Z() << std::endl;
-  }
-
-  /*if (!FoundMuon) return;
+  if (!FoundMuon) return;
 
   // Now compare this to our tracks and see how many of the muon hits are included
   // Loop over the candidate tracks that have been built
@@ -1406,7 +1402,7 @@ void TMS_TrackFinder::EvaluateTrackFinding(TMS_Event &event) {
   if (efficiency > 0) {
     Efficiency->Fill(muonke, efficiency);
     Total->Fill(muonke);
-  }*/
+  }
 }
 
 // Calculate the total track energy
