@@ -100,7 +100,24 @@
     
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
-
+    
+[Fiducial]
+  [Fiducial.TMS.Start]
+    X = -3350.0 # mm
+    Y = -2950.0 # mm
+    Z = 11362.0 # mm
+  [Fiducial.TMS.End]
+    X = 3350.0 # mm
+    Y = 240.0 # mm
+    Z = 18294.0 # mm
+  [Fiducial.LAr.Start]
+    X = -3478.48 # mm
+    Y = -2166.71 # mm
+    Z = 4179.24 # mm
+  [Fiducial.LAr.End]
+    X = 3478.48 # mm
+    Y = 829.282 # mm
+    Z = 9135.88 # mm
 
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
