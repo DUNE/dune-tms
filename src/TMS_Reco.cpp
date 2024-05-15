@@ -766,10 +766,10 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 }
 
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
-//#ifdef DEBUG
+#ifdef DEBUG
   std::cout << "3D matching" << std::endl;
-//  std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
-//#endif
+  std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
+#endif
 
   std::vector<TMS_Track> returned;
   
@@ -1479,7 +1479,7 @@ double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candida
 }
 
 double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
-  std::cout << "CalculateTrackLength3D" << std::endl;
+  //std::cout << "CalculateTrackLength3D" << std::endl;
 
   // Look at the reconstructed tracks
   if ((Track3D.Hits).size() == 0) return -999.;
@@ -1498,7 +1498,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
       TVector3 point2(nexthit.GetRecoX(), nexthit.GetRecoY(), nexthit.GetZ());
       if (nexthit.GetBar().GetBarType() == TMS_Bar::kXBar) point2.SetY(nexthit.GetNotZ());
       total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-      std::cout << "new total (1): " << total << std::endl;
+      //std::cout << "new total (1): " << total << std::endl;
       n_nodes += 1;
     } else if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
       // Use the geometry to calculate the track length between hits
@@ -1507,7 +1507,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
       if (nexthit.GetBar().GetBarType() != TMS_Bar::kXBar) point2.SetY(nexthit.GetRecoY());
       double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
       total += tracklength;
-      std::cout << "new total (2): " << total << std::endl;
+      //std::cout << "new total (2): " << total << std::endl;
       n_nodes += 1;
     }
   }

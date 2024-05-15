@@ -912,7 +912,7 @@ double TMS_Event::GetMuonTrueKE() {
 }
 
 double TMS_Event::GetMuonTrueTrackLength() {
-  std::cout << "GetMuonTrueTrackLength" << std::endl;
+  //std::cout << "GetMuonTrueTrackLength" << std::endl;
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
   double total = 0;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
@@ -929,13 +929,15 @@ double TMS_Event::GetMuonTrueTrackLength() {
       TVector3 point2(nextpnt.X(), nextpnt.Y(), nextpnt.Z()); //-200
       //point1.Print();
       //point2.Print();
+      if (TMS_Geom::GetInstance().IsInsideTMS(point1) && TMS_Geom::GetInstance().IsInsideTMS(point2)) {
       if ((point2-point1).Mag() > 100) {
         //std::cout << "moving on" << std::endl;
         continue;
       }
       double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
       total += tracklength;
-      std::cout << "new total (t): " << total << std::endl;
+      //std::cout << "new total (t): " << total << std::endl;
+      }
       //std::cout << "point " << num << std::endl;
       //std::cout << "total: " << total << std::endl;
       //std::cout << "tracklength: " << tracklength << std::endl;
