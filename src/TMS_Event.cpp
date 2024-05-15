@@ -917,16 +917,16 @@ double TMS_Event::GetMuonTrueTrackLength() {
   double total = 0;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
-    if (abs((*it).GetPDG()) != 13) continue;
+    //if (abs((*it).GetPDG()) != 13) continue;
     // Also make sure it's a fundamental muon
-    if ((*it).GetParent() != -1) continue;
+    //if ((*it).GetParent() != -1) continue;
 
     std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
     int num = 0;
     for (auto pnt = pos.begin(); pnt != pos.end(); ++pnt, ++num) {
       auto nextpnt = *(pnt+1);
-      TVector3 point1((*pnt).X(), -200, (*pnt).Z());
-      TVector3 point2(nextpnt.X(), -200, nextpnt.Z());
+      TVector3 point1((*pnt).X(), (*pnt).Y(), (*pnt).Z());  //-200
+      TVector3 point2(nextpnt.X(), nextpnt.Y(), nextpnt.Z()); //-200
       //point1.Print();
       //point2.Print();
       if ((point2-point1).Mag() > 100) {

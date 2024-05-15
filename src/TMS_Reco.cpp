@@ -1266,9 +1266,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
             // Track Length
             aTrack.Length = CalculateTrackLength3D(aTrack);
-//#ifdef DEBUG
+#ifdef DEBUG
             std::cout << "Added TrackLength: " << aTrack.Length << std::endl;
-//#endif          
+#endif          
             // Track Energy
             aTrack.EnergyDeposit = CalculateTrackEnergy3D(aTrack);
 #ifdef DEBUG
@@ -1479,6 +1479,8 @@ double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candida
 }
 
 double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
+  std::cout << "CalculateTrackLength3D" << std::endl;
+
   // Look at the reconstructed tracks
   if ((Track3D.Hits).size() == 0) return -999.;
   
