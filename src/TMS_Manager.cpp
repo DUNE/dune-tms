@@ -83,7 +83,6 @@ TMS_Manager::TMS_Manager() {
   _FIDUCIAL_LAR_END_Z = toml::find<double>(data, "Fiducial", "LAr", "End", "Z");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
-  _TRUTH_LAR_FIDUCIAL_CUT = toml::find<double> (data, "Truth", "LArFiducialCut");
 
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
   

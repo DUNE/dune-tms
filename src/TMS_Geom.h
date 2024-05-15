@@ -30,14 +30,13 @@ class TMS_Geom {
     }
     
     // Positions are fidicual volume
-    const double fiducial_volume_cut = TMS_Manager::GetInstance().Get_LightWeight_Truth();
-    inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0] + fiducial_volume_cut; };
-    inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1] + fiducial_volume_cut; };
-    inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2] + fiducial_volume_cut; };
+    inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0]; };
+    inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1]; };
+    inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2]; };
     inline TVector3 GetStartOfLAr() const { return TVector3(GetXStartOfLAr(), GetYStartOfLAr(), GetZStartOfLAr()); };
-    inline double GetXEndOfLAr() const { return TMS_Const::LAr_End_Exact[0] - fiducial_volume_cut; };
-    inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1] - fiducial_volume_cut; };
-    inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2] - fiducial_volume_cut; };
+    inline double GetXEndOfLAr() const { return TMS_Const::LAr_End_Exact[0]; };
+    inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1]; };
+    inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2]; };
     inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
     inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[0]; };
     inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[1]; };
@@ -47,6 +46,14 @@ class TMS_Geom {
     inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[1]; };
     inline double GetZEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[2]; };
     inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
+    inline double GetXStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[0]; };
+    inline double GetYStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[1]; };
+    inline double GetZStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[2]; };
+    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
+    inline double GetXEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[0]; };
+    inline double GetYEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[1]; };
+    inline double GetZEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[2]; };
+    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
     inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
     inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
@@ -78,9 +85,12 @@ class TMS_Geom {
     static bool StaticIsInsideTMSThin(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSThin(position); };
     bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFirstTwoModules()); };
     static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
+    bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
+    static bool StaticIsInsideTMSMass(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSMass(position); };
     
     bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
     static bool StaticIsInsideReasonableSize(TVector3 position) { return TMS_Geom::GetInstance().IsInsideReasonableSize(position); };
+    
     
 
     // Get the geometry

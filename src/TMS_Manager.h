@@ -62,7 +62,6 @@ class TMS_Manager {
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
-    double Get_LArFiducialCut() { return _TRUTH_LAR_FIDUCIAL_CUT; };
     
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
     bool Get_Reco_TIME_RunSimpleTimeSlicer() { return _RECO_TIME_RunSimpleTimeSlicer; };
@@ -144,7 +143,6 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
-    double _TRUTH_LAR_FIDUCIAL_CUT;
     
     bool _RECO_TIME_RunTimeSlicer;
     bool _RECO_TIME_RunSimpleTimeSlicer;
