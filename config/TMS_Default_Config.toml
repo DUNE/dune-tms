@@ -103,12 +103,12 @@
     
 [Fiducial]
   [Fiducial.TMS.Start]
-    X = -3350.0 # mm
-    Y = -2950.0 # mm
+    X = -3300.0 # mm
+    Y = -2850.0 # mm
     Z = 11362.0 # mm
   [Fiducial.TMS.End]
-    X = 3350.0 # mm
-    Y = 240.0 # mm
+    X = 3300.0 # mm
+    Y = 160 # mm
     Z = 18294.0 # mm
   [Fiducial.LAr.Start]
     X = -3478.48 # mm
