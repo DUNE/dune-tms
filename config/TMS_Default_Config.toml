@@ -112,7 +112,7 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = -1
+  MaximumNEvents = 20
 
 # Variables that have to do with the geometry or location of the detector 
 [Geometry]
