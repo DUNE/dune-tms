@@ -46,31 +46,50 @@ else
     fi
 fi
 
-# Add edep-sim library path if available
-if [ "${EDEP_ROOT}x" != "x" ]; then
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
+# check if expat in LD_LIBRARY_PATH
+echo ${LD_LIBRARY_PATH} | grep expat > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    # Add expat library path 
+    EXPAT_PATH=`spack find --paths --loaded expat | sed "2q;d" | cut -c14-` # Just trust in spack
+    echo ${EXPAT_PATH} | grep my_spack > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+    echo "Adding expat to LD_LIBRARY_PATH..."
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EXPAT_PATH}/lib
+    fi
 fi
 
-# Do some housekeeping here to keep users happy, nominally these _should_ already be set but *insert permissible spack joke*
+# check if edep-sim in LD_LIBRARY_PATH
+echo ${LD_LIBRARY_PATH} | grep edep-sim > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    # Add edep-sim library path if available
+    if [ "${EDEP_ROOT}x" != "x" ]; then
+        echo "Adding edep-sim to LD_LIBRARY_PATH..."
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
+    fi
+fi
 
-# Add edep-sim library path if available
-which clhep-config > /dev/null 2>&1 # check if clhep-config executable is available
-if [  $? ]; then
-    CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
+echo ${LD_LIBRARY_PATH} | grep edep-sim > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    # Add edep-sim library path if available
+    which clhep-config > /dev/null 2>&1 # check if clhep-config executable is available
+    if [  $? -ne 0 ]; then
+        CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
+        echo "Adding clhep to LD_LIBRARY_PATH..."
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
+    fi
 fi
 
 # Check if we have Geant4 libraries in the LD_LIBRARY_PATH
 echo ${LD_LIBRARY_PATH} | grep geant >/dev/null 2>&1 # 0(true) if 'geant' found in path, 1(false) otherwise
 if [ $? -ne 0 ]; then
-    echo "Geant4 library path not found in LD_LIBRARY_PATH, adding it..."
+    echo "Adding geant4 to LD_LIBRARY_PATH..."
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`geant4-config --prefix`/lib64
 fi
 
 # Check if we have root libraries in the LD_LIBRARY_PATH
 echo ${LD_LIBRARY_PATH} | grep "root-" >/dev/null 2>&1 # 0(true) if 'geant' found in path, 1(false) otherwise
 if [ $? -ne 0 ]; then
-    echo "ROOT library path not found in LD_LIBRARY_PATH, adding it..."
+    echo "Adding root to LD_LIBRARY_PATH..."
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`root-config --prefix`/lib/root
 fi
 

@@ -7,6 +7,12 @@ project(dune-tms VERSION 0.2.2)
 
 message("-- DUNE TMS Detector Sim and Reconstruction -- ${VERSION}")
 
+# Check if CMAKE_INSTALL_PREFIX set by user
+# Set to $TMS_DIR/Linux if not.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "$ENV{TMS_DIR}/Linux" CACHE PATH "..." FORCE)
+endif()
+
 # If you got here without git good job honestly
 find_package(Git)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
@@ -144,8 +150,11 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/DUNETMSConfigVersion.cmake
   DESTINATION lib/cmake/dune-tms)
 
+# We use CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT earlier so this should only run with ancient versions of CMake
 if(${CMAKE_INSTALL_PREFIX} STREQUAL "/usr/local")
   message(WARNING "Install path is currently set to: ${CMAKE_INSTALL_PREFIX}
 When running `make install', make will try to install files to ${CMAKE_INSTALL_PREFIX}, requiring superuser access.
 If this is not where you want it installed, rerun cmake with the option -DCMAKE_INSTALL_PREFIX=/path/you/want")
+else()
+  message(STATUS "Install path is set to: ${CMAKE_INSTALL_PREFIX}")
 endif()
