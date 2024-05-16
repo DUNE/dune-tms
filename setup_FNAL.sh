@@ -14,20 +14,22 @@ source /exp/dune/data/users/losulliv/spack/my_spack/setup-env.sh
 #  - We first check the list of loaded packages using grep to see if we have them loaded
 #    (e.g. already sourced this file) and load it with spack if not
 
-spack load --list | grep "gcc@12.2.0" >/dev/null 2>&1 # # 0(true) if it's loaded, 1(false) otherwise
+LOADED_SPACKAGES=`spack load --list` # Save to a variable so we only call this once, it's not fast
+echo ${LOADED_SPACKAGES} | grep "gcc@12.2.0" >/dev/null 2>&1 # # 0(true) if it's loaded, 1(false) otherwise
 if [ $? -ne 0 ]; then spack load gcc@12.2.0%gcc@11.4.1 && echo "Setup gcc..."; else echo "gcc already loaded."; fi
-spack load --list | grep "cmake@3.27.7" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "cmake@3.27.7" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load cmake@3.27.7%gcc@12.2.0 && echo "Setup cmake..."; else echo "cmake already loaded."; fi
-spack load --list | grep "root@6.28.06" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "root@6.28.06" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load root@6.28.06%gcc@12.2.0 && echo "Setup root..."; else echo "root already loaded."; fi
-spack load --list | grep "geant4@10.6.1" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "geant4@10.6.1" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load geant4@10.6.1%gcc@12.2.0 && echo "Setup geant4..."; else echo "geant4 already loaded."; fi
-spack load --list | grep "clhep@2.4.6.4" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "clhep@2.4.6.4" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load clhep@2.4.6.4%gcc@12.2.0 && echo "Setup clhep..."; else echo "clhep already loaded."; fi
-spack load --list | grep "expat@2.5.0" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "expat@2.5.0" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load expat@2.5.0%gcc@12.2.0 && echo "Setup expat..."; else echo "expat already loaded."; fi
-spack load --list | grep "edep-sim@3.2" >/dev/null 2>&1
+echo ${LOADED_SPACKAGES} | grep "edep-sim@3.2" >/dev/null 2>&1
 if [ $? -ne 0 ]; then spack load edep-sim@3.2%gcc@12.2.0 && echo "Setup edep-sim..."; else echo "edep-sim already loaded."; fi
+unset LOADED_SPACKAGES
 
 export TMS_DIR=${PWD}
 # check if TMS is already in our path, assume PATH is never empty
