@@ -70,11 +70,11 @@ if [ $? -ne 0 ]; then
     fi
 fi
 
-echo ${LD_LIBRARY_PATH} | grep edep-sim > /dev/null 2>&1
+echo ${LD_LIBRARY_PATH} | grep -i clhep > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     # Add edep-sim library path if available
     which clhep-config > /dev/null 2>&1 # check if clhep-config executable is available
-    if [  $? -ne 0 ]; then
+    if [ $? ]; then
         CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
         echo "Adding clhep to LD_LIBRARY_PATH..."
         LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
