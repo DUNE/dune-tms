@@ -80,6 +80,30 @@ def run(c, truth, outfilename, nmax=-1):
         hist_delta_x_signed_antimuons = ROOT.TH1D("hist_delta_x_signed_antimuons", "True delta x: (x_tms_start - x_extrapolate) (using truth_info);True distance(mm) ;Number of antimuons", 100, -2000, 2000)
         hist_theta_tms_signed_antimuons = ROOT.TH1D("hist_theta_tms_signed_antimuons", "True tms angle;True tms angle (radian) ;Number of antimuons", 100, -1, 1)
         hist_theta_lar_signed_antimuons = ROOT.TH1D("hist_theta_lar_signed_antimuons", "True lar angle;True angle (radian) ;Number of antimuons", 100, -1, 1)
+        
+        hist_matched_muons_in_lar_xz = ROOT.TH2D("hist_matched_muons_in_lar_xz", 
+           "Matched muons in lar xz plane (using truth_info);True muon start position Z (mm);True muon start position X (mm)", 50, 3600, 10000, 50, -5000, 4000)
+        hist_matched_muons_in_lar_yz = ROOT.TH2D("hist_matched_muons_in_lar_yz", 
+           "Matched muons in lar yz plane (using truth_info);True muon start position Z (mm);True muon start position Y (mm)", 50, 3600, 10000, 50, -4000, 1300)
+        
+        hist_all_muons_in_lar_xz = ROOT.TH2D("hist_all_muons_in_lar_xz", 
+           "All muons in lar xz plane (using truth_info);True muon start position Z (mm);True muon start position X (mm)", 50, 3600, 10000, 50, -5000, 4000)
+        hist_all_muons_in_lar_yz = ROOT.TH2D("hist_all_muons_in_lar_yz", 
+           "All muons in lar yz plane (using truth_info);True muon start position Z (mm);True muon start position Y (mm)", 50, 3600, 10000, 50, -4000, 1300)
+        
+
+        hist_ratio_of_matched_muons_vs_all_muons_in_lar_xz = ROOT.TH2D("hist_ratio_of_matched_muons_vs_all_muons_in_lar_xz", 
+           "Ratio of matched muons vs all muons in lar xz plane (using truth_info);True muon start position Z (mm);True muon start position X (mm)", 50, 3600, 10000, 50, -5000, 4000)
+        hist_ratio_of_matched_muons_vs_all_muons_in_lar_yz = ROOT.TH2D("hist_ratio_of_matched_muons_vs_all_muons_in_lar_yz", 
+           "Ratio of matched muons vs all muons in lar yz plane (using truth_info);True muon start position Z (mm);True muon start position Y (mm)", 50, 3600, 10000, 50, -4000, 1300)
+        
+
+        hist_all_muons_in_lar_xz_using_positionlarstart = ROOT.TH2D("hist_all_muons_in_lar_xz_using_positionlarstart", 
+           "All muons in lar xz plane (using truth_info)(using_positionlarstart);True muon start position Z (mm);True muon start position X (mm)", 50, 3600, 10000, 50, -5000, 4000)
+        hist_all_muons_in_lar_yz_using_positionlarstart = ROOT.TH2D("hist_all_muons_in_lar_yz_using_positionlarstart", 
+           "All muons in lar yz plane (using truth_info)(using_positionlarstart);True muon start position Z (mm);True muon start position Y (mm)", 50, 3600, 10000, 50, -4000, 1300)
+        
+    
     # User can request fewer events, so check how many we're looping over.
     nevents = c.GetEntries()
     if nmax >= 0 and nevents > nmax: nevents = nmax
@@ -105,6 +129,7 @@ def run(c, truth, outfilename, nmax=-1):
     n_matched_antimuons =0
     matched_percentage_muons=0
     matched_percentage_antimuons=0
+    n_muons_lar_start=0
     
 
 
@@ -137,6 +162,17 @@ def run(c, truth, outfilename, nmax=-1):
                 x_death = truth.DeathPosition[4*index+0]
                 y_death = truth.DeathPosition[4*index+1]
                 z_death = truth.DeathPosition[4*index+2]
+                
+                
+                
+                if inside_lar(x_birth,y_birth,z_birth):
+                    hist_all_muons_in_lar_xz.Fill(z_birth,x_birth)
+                    hist_all_muons_in_lar_yz.Fill(z_birth,y_birth)
+
+                    hist_all_muons_in_lar_xz_using_positionlarstart.Fill(truth.PositionLArStart[4*index+2],truth.PositionLArStart[4*index+0])
+                    hist_all_muons_in_lar_yz_using_positionlarstart.Fill(truth.PositionLArStart[4*index+2],truth.PositionLArStart[4*index+1])
+                    
+                    n_muons_lar_start+=1
 
 
                 if inside_lar(x_birth,y_birth,z_birth) and inside_tms(x_death,y_death,z_death):
@@ -166,7 +202,11 @@ def run(c, truth, outfilename, nmax=-1):
                     delta_theta_signed =theta_tms-theta_lar
                     hist_delta_theta.Fill(delta_theta)
                     hist_delta_theta_signed.Fill(delta_theta_signed)
-                    if delta_x < 400 and delta_theta < 0.31 :  n_matched_muons += 1
+                    if delta_x < 400 and delta_theta < 0.31 :  
+                        n_matched_muons += 1
+                        hist_matched_muons_in_lar_xz.Fill(z_birth,x_birth)
+                        hist_matched_muons_in_lar_yz.Fill(z_birth,y_birth)
+
             
             
             
@@ -223,6 +263,8 @@ def run(c, truth, outfilename, nmax=-1):
    
     matched_percentage_muons = n_matched_muons/n_true_muons
     matched_percentage_antimuons = n_matched_antimuons/n_true_antimuons
+    hist_ratio_of_matched_muons_vs_all_muons_in_lar_xz.Divide(hist_matched_muons_in_lar_xz,hist_all_muons_in_lar_xz)
+    hist_ratio_of_matched_muons_vs_all_muons_in_lar_yz.Divide(hist_matched_muons_in_lar_yz,hist_all_muons_in_lar_yz)
     
     ## Now save all the histograms
     if carriage: print("\r", end="") # Erase the current line
@@ -244,9 +286,12 @@ def run(c, truth, outfilename, nmax=-1):
         print(f"N true muons: {n_true_muons}")
         print(f"N matched muons: {n_matched_muons}")
         print(f"matched percentage: {matched_percentage_muons}")
-        print(f"N true muons: {n_true_antimuons}")
-        print(f"N matched muons: {n_matched_antimuons}")
+        print(f"N true antimuons: {n_true_antimuons}")
+        print(f"N matched antimuons: {n_matched_antimuons}")
         print(f"matched percentage: {matched_percentage_antimuons}")
+        print(f"number of muons starting in lar: {n_muons_lar_start}")
+        print(f"muons matched/muons in lar: {n_matched_muons/n_muons_lar_start}")
+
    
        
 

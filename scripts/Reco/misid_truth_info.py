@@ -75,26 +75,43 @@ def run(c, truth, outfilename, nmax=-1):
        
         hist_correct_charge_id = ROOT.TH1D("hist_correct_charge_id", "Muons correct charge number (using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
         hist_incorrect_charge_id = ROOT.TH1D("hist_incorrect_charge_id", "Muons incorrect charge number plot(using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
-        
         hist_total_charge_id = ROOT.TH1D("hist_total_charge_id", "Muons total charge number (using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
         hist_correct_charge_id_percentage = ROOT.TH1D("hist_correct_charge_id_percentage", "Muons correct charge percentage (using truth_info);True muon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance = ROOT.TH1D("hist_signed_distance", "Muons signed distance: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
+        
         hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge percentage (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge percentage (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_total_charge_id_antimuon = ROOT.TH1D("hist_total_charge_id_antimuon", "Antimuons total charge number (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_correct_charge_id_percentage_antimuon = ROOT.TH1D("hist_correct_charge_id_percentage_antimuon", "Antimuons correct charge percentage (using truth_info);True antimuon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance_antimuon = ROOT.TH1D("hist_signed_distance_antimuon", "Antimuons signed distance: (x_extropolate - x_truth) (using truth_info) ;True signed distance(mm); Number of antimuons", 100, -2000, 2000)
+        
+        
+        
         hist_signed_distance_vs_endpoints_z = ROOT.TH2D("hist_signed_distance_vs_endpoints_z", "Muons signed distance vs endpoint in z (using truth_info);True endpoint in z (mm);True signed distance(mm) ", 100, 10000, 19000,100,-500,2000)
-       
-      
+        hist_true_muon_energy = ROOT.TH1D("hist_true_muon_energy", "Muons true energy (using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
+        hist_true_muon_energy_vs_endpoints_in_z = ROOT.TH2D("hist_true_muon_energy_vs_endpoints_in_z", "Muons true energy vs endpoint in z (using truth_info);True endpoint in z (mm);True muon energy(MeV) ", 100, 10000, 19000,100,0,5000)
+        hist_true_muon_endpoint_distribution = ROOT.TH1D("hist_true_muon_endpoint_distribution", "Muons endpoint distribution (using truth_info);True muon endpoint in z (mm);Number of muons", 100, 10000, 19000)
+        hist_true_muon_energy_vs_rough_tracklength = ROOT.TH2D("hist_true_muon_energy_vs_rough_tracklength", "Muons true energy vs rough tracklength (using truth_info);rough tracklength (mm);True muon energy(MeV) ", 100, 0, 10000,100,0,5000)
         
-        
-        
+        hist_signed_distance_vs_endpoints_z_antimuon = ROOT.TH2D("hist_signed_distance_vs_endpoints_z_antimuon", "Antimuons signed distance vs endpoint in z (using truth_info);True endpoint in z (mm);True signed distance(mm) ", 100, 10000, 19000,100,-500,2000)
+        hist_true_antimuon_energy = ROOT.TH1D("hist_true_antimuon_energy", "Antimuons true energy (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
+        hist_true_antimuon_energy_vs_endpoints_in_z = ROOT.TH2D("hist_true_antimuon_energy_vs_endpoints_in_z", "Antimuons true energy vs endpoint in z (using truth_info);True endpoint in z (mm);True antimuon energy(MeV) ", 100, 10000, 19000,100,0,5000)
+        hist_true_antimuon_endpoint_distribution = ROOT.TH1D("hist_true_antimuon_endpoint_distribution", "Antimuons endpoint distribution (using truth_info);True antimuon endpoint in z (mm);Number of antimuons", 100, 10000, 19000)
+        hist_true_antimuon_energy_vs_rough_tracklength = ROOT.TH2D("hist_true_antimuon_energy_vs_rough_tracklength", "Antimuons true energy vs rough tracklength (using truth_info);rough tracklength (mm);True antimuon energy(MeV) ", 100, 0, 10000,100,0,5000)
        
-       
-       
-        
-    
+        hist_signed_distance_with_energy_cut = ROOT.TH1D("hist_signed_distance_with_energy_cut", "Muons signed distance with energy cut: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
+        hist_signed_distance_with_energy_cut_antimuon = ROOT.TH1D("hist_signed_distance_with_energy_cut_antimuon", "Antimuons signed distance with energy cut: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of antimuons", 100, -2000, 2000)
+        hist_signed_distance_with_energy_cut_2 = ROOT.TH1D("hist_signed_distance_with_energy_cut_2", "Muons signed distance with energy cut: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
+
+        hist_correct_charge_id_B_flipped_regions = ROOT.TH1D("hist_correct_charge_id_B_flipped_regions", "Muons correct charge number (using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
+        hist_incorrect_charge_id_B_flipped_regions = ROOT.TH1D("hist_incorrect_charge_id_B_flipped_regions", "Muons incorrect charge number plot(using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
+        hist_total_charge_id_B_flipped_regions = ROOT.TH1D("hist_total_charge_id_B_flipped_regions", "Muons total charge number (using truth_info);True muon KE (MeV);Number of muons", 100, 0, 5000)
+        hist_correct_charge_id_percentage_B_flipped_regions = ROOT.TH1D("hist_correct_charge_id_percentage_B_flipped_regions", "Muons correct charge percentage (using truth_info);True muon KE (MeV);Fraction", 100, 0, 5000)
+        hist_signed_distance_B_flipped_regions = ROOT.TH1D("hist_signed_distance_B_flipped_regions", "Muons signed distance: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
+
+
+
+
     # User can request fewer events, so check how many we're looping over.
     nevents = c.GetEntries()
     if nmax >= 0 and nevents > nmax: nevents = nmax
@@ -138,7 +155,7 @@ def run(c, truth, outfilename, nmax=-1):
        
         
         
-        # use PositionTMSStart, MomentumTMSStart, and PositionTMSEnd, truth level study
+        # use PositionTMSStart, MomentumTMSStart, and PositionTMSEnd, Muon_TrueKE ,truth level study
         for index, particle in enumerate(truth.PDG):
             if truth.PDG[index] == 13:
                 n_true_muons+=1
@@ -149,71 +166,82 @@ def run(c, truth, outfilename, nmax=-1):
                 y_end = truth.DeathPosition[4*index+1]
                 z_end = truth.DeathPosition[4*index+2]
                 x_start_tms = truth.PositionTMSStart[4*index+0]
+                y_start_tms = truth.PositionTMSStart[4*index+1]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
+                tracklength = math.sqrt((z_end-z_start_tms)**2 + (y_end-y_start_tms)**2 +(x_end-x_start_tms)**2)
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
                     n_muon_total_lar_start_tms_end+=1
+                    p_z = truth.MomentumTMSStart[4*index+2] 
+                    p_y = truth.MomentumTMSStart[4*index+1]
+                    p_x = truth.MomentumTMSStart[4*index+0]
+                    p_0 = truth.MomentumTMSStart[4*index+3]
+                    if p_z ==0: break
+                    m= p_x / p_z 
+                    b= x_start_tms-m*z_start_tms
+                    x_extrapolate =m*z_end +b
+                    signed_dist = x_end - x_extrapolate
+                    KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+                    hist_true_muon_energy_vs_rough_tracklength.Fill(tracklength,KE)
+                    hist_true_muon_endpoint_distribution.Fill(z_end)
+                    hist_true_muon_energy_vs_endpoints_in_z.Fill(z_end,KE)
+                    hist_true_muon_energy.Fill(KE)
+                    
                     if region1(x_start_tms) and region1(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = x_end - x_extrapolate
+                        if KE > 500: hist_signed_distance_with_energy_cut.Fill(signed_dist)
+                        if KE > 200: hist_signed_distance_with_energy_cut_2.Fill(signed_dist)
                         hist_signed_distance.Fill(signed_dist)
-                        hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        hist_total_charge_id.Fill(KE)
                         hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
                         if signed_dist > 0 :
-                            hist_correct_charge_id.Fill(truth.Muon_TrueKE)
+                            hist_correct_charge_id.Fill(KE)
                             n_correct_muon+=1
                         else:  
-                            hist_incorrect_charge_id.Fill(truth.Muon_TrueKE)
+                            hist_incorrect_charge_id.Fill(KE)
                             n_incorrect_muon +=1
                 
                 
                 
                
                     if region2(x_start_tms) and region2(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = -(x_end - x_extrapolate)
-                        hist_signed_distance.Fill(signed_dist)
-                        hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        if KE > 500: hist_signed_distance_with_energy_cut.Fill(-signed_dist)
+                        if KE > 200: hist_signed_distance_with_energy_cut_2.Fill(-signed_dist)
+                        hist_signed_distance.Fill(-signed_dist)
+                        hist_total_charge_id.Fill(KE)
                         hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
-                        if signed_dist > 0 :
-                            hist_correct_charge_id.Fill(truth.Muon_TrueKE)
+                        if signed_dist < 0 :
+                            hist_correct_charge_id.Fill(KE)
                             n_correct_muon+=1
                         else:  
-                            hist_incorrect_charge_id.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id.Fill(KE) 
                             n_incorrect_muon +=1
                 
                 
                 
                 
                     if region3(x_start_tms) and region3(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = x_end - x_extrapolate
+                        if KE > 500: hist_signed_distance_with_energy_cut.Fill(signed_dist)
+                        if KE > 200: hist_signed_distance_with_energy_cut_2.Fill(signed_dist)
                         hist_signed_distance.Fill(signed_dist)
-                        hist_total_charge_id.Fill(truth.Muon_TrueKE)
+                        hist_total_charge_id.Fill(KE)
                         hist_signed_distance_vs_endpoints_z.Fill(z_end,signed_dist)
                         if signed_dist > 0 :
-                            hist_correct_charge_id.Fill(truth.Muon_TrueKE)
+                            hist_correct_charge_id.Fill(KE)
                             n_correct_muon+=1
                         else:  
-                            hist_incorrect_charge_id.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id.Fill(KE) 
                             n_incorrect_muon +=1
  
-            
+                    if ( region1_2(x_start_tms) and region1_2(x_end)) or ( region2_3(x_start_tms) and region2_3(x_end)):
+                        hist_signed_distance_B_flipped_regions.Fill(signed_dist)
+                        hist_total_charge_id_B_flipped_regions.Fill(KE)
+                       
+                        if signed_dist > 0 :
+                            hist_correct_charge_id_B_flipped_regions.Fill(KE)
+                            
+                        else:  
+                            hist_incorrect_charge_id_B_flipped_regions.Fill(KE) 
+                           
             
             
             
@@ -226,74 +254,78 @@ def run(c, truth, outfilename, nmax=-1):
                 y_end = truth.DeathPosition[4*index+1]
                 z_end = truth.DeathPosition[4*index+2]
                 x_start_tms = truth.PositionTMSStart[4*index+0]
+                y_start_tms = truth.PositionTMSStart[4*index+1]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
+                tracklength = math.sqrt((z_end-z_start_tms)**2 + (y_end-y_start_tms)**2 +(x_end-x_start_tms)**2)
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
-                    n_antimuon_total_lar_start_tms_end +=1
+                    n_antimuon_total_lar_start_tms_end+=1
+                    p_z = truth.MomentumTMSStart[4*index+2] 
+                    p_y = truth.MomentumTMSStart[4*index+1]
+                    p_x = truth.MomentumTMSStart[4*index+0]
+                    p_0 = truth.MomentumTMSStart[4*index+3]
+                    if p_z ==0: break
+                    m= p_x / p_z 
+                    b= x_start_tms-m*z_start_tms
+                    x_extrapolate =m*z_end +b
+                    signed_dist = x_end - x_extrapolate
+                    KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+                    hist_true_antimuon_energy_vs_rough_tracklength.Fill(tracklength,KE)
+                    hist_true_antimuon_endpoint_distribution.Fill(z_end)
+                    hist_true_antimuon_energy_vs_endpoints_in_z.Fill(z_end,KE)
+                    hist_true_antimuon_energy.Fill(KE)
+                    
                     if region1(x_start_tms) and region1(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = x_end - x_extrapolate
+                       
                         hist_signed_distance_antimuon.Fill(signed_dist)
-                        hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
+                        hist_total_charge_id_antimuon.Fill(KE)
+                        hist_signed_distance_vs_endpoints_z_antimuon.Fill(z_end,signed_dist)
                         if signed_dist < 0 :
-                            hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct_antimuon +=1
+                            hist_correct_charge_id_antimuon.Fill(KE)
+                            n_correct_antimuon+=1
                         else:  
-                            hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id_antimuon.Fill(KE)
                             n_incorrect_antimuon +=1
                 
                 
                 
                
                     if region2(x_start_tms) and region2(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = -(x_end - x_extrapolate)
-                        hist_signed_distance_antimuon.Fill(signed_dist)
-                        hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                        if signed_dist < 0 :
-                            hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct_antimuon +=1
+                       
+                        hist_signed_distance_antimuon.Fill(-signed_dist)
+                        hist_total_charge_id_antimuon.Fill(KE)
+                        hist_signed_distance_vs_endpoints_z_antimuon.Fill(z_end,signed_dist)
+                        if signed_dist > 0 :
+                            hist_correct_charge_id_antimuon.Fill(KE)
+                            n_correct_antimuon+=1
                         else:  
-                            hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_incorrect_antimuon +=1 
+                            hist_incorrect_charge_id_antimuon.Fill(KE) 
+                            n_incorrect_antimuon +=1
                 
                 
                 
                 
                     if region3(x_start_tms) and region3(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index+0]
-                        if p_z ==0: break
-                        m= p_x / p_z 
-                        b= x_start_tms-m*z_start_tms
-                        x_extrapolate =m*z_end +b
-                        signed_dist = x_end - x_extrapolate
+                        
                         hist_signed_distance_antimuon.Fill(signed_dist)
-                        hist_total_charge_id_antimuon.Fill(truth.Muon_TrueKE)
+                        hist_total_charge_id_antimuon.Fill(KE)
+                        hist_signed_distance_vs_endpoints_z_antimuon.Fill(z_end,signed_dist)
                         if signed_dist < 0 :
-                            hist_correct_charge_id_antimuon.Fill(truth.Muon_TrueKE)
-                            n_correct_antimuon +=1
+                            hist_correct_charge_id_antimuon.Fill(KE)
+                            n_correct_antimuon+=1
                         else:  
-                            hist_incorrect_charge_id_antimuon.Fill(truth.Muon_TrueKE) 
+                            hist_incorrect_charge_id_antimuon.Fill(KE) 
                             n_incorrect_antimuon +=1
  
-    
+            
+            
    
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon) 
     correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
     correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
+    hist_correct_charge_id_percentage_B_flipped_regions.Divide(hist_correct_charge_id_B_flipped_regions,hist_total_charge_id_B_flipped_regions)
+    
     #n_region1_contained_percentage=   (n_region1_total-n_region1_not_contained)/n_region1_total   
     #n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
     #n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total
