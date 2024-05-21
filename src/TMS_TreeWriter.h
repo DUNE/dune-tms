@@ -313,10 +313,39 @@ class TMS_TreeWriter {
     
     int RecoTrackN;
     float RecoTrackTrueVisibleEnergy[__TMS_MAX_LINES__];
+    // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackPrimaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__];
+    // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackSecondaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__]; 
+    
+    // Save truth info about primary particle
+    int RecoTrackPrimaryParticlePDG[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTrueTrackLength[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueMomentumEnteringTMS[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionEnteringTMS[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTrueMomentumLeavingTMS[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionLeavingTMS[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTrueMomentumLeavingLAr[__TMS_MAX_LINES__][4];
+    float RecoTrackPrimaryParticleTruePositionLeavingLAr[__TMS_MAX_LINES__][4];
+    
+    bool RecoTrackPrimaryParticleTMSFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleTMSFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleTMSFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
+    
+    // Save truth info about secondary particle
+    int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];
+    float RecoTrackSecondaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
+    float RecoTrackSecondaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
+    float RecoTrackSecondaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];
 
     float RecoTrackPrimaryParticleTrueMomentumTrackStart[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionTrackStart[__TMS_MAX_LINES__][4];
@@ -325,8 +354,8 @@ class TMS_TreeWriter {
 
     float RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[__TMS_MAX_LINES__];
-    float RecoTrackPrimaryParticleTrueTrackLength[__TMS_MAX_LINES__];
-    float RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthRecoStart[__TMS_MAX_LINES__];
+    float RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthInTMS[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[__TMS_MAX_LINES__];
     

@@ -284,15 +284,54 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY",
                       RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY,
                      "RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthRecoStart",
+                      RecoTrackPrimaryParticleTrueTrackLengthRecoStart,
+                     "RecoTrackPrimaryParticleTrueTrackLengthRecoStart[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY",
+                      RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY,
+                     "RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY",
+                      RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY,
+                     "RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[RecoTrackN]/F");
+                     
+  Truth_Info->Branch("RecoTrackPrimaryParticlePDG", &RecoTrackPrimaryParticlePDG, "RecoTrackPrimaryParticlePDG[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentum", RecoTrackPrimaryParticleTrueMomentum,
+                     "RecoTrackPrimaryParticleTrueMomentum[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionStart", RecoTrackPrimaryParticleTruePositionStart,
+                     "RecoTrackPrimaryParticleTruePositionStart[RecoTrackN][4]/F"); 
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionEnd", RecoTrackPrimaryParticleTruePositionEnd,
+                     "RecoTrackPrimaryParticleTruePositionEnd[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLength", RecoTrackPrimaryParticleTrueTrackLength,
                      "RecoTrackPrimaryParticleTrueTrackLength[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthIgnoreY", RecoTrackPrimaryParticleTrueTrackLengthIgnoreY,
                      "RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMS", RecoTrackPrimaryParticleTrueTrackLengthInTMS,
                      "RecoTrackPrimaryParticleTrueTrackLengthInTMS[RecoTrackN]/F");
-  Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY",
-                      RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY,
-                     "RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumEnteringTMS", RecoTrackPrimaryParticleTrueMomentumEnteringTMS,
+                     "RecoTrackPrimaryParticleTrueMomentumEnteringTMS[RecoTrackN][4]/F"); 
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS,
+                     "RecoTrackPrimaryParticleTrueMomentumLeavingTMS[RecoTrackN][4]/F"); 
+                     
+  Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialStart", RecoTrackPrimaryParticleTMSFiducialStart,
+    "RecoTrackPrimaryParticleTMSFiducialStart[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialTouch", RecoTrackPrimaryParticleTMSFiducialTouch,
+    "RecoTrackPrimaryParticleTMSFiducialTouch[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialEnd", RecoTrackPrimaryParticleTMSFiducialEnd,
+    "RecoTrackPrimaryParticleTMSFiducialEnd[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleLArFiducialStart", RecoTrackPrimaryParticleLArFiducialStart,
+    "RecoTrackPrimaryParticleLArFiducialStart[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleLArFiducialTouch", RecoTrackPrimaryParticleLArFiducialTouch,
+    "RecoTrackPrimaryParticleLArFiducialTouch[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleLArFiducialEnd", RecoTrackPrimaryParticleLArFiducialEnd,
+    "RecoTrackPrimaryParticleLArFiducialEnd[RecoTrackN]/O");
+                     
+  Truth_Info->Branch("RecoTrackSecondaryParticlePDG", &RecoTrackSecondaryParticlePDG, "RecoTrackSecondaryParticlePDG[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackSecondaryParticleTrueMomentum", RecoTrackSecondaryParticleTrueMomentum,
+                     "RecoTrackSecondaryParticleTrueMomentum[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionStart", RecoTrackSecondaryParticleTruePositionStart,
+                     "RecoTrackSecondaryParticleTruePositionStart[RecoTrackN][4]/F"); 
+  Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionEnd", RecoTrackSecondaryParticleTruePositionEnd,
+                     "RecoTrackSecondaryParticleTruePositionEnd[RecoTrackN][4]/F"); 
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -1214,7 +1253,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       // Another idea is to save pdg information regardless
       // We clear the vector elements in the clear function so there's no reason to override it here
       // But we do need to clear the index so we don't grab the wrong element
-      true_primary_particle_index = -999999999;
+      true_primary_particle_index = -888888888;
     }
     else {
       TMS_TrueParticle tp = TrueParticles[true_primary_particle_index];
@@ -1238,21 +1277,55 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         // Or maybe crazy slowdown in sand?
         // So let's go slightly beyond end of TMS
         const double LARGE_Z = TMS_Const::TMS_Thick_End + 1000;
-        RecoTrackPrimaryParticleTrueTrackLength[itTrack] =
+        const double SMALL_Z = TMS_Const::LAr_Start_Exact[2] - 1000;
+        RecoTrackPrimaryParticleTrueTrackLengthRecoStart[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z));
-        RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[itTrack] =
+        RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z), true);
         // Again from true start to particle's end within tms
         RecoTrackPrimaryParticleTrueTrackLengthInTMS[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z, true));
         RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z, true), true);
+            
+        RecoTrackPrimaryParticleTrueTrackLength[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(SMALL_Z, LARGE_Z));
+        RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[itTrack] =
+            TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(SMALL_Z, LARGE_Z), true);
+            
+        RecoTrackPrimaryParticlePDG[itTrack] = tp.GetPDG();
+        setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setPosition(RecoTrackPrimaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
+        setMomentum(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+        
+        setMomentum(RecoTrackPrimaryParticleTrueMomentumEnteringTMS[itTrack], tp.GetMomentumEnteringTMS());
+        setPosition(RecoTrackPrimaryParticleTruePositionEnteringTMS[itTrack], tp.GetPositionEnteringTMS());
+        setMomentum(RecoTrackPrimaryParticleTrueMomentumLeavingTMS[itTrack], tp.GetMomentumLeavingTMS());
+        setPosition(RecoTrackPrimaryParticleTruePositionLeavingTMS[itTrack], tp.GetPositionLeavingTMS());
+        setMomentum(RecoTrackPrimaryParticleTrueMomentumLeavingLAr[itTrack], tp.GetMomentumLeavingLAr());
+        setPosition(RecoTrackPrimaryParticleTruePositionLeavingLAr[itTrack], tp.GetPositionLeavingLAr());
+        
+        TVector3 location_birth = tp.GetBirthPosition().Vect();
+        TVector3 location_death = tp.GetDeathPosition().Vect();
+        RecoTrackPrimaryParticleTMSFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
+        RecoTrackPrimaryParticleTMSFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideTMS);
+        RecoTrackPrimaryParticleTMSFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
+        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
+        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
+        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
       }
     }
     
     // Again, we're not saving the geant4 particles right now, so we can't save info about them here
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
+    }
+    else {
+        TMS_TrueParticle tp = TrueParticles[true_secondary_particle_index];
+        RecoTrackSecondaryParticlePDG[itTrack] = tp.GetPDG();
+        setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setPosition(RecoTrackSecondaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
+        setMomentum(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
     }
     
     RecoTrackTrueVisibleEnergy[itTrack] = total_true_visible_energy;
@@ -1560,16 +1633,35 @@ void TMS_TreeWriter::Clear() {
 
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = -999;
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLength[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthRecoStart[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[i] = -999;
     RecoTrackPrimaryParticleTrueTrackLengthInTMS[i] = -999;
     RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[i] = -999;
+    
+    RecoTrackPrimaryParticlePDG[i] = -999;
+    RecoTrackSecondaryParticlePDG[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLength[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = -999;
 
     for (int j = 0; j < 4; ++j) {
       RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = -999;
       RecoTrackPrimaryParticleTruePositionTrackStart[i][j] = -999;
       RecoTrackPrimaryParticleTrueMomentumTrackEnd[i][j] = -999;
       RecoTrackPrimaryParticleTruePositionTrackEnd[i][j] = -999;
+      
+      RecoTrackPrimaryParticleTrueMomentum[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionStart[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionEnd[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentumEnteringTMS[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionEnteringTMS[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentumLeavingTMS[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionLeavingTMS[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentumLeavingLAr[i][j] = -999;
+      RecoTrackPrimaryParticleTruePositionLeavingLAr[i][j] = -999;
+      
+      RecoTrackSecondaryParticleTrueMomentum[i][j] = -999;
+      RecoTrackSecondaryParticleTruePositionStart[i][j] = -999;
+      RecoTrackSecondaryParticleTruePositionEnd[i][j] = -999;
     }
   }
     
