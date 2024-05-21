@@ -145,6 +145,8 @@ class TMS_TrueParticle {
     TLorentzVector GetMomentumEnteringLAr() { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
     TLorentzVector GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
     
+    bool EntersVolume(IsInsideFunctionType isInside);
+    
     double GetEnergyFromMomentum(TVector3 momentum) {
       double mass = TMS_KinConst::GetMass(PDG);
       return sqrt(momentum.Mag2()+mass*mass);

@@ -154,3 +154,15 @@ TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInsid
   double energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
+
+bool TMS_TrueParticle::EntersVolume(IsInsideFunctionType isInside) {
+  bool out = false;
+  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
+    if (isInside(GetPositionPoints()[i].Vect())) {
+      // Found a single example, we can end our search
+      out = true;
+      break;
+    }
+  }
+  return out;
+}

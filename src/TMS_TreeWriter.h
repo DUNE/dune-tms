@@ -68,6 +68,7 @@ class TMS_TreeWriter {
 
     void Clear();
     void MakeBranches(); // Make the output branches
+    void MakeTruthBranches(TTree* truth); // Make the output branches
 
     // The variables
     int EventNo;
@@ -265,6 +266,18 @@ class TMS_TreeWriter {
     float TruePathLengthInTMS[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthInTMSIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
 
+    // Flags for easy use
+    bool InteractionTMSFiducial;
+    bool InteractionTMSFirstTwoModules;
+    bool InteractionTMSThin;
+    bool InteractionLArFiducial;
+    bool TMSFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
+    bool TMSFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
+    bool TMSFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
+    bool LArFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
+    bool LArFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
+    bool LArFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
+
     float BirthMomentum[__TMS_MAX_TRUE_PARTICLES__][4];
     float BirthPosition[__TMS_MAX_TRUE_PARTICLES__][4];
 
@@ -319,6 +332,9 @@ class TMS_TreeWriter {
     
     int TruthInfoIndex;
     int TruthInfoNSlices;
+    
+    int nPrimaryVertices;
+    bool HasPileup;
 };
 
 

@@ -238,14 +238,12 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
 
 
+  MakeTruthBranches(Truth_Info);
+  MakeTruthBranches(Truth_Spill);
+  
   // Truth information
-  Truth_Info->Branch("EventNo", &EventNo, "EventNo/I");
-  Truth_Info->Branch("IsCC", &IsCC, "IsCC/O");
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
-  Truth_Info->Branch("Interaction", &Reaction);
   Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
-  Truth_Info->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
-  Truth_Info->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
   Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
   Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
   Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
@@ -295,95 +293,69 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY",
                       RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY,
                      "RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[RecoTrackN]/F");
+}
 
-  Truth_Info->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
-  Truth_Info->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
-  Truth_Info->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
-  Truth_Info->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
-  Truth_Info->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
-  Truth_Info->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
-  Truth_Info->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
-  Truth_Info->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
-  Truth_Info->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
-  Truth_Info->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
-  
-  Truth_Info->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
-  Truth_Info->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
-  Truth_Info->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
-  Truth_Info->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
-  
-  // IsInside-based start/end
-  Truth_Info->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F"); 
-  Truth_Info->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F"); 
-  Truth_Info->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F"); 
-  
-  // Z-based start/end
-  Truth_Info->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
-  Truth_Info->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
-  Truth_Info->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
-  
-  
+void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   // Truth information saved per spill only
-  Truth_Spill->Branch("EventNo", &EventNo, "EventNo/I");
-  Truth_Spill->Branch("IsCC", &IsCC, "IsCC/O");
-  Truth_Spill->Branch("Interaction", &Reaction);
-  Truth_Spill->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
-  Truth_Spill->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
-  Truth_Spill->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
-  Truth_Spill->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
-  Truth_Spill->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
-  
-  
+  truth->Branch("EventNo", &EventNo, "EventNo/I");
+  truth->Branch("IsCC", &IsCC, "IsCC/O");
+  truth->Branch("Interaction", &Reaction);
+  truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
+  truth->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
+  truth->Branch("nPrimaryVertices", &nPrimaryVertices, "nPrimaryVertices/I");
+  truth->Branch("HasPileup", &HasPileup, "HasPileup/O");
+  truth->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
+  truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
+  truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
 
-  Truth_Spill->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
-  Truth_Spill->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
-  Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
-  Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
-  Truth_Spill->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
-  Truth_Spill->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
-  Truth_Spill->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
-  Truth_Spill->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
-  Truth_Spill->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
-  Truth_Spill->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
+  truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
+  truth->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
+  truth->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
+  truth->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
+  truth->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
+  truth->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
+  truth->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
+  truth->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
+  truth->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
+  truth->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
   
-  Truth_Spill->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
-  Truth_Spill->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
-  Truth_Spill->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
-  Truth_Spill->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
+  truth->Branch("InteractionTMSFiducial", &InteractionTMSFiducial, "InteractionTMSFiducial/O");
+  truth->Branch("InteractionTMSFirstTwoModules", &InteractionTMSFirstTwoModules, "InteractionTMSFirstTwoModules/O");
+  truth->Branch("InteractionTMSThin", &InteractionTMSThin, "InteractionTMSThin/O");
+  truth->Branch("InteractionLArFiducial", &InteractionLArFiducial, "InteractionLArFiducial/O");
+  truth->Branch("TMSFiducialStart", TMSFiducialStart, "TMSFiducialStart[nTrueParticles]/O");
+  truth->Branch("TMSFiducialTouch", TMSFiducialTouch, "TMSFiducialTouch[nTrueParticles]/O");
+  truth->Branch("TMSFiducialEnd", TMSFiducialEnd, "TMSFiducialEnd[nTrueParticles]/O");
+  truth->Branch("LArFiducialStart", LArFiducialStart, "LArFiducialStart[nTrueParticles]/O");
+  truth->Branch("LArFiducialTouch", LArFiducialTouch, "LArFiducialTouch[nTrueParticles]/O");
+  truth->Branch("LArFiducialEnd", LArFiducialEnd, "LArFiducialEnd[nTrueParticles]/O");
+  
+  truth->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
+  truth->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
+  truth->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
+  truth->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
   
   // IsInside-based start/end
-  Truth_Spill->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F"); 
-  Truth_Spill->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F"); 
-  Truth_Spill->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F"); 
+  truth->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
+  truth->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
+  truth->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
+  truth->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
+  truth->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
+  truth->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F"); 
+  truth->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F"); 
+  truth->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F"); 
   
   // Z-based start/end
-  Truth_Spill->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
-  Truth_Spill->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
-  Truth_Spill->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
+  truth->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
+  truth->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
+  truth->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
+  truth->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
+  truth->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
 }
 
 static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
@@ -427,10 +399,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
-  NeutrinoX4[0] = event.GetNeutrinoX4().X();
-  NeutrinoX4[1] = event.GetNeutrinoX4().Y();
-  NeutrinoX4[2] = event.GetNeutrinoX4().Z();
-  NeutrinoX4[3] = event.GetNeutrinoX4().T();
+  NeutrinoX4[0] = event.GetNeutrinoVtx().X();
+  NeutrinoX4[1] = event.GetNeutrinoVtx().Y();
+  NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
+  NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   NeutrinoP4[0] = event.GetNeutrinoP4().X();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
   // Lepton info
@@ -482,7 +454,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Muon_Death[3] = (*it).GetDeathPosition().T();
   }
   
-  
+  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
+  InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
+  InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
+  InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
     
   nTrueParticles = TrueParticles.size();
   if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
@@ -499,6 +475,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
     TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+
+    TVector3 location_birth = (*it).GetBirthPosition().Vect();
+    TVector3 location_death = (*it).GetDeathPosition().Vect();
+    TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
+    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
+    TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
+    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
+    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
@@ -1293,18 +1278,25 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   Reaction = event.GetReaction();
   TruthInfoIndex = truth_info_entry_number;
   TruthInfoNSlices = truth_info_n_slices;
+  HasPileup = event.GetNVertices() != 1;
+  nPrimaryVertices = event.GetNVertices();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
   NeutrinoP4[0] = event.GetNeutrinoP4().X();
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
   NeutrinoP4[3] = event.GetNeutrinoP4().T();
-  NeutrinoX4[0] = event.GetNeutrinoX4().X();
-  NeutrinoX4[1] = event.GetNeutrinoX4().Y();
-  NeutrinoX4[2] = event.GetNeutrinoX4().Z();
-  NeutrinoX4[3] = event.GetNeutrinoX4().T();
-  NeutrinoP4[0] = event.GetNeutrinoP4().X();
+  NeutrinoX4[0] = event.GetNeutrinoVtx().X();
+  NeutrinoX4[1] = event.GetNeutrinoVtx().Y();
+  NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
+  NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
+
+  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
+  InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
+  InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
+  InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
     
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   nTrueParticles = TrueParticles.size();
@@ -1322,6 +1314,15 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
     TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+
+    TVector3 location_birth = (*it).GetBirthPosition().Vect();
+    TVector3 location_death = (*it).GetDeathPosition().Vect();
+    TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
+    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
+    TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
+    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
+    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
