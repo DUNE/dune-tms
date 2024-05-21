@@ -51,11 +51,11 @@ class TMS_Event {
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
-    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double x4[100][4]);
+    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double vtx[100][4]);
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
-    TLorentzVector GetNeutrinoX4() { return TrueNeutrinoPosition; };
+    TLorentzVector GetNeutrinoVtx() { return TrueNeutrinoPosition; };
     int GetLeptonPDG() { return TrueLeptonPDG; };
     TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
     TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
