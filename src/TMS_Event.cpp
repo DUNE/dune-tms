@@ -16,6 +16,12 @@ TMS_Event::TMS_Event() {
   LightWeight = true;
 }
 
+
+static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
+  if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
+  else return false;
+};
+
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
 TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
@@ -26,8 +32,9 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = true;
+  bool OnlyPrimary = false;
   bool OnlyPrimaryOrInteresting = false;
+  bool OnlyPrimaryOrVisibleEnergy = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   /*
   if (LightWeight) {
@@ -124,12 +131,12 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         }
         if (traj.Points.size() > 0) {
           TVector3 initial_momentum = traj.Points[0].GetMomentum();
-          if (initial_momentum.Mag() > 50) isHighMomentum = true;
+          if (initial_momentum.Mag() > 5) isHighMomentum = true;
           //if (isCharged && isHighMomentum && !isPrimary) {
           //    std::cout<<"Found interesting non-primary particle "<<PDGcode<<", momentum="<<initial_momentum.Mag()<<std::endl;
           //}
         }
-        bool isInteresting = isHighMomentum && isCharged;
+        bool isInteresting = isHighMomentum && isCharged; 
 
         if (isPrimary) nPrimary += 1;
         if (!isPrimary && isInteresting) nInteresting += 1;
@@ -288,6 +295,16 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     }
     TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
   }
+  nTrueForgottenParticles = -1;
+  if (OnlyPrimaryOrVisibleEnergy) {
+    size_t initial = TMS_TrueParticles.size();
+    TMS_TrueParticles.erase(std::remove_if(TMS_TrueParticles.begin(), 
+                            TMS_TrueParticles.end(), 
+                            TMS_TrueParticle_NotWorthSaving), 
+                            TMS_TrueParticles.end());
+    size_t end = TMS_TrueParticles.size();
+    nTrueForgottenParticles = initial - end;
+  }
   
   // Now apply optical and timing models
   ApplyReconstructionEffects();
@@ -296,7 +313,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
-      TMS_TrueParticles(event.TMS_TrueParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
+      TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
@@ -993,4 +1010,16 @@ double TMS_Event::GetMuonTrueTrackLength() {
     }
   }
   return total;
+}
+
+int TMS_Event::GetTrueParticleIndex(int trackid) {
+  int out = -1;
+  // Gracefully deal with trackid = -999
+  if (trackid >= 0) {
+    for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+      auto& tp = TMS_TrueParticles.at(i);
+      if (tp.GetTrackId() == trackid) { out = i; break; }
+    }
+  }
+  return out;
 }

@@ -16,8 +16,16 @@ class TMS_Hit;
 namespace TMS_Utils {
   struct ParticleInfo {
     double total_energy = 0;
-    std::vector<int> indices;
+    std::vector<int> trackids;
     std::vector<double> energies;
+    
+    void Print() {
+      std::cout<<"ParticleInfo.total_energy = "<<total_energy<<std::endl;
+      std::cout<<"n trackids and energies = "<<trackids.size()<<std::endl;
+      for (size_t i = 0; i < trackids.size(); i++) {
+        std::cout<<trackids.at(i)<<": "<<energies.at(i)<<std::endl;
+      }
+    }
   };
 
   // Get the sign of a number

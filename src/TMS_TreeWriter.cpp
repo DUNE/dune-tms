@@ -295,6 +295,7 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[RecoTrackN]/F");
                      
   Truth_Info->Branch("RecoTrackPrimaryParticlePDG", &RecoTrackPrimaryParticlePDG, "RecoTrackPrimaryParticlePDG[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleIsPrimary", &RecoTrackPrimaryParticleIsPrimary, "RecoTrackPrimaryParticleIsPrimary[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentum", RecoTrackPrimaryParticleTrueMomentum,
                      "RecoTrackPrimaryParticleTrueMomentum[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionStart", RecoTrackPrimaryParticleTruePositionStart,
@@ -326,6 +327,7 @@ void TMS_TreeWriter::MakeBranches() {
     "RecoTrackPrimaryParticleLArFiducialEnd[RecoTrackN]/O");
                      
   Truth_Info->Branch("RecoTrackSecondaryParticlePDG", &RecoTrackSecondaryParticlePDG, "RecoTrackSecondaryParticlePDG[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackSecondaryParticleIsPrimary", &RecoTrackSecondaryParticleIsPrimary, "RecoTrackSecondaryParticleIsPrimary[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackSecondaryParticleTrueMomentum", RecoTrackSecondaryParticleTrueMomentum,
                      "RecoTrackSecondaryParticleTrueMomentum[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionStart", RecoTrackSecondaryParticleTruePositionStart,
@@ -348,10 +350,13 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
 
   truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
+  truth->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
+  truth->Branch("nTrueForgottenParticles", &nTrueForgottenParticles, "nTrueForgottenParticles/I");
   truth->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
   truth->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   truth->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
   truth->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
+  truth->Branch("IsPrimary", IsPrimary, "IsPrimary[nTrueParticles]/O");
   truth->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
   truth->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
   truth->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
@@ -500,12 +505,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
     
   nTrueParticles = TrueParticles.size();
+  nTruePrimaryParticles = 0;
+  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
   if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     int index = it - TrueParticles.begin();
     
     if (index >= __TMS_MAX_TRUE_PARTICLES__) {
       std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
+      std::cerr<<"WARNING: In this case, the __TMS_MAX_TRUE_PARTICLES__ is "<<__TMS_MAX_TRUE_PARTICLES__<<" but need "<<TrueParticles.size()<<std::endl;
       break;
     }
   
@@ -513,6 +521,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
+    IsPrimary[index] = (*it).IsPrimary();
+    if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
     TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
@@ -1231,29 +1241,20 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      true_primary_particle_index = particle_info.indices[0];
-    }
-    if (particle_info.energies.size() > 1) {
-      true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = particle_info.indices[1];
+      //std::cout<<"checking for primary particle trackid"<<std::endl;
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
       // Do nothing, this means we didn't find a true particle associated with a reco track
       // This can't happen unless dark noise existed which is currently doesn't
-      std::cout<<"Error: Found true_primary_particle_index < 0. There should be at least one particle creating energy (assuming no dark noise) but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
+      std::cout<<"Warning: Found true_primary_particle_index < 0. There should be at least one true particle creating energy but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
+      std::cout<<"This can happen with dark noise or if TMS_Event.OnlyPrimaryOrVisibleEnergy is false"<<std::endl;
     }
     else if ((size_t)true_primary_particle_index >= TrueParticles.size()) {
-      // This can happen if TMS_Event.OnlyPrimary is false
-      // A primary particle is a genie particle, while secondary particles are particles created by
-      // interactions in geant4 simulation. 
-      // todo save info of "special" secondary particles, such as secondary muons or michel electrons
-      // We don't care about the potentially 1000s of low-energy particles, but do care about
-      // ones long enough to make a track
-      // Another idea is to save pdg information regardless
-      // We clear the vector elements in the clear function so there's no reason to override it here
-      // But we do need to clear the index so we don't grab the wrong element
-      true_primary_particle_index = -888888888;
+      // This can happen if TMS_Event.OnlyPrimaryOrVisibleEnergy is false
+      std::cout<<"Warning: Found a true_primary_particle_index >= TrueParticles.size() case. "<<true_primary_particle_index<<" >= "<<TrueParticles.size()<<std::endl;
+      true_primary_particle_index = -800000000 - true_primary_particle_index;
     }
     else {
       TMS_TrueParticle tp = TrueParticles[true_primary_particle_index];
@@ -1294,6 +1295,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(SMALL_Z, LARGE_Z), true);
             
         RecoTrackPrimaryParticlePDG[itTrack] = tp.GetPDG();
+        RecoTrackPrimaryParticleIsPrimary[itTrack] = tp.IsPrimary();
         setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
         setPosition(RecoTrackPrimaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
         setMomentum(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
@@ -1316,16 +1318,22 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       }
     }
     
-    // Again, we're not saving the geant4 particles right now, so we can't save info about them here
+    if (particle_info.energies.size() > 1) {
+      true_secondary_visible_energy = particle_info.energies[1];
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[1]);
+    }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
     }
     else {
+      if (itTrack < __TMS_MAX_LINES__) {
         TMS_TrueParticle tp = TrueParticles[true_secondary_particle_index];
         RecoTrackSecondaryParticlePDG[itTrack] = tp.GetPDG();
+        RecoTrackSecondaryParticleIsPrimary[itTrack] = tp.IsPrimary();
         setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
         setPosition(RecoTrackSecondaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
         setMomentum(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+      }
     }
     
     RecoTrackTrueVisibleEnergy[itTrack] = total_true_visible_energy;
@@ -1373,6 +1381,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   nTrueParticles = TrueParticles.size();
+  nTruePrimaryParticles = 0;
+  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
   if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     int index = it - TrueParticles.begin();
@@ -1386,6 +1396,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
+    IsPrimary[index] = (*it).IsPrimary();
+    if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
     TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
@@ -1447,7 +1459,7 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
 void TMS_TreeWriter::Clear() {
 
   // Reset truth information
-  EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
+  EventNo = nParticles = nTrueParticles = nTruePrimaryParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
   VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = -999;
   Reaction = "";
   IsCC = false;
@@ -1640,6 +1652,8 @@ void TMS_TreeWriter::Clear() {
     
     RecoTrackPrimaryParticlePDG[i] = -999;
     RecoTrackSecondaryParticlePDG[i] = -999;
+    RecoTrackPrimaryParticleIsPrimary[i] = false;
+    RecoTrackSecondaryParticleIsPrimary[i] = false;
     RecoTrackPrimaryParticleTrueTrackLength[i] = -999;
     RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = -999;
 

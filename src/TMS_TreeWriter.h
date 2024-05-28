@@ -255,11 +255,14 @@ class TMS_TreeWriter {
     bool IsCC;
     
     int nTrueParticles;
+    int nTruePrimaryParticles;
+    int nTrueForgottenParticles;
     
     int VertexID[__TMS_MAX_TRUE_PARTICLES__];
     int Parent[__TMS_MAX_TRUE_PARTICLES__];
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
+    bool IsPrimary[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLength[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
@@ -322,6 +325,7 @@ class TMS_TreeWriter {
     
     // Save truth info about primary particle
     int RecoTrackPrimaryParticlePDG[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleIsPrimary[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];
@@ -343,6 +347,7 @@ class TMS_TreeWriter {
     
     // Save truth info about secondary particle
     int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];
+    int RecoTrackSecondaryParticleIsPrimary[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
     float RecoTrackSecondaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
     float RecoTrackSecondaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];

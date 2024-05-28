@@ -84,11 +84,14 @@ class TMS_Event {
     double GetVisibleEnergyFromVVerticesInSlice() { return VisibleEnergyFromVVerticesInSlice; };
     double GetVisibleEnergyFromXVerticesInSlice() { return VisibleEnergyFromXVerticesInSlice; };
     int GetNVertices() { return nVertices; };
+    int GetNTrueForgottenParticles() { return nTrueForgottenParticles; };
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
+    
+    int GetTrueParticleIndex(int trackid);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -109,6 +112,7 @@ class TMS_Event {
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
+    int nTrueForgottenParticles;
 
     // Primary particles from neutrino event; before G4 is run
     std::vector<TMS_TrueParticle> TMS_TruePrimaryParticles;
