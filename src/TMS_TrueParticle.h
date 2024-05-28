@@ -58,7 +58,7 @@ class TMS_TrueParticle {
     }
 
     // Print
-    void Print();
+    void Print(bool small = false);
 
     // Add a point in for this true particle
     void AddPoint(TLorentzVector &Position, TVector3 &Momentum) {
@@ -83,6 +83,7 @@ class TMS_TrueParticle {
 
     int GetPDG() { return PDG; };
     int GetParent() { return Parent; };
+    bool IsPrimary() { return Parent < 0; };
     int GetTrackId() { return TrackId; };
     int GetVertexID() { return VertexID; };
     double GetTrueVisibleEnergy() { return TrueVisibleEnergy; };

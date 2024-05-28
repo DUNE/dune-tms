@@ -1,6 +1,6 @@
 #include "TMS_TrueParticle.h"
 
-void TMS_TrueParticle::Print() {
+void TMS_TrueParticle::Print(bool small) {
   std::cout << "Printing TMS_TrueParticle class: " << std::endl;
   std::cout << "  Parent: " << Parent << std::endl;
   std::cout << "  TrackId: " << TrackId << std::endl;
@@ -18,15 +18,17 @@ void TMS_TrueParticle::Print() {
 
   std::cout << "  Size of trajectory points vector: " << PositionPoints.size() << std::endl;
   std::cout << "  Size of momentum at trajectory points vector: " << MomentumPoints.size() << std::endl;
-  std::cout << "  Position of trajectory: " << std::endl;
-  int it = 0;
-  for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i,++it) {
-    std::cout << "  Point " << it+1 << "/" << PositionPoints.size() << std::endl;
-    std::cout << "  Position: " << std::endl;
-    (*i).Print();
-    std::cout << "  Momentum: " << std::endl;
-    MomentumPoints[it].Print();
-    std::cout << "  GEANT4 Process, Subprocess: " << Process[it] << ", " << Subprocess[it] << std::endl;
+  if (!small) {
+    std::cout << "  Position of trajectory: " << std::endl;
+    int it = 0;
+    for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i,++it) {
+      std::cout << "  Point " << it+1 << "/" << PositionPoints.size() << std::endl;
+      std::cout << "  Position: " << std::endl;
+      (*i).Print();
+      std::cout << "  Momentum: " << std::endl;
+      MomentumPoints[it].Print();
+      std::cout << "  GEANT4 Process, Subprocess: " << Process[it] << ", " << Subprocess[it] << std::endl;
+    }
   }
 }
 
