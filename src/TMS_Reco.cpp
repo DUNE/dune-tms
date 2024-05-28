@@ -1044,11 +1044,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
                 // Check if a neighbouring hit is from a X layer
-                if ((UTracks[itU].GetPlaneNumber() < 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 65))
-                    || (VTracks[itV].GetPlaneNumber() < 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 65))) {
+                if ((UTracks[itU].GetPlaneNumber() < 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 120))
+                    || (VTracks[itV].GetPlaneNumber() < 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 120))) {
                   stereo_view = false;
-                } else if ((UTracks[itU].GetPlaneNumber() >= 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 90))
-                    || (VTracks[itV].GetPlaneNumber() >= 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 90))) {
+                } else if ((UTracks[itU].GetPlaneNumber() >= 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 170))
+                    || (VTracks[itV].GetPlaneNumber() >= 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 170))) {
                   stereo_view = false;
                 }
                 if (itX > 0 && itU == 0 && itV == 0) stereo_view = false;
@@ -1091,9 +1091,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     std::cout << "Hit U: " << UTracks[itU].GetRecoX() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " / V: " << VTracks[itV].GetRecoX() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << " / X: " << XTracks[itX].GetRecoX() << " | " << XTracks[itX].GetNotZ() << " | " << XTracks[itX].GetZ() << std::endl;
 #endif
                     if (itX > 0) --itX;
-                  } else {
-                    CalculateRecoY(UTracks[itU], UTracks[itU], VTracks[itV]);
-                    CalculateRecoY(VTracks[itV], UTracks[itU], VTracks[itV]);
+                  } else {// Add gap in X handling
+                    UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX - 1]));  //CalculateRecoY(UTracks[itU], UTracks[itU], VTracks[itV]);
+                    VTracks[itV].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX - 1]));  //CalculateRecoY(VTracks[itV], UTracks[itU], VTracks[itV]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
 #ifdef DEBUG
@@ -1218,8 +1218,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (UTracks.front().GetPlaneNumber() == VTracks.front().GetPlaneNumber()) {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
-                if (UTracks.front().GetPlaneNumber() < 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 65)) stereo_view = false;
-                else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 90)) stereo_view = false;
+                if (UTracks.front().GetPlaneNumber() < 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 230)) stereo_view = false;
+                else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 330)) stereo_view = false;
               }
               if (stereo_view) {
                 CalculateRecoY(VTracks.front(), UTracks.front(), VTracks.front());
@@ -1241,8 +1241,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (UTracks.back().GetPlaneNumber() == VTracks.back().GetPlaneNumber()) {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
-                if (UTracks.back().GetPlaneNumber() < 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 65)) stereo_view = false;
-                else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 90)) stereo_view = false;
+                if (UTracks.back().GetPlaneNumber() < 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 230)) stereo_view = false;
+                else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 330)) stereo_view = false;
               }
               if (stereo_view) {
                 CalculateRecoY(UTracks.back(), UTracks.back(), VTracks.back());
@@ -1497,7 +1497,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
       TVector3 point1((*it).GetRecoX(), (*it).GetRecoY(), (*it).GetZ());
       TVector3 point2(nexthit.GetRecoX(), nexthit.GetRecoY(), nexthit.GetZ());
       if (nexthit.GetBar().GetBarType() == TMS_Bar::kXBar) point2.SetY(nexthit.GetNotZ());
-      total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      total += TMS_Geom::GetInstance().GetTrackLength(point2, point1);
       //std::cout << "new total (1): " << total << std::endl;
       n_nodes += 1;
     } else if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
@@ -1505,7 +1505,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
       TVector3 point1((*it).GetRecoX(), (*it).GetNotZ(), (*it).GetZ());
       TVector3 point2(nexthit.GetRecoX(), nexthit.GetNotZ(), nexthit.GetZ());
       if (nexthit.GetBar().GetBarType() != TMS_Bar::kXBar) point2.SetY(nexthit.GetRecoY());
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point2, point1);
       total += tracklength;
       //std::cout << "new total (2): " << total << std::endl;
       n_nodes += 1;

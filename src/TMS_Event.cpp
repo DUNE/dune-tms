@@ -912,7 +912,7 @@ double TMS_Event::GetMuonTrueKE() {
 }
 
 double TMS_Event::GetMuonTrueTrackLength() {
-  //std::cout << "GetMuonTrueTrackLength" << std::endl;
+  std::cout << "GetMuonTrueTrackLength" << std::endl;
   std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
   double total = 0;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
