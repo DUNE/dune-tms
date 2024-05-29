@@ -466,8 +466,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   VertexVisibleEnergyFractionInSlice = VisibleEnergyFromUVertexInSlice / TotalVisibleEnergyFromVertex;
   PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromUVertexInSlice / (VisibleEnergyFromVVerticesInSlice + VisibleEnergyFromUVertexInSlice);
 
-  //Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
-  Muon_TrueTrackLength = -999.99;
+  Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
+  //Muon_TrueTrackLength = -999.99;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
 
