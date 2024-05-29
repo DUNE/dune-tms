@@ -19,26 +19,30 @@ spack load clhep@2.4.6.4%gcc@12.2.0 && echo "Setup clhep..."
 spack load expat@2.5.0%gcc@12.2.0   && echo "Setup expat..."
 spack load edep-sim@3.2%gcc@12.2.0  && echo "Setup edep-sim..."
 
-export TMS_DIR=${PWD}
+export TMS_DIR=${PWD} # see line 4 eco
 export PATH=${PATH}:${TMS_DIR}/bin
-if [ "${LD_LIBRARY_PATH}x" == "x" ]; then
-    LD_LIBRARY_PATH=${TMS_DIR}/lib
-else
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
-fi
 
-# Add edep-sim library path if available
-if [ "${EDEP_ROOT}x" != "x" ]; then
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
-fi
+# CMake picks up stuff from /usr (expat), entire build env from spack anyway
+export CMAKE_IGNORE_PATH=/usr
 
-# Add edep-sim library path if available
-which clhep-config > /dev/null 2>&1
-if [ $? ]; then
-    CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
-fi
+#if [ "${LD_LIBRARY_PATH}x" == "x" ]; then
+#    LD_LIBRARY_PATH=${TMS_DIR}/lib
+#else
+#    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
+#fi
+#
+## Add edep-sim library path if available
+#if [ "${EDEP_ROOT}x" != "x" ]; then
+#    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${EDEP_ROOT}/lib
+#fi
+#
+## Add edep-sim library path if available
+#which clhep-config > /dev/null 2>&1
+#if [ $? ]; then
+#    CLHEP_ROOT=`clhep-config --prefix | sed 's/\"//g'` # (:
+#    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CLHEP_ROOT}/lib
+#fi
 
 echo "TMS_DIR = ${TMS_DIR}"
-echo "LD_LIBRARY_PATH = ${LD_LIBRARY_PATH}"
+#echo "LD_LIBRARY_PATH = ${LD_LIBRARY_PATH}"
 echo "Setup TMS environment :)"

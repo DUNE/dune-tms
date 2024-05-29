@@ -31,6 +31,7 @@ ifdef VERBOSE
   CXXFLAGS+=-DDEBUG
 endif
 CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TOML_INC)
+LDFLAGS="-Wl,-rpath,$(shell pwd)/../lib/ -Wl,-rpath,$(EDEPSIM_LIB) -Wl,--enable-new-dtags"
 
 # Replace and create
 ARFLAGS = rc
@@ -77,7 +78,7 @@ libTMS_Prod.a: $(TMS_OBJ)
 
 # Make the shared object
 $(LIB_DIR)/libTMS_Prod.so: libTMS_Prod.a
-	$(LD_SHARED) $(SO_FLAGS) $(CXXFLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive $(LIB_OBJ)
+	$(LD_SHARED) $(SO_FLAGS) $(LIB_OBJ) $(CXXFLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive $(LDFLAGS)
 
 clean:
 	rm -f $(LIB_DIR)/lib* *.o *.a *.exe

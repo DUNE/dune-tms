@@ -42,7 +42,9 @@ set(TMS_USE_NEST TRUE CACHE BOOL
 
 # Check to see if this is MACOS
 if(APPLE)
-  message("Apple user: Good luck! I wrote this for Linux so let's hope it works.")
+  message("--     🚨 WARNING: APPLE USER DETECTED 🚨")
+  message("--        Good luck! I wrote this for Linux so let's hope it works. 🐧")
+  # These lines were there when I copied this
   set(CMAKE_MACOSX_RPATH 1)
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -79,6 +81,18 @@ if (Geant4_FOUND)
 else(Geant4_FOUND)
   message(FATAL_ERROR "Couldn't find Geant4 with find_package")
 endif (Geant4_FOUND)
+
+set(BUILD_WITH_INSTALL_RPATH 1)
+set(BUILD_RPATH "$ENV{BUILD_RPATH}")
+
+# Look for GEANT4.  If it's found, then build the simulation.
+# Otherwise, this can be skipped, but only the i/o library is built.
+find_package(expat)
+#if (expat_FOUND)
+  #  include(${expat_USE_FILE})
+  #else(expat_FOUND)
+  #  message(FATAL_ERROR "Couldn't find Geant4 with find_package")
+  #endif (expat_FOUND)
 
 # Check if edep-sim is available
 find_package(EDepSim)# CONFIG)
