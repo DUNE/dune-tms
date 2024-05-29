@@ -243,7 +243,6 @@ void TMS_TreeWriter::MakeBranches() {
   
   // Truth information
   Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
-  Truth_Info->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
   Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
   Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
@@ -1458,239 +1457,279 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
 // Reset the variables
 void TMS_TreeWriter::Clear() {
 
+  const float DEFAULT_CLEARING_FLOAT = -999999999;
+
   // Reset truth information
-  EventNo = nParticles = nTrueParticles = nTruePrimaryParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
-  VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = -999;
+  EventNo = nParticles = nTrueParticles = nTruePrimaryParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = DEFAULT_CLEARING_FLOAT;
+  VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = DEFAULT_CLEARING_FLOAT;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
-    MuonP4[i]=-999;
-    Muon_Vertex[i]=-999;
-    Muon_Death[i]=-999;
-    NeutrinoP4[i]=-999;
-    NeutrinoX4[i]=-999;
-    LeptonP4[i]=-999;
-    LeptonX4[i]=-999;
+    MuonP4[i]=DEFAULT_CLEARING_FLOAT;
+    Muon_Vertex[i]=DEFAULT_CLEARING_FLOAT;
+    Muon_Death[i]=DEFAULT_CLEARING_FLOAT;
+    NeutrinoP4[i]=DEFAULT_CLEARING_FLOAT;
+    NeutrinoX4[i]=DEFAULT_CLEARING_FLOAT;
+    LeptonP4[i]=DEFAULT_CLEARING_FLOAT;
+    LeptonX4[i]=DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset line information
   TMSStart = false;
-  nLinesU = -999;
-  nLinesV = -999;
-  nLinesX = -999;
+  nLinesU = DEFAULT_CLEARING_FLOAT;
+  nLinesV = DEFAULT_CLEARING_FLOAT;
+  nLinesX = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    SlopeU[i] = -999;
-    SlopeV[i] = -999;
-    SlopeX[i] = -999;
-    InterceptU[i] = -999;
-    InterceptV[i] = -999;
-    InterceptX[i] = -999;
-    Slope_DownstreamU[i] = -999;
-    Slope_DownstreamV[i] = -999;
-    Slope_DownstreamX[i] = -999;
-    Intercept_DownstreamU[i] = -999;
-    Intercept_DownstreamV[i] = -999;
-    Intercept_DownstreamX[i] = -999;
-    Slope_UpstreamU[i] = -999;
-    Slope_UpstreamV[i] = -999;
-    Slope_UpstreamX[i] = -999;
-    Intercept_UpstreamU[i] = -999;
-    Intercept_UpstreamV[i] = -999;
-    Intercept_UpstreamX[i] = -999;
+    SlopeU[i] = DEFAULT_CLEARING_FLOAT;
+    SlopeV[i] = DEFAULT_CLEARING_FLOAT;
+    SlopeX[i] = DEFAULT_CLEARING_FLOAT;
+    InterceptU[i] = DEFAULT_CLEARING_FLOAT;
+    InterceptV[i] = DEFAULT_CLEARING_FLOAT;
+    InterceptX[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_DownstreamU[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_DownstreamV[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_DownstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_DownstreamU[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_DownstreamV[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_DownstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_UpstreamU[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_UpstreamV[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_UpstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_UpstreamU[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_UpstreamV[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_UpstreamX[i] = DEFAULT_CLEARING_FLOAT;
 
-    DirectionZU[i] = -999;
-    DirectionXU[i] = -999;
-    DirectionZU_Upstream[i] = -999;
-    DirectionXU_Upstream[i] = -999;
-    DirectionZU_Downstream[i] = -999;
-    DirectionXU_Downstream[i] = -999;
+    DirectionZU[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXU[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZU_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXU_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZU_Downstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXU_Downstream[i] = DEFAULT_CLEARING_FLOAT;
 
-    DirectionZV[i] = -999;
-    DirectionXV[i] = -999;
-    DirectionZV_Upstream[i] = -999;
-    DirectionXV_Upstream[i] = -999;
-    DirectionZV_Downstream[i] = -999;
-    DirectionXV_Downstream[i] = -999;
+    DirectionZV[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXV[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZV_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXV_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZV_Downstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXV_Downstream[i] = DEFAULT_CLEARING_FLOAT;
 
-    DirectionZX[i] = -999;
-    DirectionYX[i] = -999;
-    DirectionZX_Upstream[i] = -999;
-    DirectionYX_Upstream[i] = -999;
-    DirectionZX_Downstream[i] = -999;
-    DirectionYX_Downstream[i] = -999;
+    DirectionZX[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionYX[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZX_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionYX_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZX_Downstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionYX_Downstream[i] = DEFAULT_CLEARING_FLOAT;
 
-    OccupancyU[i] = -999;
-    OccupancyV[i] = -999;
-    OccupancyX[i] = -999;
-    TrackLengthU[i] = -999;
-    TrackLengthV[i] = -999;
-    TrackLengthX[i] = -999;
-    TotalTrackEnergyU[i] = -999;
-    TotalTrackEnergyV[i] = -999;
-    TotalTrackEnergyX[i] = -999;
-    FirstPlaneU[i] = -999;
-    FirstPlaneV[i] = -999;
-    FirstPlaneX[i] = -999;
-    LastPlaneU[i] = -999;
-    LastPlaneV[i] = -999;
-    LastPlaneX[i] = -999;
-    nHitsInTrackU[i] = -999;
-    nHitsInTrackV[i] = -999;
-    nHitsInTrackX[i] = -999;
+    OccupancyU[i] = DEFAULT_CLEARING_FLOAT;
+    OccupancyV[i] = DEFAULT_CLEARING_FLOAT;
+    OccupancyX[i] = DEFAULT_CLEARING_FLOAT;
+    TrackLengthU[i] = DEFAULT_CLEARING_FLOAT;
+    TrackLengthV[i] = DEFAULT_CLEARING_FLOAT;
+    TrackLengthX[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrackEnergyU[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrackEnergyV[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrackEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    FirstPlaneU[i] = DEFAULT_CLEARING_FLOAT;
+    FirstPlaneV[i] = DEFAULT_CLEARING_FLOAT;
+    FirstPlaneX[i] = DEFAULT_CLEARING_FLOAT;
+    LastPlaneU[i] = DEFAULT_CLEARING_FLOAT;
+    LastPlaneV[i] = DEFAULT_CLEARING_FLOAT;
+    LastPlaneX[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInTrackU[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInTrackV[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInTrackX[i] = DEFAULT_CLEARING_FLOAT;
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
   }
-/*    Occupancy3D[i] = -999;
-    TrackLength3D[i] = -999;
-    TotalTrackEnergy3D[i] = -999;
-    FirstPlane3D[i] = -999;
-    LastPlane3D[i] = -999;
-    nHitsInTrack3D[i] = -999;
+/*    Occupancy3D[i] = DEFAULT_CLEARING_FLOAT;
+    TrackLength3D[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrackEnergy3D[i] = DEFAULT_CLEARING_FLOAT;
+    FirstPlane3D[i] = DEFAULT_CLEARING_FLOAT;
+    LastPlane3D[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInTrack3D[i] = DEFAULT_CLEARING_FLOAT;
     TrackStopping3D[i] = false;
 
     for (int j = 0; j < 2; ++j) {
-      FirstHitOne[i][j] = -999;
-      FirstHitOther[i][j] = -999;
-      LastHitOne[i][j] = -999;
-      LastHitOther[i][j] = -999;
+      FirstHitOne[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitOther[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitOne[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitOther[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int j = 0; j < 3; ++j) {
-      FirstHit3D[i][j] = -999;
-      LastHit3D[i][j] = -999;
+      FirstHit3D[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHit3D[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      TrackHitEnergyOne[i][j]=-999;
-      TrackHitEnergyOther[i][j]=-999;
-      TrackHitPosOne[i][j][0]=-999;
-      TrackHitPosOne[i][j][1]=-999;
-      TrackHitPosOther[i][j][0]=-999;
-      TrackHitPosOther[i][j][1]=-999;
+      TrackHitEnergyOne[i][j]=DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyOther[i][j]=DEFAULT_CLEARING_FLOAT;
+      TrackHitPosOne[i][j][0]=DEFAULT_CLEARING_FLOAT;
+      TrackHitPosOne[i][j][1]=DEFAULT_CLEARING_FLOAT;
+      TrackHitPosOther[i][j][0]=DEFAULT_CLEARING_FLOAT;
+      TrackHitPosOther[i][j][1]=DEFAULT_CLEARING_FLOAT;
 
-      TrackHitEnergy3D[i][j] = -999;
-      TrackHitPos3D[i][j][0] = -999;
-      TrackHitPos3D[i][j][1] = -999;
-      TrackHitPos3D[i][j][2] = -999;
+      TrackHitEnergy3D[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitPos3D[i][j][0] = DEFAULT_CLEARING_FLOAT;
+      TrackHitPos3D[i][j][1] = DEFAULT_CLEARING_FLOAT;
+      TrackHitPos3D[i][j][2] = DEFAULT_CLEARING_FLOAT;
     }
   }*/
 
   // Reset hit information
-  nHits = -999;
+  nHits = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
-    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = -999;
-    RecoHitEnergy[i] = -999;
+    for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
+    RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
-  nClustersU = -999;
-  nClustersV = -999;
-  nClustersX = -999;
+  nClustersU = DEFAULT_CLEARING_FLOAT;
+  nClustersV = DEFAULT_CLEARING_FLOAT;
+  nClustersX = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
-    ClusterEnergyU[i] = -999;
-    ClusterEnergyV[i] = -999;
-    ClusterEnergyX[i] = -999;
-    nHitsInClusterU[i] = -999;
-    nHitsInClusterV[i] = -999;
-    nHitsInClusterX[i] = -999;
+    ClusterEnergyU[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterEnergyV[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInClusterU[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInClusterV[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInClusterX[i] = DEFAULT_CLEARING_FLOAT;
     for (int j = 0; j < 2; ++j) {
-      ClusterPosMeanU[i][j] = -999;
-      ClusterPosStdDevU[i][j] = -999;
+      ClusterPosMeanU[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterPosStdDevU[i][j] = DEFAULT_CLEARING_FLOAT;
       
-      ClusterPosMeanV[i][j] = -999;
-      ClusterPosStdDevV[i][j] = -999;
+      ClusterPosMeanV[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterPosStdDevV[i][j] = DEFAULT_CLEARING_FLOAT;
 
-      ClusterPosMeanX[i][j] = -999;
-      ClusterPosStdDevX[i][j] = -999;
+      ClusterPosMeanX[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterPosStdDevX[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
-      ClusterHitPosU[i][j][0] = -999;
-      ClusterHitPosU[i][j][1] = -999;
-      ClusterHitEnergyU[i][j] = -999;
+      ClusterHitPosU[i][j][0] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitPosU[i][j][1] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitEnergyU[i][j] = DEFAULT_CLEARING_FLOAT;
 
-      ClusterHitPosV[i][j][0] = -999;
-      ClusterHitPosV[i][j][1] = -999;
-      ClusterHitEnergyV[i][j] = -999;
+      ClusterHitPosV[i][j][0] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitPosV[i][j][1] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitEnergyV[i][j] = DEFAULT_CLEARING_FLOAT;
 
-      ClusterHitPosX[i][j][0] = -999;
-      ClusterHitPosX[i][j][1] = -999;
-      ClusterHitEnergyX[i][j] = -999;
+      ClusterHitPosX[i][j][0] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitPosX[i][j][1] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitEnergyX[i][j] = DEFAULT_CLEARING_FLOAT;
     }
   }
 
   // Reset track information
-  nTracks = -999;
+  nTracks = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
-      RecoTrackStartPos[i][j] = -999;
-      RecoTrackDirection[i][j] = -999;
-      RecoTrackEndPos[i][j] = -999;
+      RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackDirection[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
-      RecoTrackHitPos[i][k][0] = -999;
-      RecoTrackHitPos[i][k][1] = -999;
-      RecoTrackHitPos[i][k][2] = -999;
+      RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
     }
-    RecoTrackEnergyRange[i] = -999;
-    RecoTrackEnergyDeposit[i] = -999;
-    RecoTrackLength[i] = -999;
+    RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
-    RecoTrackTrueVisibleEnergy[i] = -999;
-    RecoTrackPrimaryParticleIndex[i] = -999;
-    RecoTrackPrimaryParticleTrueVisibleEnergy[i] = -999;
-    RecoTrackSecondaryParticleIndex[i] = -999;
-    RecoTrackSecondaryParticleTrueVisibleEnergy[i] = -999;
+    RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
 
-    RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthRecoStart[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthInTMS[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthRecoStart[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthRecoStartIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthInTMS[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthInTMSIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
     
-    RecoTrackPrimaryParticlePDG[i] = -999;
-    RecoTrackSecondaryParticlePDG[i] = -999;
+    RecoTrackPrimaryParticlePDG[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticlePDG[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleIsPrimary[i] = false;
     RecoTrackSecondaryParticleIsPrimary[i] = false;
-    RecoTrackPrimaryParticleTrueTrackLength[i] = -999;
-    RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = -999;
+    RecoTrackPrimaryParticleTrueTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
+    
+    RecoTrackPrimaryParticleTMSFiducialStart[i] = false;
+    RecoTrackPrimaryParticleTMSFiducialTouch[i] = false;
+    RecoTrackPrimaryParticleTMSFiducialEnd[i] = false;
+    RecoTrackPrimaryParticleLArFiducialStart[i] = false;
+    RecoTrackPrimaryParticleLArFiducialTouch[i] = false;
+    RecoTrackPrimaryParticleLArFiducialEnd[i] = false;
 
     for (int j = 0; j < 4; ++j) {
-      RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionTrackStart[i][j] = -999;
-      RecoTrackPrimaryParticleTrueMomentumTrackEnd[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionTrackEnd[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionTrackStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTrueMomentumTrackEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionTrackEnd[i][j] = DEFAULT_CLEARING_FLOAT;
       
-      RecoTrackPrimaryParticleTrueMomentum[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionStart[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionEnd[i][j] = -999;
-      RecoTrackPrimaryParticleTrueMomentumEnteringTMS[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionEnteringTMS[i][j] = -999;
-      RecoTrackPrimaryParticleTrueMomentumLeavingTMS[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionLeavingTMS[i][j] = -999;
-      RecoTrackPrimaryParticleTrueMomentumLeavingLAr[i][j] = -999;
-      RecoTrackPrimaryParticleTruePositionLeavingLAr[i][j] = -999;
+      RecoTrackPrimaryParticleTrueMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTrueMomentumEnteringTMS[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionEnteringTMS[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTrueMomentumLeavingTMS[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionLeavingTMS[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTrueMomentumLeavingLAr[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackPrimaryParticleTruePositionLeavingLAr[i][j] = DEFAULT_CLEARING_FLOAT;
       
-      RecoTrackSecondaryParticleTrueMomentum[i][j] = -999;
-      RecoTrackSecondaryParticleTruePositionStart[i][j] = -999;
-      RecoTrackSecondaryParticleTruePositionEnd[i][j] = -999;
+      RecoTrackSecondaryParticleTrueMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackSecondaryParticleTruePositionStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackSecondaryParticleTruePositionEnd[i][j] = DEFAULT_CLEARING_FLOAT;
     }
   }
     
   nTrueParticles = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
-    VertexID[i] = -999;
-    Parent[i] = -999;
-    TrackId[i] = -999;
-    PDG[i] = -999;
-    TrueVisibleEnergy[i] = -999;
+    VertexID[i] = DEFAULT_CLEARING_FLOAT;
+    Parent[i] = DEFAULT_CLEARING_FLOAT;
+    TrackId[i] = DEFAULT_CLEARING_FLOAT;
+    PDG[i] = DEFAULT_CLEARING_FLOAT;
+    IsPrimary[i] = false;
+    TrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TruePathLength[i] = DEFAULT_CLEARING_FLOAT;
+    TruePathLengthIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
+    TruePathLengthInTMS[i] = DEFAULT_CLEARING_FLOAT;
+    TruePathLengthInTMSIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
+    
+    TMSFiducialStart[i] = false;
+    TMSFiducialTouch[i] = false;
+    TMSFiducialEnd[i] = false;
+    LArFiducialStart[i] = false;
+    LArFiducialTouch[i] = false;
+    LArFiducialEnd[i] = false;
+
     for (int j = 0; j < 4; ++j) {
-      BirthMomentum[i][j] = -999;
-      BirthPosition[i][j] = -999;
-      DeathMomentum[i][j] = -999;
-      DeathPosition[i][j] = -999;
+      BirthMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
+      BirthPosition[i][j] = DEFAULT_CLEARING_FLOAT;
+      DeathMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
+      DeathPosition[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumZIsLArEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionZIsLArEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumLArStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionLArStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumLArEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionLArEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumZIsTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionZIsTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumZIsTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionZIsTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumTMSFirstTwoModulesEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionTMSFirstTwoModulesEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumTMSThinEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionTMSThinEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      PositionTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
     }
   }
 

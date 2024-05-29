@@ -338,12 +338,12 @@ class TMS_TreeWriter {
     float RecoTrackPrimaryParticleTrueMomentumLeavingLAr[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionLeavingLAr[__TMS_MAX_LINES__][4];
     
-    bool RecoTrackPrimaryParticleTMSFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
-    bool RecoTrackPrimaryParticleTMSFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
-    bool RecoTrackPrimaryParticleTMSFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
-    bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_TRUE_PARTICLES__];
-    bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_TRUE_PARTICLES__];
-    bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_TRUE_PARTICLES__];
+    bool RecoTrackPrimaryParticleTMSFiducialStart[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleTMSFiducialTouch[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleTMSFiducialEnd[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
     
     // Save truth info about secondary particle
     int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];
