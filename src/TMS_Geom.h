@@ -353,6 +353,12 @@ class TMS_Geom {
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
       
+      // Root's geometry has a bug that if you call a point outside the world (or maybe inside sand?)
+      // then from then on we get no materials. Not sure what's going on, but we can avoid it
+      // by completely avoiding locations outside "reasonable size"
+      // Checked and GetMaterials returns a vector of size zero once the bug is triggered
+      if (!IsInsideReasonableSize(point1) || !IsInsideReasonableSize(point2)) return 0;
+
       // First get the collection of materials between point1 and point2
       std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(point1, point2);
 
@@ -399,6 +405,15 @@ class TMS_Geom {
             p2 = p2_without_y;
           }
           out += GetTrackLength(p1, p2);
+        }
+        double distance = (nodes.front() - nodes.back()).Mag();
+        if (distance > 0.1 && out < 0.01) {
+          std::cout<<"Found track length < 0.01 with distance="<<distance<<", track length="<<out<<std::endl;
+          std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(nodes.front(), nodes.back());
+          std::cout<<"Found materials for nodes.front to nodes.back, and I get this many:"<<Materials.size()<<std::endl;
+          for (auto& mat : Materials) {
+            std::cout<<mat.first<<", "<<mat.second<<std::endl;
+          }
         }
       }
       return out;
