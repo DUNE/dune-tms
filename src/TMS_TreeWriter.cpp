@@ -277,6 +277,10 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionTrackEnd", RecoTrackPrimaryParticleTruePositionTrackEnd,
                      "RecoTrackPrimaryParticleTruePositionTrackEnd[RecoTrackN][4]/F"); 
 
+  Truth_Info->Branch("RecoTrackNHits", RecoTrackNHits, "RecoTrackNHits[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackTrueHitPosition", RecoTrackTrueHitPosition,
+                     "RecoTrackTrueHitPosition[RecoTrackN][200][4]/F");
+
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueTrackLengthAsMeasured",
                       RecoTrackPrimaryParticleTrueTrackLengthAsMeasured,
                      "RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[RecoTrackN]/F");
@@ -1198,7 +1202,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
-    RecoTrackLength[itTrack]        =       RecoTrack->Length;
+    RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1265,6 +1269,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
+        
+        // TODO needs fixing
+        //if ( RecoTrack->Hits.size() !=  RecoTrack->nHits) std::cout<<"N hits mismatch: "<< RecoTrack->Hits.size() << " vs "<< RecoTrack->nHits<<std::endl;
+        RecoTrackNHits[itTrack] = RecoTrack->Hits.size();
+        for (size_t h = 0; h <  RecoTrack->Hits.size() && h < __TMS_MAX_LINE_HITS__; h++) {
+          auto& hit = RecoTrack->Hits[h];
+          RecoTrackTrueHitPosition[itTrack][h][0] = hit.GetTrueHit().GetX();
+          RecoTrackTrueHitPosition[itTrack][h][1] = hit.GetTrueHit().GetY();
+          RecoTrackTrueHitPosition[itTrack][h][2] = hit.GetTrueHit().GetZ();
+          RecoTrackTrueHitPosition[itTrack][h][3] = hit.GetTrueHit().GetT();
+        }
 
         // Now calulate the true track length from true start to true end
         RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[itTrack] =
@@ -1684,6 +1699,10 @@ void TMS_TreeWriter::Clear() {
       RecoTrackSecondaryParticleTrueMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackSecondaryParticleTruePositionStart[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackSecondaryParticleTruePositionEnd[i][j] = DEFAULT_CLEARING_FLOAT;
+      
+      for (int h = 0; h < __TMS_MAX_LINE_HITS__; h++) {
+        RecoTrackTrueHitPosition[i][h][j] = DEFAULT_CLEARING_FLOAT;
+      }
     }
   }
     

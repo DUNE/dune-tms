@@ -338,6 +338,9 @@ class TMS_TreeWriter {
     float RecoTrackPrimaryParticleTrueMomentumLeavingLAr[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionLeavingLAr[__TMS_MAX_LINES__][4];
     
+    int RecoTrackNHits[__TMS_MAX_LINES__];
+    float RecoTrackTrueHitPosition[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][4];
+    
     bool RecoTrackPrimaryParticleTMSFiducialStart[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleTMSFiducialTouch[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleTMSFiducialEnd[__TMS_MAX_LINES__];
