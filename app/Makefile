@@ -6,11 +6,20 @@ LD_SHARED=g++
 ROOT_LIBS = $(shell root-config --evelibs)
 ROOT_INC = $(shell root-config --cflags)
 
-EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io
-# Need CLHEP for unit conversion, can probably just move this into a standalone header to remove dependency?
-EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
-# CLHEP_INC, EDEPSIM_INC, EDEPSIM_LIB need to be defined in the shell this is run in.
-# If they're not, the -I<blank> -I... options might spook your compiler
+GEANT4_LIBS = $(shell geant4-config --libs)
+GEANT4_INC =  $(shell geant4-config --prefix)/include/
+
+ifndef CLHEP_INC # If not defined, normal build. 
+CLHEP_INC = $(shell clhep-config --prefix)/include
+CLHEP_LIBS = $(shell clhep-config --libs)
+else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
+  ifndef CLHEP_LIBS # If this is defined here it was set in src/Makefile
+  CLHEP_LIBS = -L$(CLHEP_INC)/../lib64
+  endif
+endif
+
+EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)
+EDEP_INC = -I$(EDEPSIM_INC) -I$(GEANT4_INC) -I$(CLHEP_INC)
 
 # The TMS includes
 TMS_INC = -I../src
