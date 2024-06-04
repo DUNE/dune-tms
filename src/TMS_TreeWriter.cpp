@@ -232,6 +232,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
   Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Momentum",     RecoTrackMomentum,      "Momentum[nTracks]/F");
+  Reco_Tree->Branch("TrueMomentum", RecoTrackTrueMomentum,  "TrueMomentum[nTracks]/F");
   Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
 
 
@@ -1141,6 +1142,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
+        RecoTrackTrueMomentum[itTrack] = (tp.GetMomentumAtZ(start_z, max_z_distance).Mag());
       }
     }
     

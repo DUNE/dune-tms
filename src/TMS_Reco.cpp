@@ -632,9 +632,15 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Also check that the hits are continuous
 
   double kalman_reco_mom;
+  int kkk=1;
+  int jjj = HoughTracks3D.size();
   for (auto &trk : HoughTracks3D) {
+    std::cout << "\n\n KALMAN " << kkk++ << "/" << jjj << std::endl;
+
     KalmanFitter = TMS_Kalman(trk.Hits);
     kalman_reco_mom = KalmanFitter.GetMomentum();
+
+    std::cout << "mom: " << kalman_reco_mom << std::endl;
     trk.SetMomentum(kalman_reco_mom);
   }
 
