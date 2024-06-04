@@ -163,13 +163,13 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     
 
 //  if (PreviousState.x < TMS_Const::TMS_Start[0])
-//    PreviousVec[0] += 100;
+//    PreviousVec[0] Nod
 //  if (PreviousState.x > TMS_Const::TMS_End[0])
-//    PreviousVec[0] -= 100;
+//    PreviousVec[0] -= 100.0;
 //  if (PreviousState.y < TMS_Const::TMS_Start[1])
-//    PreviousVec[1] += 100;
+//    PreviousVec[1] += 100.0;
 //  if (PreviousState.y > TMS_Const::TMS_End[1])
-//    PreviousVec[1] -= 100;
+//    PreviousVec[1] -= 100.0;
   // Just the propagator matrix influence
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
@@ -177,9 +177,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //std::cout << "Noisey shite: " << NoiseVec[0] << ", " << NoiseVec[1] << ", "  << NoiseVec[2] << ", "  << NoiseVec[3] << ", "  << NoiseVec[4] << std::endl;
 
   // LIAM
-  Transfer.Print();
-  PreviousVec.Print();
-  UpdateVec.Print();
+  //Transfer.Print();
+  //PreviousVec.Print();
+  //UpdateVec.Print();
 
   // Now construct the current state (z of CurrentState is already set to be z+dz)
   CurrentState.x = UpdateVec[0];
@@ -208,7 +208,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double en = en_initial;
 
   if (Talk) std::cout << "mom: " << mom << std::endl;
-  std::cout << "mom: " << mom << std::endl;
+  //std::cout << "mom: " << mom << std::endl;
 
   // Read the position between current point and extrapolated into next bar
   double xval = PreviousState.x;

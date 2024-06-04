@@ -97,7 +97,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
-    std::cout << "[1 Convert] Mat Control " << TMS_Geom::GetInstance().GetMaterials(TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact).size() << std::endl;
 
     // Fill up truth information from the GRooTracker object
     if (gRoo){
@@ -184,7 +183,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
         }
       }
       
-      std::cout << "[2 Convert] Mat Control " << TMS_Geom::GetInstance().GetMaterials(TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact).size() << std::endl;
       event_counter += 1;
       int spill_number = i;
       tms_event_slice.SetSpillNumber(spill_number);

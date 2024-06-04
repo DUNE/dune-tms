@@ -70,6 +70,8 @@ class TMS_Geom {
     bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSFirstTwoModules()); };
     static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
 
+    bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
+
     bool IsInsideNearDetectorVolume(TVector3 position) const
     { 
       return (
@@ -359,6 +361,7 @@ class TMS_Geom {
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
       
+      if (!IsInsideReasonableSize(point1) || !IsInsideReasonableSize(point2)) return 0;
       // First get the collection of materials between point1 and point2
       std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(point1, point2);
 
@@ -386,6 +389,38 @@ class TMS_Geom {
       TotalPathLength = Scale(TotalPathLength);
       return TotalPathLength;
     };
+
+    // Walks through all the pairs of nodes and returns the total track length
+    double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
+      double out = 0;
+      // for unsigned ints, 0-1 = MAX_UNSIGNED_INT, so need to verify that size > 0
+      if (nodes.size() > 1) { 
+        // Loop over all pairs of vectors
+        for (size_t i = 0; i < nodes.size() - 1; i++) {
+          auto p1 = nodes.at(i);
+          auto p2 = nodes.at(i+1);
+          if (ignore_y) {
+            TVector3 p1_without_y(p1);
+            TVector3 p2_without_y(p2);
+            p1_without_y.SetY(-200);
+            p2_without_y.SetY(-200);
+            p1 = p1_without_y;
+            p2 = p2_without_y;
+          }
+          out += GetTrackLength(p1, p2);
+        }
+        double distance = (nodes.front() - nodes.back()).Mag();
+        if (distance > 0.1 && out < 0.01) {
+          std::cout<<"Found track length < 0.01 with distance="<<distance<<", track length="<<out<<std::endl;
+          std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(nodes.front(), nodes.back());
+          std::cout<<"Found materials for nodes.front to nodes.back, and I get this many:"<<Materials.size()<<std::endl;
+          for (auto& mat : Materials) {
+            std::cout<<mat.first<<", "<<mat.second<<std::endl;
+          }
+        }
+      }
+      return out;
+    }
 
     std::vector<std::pair<std::string, TVector3> > GetNodes(const TVector3 &point1_temp, const TVector3 &point2_temp) {
       // Make vectors have geometry scale
