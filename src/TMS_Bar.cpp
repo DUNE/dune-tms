@@ -33,6 +33,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
   // Find which node this position is equivalent too
+  //std::cout << "[TMS_Bar.cpp] Finding node for " << x << ", "  << y << ", " << z << std::endl;
   std::string NodeName = std::string(TMS_Geom::GetInstance().FindNode(xval,yval,zval)->GetName());
 
   // cd up in the geometry to find the right name
@@ -122,6 +123,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   }
 
   // Reset the geom navigator node level in case it's used again
+  //std::cout << "[TMS_Bar.cpp] Finding node for " << xval << ", "  << yval << ", " << zval << std::endl;
   TMS_Geom::GetInstance().FindNode(xval,yval,zval);
 
   // Update the bar number
@@ -147,6 +149,13 @@ int TMS_Bar::FindBar(double x, double y, double z) {
 
   // Use the ROOT geometry to figure it out if available
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
+
+  TVector3 vec_tmp = TVector3(x,y,z);
+  if (TMS_Geom::GetInstance().IsInsideTMS(vec_tmp)) {
+    // Since the bar has already been created as a "error" in the above empty constructor we can just return
+    std::cout << "position given to TMS_Bar::FindBar is outside detector!" << std::endl;
+    return -1;
+  }
 
   // Find which node this position is equivalent too
   TMS_Geom::GetInstance().FindNode(x,y,z);

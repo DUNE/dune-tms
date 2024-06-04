@@ -71,7 +71,6 @@ class Material {
         fMaterialType = kAir;
       } else {
         fMaterialType = kUnknown;
-        std::cout << density << std::endl;
       }
 
       SetProperties();
@@ -185,6 +184,7 @@ class Material {
 
           // Air dry at 1atm
           // https://pdg.lbl.gov/2020/AtomicNuclearProperties/MUE/muE_air_dry_1_atm.pdf
+        default: // TODO is this bad to do? for final production this should be reverted to below
         case kAir:
           Z = 7.31201;
           A = 14.7131;
@@ -199,10 +199,10 @@ class Material {
           d0 = 0.00;
           break;
 
-        default:
-          std::cerr << "Material not supported" << std::endl;
-          std::cout << fMaterialType << std::endl;
-          throw;
+        //default:
+        //  std::cerr << "Material not supported" << std::endl;
+        //  std::cout << fMaterialType << std::endl;
+        //  throw;
       }
     }
 
