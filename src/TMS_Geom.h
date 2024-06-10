@@ -16,8 +16,8 @@
 #include "TMS_Constants.h"
 
 #define __GEOM_LARGE_STEP__ 1E10
-#define __GEOM_SMALL_STEP__ 1E-5
-#define __GEOM_TINY_STEP__ 1E-10
+#define __GEOM_SMALL_STEP__ 1E-4
+#define __GEOM_TINY_STEP__ 1E-5
 
 // Define the TMS geometry singleton
 class TMS_Geom {
@@ -91,6 +91,21 @@ class TMS_Geom {
     bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
     static bool StaticIsInsideReasonableSize(TVector3 position) { return TMS_Geom::GetInstance().IsInsideReasonableSize(position); };
     
+    
+    std::string GetNameOfDetector(const TVector3 &point) {
+      std::string out = "";
+      if (out == "" && IsInsideLAr(point)) out += "LAr";
+      if (out == "" && IsInsideTMS(point)) out += "TMS";
+      if (out == "" && IsInsideTMSMass(point)) out += "TMS Mass";
+      if (out == "" && StaticIsInsideReasonableSize(point)) out += "Reasonable Size";
+      if (out == "") out += "Other";
+      out += " (";
+      out += std::to_string(point.X()) + ", ";
+      out += std::to_string(point.Y()) + ", ";
+      out += std::to_string(point.Z());
+      out += ")";
+      return out;
+    };
     
 
     // Get the geometry
@@ -227,6 +242,7 @@ class TMS_Geom {
         geom->FindNode();
         // How big was the step in this material
         step = geom->GetStep();
+        //std::cout<<"Current total: "<<total<<", det "<<GetNameOfDetector(pt_vec)<<", step="<<step<<std::endl;
         if (step < Unscale(__GEOM_TINY_STEP__)) {
           geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
@@ -389,13 +405,17 @@ class TMS_Geom {
     
     // Walks through all the pairs of nodes and returns the total track length
     double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
+      //std::cout<<"Getting track length for "<<nodes.size()<<" nodes"<<std::endl;
       double out = 0;
+      if (nodes.size() != 19) return out;
       // for unsigned ints, 0-1 = MAX_UNSIGNED_INT, so need to verify that size > 0
       if (nodes.size() > 1) { 
         // Loop over all pairs of vectors
         for (size_t i = 0; i < nodes.size() - 1; i++) {
           auto p1 = nodes.at(i);
           auto p2 = nodes.at(i+1);
+          //std::cout<<"p1 is in "<<GetNameOfDetector(p1)<<" volume, ";
+          //std::cout<<"p2 is in "<<GetNameOfDetector(p2)<<" volume"<<std::endl;
           if (ignore_y) {
             TVector3 p1_without_y(p1);
             TVector3 p2_without_y(p2);
@@ -416,6 +436,7 @@ class TMS_Geom {
           }
         }
       }
+      //std::cout<<"Finished track length for "<<nodes.size()<<" nodes and got "<<out<<" g/cm^2"<<std::endl;
       return out;
     }
 
