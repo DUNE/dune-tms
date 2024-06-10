@@ -111,7 +111,7 @@
   [Fiducial.TMS.End]
     X = 3300.0 # mm
     Y = 160.0 # mm
-    Z = 18294.0 # mm
+    Z = 18314.0 # mm
   [Fiducial.LAr.Start]
     X = -3478.48 # mm
     Y = -2166.71 # mm

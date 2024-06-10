@@ -50,7 +50,7 @@ namespace TMS_Const {
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Thick_End = 18314;
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
   // in mm by default!
