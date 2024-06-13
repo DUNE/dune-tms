@@ -16,6 +16,7 @@
 #include "TMS_Geom.h"
 // Need to understand what a hit is
 #include "TMS_Hit.h"
+#include "TMS_Bar.h"
 
 // Define the number of dimensions for a Kalman Node
 #ifndef KALMAN_DIM
@@ -57,8 +58,8 @@ class TMS_KalmanNode {
   // x,y,z, delta_z = distance from previous hit to current in z
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar), 
-    CurrentState(x, y, z+dz, 0.1, 0.1, 1./20.), // Initialise the state vectors
-    PreviousState(x, y, z, 0.1, 0.1, 1./20.),
+    CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
+    PreviousState(x, y, z, -999.9, -999.9, -1./20.),
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
     MeasurementMatrix(KALMAN_DIM,KALMAN_DIM) {
@@ -77,6 +78,7 @@ class TMS_KalmanNode {
     TransferMatrix(0,2) = TransferMatrix(1,3) = dzvar; // Clarence matrix was this and 1 diagonal
   }
 
+
   double x;
   double y;
   double z;
@@ -85,6 +87,7 @@ class TMS_KalmanNode {
   double RecoX; // Reco X and Reco Y get updated with Kalman prediction info
   double RecoY;
 
+  TMS_Bar::BarType LayerOrientation;
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState CurrentState;
@@ -105,6 +108,35 @@ class TMS_KalmanNode {
   {
     RecoX = State.x;
     RecoY = State.y;
+  }
+
+  TMatrixD GetRecoNoiseMatrix()
+  {
+    // vvv   args: n_row, n_col, elements
+//    double mat[25] = {9.0, 0, 0, 0, 0,
+//                      0, 900.0, 0, 0, 0,
+//                      0, 0, 0.05, 0, 0,
+//                      0, 0, 0, 0.05, 0,
+//                      0, 0, 0, 0, 0.01};
+    double H = 0.00274576; // ( tan(3 deg) )**2
+    int sign;
+    if (LayerOrientation == TMS_Bar::kUBar) {
+      sign = -1;
+    } else if (LayerOrientation == TMS_Bar::kVBar) {
+      sign =  1;
+    } else {
+      throw; // xd
+    }
+    H *= sign;
+
+    double A = 0.1;
+    double B = 3.5;
+    double mat[25] = {A*A, H*A*B, 0, 0, 0,
+                      H*A*B, B*B, 0, 0, 0,
+                      0, 0, 0.01, 0, 0,
+                      0, 0, 0, 0.01, 0,
+                      0, 0, 0, 0, 0.0};
+    return TMatrixD(5,5, mat);
   }
 
   bool operator<(const TMS_KalmanNode &other) const {

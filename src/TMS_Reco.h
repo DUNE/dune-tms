@@ -310,7 +310,7 @@ class TMS_TrackFinder {
     void operator=(TMS_TrackFinder const &) = delete;
     ~TMS_TrackFinder() {};
 
-    TMS_Kalman KalmanFitter;
+    TMS_Kalman KalmanFilter;
     TMS_DBScan DBSCAN;
 
     int FindBin(double Rho);

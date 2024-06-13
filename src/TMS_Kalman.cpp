@@ -67,21 +67,22 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       //  0;
       //}
       TMS_KalmanNode Node(x, y, z, DeltaZ);
+      Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
       KalmanNodes.emplace_back(std::move(Node));
     } else {
       std::cout << "Dropping Delta_Z = " << DeltaZ << std::endl;
     }
   }
-  const int N_LAYER_BACK = 5;
+  const int N_LAYER_BACK = 10;
 
-  //AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
+  AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
   //AverageYSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoY() - Candidates.back().GetRecoY())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
-  //std::cout << "Average X Slope: " << AverageXSlope << "    from " << (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX()) << " / " << (Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ()) <<std::endl;
-  //std::cout << "Average Y Slope: " << AverageYSlope << "    from " << (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoY() - Candidates.back().GetRecoY()) << " / " << (Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ()) <<std::endl;
-  AverageXSlope = (Candidates.front().GetRecoX() - Candidates.back().GetRecoX())/(Candidates.front().GetZ() - Candidates.back().GetZ());
+  std::cout << "Average X Slope: " << AverageXSlope << "    from " << Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() << " to " << Candidates.back().GetRecoX() << " / " << Candidates[Candidates.size() - N_LAYER_BACK].GetZ() << " to " << Candidates.back().GetZ() <<std::endl;
+  //std::cout << "Average Y Slope: " << AverageYSlope << "    from " << Candidates[Candidates.size() - N_LAYER_BACK].GetRecoY() << " to " << Candidates.back().GetRecoY() << " / " << Candidates[Candidates.size() - N_LAYER_BACK].GetZ() << " to " << Candidates.back().GetZ() <<std::endl;
+  //AverageXSlope = (Candidates.front().GetRecoX() - Candidates.back().GetRecoX())/(Candidates.front().GetZ() - Candidates.back().GetZ());
   AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY())/(Candidates.front().GetZ() - Candidates.back().GetZ());
-  std::cout << "Average X Slope: " << AverageXSlope << "    from " << (Candidates.front().GetRecoX() - Candidates.back().GetRecoX()) << " / " << (Candidates.front().GetZ() - Candidates.back().GetZ()) <<std::endl;
-  std::cout << "Average Y Slope: " << AverageYSlope << "    from " << (Candidates.front().GetRecoY() - Candidates.back().GetRecoY()) << " / " << (Candidates.front().GetZ() - Candidates.back().GetZ()) <<std::endl;
+  //std::cout << "Average X Slope: " << AverageXSlope << "    from " << Candidates.front().GetRecoX() << " to " <<  Candidates.back().GetRecoX() << " / " << Candidates.front().GetZ() << " to " <<  Candidates.back().GetZ() <<std::endl;
+  std::cout << "Average Y Slope: " << AverageYSlope << "    from " << Candidates.front().GetRecoY() << " to " <<  Candidates.back().GetRecoY() << " / " << Candidates.front().GetZ() << " to " <<  Candidates.back().GetZ() <<std::endl;
 
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
@@ -136,7 +137,6 @@ void TMS_Kalman::RunKalman() {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
-    //KalmanNodes[i].CurrentState.Print();
   }
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
@@ -174,10 +174,11 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (Talk) std::cout << "Transfer matrix: " << std::endl;
   if (Talk) Transfer.Print();
 
-  Transfer(0,4) = 20;
+  //Transfer(0,4) = 20;
   //Transfer(0,2) = 1;
   //Transfer(1,3) = 1;
 
+  Transfer(2,4) = 0.1;
 //  if (Transfer(0,2) == 0.0) // If not set (probably?) for x transfer
 //  {
 //    std::cout << "Initialising y += dy/dz component of Transfer Matrix = " << TMS_Kalman::AverageXSlope << std::endl;
@@ -189,7 +190,11 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 //    Transfer(1,3) = TMS_Kalman::AverageYSlope;
 //  }
 
-  //Transfer.Print();
+  if (PreviousState.dxdz ==  -999.9)
+    PreviousState.dxdz = TMS_Kalman::AverageXSlope;
+  if (PreviousState.dydz ==  -999.9)
+    PreviousState.dydz = TMS_Kalman::AverageYSlope;
+
   TVectorD PreviousVec(5);
   PreviousVec[0] = PreviousState.x;
   PreviousVec[1] = PreviousState.y;
@@ -359,7 +364,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   else {
     std::cerr << "negative momentum squared, setting momentum to 1 MeV" << std::endl;
     //p_up = 1;
-    p_up = sqrt(en*en); // not 1 MeV (:
+    p_up = sqrt(en*en);
   }
 
   // Update the state's q/p
@@ -408,8 +413,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (!ForwardFitting) TotalPathLength = -1*TotalPathLength;
 
   // LIAM
-  //std::cout << "ax ay " << ax2 << ", " << ay2 << std::endl;
-  //std::cout << "Total path length (g/cm2): " << TotalPathLength << std::endl;
+  std::cout << "ax ay " << ax2 << ", " << ay2 << std::endl;
+  std::cout << "Total path length (g/cm2): " << TotalPathLength << std::endl;
 
   // Build the covariance matrix in Wolin and Ho after eq 18
   // Equation 15 in Robert Harr Calculation of Track and Vertex Errors for Detector Design Studies
@@ -434,9 +439,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   NoiseMatrix(3,2) = NoiseMatrix(2,3) =    covAxAy;
 
+  //if (
   if (Talk) std::cout << "Noise matrix: " << std::endl;
   if (Talk) NoiseMatrix.Print();
+
+  std::cout << "Before\n";
   //NoiseMatrix.Print();
+  NoiseMatrix += Node.GetRecoNoiseMatrix(); // Get the noise associated with the reco and add it
+  //Node.GetRecoNoiseMatrix().Print(); // Get the noise associated with the reco and add it
 
   TVectorD NoiseVec = GetNoiseVector(Node);
 
@@ -457,7 +467,10 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Set the RecoX and RecoY in Kalman node to our prediction
   Node.SetRecoXY(CurrentState);
-  std::cout << "Z:\t" << Node.z << ":\t\tX: " << Node.RecoX << "\tY: " << Node.RecoY << std::endl;
+  NoiseMatrix.Print();
+  CurrentState.Print();
+  std::cout << "                         Noise   {" << NoiseVec[0] << ", " << NoiseVec[1] << ", " << NoiseVec[2] << ", " << NoiseVec[3] << ", " << NoiseVec[4] << "}" << std::endl;
+  //std::cout << "Z:\t" << Node.z << ":\t\tX: " << Node.RecoX << "\tY: " << Node.RecoY << std::endl;
 }
 
 // Use the NoiseMatrix from the Kalman state to throw a vector of random noise
@@ -474,7 +487,6 @@ TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
   toy.Zero();
   //return toy; //TODO: Remove this line, generate real matrix
 
-  //Node.NoiseMatrix.Print();
   for(int j = 0; j < KALMAN_DIM; j++)
   {
     for(int k = 0; k < KALMAN_DIM; k++)
