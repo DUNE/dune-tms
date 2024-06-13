@@ -74,13 +74,17 @@ class TMS_KalmanNode {
     for (int j = 0; j < KALMAN_DIM; ++j) TransferMatrix(j,j) = 1.;
     // Could put in energy loss into transfer matrix?
     // dz for the slope
-    TransferMatrix(0,2) = TransferMatrix(1,3) = dzvar;
+    TransferMatrix(0,2) = TransferMatrix(1,3) = dzvar; // Clarence matrix was this and 1 diagonal
   }
 
   double x;
   double y;
   double z;
   double dz;
+
+  double RecoX; // Reco X and Reco Y get updated with Kalman prediction info
+  double RecoY;
+
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState CurrentState;
@@ -96,6 +100,12 @@ class TMS_KalmanNode {
 
   // Measurement matrix
   TMatrixD MeasurementMatrix;
+
+  void SetRecoXY(TMS_KalmanState& State)
+  {
+    RecoX = State.x;
+    RecoY = State.y;
+  }
 
   bool operator<(const TMS_KalmanNode &other) const {
     return z < other.z;
@@ -116,6 +126,8 @@ class TMS_Kalman {
     void SetMomentum(double mom) {momentum = mom;}
 
     double GetMomentum() {return momentum;}
+
+    std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
 
@@ -139,6 +151,9 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
+
+    double AverageXSlope; // Seeding initial X slope in Kalman
+    double AverageYSlope; // Seeding initial Y slope in Kalman
 
     bool Talk;
 };

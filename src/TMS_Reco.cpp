@@ -637,11 +637,14 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   for (auto &trk : HoughTracks3D) {
     std::cout << "\n\n KALMAN " << kkk++ << "/" << jjj << std::endl;
 
-    KalmanFitter = TMS_Kalman(trk.Hits);
-    kalman_reco_mom = KalmanFitter.GetMomentum();
+    KalmanFilter = TMS_Kalman(trk.Hits);
+    kalman_reco_mom = KalmanFilter.GetMomentum();
 
     std::cout << "mom: " << kalman_reco_mom << std::endl;
     trk.SetMomentum(kalman_reco_mom);
+    trk.KalmanNodes = KalmanFilter.GetKalmanNodes();
+    //trk.nKalmanNodes = trk.KalmanNodes.size();
+    //trk.Compare();
   }
 
   // Skip the Kalman filter for now

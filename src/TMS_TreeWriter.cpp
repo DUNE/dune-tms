@@ -226,6 +226,8 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
   Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("nKalmanNodes", nKalmanNodes,           "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanPos",    RecoTrackKalmanPos,     "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
   Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
@@ -1074,6 +1076,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       RecoTrack->Length;
@@ -1084,6 +1087,20 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
+    }
+
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
+      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
+        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
+        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
+      //}
+      RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
+      RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
+      RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+      //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].CurrentState.x;
+      //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].CurrentState.y;
+      //RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].CurrentState.z;
     }
 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
@@ -1324,14 +1341,19 @@ void TMS_TreeWriter::Clear() {
   nTracks = -999;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
-      RecoTrackStartPos[i][j] = -999;
-      RecoTrackDirection[i][j] = -999;
-      RecoTrackEndPos[i][j] = -999;
+      RecoTrackStartPos[i][j] = -9999;
+      RecoTrackDirection[i][j] = -9999;
+      RecoTrackEndPos[i][j] = -9999;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
-      RecoTrackHitPos[i][k][0] = -999;
-      RecoTrackHitPos[i][k][1] = -999;
-      RecoTrackHitPos[i][k][2] = -999;
+      RecoTrackKalmanPos[i][k][0] = -9999;
+      RecoTrackKalmanPos[i][k][1] = -9999;
+      RecoTrackKalmanPos[i][k][2] = -9999;
+    }
+    for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
+      RecoTrackHitPos[i][k][0] = -9999;
+      RecoTrackHitPos[i][k][1] = -9999;
+      RecoTrackHitPos[i][k][2] = -9999;
     }
     RecoTrackEnergyRange[i] = -999;
     RecoTrackEnergyDeposit[i] = -999;

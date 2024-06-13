@@ -1,7 +1,9 @@
+#ifndef _TMS_TRACK_H_SEEN_
+
 #include "TMS_Hit.h"
+#include "TMS_Kalman.h"
 #include "TMS_TrueParticle.h"
 
-#ifndef _TMS_TRACK_H_SEEN_
 #define _TMS_TRACK_H_SEEN_
 
 // General 3D-Track class
@@ -38,6 +40,24 @@ class TMS_Track {
 
     int nHits;
     std::vector<TMS_Hit> Hits;
+    int nKalmanNodes;
+    std::vector<TMS_KalmanNode> KalmanNodes;
+
+    void Compare()
+    {
+      std::cout << "Lengths: Hits " << Hits.size() << " KalmanNodes " << KalmanNodes.size() << std::endl;
+      double PrevPlane = -1.0;
+      for (long unsigned int i=0; i<KalmanNodes.size(); i++)
+      {
+        if (PrevPlane == Hits[i].GetZ())
+          continue; // TODO: Skip duplicate planes, Kalman currently ignores them
+
+        PrevPlane = Hits[i].GetZ();
+
+        std::cout << "Layer " << Hits[i].GetZ()
+                  << "\t" << KalmanNodes[i].z << std::endl;
+      }
+    }
 
 
   // a lot of the vars from above can be moved into this in future
