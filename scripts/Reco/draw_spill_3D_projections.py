@@ -163,6 +163,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     print("N entries:", r.GetEntries())
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
+
+    DrawKalmanTrack = False
+    if hasattr(r,"KalmanPos"):
+        print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
+        DrawKalmanTrack = True
     
     truth = ROOT.TChain("Truth_Info")
     truth.Add(input_filename)
@@ -264,6 +269,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
 
+            if DrawKalmanTrack:
+                nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
+                nKalmanNodes = np.array([nKalmanNodes[i] for i in range(0, nTracks * 4, 4)])
+                KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
                                         
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
@@ -298,6 +307,22 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
+                if DrawKalmanTrack:
+                    print("Track: ", i, "\t Hits: ", nHits[i], "\t Nodes: ", nKalmanNodes[i])
+                    for node in range(nKalmanNodes[i]):
+                        kal_x = KalmanPos[i*600 + node*3 + 0]/1000.0
+                        kal_y = KalmanPos[i*600 + node*3 + 1]/1000.0
+                        kal_z = KalmanPos[i*600 + node*3 + 2]/1000.0
+
+                        #temporary fix
+                        if kal_z < 11.: continue #hit_y > -2000.0 or 
+                        if np.abs(kal_x) > 10. or np.abs(kal_y) > 10. or np.abs(kal_z) > 20.: continue
+
+                        print(kal_x, kal_y, kal_z)
+                        x_z.plot(kal_z, kal_x, marker='.', ls='-', lw=4, color='green')
+                        z_y.plot(kal_z, kal_y, marker='.', ls='-', lw=4, color='green')
+                        x_y.plot(kal_x, kal_y, marker='.', ls='-', lw=4, color='green')
+
                 ### Track start
                 #print(StartPos)
                 #temporary fix
