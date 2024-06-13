@@ -318,10 +318,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         if kal_z < 11.: continue #hit_y > -2000.0 or 
                         if np.abs(kal_x) > 10. or np.abs(kal_y) > 10. or np.abs(kal_z) > 20.: continue
 
-                        print(kal_x, kal_y, kal_z)
-                        x_z.plot(kal_z, kal_x, marker='.', ls='-', lw=4, color='green')
-                        z_y.plot(kal_z, kal_y, marker='.', ls='-', lw=4, color='green')
-                        x_y.plot(kal_x, kal_y, marker='.', ls='-', lw=4, color='green')
+                        #print(kal_x, kal_y, kal_z)
+                        x_z.plot(kal_z, kal_x, marker='.', ls='-', lw=1, color='green')
+                        z_y.plot(kal_z, kal_y, marker='.', ls='-', lw=1, color='green')
+                        x_y.plot(kal_x, kal_y, marker='.', ls='-', lw=1, color='green')
 
                 ### Track start
                 #print(StartPos)
