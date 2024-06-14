@@ -129,13 +129,13 @@ class TMS_KalmanNode {
     }
     H *= sign;
 
-    double A = 0.1;
+    double A = 0.0001;
     double B = 3.5;
     double mat[25] = {A*A, H*A*B, 0, 0, 0,
                       H*A*B, B*B, 0, 0, 0,
-                      0, 0, 0.01, 0, 0,
-                      0, 0, 0, 0.01, 0,
-                      0, 0, 0, 0, 0.0};
+                      0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0};
     return TMatrixD(5,5, mat);
   }
 

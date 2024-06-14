@@ -169,6 +169,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMS_KalmanState &PreviousState = Node.PreviousState;
   TMS_KalmanState &CurrentState = Node.CurrentState;
 
+  //PreviousState.Print();
+  //CurrentState.Print();
   // Propagate the current state
   TMatrixD &Transfer = Node.TransferMatrix;
   if (Talk) std::cout << "Transfer matrix: " << std::endl;
@@ -190,6 +192,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 //    Transfer(1,3) = TMS_Kalman::AverageYSlope;
 //  }
 
+  // Initialise to something sane(-ish)
   if (PreviousState.dxdz ==  -999.9)
     PreviousState.dxdz = TMS_Kalman::AverageXSlope;
   if (PreviousState.dydz ==  -999.9)
@@ -224,18 +227,20 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TVectorD UpdateVec = Transfer*(PreviousVec);
   // LIAM
   //Transfer.Print();
-  //PreviousVec.Print();
-  //UpdateVec.Print();
+  PreviousVec.Print();
+  UpdateVec.Print();
 
   // Now construct the current state (z of CurrentState is already set to be z+dz)
-  CurrentState.x = UpdateVec[0];
-  CurrentState.y = UpdateVec[1];
+  //CurrentState.x = UpdateVec[0];
+  //CurrentState.y = UpdateVec[1];
+  //CurrentState.dxdz = UpdateVec[2];
+  //CurrentState.dydz = UpdateVec[3];
+  //CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
+  //CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
+  CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
+  CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
   CurrentState.dxdz = UpdateVec[2];
   CurrentState.dydz = UpdateVec[3];
-  //CurrentState.x = UpdateVec[0] + NoiseVec[0];
-  //CurrentState.y = UpdateVec[1] + NoiseVec[1];
-  //CurrentState.dxdz = UpdateVec[2] + NoiseVec[2];
-  //CurrentState.dydz = UpdateVec[3] + NoiseVec[3];
   // Don't update q/p until later (when we've done the energy loss calculation)
 
 
@@ -437,13 +442,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   NoiseMatrix(2,1) = NoiseMatrix(1,2) = (Sign)*covAxAy * TotalPathLength/2.;
   NoiseMatrix(3,1) = NoiseMatrix(3,1) = (Sign)*covAyAy * TotalPathLength/2.;
 
-  NoiseMatrix(3,2) = NoiseMatrix(2,3) =    covAxAy;
+  NoiseMatrix(4,2) = NoiseMatrix(2,4) = 0.1*qp_var; // TODO: temp check effect of mom on angle uncert
+  NoiseMatrix(4,3) = NoiseMatrix(3,4) = 0.1*qp_var;
 
   //if (
   if (Talk) std::cout << "Noise matrix: " << std::endl;
   if (Talk) NoiseMatrix.Print();
 
-  std::cout << "Before\n";
+  //std::cout << "Before\n";
   //NoiseMatrix.Print();
   NoiseMatrix += Node.GetRecoNoiseMatrix(); // Get the noise associated with the reco and add it
   //Node.GetRecoNoiseMatrix().Print(); // Get the noise associated with the reco and add it
@@ -467,7 +473,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Set the RecoX and RecoY in Kalman node to our prediction
   Node.SetRecoXY(CurrentState);
-  NoiseMatrix.Print();
+  //NoiseMatrix.Print();
   CurrentState.Print();
   std::cout << "                         Noise   {" << NoiseVec[0] << ", " << NoiseVec[1] << ", " << NoiseVec[2] << ", " << NoiseVec[3] << ", " << NoiseVec[4] << "}" << std::endl;
   //std::cout << "Z:\t" << Node.z << ":\t\tX: " << Node.RecoX << "\tY: " << Node.RecoY << std::endl;

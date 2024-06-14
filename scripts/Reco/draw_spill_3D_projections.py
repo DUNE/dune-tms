@@ -308,20 +308,26 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 if DrawKalmanTrack:
-                    print("Track: ", i, "\t Hits: ", nHits[i], "\t Nodes: ", nKalmanNodes[i])
-                    for node in range(nKalmanNodes[i]):
-                        kal_x = KalmanPos[i*600 + node*3 + 0]/1000.0
-                        kal_y = KalmanPos[i*600 + node*3 + 1]/1000.0
-                        kal_z = KalmanPos[i*600 + node*3 + 2]/1000.0
+                    prev_kal_x = -1E100
+                    prev_kal_y = -1E100
+                    prev_kal_z = -1E100
 
-                        #temporary fix
-                        if kal_z < 11.: continue #hit_y > -2000.0 or 
-                        if np.abs(kal_x) > 10. or np.abs(kal_y) > 10. or np.abs(kal_z) > 20.: continue
+                    print("Track: ", i, "\t Hits: ", nHits[i], "\t Nodes: ", nKalmanNodes[i])
+                    kal_x = np.zeros(nKalmanNodes[i])
+                    kal_y = np.zeros(nKalmanNodes[i])
+                    kal_z = np.zeros(nKalmanNodes[i])
+                    for node in range(nKalmanNodes[i]):
+                        kal_x[node] = KalmanPos[i*600 + node*3 + 0]/1000.0
+                        kal_y[node] = KalmanPos[i*600 + node*3 + 1]/1000.0
+                        kal_z[node] = KalmanPos[i*600 + node*3 + 2]/1000.0
 
                         #print(kal_x, kal_y, kal_z)
-                        x_z.plot(kal_z, kal_x, marker='.', ls='-', lw=1, color='green')
-                        z_y.plot(kal_z, kal_y, marker='.', ls='-', lw=1, color='green')
-                        x_y.plot(kal_x, kal_y, marker='.', ls='-', lw=1, color='green')
+                    print(kal_x)
+                    print(kal_y)
+                    print(kal_z)
+                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=green_cbf)
+                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=green_cbf)
+                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=green_cbf)
 
                 ### Track start
                 #print(StartPos)
