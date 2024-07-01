@@ -87,6 +87,9 @@ class TMS_KalmanNode {
   double RecoX; // Reco X and Reco Y get updated with Kalman prediction info
   double RecoY;
 
+  double TrueX; // True X and True Y to compare reco to truth
+  double TrueY;
+
   TMS_Bar::BarType LayerOrientation;
 
   // The state vectors carry information about the covariance matrices etc
@@ -110,6 +113,18 @@ class TMS_KalmanNode {
     RecoY = State.y;
   }
 
+  void SetTrueXY(double xarg, double yarg)
+  {
+    TrueX = xarg;
+    TrueY = yarg;
+  }
+
+  void PrintTrueReco()
+  {
+    std::cout << "True x: " << TrueX << ",\t" << "Reco x: " << RecoX << ",\t" << "True - Reco: " << TrueX - RecoX << std::endl;
+    std::cout << "True y: " << TrueY << ",\t" << "Reco y: " << RecoY << ",\t" << "True - Reco: " << TrueY - RecoY << std::endl;
+  }
+
   TMatrixD GetRecoNoiseMatrix()
   {
     // vvv   args: n_row, n_col, elements
@@ -129,8 +144,8 @@ class TMS_KalmanNode {
     }
     H *= sign;
 
-    double A = 0.0001;
-    double B = 1.00;
+    double A = 0.5;
+    double B = 5.00;
     double mat[25] = {A*A, H*A*B, 0, 0, 0,
                       H*A*B, B*B, 0, 0, 0,
                       0, 0, 0, 0, 0,

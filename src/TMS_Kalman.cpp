@@ -39,8 +39,9 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
 
     TMS_Hit hit = Candidates[i];
     //if (hit.GetBar().GetBarType() != TMS_Bar::kYBar) continue;
-    //double x = hit.GetNotZ();
-    //double y = hit.GetTrueHit().GetY();
+    //double x_true = hit.GetNotZ();
+    double x_true = hit.GetTrueHit().GetX();
+    double y_true = hit.GetTrueHit().GetY();
     double x = hit.GetRecoX();
     double y = hit.GetRecoY();
     double z = hit.GetZ();
@@ -56,8 +57,8 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     // This also initialises the state vectors in each of the nodes
     if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
     { // Now decide which hit to add
-      ( (Candidates[i-1].GetRecoX() < Candidates[i  ].GetRecoX() > Candidates[i+1].GetRecoX()) ||
-        (Candidates[i-1].GetRecoX() > Candidates[i  ].GetRecoX() < Candidates[i+1].GetRecoX()) ) || std::cout << "\n\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n";
+      ( ((Candidates[i-1].GetRecoX() < Candidates[i  ].GetRecoX()) > Candidates[i+1].GetRecoX()) ||
+        ((Candidates[i-1].GetRecoX() > Candidates[i  ].GetRecoX()) < Candidates[i+1].GetRecoX()) ) || std::cout << "\n\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n";
       //{
       //  TMS_KalmanNode Node(x, y, z, DeltaZ);
       //  KalmanNodes.emplace_back(std::move(Node));
@@ -67,6 +68,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       //  0;
       //}
       TMS_KalmanNode Node(x, y, z, DeltaZ);
+      Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
       KalmanNodes.emplace_back(std::move(Node));
     } else {
@@ -237,8 +239,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //CurrentState.dydz = UpdateVec[3];
   //CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
   //CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
-  CurrentState.x    = (0.89*UpdateVec[0] + 0.11*CurrentState.x);
-  CurrentState.y    = (0.95*UpdateVec[1] + 0.05*CurrentState.y);
+  CurrentState.x    = (0.88*UpdateVec[0] + 0.12*CurrentState.x);
+  CurrentState.y    = (0.99*UpdateVec[1] + 0.01*CurrentState.y);
   CurrentState.dxdz = UpdateVec[2];
   CurrentState.dydz = UpdateVec[3];
   // Don't update q/p until later (when we've done the energy loss calculation)
@@ -473,6 +475,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Set the RecoX and RecoY in Kalman node to our prediction
   Node.SetRecoXY(CurrentState);
+  Node.PrintTrueReco();
   //NoiseMatrix.Print();
   CurrentState.Print();
   std::cout << "                         Noise   {" << NoiseVec[0] << ", " << NoiseVec[1] << ", " << NoiseVec[2] << ", " << NoiseVec[3] << ", " << NoiseVec[4] << "}" << std::endl;
