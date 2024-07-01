@@ -273,6 +273,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
                 nKalmanNodes = np.array([nKalmanNodes[i] for i in range(0, nTracks * 4, 4)])
                 KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
+                KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
                                         
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
@@ -316,15 +317,23 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     kal_x = np.zeros(nKalmanNodes[i])
                     kal_y = np.zeros(nKalmanNodes[i])
                     kal_z = np.zeros(nKalmanNodes[i])
+                    kal_true_x = np.zeros(nKalmanNodes[i])
+                    kal_true_y = np.zeros(nKalmanNodes[i])
 
                     for node in range(nKalmanNodes[i]):
                         kal_x[node] = KalmanPos[i*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_y[node] = KalmanPos[i*600 + node*3 + 1]/1000.0
                         kal_z[node] = KalmanPos[i*600 + node*3 + 2]/1000.0
+                        kal_true_x[node] = KalmanTruePos[i*600 + node*3 + 0]/1000.0 # from mm to m
+                        kal_true_y[node] = KalmanTruePos[i*600 + node*3 + 1]/1000.0
 
                     x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=green_cbf)
                     z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=green_cbf)
                     x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=green_cbf)
+
+                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=magenta_cbf)
+                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=magenta_cbf)
+                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=magenta_cbf)
 
                 ### Track start
                 #print(StartPos)
@@ -354,7 +363,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 ### Track direction
                 #print(Direction)              
                 #temporary fix
-                if not (StartPos[i*3 + 2] < 11000. or EndPos[i*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
+                if not DrawKalmanTrack and not (StartPos[i*3 + 2] < 11000. or EndPos[i*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
 
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
