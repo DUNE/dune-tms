@@ -70,7 +70,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
       KalmanNodes.emplace_back(std::move(Node));
     } else {
-      std::cout << "Dropping Delta_Z = " << DeltaZ << std::endl;
+      std::cout << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", multiple hits in one plane?" << std::endl;
     }
   }
   const int N_LAYER_BACK = 10;
@@ -227,8 +227,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TVectorD UpdateVec = Transfer*(PreviousVec);
   // LIAM
   //Transfer.Print();
-  PreviousVec.Print();
-  UpdateVec.Print();
+  //PreviousVec.Print();
+  //UpdateVec.Print();
 
   // Now construct the current state (z of CurrentState is already set to be z+dz)
   //CurrentState.x = UpdateVec[0];
@@ -237,8 +237,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //CurrentState.dydz = UpdateVec[3];
   //CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
   //CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
-  CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
-  CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
+  CurrentState.x    = (0.89*UpdateVec[0] + 0.11*CurrentState.x);
+  CurrentState.y    = (0.95*UpdateVec[1] + 0.05*CurrentState.y);
   CurrentState.dxdz = UpdateVec[2];
   CurrentState.dydz = UpdateVec[3];
   // Don't update q/p until later (when we've done the energy loss calculation)
@@ -442,8 +442,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   NoiseMatrix(2,1) = NoiseMatrix(1,2) = (Sign)*covAxAy * TotalPathLength/2.;
   NoiseMatrix(3,1) = NoiseMatrix(3,1) = (Sign)*covAyAy * TotalPathLength/2.;
 
-  NoiseMatrix(4,2) = NoiseMatrix(2,4) = 0.1*qp_var; // TODO: temp check effect of mom on angle uncert
-  NoiseMatrix(4,3) = NoiseMatrix(3,4) = 0.1*qp_var;
+  //NoiseMatrix(4,2) = NoiseMatrix(2,4) = 0.1*qp_var; // TODO: temp check effect of mom on angle uncert
+  //NoiseMatrix(4,3) = NoiseMatrix(3,4) = 0.1*qp_var;
 
   //if (
   if (Talk) std::cout << "Noise matrix: " << std::endl;

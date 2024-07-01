@@ -130,7 +130,7 @@ class TMS_KalmanNode {
     H *= sign;
 
     double A = 0.0001;
-    double B = 3.5;
+    double B = 1.00;
     double mat[25] = {A*A, H*A*B, 0, 0, 0,
                       H*A*B, B*B, 0, 0, 0,
                       0, 0, 0, 0, 0,
