@@ -1267,6 +1267,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       if (itTrack < __TMS_MAX_LINES__) {
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackStart[itTrack], tp.GetMomentumAtZ(start_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
+        //std::cout << "Setting tp shite: " << tp.GetPositionAtZ(start_z, max_z_distance).X() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Y() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Z()  << ",\t" << start_z << " " <<  max_z_distance << std::endl;
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
         

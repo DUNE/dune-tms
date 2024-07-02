@@ -71,16 +71,20 @@ std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   double z_dist_found = 999999;
+  //double prev_z = 0;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
-    double distance = abs(GetPositionPoints()[i].Z() - z);
-    if (distance <= max_z_dist) {
+    //std::cout << "pos: " << GetPositionPoints()[i].X() << ", "<< GetPositionPoints()[i].Y() << ", "<< GetPositionPoints()[i].Z() << "     " << GetPositionPoints()[i].Z() - prev_z << std::endl;
+    //prev_z = GetPositionPoints()[i].Z();
+    double distance = GetPositionPoints()[i].Z() - z;
+    if (abs(distance) <= max_z_dist) {
       // Found a candidate
-      if (distance < z_dist_found) {
+      if (abs(distance) < z_dist_found) {
         out = GetPositionPoints()[i];
         z_dist_found = distance;
       }
     }
-  } 
+  }
+  out.SetZ( out.Z() - z_dist_found );
   return out;
 }
 
