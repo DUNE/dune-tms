@@ -364,11 +364,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     // Sorting hits into orientation groups  
     if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) {
       UHitGroup.push_back(hit);
-//      std::cout << "U hit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
     }
     else if (hit.GetBar().GetBarType() == TMS_Bar::kVBar) {
       VHitGroup.push_back(hit);
-//      std::cout << "V hit: " << hit.GetNotZ() << " | " << hit.GetZ() << std::endl;
     }
     else if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
       XHitGroup.push_back(hit);
@@ -430,6 +428,11 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   std::vector<TMS_Hit> MaskedX = XHitGroup;
   // Loop over the Hough candidates
   for (auto Lines: HoughCandidatesU) {
+
+    for (auto Hits: Lines) {
+      std::cout << "CandidatesU: " << Hits.GetNotZ() << " " << Hits.GetZ() << std::endl;
+    }
+
 #ifdef DEBUG
     std::cout << "Masked (u) size bef: " << MaskedU.size() << std::endl;
 #endif
@@ -876,12 +879,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   //else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < 90) stereo_view = false;
                 }
                 if (stereo_view) {
-                  std::cout << "U: x " << UTracks.front().GetNotZ() << " z " << UTracks.front().GetZ() << std::endl;
-                  std::cout << "V: x " << VTracks.front().GetNotZ() << " z " << VTracks.front().GetZ() << std::endl;
-                  std::cout << "abs x: " << std::abs(UTracks.front().GetNotZ() - VTracks.front().GetNotZ()) << std::endl;
                   CalculateRecoY(UTracks.front(), UTracks.front(), VTracks.front());
                   CalculateRecoX(UTracks.front(), VTracks.front(), UTracks.front());
-                  std::cout << "U: recoX " << UTracks.front().GetRecoX() << " recoY " << UTracks.front().GetRecoY() << std::endl;
                   aTrack.End[0] = UTracks.front().GetRecoX();
                   aTrack.End[1] = UTracks.front().GetRecoY();
                   aTrack.End[2] = UTracks.front().GetZ();
@@ -1267,7 +1266,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               }
               if (stereo_view) {
                 CalculateRecoY(UTracks.back(), UTracks.back(), VTracks.back());
-                CalculateRecoX(UTracks.back(), VTracks.back(), VTracks.back());
+                CalculateRecoX(UTracks.back(), VTracks.back(), UTracks.back());
                 aTrack.Start[0] = UTracks.back().GetRecoX();
                 aTrack.Start[1] = UTracks.back().GetRecoY();
                 aTrack.Start[2] = UTracks.back().GetZ();
@@ -1316,11 +1315,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             aTrack.Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();  //aTrack.End[0] - aTrack.Start[0];
             aTrack.Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();  //aTrack.End[1] - aTrack.Start[1];
             aTrack.Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();   //aTrack.End[2] - aTrack.Start[2];    
-//#ifdef DEBUG          
+#ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
             std::cout << "Added Direction: " << aTrack.Direction[0] << " | " << aTrack.Direction[1] << " | " << aTrack.Direction[2] << std::endl;
-//#endif          
+#endif          
   
             returned.push_back(aTrack);
           }
@@ -2148,7 +2147,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
 
   // Now walk along the Hough hits and add on adjacent hits
   // Hough is most likely to find hits upstream due to bending being less there
+  for (auto hits: returned) std::cout << "Hough: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
   WalkDownStream(returned, HitPool);
+  for (auto hits: returned) std::cout << "Down: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
   WalkUpStream(returned, HitPool);
 
   // The vector of DBSCAN points
@@ -2208,6 +2209,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       else it++;
     }
   }
+  
+  for (auto hits: returned) std::cout << "BeforeA*: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
 
   // Finally run A* to find the shortest path from start to end
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
@@ -3187,7 +3190,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           ++it;
           continue;
         }
-
+        std::cout << "Hit: " << hits.GetNotZ() << " " << hits.GetZ() << " gradient new: " << grad_new << " gradient expected: " << grad_exp << std::endl;
         //std::cout << "Will be merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
 
         // Now need to find where we insert this hit since we need to guarantee sorted in z
@@ -3196,6 +3199,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         //if (xcand >= vec.back().GetZ()) {
         if (xcand >= vec.back().GetPlaneNumber()) {
           vec.push_back(std::move(hits));
+          std::cout << "Hit other: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
           // Need to decrement iterator over line
           // Sometimes we've missed one hit between Hough hits
         } else {
@@ -3212,6 +3216,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
             } else if (xcand < compx && xcand >= compx1) {
               // Put in the previous
               vec.insert(jt, std::move(hits));
+              std::cout << "Hit previous: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
               break;
             } else {
               std::cout << "Didn't find anywhere to insert " << xcand << std::endl;
