@@ -1173,9 +1173,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     (aTrack.Hits).push_back(VTracks[itV]);
                     --itV;
                   } else if (itU == 0 && itV > 0) {
-                    CalculateRecoY(VTracks[itV], UTracks[itU], VTracks[itU]);
+                    CalculateRecoY(VTracks[itV], UTracks[itU], VTracks[itV]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
-                    if (VTracks[itU].GetZ() == VTracks[itU - 1].GetZ()) {
+                    if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       CalculateRecoY(VTracks[itV - 1], UTracks[itU], VTracks[itV - 1]);
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
