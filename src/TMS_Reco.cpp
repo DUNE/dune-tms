@@ -1096,6 +1096,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   if ((UTracks[itU]).GetPlaneNumber() == (XTracks[itX]).GetPlaneNumber() || (itX > 0 && itU == 0 && itV == 0)) {
                     UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
                     VTracks[itV].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
@@ -1114,6 +1115,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itV > 0) --itV;
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1202,6 +1204,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
                   if (itU > 0 && itV > 0) {
                     VTracks[itV].SetRecoY(CompareY(UTracks[itU - 1], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], VTracks[itV]);
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
@@ -1211,6 +1214,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1220,6 +1224,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     --itV;
                   } else if (itU == 0 && itV > 0) {
                     VTracks[itV].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
@@ -1229,6 +1234,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itV > 0) --itV; // and this allso for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1238,6 +1244,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     --itV;
                   } else if (itU > 0 && itV == 0) {
                     UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
@@ -1247,6 +1254,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1305,6 +1313,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
                   if (itV > 0 && itU > 0) {
                     UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV - 1], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], UTracks[itU]);
                     if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
@@ -1314,6 +1323,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1323,6 +1333,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     --itU;
                   } else if (itV == 0 && itU > 0) {
                     UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
                     if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
@@ -1332,6 +1343,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1341,6 +1353,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     --itU;
                   } else if (itV > 0 && itU == 0) {
                     VTracks[itV].SetRecoY(CompareY(UTracks[itU], VTracks[itV], XTracks[itX]));//XTracks[itX].GetNotZ());
+                    XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
                     CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
@@ -1350,6 +1363,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
+                      XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
