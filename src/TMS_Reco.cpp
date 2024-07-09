@@ -1043,7 +1043,21 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (Xrun && Xback_match && Xfront_match) sane = (itU > 0 || itV > 0 || itX > 0);
             
             while (sane) {  // Track seems to be backwards, so run adding of hits backwards
-              //TODO change order of stereo check and sanity check!!!
+              // Sanity check for hits being in the detector volume (x and z)
+              bool hit_outside = false;
+              if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetNotZ() == 0. 
+                  || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) {
+                --itU;
+                hit_outside = true;
+              }
+              if (std::abs(VTracks[itV].GetNotZ()) > 4000.0 or VTracks[itV].GetNotZ() == 0.
+                  || VTracks[itV].GetZ() < 11000 || VTracks[itV].GetZ() > 20000) {
+                --itV;
+                hit_outside = true;
+              }
+              if (hit_outside) continue;
+
+              // Stereo check
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
                 // Check if a neighbouring hit is from a X layer
@@ -1060,11 +1074,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               std::cout << "itU: " << itU << " | itV: " << itV << std::endl;
               std::cout << "U: " << UTracks[itU].GetNotZ() << " / " << UTracks[itU].GetZ() << " | V: " << VTracks[itV].GetNotZ() << " / " << VTracks[itV].GetZ() << std::endl;
               if (Xrun) std::cout << "itX: " << itX <<  "| X: " << XTracks[itX].GetNotZ() << " / " << XTracks[itX].GetZ() << std::endl;
-#endif            
-              if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetNotZ() == 0. 
-                  || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) --itU;
-              if (std::abs(VTracks[itV].GetNotZ()) > 4000.0 or VTracks[itV].GetNotZ() == 0.
-                  || VTracks[itV].GetZ() < 11000 || VTracks[itV].GetZ() > 20000) --itV;
+#endif 
               if ((UTracks[itU]).GetPlaneNumber() == (VTracks[itV]).GetPlaneNumber()) {
                 // Calculate Y info from bar crossing
                 if (stereo_view) {
