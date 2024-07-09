@@ -3346,7 +3346,6 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           ++it;
           continue;
         }
-        std::cout << "Hit: " << hits.GetNotZ() << " " << hits.GetZ() << " gradient new: " << grad_new << " gradient expected: " << grad_exp << std::endl;
         //std::cout << "Will be merging " << PlaneNumber_cand << "," << hits.GetBarNumber() << std::endl;
 
         // Now need to find where we insert this hit since we need to guarantee sorted in z
@@ -3355,7 +3354,6 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         //if (xcand >= vec.back().GetZ()) {
         if (xcand >= vec.back().GetPlaneNumber()) {
           vec.push_back(std::move(hits));
-          std::cout << "Hit other: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
           // Need to decrement iterator over line
           // Sometimes we've missed one hit between Hough hits
         } else {
@@ -3372,7 +3370,6 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
             } else if (xcand < compx && xcand >= compx1) {
               // Put in the previous
               vec.insert(jt, std::move(hits));
-              std::cout << "Hit previous: " << hits.GetNotZ() << " " << hits.GetZ() << std::endl;
               break;
             } else {
               std::cout << "Didn't find anywhere to insert " << xcand << std::endl;
