@@ -79,8 +79,11 @@ def run(c, truth, reco, outfilename, nmax=-1):
         hist_correct_charge_id_percentage = ROOT.TH1D("hist_correct_charge_id_percentage", "Muons correct charge percentage (using reco);True muon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance = ROOT.TH1D("hist_signed_distance", "Muons signed distance: (x_extropolate - x_reco) (using reco);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
         
-        hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge percentage (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
-        hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge percentage (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
+
+       
+
+        hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
+        hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_total_charge_id_antimuon = ROOT.TH1D("hist_total_charge_id_antimuon", "Antimuons total charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_correct_charge_id_percentage_antimuon = ROOT.TH1D("hist_correct_charge_id_percentage_antimuon", "Antimuons correct charge percentage (using reco);True antimuon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance_antimuon = ROOT.TH1D("hist_signed_distance_antimuon", "Antimuons signed distance: (x_extropolate - x_reco) (using reco) ;True signed distance(mm); Number of antimuons", 100, -2000, 2000)
@@ -155,20 +158,22 @@ def run(c, truth, reco, outfilename, nmax=-1):
                 x_start_tms = truth.PositionTMSStart[4*index+0]
                 y_start_tms = truth.PositionTMSStart[4*index+1]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
+                p_z = truth.MomentumTMSStart[4*index+2] 
+                p_y = truth.MomentumTMSStart[4*index+1]
+                p_x = truth.MomentumTMSStart[4*index+0]
                 tracklength = math.sqrt((z_end-z_start_tms)**2 + (y_end-y_start_tms)**2 +(x_end-x_start_tms)**2)
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
                     n_muon_total_lar_start_tms_end+=1
-                    if len(reco.Direction) <= 0: 
-                        no_reco+=1
+                    if len(reco.TrackHitPos) < 9: 
                         break
-                    if len(reco.Direction) > 0: reco_ttree +=1
-                    p_z = reco.Direction[2]  
-                    p_y = reco.Direction[1]  
-                    p_x = reco.Direction[0]  
-                    
-                    if p_z <=0 : break
-                    m= p_x / p_z 
+                    x1 = reco.TrackHitPos[0]  
+                    x2 = reco.TrackHitPos[6]  
+                    z1 = reco.TrackHitPos[2]
+                    z2 = reco.TrackHitPos[8]   
+                    if x1==-999 or x2 ==-999 or z1==-999 or z2==-999: break
+                    if (z1 - z2) >=0 : break
+                    m= (x1 - x2) / (z1 - z2)
                  
                     x_extrapolate =m*(reco.EndPos[2] - reco.StartPos[2]) + reco.StartPos[0]
                     
@@ -239,16 +244,15 @@ def run(c, truth, reco, outfilename, nmax=-1):
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
                     n_antimuon_total_lar_start_tms_end+=1
-                    if len(reco.Direction) <= 0:  
-                        no_reco+=1
+                    if len(reco.TrackHitPos) < 9: 
                         break
-                    if len(reco.Direction) > 0: reco_ttree +=1
-                    p_z = reco.Direction[2]  
-                    p_y = reco.Direction[1]  
-                    p_x = reco.Direction[0]  
-                    
-                    if p_z <=0 : break
-                    m= p_x / p_z 
+                    x1 = reco.TrackHitPos[0]  
+                    x2 = reco.TrackHitPos[6]  
+                    z1 = reco.TrackHitPos[2]
+                    z2 = reco.TrackHitPos[8]   
+                    if x1==-999 or x2 ==-999 or z1==-999 or z2==-999: break
+                    if (z1 - z2) >=0 : break
+                    m= (x1 - x2) / (z1 - z2)
                  
                     x_extrapolate =m*(reco.EndPos[2] - reco.StartPos[2]) + reco.StartPos[0]
                     
@@ -302,8 +306,8 @@ def run(c, truth, reco, outfilename, nmax=-1):
    
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon) 
-    correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
-    correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
+    #correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
+    #correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
    
     #n_region1_contained_percentage=   (n_region1_total-n_region1_not_contained)/n_region1_total   
     #n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
@@ -350,11 +354,7 @@ def run(c, truth, reco, outfilename, nmax=-1):
     # Return this hists if the user requested previews
     return hists_to_save 
 
-def new_func(n_true_muons, n_true_antimuons, correct_percentage_total):
-    print(f"N true muons: {n_true_muons}")
-    print(f"N true antimuons: {n_true_antimuons}")
-    print(f"total correct percentage for muons: {correct_percentage_total}")
-    
+
 
 def validate_then_run(args):
     ''' This function has all the code to validate the arguments. Usually users don't need to edit this code. '''

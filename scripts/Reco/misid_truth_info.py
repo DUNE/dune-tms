@@ -79,8 +79,8 @@ def run(c, truth, outfilename, nmax=-1):
         hist_correct_charge_id_percentage = ROOT.TH1D("hist_correct_charge_id_percentage", "Muons correct charge percentage (using truth_info);True muon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance = ROOT.TH1D("hist_signed_distance", "Muons signed distance: (x_extropolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
         
-        hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge percentage (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
-        hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge percentage (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
+        hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge number (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
+        hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge number (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_total_charge_id_antimuon = ROOT.TH1D("hist_total_charge_id_antimuon", "Antimuons total charge number (using truth_info);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_correct_charge_id_percentage_antimuon = ROOT.TH1D("hist_correct_charge_id_percentage_antimuon", "Antimuons correct charge percentage (using truth_info);True antimuon KE (MeV);Fraction", 100, 0, 5000)
         hist_signed_distance_antimuon = ROOT.TH1D("hist_signed_distance_antimuon", "Antimuons signed distance: (x_extropolate - x_truth) (using truth_info) ;True signed distance(mm); Number of antimuons", 100, -2000, 2000)

@@ -61,7 +61,7 @@ def region3(x):
     return is_region3
 
 
-def run(c, truth, outfilename, nmax=-1):
+def run(c, truth, reco, outfilename, nmax=-1):
     
     # PositionTMSStart, MomentumTMSStart, and PositionTMSEnd
    
@@ -136,7 +136,11 @@ def run(c, truth, outfilename, nmax=-1):
     # Now loop over all events
     for i, event in enumerate(c):
         if i > nevents: break
-        if truth != None: truth.GetEntry(i)
+        if truth != None: 
+            truth.GetEntry(i)
+            
+        if reco != None: 
+            reco.GetEntry(i)
         # Print current progress, with carriage return \r to prevent long list of progress and have everything on a singe line.
         if i % print_every == 0 and carriage: print(f"\rOn {i} / {nevents}  {i/nevents*100}%", end='')
         if i % print_every == 0 and not carriage: print(f"On {i} / {nevents}   {i/nevents*100:.1f}%")
@@ -282,22 +286,20 @@ def run(c, truth, outfilename, nmax=-1):
         hist.Write()
     tf.Close()
     print("Done saving.")
-    if truth != None:
-        print(f"N true muons: {n_true_muons}")
-        print(f"N matched muons: {n_matched_muons}")
-        print(f"matched percentage: {matched_percentage_muons}")
-        print(f"N true antimuons: {n_true_antimuons}")
-        print(f"N matched antimuons: {n_matched_antimuons}")
-        print(f"matched percentage: {matched_percentage_antimuons}")
-        print(f"number of muons starting in lar: {n_muons_lar_start}")
-        print(f"muons matched/muons in lar: {n_matched_muons/n_muons_lar_start}")
+    print(f"N true muons: {n_true_muons}")
+    print(f"N true antimuons: {n_true_antimuons}")
+    
+    
 
-   
-       
 
     
     # Return this hists if the user requested previews
     return hists_to_save 
+
+def new_func(n_true_muons, n_true_antimuons, correct_percentage_total):
+    print(f"N true muons: {n_true_muons}")
+    print(f"N true antimuons: {n_true_antimuons}")
+    print(f"total correct percentage for muons: {correct_percentage_total}")
     
 
 def validate_then_run(args):
@@ -359,6 +361,7 @@ def validate_then_run(args):
     print(f"Output will be in {outfilename}")
     
     has_truth = True
+    has_reco = True
     
     # Make the TChain objects. One for truth information and one for reconstructed information.
     c = ROOT.TChain("Line_Candidates")
@@ -369,12 +372,20 @@ def validate_then_run(args):
         if has_truth: truth.Add(f)
     assert c.GetEntries() > 0, "Didn't get any entries in Line_Candidates TChain." 
     if has_truth: assert truth.GetEntries() > 0, "Didn't get any entries in Truth_Info TChain."
+
+    reco = None
+    if has_reco: reco = ROOT.TChain("Reco_Tree")
+    for f in files_to_use:
+        c.Add(f)
+        if has_reco: reco.Add(f)
+    assert c.GetEntries() > 0, "Didn't get any entries in Line_Candidates TChain." 
+    if has_reco: assert reco.GetEntries() > 0, "Didn't get any entries in Reco_Tree TChain."
     
     nevents = args.nevents
     assert nevents >= -1, f"nevents <= -1, why? {nevents}"
     
     # Now finally run
-    hists = run(c, truth, outfilename, nevents)
+    hists = run(c, truth, reco, outfilename, nevents)
     
     preview = args.preview
     if preview:
@@ -418,6 +429,4 @@ if __name__ == "__main__":
     
     validate_then_run(args)
     
-
-
 
