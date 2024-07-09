@@ -78,9 +78,9 @@ class TMS_TreeWriter {
     int SpillNo;
     
     int VertexIdOfMostEnergyInEvent;
-    float VisibleEnergyFromUVertexInSlice;
+    float VisibleEnergyFromVertexInSlice;
     float TotalVisibleEnergyFromVertex;
-    float VisibleEnergyFromVVerticesInSlice;
+    float VisibleEnergyFromOtherVerticesInSlice;
     float VertexVisibleEnergyFractionInSlice;
     float PrimaryVertexVisibleEnergyFraction;
 

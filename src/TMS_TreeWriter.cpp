@@ -252,9 +252,9 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
   
   Truth_Info->Branch("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, "VertexIdOfMostEnergyInEvent/I");
-  Truth_Info->Branch("VisibleEnergyFromUVertexInSlice", &VisibleEnergyFromUVertexInSlice, "VisibleEnergyFromUVertexInSlice/F");
+  Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
   Truth_Info->Branch("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, "TotalVisibleEnergyFromVertex/F");
-  Truth_Info->Branch("VisibleEnergyFromVVerticesInSlice", &VisibleEnergyFromVVerticesInSlice, "VisibleEnergyFromVVerticesInSlice/F");
+  Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
   Truth_Info->Branch("VertexVisibleEnergyFractionInSlice", &VertexVisibleEnergyFractionInSlice, "VertexVisibleEnergyFractionInSlice/F");
   Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction", &PrimaryVertexVisibleEnergyFraction, "PrimaryVertexVisibleEnergyFraction/F");
   
@@ -362,11 +362,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   LeptonX4[3] = event.GetLeptonX4().T();
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
-  VisibleEnergyFromUVertexInSlice = event.GetVisibleEnergyFromUVertexInSlice();
+  VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
   TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
-  VisibleEnergyFromVVerticesInSlice = event.GetVisibleEnergyFromVVerticesInSlice();
-  VertexVisibleEnergyFractionInSlice = VisibleEnergyFromUVertexInSlice / TotalVisibleEnergyFromVertex;
-  PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromUVertexInSlice / (VisibleEnergyFromVVerticesInSlice + VisibleEnergyFromUVertexInSlice);
+  VisibleEnergyFromOtherVerticesInSlice = event.GetVisibleEnergyFromOtherVerticesInSlice();
+  VertexVisibleEnergyFractionInSlice = VisibleEnergyFromVertexInSlice / TotalVisibleEnergyFromVertex;
+  PrimaryVertexVisibleEnergyFraction = VisibleEnergyFromVertexInSlice / (VisibleEnergyFromOtherVerticesInSlice + VisibleEnergyFromVertexInSlice);
 
   Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
   //Muon_TrueTrackLength = -999.99;
@@ -1157,7 +1157,7 @@ void TMS_TreeWriter::Clear() {
 
   // Reset truth information
   EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
-  VertexIdOfMostEnergyInEvent = VisibleEnergyFromUVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromVVerticesInSlice = -999;
+  VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {

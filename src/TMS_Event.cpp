@@ -837,8 +837,8 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
     total_energy += energy;
   }
   VertexIdOfMostEnergyInEvent = max_vertex_id;
-  VisibleEnergyFromUVertexInSlice = max;
-  VisibleEnergyFromVVerticesInSlice = total_energy - max;
+  VisibleEnergyFromVertexInSlice = max;
+  VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
   
   return VertexIdOfMostEnergyInEvent;
 }
@@ -867,9 +867,9 @@ void TMS_Event::Print() {
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;
   std::cout << "  Vertex ID of most energy: " << VertexIdOfMostEnergyInEvent << std::endl;
-  std::cout << "  Visible energy in slice: " << VisibleEnergyFromUVertexInSlice << std::endl;
+  std::cout << "  Visible energy in slice: " << VisibleEnergyFromVertexInSlice << std::endl;
   std::cout << "  Total visible energy: " << TotalVisibleEnergyFromVertex << std::endl;
-  std::cout << "  Other visible energy: " << VisibleEnergyFromVVerticesInSlice << std::endl;
+  std::cout << "  Other visible energy: " << VisibleEnergyFromOtherVerticesInSlice << std::endl;
 
   std::cout << "Printing primary particle stack: " << std::endl;
   int PartCount = 0;
