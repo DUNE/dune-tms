@@ -327,9 +327,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         kal_true_x[node] = KalmanTruePos[i*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_true_y[node] = KalmanTruePos[i*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=magenta_cbf)
-                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=magenta_cbf)
-                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=magenta_cbf)
+                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf)
+                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
 
                     x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf)
                     z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
@@ -343,9 +343,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
                     if not StartPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = black_cbf)
-                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = black_cbf)
-                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = black_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
@@ -356,9 +356,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
                     if not EndPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = black_cbf)
-                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = black_cbf)
-                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = black_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
