@@ -33,7 +33,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
   // Find which node this position is equivalent too
-  //std::cout << "[TMS_Bar.cpp] Finding node for " << x << ", "  << y << ", " << z << std::endl;
   std::string NodeName = std::string(TMS_Geom::GetInstance().FindNode(xval,yval,zval)->GetName());
 
   // cd up in the geometry to find the right name
@@ -123,7 +122,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   }
 
   // Reset the geom navigator node level in case it's used again
-  //std::cout << "[TMS_Bar.cpp] Finding node for " << xval << ", "  << yval << ", " << zval << std::endl;
   TMS_Geom::GetInstance().FindNode(xval,yval,zval);
 
   // Update the bar number

@@ -43,7 +43,6 @@ class TMS_KalmanState {
     //TMatrixD &cov;//[KALMAN_DIM*KALMAN_DIM];
 
     void Print() {
-      //std::cout << "Printing Kalman node: " << std::endl;
       std::cout << "  {x, y, dx/dz, dy/dz, q/p, z} = {" << x << ", " << y << ", " << dxdz << ", " << dydz << ", " << qp << ", " << z << "}" << std::endl;
     }
 };

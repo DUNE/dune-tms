@@ -224,12 +224,8 @@ class TMS_Geom {
       std::vector<std::pair<TGeoMaterial*,double> > Materials;     
 
       if ((point1 - point2).Mag() <= 1E-3) 
-      {
-//        std::cerr << "[TMS_Geom.h] Weirdness  --  Two points given to GetMaterials too close, returning empty." << std::endl
-//                  << "        ^    Weirdness      point1: " << point1.X() << ", "<< point1.Y() << ", "<< point1.Z() << std::endl
-//                  << "        ^    Weirdness      point2: " << point2.X() << ", "<< point2.Y() << ", "<< point2.Z() << std::endl;
         return Materials;
-      }
+
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
 
@@ -328,8 +324,6 @@ class TMS_Geom {
       // Make vectors have geometry scale
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
-      point1_temp.Print();
-      point1.Print();
       
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
