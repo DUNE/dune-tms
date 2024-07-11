@@ -1,6 +1,6 @@
 #include "TMS_TrueParticle.h"
 
-void TMS_TrueParticle::Print() {
+void TMS_TrueParticle::Print(bool small) {
   std::cout << "Printing TMS_TrueParticle class: " << std::endl;
   std::cout << "  Parent: " << Parent << std::endl;
   std::cout << "  TrackId: " << TrackId << std::endl;
@@ -18,19 +18,21 @@ void TMS_TrueParticle::Print() {
 
   std::cout << "  Size of trajectory points vector: " << PositionPoints.size() << std::endl;
   std::cout << "  Size of momentum at trajectory points vector: " << MomentumPoints.size() << std::endl;
-  std::cout << "  Position of trajectory: " << std::endl;
-  int it = 0;
-  for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i,++it) {
-    std::cout << "  Point " << it+1 << "/" << PositionPoints.size() << std::endl;
-    std::cout << "  Position: " << std::endl;
-    (*i).Print();
-    std::cout << "  Momentum: " << std::endl;
-    MomentumPoints[it].Print();
-    std::cout << "  GEANT4 Process, Subprocess: " << Process[it] << ", " << Subprocess[it] << std::endl;
+  if (!small) {
+    std::cout << "  Position of trajectory: " << std::endl;
+    int it = 0;
+    for (auto i = PositionPoints.begin(); i != PositionPoints.end(); ++i,++it) {
+      std::cout << "  Point " << it+1 << "/" << PositionPoints.size() << std::endl;
+      std::cout << "  Position: " << std::endl;
+      (*i).Print();
+      std::cout << "  Momentum: " << std::endl;
+      MomentumPoints[it].Print();
+      std::cout << "  GEANT4 Process, Subprocess: " << Process[it] << ", " << Subprocess[it] << std::endl;
+    }
   }
 }
 
-TVector3 TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
+TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   TVector3 out(-99999999, -99999999, -99999999);
   double z_dist_found = 999999;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -43,22 +45,46 @@ TVector3 TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
       }
     }
   } 
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
+}
+
+std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS) {
+  std::vector<TVector3> out;
+  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
+    double z = GetPositionPoints()[i].Z();
+    if (z >= z_start && z <= z_end) {
+      double x = GetPositionPoints()[i].X();
+      double y = GetPositionPoints()[i].Y();
+      TVector3 point(x, y, z);
+      bool add = false;
+      if (onlyInsideTMS) {
+        add = TMS_Geom::StaticIsInsideTMS(point);
+      }
+      else add = TMS_Geom::StaticIsInsideReasonableSize(point);
+      if (add) out.push_back(point);
+    }
+  }
   return out;
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
   double z_dist_found = 999999;
+  //double prev_z = 0;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
-    double distance = abs(GetPositionPoints()[i].Z() - z);
-    if (distance <= max_z_dist) {
+    //std::cout << "pos: " << GetPositionPoints()[i].X() << ", "<< GetPositionPoints()[i].Y() << ", "<< GetPositionPoints()[i].Z() << "     " << GetPositionPoints()[i].Z() - prev_z << std::endl;
+    //prev_z = GetPositionPoints()[i].Z();
+    double distance = GetPositionPoints()[i].Z() - z;
+    if (abs(distance) <= max_z_dist) {
       // Found a candidate
-      if (distance < z_dist_found) {
+      if (abs(distance) < z_dist_found) {
         out = GetPositionPoints()[i];
         z_dist_found = distance;
       }
     }
-  } 
+  }
+  out.SetZ( out.Z() - z_dist_found );
   return out;
 }
 
@@ -97,7 +123,7 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
   return out;
 }
 
-TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
   TVector3 out(-99999999, -99999999, -99999999);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -106,10 +132,11 @@ TVector3 TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
       break;
     }
   } 
-  return out;
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
-TVector3 TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
   TVector3 out(-99999999, -99999999, -99999999);
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -130,5 +157,18 @@ TVector3 TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
     // Update the momentum as long as we're inside the volume
     if (areInside) out = GetMomentumPoints()[i];
   } 
+  double energy = GetEnergyFromMomentum(out);
+  return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
+}
+
+bool TMS_TrueParticle::EntersVolume(IsInsideFunctionType isInside) {
+  bool out = false;
+  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
+    if (isInside(GetPositionPoints()[i].Vect())) {
+      // Found a single example, we can end our search
+      out = true;
+      break;
+    }
+  }
   return out;
 }

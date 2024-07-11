@@ -51,12 +51,11 @@ class TMS_Event {
     std::string GetReaction() { return Reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
-    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4]);
-    void FillAdditionalTruthFromGRooTracker(double x4[100][4]);
+    void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double vtx[100][4]);
 
     int GetNeutrinoPDG() { return TrueNeutrino.second; };
     TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
-    TLorentzVector GetNeutrinoX4() { return TrueNeutrinoPosition; };
+    TLorentzVector GetNeutrinoVtx() { return TrueNeutrinoPosition; };
     int GetLeptonPDG() { return TrueLeptonPDG; };
     TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
     TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
@@ -82,12 +81,18 @@ class TMS_Event {
     int GetVertexIdOfMostVisibleEnergy();
     double GetVisibleEnergyFromVertexInSlice() { return VisibleEnergyFromVertexInSlice; };
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
+
+    int GetNVertices() { return nVertices; };
+    int GetNTrueForgottenParticles() { return nTrueForgottenParticles; };
     double GetVisibleEnergyFromOtherVerticesInSlice() { return VisibleEnergyFromOtherVerticesInSlice; };
+
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
+    
+    int GetTrueParticleIndex(int trackid);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -108,6 +113,7 @@ class TMS_Event {
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
+    int nTrueForgottenParticles;
 
     // Primary particles from neutrino event; before G4 is run
     std::vector<TMS_TrueParticle> TMS_TruePrimaryParticles;
@@ -118,6 +124,7 @@ class TMS_Event {
     // The number of true trajectories right out of edep-sim
     // No energy cuts, or number of deposits etc checked
     int nTrueTrajectories;
+    int nVertices;
 
     std::string Reaction;
  

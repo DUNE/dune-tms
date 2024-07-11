@@ -2,6 +2,8 @@
 #define _TMSCONSTANTS_H_SEEN_
 
 #include <string>
+#include "TDatabasePDG.h"
+
 
 // Hidden from us inside edep-sim EDepSimRooTrackerKinematicsGenerator.hh
 // Number of maximum particles in an edep-sim event
@@ -11,14 +13,19 @@
 
 // Constants
 namespace TMS_KinConst {
-  const double mass_mu = 105.6583755; // Muon mass in MeV/c2
-  const double mass_e = 0.510998950; // electron mass in MeV/c2
-  const double mass_tau = 1776.86; // tau mass in MeV/c2
-  const double mass_pic = 139.57039; // charged pion mass in MeV/c2
-  const double mass_pi0 = 134.9768; // neutral pion mass in MeV/c2
+  static double GetMass(int pdg) {
+    TDatabasePDG *database = TDatabasePDG::Instance();
+    double out = 0;
+    // The only particles not in the database are nuclei, and zero is a fine guess for their mass
+    auto particle = database->GetParticle(pdg);
+    if (particle) {
+      out = particle->Mass() * 1000; // Convert from GeV to MeV
+    }
+    return out;
+  }
 
-  const double mass_proton = 938.27208816; // proton mass in MeV/c2
-  const double mass_neutron = 939.56542052; // neutron mass in MeV/c2
+  const double mass_mu = GetMass(13); // Used in Kalman filter
+
 }
 
 // General constants for the TMS
@@ -43,7 +50,7 @@ namespace TMS_Const {
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Thick_End = 18314;
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
   // in mm by default!
@@ -55,8 +62,13 @@ namespace TMS_Const {
   const double LAr_End_Exact[] = {3478.48, 829.282, 9135.88};
 
   // More exact locations of bars
+  // This seems to contain the steel as well
   const double TMS_Start_Exact[] = {-3520, -3864, TMS_Thin_Start};
   const double TMS_End_Exact[] = {3520, 1159, TMS_Thick_End};
+
+  // Plot TrueHitX,Y,Z and zoom in to see where the last hits are
+  const double TMS_Start_Bars_Only[] = {-3350, -2950, TMS_Thin_Start};
+  const double TMS_End_Bars_Only[] = {3350, 240, TMS_Thick_End};
 
   // Gap for TMS region that is thin iron layer (mm)
   const double TMS_Thin_gap = 55;
