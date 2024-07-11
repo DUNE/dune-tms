@@ -86,6 +86,9 @@
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
+  [Recon.Kalman]
+    Run = true # Whether we run the Kalman filter or not
+
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not
@@ -102,12 +105,30 @@
     
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
-
+    
+[Fiducial]
+  [Fiducial.TMS.Start]
+    X = -3300.0 # mm
+    Y = -2850.0 # mm
+    Z = 11362.0 # mm
+  [Fiducial.TMS.End]
+    X = 3300.0 # mm
+    Y = 160.0 # mm
+    Z = 18314.0 # mm
+  [Fiducial.LAr.Start]
+    X = -3478.48 # mm
+    Y = -2166.71 # mm
+    Z = 4179.24 # mm
+  [Fiducial.LAr.End]
+    X = 3478.48 # mm
+    Y = 829.282 # mm
+    Z = 9135.88 # mm
 
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
 [Truth]
   LightWeight = false
+  LArFiducialCut = 200.0 # mm
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]

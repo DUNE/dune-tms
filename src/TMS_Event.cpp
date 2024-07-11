@@ -1,5 +1,6 @@
 #include "TMS_Event.h"
 #include "TMS_Readout_Manager.h"
+#include "TDatabasePDG.h"
 #include <random>
 
 // Initialise the event counter to 0
@@ -10,9 +11,16 @@ TMS_Event::TMS_Event() {
   SliceNumber = 0;
   SpillNumber = -999;
   nTrueTrajectories = -999;
+  nVertices = -999;
   VertexIdOfMostEnergyInEvent = -999;
   LightWeight = true;
 }
+
+
+static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
+  if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
+  else return false;
+};
 
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
@@ -24,7 +32,9 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = true;
+  bool OnlyPrimary = false;
+  bool OnlyPrimaryOrInteresting = false;
+  bool OnlyPrimaryOrVisibleEnergy = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   /*
   if (LightWeight) {
@@ -35,6 +45,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   }
   */
 
+  TDatabasePDG *database = TDatabasePDG::Instance();
+
   // Save down the event number
   EventNumber = EventCounter;
   generator = std::default_random_engine(7890 + EventNumber); 
@@ -42,11 +54,18 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
   VertexIdOfMostEnergyInEvent = -999;
+  nVertices = 0;
 
   // Check the integrity of the event
   //CheckIntegrity();
 
   int vtxcounter = 0;
+  int nPrimary = 0;
+  int nInteresting = 0;
+  int nTotal = 0;
+  int nCharged = 0;
+  int nHighMomentum = 0;
+  int nChargedAndLowMomentum = 0;
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
     //std::cout<<"for each event.Primaries "<<vtxcounter<<std::endl;
@@ -72,6 +91,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       nTrueTrajectories = event.Trajectories.size();
       // Now loop over the true trajectories (tracks) in the event
       for (TG4TrajectoryContainer::iterator jt = event.Trajectories.begin(); jt != event.Trajectories.end(); ++jt) {
+        nTotal += 1;
         TG4Trajectory traj = *jt;
 
         // Only the muon if requested
@@ -81,6 +101,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         // Only from fundamental vertex if requested
         int ParentId = traj.GetParentId();
         if (OnlyPrimary && ParentId != -1) continue;
+        bool isPrimary = ParentId == -1;
 
         // The id of this trajectory
         int TrackId = traj.GetTrackId();
@@ -91,6 +112,44 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
             //(traj.Points.size() < 3 || PDGcode == 22 || PDGcode == 2112)) continue;
             (PDGcode == 22 || PDGcode == 2112)) continue;
             //ParentId != -1) continue;
+
+        bool isCharged = false;
+        bool isHighMomentum = false;
+        if (PDGcode > 1000000000) {
+          // Numbers above 1000000000 are nuclei, and so aren't in the database
+          // They are charged though, but unlikely to have enough momentum to go far
+          isCharged = true;
+        } else {
+          auto particle = database->GetParticle(PDGcode);
+          if (!particle) {
+            std::cout<<"Warning: Couldn't find pdg code "<<PDGcode<<" in pdg database"<<std::endl;
+          }
+          else {
+            // Check if it's neutral or not
+            isCharged = std::abs(particle->Charge()) > 0.2;
+          }
+        }
+        if (traj.Points.size() > 0) {
+          TVector3 initial_momentum = traj.Points[0].GetMomentum();
+          if (initial_momentum.Mag() > 5) isHighMomentum = true;
+          //if (isCharged && isHighMomentum && !isPrimary) {
+          //    std::cout<<"Found interesting non-primary particle "<<PDGcode<<", momentum="<<initial_momentum.Mag()<<std::endl;
+          //}
+        }
+        bool isInteresting = isHighMomentum && isCharged; 
+
+        if (isPrimary) nPrimary += 1;
+        if (!isPrimary && isInteresting) nInteresting += 1;
+        if (!isPrimary) {
+          if (isCharged) nCharged += 1;
+          if (isHighMomentum) nHighMomentum += 1;
+          if (isCharged && !isHighMomentum) nChargedAndLowMomentum += 1;
+        }
+
+        // Skip if neither interesting nor primary
+        if (OnlyPrimaryOrInteresting) {
+          if ((!isPrimary) || (!isInteresting)) continue;
+        }
 
         // Is this the first time we encounter this particle in the trajectory point loop?
         bool firsttime = true;
@@ -169,7 +228,10 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       vtxcounter++;
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
+  nVertices = vtxcounter;
   
+  //std::cout<<"N total: "<<nTotal<<", N Primary: "<<nPrimary<<", N Interesting: "<<nInteresting<<", N charged: "<<nCharged<<", N high P: "<<nHighMomentum<<", N charged and low P: "<<nChargedAndLowMomentum<<", n TMS_TruePrimaryParticles: "<<TMS_TruePrimaryParticles.size()<<std::endl;
+
   // First create a mapping so we don't loop multiple times
   std::map<int, int> mapping_track_to_vertex_id;
   int vertex_index = 0;
@@ -234,6 +296,16 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
     }
     TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
   }
+  nTrueForgottenParticles = -1;
+  if (OnlyPrimaryOrVisibleEnergy) {
+    size_t initial = TMS_TrueParticles.size();
+    TMS_TrueParticles.erase(std::remove_if(TMS_TrueParticles.begin(), 
+                            TMS_TrueParticles.end(), 
+                            TMS_TrueParticle_NotWorthSaving), 
+                            TMS_TrueParticles.end());
+    size_t end = TMS_TrueParticles.size();
+    nTrueForgottenParticles = initial - end;
+  }
   
   // Now apply optical and timing models
   ApplyReconstructionEffects();
@@ -242,7 +314,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
-      TMS_TrueParticles(event.TMS_TrueParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
+      TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
@@ -783,25 +855,23 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
 
+  nVertices += Other_Event.nVertices;
+
 }
 
 // For now just fill the true neutrino
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
-void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4]) {
+void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], 
+  double vtx[__EDEP_SIM_MAX_PART__][4]) {
   TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
-  
-}
-
-void TMS_Event::FillAdditionalTruthFromGRooTracker(double x4[__EDEP_SIM_MAX_PART__][4]) {
-
-  TrueNeutrinoPosition.SetX(x4[0][0]);
-  TrueNeutrinoPosition.SetY(x4[0][1]);
-  TrueNeutrinoPosition.SetZ(x4[0][2]);
-  TrueNeutrinoPosition.SetT(x4[0][3]);
+  TrueNeutrinoPosition.SetX(vtx[0][0]);
+  TrueNeutrinoPosition.SetY(vtx[0][1]);
+  TrueNeutrinoPosition.SetZ(vtx[0][2]);
+  TrueNeutrinoPosition.SetT(vtx[0][3]);
 }
 
 void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum) {
@@ -838,8 +908,8 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
     total_energy += energy;
   }
   VertexIdOfMostEnergyInEvent = max_vertex_id;
-  VisibleEnergyFromUVertexInSlice = max;
-  VisibleEnergyFromVVerticesInSlice = total_energy - max;
+  VisibleEnergyFromVertexInSlice = max;
+  VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
   
   return VertexIdOfMostEnergyInEvent;
 }
@@ -868,9 +938,9 @@ void TMS_Event::Print() {
   std::cout << "  N Hits: " << TMS_Hits.size() << std::endl;
   std::cout << "  IsEmpty: " << IsEmpty() << std::endl;
   std::cout << "  Vertex ID of most energy: " << VertexIdOfMostEnergyInEvent << std::endl;
-  std::cout << "  Visible energy in slice: " << VisibleEnergyFromUVertexInSlice << std::endl;
+  std::cout << "  Visible energy in slice: " << VisibleEnergyFromVertexInSlice << std::endl;
   std::cout << "  Total visible energy: " << TotalVisibleEnergyFromVertex << std::endl;
-  std::cout << "  Other visible energy: " << VisibleEnergyFromVVerticesInSlice << std::endl;
+  std::cout << "  Other visible energy: " << VisibleEnergyFromOtherVerticesInSlice << std::endl;
 
   std::cout << "Printing primary particle stack: " << std::endl;
   int PartCount = 0;
@@ -941,4 +1011,16 @@ double TMS_Event::GetMuonTrueTrackLength() {
     }
   }
   return total;
+}
+
+int TMS_Event::GetTrueParticleIndex(int trackid) {
+  int out = -1;
+  // Gracefully deal with trackid = -999
+  if (trackid >= 0) {
+    for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+      auto& tp = TMS_TrueParticles.at(i);
+      if (tp.GetTrackId() == trackid) { out = i; break; }
+    }
+  }
+  return out;
 }

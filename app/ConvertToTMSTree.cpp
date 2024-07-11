@@ -43,17 +43,19 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TG4Event *event = NULL;
   events->SetBranchAddress("Event", &event);
   // Get the true neutrino vector from the gRooTracker object
+  // Nice list of vars to avoid future confusion (internet search for genie groottracker)
+  // https://internal.dunescience.org/doxygen/read__t2k__rootracker_8C.html
   int StdHepPdg[__EDEP_SIM_MAX_PART__];
   double StdHepP4[__EDEP_SIM_MAX_PART__][4];
-  double StdHepX4[__EDEP_SIM_MAX_PART__][4];
+  double EvtVtx[__EDEP_SIM_MAX_PART__][4];
   if (gRoo){
     gRoo->SetBranchStatus("*", false);
     gRoo->SetBranchStatus("StdHepPdg", true);
     gRoo->SetBranchStatus("StdHepP4", true);
-    gRoo->SetBranchStatus("StdHepX4", true);
+    gRoo->SetBranchStatus("EvtVtx", true);
     gRoo->SetBranchAddress("StdHepPdg", StdHepPdg);
     gRoo->SetBranchAddress("StdHepP4", StdHepP4);
-    gRoo->SetBranchAddress("StdHepX4", StdHepX4);
+    gRoo->SetBranchAddress("EvtVtx", EvtVtx);
   }
   // The global manager
   TMS_Manager::GetInstance().SetFileName(filename);
@@ -74,6 +76,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   Timer.Start();
 
   int i = 0;
+  int truth_info_entry_number = 0;
   //N_entries = 500;
 
   // Do we overlay events
@@ -100,7 +103,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Fill up truth information from the GRooTracker object
     if (gRoo){
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
     }
 
     // Keep filling up the vector and move on to the next event
@@ -126,6 +129,18 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    
+    // Check if this is not pileup
+    if (event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
+      // Fill the info of the one and only true vertex in the spill
+      auto primary_vertex = event->Primaries[0];
+      int interaction_number = primary_vertex.GetInteractionNumber();
+      gRoo->GetEntry(interaction_number);
+      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
+    }
+
+    TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
+    truth_info_entry_number += nslices;
     
     // Could save per spill info here
     
@@ -159,8 +174,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
             auto primary_vertex = event->Primaries[primary_vertex_id];
             int interaction_number = primary_vertex.GetInteractionNumber();
             gRoo->GetEntry(interaction_number);
-            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4);
-            tms_event_slice.FillAdditionalTruthFromGRooTracker(StdHepX4);
+            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
             // And the lepton info
             int lepton_index = -1;
             int current_index = 0;

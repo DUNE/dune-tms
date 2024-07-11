@@ -67,8 +67,23 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_TRACK_METHOD  = toml::find<std::string>(data, "Recon", "TrackMethod");
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
+
+  _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
+  
+  _FIDUCIAL_TMS_START_X = toml::find<double>(data, "Fiducial", "TMS", "Start", "X");
+  _FIDUCIAL_TMS_START_Y = toml::find<double>(data, "Fiducial", "TMS", "Start", "Y");
+  _FIDUCIAL_TMS_START_Z = toml::find<double>(data, "Fiducial", "TMS", "Start", "Z");
+  _FIDUCIAL_TMS_END_X = toml::find<double>(data, "Fiducial", "TMS", "End", "X");
+  _FIDUCIAL_TMS_END_Y = toml::find<double>(data, "Fiducial", "TMS", "End", "Y");
+  _FIDUCIAL_TMS_END_Z = toml::find<double>(data, "Fiducial", "TMS", "End", "Z");
+  _FIDUCIAL_LAR_START_X = toml::find<double>(data, "Fiducial", "LAr", "Start", "X");
+  _FIDUCIAL_LAR_START_Y = toml::find<double>(data, "Fiducial", "LAr", "Start", "Y");
+  _FIDUCIAL_LAR_START_Z = toml::find<double>(data, "Fiducial", "LAr", "Start", "Z");
+  _FIDUCIAL_LAR_END_X = toml::find<double>(data, "Fiducial", "LAr", "End", "X");
+  _FIDUCIAL_LAR_END_Y = toml::find<double>(data, "Fiducial", "LAr", "End", "Y");
+  _FIDUCIAL_LAR_END_Z = toml::find<double>(data, "Fiducial", "LAr", "End", "Z");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 

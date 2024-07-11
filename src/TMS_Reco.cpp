@@ -624,32 +624,23 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     TrackLengthX.push_back(TrackLength);
   }
 
-  // For future probably want to move track candidates into the TMS_Event class
   //EvaluateTrackFinding(event);
 
-  // Find if the event may have started outside the TMS
-  // Look at the first hits of each of the Hough lines
-  // Also check that the hits are continuous
+  // Run Kalman filter if requested
+  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run())
+  {
+    double kalman_reco_mom;
+    for (auto &trk : HoughTracks3D) {
+      KalmanFilter = TMS_Kalman(trk.Hits);
+      kalman_reco_mom = KalmanFilter.GetMomentum();
 
-  double kalman_reco_mom;
-  int kkk=1;
-  int jjj = HoughTracks3D.size();
-  for (auto &trk : HoughTracks3D) {
-    std::cout << "\n\n KALMAN " << kkk++ << "/" << jjj << std::endl;
-
-    KalmanFilter = TMS_Kalman(trk.Hits);
-    kalman_reco_mom = KalmanFilter.GetMomentum();
-
-    std::cout << "mom: " << kalman_reco_mom << std::endl;
-    trk.SetMomentum(kalman_reco_mom);
-    trk.KalmanNodes = KalmanFilter.GetKalmanNodes();
-    //trk.nKalmanNodes = trk.KalmanNodes.size();
-    //trk.Compare();
+      std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
+      trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
+      trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
+    }
   }
 
-  // Skip the Kalman filter for now
   return;
-
 }
 
 void TMS_TrackFinder::FindPseudoXTrack() {

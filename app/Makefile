@@ -6,9 +6,6 @@ LD_SHARED=g++
 ROOT_LIBS = $(shell root-config --evelibs)
 ROOT_INC = $(shell root-config --cflags)
 
-GEANT4_LIBS = $(shell geant4-config --libs)
-GEANT4_INC =  $(shell geant4-config --prefix)/include/
-
 ifndef CLHEP_INC # If not defined, normal build. 
 CLHEP_INC = $(shell clhep-config --prefix)/include
 CLHEP_LIBS = $(shell clhep-config --libs)
@@ -18,8 +15,20 @@ else # github CI passes CLHEP_INC as an environment var, use this to set lib dir
   endif
 endif
 
+# Check if geant4-config is available
+GEANT4_CONFIG := $(shell command -v geant4-config 2>/dev/null)
+
+# Set GEANT4 and EDEP variables based on the availability of geant4-config
+ifneq ($(GEANT4_CONFIG),)
+GEANT4_LIBS = $(shell geant4-config --libs)
+GEANT4_INC = $(shell geant4-config --prefix)/include/
 EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io  $(CLHEP_LIBS)
 EDEP_INC = -I$(EDEPSIM_INC) -I$(GEANT4_INC) -I$(CLHEP_INC)
+else
+EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io
+# Need CLHEP for unit conversion, can probably just move this into a standalone header to remove dependency?
+EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
+endif
 
 # The TMS includes
 TMS_INC = -I../src

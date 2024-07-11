@@ -11,9 +11,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   Bethe(Material::kPolyStyrene), 
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
-  //ForwardFitting(true),
   Talk(false)
-  //Talk(true)
 {
   TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
 
@@ -25,7 +23,6 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   // And muon mass
   mass = BetheBloch_Utils::Mm;
 
-  //std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
   std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
 
   // Make a new Kalman state for each hit
@@ -33,8 +30,6 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   for (int i = 0; i < nCand; ++i) {
 
     TMS_Hit hit = Candidates[i];
-    //if (hit.GetBar().GetBarType() != TMS_Bar::kYBar) continue;
-    //double x_true = hit.GetNotZ();
     double x_true = hit.GetTrueHit().GetX();
     double y_true = hit.GetTrueHit().GetY();
     double x = hit.GetRecoX();
@@ -45,24 +40,19 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       std::cout << "not in TMS?? hit " << i << "(backwards) : " << x << ", " << y << ", " << z << std::endl;
 
     double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
-
     double DeltaZ = future_z-z;
-    //std::cout << "hit: " <<  i << " z: " << z << " deltaz: " << DeltaZ << std::endl;
 
     // This also initialises the state vectors in each of the nodes
     if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
-    { // Now decide which hit to add
-      ( ((Candidates[i-1].GetRecoX() < Candidates[i  ].GetRecoX()) > Candidates[i+1].GetRecoX()) ||
-        ((Candidates[i-1].GetRecoX() > Candidates[i  ].GetRecoX()) < Candidates[i+1].GetRecoX()) ) || std::cout << "\n\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n";
-
+    {
+      // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
       TMS_KalmanNode Node(x, y, z, DeltaZ);
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
 
       KalmanNodes.emplace_back(std::move(Node));
-
     } else {
-      std::cout << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", z = " << z << ", multiple hits in one plane?" << std::endl;
+      if (Talk) std::cerr << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", z = " << z << ", multiple hits in one plane?" << std::endl;
     }
   }
 
@@ -79,7 +69,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     double endz = Candidates.back().GetZ();
     double KEest = GetKEEstimateFromLength(startx, endx, startz, endz);
     double momest = sqrt((KEest+mass)*(KEest+mass)-mass*mass);
-    std::cout << "momentum estimate from length: " << momest << std::endl;
+    if (Talk) std::cout << "momentum estimate from length: " << momest << std::endl;
     KalmanNodes.front().PreviousState.qp = 1./momest;
     KalmanNodes.front().CurrentState.qp = 1./momest;
   } else { // TODO check if 0 is sane
@@ -166,9 +156,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
 
   if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) // point outside x region
-    std::cout << "x is weird, " << PreviousState.x << std::endl;
+    std::cerr << "Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
   if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) // point outside y region
-    std::cout << "y is weird, " << PreviousState.y << std::endl;
+    std::cerr << "Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
     
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
@@ -304,50 +294,23 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   Node.FillNoiseMatrix(); // Full the matrix for multiple scattering
 
-  //Transfer.Print();
-  std::cout << "Cov\n" << std::flush;
-  CovarianceMatrix.Print();
-
-  //std::cout << "Updated\n" << std::flush;
-  //UpdatedCovarianceMatrix.Print();
-
-  //std::cout << "Transd\n" << std::flush;
   CovarianceMatrix = Transfer*CovarianceMatrix*TransferT;
-  //CovarianceMatrix.Print();
 
-  //std::cout << "Added\n" << std::flush;
   CovarianceMatrix += UpdatedCovarianceMatrix;
-  //CovarianceMatrix.Print();
-
-  //std::cout << "Noise\n";
-  //NoiseMatrix.Print();
 
   TMatrixD GainMatrix = TMatrixD(5,5);
 
-  //CovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
-  //FinalCovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
-  //CovarianceMatrix = FinalCovarianceMatrix;
-
-  //GainMatrix = H*CovarianceMatrix*H_T + NoiseMatrix;
   GainMatrix = CovarianceMatrix + NoiseMatrix;
   for (int l=2; l<KALMAN_DIM; l++) GainMatrix(l,l) = 1.0; // Set diags to 1 for inversion
   GainMatrix = GainMatrix.Invert();
-  //for (int l=2; l<KALMAN_DIM; l++) GainMatrix(l,l) = 0.0; // Set diags back to 0
 
   GainMatrix = CovarianceMatrix*GainMatrix;
-  //GainMatrix = CovarianceMatrix*GainMatrix;
-  //std::cout << "3\n" << std::flush;
 
-  //GainMatrix.Print();
-
-  CovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
-  std::cout << "Final cov\n" << std::flush;
-  CovarianceMatrix.Print();
+  if (Talk) std::cout << "Final cov\n" << std::flush;
+  if (Talk) CovarianceMatrix.Print();
 
   TVectorD FilteredVec = TVectorD(5);
   TVectorD Measurement = TVectorD(5);
-
-  //TVectorD NoiseVec = GetNoiseVector(Node);
 
   Measurement[0] = CurrentState.x ;//+ NoiseVec[0];
   Measurement[1] = CurrentState.y ;//+ NoiseVec[1];
@@ -355,30 +318,11 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
   Measurement[4] = 0.0; //CurrentState.qp;
 
-  PreviousVec[4] = 0.0; // Set to 0 so [4] element in Filtered is always 0
+  if (Talk) std::cout << "Gain" << std::flush;
+  if (Talk) GainMatrix.Print();
 
-  std::cout << "Gain" << std::flush;
-  GainMatrix.Print();
-
-  //std::cout << "1: " << std::flush;
-  //(Measurement - UpdateVec).Print();
-  //FilteredVec = UpdateVec - GainMatrix*( Measurement - H*UpdateVec );
   FilteredVec = UpdateVec + GainMatrix*( Measurement - UpdateVec );
 
-  //FilteredVec = Gain_1*PreviousVec + GainMatrix*Measurement;
-
-  //(Measurement - UpdateVec).Print();
-  //TVectorD gvec = GainMatrix*(Measurement - PreviousVec);
-  //TransferT.Print();
-  //PreviousVec.Print();
-  //(TransferT*PreviousVec).Print();
-  //gvec.Print();
-  //FilteredVec = Transfer*PreviousVec + gvec;
-  //Transfer.T(); // .T() transposes the matrix in place xd
-  //std::cout << "Filtered State" << std::flush;
-  //FilteredVec.Print();
-  //std::cout << "3\n" << std::flush;
-  //
   CurrentState.x    = FilteredVec[0];
   CurrentState.y    = FilteredVec[1];
   CurrentState.dxdz = FilteredVec[2];
@@ -386,13 +330,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
 
   Node.SetRecoXY(CurrentState);
-  Node.PrintTrueReco();
-  CurrentState.Print();
+  if (Talk) Node.PrintTrueReco();
+  if (Talk) CurrentState.Print();
 }
 
-// Use the NoiseMatrix from the Kalman state to throw a vector of random noise
+// Use the NoiseMatrix from the Kalman state to throw a vector of random noise // Liam: ??????????????
 // to add to the state measurement
 TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
+  // Clarence my man... what is this function even for?
   TVectorD rand_vec;
   rand_vec.ResizeTo(KALMAN_DIM);
   for(int i = 0; i < KALMAN_DIM; i++)
@@ -403,26 +348,9 @@ TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
   TVectorD toy;
   toy.ResizeTo(5);
   toy.Zero();
-  //return toy; //TODO: Remove this line, generate real matrix
 
-//  for(int j = 0; j < KALMAN_DIM; j++)
-//  {
-//    for(int k = 0; k < KALMAN_DIM; k++)
-//    {
-//      if (std::isnan(cov(j,k)))
-//      {
-//        std::cout << "[TMS_Kalman.cpp] Weirdness  --  NoiseMat[" << j << "][" << k << "] = " << cov(j,k) << std::endl;
-//        throw;
-//        //Node.NoiseMatrix[j][k] = RNG.Gaus();
-//        //continue;
-//      }
-//
-//      toy[j] += cov(j,k) * rand_vec[k];
-//    }
-//  }
   toy = cov*rand_vec;
   rand_vec.Print();
-  std::cout << "Noisey shite: " << toy[0] << ", " << toy[1] << ", "  << toy[2] << ", "  << toy[3] << ", "  << toy[4] << std::endl;
 
   return toy;
 }

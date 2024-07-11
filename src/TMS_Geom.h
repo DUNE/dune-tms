@@ -16,8 +16,8 @@
 #include "TMS_Constants.h"
 
 #define __GEOM_LARGE_STEP__ 1E10
-#define __GEOM_SMALL_STEP__ 1E-5
-#define __GEOM_TINY_STEP__ 1E-10
+#define __GEOM_SMALL_STEP__ 1E-4
+#define __GEOM_TINY_STEP__ 1E-5
 
 // Define the TMS geometry singleton
 class TMS_Geom {
@@ -30,27 +30,43 @@ class TMS_Geom {
     }
     
     // Positions are fidicual volume
-    const double fiducial_volume_cut = 500;
-    inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0] + fiducial_volume_cut; };
-    inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1] + fiducial_volume_cut; };
-    inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2] + fiducial_volume_cut; };
+    inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0]; };
+    inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1]; };
+    inline double GetZStartOfLAr() const { return TMS_Const::LAr_Start_Exact[2]; };
     inline TVector3 GetStartOfLAr() const { return TVector3(GetXStartOfLAr(), GetYStartOfLAr(), GetZStartOfLAr()); };
-    inline double GetXEndOfLAr() const { return TMS_Const::LAr_End_Exact[0] - fiducial_volume_cut; };
-    inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1] - fiducial_volume_cut; };
-    inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2] - fiducial_volume_cut; };
+    inline double GetXEndOfLAr() const { return TMS_Const::LAr_End_Exact[0]; };
+    inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1]; };
+    inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2]; };
     inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
-    inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Exact[0] + fiducial_volume_cut;; };
-    inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Exact[1] + fiducial_volume_cut;; };
-    inline double GetZStartOfTMS() const { return TMS_Const::TMS_Thin_Start; };
+    inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[0]; };
+    inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[1]; };
+    inline double GetZStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[2]; };
     inline TVector3 GetStartOfTMS() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMS(), GetZStartOfTMS()); };
-    inline double GetXEndOfTMS() const { return TMS_Const::TMS_End_Exact[0] - fiducial_volume_cut; };
-    inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Exact[1] - fiducial_volume_cut; };
-    inline double GetZEndOfTMS() const { return TMS_Const::TMS_Thick_End - fiducial_volume_cut; };
+    inline double GetXEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[0]; };
+    inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[1]; };
+    inline double GetZEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[2]; };
     inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
+    inline double GetXStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[0]; };
+    inline double GetYStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[1]; };
+    inline double GetZStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[2]; };
+    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
+    inline double GetXEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[0]; };
+    inline double GetYEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[1]; };
+    inline double GetZEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[2]; };
+    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
     inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
     inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
     inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
+
+    inline TVector3 GetStartOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_X(), 
+        TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Z()); };
+    inline TVector3 GetEndOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_X(), 
+        TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Z()); };
+    inline TVector3 GetStartOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_X(), 
+        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Z()); };
+    inline TVector3 GetEndOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_X(), 
+        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Z()); };
     
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
@@ -61,16 +77,18 @@ class TMS_Geom {
       if (position.Z() > end.Z()) return false;
       return true;
     };
-    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLAr(), GetEndOfLAr()); };
+    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
-    bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMS()); };
+    bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
-    bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSThin()); };
+    bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };
     static bool StaticIsInsideTMSThin(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSThin(position); };
-    bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMS(), GetEndOfTMSFirstTwoModules()); };
+    bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFirstTwoModules()); };
     static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
-
     bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
+    static bool StaticIsInsideReasonableSize(TVector3 position) { return TMS_Geom::GetInstance().IsInsideReasonableSize(position); };
+
+    static bool StaticIsInsideTMSMass(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSMass(position); };
 
     bool IsInsideNearDetectorVolume(TVector3 position) const
     { 
@@ -80,7 +98,24 @@ class TMS_Geom {
               //IsInsideBox(position, GetStartOfSAND(), GetEndOfSAND())
              );
     };
+    bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
+    
+    
+    std::string GetNameOfDetector(const TVector3 &point) {
+      std::string out = "";
+      if (out == "" && IsInsideLAr(point)) out += "LAr";
+      if (out == "" && IsInsideTMS(point)) out += "TMS";
+      if (out == "" && IsInsideTMSMass(point)) out += "TMS Mass";
+      if (out == "" && StaticIsInsideReasonableSize(point)) out += "Reasonable Size";
+      if (out == "") out += "Other";
+      out += " (";
+      out += std::to_string(point.X()) + ", ";
+      out += std::to_string(point.Y()) + ", ";
+      out += std::to_string(point.Z());
+      out += ")";
+      return out;
+    };
     
 
     // Get the geometry
@@ -190,9 +225,9 @@ class TMS_Geom {
 
       if ((point1 - point2).Mag() <= 1E-3) 
       {
-        std::cerr << "[TMS_Geom.h] Weirdness  --  Two points given to GetMaterials too close, returning empty." << std::endl
-                  << "        ^    Weirdness      point1: " << point1.X() << ", "<< point1.Y() << ", "<< point1.Z() << std::endl
-                  << "        ^    Weirdness      point2: " << point2.X() << ", "<< point2.Y() << ", "<< point2.Z() << std::endl;
+//        std::cerr << "[TMS_Geom.h] Weirdness  --  Two points given to GetMaterials too close, returning empty." << std::endl
+//                  << "        ^    Weirdness      point1: " << point1.X() << ", "<< point1.Y() << ", "<< point1.Z() << std::endl
+//                  << "        ^    Weirdness      point2: " << point2.X() << ", "<< point2.Y() << ", "<< point2.Z() << std::endl;
         return Materials;
       }
       // First cd the navigator to the starting point
@@ -232,6 +267,7 @@ class TMS_Geom {
         geom->FindNode();
         // How big was the step in this material
         step = geom->GetStep();
+        //std::cout<<"Current total: "<<total<<", det "<<GetNameOfDetector(pt_vec)<<", step="<<step<<std::endl;
         if (step < Unscale(__GEOM_TINY_STEP__)) {
           geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
           // Step into the next volume
@@ -361,7 +397,12 @@ class TMS_Geom {
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
       
+      // Root's geometry has a bug that if you call a point outside the world (or maybe inside sand?)
+      // then from then on we get no materials. Not sure what's going on, but we can avoid it
+      // by completely avoiding locations outside "reasonable size"
+      // Checked and GetMaterials returns a vector of size zero once the bug is triggered
       if (!IsInsideReasonableSize(point1) || !IsInsideReasonableSize(point2)) return 0;
+
       // First get the collection of materials between point1 and point2
       std::vector<std::pair<TGeoMaterial*, double> > Materials = GetMaterials(point1, point2);
 
@@ -389,7 +430,7 @@ class TMS_Geom {
       TotalPathLength = Scale(TotalPathLength);
       return TotalPathLength;
     };
-
+    
     // Walks through all the pairs of nodes and returns the total track length
     double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
       double out = 0;

@@ -40,6 +40,8 @@ class TMS_Track {
 
     int nHits;
     std::vector<TMS_Hit> Hits;
+
+    // Kalman filter track info
     int nKalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes;
 

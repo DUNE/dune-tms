@@ -62,6 +62,8 @@ class TMS_Manager {
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
+    bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
+
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
     
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
@@ -74,6 +76,19 @@ class TMS_Manager {
     double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
     
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
+    
+    double Get_FIDUCIAL_TMS_START_X() { return _FIDUCIAL_TMS_START_X; };
+    double Get_FIDUCIAL_TMS_START_Y() { return _FIDUCIAL_TMS_START_Y; };
+    double Get_FIDUCIAL_TMS_START_Z() { return _FIDUCIAL_TMS_START_Z; };
+    double Get_FIDUCIAL_TMS_END_X() { return _FIDUCIAL_TMS_END_X; };
+    double Get_FIDUCIAL_TMS_END_Y() { return _FIDUCIAL_TMS_END_Y; };
+    double Get_FIDUCIAL_TMS_END_Z() { return _FIDUCIAL_TMS_END_Z; };
+    double Get_FIDUCIAL_LAR_START_X() { return _FIDUCIAL_LAR_START_X; };
+    double Get_FIDUCIAL_LAR_START_Y() { return _FIDUCIAL_LAR_START_Y; };
+    double Get_FIDUCIAL_LAR_START_Z() { return _FIDUCIAL_LAR_START_Z; };
+    double Get_FIDUCIAL_LAR_END_X() { return _FIDUCIAL_LAR_END_X; };
+    double Get_FIDUCIAL_LAR_END_Y() { return _FIDUCIAL_LAR_END_Y; };
+    double Get_FIDUCIAL_LAR_END_Z() { return _FIDUCIAL_LAR_END_Z; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
@@ -130,6 +145,8 @@ class TMS_Manager {
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;
 
+    bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
+
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
     
@@ -143,6 +160,19 @@ class TMS_Manager {
     double _RECO_TIME_TimeSlicerMaxTime;
     
     double _RECO_CALIBRATION_EnergyCalibration;
+    
+    double _FIDUCIAL_TMS_START_X;
+    double _FIDUCIAL_TMS_START_Y;
+    double _FIDUCIAL_TMS_START_Z;
+    double _FIDUCIAL_TMS_END_X;
+    double _FIDUCIAL_TMS_END_Y;
+    double _FIDUCIAL_TMS_END_Z;
+    double _FIDUCIAL_LAR_START_X;
+    double _FIDUCIAL_LAR_START_Y;
+    double _FIDUCIAL_LAR_START_Z;
+    double _FIDUCIAL_LAR_END_X;
+    double _FIDUCIAL_LAR_END_Y;
+    double _FIDUCIAL_LAR_END_Z;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
