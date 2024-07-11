@@ -79,12 +79,13 @@ class TMS_Event {
     
     void SetTotalVisibleEnergyFromVertex(double energy) { TotalVisibleEnergyFromVertex = energy; };
     int GetVertexIdOfMostVisibleEnergy();
-    double GetVisibleEnergyFromUVertexInSlice() { return VisibleEnergyFromUVertexInSlice; };
+    double GetVisibleEnergyFromVertexInSlice() { return VisibleEnergyFromVertexInSlice; };
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
-    double GetVisibleEnergyFromVVerticesInSlice() { return VisibleEnergyFromVVerticesInSlice; };
-    double GetVisibleEnergyFromXVerticesInSlice() { return VisibleEnergyFromXVerticesInSlice; };
+
     int GetNVertices() { return nVertices; };
     int GetNTrueForgottenParticles() { return nTrueForgottenParticles; };
+    double GetVisibleEnergyFromOtherVerticesInSlice() { return VisibleEnergyFromOtherVerticesInSlice; };
+
     
     std::vector<std::pair<float, float>> GetDeadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
@@ -147,10 +148,9 @@ class TMS_Event {
     std::map<int, double> TrueVisibleEnergyPerParticle;
     
     int VertexIdOfMostEnergyInEvent;
-    double VisibleEnergyFromUVertexInSlice;
+    double VisibleEnergyFromVertexInSlice;
     double TotalVisibleEnergyFromVertex;
-    double VisibleEnergyFromVVerticesInSlice;
-    double VisibleEnergyFromXVerticesInSlice;
+    double VisibleEnergyFromOtherVerticesInSlice;
 
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;
