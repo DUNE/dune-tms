@@ -158,7 +158,6 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           TG4TrajectoryPoint pt = *kt;
 
           // Check the point against the geometry
-          //std::cout << "[TMS_Event.cpp] Finding node for: " << pt.GetPosition().X() << ", " << pt.GetPosition().Y() << ", " << pt.GetPosition().Z() << std::endl;
           TGeoNode *vol = TMS_Geom::GetInstance().FindNode(pt.GetPosition().X(), pt.GetPosition().Y(), pt.GetPosition().Z());
 
           // Very rarely but it does happen, the volume is null
