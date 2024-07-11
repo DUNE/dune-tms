@@ -153,7 +153,7 @@ class TMS_KalmanNode {
     H *= sign;
 
     double A = 10.0; //10.0;
-    double B = 9000.0; //3000.0;
+    double B = 4000.0; //3000.0;
     NoiseMatrix(0,0) = A*A;
     NoiseMatrix(1,1) = B*B;
     NoiseMatrix(1,0) = NoiseMatrix(0,1) = H*A*B;
