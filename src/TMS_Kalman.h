@@ -39,14 +39,13 @@ class TMS_KalmanState {
     double dydz;
     double qp;
     double z; // the dependent variable of the state vector
+    
+    //TMatrixD &cov;//[KALMAN_DIM*KALMAN_DIM];
 
     void Print() {
       //std::cout << "Printing Kalman node: " << std::endl;
       std::cout << "  {x, y, dx/dz, dy/dz, q/p, z} = {" << x << ", " << y << ", " << dxdz << ", " << dydz << ", " << qp << ", " << z << "}" << std::endl;
     }
-
-
-
 };
 
 // One node in the Kalman code
@@ -57,25 +56,38 @@ class TMS_KalmanNode {
 
   // x,y,z, delta_z = distance from previous hit to current in z
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
-    x(xvar), y(yvar), z(zvar), dz(dzvar), 
+    x(xvar), y(yvar), z(zvar), dz(dzvar),
     CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     PreviousState(x, y, z, -999.9, -999.9, -1./20.),
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
+    TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM) {
-
+    CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
+    UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
+    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM)
+  {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     NoiseMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    CovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    UpdatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     MeasurementMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
     TransferMatrix.Zero();
+    TransferMatrixT.Zero(); // Transposed
     // Diagonal element
-    for (int j = 0; j < KALMAN_DIM; ++j) TransferMatrix(j,j) = 1.;
+    for (int j = 0; j < KALMAN_DIM; ++j)
+    {
+      TransferMatrix(j,j)  = 1.;
+      TransferMatrixT(j,j) = 1.;
+    }
+
     // Could put in energy loss into transfer matrix?
     // dz for the slope
-    TransferMatrix(0,2) = TransferMatrix(1,3) = dzvar; // Clarence matrix was this and 1 diagonal
+    TransferMatrix(0,2)  = TransferMatrix(1,3)  = dzvar; // Clarence matrix was this and 1 diagonal
+    TransferMatrixT(2,0) = TransferMatrixT(3,1) = dzvar; // Transpose of previous
   }
 
 
@@ -99,10 +111,13 @@ class TMS_KalmanNode {
   // Propagator matrix
   // Takes us from detector k-1 to detector k
   TMatrixD TransferMatrix;
+  TMatrixD TransferMatrixT; // Transposed
 
   // Random variable w(k-1) includes random disturbances of track between z(k-1) and z(k) from multiple scattering
   // Noise matrix
   TMatrixD NoiseMatrix;
+  TMatrixD CovarianceMatrix;
+  TMatrixD UpdatedCovarianceMatrix;
 
   // Measurement matrix
   TMatrixD MeasurementMatrix;
@@ -125,14 +140,8 @@ class TMS_KalmanNode {
     std::cout << "True y: " << TrueY << ",\t" << "Reco y: " << RecoY << ",\t" << "True - Reco: " << TrueY - RecoY << std::endl;
   }
 
-  TMatrixD GetRecoNoiseMatrix()
+  void FillNoiseMatrix()
   {
-    // vvv   args: n_row, n_col, elements
-//    double mat[25] = {9.0, 0, 0, 0, 0,
-//                      0, 900.0, 0, 0, 0,
-//                      0, 0, 0.05, 0, 0,
-//                      0, 0, 0, 0.05, 0,
-//                      0, 0, 0, 0, 0.01};
     double H = 0.00274576; // ( tan(3 deg) )**2
     int sign;
     if (LayerOrientation == TMS_Bar::kUBar) {
@@ -140,18 +149,47 @@ class TMS_KalmanNode {
     } else if (LayerOrientation == TMS_Bar::kVBar) {
       sign =  1;
     } else {
-      throw; // xd
+      throw; // xd haha TODO tho
     }
     H *= sign;
 
-    double A = 0.5;
-    double B = 5.00;
-    double mat[25] = {A*A, H*A*B, 0, 0, 0,
-                      H*A*B, B*B, 0, 0, 0,
-                      0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 0};
-    return TMatrixD(5,5, mat);
+    double A = 10.0; //10.0;
+    double B = 9000.0; //3000.0;
+    NoiseMatrix(0,0) = A*A;
+    NoiseMatrix(1,1) = B*B;
+    NoiseMatrix(1,0) = NoiseMatrix(0,1) = H*A*B;
+  }
+
+  void FillUpdatedCovarianceMatrix(double pathLength, double dxdz, double dydz, double qp, double ms, bool ForwardFitting=false)
+  {
+    // Now proceed with Wolin and Ho (Nucl Inst A329 1993 493-500)
+    // covariance for multiple scattering
+    // Also see MINOS note on Kalman filter (John Marshall, Nov 15 2005)
+    //double norm = 1+dxdz+dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
+    double norm = 1 + dxdz*dxdz + dydz*dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
+    double covAxAx = norm*ms*(1 + dxdz*dxdz);// eq 16 Wolin and Ho
+    double covAyAy = norm*ms*(1 + dydz*dydz);// eq 17 Wolin and Ho
+    double covAxAy = norm*ms*dxdz*dydz;// eq 18 Wolin and Ho
+
+    double TotalPathLengthSq = pathLength*pathLength;
+    UpdatedCovarianceMatrix(0,0) = covAxAx * TotalPathLengthSq / 4.;
+    UpdatedCovarianceMatrix(1,1) = covAyAy * TotalPathLengthSq / 4.;
+    UpdatedCovarianceMatrix(2,2) = covAxAx;
+    UpdatedCovarianceMatrix(3,3) = covAyAy;
+    UpdatedCovarianceMatrix(4,4) = qp;
+
+    // Negative signs depend on if we're doing backward or forward fitting (- sign for decreasing z, + sign for increasing z)
+    int Sign = +1;
+    if (!ForwardFitting) Sign *= -1;
+
+    UpdatedCovarianceMatrix(1,0) = UpdatedCovarianceMatrix(0,1) = covAxAy * TotalPathLengthSq/4.;
+
+    UpdatedCovarianceMatrix(2,0) = UpdatedCovarianceMatrix(0,2) = (Sign)*covAxAx * pathLength/2.;
+    UpdatedCovarianceMatrix(3,1) = UpdatedCovarianceMatrix(1,3) = (Sign)*covAyAy * pathLength/2.;
+
+    UpdatedCovarianceMatrix(3,0) = UpdatedCovarianceMatrix(0,3) = (Sign)*covAxAy * pathLength/2.;
+    UpdatedCovarianceMatrix(2,1) = UpdatedCovarianceMatrix(1,2) = (Sign)*covAxAy * pathLength/2.;
+    UpdatedCovarianceMatrix(3,2) = UpdatedCovarianceMatrix(2,3) = (Sign)*covAxAy;
   }
 
   bool operator<(const TMS_KalmanNode &other) const {

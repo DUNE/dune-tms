@@ -25,11 +25,6 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
   // And muon mass
   mass = BetheBloch_Utils::Mm;
 
-//  std::cout << "Front: " << Candidates.front().GetZ() << std::endl;
-//  if (ForwardFitting) std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
-//  else                std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
-//  std::cout << "After sort front: " << Candidates.front().GetZ() << std::endl;
-
   //std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZInc);
   std::sort(Candidates.begin(), Candidates.end(), TMS_Hit::SortByZ);
 
@@ -58,33 +53,23 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
     { // Now decide which hit to add
       ( ((Candidates[i-1].GetRecoX() < Candidates[i  ].GetRecoX()) > Candidates[i+1].GetRecoX()) ||
-        ((Candidates[i-1].GetRecoX() > Candidates[i  ].GetRecoX()) < Candidates[i+1].GetRecoX()) ) || std::cout << "\n\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n";
-      //{
-      //  TMS_KalmanNode Node(x, y, z, DeltaZ);
-      //  KalmanNodes.emplace_back(std::move(Node));
-      //} else {
-      //  //TMS_KalmanNode Node(Candidates[i+1].GetRecoX(), Candidates[i+1].GetRecoY(), Candidates[i+1].GetZ(), DeltaZ);
-      //  //KalmanNodes.emplace_back(std::move(Node));
-      //  0;
-      //}
+        ((Candidates[i-1].GetRecoX() > Candidates[i  ].GetRecoX()) < Candidates[i+1].GetRecoX()) ) || std::cout << "\n\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n";
+
       TMS_KalmanNode Node(x, y, z, DeltaZ);
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
+
       KalmanNodes.emplace_back(std::move(Node));
+
     } else {
-      std::cout << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", multiple hits in one plane?" << std::endl;
+      std::cout << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", z = " << z << ", multiple hits in one plane?" << std::endl;
     }
   }
+
   const int N_LAYER_BACK = 10;
 
   AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
-  //AverageYSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoY() - Candidates.back().GetRecoY())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
-  std::cout << "Average X Slope: " << AverageXSlope << "    from " << Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() << " to " << Candidates.back().GetRecoX() << " / " << Candidates[Candidates.size() - N_LAYER_BACK].GetZ() << " to " << Candidates.back().GetZ() <<std::endl;
-  //std::cout << "Average Y Slope: " << AverageYSlope << "    from " << Candidates[Candidates.size() - N_LAYER_BACK].GetRecoY() << " to " << Candidates.back().GetRecoY() << " / " << Candidates[Candidates.size() - N_LAYER_BACK].GetZ() << " to " << Candidates.back().GetZ() <<std::endl;
-  //AverageXSlope = (Candidates.front().GetRecoX() - Candidates.back().GetRecoX())/(Candidates.front().GetZ() - Candidates.back().GetZ());
   AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY())/(Candidates.front().GetZ() - Candidates.back().GetZ());
-  //std::cout << "Average X Slope: " << AverageXSlope << "    from " << Candidates.front().GetRecoX() << " to " <<  Candidates.back().GetRecoX() << " / " << Candidates.front().GetZ() << " to " <<  Candidates.back().GetZ() <<std::endl;
-  std::cout << "Average Y Slope: " << AverageYSlope << "    from " << Candidates.front().GetRecoY() << " to " <<  Candidates.back().GetRecoY() << " / " << Candidates.front().GetZ() << " to " <<  Candidates.back().GetZ() <<std::endl;
 
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
@@ -97,12 +82,13 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     std::cout << "momentum estimate from length: " << momest << std::endl;
     KalmanNodes.front().PreviousState.qp = 1./momest;
     KalmanNodes.front().CurrentState.qp = 1./momest;
-  } else {
-    KalmanNodes.back().CurrentState.dxdz = AverageXSlope;
-    KalmanNodes.back().CurrentState.dydz = AverageYSlope;
-    KalmanNodes.back().PreviousState.dxdz = AverageXSlope;
-    KalmanNodes.back().PreviousState.dydz = AverageYSlope;
+  } else { // TODO check if 0 is sane
+    KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
+    KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
+    KalmanNodes.back().PreviousState.dxdz = 0.0;//AverageXSlope;
+    KalmanNodes.back().PreviousState.dydz = 0.0;//AverageYSlope;
   }
+
   RunKalman();
 }
 
@@ -149,6 +135,7 @@ void TMS_Kalman::RunKalman() {
 
 void TMS_Kalman::Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode) {
   CurrentNode.PreviousState = PreviousNode.CurrentState;
+  CurrentNode.CovarianceMatrix = PreviousNode.CovarianceMatrix;
 }
 
 // Predict the next step
@@ -157,42 +144,12 @@ void TMS_Kalman::Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNod
 //jAccount for energy loss, multiple scattering, and bending due to the magnetic field
 void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
-  // Right out of MINOS
-  // Can probably do this better; e.g. calculate noise matrix at the same time as updating others (avoid duplicate calculations)
-  /*
-     BuildNoiseMatrix();
-     ExtrapolateCovariance();
-     KalmanGain();
-     UpdateStateVector();
-     UpdateCovariance();
-     MoveArrays();
-     */
-
   TMS_KalmanState &PreviousState = Node.PreviousState;
   TMS_KalmanState &CurrentState = Node.CurrentState;
 
-  //PreviousState.Print();
-  //CurrentState.Print();
-  // Propagate the current state
+  // Matrices to propagate the current state
   TMatrixD &Transfer = Node.TransferMatrix;
-  if (Talk) std::cout << "Transfer matrix: " << std::endl;
-  if (Talk) Transfer.Print();
-
-  //Transfer(0,4) = 20;
-  //Transfer(0,2) = 1;
-  //Transfer(1,3) = 1;
-
-  Transfer(2,4) = 0.1;
-//  if (Transfer(0,2) == 0.0) // If not set (probably?) for x transfer
-//  {
-//    std::cout << "Initialising y += dy/dz component of Transfer Matrix = " << TMS_Kalman::AverageXSlope << std::endl;
-//    Transfer(0,2) = TMS_Kalman::AverageXSlope;
-//  }
-//  if (Transfer(1,3) == 0.0) // If not set (probably?) for y transfer
-//  {
-//    std::cout << "Initialising y += dy/dz component of Transfer Matrix = " << TMS_Kalman::AverageYSlope << std::endl;
-//    Transfer(1,3) = TMS_Kalman::AverageYSlope;
-//  }
+  TMatrixD &TransferT = Node.TransferMatrixT;
 
   // Initialise to something sane(-ish)
   if (PreviousState.dxdz ==  -999.9)
@@ -214,44 +171,12 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     std::cout << "y is weird, " << PreviousState.y << std::endl;
     
 
-//  if (PreviousState.x < TMS_Const::TMS_Start[0])
-//    PreviousVec[0] Nod
-//  if (PreviousState.x > TMS_Const::TMS_End[0])
-//    PreviousVec[0] -= 100.0;
-//  if (PreviousState.y < TMS_Const::TMS_Start[1])
-//    PreviousVec[1] += 100.0;
-//  if (PreviousState.y > TMS_Const::TMS_End[1])
-//    PreviousVec[1] -= 100.0;
-  // Just the propagator matrix influence
-
-  //std::cout << "Noisey shite: " << NoiseVec[0] << ", " << NoiseVec[1] << ", "  << NoiseVec[2] << ", "  << NoiseVec[3] << ", "  << NoiseVec[4] << std::endl;
-
   TVectorD UpdateVec = Transfer*(PreviousVec);
-  // LIAM
-  //Transfer.Print();
-  //PreviousVec.Print();
-  //UpdateVec.Print();
-
-  // Now construct the current state (z of CurrentState is already set to be z+dz)
-  //CurrentState.x = UpdateVec[0];
-  //CurrentState.y = UpdateVec[1];
-  //CurrentState.dxdz = UpdateVec[2];
-  //CurrentState.dydz = UpdateVec[3];
-  //CurrentState.x    = (0.9*UpdateVec[0] + 0.1*CurrentState.x);
-  //CurrentState.y    = (0.9*UpdateVec[1] + 0.1*CurrentState.y);
-  CurrentState.x    = (0.88*UpdateVec[0] + 0.12*CurrentState.x);
-  CurrentState.y    = (0.99*UpdateVec[1] + 0.01*CurrentState.y);
-  CurrentState.dxdz = UpdateVec[2];
-  CurrentState.dydz = UpdateVec[3];
-  // Don't update q/p until later (when we've done the energy loss calculation)
-
 
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
   if (Talk) PreviousState.Print();
-  if (Talk) std::cout << "Current vector (before energy loss): " << std::endl;
-  if (Talk) CurrentState.Print();
 
-
+  // ENERGY LOSS PART
   // Update the energy
   double mom = 1./PreviousState.qp;
   //if (std::isinf(mom)) mom = 4800; // set to 1 GeV
@@ -260,9 +185,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // The energy we'll be changing
   double en = en_initial;
 
-  if (Talk) std::cout << "mom: " << mom << std::endl;
-  //std::cout << "mom: " << mom << std::endl;
-
   // Read the position between current point and extrapolated into next bar
   double xval = PreviousState.x;
   double yval = PreviousState.y;
@@ -270,30 +192,28 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   double xval2 = CurrentState.x;
   double yval2 = CurrentState.y;
-  double zval2 = CurrentState.z;
+  double zval2 = PreviousState.z + Transfer(0,2); // Probably a nicer way to do this (:
 
   // Make TVector3s of the two points
   TVector3 start(xval,yval,zval); // Start
   TVector3 stop(xval2,yval2,zval2); // Stop
 
-  //if (Talk) {
-    //std::cout << "Going from " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
-    //std::cout << "To " << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
-    //std::cout << "#Mat Control " << TMS_Geom::GetInstance().GetMaterials(TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact).size() << std::endl;
-  //}
+  if (Talk) {
+    std::cout << "Going from " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
+    std::cout << "To " << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
+  }
 
   // Get the materials between the two points
   std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop);
 
   if (Talk) std::cout << "Looping over " << Materials.size() << " materials" << std::endl;
-  //std::cout << "Looping over " << Materials.size() << " materials" << std::endl;
   double TotalPathLength = 0;
   double TotalLength = 0;
 
   // Loop over the materials between the two projection points
   int counter = 0;
   double total_en_var = 0;
-  if (Talk) std::cout << "Energy before: " << en_initial << std::endl;
+  if (Talk) std::cout << "Energy before " << Materials.size() << " materials: " << en_initial << std::endl;
   for (auto material : Materials) {
 
     // Read these directly from a TGeoManager
@@ -305,27 +225,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
     density /= std::pow(scale_factor, 3);
     thickness = TMS_Geom::GetInstance().Scale(thickness);
-    if (Talk) material.first->Print();
-
-    //std::cout << "\n\n\n";
-    if (Talk) {
-      std::cout << "Material " << counter << " = " << material.first->GetName() << std::endl;
-      std::cout << "  geom : " << TMS_Geom::GetInstance().Scale(thickness) << std::endl;
-      std::cout << "  density: " << density << std::endl;
-      std::cout << "  thickness: " << thickness << std::endl;
-      std::cout << "  real thick: " << sqrt(pow(xval - xval2, 2) + pow(yval - yval2, 2) + pow(zval - zval2, 2)) << std::endl;
-      std::cout << "  thickness*density = " << density*thickness << std::endl;
-    }
-
-    // Skip if density or thickness is small
-//    if (density*thickness < 0.1) {
-//      if (Talk) std::cout << "  Skipping material, to little path length to bother" << std::endl;
-//      continue;
-//    } else if (thickness > 200) {
-//      std::cout << "[TMS_Kalman.cpp] Weirdness  --  Skipping material, too long path length: " << thickness << "mm (rejected as >200mm)" << std::endl;
-//      std::cout << "[TMS_Kalman.cpp] Weirdness  --  point1: " << start.X() << ", " << start.Y() << ", " << start.Z() << "\t point2: " << stop.X() << ", " << stop.Y() << ", " << stop.Z() << std::endl;
-//      continue;
-//    }
 
     TotalPathLength += density*thickness;
     TotalLength += thickness;
@@ -335,22 +234,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
     Bethe.fMaterial = matter;
 
-    if (Talk) {
-      std::cout << "Mean: " << Bethe.Calc_dEdx(en)*density*thickness << std::endl;
-      std::cout << "Most prob: " << Bethe.Calc_dEdx_mostprob(en)*density*thickness << std::endl;
-      std::cout << "energy before: " << en << std::endl;
-    }
-
     // Subtract off the energy loss for this material
     if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
     else                en += Bethe.Calc_dEdx(en)*density*thickness;
-    if (Talk) std::cout << "energy after: " << en << std::endl;
 
 
     // Variance assuming Gaussian straggling
     double en_var = Bethe.Calc_dEdx_Straggling(en)*density*thickness;
     total_en_var += en_var*en_var;
-    if (Talk) std::cout << "energy var: " << en_var*en_var << std::endl;
 
     // Set the material for the multiple scattering
     MSC.fMaterial = matter;
@@ -360,6 +251,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     counter++;
   }
   if (Talk) {
+    std::cout << " - energy after " << counter << ": " << en << std::endl;
     std::cout << "Total path length (g/cm2): " << TotalPathLength << std::endl;
     std::cout << "Total length (cm): " << TotalLength << std::endl;
   }
@@ -375,111 +267,127 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
 
   // Update the state's q/p
+  if (Talk) std::cout << "setting current p = " << p_up << std::endl;
   CurrentState.qp = 1./p_up;
 
-  if (Talk) std::cout << "Current vector (after energy loss): " << std::endl;
-  if (Talk) CurrentState.Print();
-
-  if (Talk) {
-    std::cout << "total energy variation: " << total_en_var << std::endl;
-    std::cout << "energy after: " << en << std::endl;
-    std::cout << "Delta(Energy): " << en-en_initial << std::endl;
-  }
 
   double p_var = (2*en/p_up)*(2*en/p_up) * total_en_var;
   double qp_var = 1./(p_up*p_up*p_up*p_up) * p_var;
 
-  if (Talk) {
-    std::cout << "momentum after: " << p_up << std::endl;
-    std::cout << "total momentum variation: " << p_var << std::endl;
-  }
-  // Momentum variance
 
-  // Set the noise matrix
+  // Set pointers to the noise matrix
   TMatrixD &NoiseMatrix = Node.NoiseMatrix;
+  TMatrixD &CovarianceMatrix = Node.CovarianceMatrix;
+  TMatrixD &UpdatedCovarianceMatrix = Node.UpdatedCovarianceMatrix;
 
-  NoiseMatrix(4,4) = qp_var;
+  // 'measurement' matrices
+  TMatrixD H   = TMatrixD(KALMAN_DIM,KALMAN_DIM);
+  TMatrixD H_T = TMatrixD(KALMAN_DIM,KALMAN_DIM);
+  H  .Zero();
+  H_T.Zero();
+  for (int l=0; l<2; l++) { H(l,l) = 1.0; H_T(l,l) = 1.0; }
 
-  // Finally when we've iterated through the materials we can get the combined effect from the multiple-scattering
-  double ms = MSC.Calc_MS_Sigma();
 
-  if (Talk) std::cout << "Multiple scattering: " << ms << std::endl;
+  double sigma = MSC.Calc_MS_Sigma();
 
-  // Now proceed with Wolin and Ho (Nucl Inst A329 1993 493-500)
-  // covariance for multiple scattering
-  // Also see MINOS note on Kalman filter (John Marshall, Nov 15 2005)
-  double ax2 = CurrentState.dxdz; // get the unit vectors
-  double ay2 = CurrentState.dydz; // get the unit vectors
+  if (TotalPathLength >= 1.0) { // If path is 0 we're in the first Node, set initial cov
+    Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], CurrentState.qp, sigma, false); // Fill the matrix for multiple scattering
+  } else { // Initialise cov to something 'sane'-ish
+    UpdatedCovarianceMatrix.Zero(); // zero this out to be sure
+    CovarianceMatrix(0,0) = 200.0;
+    CovarianceMatrix(1,1) = 1.0E3;
+    CovarianceMatrix(2,2) = 1.50;
+    CovarianceMatrix(3,3) = 2.50;
+    CovarianceMatrix(4,4) = 1.0;
+    std::cout << "Initialising covariance!" << std::endl;
+  }
 
-  double norm = 1+ax2+ay2; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
-  double covAxAx = norm*ms*(1+ax2);// eq 16 Wolin and Ho
-  double covAyAy = norm*ms*(1+ay2);// eq 17 Wolin and Ho
-  double covAxAy = norm*ms*ax2*ay2;// eq 18 Wolin and Ho
+  Node.FillNoiseMatrix(); // Full the matrix for multiple scattering
 
-  // Check the z0 variable!
-  if (!ForwardFitting) TotalPathLength = -1*TotalPathLength;
+  //Transfer.Print();
+  std::cout << "Cov\n" << std::flush;
+  CovarianceMatrix.Print();
 
-  // LIAM
-  std::cout << "ax ay " << ax2 << ", " << ay2 << std::endl;
-  std::cout << "Total path length (g/cm2): " << TotalPathLength << std::endl;
+  //std::cout << "Updated\n" << std::flush;
+  //UpdatedCovarianceMatrix.Print();
 
-  // Build the covariance matrix in Wolin and Ho after eq 18
-  // Equation 15 in Robert Harr Calculation of Track and Vertex Errors for Detector Design Studies
-  // Also equation 48; kappa in Harr is "norm" here
-  // See also Rainer Mankel, 1998 "ranger a pattern recognition algorithm for the HERA-B main tracking system, part iv the object-oriented track fit" Appendix B, HERA-B note 98-079
-  double TotalPathLengthSq = TotalPathLength*TotalPathLength;
-  NoiseMatrix(0,0) = covAxAx * TotalPathLengthSq / 3.;
-  NoiseMatrix(1,1) = covAyAy * TotalPathLengthSq / 3.;
-  NoiseMatrix(2,2) = covAxAx;
-  NoiseMatrix(3,3) = covAyAy;
+  //std::cout << "Transd\n" << std::flush;
+  CovarianceMatrix = Transfer*CovarianceMatrix*TransferT;
+  //CovarianceMatrix.Print();
 
-  // Negative signs depend on if we're doing backward or forward fitting (- sign for decreasing z, + sign for increasing z)
-  int Sign = +1;
-  if (!ForwardFitting) Sign *= -1;
+  //std::cout << "Added\n" << std::flush;
+  CovarianceMatrix += UpdatedCovarianceMatrix;
+  //CovarianceMatrix.Print();
 
-  NoiseMatrix(1,0) = NoiseMatrix(0,1) =    covAxAy * TotalPathLengthSq/3.;
-  NoiseMatrix(2,0) = NoiseMatrix(0,2) = (Sign)*covAxAx * TotalPathLength/2.;
-  NoiseMatrix(3,0) = NoiseMatrix(0,3) = (Sign)*covAxAy * TotalPathLength/2.;
-
-  NoiseMatrix(2,1) = NoiseMatrix(1,2) = (Sign)*covAxAy * TotalPathLength/2.;
-  NoiseMatrix(3,1) = NoiseMatrix(3,1) = (Sign)*covAyAy * TotalPathLength/2.;
-
-  //NoiseMatrix(4,2) = NoiseMatrix(2,4) = 0.1*qp_var; // TODO: temp check effect of mom on angle uncert
-  //NoiseMatrix(4,3) = NoiseMatrix(3,4) = 0.1*qp_var;
-
-  //if (
-  if (Talk) std::cout << "Noise matrix: " << std::endl;
-  if (Talk) NoiseMatrix.Print();
-
-  //std::cout << "Before\n";
+  //std::cout << "Noise\n";
   //NoiseMatrix.Print();
-  NoiseMatrix += Node.GetRecoNoiseMatrix(); // Get the noise associated with the reco and add it
-  //Node.GetRecoNoiseMatrix().Print(); // Get the noise associated with the reco and add it
 
-  TVectorD NoiseVec = GetNoiseVector(Node);
+  TMatrixD GainMatrix = TMatrixD(5,5);
 
-  CurrentState.x += NoiseVec[0];
-  CurrentState.y += NoiseVec[1];
-  CurrentState.dxdz += NoiseVec[2];
-  CurrentState.dydz += NoiseVec[3];
-  
-//  std::cout << "Noise!\told\t\tnew\n"
-//            << "      \t" << CurrentState.x - NoiseVec[0] << "\t" << CurrentState.x << std::endl
-//            << "      \t" << CurrentState.y - NoiseVec[1] << "\t" << CurrentState.y << std::endl
-//            << "      \t" << CurrentState.dxdz - NoiseVec[2] << "\t" << CurrentState.dxdz << std::endl
-//            << "      \t" << CurrentState.dydz - NoiseVec[3] << "\t" << CurrentState.dydz << std::endl
-//            << "      \t" << CurrentState.qp - NoiseVec[4] << "\t" << CurrentState.qp << std::endl;
+  //CovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
+  //FinalCovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
+  //CovarianceMatrix = FinalCovarianceMatrix;
 
-  // I think that's it
-  // Other than the B-field...!
+  //GainMatrix = H*CovarianceMatrix*H_T + NoiseMatrix;
+  GainMatrix = CovarianceMatrix + NoiseMatrix;
+  for (int l=2; l<KALMAN_DIM; l++) GainMatrix(l,l) = 1.0; // Set diags to 1 for inversion
+  GainMatrix = GainMatrix.Invert();
+  //for (int l=2; l<KALMAN_DIM; l++) GainMatrix(l,l) = 0.0; // Set diags back to 0
 
-  // Set the RecoX and RecoY in Kalman node to our prediction
+  GainMatrix = CovarianceMatrix*GainMatrix;
+  //GainMatrix = CovarianceMatrix*GainMatrix;
+  //std::cout << "3\n" << std::flush;
+
+  //GainMatrix.Print();
+
+  CovarianceMatrix -= GainMatrix*H*CovarianceMatrix;
+  std::cout << "Final cov\n" << std::flush;
+  CovarianceMatrix.Print();
+
+  TVectorD FilteredVec = TVectorD(5);
+  TVectorD Measurement = TVectorD(5);
+
+  //TVectorD NoiseVec = GetNoiseVector(Node);
+
+  Measurement[0] = CurrentState.x ;//+ NoiseVec[0];
+  Measurement[1] = CurrentState.y ;//+ NoiseVec[1];
+  Measurement[2] = UpdateVec[2];//0.0;//NoiseVec[2];//CurrentState.dxdz;
+  Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
+  Measurement[4] = 0.0; //CurrentState.qp;
+
+  PreviousVec[4] = 0.0; // Set to 0 so [4] element in Filtered is always 0
+
+  std::cout << "Gain" << std::flush;
+  GainMatrix.Print();
+
+  //std::cout << "1: " << std::flush;
+  //(Measurement - UpdateVec).Print();
+  //FilteredVec = UpdateVec - GainMatrix*( Measurement - H*UpdateVec );
+  FilteredVec = UpdateVec + GainMatrix*( Measurement - UpdateVec );
+
+  //FilteredVec = Gain_1*PreviousVec + GainMatrix*Measurement;
+
+  //(Measurement - UpdateVec).Print();
+  //TVectorD gvec = GainMatrix*(Measurement - PreviousVec);
+  //TransferT.Print();
+  //PreviousVec.Print();
+  //(TransferT*PreviousVec).Print();
+  //gvec.Print();
+  //FilteredVec = Transfer*PreviousVec + gvec;
+  //Transfer.T(); // .T() transposes the matrix in place xd
+  //std::cout << "Filtered State" << std::flush;
+  //FilteredVec.Print();
+  //std::cout << "3\n" << std::flush;
+  //
+  CurrentState.x    = FilteredVec[0];
+  CurrentState.y    = FilteredVec[1];
+  CurrentState.dxdz = FilteredVec[2];
+  CurrentState.dydz = FilteredVec[3];
+
+
   Node.SetRecoXY(CurrentState);
   Node.PrintTrueReco();
-  //NoiseMatrix.Print();
   CurrentState.Print();
-  std::cout << "                         Noise   {" << NoiseVec[0] << ", " << NoiseVec[1] << ", " << NoiseVec[2] << ", " << NoiseVec[3] << ", " << NoiseVec[4] << "}" << std::endl;
-  //std::cout << "Z:\t" << Node.z << ":\t\tX: " << Node.RecoX << "\tY: " << Node.RecoY << std::endl;
 }
 
 // Use the NoiseMatrix from the Kalman state to throw a vector of random noise
@@ -491,27 +399,30 @@ TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
     rand_vec[i] = RNG.Gaus();
 
 
+  TMatrixD &cov = Node.NoiseMatrix;
   TVectorD toy;
   toy.ResizeTo(5);
   toy.Zero();
   //return toy; //TODO: Remove this line, generate real matrix
 
-  for(int j = 0; j < KALMAN_DIM; j++)
-  {
-    for(int k = 0; k < KALMAN_DIM; k++)
-    {
-      if (std::isnan(Node.NoiseMatrix[j][k]))
-      {
-        std::cout << "[TMS_Kalman.cpp] Weirdness  --  NoiseMat[" << j << "][" << k << "] = " << Node.NoiseMatrix[j][k] << std::endl;
-        throw;
-        //Node.NoiseMatrix[j][k] = RNG.Gaus();
-        //continue;
-      }
-
-      toy[j] += Node.NoiseMatrix[j][k] * rand_vec[k];
-    }
-  }
-  //std::cout << "Noisey shite: " << toy[0] << ", " << toy[1] << ", "  << toy[2] << ", "  << toy[3] << ", "  << toy[4] << std::endl;
+//  for(int j = 0; j < KALMAN_DIM; j++)
+//  {
+//    for(int k = 0; k < KALMAN_DIM; k++)
+//    {
+//      if (std::isnan(cov(j,k)))
+//      {
+//        std::cout << "[TMS_Kalman.cpp] Weirdness  --  NoiseMat[" << j << "][" << k << "] = " << cov(j,k) << std::endl;
+//        throw;
+//        //Node.NoiseMatrix[j][k] = RNG.Gaus();
+//        //continue;
+//      }
+//
+//      toy[j] += cov(j,k) * rand_vec[k];
+//    }
+//  }
+  toy = cov*rand_vec;
+  rand_vec.Print();
+  std::cout << "Noisey shite: " << toy[0] << ", " << toy[1] << ", "  << toy[2] << ", "  << toy[3] << ", "  << toy[4] << std::endl;
 
   return toy;
 }
