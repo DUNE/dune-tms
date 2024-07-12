@@ -131,7 +131,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     
     // Check if this is not pileup
-    if (event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
+    if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
       // Fill the info of the one and only true vertex in the spill
       auto primary_vertex = event->Primaries[0];
       int interaction_number = primary_vertex.GetInteractionNumber();
