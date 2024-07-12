@@ -636,6 +636,18 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
       std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
+
+      std::cout << "Kalman filter start pos : " << KalmanFilter.Start[0] << ", " << KalmanFilter.Start[1] << ", "  << KalmanFilter.Start[2] << std::endl;
+      trk.SetStartPosition(KalmanFilter.Start[0], KalmanFilter.Start[1], KalmanFilter.Start[2]); // Fill the momentum of the TMS_Track obj
+
+      std::cout << "Kalman filter end pos : " << KalmanFilter.End[0] << ", " << KalmanFilter.End[1] << ", "  << KalmanFilter.End[2] << std::endl;
+      trk.SetEndPosition(KalmanFilter.End[0], KalmanFilter.End[1], KalmanFilter.End[2]); // Fill the momentum of the TMS_Track obj
+
+      std::cout << "Kalman filter start dir : " << KalmanFilter.StartDirection[0] << ", " << KalmanFilter.StartDirection[1] << ", "  << KalmanFilter.StartDirection[2] << std::endl;
+      trk.SetStartDirection(KalmanFilter.StartDirection[0], KalmanFilter.StartDirection[1], KalmanFilter.StartDirection[2]); // Fill the momentum of the TMS_Track obj
+
+      std::cout << "Kalman filter end dir : " << KalmanFilter.EndDirection[0] << ", " << KalmanFilter.EndDirection[1] << ", "  << KalmanFilter.EndDirection[2] << std::endl;
+      trk.SetEndDirection(KalmanFilter.EndDirection[0], KalmanFilter.EndDirection[1], KalmanFilter.EndDirection[2]); // Fill the momentum of the TMS_Track obj
       trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
     }
   }
@@ -1423,16 +1435,16 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
             std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
 #endif
-            // Track Direction
-            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
-              aTrack.Direction[0] = aTrack.Start[0] - aTrack.End[0];
-              aTrack.Direction[1] = aTrack.Start[1] - aTrack.End[1];
-              aTrack.Direction[2] = aTrack.Start[2] - aTrack.End[2];
-            } else {
-              aTrack.Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
-              aTrack.Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
-              aTrack.Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();    
-            }
+//            // Track Direction
+//            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+//              aTrack.Direction[0] = aTrack.Start[0] - aTrack.End[0];
+//              aTrack.Direction[1] = aTrack.Start[1] - aTrack.End[1];
+//              aTrack.Direction[2] = aTrack.Start[2] - aTrack.End[2];
+//            } else {
+//              aTrack.Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
+//              aTrack.Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
+//              aTrack.Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();    
+//            }
 #ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
