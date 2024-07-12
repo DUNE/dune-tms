@@ -144,17 +144,17 @@ namespace TMS_Utils {
         std::cout<<"Starting with n hits: "<<hits.size()<<"\n";
         std::cout<<"that contain this many n true particles: "<<total_n_true_particles<<"\n";
         std::cout<<"Found total energy: "<<out.total_energy<<"\n";
-        std::cout<<"Found n indices: "<<out.indices.size()<<"\n";
+        std::cout<<"Found n trackids: "<<out.trackids.size()<<"\n";
         std::cout<<"Found total energy: "<<out.energies.size()<<std::endl;
       }
       return out;
   }
 
   struct ParticlePair {
-    int index;
+    int trackid;
     double energy;
     
-    ParticlePair(int i, double e) : index(i), energy(e) {}
+    ParticlePair(int i, double e) : trackid(i), energy(e) {}
   };
 
   static bool CompareByEnergy(const ParticlePair& a, const ParticlePair& b) {
@@ -173,7 +173,7 @@ namespace TMS_Utils {
       TMS_Utils::ParticleInfo out;
       for (const auto& pair : pairs) {
         out.total_energy += pair.energy;
-        out.indices.push_back(pair.index);
+        out.trackids.push_back(pair.trackid);
         out.energies.push_back(pair.energy);
       }
       

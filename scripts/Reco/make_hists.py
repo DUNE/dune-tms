@@ -574,18 +574,18 @@ def validate_then_run(args):
         if nfiles == 0:
             raise ValueError(f"Did not find any files in {indir}")
         print(f"Found {nfiles} files in {indir}")
-        if inlist != "":
-            # In this case the user specified a text file with the full paths
-            with open(inlist) as f:
-                file_data = f.read()
-                files_to_use = file_data.splitlines()
-            nfiles = len(files_to_use)
-            if nfiles == 0:
-                raise ValueError(f"Did not find any files in {inlist}")
-            print(f"Found {nfiles} files in {inlist}")
-            if infile != "":
-                # In this case, the user specified exactly one file. Usually they'd hadd many files together.
-                files_to_use = [infile]
+    if inlist != "":
+        # In this case the user specified a text file with the full paths
+        with open(inlist) as f:
+            file_data = f.read()
+            files_to_use = file_data.splitlines()
+        nfiles = len(files_to_use)
+        if nfiles == 0:
+            raise ValueError(f"Did not find any files in {inlist}")
+        print(f"Found {nfiles} files in {inlist}")
+    if infile != "":
+        # In this case, the user specified exactly one file. Usually they'd hadd many files together.
+        files_to_use = [infile]
   
     outdir = args.outdir
     if outdir == "":
