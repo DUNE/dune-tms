@@ -366,7 +366,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       UHitGroup.push_back(hit);
     }
     else if (hit.GetBar().GetBarType() == TMS_Bar::kVBar) {
-      VHitGroup.push_back(hit);
+      VHitGroup.push_back(hit); 
     }
     else if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
       XHitGroup.push_back(hit);
@@ -1459,6 +1459,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               if (aTrack.Start[1] > 244.0) aTrack.Start[1] = 244.0;
               else if (aTrack.Start[1] < -2949.0) aTrack.Start[1] = -2949.0;
               aTrack.Hits[0].SetRecoY(aTrack.Start[1]);
+            }
+
+            for (auto hits: aTrack.Hits) {
+              std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << std::endl;
             }
 
             // Track Length
