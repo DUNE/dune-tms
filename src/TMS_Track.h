@@ -19,7 +19,8 @@ class TMS_Track {
     int    Charge;
     double Start[3];     // Start point in x,y,z
     double End[3];       // End point in x,y,z
-    double Direction[3]; // Unit vector in track direction
+    double StartDirection[3]; // Unit vector in track direction at start
+    double EndDirection[3]; // Unit vector in track direction at end
     double Length;
     double Occupancy;
     double EnergyDeposit;
@@ -34,9 +35,17 @@ class TMS_Track {
     TMS_TrueParticle GetTrueParticle() {return fTrueParticle;};
 
     // Manually set variables
-    void SetEnergyDeposit(double val) {EnergyDeposit = val;};
-    void SetEnergyRange  (double val) {EnergyRange   = val;};
-    void SetMomentum     (double val) {Momentum      = val;};
+    void SetEnergyDeposit (double val) {EnergyDeposit = val;};
+    void SetEnergyRange   (double val) {EnergyRange   = val;};
+    void SetMomentum      (double val) {Momentum      = val;};
+
+    // Set direction unit vectors from only x and y slope
+    void SetStartDirection(double ax, double ay, double az) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
+    void SetEndDirection  (double ax, double ay, double az) {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=az;};
+
+    // Set position unit vectors
+    void SetStartPosition(double ax, double ay, double az) {Start[0]=ax; Start[1]=ay; Start[2]=az;};
+    void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     int nHits;
     std::vector<TMS_Hit> Hits;

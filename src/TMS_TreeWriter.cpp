@@ -227,19 +227,20 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
 
-  Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
-  Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("nKalmanNodes", nKalmanNodes,           "nKalmanNodes[nTracks]/I");
-  Reco_Tree->Branch("KalmanPos",    RecoTrackKalmanPos,     "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("KalmanTruePos",RecoTrackKalmanTruePos, "TrackHitTruePos[nTracks][200][3]/F");
-  Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
-  Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
-  Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
-  Reco_Tree->Branch("Momentum",     RecoTrackMomentum,      "Momentum[nTracks]/F");
-  Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
+  Reco_Tree->Branch("nTracks",       &nTracks,               "nTracks/I");
+  Reco_Tree->Branch("nHits",         nHitsIn3DTrack,         "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",   RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("nKalmanNodes",  nKalmanNodes,           "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanPos",     RecoTrackKalmanPos,     "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanTruePos", RecoTrackKalmanTruePos, "TrackHitTruePos[nTracks][200][3]/F");
+  Reco_Tree->Branch("StartPos",      RecoTrackStartPos,      "StartPos[nTracks][3]/F");
+  Reco_Tree->Branch("StartDirection",RecoTrackStartDirection,"StartDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndDirection",  RecoTrackEndDirection,  "StartDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndPos",        RecoTrackEndPos,        "EndPos[nTracks][3]/F");
+  Reco_Tree->Branch("EnergyRange",   RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit", RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Momentum",      RecoTrackMomentum,      "Momentum[nTracks]/F");
+  Reco_Tree->Branch("Length",        RecoTrackLength,        "Length[nTracks]/F");
 
 
   MakeTruthBranches(Truth_Info);
@@ -1214,7 +1215,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
-      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
+      RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
+      RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
     }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
@@ -1248,13 +1250,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 //      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
     }
     // Can manually compute direction if it hasn't been set
-    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
-    { // If true it seems the direction hasn't been set
-      for (int j = 0; j < 3; j++)
-      { // Right now no need to make sure this is a unit vector
-        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
-      }
-    }
+//    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
+//    { // If true it seems the direction hasn't been set
+//      for (int j = 0; j < 3; j++)
+//      { // Right now no need to make sure this is a unit vector
+//        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
+//      }
+//    }
     
     // Now fill truth info
     if (itTrack >= __TMS_MAX_LINES__) {
@@ -1666,8 +1668,9 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
-      RecoTrackDirection[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackStartDirection[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackEndDirection[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;

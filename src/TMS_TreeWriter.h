@@ -50,8 +50,9 @@ class TMS_TreeWriter {
     float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
-    float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
+    float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];

@@ -205,9 +205,21 @@ class TMS_Kalman {
     TMS_Kalman();
     TMS_Kalman(std::vector<TMS_Hit> &Candidates);
 
+    double Start[3];
+    double End[3];
+    double StartDirection[3];
+    double EndDirection[3];
+
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
     void SetMomentum(double mom) {momentum = mom;}
+    // Set direction unit vectors from only x and y slope
+    void SetStartDirection(double ax, double ay) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=sqrt(1 - ax*ax - ay*ay);};
+    void SetEndDirection  (double ax, double ay) {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=sqrt(1 - ax*ax - ay*ay);};
+
+    // Set position unit vectors
+    void SetStartPosition(double ax, double ay, double az) {Start[0]=ax; Start[1]=ay; Start[2]=az;};
+    void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
 

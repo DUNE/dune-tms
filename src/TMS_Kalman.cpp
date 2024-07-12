@@ -118,6 +118,17 @@ void TMS_Kalman::RunKalman() {
   }
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
+
+  //std::cout << "filter start pos : " << KalmanNodes.back().CurrentState.x << ", " << KalmanNodes.back().CurrentState.y << ", "  << KalmanNodes.back().CurrentState.z << std::endl;
+  SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
+  //std::cout << "filter end pos : " << KalmanNodes.at(1).CurrentState.x << ", " << KalmanNodes.at(1).CurrentState.y << ", "  << KalmanNodes.at(1).CurrentState.z << std::endl;
+  SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
+
+  //std::cout << "filter start dir: " << KalmanNodes.back().CurrentState.dxdz << ", " << KalmanNodes.back().CurrentState.dydz << std::endl;
+  SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
+  //std::cout << "filter end dir: " << KalmanNodes.at(1).CurrentState.dxdz << ", " << KalmanNodes.at(1).CurrentState.dydz << std::endl;
+  SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
+
   if (std::isnan(momentum) || std::isinf(momentum)){
     std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
   }
@@ -328,6 +339,17 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
+  //'CovarianceMatrix.Print();
+  //GainMatrix.Print();
+  //CurrentState.Print();
+  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+  {
+    std::cerr << "lol x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+  }
+  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+  {
+    std::cerr << "lol y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+  }
 
   Node.SetRecoXY(CurrentState);
   if (Talk) Node.PrintTrueReco();
