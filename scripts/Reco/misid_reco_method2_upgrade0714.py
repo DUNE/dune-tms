@@ -16,12 +16,12 @@ def inside_tms(x, y, z, only_thin_section = False):
     """ Returns true if x,y,z are inside the TMS
     Currently rough estimates of the positions """
     is_inside = True
-    if not -3500 < x < 3500: is_inside = False
-    if not -3700 < y < 1000: is_inside = False
+    if not -3520 < x < 3520: is_inside = False
+    if not -3864 < y < 1159: is_inside = False
     if only_thin_section:
-        if not 11000 < z < 13500: is_inside = False
+        if not 11362 < z < 13500: is_inside = False
     else:
-        if not 11000 < z < 18200: is_inside = False
+        if not 11362 < z < 18314: is_inside = False
     return is_inside 
 
 def inside_lar(x, y, z):
@@ -36,27 +36,27 @@ def inside_lar(x, y, z):
 
 def region1(x):
     is_region1= True
-    if not -4000 < x < -2500: is_region1= False
+    if not -3520 < x < -1750: is_region1= False
     return is_region1
 
-def region1_2(x):
-    is_region1_2= True
-    if not -2500 < x < -1500: is_region1_2= False
-    return is_region1_2
+# def region1_2(x):
+#     is_region1_2= True
+#     if not -2500 < x < -1500: is_region1_2= False
+#     return is_region1_2
 
 def region2(x):
     is_region2= True
-    if not -1500 < x < 1500: is_region2= False
+    if not -1750 < x < 1750: is_region2= False
     return is_region2
 
-def region2_3(x):
-    is_region2_3= True
-    if not 1500 < x < 2500: is_region2_3= False
-    return is_region2_3
+# def region2_3(x):
+#     is_region2_3= True
+#     if not 1500 < x < 2500: is_region2_3= False
+#     return is_region2_3
 
 def region3(x):
     is_region3= True
-    if not 2500 < x < 4000: is_region3= False
+    if not 1750 < x < 3520: is_region3= False
     return is_region3
 
 
@@ -77,21 +77,13 @@ def run(c, truth, reco, outfilename, nmax=-1):
         hist_incorrect_charge_id = ROOT.TH1D("hist_incorrect_charge_id", "Muons incorrect charge number plot(using reco);True muon KE (MeV);Number of muons", 100, 0, 5000)
         hist_total_charge_id = ROOT.TH1D("hist_total_charge_id", "Muons total charge number (using reco);True muon KE (MeV);Number of muons", 100, 0, 5000)
         hist_correct_charge_id_percentage = ROOT.TH1D("hist_correct_charge_id_percentage", "Muons correct charge percentage (using reco);True muon KE (MeV);Fraction", 100, 0, 5000)
-        
-        
-
-       
+     
 
         hist_correct_charge_id_antimuon = ROOT.TH1D("hist_correct_charge_id_antimuon", "Antimuons correct charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_incorrect_charge_id_antimuon = ROOT.TH1D("hist_incorrect_charge_id_antimuon", "Antimuons incorrect charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_total_charge_id_antimuon = ROOT.TH1D("hist_total_charge_id_antimuon", "Antimuons total charge number (using reco);True antimuon KE (MeV);Number of antimuons", 100, 0, 5000)
         hist_correct_charge_id_percentage_antimuon = ROOT.TH1D("hist_correct_charge_id_percentage_antimuon", "Antimuons correct charge percentage (using reco);True antimuon KE (MeV);Fraction", 100, 0, 5000)
-       
-        
-        
-        
-        
-
+     
 
     # User can request fewer events, so check how many we're looping over.
     nevents = c.GetEntries()
@@ -127,6 +119,25 @@ def run(c, truth, reco, outfilename, nmax=-1):
     region1_muon_number =0
     region2_muon_number =0
     region3_muon_number =0
+    num_unidentifiable_muon = 0
+    num_unidentifiable_antimuon = 0
+    gross_correct_percentage_total =0
+    gross_correct_percentage_total_antimuon =0
+    # n_execution1 = 0
+    # n_execution2 = 0
+    # n_execution3 = 0
+    # n_execution4= 0
+    # n_execution5 = 0
+    # n_execution6 = 0
+    # n_execution7 = 0
+    # n_execution8 = 0
+    # n_execution9 = 0
+    # n_execution10 = 0
+    # n_execution11 = 0
+    # n_execution12= 0
+    # n_execution13= 0
+    # n_execution14 = 0
+    
 
     # Now loop over all events
     for i, event in enumerate(c):
@@ -162,73 +173,131 @@ def run(c, truth, reco, outfilename, nmax=-1):
                 p_y = truth.MomentumTMSStart[4*index+1]
                 p_x = truth.MomentumTMSStart[4*index+0]
                 tracklength = math.sqrt((z_end-z_start_tms)**2 + (y_end-y_start_tms)**2 +(x_end-x_start_tms)**2)
-
+                KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+                
+                
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
-                   
-                    if len(reco.TrackHitPos) <=0: 
-                        break
-                    x1 = reco.TrackHitPos[0]  
-                    z1 = reco.TrackHitPos[2]
-                    x2 = reco.EndPos[0]
-                    z2 = reco.EndPos[2]
-                    max_hit = len(reco.TrackHitPos)//3
+                    chargeID = -999
+                    muon_hits = []
+                    region1_hits =[]
+                    region2_hits =[]
+                    region3_hits =[]
+                    n_changeregion = 0
                     n_plus =0
                     n_minus =0
-                   
-                    if x1==-999 or x2 ==-999 or z1==-999 or z2==-999: break
-                    if (z1 - z2) >=0 : break
-                    m= (x1 - x2) / (z1 - z2)
-                    for i in range(max_hit):
-                        if reco.TrackHitPos[3*i] == -999:break
-                        x_extrapolate =m*(reco.TrackHitPos[3*i+2] - reco.TrackHitPos[2]) + x1
-                        signed_dist = reco.TrackHitPos[3*i] - x_extrapolate
-                        if signed_dist > 0: n_plus +=1
-                        if signed_dist < 0: n_minus +=1
-
-
-                    KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+                    
+                    if len(reco.TrackHitPos) < 3:               
+                        break
                     n_muon_total_lar_start_tms_end+=1
+                    for i in range(len(reco.TrackHitPos)):
+                        
+                        muon_hits.append(reco.TrackHitPos[i])
+                    
+                    #If muon starts in region 1 
+                    if region1(muon_hits[0]):
+                        
+                        for i in range(len(muon_hits)): 
+                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region1_hits.append(muon_hits[i])
+                            
+                        if region2(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region2_hits.append(muon_hits[i])
+                    
+                    #If muon starts in region 3 
+                    if region3(muon_hits[0]):
+                        for i in range(len(muon_hits)): 
+                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region3_hits.append(muon_hits[i])
+                        if region2(muon_hits[n_changeregion]):
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region2_hits.append(muon_hits[i])
+
+                    
+                    #If muon starts in region 2 
+                    if region2(muon_hits[0]):
+                       
+                        for i in range(len(muon_hits)): 
+                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region2_hits.append(muon_hits[i])
+                        if region1(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region1_hits.append(muon_hits[i])
+                                
+                        if region3(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region3_hits.append(muon_hits[i])
                     
                     
+                    total_hit_region1 = len(region1_hits)//3
+                    total_hit_region2 = len(region2_hits)//3
+                    total_hit_region3 = len(region3_hits)//3
+                    #Now the muon hits are collected in three different regions, do the calculation
                     
-                    if region1(x_start_tms) and region1(x_end):
-                        region1_muon_number += 1
+                    #Region 1 calculation 
+                    if total_hit_region1>2 and region1_hits[2]- region1_hits[3*total_hit_region1-1] <0:
+                        
+                        m = (region1_hits[0] - region1_hits[3*total_hit_region1-3])/(region1_hits[2]-region1_hits[3*total_hit_region1-1] )  
+                        for i in range(1,total_hit_region1-2):
+                            x_interpolation =m*(region1_hits[3*i+2] - region1_hits[2]) + region1_hits[0]
+                            signed_dist = region1_hits[3*i] - x_interpolation
+                            if signed_dist > 0: 
+                                n_plus +=1
+                                
+                            if signed_dist < 0: 
+                                n_minus +=1
+                                
+
+                    #Region 2 calculation 
+                    if total_hit_region2>2 and region2_hits[2]-region2_hits[3*total_hit_region2-1] <0:
+                       
+                        m = (region2_hits[0] - region2_hits[3*total_hit_region2-3])/(region2_hits[2]-region2_hits[3*total_hit_region2-1] )  
+                        for i in range(1,total_hit_region2-2):
+                            x_interpolation =m*(region2_hits[3*i+2] - region2_hits[2]) + region2_hits[0]
+                            signed_dist = region2_hits[3*i] - x_interpolation
+                            if signed_dist < 0: 
+                                n_plus +=1
+                                
+                            if signed_dist > 0: n_minus +=1
+    
+                    #Region 3 calculation 
+                    if total_hit_region3>2 and region3_hits[2]-region3_hits[3*total_hit_region3-1] <0:
+                        m = (region3_hits[0] - region3_hits[3*total_hit_region3-3])/(region3_hits[2]-region3_hits[3*total_hit_region3-1] )  
+                        for i in range(1,total_hit_region3-2):
+                            x_interpolation =m*(region3_hits[3*i+2] - region3_hits[2]) + region3_hits[0]
+                            signed_dist = region3_hits[3*i] - x_interpolation
+                            if signed_dist > 0: n_plus +=1
+                            if signed_dist < 0: n_minus +=1
+                    
+                    
+                    #Now judge whether the particle is a muon or an antimuon 
+                    if n_plus < n_minus : 
+                        chargeID = 13
+                        n_correct_muon +=1
+                        hist_correct_charge_id.Fill(KE)
                         hist_total_charge_id.Fill(KE)
-                        if n_plus < n_minus :
-                            hist_correct_charge_id.Fill(KE)
-                            n_correct_muon+=1
-                        elif  n_plus > n_minus:
-                            hist_incorrect_charge_id.Fill(KE)
-                            n_incorrect_muon +=1
-                
-                
-                
-               
-                    if region2(x_start_tms) and region2(x_end):
-                        region2_muon_number += 1
+                    if n_plus > n_minus :
+                        chargeID = -13
+                        n_incorrect_muon +=1
+                        hist_incorrect_charge_id.Fill(KE)
                         hist_total_charge_id.Fill(KE)
-                        if n_plus > n_minus :
-                            hist_correct_charge_id.Fill(KE)
-                            n_correct_muon+=1
-                        elif  n_plus < n_minus:
-                            hist_incorrect_charge_id.Fill(KE)
-                            n_incorrect_muon +=1
-                
-                
-                
-                
-                    if region3(x_start_tms) and region3(x_end):
-                        region3_muon_number += 1
-                        hist_total_charge_id.Fill(KE)
-                        if n_plus < n_minus :
-                            hist_correct_charge_id.Fill(KE)
-                            n_correct_muon+=1
-                        elif  n_plus > n_minus:
-                            hist_incorrect_charge_id.Fill(KE)
-                            n_incorrect_muon +=1
-                           
-            
-            
+
+                    if chargeID == -999: num_unidentifiable_muon += 1
+
+
             
             if truth.PDG[index] == -13:
                 n_true_antimuons+=1
@@ -245,79 +314,142 @@ def run(c, truth, reco, outfilename, nmax=-1):
                 p_y = truth.MomentumTMSStart[4*index+1]
                 p_x = truth.MomentumTMSStart[4*index+0]
                 tracklength = math.sqrt((z_end-z_start_tms)**2 + (y_end-y_start_tms)**2 +(x_end-x_start_tms)**2)
+                KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
-                    n_antimuon_total_lar_start_tms_end+=1
-                    if len(reco.TrackHitPos) <=0: 
-                        break
-                    x1 = reco.TrackHitPos[0]  
-                    z1 = reco.TrackHitPos[2]
-                    x2 = reco.EndPos[0]
-                    z2 = reco.EndPos[2]
-                    max_hit = len(reco.TrackHitPos)//3
+                    chargeID = -999
+                    muon_hits = []
+                    region1_hits =[]
+                    region2_hits =[]
+                    region3_hits =[]
+                    n_changeregion = 0
                     n_plus =0
                     n_minus =0
-                   
-                    if x1==-999 or x2 ==-999 or z1==-999 or z2==-999: break
-                    if (z1 - z2) >=0 : break
-                    m= (x1 - x2) / (z1 - z2)
-                    for i in range(max_hit):
-                        if reco.TrackHitPos[3*i] == -999:break
-                        x_extrapolate =m*(reco.TrackHitPos[3*i+2] - reco.TrackHitPos[2]) + x1
-                        signed_dist = reco.TrackHitPos[3*i] - x_extrapolate
-                        if signed_dist > 0: n_plus +=1
-                        if signed_dist < 0: n_minus +=1
+                    
+                    if len(reco.TrackHitPos) < 3:               
+                        break
+                    n_antimuon_total_lar_start_tms_end+=1
+                    for i in range(len(reco.TrackHitPos)):
+                        
+                        muon_hits.append(reco.TrackHitPos[i])
+                    
+                    #If muon starts in region 1 
+                    if region1(muon_hits[0]):
+                        
+                        for i in range(len(muon_hits)): 
+                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region1_hits.append(muon_hits[i])
+                            
+                        if region2(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region2_hits.append(muon_hits[i])
+                    
+                    #If muon starts in region 3 
+                    if region3(muon_hits[0]):
+                        for i in range(len(muon_hits)): 
+                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region3_hits.append(muon_hits[i])
+                        if region2(muon_hits[n_changeregion]):
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region2_hits.append(muon_hits[i])
 
+                    
+                    #If muon starts in region 2 
+                    if region2(muon_hits[0]):
+                       
+                        for i in range(len(muon_hits)): 
+                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                                n_changeregion = i
+                                break
+                            region2_hits.append(muon_hits[i])
+                        if region1(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region1_hits.append(muon_hits[i])
+                                
+                        if region3(muon_hits[n_changeregion]):
+                            
+                            for i in range(n_changeregion, len(muon_hits)): 
+                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                region3_hits.append(muon_hits[i])
+                    
+                    
+                    total_hit_region1 = len(region1_hits)//3
+                    total_hit_region2 = len(region2_hits)//3
+                    total_hit_region3 = len(region3_hits)//3
+                    #Now the muon hits are collected in three different regions, do the calculation
+                    
+                    #Region 1 calculation 
+                    if total_hit_region1>2 and region1_hits[2]- region1_hits[3*total_hit_region1-1] <0:
+                        
+                        m = (region1_hits[0] - region1_hits[3*total_hit_region1-3])/(region1_hits[2]-region1_hits[3*total_hit_region1-1] )  
+                        for i in range(1,total_hit_region1-2):
+                            x_interpolation =m*(region1_hits[3*i+2] - region1_hits[2]) + region1_hits[0]
+                            signed_dist = region1_hits[3*i] - x_interpolation
+                            if signed_dist > 0: 
+                                n_plus +=1
+                                
+                            if signed_dist < 0: 
+                                n_minus +=1
+                                
 
-                    KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+                    #Region 2 calculation 
+                    if total_hit_region2>2 and region2_hits[2]-region2_hits[3*total_hit_region2-1] <0:
+                       
+                        m = (region2_hits[0] - region2_hits[3*total_hit_region2-3])/(region2_hits[2]-region2_hits[3*total_hit_region2-1] )  
+                        for i in range(1,total_hit_region2-2):
+                            x_interpolation =m*(region2_hits[3*i+2] - region2_hits[2]) + region2_hits[0]
+                            signed_dist = region2_hits[3*i] - x_interpolation
+                            if signed_dist < 0: 
+                                n_plus +=1
+                                
+                            if signed_dist > 0: n_minus +=1
+    
+                    #Region 3 calculation 
+                    if total_hit_region3>2 and region3_hits[2]-region3_hits[3*total_hit_region3-1] <0:
+                        m = (region3_hits[0] - region3_hits[3*total_hit_region3-3])/(region3_hits[2]-region3_hits[3*total_hit_region3-1] )  
+                        for i in range(1,total_hit_region3-2):
+                            x_interpolation =m*(region3_hits[3*i+2] - region3_hits[2]) + region3_hits[0]
+                            signed_dist = region3_hits[3*i] - x_interpolation
+                            if signed_dist > 0: n_plus +=1
+                            if signed_dist < 0: n_minus +=1
                     
                     
-                    
-                    if region1(x_start_tms) and region1(x_end):
-                        
+                    #Now judge whether the particle is a muon or an antimuon 
+                    if n_plus < n_minus : 
+                        chargeID = 13
+                        n_incorrect_antimuon +=1
+                        hist_incorrect_charge_id_antimuon.Fill(KE)
                         hist_total_charge_id_antimuon.Fill(KE)
-                        if n_plus > n_minus :
-                            hist_correct_charge_id_antimuon.Fill(KE)
-                            n_correct_antimuon+=1
-                        elif  n_plus < n_minus:
-                            hist_incorrect_charge_id_antimuon.Fill(KE)
-                            n_incorrect_antimuon +=1
-                
-                
-                
-               
-                    if region2(x_start_tms) and region2(x_end):
-                        
+                    if n_plus > n_minus : 
+                        chargeID = -13
+                        n_correct_antimuon +=1
+                        hist_correct_charge_id_antimuon.Fill(KE)
                         hist_total_charge_id_antimuon.Fill(KE)
-                        if n_plus < n_minus :
-                            hist_correct_charge_id_antimuon.Fill(KE)
-                            n_correct_antimuon+=1
-                        elif  n_plus > n_minus:
-                            hist_incorrect_charge_id_antimuon.Fill(KE)
-                            n_incorrect_antimuon +=1
-                
-                
-                
-                
-                    if region3(x_start_tms) and region3(x_end):
-                        
-                        hist_total_charge_id_antimuon.Fill(KE)
-                        if n_plus > n_minus :
-                            hist_correct_charge_id_antimuon.Fill(KE)
-                            n_correct_antimuon+=1
-                        elif  n_plus < n_minus:
-                            hist_incorrect_charge_id_antimuon.Fill(KE)
-                            n_incorrect_antimuon +=1
-                           
+
+                    if chargeID == -999: num_unidentifiable_antimuon += 1
             
             
             
    
     hist_correct_charge_id_percentage.Divide(hist_correct_charge_id,hist_total_charge_id)
     hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon,hist_total_charge_id_antimuon) 
-    correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
-    correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
-   
+    if (n_correct_muon+n_incorrect_muon) > 0:
+        correct_percentage_total = n_correct_muon/(n_correct_muon+n_incorrect_muon)
+    if (n_correct_antimuon+n_incorrect_antimuon) >0:
+        correct_percentage_total_antimuon= n_correct_antimuon/(n_correct_antimuon+n_incorrect_antimuon)
+    if (n_correct_muon + n_incorrect_muon + num_unidentifiable_muon)>0:
+        gross_correct_percentage_total = n_correct_muon/(n_correct_muon + n_incorrect_muon + num_unidentifiable_muon)
+    if (n_correct_antimuon + n_incorrect_antimuon + num_unidentifiable_antimuon)>0:
+        gross_correct_percentage_total_antimuon = n_correct_antimuon/(n_correct_antimuon + n_incorrect_antimuon + num_unidentifiable_antimuon)
     #n_region1_contained_percentage=   (n_region1_total-n_region1_not_contained)/n_region1_total   
     #n_region2_contained_percentage=   (n_region2_total-n_region2_not_contained)/n_region2_total        
     #n_region3_contained_percentage=   (n_region3_total-n_region3_not_contained)/n_region3_total
@@ -400,16 +532,20 @@ def run(c, truth, reco, outfilename, nmax=-1):
         file.write(f"N true antimuons: {n_true_antimuons}\n")
         file.write(f"Total correct percentage for muons: {correct_percentage_total}\n")
         file.write(f"Total correct percentage for antimuons: {correct_percentage_total_antimuon}\n")
-        file.write(f"Correct signed distance muons: {n_correct_muon}\n")
-        file.write(f"Incorrect signed distance muons: {n_incorrect_muon}\n")
-        file.write(f"Correct signed distance antimuons: {n_correct_antimuon}\n")
-        file.write(f"Incorrect signed distance antimuons: {n_incorrect_antimuon}\n")
+        file.write(f"Correct chargeID muons: {n_correct_muon}\n")
+        file.write(f"Incorrect chargeID muons: {n_incorrect_muon}\n")
+        file.write(f"Correct chargeID antimuons: {n_correct_antimuon}\n")
+        file.write(f"Incorrect chargeID antimuons: {n_incorrect_antimuon}\n")
         file.write(f"N lar start tms end muons: {n_muon_total_lar_start_tms_end}\n")
         file.write(f"N lar start tms end antimuons: {n_antimuon_total_lar_start_tms_end}\n")
-        file.write(f"region1 contained muons: {region1_muon_number}\n")
-        file.write(f"region2 contained muons: {region2_muon_number}\n")
-        file.write(f"region3 contained muons: {region3_muon_number}\n")
-
+        # file.write(f"region1 contained muons: {region1_muon_number}\n")
+        # file.write(f"region2 contained muons: {region2_muon_number}\n")
+        # file.write(f"region3 contained muons: {region3_muon_number}\n")
+        file.write(f"unidentifiable muons: {num_unidentifiable_muon}\n")
+        file.write(f"unidentifiable antimuons: {num_unidentifiable_antimuon}\n")
+        file.write(f"gross correct percentage for muons: {gross_correct_percentage_total}\n")
+        file.write(f"gross correct percentage for antimuons: {gross_correct_percentage_total_antimuon}\n")
+        
 
     
     # Return this hists if the user requested previews
@@ -546,6 +682,8 @@ if __name__ == "__main__":
     
     validate_then_run(args)
     
+
+
 
 
 
