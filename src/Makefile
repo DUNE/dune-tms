@@ -30,7 +30,7 @@ endif
 
 TOML_INC = -I../toml11/
 
-CXXFLAGS = -Wall -Wextra -g -fPIC
+CXXFLAGS = -Wall -Wextra -g -fPIC -Wno-free-nonheap-object # free nonheap obj warnings are mostly bugs in gcc 12 apparently
 ifdef DEBUG
   CXXFLAGS+=-Og
 else
