@@ -20,6 +20,10 @@
     MinPoints = 2
     # How far away can a bar/plane combination be to include in a cluster
     Epsilon = 2.5
+    # Amount of neighbouring hits a hit needs to have for pre-clustering (DBSCAN)
+    PreDBNeighbours = 3
+    # Maximal distance to hits to count as neighbours for pre-clustering (DBSCAN)
+    PreDBDistance = 2.5
 
   [Recon.Hough]
     # The highest number of Hough transforms we can run after each other
