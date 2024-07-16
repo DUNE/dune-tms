@@ -177,6 +177,16 @@ def run(c, truth, reco, outfilename, nmax=-1):
                 
                 
                 if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
+                    # This section of the code can be modified into a function, 
+                    # to take into the reco entry  TrackHitPos and then output a number. 
+                    # if the number is 13 it means this particle is identified as a muon. 
+                    # if output is -13 it means is this particle is  identified as an antimuon. 
+                    # if it outputs -999 it means this particle cannot be identified by this method. 
+
+                    # Initialize a few local variables to be used in this function. 
+                    # initialize a few empty lists to hold the muon hits coordinate.
+
+
                     chargeID = -999
                     muon_hits = []
                     region1_hits =[]
@@ -186,29 +196,42 @@ def run(c, truth, reco, outfilename, nmax=-1):
                     n_plus =0
                     n_minus =0
                     
+                    # Check if the reco entry is filled, 
+                    # since  this function takes in this variable: reco.TrackHitPos, 
+                    # it is meaningless to run if this variable is unavailable.
                     if len(reco.TrackHitPos) < 3:               
                         break
+                    
+                    # This line can be ignored
                     n_muon_total_lar_start_tms_end+=1
+                    
+                    #This loop takes in all the muon hits and put them in a list that I named 
                     for i in range(len(reco.TrackHitPos)):
-                        
                         muon_hits.append(reco.TrackHitPos[i])
                     
+                    # Check the muon starting region. 
+                    # below are the algorithms that cut the muon hits that are in different regions, 
+                    # and store them separately to do the calculations afterwards
                     #If muon starts in region 1 
                     if region1(muon_hits[0]):
                         
                         for i in range(len(muon_hits)): 
+                            # Check if the muon is still in the same region as the starting region. 
+                            # Mark down the point where the muon crosses into a different region, 
+                            # or if there is an invalid entry. 
                             if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
                                 n_changeregion = i
                                 break
+                            # Now we have all the hits in region 1 
                             region1_hits.append(muon_hits[i])
                             
                         if region2(muon_hits[n_changeregion]):
-                            
+                            # Fill region 2 hits if there are any
                             for i in range(n_changeregion, len(muon_hits)): 
                                 if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
                                 region2_hits.append(muon_hits[i])
                     
-                    #If muon starts in region 3 
+                    #If muon starts in region 3 ,Similar to the above algorithm
                     if region3(muon_hits[0]):
                         for i in range(len(muon_hits)): 
                             if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
@@ -221,7 +244,7 @@ def run(c, truth, reco, outfilename, nmax=-1):
                                 region2_hits.append(muon_hits[i])
 
                     
-                    #If muon starts in region 2 
+                    #If muon starts in region 2, Similar to the above algorithm
                     if region2(muon_hits[0]):
                        
                         for i in range(len(muon_hits)): 
@@ -241,12 +264,16 @@ def run(c, truth, reco, outfilename, nmax=-1):
                                 if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
                                 region3_hits.append(muon_hits[i])
                     
-                    
+                    # Check how many hits there are, three entries means one hit 
                     total_hit_region1 = len(region1_hits)//3
                     total_hit_region2 = len(region2_hits)//3
                     total_hit_region3 = len(region3_hits)//3
                     #Now the muon hits are collected in three different regions, do the calculation
-                    
+                    # The calculations use the method that I give a talk about in the last studies meeting,
+                    # that is you use the first hit and the last hit, draw a line, 
+                    # and then count if there are more hits to the right of the line
+                    # or more hits to the left of the line, to decide which direction the muon is bending.
+
                     #Region 1 calculation 
                     if total_hit_region1>2 and region1_hits[2]- region1_hits[3*total_hit_region1-1] <0:
                         
@@ -282,7 +309,12 @@ def run(c, truth, reco, outfilename, nmax=-1):
                             if signed_dist > 0: n_plus +=1
                             if signed_dist < 0: n_minus +=1
                     
-                    
+                    # Now the calculation is done, identify whether this particle is a muon or an anti muon. 
+                    # after the identification you can assign the chargeID to be 13 or -13 
+                    # depending whether it is a muon or anti muon. 
+                    # if no calculation can be done then the chargeID here is defaulted to be-999, 
+                    # which means this particle cannot be identified with this method.
+
                     #Now judge whether the particle is a muon or an antimuon 
                     if n_plus < n_minus : 
                         chargeID = 13
@@ -296,6 +328,11 @@ def run(c, truth, reco, outfilename, nmax=-1):
                         hist_total_charge_id.Fill(KE)
 
                     if chargeID == -999: num_unidentifiable_muon += 1
+                    # This algorithm is the same with muon and antimuon.
+                    # so it takes in all the reconstructed hits 
+                    # and outputs a number 
+                    # 13 or -13 or -99 if it cannot be identified(Because of too few hits or invalid entries).
+
 
 
             
