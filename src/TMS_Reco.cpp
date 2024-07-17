@@ -398,13 +398,19 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
       // Prepare for only running track finding (Hough transform and A* algorithm) on track-like structures
       // for this the pre-clusters found by the DBScan need to be filtered out
-      std::vector<std::vector<TMS_Hit> > TrackCandidatesU = UHitGroup;
-      std::vector<std::vector<TMS_Hit> > TrackCandidatesV = VHitGroup;
-      std::vector<std::vector<TMS_Hit> > TrackCandidatesX = XHitGroup;
+      std::vector<TMS_Hit> TrackCandidatesU = UHitGroup;
+      std::vector<TMS_Hit> TrackCandidatesV = VHitGroup;
+      std::vector<TMS_Hit> TrackCandidatesX = XHitGroup;
 
-      MaskHits(TrackCandidatesU, DBScanCandidatesU);
-      MaskHits(TrackCandidatesV, DBScanCandidatesV);
-      MaskHits(TrackCandidatesX, DBScanCandidatesX);
+      for (auto it : DBScanCandidatesU) {
+        MaskHits(TrackCandidatesU, it);
+      }
+      for (auto it : DBScanCandidatesV) {
+        MaskHits(TrackCandidatesV, it);
+      }
+      for (auto it : DBScanCandidatesX) {
+        MaskHits(TrackCandidatesX, it);
+      }
 
       // Now run the Hough transformation on the track-like structures
       HoughCandidatesU = HoughTransform(TrackCandidatesU, 'U');

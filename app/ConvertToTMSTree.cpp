@@ -87,6 +87,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   std::vector<TMS_Event> overlay_events;
 
   for (; i < N_entries; ++i) {
+    std::cout << "Event number " << i << std::endl;
     events->GetEntry(i);
     // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
