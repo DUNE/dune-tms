@@ -24,8 +24,8 @@ class TMS_Manager {
 
     int Get_Reco_DBSCAN_MinPoints() { return _RECO_DBSCAN_MinPoints; };
     double Get_Reco_DBSCAN_Epsilon() { return _RECO_DBSCAN_Epsilon; };
-    int Get_RECO_DBSCAN_PreDBNeighbours() { return _RECO_DBSCAN_PreDBNeighbours; };
-    double Get_RECO_DBSCAN_PreDBDistance() { return _RECO_DBSCAN_PreDBDistance; };
+    int Get_Reco_DBSCAN_PreDBNeighbours() { return _RECO_DBSCAN_PreDBNeighbours; };
+    double Get_Reco_DBSCAN_PreDBDistance() { return _RECO_DBSCAN_PreDBDistance; };
 
     int Get_Reco_HOUGH_MaxHough() { return _RECO_HOUGH_MaxHough; };
     double Get_Reco_HOUGH_MinInterp() { return _RECO_HOUGH_MinInterp; };

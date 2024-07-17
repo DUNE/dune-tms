@@ -396,11 +396,27 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       std::vector<std::vector<TMS_Hit> > DBScanCandidatesV = FindClusters(VHitGroup);
       std::vector<std::vector<TMS_Hit> > DBScanCandidatesX = FindClusters(XHitGroup);
 
+      // Prepare for only running track finding (Hough transform and A* algorithm) on track-like structures
+      // for this the pre-clusters found by the DBScan need to be filtered out
+      std::vector<std::vector<TMS_Hit> > TrackCandidatesU = UHitGroup;
+      std::vector<std::vector<TMS_Hit> > TrackCandidatesV = VHitGroup;
+      std::vector<std::vector<TMS_Hit> > TrackCandidatesX = XHitGroup;
+
+      MaskHits(TrackCandidatesU, DBScanCandidatesU);
+      MaskHits(TrackCandidatesV, DBScanCandidatesV);
+      MaskHits(TrackCandidatesX, DBScanCandidatesX);
+
+      // Now run the Hough transformation on the track-like structures
+      HoughCandidatesU = HoughTransform(TrackCandidatesU, 'U');
+      HoughCandidatesV = HoughTransform(TrackCandidatesV, 'V');
+      HoughCandidatesX = HoughTransform(TrackCandidatesX, 'X');
+
       // Restore overwritten DBSCAN parameters to their previous values for final clustering
       DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
       DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
       // Hand over each cluster from DBSCAN to a Hough transform
-      for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesU.begin(); it != DBScanCandidatesU.end(); ++it) {
+      // TODO (Asa / N) no idea whether this is actually necessary for now
+      /*for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesU.begin(); it != DBScanCandidatesU.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
         std::vector<std::vector<TMS_Hit> > LinesU = HoughTransform(hits, 'U');
         for (auto jt = LinesU.begin(); jt != LinesU.end(); ++jt) {
@@ -420,7 +436,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
         for (auto jt = LinesX.begin(); jt != LinesX.end(); ++jt) {
           HoughCandidatesX.emplace_back(std::move(*jt));
         }
-      }
+      }*/
     } else {
       HoughCandidatesU = HoughTransform(UHitGroup, 'U');
       HoughCandidatesV = HoughTransform(VHitGroup, 'V');
