@@ -46,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = false
+    FirstCluster = true #false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
