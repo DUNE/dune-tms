@@ -387,9 +387,18 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     // Do we first run clustering algorithm to separate hits, then hand off to A*?
     if (TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster()) {
       // Let's run a DBSCAN first to cluster up, then run Hough transform on clusters
+      // Change to different DBSCAN parameters for this pre-clustering
+      DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_PreDBDistance());
+      DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_PreDBNeighbours());
+      
+      // actual call to DBScan
       std::vector<std::vector<TMS_Hit> > DBScanCandidatesU = FindClusters(UHitGroup);
       std::vector<std::vector<TMS_Hit> > DBScanCandidatesV = FindClusters(VHitGroup);
       std::vector<std::vector<TMS_Hit> > DBScanCandidatesX = FindClusters(XHitGroup);
+
+      // Restore overwritten DBSCAN parameters to their previous values for final clustering
+      DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
+      DBSCAN.SetMinPoints(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints());
       // Hand over each cluster from DBSCAN to a Hough transform
       for (std::vector<std::vector<TMS_Hit> >::iterator it = DBScanCandidatesU.begin(); it != DBScanCandidatesU.end(); ++it) {
         std::vector<TMS_Hit> hits = *it;
