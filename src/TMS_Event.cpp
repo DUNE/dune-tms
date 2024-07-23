@@ -22,11 +22,10 @@ static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
   else return false;
 };
 
-// Start the relatively tedious process of converting into TMS products!
-// Can also use FillEvent = false to get a simple meta data extractor
-TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
-  //std::cout<<"Making TMS event"<<std::endl;
+void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 
+  TDatabasePDG *database = TDatabasePDG::Instance();
+  
   // Maybe make these class members
   // Keep false to process all events and all particles in events
   bool OnlyMuon = false;
@@ -34,32 +33,8 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   bool TMSLArOnly = false;
   bool OnlyPrimary = false;
   bool OnlyPrimaryOrInteresting = false;
-  bool OnlyPrimaryOrVisibleEnergy = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
-  /*
-  if (LightWeight) {
-    OnlyMuon = true;
-    TMSOnly = true;
-    TMSLArOnly = true;
-    OnlyPrimary = true;
-  }
-  */
-
-  TDatabasePDG *database = TDatabasePDG::Instance();
-
-  // Save down the event number
-  EventNumber = EventCounter;
-  generator = std::default_random_engine(7890 + EventNumber); 
-  SliceNumber = 0;
-  SpillNumber = EventCounter;
-  NSlices = 1; // By default there's at least one
-  VertexIdOfMostEnergyInEvent = -999;
-  nVertices = 0;
-
-  // Check the integrity of the event
-  //CheckIntegrity();
-
-  int vtxcounter = 0;
+  
   int nPrimary = 0;
   int nInteresting = 0;
   int nTotal = 0;
@@ -68,7 +43,6 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
   int nChargedAndLowMomentum = 0;
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
-    //std::cout<<"for each event.Primaries "<<vtxcounter<<std::endl;
 
     TG4PrimaryVertex vtx = *it;
     Reaction = (*it).GetReaction();
@@ -83,7 +57,7 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
         // Associate the particle with the position
-        truepart.SetVertexID(vtxcounter);
+        truepart.SetVertexID(nVertices);
         TMS_TruePrimaryParticles.emplace_back(truepart);
       }
 
@@ -224,10 +198,10 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
           part->SetDeathPosition(finalpos);
         } // End if (!firsttime) 
       } // End loop over the trajectories
-      vtxcounter++;
+      nVertices++;
     } // End if (FillEvent)
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
-  nVertices = vtxcounter;
+  
   
   //std::cout<<"N total: "<<nTotal<<", N Primary: "<<nPrimary<<", N Interesting: "<<nInteresting<<", N charged: "<<nCharged<<", N high P: "<<nHighMomentum<<", N charged and low P: "<<nChargedAndLowMomentum<<", n TMS_TruePrimaryParticles: "<<TMS_TruePrimaryParticles.size()<<std::endl;
 
@@ -284,6 +258,37 @@ TMS_Event::TMS_Event(TG4Event &event, bool FillEvent) {
       */
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+}
+
+// Start the relatively tedious process of converting into TMS products!
+// Can also use FillEvent = false to get a simple meta data extractor
+TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
+  //std::cout<<"Making TMS event"<<std::endl;
+  bool OnlyPrimaryOrVisibleEnergy = true;
+
+  /*
+  if (LightWeight) {
+    OnlyMuon = true;
+    TMSOnly = true;
+    TMSLArOnly = true;
+    OnlyPrimary = true;
+  }
+  */
+
+  // Save down the event number
+  EventNumber = EventCounter;
+  generator = std::default_random_engine(7890 + EventNumber); 
+  SliceNumber = 0;
+  SpillNumber = EventCounter;
+  NSlices = 1; // By default there's at least one
+  VertexIdOfMostEnergyInEvent = -999;
+  nVertices = 0;
+
+  // Check the integrity of the event
+  //CheckIntegrity();
+
+  ProcessTG4Event(event, FillEvent);
+  
   
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {

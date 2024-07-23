@@ -18,10 +18,12 @@
 // The general event class
 class TMS_Event {
   public:
-    TMS_Event(TG4Event &event, bool FillEvent = true);
+    TMS_Event(TG4Event event, bool FillEvent = true);
     TMS_Event(TMS_Event &event, int slice);
     TMS_Event();
     //~TMS_Event();
+    
+    void ProcessTG4Event(TG4Event &event, bool FillEvent = true);
 
     void AddEvent(TMS_Event &);
 
