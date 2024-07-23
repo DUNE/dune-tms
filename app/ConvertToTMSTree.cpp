@@ -123,7 +123,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Keep filling up the vector if within spill
     if (NerscOverlay) {
-      double next_spill_time = (current_spill_number + 1.5) * SpillPeriod;
+      double next_spill_time = (current_spill_number + 0.5) * SpillPeriod;
       double current_spill_time = event->Primaries.begin()->Position.T();
       // Check that this neutrino is within spill, but not last event
       if (current_spill_time < next_spill_time && i != N_entries - 1) {
