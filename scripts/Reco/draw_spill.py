@@ -29,10 +29,15 @@ pad3 = ROOT.TPad("p2", "p2", 0.6,0.,1,0.21)
 pad3.SetBottomMargin(0.15)
 pad3.SetLeftMargin(0)
 pad3.SetTopMargin(0.05)
-pad4 = ROOT.TPad("p4", "p4", 0.0,0.,1,0.21)
+pad4 = ROOT.TPad("p4", "p4", 0.0,0.,0.7,0.21)
 pad4.SetBottomMargin(0.35)
-pad4.SetRightMargin(0.025)
+pad4.SetRightMargin(0.05)
 pad4.SetTopMargin(0.05)
+pad5 = ROOT.TPad("p5", "p5", 0.7,0.,1,0.21)
+pad5.SetBottomMargin(0.35)
+pad5.SetRightMargin(0.05)
+pad5.SetLeftMargin(0.15)
+pad5.SetTopMargin(0.05)
 
 def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannot find input_filename {input_filename}")
@@ -52,6 +57,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     bound_z_max = 18.5000
     bound_x_min = -4.0
     bound_x_max = 4.0
+    
+    # TODO save this info in the file
+    spill_time = 1.2e9
     
     font_size = 0.15
     
@@ -88,7 +96,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     # First loop through all the slices and draw one overall spill 
     for current_spill_number in range(max_n_spills):
         htime = ROOT.TH1D(f"htime_{current_spill_number}", ";Time (ns);Total Hit E (MeV)", 500, -200, 12000)
-        htime.GetYaxis().SetTitleOffset(0.2)
+        htime.GetYaxis().SetTitleOffset(0.35)
         htime.GetXaxis().SetTitleSize(font_size)
         htime.GetXaxis().SetLabelSize(font_size)
         htime.GetYaxis().SetTitleSize(font_size*0.8)
@@ -96,9 +104,20 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
         htime.SetFillColor(ROOT.kBlack)
         htime.SetLineColor(ROOT.kBlack)
         
+        max_hit_energy = 50
+        henergy = ROOT.TH1D(f"henergy_{current_spill_number}", ";Hit E (MeV);N Hits", 50, 0, max_hit_energy)
+        henergy.GetYaxis().SetTitleOffset(0.5)
+        henergy.GetXaxis().SetTitleSize(font_size)
+        henergy.GetXaxis().SetLabelSize(font_size)
+        henergy.GetYaxis().SetTitleSize(font_size*0.8)
+        henergy.GetYaxis().SetLabelSize(font_size*0.8)
+        henergy.SetFillColor(ROOT.kBlack)
+        henergy.SetLineColor(ROOT.kBlack)
+        
         total_energy = 0
         time_high = float("-inf")
         time_low = float("inf")
+        n_hits = 0
         
         markers = []
         text_to_draw = []
@@ -142,7 +161,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 if not end_inside_tms: continue
                 print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}")
             
-            print(f"Event {i} has {event.nHits} hits, {event.nClusters} clusters, and {event.nLines} lines.")
+            print(f"Event {i} has {event.nHits} hits, and {event.nLines3D} lines.")
             
             
             for hit in range(event.nHits):
@@ -154,6 +173,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 reco_hit_time = event.RecoHitPos[hit*4 + 3]
                 reco_hit_energy = event.RecoHitEnergy[hit]
                 
+                n_hits += 1
+                
                 time_high = max(reco_hit_time, time_high)
                 time_low = min(reco_hit_time, time_low)
                 
@@ -161,7 +182,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 e = int(min(255, 255 * reco_hit_energy / 10.0))
                 t = int(min(255, 255 * reco_hit_time / 10000.0))
                 
-                htime.Fill(reco_hit_time, reco_hit_energy)
+                htime.Fill(reco_hit_time % spill_time, reco_hit_energy)
+                henergy.Fill(reco_hit_energy if reco_hit_energy < max_hit_energy else 0.95 * max_hit_energy)
                 x = reco_hit_z
                 y = reco_hit_x
                 
@@ -174,51 +196,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     total_energy += reco_hit_energy
                 elif reco_hit_energy < 0:
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
-                
-                # Extract all hits in clusters and tracks that are not -999 for easier access later on
-                TotalHitsInClusters = sum(numpy.array([event.nHitsInCluster[i] for i in range(min(25, event.nClusters))]))
-                FilteredClusterHitPos = numpy.empty(TotalHitsInClusters*2)
-                j = 0
-                for i in range(len(event.ClusterHitPos)):
-                  if event.ClusterHitPos[i] != -999:
-                    FilteredClusterHitPos[j] = event.ClusterHitPos[i]
-                    j += 1
 
-                usedClusters = 0
-                for cluster in range(min(25, event.nClusters)):
-                    cluster_energy = event.ClusterEnergy[cluster]
-                    cluster_time = event.ClusterTime[cluster]
-                    cluster_pos_z = event.ClusterPosMean[cluster*2 + 0] / 1000.0
-                    cluster_pos_x = event.ClusterPosMean[cluster*2 + 1] / 1000.0
-                    cluster_pos_z_std_dev = event.ClusterPosStdDev[cluster*2 + 0] / 1000.0
-                    cluster_pos_x_std_dev = event.ClusterPosStdDev[cluster*2 + 1] / 1000.0
-                    #cluster_total_std_dev = math.sqrt(cluster_pos_z_std_dev**2 + cluster_pos_x_std_dev**2)
-                    cluster_total_std_dev = max(cluster_pos_z_std_dev, cluster_pos_x_std_dev)
-                    e = int(min(255, 255 * cluster_energy / 10.0))
-                    t = int(min(255, 255 * cluster_time / 10000.0))
-                    color = ROOT.kAzure #kBlack # ROOT.TColor.GetColor(e, t, 128)
-                    x = cluster_pos_z
-                    y = cluster_pos_x
-                    #print("cluster:", cluster, e, t, 255 * cluster_energy / 10.0, 255 * cluster_time / 10000.0, color, x, y, cluster_total_std_dev)
-                    
-                    marker = ROOT.TMarker(x, y, 53)
-                    marker.SetMarkerColor(color)
-                    marker.SetMarkerSize(20 * cluster_total_std_dev)
-                    markers.append(marker)
-                    marker = 0
 
-                    for ClusterHit in range(event.nHitsInCluster[cluster]):
-                      hit_z = FilteredClusterHitPos[usedClusters*2 + ClusterHit*2 + 0] / 1000.0
-                      hit_x = FilteredClusterHitPos[usedClusters*2 + ClusterHit*2 + 1] / 1000.0
-
-                      marker = ROOT.TMarker(hit_z, hit_x, 21)
-                      marker.SetMarkerColor(ROOT.kAzure-8)
-                      marker.SetMarkerSize(0.5)
-                      markers.append(marker)
-                      marker = 0
-                    usedClusters += event.nHitsInCluster[cluster]
-
-                TotalHitsInTracks = sum(numpy.array([event.nHitsInTrack[i] for i in range(event.nLines)]))
+                '''TotalHitsInTracks = sum(numpy.array([event.nHitsInTrack[i] for i in range(event.nLines3D)]))
                 FilteredTrackHitPos = numpy.empty(TotalHitsInTracks*2)
                 j = 0
                 for i in range(len(event.TrackHitPos)):
@@ -227,7 +207,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     j += 1
 
                 usedTracks = 0    
-                for line in range(event.nLines):
+                for line in range(event.nLines3D):
                     #track_z = event.TrackHitPos[line*2 + 0] / 1000.0
                     #track_x = event.TrackHitPos[line*2 + 1] / 1000.0
                     track_z = event.FirstHoughHit[line*2 + 0] / 1000.0
@@ -277,12 +257,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                       marker.SetMarkerSize(0.5)
                       markers.append(marker)
                       marker = 0
-                    usedTracks += event.nHitsInTrack[line]
+                    usedTracks += event.nHitsInTrack[line]'''
             
             
         minimum_energy_to_print = 0
         if total_energy > minimum_energy_to_print:
-            print(f"Time range: {time_low:0.0f}-{time_high:0.0f} ns,\tEnergy: {total_energy:0.2f} MeV")
+            print(f"Spill {current_spill_number},\tTime range: {time_low:0.0f}-{time_high:0.0f} ns,\tEnergy: {total_energy:0.2f} MeV,\tN hits: {n_hits}")
             pad1.cd()
             haxis.Draw("colz axis")
             for marker in markers:
@@ -292,10 +272,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             # Draw the time slice
             pad4.cd()
             htime.Draw("hist")
+            # Draw the time slice
+            pad5.cd()
+            henergy.Draw("hist")
             
             canvas.cd()
             pad1.Draw()
             pad4.Draw()
+            pad5.Draw()
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             canvas.Print(output_filename + ".png")
         
