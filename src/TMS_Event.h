@@ -95,6 +95,8 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
     
     int GetTrueParticleIndex(int trackid);
+    
+    void ApplyReconstructionEffects();
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -102,7 +104,6 @@ class TMS_Event {
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
     
-    void ApplyReconstructionEffects();
     void MergeCoincidentHits();
     void SimulateOpticalModel();
     void SimulateDeadtime();
