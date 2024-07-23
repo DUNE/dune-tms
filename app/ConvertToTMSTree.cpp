@@ -4,6 +4,7 @@
 #include "TTree.h"
 #include "TGeoManager.h"
 #include "TStopwatch.h"
+#include "TParameter.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
@@ -82,23 +83,33 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Do we overlay events
   bool Overlay = false;
   // How many events do we want to overlay?
-  int nOverlays = 3;
+  int nOverlays = 50;
   // The vector carrying our events that we want to overlay
   std::vector<TMS_Event> overlay_events;
+  
+  bool NerscOverlay = false;
+  TParameter<float>* spillPeriod_s = (TParameter<float>*)input->Get("spillPeriod_s");
+  if (spillPeriod_s != NULL) NerscOverlay = true;
+  double SpillPeriod = 0;
+  if (NerscOverlay) {
+    std::cout<<"Combining spills"<<std::endl;
+    SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
+    std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<std::endl;
+  }
+  int current_spill_number = 0;
 
   for (; i < N_entries; ++i) {
+    if (N_entries <= 10 || i % (N_entries/10) == 0) {
+      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
+    }
+    
     events->GetEntry(i);
     // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
       gRoo->GetEntry(i);
 
-    if (N_entries <= 10 || i % (N_entries/10) == 0) {
-      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
-    }
-
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
-
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
@@ -109,12 +120,31 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       overlay_events.push_back(tms_event);
       continue;
     }
+    
+    // Keep filling up the vector if within spill
+    if (NerscOverlay) {
+      double next_spill_time = (current_spill_number + 1.5) * SpillPeriod;
+      double current_spill_time = event->Primaries.begin()->Position.T();
+      // Check that this neutrino is within spill, but not last event
+      if (current_spill_time < next_spill_time && i != N_entries - 1) {
+        overlay_events.push_back(tms_event);
+        continue;
+      }
+    }
 
     // Add event information and truth from another event
-    if (Overlay && i % nOverlays == 0) {
+    if (overlay_events.size() > 0) {
       // Now loop over previous events
-      for (auto &event : overlay_events) tms_event.AddEvent(event);
+      std::cout<<"Overlaying "<<overlay_events.size()<<" events"<<std::endl;
+      // The first event should be the starting point so reverse it
+      std::reverse(overlay_events.begin(), overlay_events.end());
+      TMS_Event last_event = overlay_events.back();
+      overlay_events.pop_back();
+      for (auto &event : overlay_events) last_event.AddEvent(event);
       overlay_events.clear();
+      overlay_events.push_back(tms_event);
+      if (NerscOverlay) current_spill_number += 1;
+      tms_event = last_event;
     }
 
     // Dump information
@@ -127,6 +157,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    std::cout<<"Sliced events into "<<nslices<<" slices"<<std::endl;
     
     // Check if this is not pileup
     if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {

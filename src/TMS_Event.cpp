@@ -18,7 +18,8 @@ TMS_Event::TMS_Event() {
 
 
 static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
-  if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
+  //if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
+  if (!tp.IsPrimary()) return true;
   else return false;
 };
 
@@ -31,7 +32,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = false;
+  bool OnlyPrimary = true;
   bool OnlyPrimaryOrInteresting = false;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   
@@ -843,7 +844,7 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
 // Add a separate event to this event
 // Handy for making hacked overlays
 void TMS_Event::AddEvent(TMS_Event &Other_Event) {
-  std::cout << "Adding event " << Other_Event.GetEventNumber() << " to event " << GetEventNumber() << std::endl;
+  //std::cout << "Adding event " << Other_Event.GetEventNumber() << " to event " << GetEventNumber() << std::endl;
 
   // Get the other hits
   std::vector<TMS_Hit> other_hits = Other_Event.GetHits(-1, true);
