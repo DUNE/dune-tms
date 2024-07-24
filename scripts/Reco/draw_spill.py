@@ -58,6 +58,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     bound_x_min = -4.0
     bound_x_max = 4.0
     
+    slice_colors = [ROOT.kRed, ROOT.kBlue, ROOT.kGreen, ROOT.kOrange, ROOT.kPink, ROOT.kCyan, ROOT.kMagenta, ROOT.kAzure]
+    
     # TODO save this info in the file
     spill_time = 1.2e9
     
@@ -172,6 +174,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 reco_hit_z = event.RecoHitPos[hit*4 + 2] / 1000.0
                 reco_hit_time = event.RecoHitPos[hit*4 + 3]
                 reco_hit_energy = event.RecoHitEnergy[hit]
+                reco_hit_slice = event.RecoHitSlice[hit]
                 
                 n_hits += 1
                 
@@ -188,7 +191,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 y = reco_hit_x
                 
                 marker = ROOT.TMarker(x, y, 21)
-                color = ROOT.TColor.GetColor(e, 32, 32)
+                #color = ROOT.TColor.GetColor(e, 32, 32)
+                color = slice_colors[reco_hit_slice % len(slice_colors)] + reco_hit_slice // len(slice_colors) - 3
                 marker.SetMarkerColor(color)
                 markers.append(marker)
                 
