@@ -2,8 +2,8 @@
 #define _TMS_TRUEPARTICLE_H_SEEN_
 
 // edep-sim classes for TG4PrimaryParticle
-#include "EDepSim/TG4PrimaryVertex.h"
-#include "EDepSim/TG4HitSegment.h"
+#include "TG4PrimaryVertex.h"
+#include "TG4HitSegment.h"
 
 #include "TLorentzVector.h"
 

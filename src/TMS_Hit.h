@@ -11,7 +11,7 @@
 #include "TMS_Geom.h"
 
 // Include the edep-sim
-#include "EDepSim/TG4HitSegment.h"
+#include "TG4HitSegment.h"
 
 // Maybe should be in singleton?
 #include "TGeoManager.h"

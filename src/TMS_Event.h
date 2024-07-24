@@ -13,7 +13,7 @@
 #include "TMS_Track.h"
 
 // The edep-sim event class
-#include "EDepSim/TG4Event.h"
+#include "TG4Event.h"
 
 // The general event class
 class TMS_Event {

@@ -7,7 +7,7 @@
 // Include the constants
 #include "TMS_Constants.h"
 
-#include "EDepSim/TG4HitSegment.h"
+#include "TG4HitSegment.h"
 
 // Essentially a copy of the edep-sim THit
 class TMS_TrueHit {

@@ -6,7 +6,7 @@
 // To get the geometry
 #include "TMS_Geom.h"
 
-#include "EDepSim/TG4HitSegment.h"
+#include "TG4HitSegment.h"
 
 #include "TGeoBBox.h"
 
