@@ -94,6 +94,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   if (NerscOverlay) {
     std::cout<<"Combining spills"<<std::endl;
     SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
+    TMS_Manager::GetInstance().Set_Nersc_Spill_Period(SpillPeriod);
     std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<std::endl;
   }
   int current_spill_number = 0;
@@ -146,6 +147,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       if (NerscOverlay) current_spill_number += 1;
       tms_event = last_event;
     }
+    
+    // Apply the det sim now, after overlaying events
+    // This doesn't work right now
+    //tms_event.ApplyReconstructionEffects();
 
     // Dump information
     //tms_event.Print();
@@ -157,7 +162,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
-    std::cout<<"Sliced events into "<<nslices<<" slices"<<std::endl;
+    std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
     // Check if this is not pileup
     if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {

@@ -92,6 +92,9 @@ class TMS_Manager {
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
     double Get_Geometry_YMIDDLE() { return _GEOMETRY_YMIDDLE; };
+    
+    double Get_Nersc_Spill_Period() { return _NERSC_SPILL_PERIOD; };
+    void Set_Nersc_Spill_Period(double value) { _NERSC_SPILL_PERIOD = value; };
 
   private:
     TMS_Manager();
@@ -142,6 +145,8 @@ class TMS_Manager {
 
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;
+    
+    double _NERSC_SPILL_PERIOD;
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
