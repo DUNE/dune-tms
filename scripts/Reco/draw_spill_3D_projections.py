@@ -163,6 +163,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     print("N entries:", r.GetEntries())
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
+
+    DrawKalmanTrack = False
+    if hasattr(r,"KalmanPos"):
+        print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
+        DrawKalmanTrack = True
     
     truth = ROOT.TChain("Truth_Info")
     truth.Add(input_filename)
@@ -264,6 +269,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
 
+            if DrawKalmanTrack:
+                nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
+                nKalmanNodes = np.array([nKalmanNodes[i] for i in range(0, nTracks * 4, 4)])
+                KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
+                KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
                                         
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
@@ -298,6 +308,33 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
+                if DrawKalmanTrack:
+                    print("Track: ", i, "\t Hits: ", nHits[i], "\t Nodes: ", nKalmanNodes[i])
+
+                    prev_kal_x = -1E100
+                    prev_kal_y = -1E100
+                    prev_kal_z = -1E100
+                    kal_x = np.zeros(nKalmanNodes[i])
+                    kal_y = np.zeros(nKalmanNodes[i])
+                    kal_z = np.zeros(nKalmanNodes[i])
+                    kal_true_x = np.zeros(nKalmanNodes[i])
+                    kal_true_y = np.zeros(nKalmanNodes[i])
+
+                    for node in range(nKalmanNodes[i]):
+                        kal_x[node] = KalmanPos[i*600 + node*3 + 0]/1000.0 # from mm to m
+                        kal_y[node] = KalmanPos[i*600 + node*3 + 1]/1000.0
+                        kal_z[node] = KalmanPos[i*600 + node*3 + 2]/1000.0
+                        kal_true_x[node] = KalmanTruePos[i*600 + node*3 + 0]/1000.0 # from mm to m
+                        kal_true_y[node] = KalmanTruePos[i*600 + node*3 + 1]/1000.0
+
+                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf)
+                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+
+                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf)
+                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
+                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
+
                 ### Track start
                 #print(StartPos)
                 #temporary fix
@@ -306,9 +343,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
                     if not StartPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = magenta_cbf)
-                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = magenta_cbf)
-                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = magenta_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
@@ -319,30 +356,31 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
                     if not EndPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = magenta_cbf)
-                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = magenta_cbf)
-                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = magenta_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
                 #temporary fix
-                if not (StartPos[i*3 + 2] < 11000. or EndPos[i*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
+                if not DrawKalmanTrack and not (StartPos[i*3 + 2] < 11000. or EndPos[i*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
 
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
                     if not StartPos[i*3 + 1] == 0.0 or EndPos[i*3 + 1] == 0.0:
-                        x_z.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], color = magenta_cbf, linewidth = 1.5, linestyle = '--')
-                        z_y.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = magenta_cbf, linewidth = 1.5, linestyle = '--')
-                        x_y.plot([StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = magenta_cbf, linewidth = 1.5, linestyle = '--')
+                        x_z.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        z_y.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_y.plot([StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
         
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, c = green_cbf, marker = '2', alpha = 0.5)
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, c = green_cbf, marker = '1', alpha = 0.5)
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
                 
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = green_cbf, marker = '2', alpha = 0.5)
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = green_cbf, marker = '1', alpha = 0.5)
+                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
                 
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = green_cbf, marker = '2', alpha = 0.5)
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = green_cbf, marker = '1', alpha = 0.5)
+                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
 
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")

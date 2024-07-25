@@ -71,7 +71,6 @@ class Material {
         fMaterialType = kAir;
       } else {
         fMaterialType = kUnknown;
-        std::cout << density << std::endl;
       }
 
       SetProperties();
