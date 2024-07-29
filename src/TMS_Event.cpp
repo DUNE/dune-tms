@@ -989,27 +989,20 @@ double TMS_Event::GetMuonTrueTrackLength() {
     //if (abs((*it).GetPDG()) != 13) continue;
     // Also make sure it's a fundamental muon
     //if ((*it).GetParent() != -1) continue;
-
+    
     std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
     int num = 0;
     for (auto pnt = pos.begin(); pnt != pos.end(); ++pnt, ++num) {
       auto nextpnt = *(pnt+1);
       TVector3 point1((*pnt).X(), (*pnt).Y(), (*pnt).Z());  //-200
       TVector3 point2(nextpnt.X(), nextpnt.Y(), nextpnt.Z()); //-200
-      point1.Print();
-      //point2.Print();
       if (TMS_Geom::GetInstance().IsInsideTMS(point1) && TMS_Geom::GetInstance().IsInsideTMS(point2)) {
       if ((point2-point1).Mag() > 100) {
-        //std::cout << "moving on" << std::endl;
         continue;
       }
       double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
       total += tracklength;
-      //std::cout << "new total (t): " << total << std::endl;
       }
-      //std::cout << "point " << num << std::endl;
-      //std::cout << "total: " << total << std::endl;
-      //std::cout << "tracklength: " << tracklength << std::endl;
     }
   }
   return total;

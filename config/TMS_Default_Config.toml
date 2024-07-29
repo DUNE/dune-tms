@@ -21,7 +21,7 @@
     # How far away can a bar/plane combination be to include in a cluster
     Epsilon = 2.5
     # Amount of neighbouring hits a hit needs to have for pre-clustering (DBSCAN)
-    PreDBNeighbours = 3
+    PreDBNeighbours = 9
     # Maximal distance to hits to count as neighbours for pre-clustering (DBSCAN)
     PreDBDistance = 2.5
 
@@ -67,11 +67,11 @@
 
   [Recon.TrackMatch3D]
     # How many plane layers can the ends/starts of the two simple tracks be away from each other?
-    PlaneLimit = 3
+    PlaneLimit = 2
     # How many bars can the ends/starts of the two simple tracks be away from each other?
     BarLimit = 12
     # How many ns can the ends/starts of the two simple tracks be away from each other?
-    TimeLimit = 30
+    TimeLimit = 16  #30
     # How many ns can the ends/starts of a X simple track be away from U simple track?
     XTimeLimit = 15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
     # What is the 'anchor point' of the scintillator bars in y [mm]?
@@ -95,7 +95,7 @@
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not
     
   [Recon.Time]
-    RunTimeSlicer = false # Whether to run a time slicer
+    RunTimeSlicer = true # Whether to run a time slicer
     TimeSlicerThresholdStart = 10.0 # The minimum window energy to start a slice
     TimeSlicerThresholdEnd = 5.0 # The window energy to end a slice
     SliceUnit = 1.0 # ns, the algorithm splits an array into TimeSlicerMaxTime/SliceUnit chunks. Each array represents 1 SliceUnit of time
@@ -134,7 +134,7 @@
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]
   DrawPDF = false
-  MaximumNEvents = 540
+  MaximumNEvents = -1
 
 # Variables that have to do with the geometry or location of the detector 
 [Geometry]
