@@ -123,6 +123,8 @@ def run(c, truth, reco, outfilename, nmax=-1):
     num_unidentifiable_antimuon = 0
     gross_correct_percentage_total =0
     gross_correct_percentage_total_antimuon =0
+    event_display_num =0
+    display = []
     # n_execution1 = 0
     # n_execution2 = 0
     # n_execution3 = 0
@@ -205,9 +207,15 @@ def run(c, truth, reco, outfilename, nmax=-1):
                     # This line can be ignored
                     n_muon_total_lar_start_tms_end+=1
                     
-                    #This loop takes in all the muon hits and put them in a list that I named 
-                    for i in range(len(reco.TrackHitPos)):
-                        muon_hits.append(reco.TrackHitPos[i])
+                    #This loop takes in all the muon hits and put them in a list that I named
+                    #Check if the first hit is correctly filled up
+
+                    if  reco.TrackHitPos[0] == 0 or reco.TrackHitPos[0] == -999:
+                        for i in range(3,len(reco.TrackHitPos)):
+                            muon_hits.append(reco.TrackHitPos[i])
+                    else:
+                        for i in range(len(reco.TrackHitPos)):
+                            muon_hits.append(reco.TrackHitPos[i])
                     
                     # Check the muon starting region. 
                     # below are the algorithms that cut the muon hits that are in different regions, 
@@ -219,7 +227,7 @@ def run(c, truth, reco, outfilename, nmax=-1):
                             # Check if the muon is still in the same region as the starting region. 
                             # Mark down the point where the muon crosses into a different region, 
                             # or if there is an invalid entry. 
-                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             # Now we have all the hits in region 1 
@@ -228,19 +236,19 @@ def run(c, truth, reco, outfilename, nmax=-1):
                         if region2(muon_hits[n_changeregion]):
                             # Fill region 2 hits if there are any
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region2_hits.append(muon_hits[i])
                     
                     #If muon starts in region 3 ,Similar to the above algorithm
                     if region3(muon_hits[0]):
                         for i in range(len(muon_hits)): 
-                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             region3_hits.append(muon_hits[i])
                         if region2(muon_hits[n_changeregion]):
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region2_hits.append(muon_hits[i])
 
                     
@@ -248,20 +256,20 @@ def run(c, truth, reco, outfilename, nmax=-1):
                     if region2(muon_hits[0]):
                        
                         for i in range(len(muon_hits)): 
-                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             region2_hits.append(muon_hits[i])
                         if region1(muon_hits[n_changeregion]):
                             
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region1_hits.append(muon_hits[i])
                                 
                         if region3(muon_hits[n_changeregion]):
                             
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region3_hits.append(muon_hits[i])
                     
                     # Check how many hits there are, three entries means one hit 
@@ -374,7 +382,7 @@ def run(c, truth, reco, outfilename, nmax=-1):
                     if region1(muon_hits[0]):
                         
                         for i in range(len(muon_hits)): 
-                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             region1_hits.append(muon_hits[i])
@@ -382,19 +390,19 @@ def run(c, truth, reco, outfilename, nmax=-1):
                         if region2(muon_hits[n_changeregion]):
                             
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region2_hits.append(muon_hits[i])
                     
                     #If muon starts in region 3 
                     if region3(muon_hits[0]):
                         for i in range(len(muon_hits)): 
-                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             region3_hits.append(muon_hits[i])
                         if region2(muon_hits[n_changeregion]):
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region2_hits.append(muon_hits[i])
 
                     
@@ -402,20 +410,20 @@ def run(c, truth, reco, outfilename, nmax=-1):
                     if region2(muon_hits[0]):
                        
                         for i in range(len(muon_hits)): 
-                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999: 
+                            if not region2(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0: 
                                 n_changeregion = i
                                 break
                             region2_hits.append(muon_hits[i])
                         if region1(muon_hits[n_changeregion]):
                             
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region1(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region1_hits.append(muon_hits[i])
                                 
                         if region3(muon_hits[n_changeregion]):
                             
                             for i in range(n_changeregion, len(muon_hits)): 
-                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 : break
+                                if not region3(muon_hits[(i//3)*3]) or muon_hits[(i//3)*3]==-999 or muon_hits[(i//3)*3]==0 : break
                                 region3_hits.append(muon_hits[i])
                     
                     
