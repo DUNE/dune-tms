@@ -117,7 +117,7 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // Region 1 calculation
   if (total_hit_region1 > 2 && region1_hits.front().GetZ() < region1_hits.back().GetZ()) {
     double m = (region1_hits.front().GetRecoX() - region1_hits.back().GetRecoX()) / (region1_hits.front().GetZ() - region1_hits.back().GetZ());
-    for (int i = 0; i != total_hit_region1; ++i) {
+    for (int i = 1; i != (total_hit_region1 - 1); ++i) {
       double x_interpolation = m * (region1_hits[i].GetZ() - region1_hits.front().GetZ()) + region1_hits.front().GetRecoX();
       double signed_dist = region1_hits[i].GetRecoX() - x_interpolation;
       if (signed_dist > 0) n_plus += 1;
@@ -128,7 +128,7 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // Region 2 calculation
   if (total_hit_region2 > 2 && region2_hits.front().GetZ() < region2_hits.back().GetZ()) {
     double m = (region2_hits.front().GetRecoX() - region2_hits.back().GetRecoX()) / (region2_hits.front().GetZ() - region2_hits.back().GetZ());
-    for (int i = 0; i != total_hit_region2; ++i) {
+    for (int i = 1; i != (total_hit_region2 - 1); ++i) {
       double x_interpolation = m * (region2_hits[i].GetZ() - region2_hits.front().GetZ()) + region2_hits.front().GetRecoX();
       double signed_dist = region2_hits[i].GetRecoX() - x_interpolation;
       if (signed_dist < 0) n_plus += 1;
@@ -139,7 +139,7 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // Region 3 calculation
   if (total_hit_region3 > 2 && region3_hits.front().GetZ() < region3_hits.back().GetZ()) {
     double m = (region3_hits.front().GetRecoX() - region3_hits.back().GetRecoX()) / (region3_hits.front().GetZ() - region3_hits.back().GetZ());
-    for (int i = 0; i != total_hit_region3; ++i) {
+    for (int i = 1; i != (total_hit_region3 - 1); ++i) {
       double x_interpolation = m * (region3_hits[i].GetZ() - region3_hits.front().GetZ()) + region3_hits.front().GetRecoX();
       double signed_dist = region3_hits[i].GetRecoX() - x_interpolation;
       if (signed_dist > 0) n_plus += 1;
