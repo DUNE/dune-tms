@@ -28,7 +28,7 @@ bool TMS_ChargeID::region3(const TMS_Hit &Hit) {
 int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // Initialize some local variables and empty arrays/vectors to be used
   int chargeID = -999999999;
-  std::vector<TMS_Hit> muon_hits = *Track;
+  std::vector<TMS_Hit> muon_hits = Track;
   std::vector<TMS_Hit> region1_hits;
   std::vector<TMS_Hit> region2_hits;
   std::vector<TMS_Hit> region3_hits;
@@ -42,25 +42,23 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // Check the muon starting region
   // below are the algorithms that cut the muon hits that are in different regions,
   // and store them separately to do the calculations afterwards
-  SpatialPrio(muon_hits);
-
   // If muon starts in region 1
   if (region1(muon_hits.front())) {
     for (std::vector<TMS_Hit>::iterator hit = muon_hits.begin(); hit != muon_hits.end(); ++hit) {
       // Check it the muon is still in the same region as the starting region.
       // Mark down the point where the muon crosses into a different region,
       // or if there is an invalid entry.
-      if (!region1(muon_hits[*hit]) || muon_hits[*hit] == -999) {
-        n_changeregion = *hit;
+      if (!region1(*hit) || (*hit).GetRecoX() == -999) {
+        n_changeregion = hit;
         break;
       }
       // Now we have only the hits in region 1
       region1_hits.push_back(*hit);
     }
-    if (region2(muon_hits[*n_changeregion])) {
+    if (region2(*n_changeregion)) {
        // Fill region 2 hits if there are any
-       for (std::vector<TMS_Hit>::iterator it = muon_hits[*n_changeregion]; it != muon_hits.end(); ++it) {
-        if (!region2(muon_hits[*it]) || muon_hits[*it] == -999) break;
+       for (std::vector<TMS_Hit>::iterator it = n_changeregion; it != muon_hits.end(); ++it) {
+        if (!region2(*it) || (*it).GetRecoX() == -999) break;
         region2_hits.push_back(*it);
       }
     }
@@ -68,15 +66,15 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // If muon starts in region 3, similar to the above algorithm
   if (region3(muon_hits.front())) {
     for (std::vector<TMS_Hit>::iterator hit = muon_hits.begin(); hit != muon_hits.end(); ++hit) {
-      if (!region3(muon_hits[*hit]) || muon_hits[*hit] == -999) {
-        n_changeregion = *hit;
+      if (!region3(*hit) || (*hit).GetRecoX() == -999) {
+        n_changeregion = hit;
         break;
       }
       region3_hits.push_back(*hit);
     }
-    if (region2(muon_hits[*n_changeregion])) {
-      for (std::vector<TMS_Hit>::iterator it = muon_hits[*n_changeregion]; it != muon_hits.end(); ++it) {
-        if (!region2(muon_hits[*it]) || muon_hits[*it] == -999) break;
+    if (region2(*n_changeregion)) {
+      for (std::vector<TMS_Hit>::iterator it = n_changeregion; it != muon_hits.end(); ++it) {
+        if (!region2(*it) || (*it).GetRecoX() == -999) break;
         region2_hits.push_back(*it);
       }
     }
@@ -84,21 +82,21 @@ int TMS_ChargeID::ID_Track_Charge(const std::vector<TMS_Hit> &Track) {
   // If muon starts in region 2, similar to the above algorithm
   if (region2(muon_hits.front())) {
     for (std::vector<TMS_Hit>::iterator hit = muon_hits.begin(); hit != muon_hits.end(); ++hit) {
-      if (!region2(muon_hits[*hit]) || muon_hits[*hit] == -999) {
-        n_changeregion = *hit;
+      if (!region2(*hit) || (*hit).GetRecoX() == -999) {
+        n_changeregion = hit;
         break;
       }
       region2_hits.push_back(*hit);
     }
-    if (region1(muon_hits[*n_changeregion])) {
-      for (std::vector<TMS_Hit>::iterator it = muon_hits[*n_changeregion]; it != muon_hits.end(); ++it) {
-        if (!region1(muon_hits[*it]) || muon_hits[*it] == -999) break;
+    if (region1(*n_changeregion)) {
+      for (std::vector<TMS_Hit>::iterator it = n_changeregion; it != muon_hits.end(); ++it) {
+        if (!region1(*it) || (*it).GetRecoX() == -999) break;
         region1_hits.push_back(*it);
       }
     }
-    if (region3(muon_hits[*n_changeregion])) {
-      for (std::vector<TMS_Hit>::iterator it = muon_hits[*n_changeregion]; it != muon_hits.end(); ++it) {
-        if (!region3(muon_hits[*it]) || muon_hits[*it] == -999) break;
+    if (region3(*n_changeregion)) {
+      for (std::vector<TMS_Hit>::iterator it = n_changeregion; it != muon_hits.end(); ++it) {
+        if (!region3(*it) || (*it).GetRecoX() == -999) break;
         region3_hits.push_back(*it);
       }
     }
