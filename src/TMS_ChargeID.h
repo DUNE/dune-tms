@@ -17,8 +17,9 @@ class TMS_ChargeID {
     int ID_Track_Charge(const std::vector<TMS_Hit> &Track);
 
   private:
-    TMS_Hit Hit;
-    std::vector<TMS_Hit> Track;
+    // These are never used, todo delete?
+    //TMS_Hit Hit;
+    //std::vector<TMS_Hit> Track;
 };
 
 #endif

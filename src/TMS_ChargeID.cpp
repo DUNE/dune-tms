@@ -1,6 +1,8 @@
 #include "TMS_ChargeID.h"
 
-//TODO??? TMS_ChargeID::TMS_ChargeID() :
+TMS_ChargeID::TMS_ChargeID() {
+
+}
 
 // Check if hit is in the far negative region of x (detector)
 bool TMS_ChargeID::region1(const TMS_Hit &Hit) {
