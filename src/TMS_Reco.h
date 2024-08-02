@@ -24,6 +24,8 @@
 
 #include "TMS_Track.h"
 
+#include "TMS_ChargeID.h"
+
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
 
@@ -312,6 +314,7 @@ class TMS_TrackFinder {
 
     TMS_Kalman KalmanFitter;
     TMS_DBScan DBSCAN;
+    TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
 
     int FindBin(double Rho);
     // The candidates for each particle

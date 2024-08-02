@@ -1264,6 +1264,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             // Sort track
             SpatialPrio(aTrack.Hits);
 
+            // Charge ID
+            aTrack.Charge = ChargeID.ID_Track_Charge(aTrack.Hits);
+
             // Track Length
             aTrack.Length = CalculateTrackLength3D(aTrack);
 #ifdef DEBUG

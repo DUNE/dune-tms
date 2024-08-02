@@ -52,6 +52,7 @@ class TMS_TreeWriter {
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
+    int RecoTrackCharge[__TMS_MAX_TRACKS__];
 
   private:
     TMS_TreeWriter();
