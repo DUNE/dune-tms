@@ -50,14 +50,22 @@ def region3(x):
 
 def run(c, truth, outfilename, nmax=-1):
     bin_edges = array.array('d', [0, 1000, 2000, 3000, 4000, 5000])
+    bin_edges_gev = [edge // 1000 for edge in bin_edges]  # integer division to get GeV
+
+    # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
     hist_signed_distance_muon = [ROOT.TH1D(f"muon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
     hist_signed_distance_amuon = [ROOT.TH1D(f"amuon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
     
     # Set axis labels for each histogram
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
+        i = 0
         hist.SetXTitle("Signed Distance (mm)")
-        hist.SetYTitle("Number of Muons")
-        hist.SetTitle("")  # Remove the histogram title
+        hist.SetYTitle("Events")
+        if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
+            hist.SetTitle(r"{lo} < KE_{mu} < {hi}".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
+        elif hist.GetName().startswith("amuon"):
+            hist.SetTitle("")  # Remove the histogram title
+        i += 1
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
     print_every = max(1, nevents // 10)
