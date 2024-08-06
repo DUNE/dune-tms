@@ -162,7 +162,7 @@ def validate_then_run(args):
 
     outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/signed_distance_momentum_slices"
     os.makedirs(outdir, exist_ok=True)
-    outfilename = os.path.join(outdir, args.name)
+    outfilename = os.path.join(outdir, args.out_rootfile_name)
     if os.path.exists(outfilename) and not args.allow_overwrite:
         raise ValueError(f"Output file {outfilename} already exists")
 
