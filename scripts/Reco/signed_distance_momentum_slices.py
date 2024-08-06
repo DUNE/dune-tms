@@ -123,8 +123,8 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_muon[i].SetLineColor(ROOT.kRed)
         hist_signed_distance_amuon[i].SetLineColor(ROOT.kBlue)
 
-        hist_signed_distance_muon[i].SetTitle("")  # Ensure the title is empty before drawing
-        hist_signed_distance_amuon[i].SetTitle("")  # Ensure the title is empty before drawing
+        hist_signed_distance_muon[i].GetXaxis().CenterTitle()
+        hist_signed_distance_amuon[i].GetXaxis().CenterTitle()
 
         hist_signed_distance_muon[i].Draw("hist")
         hist_signed_distance_amuon[i].Draw("hist same")
@@ -136,9 +136,12 @@ def run(c, truth, outfilename, nmax=-1):
 
         legend = ROOT.TLegend(0.75, 0.75, 0.9, 0.9)
         legend.SetTextSize(0.03)
-        legend.AddEntry(hist_signed_distance_muon[i], "Muon Momentum", "l")
-        legend.AddEntry(hist_signed_distance_amuon[i], "Antimuon Momentum", "l")
-        legend.Draw()
+        legend.SetBorderSize(0)
+        legend.SetFillStyle(0)
+        legend.SetFillColor(0)
+        legend.AddEntry(hist_signed_distance_muon[i], "#mu^-", "l")
+        legend.AddEntry(hist_signed_distance_amuon[i], "#mu^+", "l")
+        legend.Draw("same")
 
         canvas.Write()
         canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges[i]}_{bin_edges[i+1]}.png")
