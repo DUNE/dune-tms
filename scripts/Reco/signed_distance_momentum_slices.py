@@ -159,12 +159,13 @@ def validate_then_run(args):
     if not files_to_use: 
         raise ValueError("No input files found")
 
-    outdir = args.outdir or f"/exp/dune/app/users/{os.environ['USER']}/dune-tms_hists_signed_distance"
+    outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/signed_distance_muon_momentum_slices"
     os.makedirs(outdir, exist_ok=True)
     outfilename = os.path.join(outdir, args.name)
     if os.path.exists(outfilename) and not args.allow_overwrite:
         raise ValueError(f"Output file {outfilename} already exists")
 
+    # get the TTrees: Line_Candidates (Reco) and Truth_Info
     c, truth = ROOT.TChain("Line_Candidates"), ROOT.TChain("Truth_Info")
     for f in files_to_use:
         c.Add(f)
