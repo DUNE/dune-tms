@@ -144,7 +144,7 @@ def run(c, truth, outfilename, nmax=-1):
         legend.Draw("same")
 
         canvas.Write()
-        canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges[i]}_{bin_edges[i+1]}.png")
+        canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges_gev[i]}GeV_{bin_edges_gev[i+1]}GeV.png")
 
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.Write()
