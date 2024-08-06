@@ -62,7 +62,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(r"{lo} < KE_{mu} < {hi}".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
+            hist.SetTitle("{lo} < KE_{mu} < {hi}".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
         i += 1
@@ -123,24 +123,25 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_muon[i].SetLineColor(ROOT.kRed)
         hist_signed_distance_amuon[i].SetLineColor(ROOT.kBlue)
 
+        hist_signed_distance_muon[i].SetLineWidth(3)
+        hist_signed_distance_amuon[i].SetLineWidth(3)
+
         hist_signed_distance_muon[i].GetXaxis().CenterTitle()
         hist_signed_distance_amuon[i].GetXaxis().CenterTitle()
+        hist_signed_distance_muon[i].GetYaxis().CenterTitle()
+        hist_signed_distance_amuon[i].GetYaxis().CenterTitle()
 
         hist_signed_distance_muon[i].Draw("hist")
         hist_signed_distance_amuon[i].Draw("hist same")
 
-        # Add a title on the canvas
-        title = ROOT.TLatex()
-        title.SetTextSize(0.04)
-        title.DrawLatexNDC(0.1, 0.93, "Muon and Antimuon Signed Distance at Various Momentum Ranges")
 
         legend = ROOT.TLegend(0.75, 0.75, 0.9, 0.9)
         legend.SetTextSize(0.03)
         legend.SetBorderSize(0)
         legend.SetFillStyle(0)
         legend.SetFillColor(0)
-        legend.AddEntry(hist_signed_distance_muon[i], "#mu^-", "l")
-        legend.AddEntry(hist_signed_distance_amuon[i], "#mu^+", "l")
+        legend.AddEntry(hist_signed_distance_muon[i], "#mu^{-}", "l")
+        legend.AddEntry(hist_signed_distance_amuon[i], "#mu^{+}", "l")
         legend.Draw("same")
 
         canvas.Write()
@@ -177,7 +178,7 @@ def validate_then_run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draws spills.')
     parser.add_argument('--outdir', type=str, default="")
-    parser.add_argument('--name', type=str, default="dune-tms_hists.root")
+    parser.add_argument('--out_rootfile_name', type=str, default="dune-tms_hists.root")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--indir', type=str, default="")
     group.add_argument('--inlist', type=str, default="")
