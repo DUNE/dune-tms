@@ -159,7 +159,7 @@ def validate_then_run(args):
     if not files_to_use: 
         raise ValueError("No input files found")
 
-    outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/signed_distance_muon_momentum_slices"
+    outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/signed_distance_momentum_slices"
     os.makedirs(outdir, exist_ok=True)
     outfilename = os.path.join(outdir, args.name)
     if os.path.exists(outfilename) and not args.allow_overwrite:
