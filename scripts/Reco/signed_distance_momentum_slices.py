@@ -55,14 +55,17 @@ def run(c, truth, outfilename, nmax=-1):
     # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
     hist_signed_distance_muon = [ROOT.TH1D(f"muon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
     hist_signed_distance_amuon = [ROOT.TH1D(f"amuon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+
+    print('I have this many histograms: ', len(hist_signed_distance_muon), len(hist_signed_distance_amuon))
     
     # Set axis labels for each histogram
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         i = 0
+        print(i)
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle("{lo} < KE_{mu} < {hi} GeV".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
+            hist.SetTitle(f"{bin_edges_gev[i]} < KE_{'#mu'} < {bin_edges_gev[i + 1]} GeV")
             i += 1
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
