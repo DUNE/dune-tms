@@ -62,7 +62,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle("{lo} < KE_{mu} < {hi}".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
+            hist.SetTitle("{lo} < KE_{mu} < {hi} GeV".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
         i += 1
@@ -135,7 +135,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_amuon[i].Draw("hist same")
 
 
-        legend = ROOT.TLegend(0.75, 0.75, 0.9, 0.9)
+        legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.95)
         legend.SetTextSize(0.03)
         legend.SetBorderSize(0)
         legend.SetFillStyle(0)
