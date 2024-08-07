@@ -62,7 +62,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(rf"{bin_edges_gev[edge_counter]} < {'KE_#mu'} < {bin_edges_gev[edge_counter + 1]} GeV")   # try fixing the title?
+            hist.SetTitle(rf"{bin_edges_gev[edge_counter]} < {'KE_{#mu}'} < {bin_edges_gev[edge_counter + 1]} GeV")   # try fixing the title?
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
         edge_counter += 1
