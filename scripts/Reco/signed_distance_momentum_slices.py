@@ -59,16 +59,15 @@ def run(c, truth, outfilename, nmax=-1):
     print('I have this many histograms: ', len(hist_signed_distance_muon), len(hist_signed_distance_amuon))
     
     # Set axis labels for each histogram
+    edge_counter = 0
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
-        i = 0
-        print(i)
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(f"{bin_edges_gev[i]} < KE_{'#mu'} < {bin_edges_gev[i + 1]} GeV")
-            i += 1
+            hist.SetTitle(f"{bin_edges_gev[i]} < KE\_{'#mu'} < {bin_edges_gev[i + 1]} GeV")
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
+        edge_counter += 1
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
     print_every = max(1, nevents // 10)
