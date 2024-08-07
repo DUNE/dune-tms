@@ -63,9 +63,9 @@ def run(c, truth, outfilename, nmax=-1):
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
             hist.SetTitle("{lo} < KE_{mu} < {hi} GeV".format(lo=bin_edges_gev[i], hi=bin_edges_gev[i+1], mu='#mu'))
+            i += 1
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
-        i += 1
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
     print_every = max(1, nevents // 10)
@@ -135,7 +135,7 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_amuon[i].Draw("hist same")
 
 
-        legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.95)
+        legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
         legend.SetTextSize(0.03)
         legend.SetBorderSize(0)
         legend.SetFillStyle(0)
@@ -145,7 +145,8 @@ def run(c, truth, outfilename, nmax=-1):
         legend.Draw("same")
 
         canvas.Write()
-        canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges_gev[i]}GeV_{bin_edges_gev[i+1]}GeV.png")
+        for ext in ['png', 'pdf']:
+            canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges_gev[i]}GeV_{bin_edges_gev[i+1]}GeV." + ext)
 
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.Write()
