@@ -141,8 +141,8 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_amuon[i].Draw("hist same")
 
         max_content = max(hist_signed_distance_muon[i].GetMaximum(), hist_signed_distance_amuon[i].GetMaximum())
-        hist_signed_distance_muon[i].SetMaximum(max_content * 1.2)
-        hist_signed_distance_amuon[i].SetMaximum(max_content * 1.2)
+        hist_signed_distance_muon[i].SetMaximum(max_content * 1.25)
+        hist_signed_distance_amuon[i].SetMaximum(max_content * 1.25)
 
         legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
         legend.SetTextSize(0.03)
@@ -186,7 +186,7 @@ def run(c, truth, outfilename, nmax=-1):
             purity_amuon = -5
 
 
-        pt = ROOT.TPaveText(0.15, 0.75, 0.45, 0.9, "NDC")
+        pt = ROOT.TPaveText(0.18, 0.7, 0.48, 0.85, "NDC")
         pt.AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
         pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
         pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f} %")
