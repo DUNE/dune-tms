@@ -70,7 +70,7 @@ def run(c, truth, outfilename, nmax=-1):
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
-        hist.GetYaxis().SetTitleOffset(0.8)
+        hist.GetYaxis().SetTitleOffset(0.95)
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
             hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV")
         elif hist.GetName().startswith("amuon"):
