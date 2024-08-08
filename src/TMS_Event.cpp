@@ -313,7 +313,11 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   }
   
   // Now apply optical and timing models
-  ApplyReconstructionEffects();
+  //ApplyReconstructionEffects();
+  // Simulate an optical model 
+  SimulateOpticalModel();
+  // Merge hits that happened in the same scintillator strip and within the same readout time window
+  MergeCoincidentHits();
 
   EventCounter++;
 }
@@ -814,7 +818,7 @@ void TMS_Event::SimulateTimingModel() {
 void TMS_Event::ApplyReconstructionEffects() {
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
   // Simulate an optical model 
-  SimulateOpticalModel();
+  //SimulateOpticalModel();
   // Noise hits can simulate hits
   SimulateDarkCount();
   // Simulate a timing model
