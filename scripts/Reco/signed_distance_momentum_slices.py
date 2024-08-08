@@ -12,6 +12,10 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.TH1.AddDirectory(False)
 ROOT.TH2.AddDirectory(False)
 
+# setup the logger
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # Define muon mass and fiducial cuts
 MUON_MASS = 105.7  # MeV/c^2
 FUDICIAL_CUT = 50
@@ -62,16 +66,15 @@ def run(c, truth, outfilename, nmax=-1):
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(rf"{bin_edges_gev[edge_counter]} < {'KE_{#mu}'} < {bin_edges_gev[edge_counter + 1]} GeV")   # try fixing the title?
+            hist.SetTitle(rf"{bin_edges_gev[edge_counter]} < {'KE_{#mu}'} < {bin_edges_gev[edge_counter + 1]} GeV")
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
         edge_counter += 1
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
-    print_every = max(1, nevents // 10)
 
     for i in range(nevents):
-        if i % print_every == 0:
+        if i % 10000 == 0:
             logging.info(f"Processing event {i} / {nevents} ({i/nevents*100:.1f}%)")
         c.GetEntry(i)
         truth.GetEntry(i)
