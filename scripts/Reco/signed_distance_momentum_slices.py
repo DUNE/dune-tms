@@ -150,8 +150,8 @@ def run(c, truth, outfilename, nmax=-1):
         legend.Draw("same")
 
         # vertical line for easier reading
-        
-        line0 = ROOT.TLine(0, 0, 0, hist_signed_distance_muon[i].GetMaximum())
+        max_content = max(hist_signed_distance_muon[i].GetMaximum(), hist_signed_distance_amuon[i].GetMaximum())
+        line0 = ROOT.TLine(0, 0, 0, max_content)
         line0.SetLineColor(ROOT.kBlack)
         line0.SetLineStyle(2)
         line0.Draw("same")
