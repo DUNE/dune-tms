@@ -159,6 +159,32 @@ def run(c, truth, outfilename, nmax=-1):
         line0.SetLineStyle(2)
         line0.Draw("same")
 
+        # calculate the efficiency
+        muon_integral = hist_signed_distance_muon[i].Integral()
+        events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
+        events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, hist_signed_distance_muon[i].FindBin(0))
+        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, "Integral mu calculation failed"
+
+        amuon_integral = hist_signed_distance_amuon[i].Integral()
+        events_am_gt_0 = hist_signed_distance_amuon[i].Integral(hist_signed_distance_amuon[i].FindBin(0), hist_signed_distance_amuon[i].GetNbinsX())
+        events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, hist_signed_distance_amuon[i].FindBin(0))
+        assert amuon_integral == events_am_gt_0 + events_am_lt_0, "Integral amuon calculation failed"
+
+        efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
+        efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
+
+        # purity for events of signed distance > or < 0 mm.
+        purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
+        purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
+
+        pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC").AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
+        pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
+        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f}")
+        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f}")
+        pt.SetBorderSize(0)
+        pt.SetFillStyle(0)
+        pt.Draw("same")
+
         canvas.Write()
         for ext in ['png', 'pdf']:
             canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges[i]}MeV_{bin_edges[i+1]}MeV." + ext)
