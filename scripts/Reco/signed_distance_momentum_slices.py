@@ -187,11 +187,11 @@ def run(c, truth, outfilename, nmax=-1):
 
 
         pt = ROOT.TPaveText(0.18, 0.7, 0.48, 0.85, "NDC")
-        pt.AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
-        pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
-        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f} %")
-        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f} %")
-        pt.SetTextSize(0.032)
+        pt.AddText(f"Efficiency S.D. > 0 mm: {efficiency_mu_gt_0:.2f} %")
+        pt.AddText(f"Efficiency S.D. < 0 mm: {efficiency_amuon_lt_0:.2f} %")
+        pt.AddText(f"Purity S.D. > 0 mm: {purity_mu:.2f} %")
+        pt.AddText(f"Purity S.D. < 0 mm: {purity_amuon:.2f} %")
+        pt.SetTextSize(0.03)
         pt.SetTextFont(102)
         pt.SetBorderSize(0)
         pt.SetFillStyle(0)
