@@ -159,16 +159,16 @@ def run(c, truth, outfilename, nmax=-1):
         line0.SetLineStyle(2)
         line0.Draw("same")
 
-        # get the events
+        # get the integrals, be sure to not double count the 0 mm bin
         muon_integral = hist_signed_distance_muon[i].Integral()
         events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
-        events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, hist_signed_distance_muon[i].FindBin(0))
-        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, "Integral mu calculation failed"
+        events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, (hist_signed_distance_muon[i].FindBin(0) - 1))
+        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, f"Integral mu calculation failed, {hist_signed_distance_muon[i].GetTitle()}: {muon_integral} != {events_mu_gt_0} + {events_mu_lt_0}"
 
         amuon_integral = hist_signed_distance_amuon[i].Integral()
         events_am_gt_0 = hist_signed_distance_amuon[i].Integral(hist_signed_distance_amuon[i].FindBin(0), hist_signed_distance_amuon[i].GetNbinsX())
-        events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, hist_signed_distance_amuon[i].FindBin(0))
-        assert amuon_integral == events_am_gt_0 + events_am_lt_0, "Integral amuon calculation failed"
+        events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, (hist_signed_distance_amuon[i].FindBin(0) - 1))
+        assert amuon_integral == events_am_gt_0 + events_am_lt_0, f"Integral amuon calculation failed, {hist_signed_distance_amuon[i].GetTitle()}: {amuon_integral} != {events_am_gt_0} + {events_am_lt_0}"
 
         # efficiency for Mu and AMu
         # purity for events of signed distance > or < 0 mm.
@@ -176,22 +176,23 @@ def run(c, truth, outfilename, nmax=-1):
         try:
             efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
             efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
-
             purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
             purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
-
         except ZeroDivisionError:
+            print("Zero division error. Probably due to empty histograms. Setting to -5.0.")
             efficiency_mu_gt_0 = -5
             efficiency_amuon_lt_0 = -5
-
             purity_mu = -5
             purity_amuon = -5
 
 
-        pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC").AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
+        pt = ROOT.TPaveText(0.15, 0.75, 0.45, 0.9, "NDC")
+        pt.AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
         pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
-        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f}")
-        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f}")
+        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f} %")
+        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f} %")
+        pt.SetTextSize(0.032)
+        pt.SetTextFont(102)
         pt.SetBorderSize(0)
         pt.SetFillStyle(0)
         pt.Draw("same")
