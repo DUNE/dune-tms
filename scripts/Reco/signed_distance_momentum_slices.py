@@ -196,11 +196,13 @@ def run(c, truth, outfilename, nmax=-1):
             purity_amuon = -5
 
 
-        pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC")
+        pt = ROOT.TPaveText(0.15, 0.75, 0.45, 0.9, "NDC")
         pt.AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
         pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
-        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f}")
-        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f}")
+        pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f} %")
+        pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f} %")
+        pt.SetTextSize(0.032)
+        pt.SetTextFont(102)
         pt.SetBorderSize(0)
         pt.SetFillStyle(0)
         pt.Draw("same")
