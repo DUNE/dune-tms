@@ -139,7 +139,7 @@ def run(c, truth, outfilename, nmax=-1):
 
         hist_signed_distance_muon[i].Draw("hist")
         hist_signed_distance_amuon[i].Draw("hist same")
-        
+
         max_content = max(hist_signed_distance_muon[i].GetMaximum(), hist_signed_distance_amuon[i].GetMaximum())
         hist_signed_distance_muon[i].SetMaximum(max_content * 1.2)
         hist_signed_distance_amuon[i].SetMaximum(max_content * 1.2)
@@ -159,7 +159,7 @@ def run(c, truth, outfilename, nmax=-1):
         line0.SetLineStyle(2)
         line0.Draw("same")
 
-        # calculate the efficiency
+        # get the events
         muon_integral = hist_signed_distance_muon[i].Integral()
         events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
         events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, hist_signed_distance_muon[i].FindBin(0))
@@ -170,12 +170,23 @@ def run(c, truth, outfilename, nmax=-1):
         events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, hist_signed_distance_amuon[i].FindBin(0))
         assert amuon_integral == events_am_gt_0 + events_am_lt_0, "Integral amuon calculation failed"
 
-        efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
-        efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
-
+        # efficiency for Mu and AMu
         # purity for events of signed distance > or < 0 mm.
-        purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
-        purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
+        # we may have zero division error if the integral is zero -- when testing over only a few events.
+        try:
+            efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
+            efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
+
+            purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
+            purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
+
+        except ZeroDivisionError:
+            efficiency_mu_gt_0 = -5
+            efficiency_amuon_lt_0 = -5
+
+            purity_mu = -5
+            purity_amuon = -5
+
 
         pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC").AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
         pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
