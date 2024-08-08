@@ -150,7 +150,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Apply the det sim now, after overlaying events
     // This doesn't work right now
-    //tms_event.ApplyReconstructionEffects();
+    tms_event.ApplyReconstructionEffects();
 
     // Dump information
     //tms_event.Print();
