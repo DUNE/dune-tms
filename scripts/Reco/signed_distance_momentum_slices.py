@@ -26,7 +26,9 @@ class Momentum:
     def __init__(self, kinetic_energy, classification="muon"):
         self.ke = kinetic_energy
         self.classification = classification
-        self.ranges = [(0, 1000), (1000, 2000), (2000, 3000), (3000, 4000), (4000, 5000)]
+        self.ranges = [(0, 250), (250, 500), (500, 750), (750, 1000),
+                       (1000, 2000), (2000, 3000), (3000, 4000),
+                       (4000, 4250), (4250, 4500), (4500, 4750), (4750, 5000)]  # GeV
 
     def momentum_from_kinetic_energy(self, ke):
         return math.sqrt((ke + MUON_MASS) ** 2 - MUON_MASS ** 2)
@@ -56,7 +58,7 @@ def region3(x):
     return 2500 < x < 4000
 
 def run(c, truth, outfilename, nmax=-1):
-    bin_edges = array.array('d', [0, 1000, 2000, 3000, 4000, 5000])
+    bin_edges = array.array('d', [0, 250, 500, 750, 1000, 2000, 3000, 4000, 4250, 4500, 4750, 5000])
     bin_edges_gev = [edge // 1000 for edge in bin_edges]  # integer division to get GeV
 
     # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
@@ -149,7 +151,7 @@ def run(c, truth, outfilename, nmax=-1):
 
         canvas.Write()
         for ext in ['png', 'pdf']:
-            canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges_gev[i]}GeV_{bin_edges_gev[i+1]}GeV." + ext)
+            canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges[i]}MeV_{bin_edges[i+1]}MeV." + ext)
 
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.Write()
