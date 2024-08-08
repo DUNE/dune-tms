@@ -192,7 +192,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 
                 marker = ROOT.TMarker(x, y, 21)
                 #color = ROOT.TColor.GetColor(e, 32, 32)
-                color = slice_colors[reco_hit_slice % len(slice_colors)] + reco_hit_slice // len(slice_colors) - 3
+                color = ROOT.kGray if reco_hit_slice == 0 else slice_colors[reco_hit_slice % len(slice_colors)] + reco_hit_slice // len(slice_colors) - 3
                 marker.SetMarkerColor(color)
                 markers.append(marker)
                 
