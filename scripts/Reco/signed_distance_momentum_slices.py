@@ -70,7 +70,7 @@ def run(c, truth, outfilename, nmax=-1):
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
-        hist.GetYaxis().SetTitleOffset(0.8)
+        hist.GetYaxis().SetTitleOffset(0.95)
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
             hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV")
         elif hist.GetName().startswith("amuon"):
@@ -139,6 +139,10 @@ def run(c, truth, outfilename, nmax=-1):
 
         hist_signed_distance_muon[i].Draw("hist")
         hist_signed_distance_amuon[i].Draw("hist same")
+        
+        max_content = max(hist_signed_distance_muon[i].GetMaximum(), hist_signed_distance_amuon[i].GetMaximum())
+        hist_signed_distance_muon[i].SetMaximum(max_content * 1.2)
+        hist_signed_distance_amuon[i].SetMaximum(max_content * 1.2)
 
         legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
         legend.SetTextSize(0.03)
@@ -150,8 +154,7 @@ def run(c, truth, outfilename, nmax=-1):
         legend.Draw("same")
 
         # vertical line for easier reading
-        
-        line0 = ROOT.TLine(0, 0, 0, hist_signed_distance_muon[i].GetMaximum())
+        line0 = ROOT.TLine(0, 0, 0, max_content)
         line0.SetLineColor(ROOT.kBlack)
         line0.SetLineStyle(2)
         line0.Draw("same")
