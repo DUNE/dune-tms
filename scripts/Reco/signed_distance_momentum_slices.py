@@ -163,7 +163,7 @@ def run(c, truth, outfilename, nmax=-1):
         print(hist_signed_distance_muon[i].FindBin(0), 'bin at SD=0')
         print(hist_signed_distance_muon[i].GetBinCenter(hist_signed_distance_muon[i].FindBin(0)), 'center at SD=0')
         print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(0)), 'low edge at SD=0')
-        print(hist_signed_distance_muon[i].GetBinHighEdge(hist_signed_distance_muon[i].FindBin(0)), 'high edge at SD=0')
+        print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(1)), 'high edge at SD=0') # the next bin 
         print(hist_signed_distance_muon[i].GetBinContent(hist_signed_distance_muon[i].FindBin(0)), 'content at SD=0')
         
 
