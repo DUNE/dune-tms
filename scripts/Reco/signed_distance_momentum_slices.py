@@ -28,7 +28,7 @@ class Momentum:
         self.classification = classification
         self.ranges = [(0, 250), (250, 500), (500, 750), (750, 1000),
                        (1000, 2000), (2000, 3000), (3000, 4000),
-                       (4000, 4250), (4250, 4500), (4500, 4750), (4750, 5000)]  # GeV
+                       (4000, 4250), (4250, 4500), (4500, 4750), (4750, 5000)]  # MeV
 
     def momentum_from_kinetic_energy(self, ke):
         return math.sqrt((ke + MUON_MASS) ** 2 - MUON_MASS ** 2)
@@ -70,8 +70,9 @@ def run(c, truth, outfilename, nmax=-1):
     for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
+        hist.GetYaxis().SetTitleOffset(0.8)
         if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(rf"{bin_edges_gev[edge_counter]} < {'KE_{#mu}'} < {bin_edges_gev[edge_counter + 1]} GeV")
+            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV")
         elif hist.GetName().startswith("amuon"):
             hist.SetTitle("")  # Remove the histogram title
         edge_counter += 1
@@ -139,7 +140,6 @@ def run(c, truth, outfilename, nmax=-1):
         hist_signed_distance_muon[i].Draw("hist")
         hist_signed_distance_amuon[i].Draw("hist same")
 
-
         legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
         legend.SetTextSize(0.03)
         legend.SetBorderSize(0)
@@ -148,6 +148,13 @@ def run(c, truth, outfilename, nmax=-1):
         legend.AddEntry(hist_signed_distance_muon[i], "#mu^{-}", "l")
         legend.AddEntry(hist_signed_distance_amuon[i], "#mu^{+}", "l")
         legend.Draw("same")
+
+        # vertical line for easier reading
+        
+        line0 = ROOT.TLine(0, 0, 0, hist_signed_distance_muon[i].GetMaximum())
+        line0.SetLineColor(ROOT.kBlack)
+        line0.SetLineStyle(2)
+        line0.Draw("same")
 
         canvas.Write()
         for ext in ['png', 'pdf']:
