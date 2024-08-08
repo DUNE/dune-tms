@@ -176,19 +176,18 @@ def run(c, truth, outfilename, nmax=-1):
         try:
             efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
             efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
-
             purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
             purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
-
         except ZeroDivisionError:
+            print("Zero division error. Probably due to empty histograms. Setting to -5.0.")
             efficiency_mu_gt_0 = -5
             efficiency_amuon_lt_0 = -5
-
             purity_mu = -5
             purity_amuon = -5
 
 
-        pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC").AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
+        pt = ROOT.TPaveText(0.65, 0.6, 0.95, 0.75, "NDC")
+        pt.AddText(f"Efficiency S.D. > 0: {efficiency_mu_gt_0:.2f} %")
         pt.AddText(f"Efficiency S.D. < 0: {efficiency_amuon_lt_0:.2f} %")
         pt.AddText(f"Purity S.D. > 0: {purity_mu:.2f}")
         pt.AddText(f"Purity S.D. < 0: {purity_amuon:.2f}")
