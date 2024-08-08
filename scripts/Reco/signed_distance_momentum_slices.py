@@ -159,17 +159,7 @@ def run(c, truth, outfilename, nmax=-1):
         line0.SetLineStyle(2)
         line0.Draw("same")
 
-        # print the bin edges at SD=0
-        bin_0mm = hist_signed_distance_muon[i].FindBin(0)  # at 0 mm signed distance
-        print(hist_signed_distance_muon[i].FindBin(0), 'bin at SD=0 mm')
-        print(hist_signed_distance_muon[i].GetBinCenter(bin_0mm), 'center at SD=0 mm')
-        print(hist_signed_distance_muon[i].GetBinLowEdge(bin_0mm), 'low edge at SD=0 mm')
-        print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(0)) + hist_signed_distance_muon[i].GetBinWidth(bin_0mm), 'high edge at SD=0 mm')  # the width
-        print(hist_signed_distance_muon[i].GetBinContent(hist_signed_distance_muon[i].FindBin(0)), 'content at SD=0')
-        
-
-
-        # get the events
+        # get the integrals, be sure to not double count the 0 mm bin
         muon_integral = hist_signed_distance_muon[i].Integral()
         events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
         events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, (hist_signed_distance_muon[i].FindBin(0) - 1))
