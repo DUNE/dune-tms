@@ -159,6 +159,12 @@ def run(c, truth, outfilename, nmax=-1):
         line0.SetLineStyle(2)
         line0.Draw("same")
 
+        # print the bin edges at SD=0
+        print(hist_signed_distance_muon[i].FindBin(0), 'bin at SD=0')
+        print(hist_signed_distance_muon[i].GetBinContent(hist_signed_distance_muon[i].FindBin(0)), 'content at SD=0')
+        
+
+
         # get the events
         muon_integral = hist_signed_distance_muon[i].Integral()
         events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
