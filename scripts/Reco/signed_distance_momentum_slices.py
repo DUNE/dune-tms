@@ -37,6 +37,9 @@ class Momentum:
                 return i
         return None
 
+def calc_signed_distance(p_x, p_z, x_end_death, z_end_death, x_start_tms, z_start_tms):
+    return x_end_death - (p_x / p_z * z_end_death + (x_start_tms - p_x / p_z * z_start_tms))
+
 def inside_tms(x, y, z):
     return -3500 < x < 3500 and -3700 < y < 1000 and 11000 < z < 18200
 
@@ -97,22 +100,19 @@ def run(c, truth, outfilename, nmax=-1):
                     KE_muon = truth.Muon_TrueKE
 
                 if inside_lar(x_start, y_start, z_start) and inside_tms(x_end, y_end, z_end):
+                    p_z, p_x = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
                     if region1(x_start_tms) and region1(x_end):
-                        p_z = truth.MomentumTMSStart[4*index+2]
-                        p_x = truth.MomentumTMSStart[4*index]
-                        if p_z != 0: 
-                            signed_dist = x_end - (p_x/p_z * z_end + (x_start_tms - p_x/p_z * z_start_tms))
+                        if p_z != 0:
+                            signed_dist = calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
                     elif region2(x_start_tms) and region2(x_end):
-                        p_z, p_x = truth.MomentumTMSStart[4*index+2], truth.MomentumTMSStart[4*index]
                         if p_z != 0: 
-                            signed_dist = -(x_end - (p_x/p_z * z_end + (x_start_tms - p_x/p_z * z_start_tms)))
+                            signed_dist = - calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
                     elif region3(x_start_tms) and region3(x_end):
-                        p_z, p_x = truth.MomentumTMSStart[4*index+2], truth.MomentumTMSStart[4*index]
                         if p_z != 0: 
-                            signed_dist = x_end - (p_x/p_z * z_end + (x_start_tms - p_x/p_z * z_start_tms))
+                            signed_dist = calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
 
                     p = Momentum(KE_muon, classification="muon" if pdg == 13 else "amuon")
-                    range_index = p.get_range_index()
+                    range_index = p.get_range_index()  # find which set of KE ranges the muon KE falls into
                     if range_index is not None and signed_dist is not None:
                         if pdg == 13:
                             hist_signed_distance_muon[range_index].Fill(signed_dist)
