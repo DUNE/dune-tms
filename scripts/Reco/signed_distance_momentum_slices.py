@@ -74,7 +74,7 @@ def run(c, truth, outfilename, nmax=-1):
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
 
     for i in range(nevents):
-        if i % nevents == 0:
+        if i % 10000 == 0:
             logging.info(f"Processing event {i} / {nevents} ({i/nevents*100:.1f}%)")
         c.GetEntry(i)
         truth.GetEntry(i)
