@@ -163,12 +163,12 @@ def run(c, truth, outfilename, nmax=-1):
         muon_integral = hist_signed_distance_muon[i].Integral()
         events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
         events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, hist_signed_distance_muon[i].FindBin(0))
-        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, "Integral mu calculation failed"
+        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, "Integral mu calculation failed: {muon_integral} != {events_mu_gt_0} + {events_mu_lt_0}"
 
         amuon_integral = hist_signed_distance_amuon[i].Integral()
         events_am_gt_0 = hist_signed_distance_amuon[i].Integral(hist_signed_distance_amuon[i].FindBin(0), hist_signed_distance_amuon[i].GetNbinsX())
         events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, hist_signed_distance_amuon[i].FindBin(0))
-        assert amuon_integral == events_am_gt_0 + events_am_lt_0, "Integral amuon calculation failed"
+        assert amuon_integral == events_am_gt_0 + events_am_lt_0, "Integral amuon calculation failed: {amuon_integral} != {events_am_gt_0} + {events_am_lt_0}"
 
         # efficiency for Mu and AMu
         # purity for events of signed distance > or < 0 mm.
