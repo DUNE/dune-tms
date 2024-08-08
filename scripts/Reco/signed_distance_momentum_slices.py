@@ -160,10 +160,11 @@ def run(c, truth, outfilename, nmax=-1):
         line0.Draw("same")
 
         # print the bin edges at SD=0
-        print(hist_signed_distance_muon[i].FindBin(0), 'bin at SD=0')
-        print(hist_signed_distance_muon[i].GetBinCenter(hist_signed_distance_muon[i].FindBin(0)), 'center at SD=0')
-        print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(0)), 'low edge at SD=0')
-        print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(1)), 'high edge at SD=0') # the next bin 
+        bin_0mm = hist_signed_distance_muon[i].FindBin(0)  # at 0 mm signed distance
+        print(hist_signed_distance_muon[i].FindBin(0), 'bin at SD=0 mm')
+        print(hist_signed_distance_muon[i].GetBinCenter(bin_0mm), 'center at SD=0 mm')
+        print(hist_signed_distance_muon[i].GetBinLowEdge(bin_0mm), 'low edge at SD=0 mm')
+        print(hist_signed_distance_muon[i].GetBinLowEdge(hist_signed_distance_muon[i].FindBin(0)) + hist_signed_distance_muon[i].GetBinWidth(bin_0mm), 'high edge at SD=0 mm')  # the width
         print(hist_signed_distance_muon[i].GetBinContent(hist_signed_distance_muon[i].FindBin(0)), 'content at SD=0')
         
 
