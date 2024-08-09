@@ -62,7 +62,7 @@ class TMS_Event {
     TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
     TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
     
-    void FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum);
+    void FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid);
     
     int GetNSlices() { return NSlices; }; 
     void SetNSlices(int n) { NSlices = n; };
@@ -97,6 +97,8 @@ class TMS_Event {
     int GetTrueParticleIndex(int trackid);
     
     void ApplyReconstructionEffects();
+    
+    void SetLeptonInfoUsingVertexID(int vertexid);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -113,6 +115,8 @@ class TMS_Event {
     void SimulateReadoutNoise();
 
     int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
+    
+    int GetPrimaryLeptonOfVertexID(int vertexid);
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
@@ -145,6 +149,7 @@ class TMS_Event {
     std::pair<TLorentzVector,int> TrueNeutrino;
     TLorentzVector TrueNeutrinoPosition;
     int TrueLeptonPDG;
+    int TrueLeptonVertexID;
     TLorentzVector TrueLeptonPosition;
     TLorentzVector TrueLeptonMomentum;
     std::map<int, double> TrueVisibleEnergyPerVertex;

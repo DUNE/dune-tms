@@ -105,6 +105,8 @@ class TMS_TrueParticle {
     void SetDeathPosition(TLorentzVector &deathpos) { DeathPosition = deathpos; };
 
     TVector3       &GetBirthMomentum() { return BirthMomentum; };
+    TLorentzVector GetBirthMomentumAsLorentz() 
+      { auto mom = GetBirthMomentum(); auto en = GetBirthEnergy(); return TLorentzVector(mom.X(), mom.Y(), mom.Z(), en); };
     TLorentzVector &GetBirthPosition() { return BirthPosition; };
 
     TVector3       &GetDeathMomentum() { return DeathMomentum; };

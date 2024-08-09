@@ -58,7 +58,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
         // Associate the particle with the position
-        truepart.SetVertexID(nVertices);
+        truepart.SetVertexID(vtx.GetInteractionNumber());
         TMS_TruePrimaryParticles.emplace_back(truepart);
       }
 
@@ -210,11 +210,11 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   std::map<int, int> mapping_track_to_vertex_id;
   int vertex_index = 0;
   for (auto vertex : event.Primaries) {
+    vertex_index = vertex.GetInteractionNumber();
     for (auto particle : vertex.Particles) {
       int track_id = particle.GetTrackId();
       mapping_track_to_vertex_id[track_id] = vertex_index;
     }
-    vertex_index += 1;
   } 
   
   // Loop over each hit
@@ -326,7 +326,8 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
-      TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles), TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
+      TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
+      TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
@@ -892,10 +893,11 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrinoPosition.SetT(vtx[0][3]);
 }
 
-void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum) {
+void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid) {
   TrueLeptonPDG = pdg;
   TrueLeptonPosition = position;
   TrueLeptonMomentum = momentum;
+  TrueLeptonVertexID = vertexid;
 }
 
 int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
@@ -1041,4 +1043,37 @@ int TMS_Event::GetTrueParticleIndex(int trackid) {
     }
   }
   return out;
+}
+
+int TMS_Event::GetPrimaryLeptonOfVertexID(int vertexid) {
+  int lepton_index = -999;
+  int current_index = 0;
+  for (auto particle : TMS_TruePrimaryParticles) {
+    if (particle.GetVertexID() == vertexid) {
+      int pdg = std::abs(particle.GetPDG());
+      if (pdg >= 11 && pdg <= 16) {
+        lepton_index = current_index;
+        break;
+      }
+    }
+    current_index += 1;
+  }
+  return lepton_index;
+}
+
+void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
+
+  // And now fill lepton info
+  auto particle_index = GetPrimaryLeptonOfVertexID(vertexid);
+  if (particle_index >= 0) {
+    auto particle = TMS_TruePrimaryParticles[particle_index];
+    int lepton_pdg = particle.GetPDG();
+    auto lepton_position = particle.GetBirthPosition();
+    auto lepton_momentum = particle.GetBirthMomentumAsLorentz();
+    FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum, vertexid);
+  }
+  else {
+    FillTrueLeptonInfo(-9999999, TLorentzVector(-9999999, -999999, -999999, -999999), 
+      TLorentzVector(-9999999, -999999, -999999, -999999), vertexid);
+  }
 }
