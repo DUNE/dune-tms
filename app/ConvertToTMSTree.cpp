@@ -108,6 +108,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
       gRoo->GetEntry(i);
+      
+    // Todo: This should no longer be needed when this bug is fixed in the spill builder
+    // https://github.com/DUNE/2x2_sim/issues/54
+    event->EventId = i;
+    //if (event->Primaries.size() > 0)
+    //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
