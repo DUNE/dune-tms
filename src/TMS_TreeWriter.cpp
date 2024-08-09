@@ -1244,8 +1244,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      //std::cout<<"checking for primary particle trackid"<<std::endl;
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1335,7 +1334,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;

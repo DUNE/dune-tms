@@ -94,7 +94,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
     
-    int GetTrueParticleIndex(int trackid);
+    int GetTrueParticleIndex(int vertexid, int trackid);
     
     void ApplyReconstructionEffects();
     

@@ -32,8 +32,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   bool OnlyMuon = false;
   bool TMSOnly = false;
   bool TMSLArOnly = false;
-  bool OnlyPrimary = true;
-  bool OnlyPrimaryOrInteresting = false;
+  bool OnlyPrimary = false;
+  bool OnlyPrimaryOrInteresting = true;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   
   int nPrimary = 0;
@@ -42,11 +42,22 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nCharged = 0;
   int nHighMomentum = 0;
   int nChargedAndLowMomentum = 0;
+  int current_vertexid = event.EventId;
+  // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
+  // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
+  // todo: Make both GetInteractionNumber when bug is fixed
+  bool use_GetInteractionNumber = false;
+  if (event.Primaries.size() > 1) use_GetInteractionNumber = true; 
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
 
     TG4PrimaryVertex vtx = *it;
     Reaction = (*it).GetReaction();
+    
+    // Ideally we'd do it like this, but it's not supported by the spill builder
+    // See https://github.com/DUNE/2x2_sim/issues/54
+    if (use_GetInteractionNumber)
+      current_vertexid = vtx.GetInteractionNumber();
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -57,8 +68,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       for (TG4PrimaryVertex::PrimaryParticles::iterator jt = particles.begin(); jt != particles.end(); ++jt) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
-        // Associate the particle with the position
-        truepart.SetVertexID(vtx.GetInteractionNumber());
         TMS_TruePrimaryParticles.emplace_back(truepart);
       }
 
@@ -121,9 +130,9 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           if (isCharged && !isHighMomentum) nChargedAndLowMomentum += 1;
         }
 
-        // Skip if neither interesting nor primary
+        // Skip if not interesting and not primary
         if (OnlyPrimaryOrInteresting) {
-          if ((!isPrimary) || (!isInteresting)) continue;
+          if ((!isPrimary) && (!isInteresting)) continue;
         }
 
         // Is this the first time we encounter this particle in the trajectory point loop?
@@ -157,7 +166,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           if (firsttime) {
             // Can't set start momentum and position whe looping over the trajectory points, do this later
             //TMS_TrueParticle part(ParentId, TrackId, PDGcode, Momentum, Position);
-            TMS_TrueParticle part(ParentId, TrackId, PDGcode);
+            TMS_TrueParticle part(ParentId, TrackId, PDGcode, current_vertexid);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
           } // End if (firsttime)
@@ -208,11 +217,18 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 
   // First create a mapping so we don't loop multiple times
   std::map<int, int> mapping_track_to_vertex_id;
-  int vertex_index = 0;
+  int vertex_index = event.EventId;
   for (auto vertex : event.Primaries) {
-    vertex_index = vertex.GetInteractionNumber();
+    // Ideally we'd do it like this for nersc files, but it's not supported by the spill builder
+    // See https://github.com/DUNE/2x2_sim/issues/54
+    if (use_GetInteractionNumber)
+      vertex_index = vertex.GetInteractionNumber();
     for (auto particle : vertex.Particles) {
       int track_id = particle.GetTrackId();
+      mapping_track_to_vertex_id[track_id] = vertex_index;
+    }
+    for (auto traj : event.Trajectories) {
+      int track_id = traj.GetTrackId();
       mapping_track_to_vertex_id[track_id] = vertex_index;
     }
   } 
@@ -232,8 +248,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       int vertex_id = -999;
       auto value = mapping_track_to_vertex_id.find(track_id);
       if (value == mapping_track_to_vertex_id.end()) {
-        //std::cout<<"Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<std::endl;
-        // TODO fix that this can't happen anymore. Would need to map all trajectories to their parent vertices
+        std::cout<<"WARNING: Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<", this shouldn't happen anymore\n\n\n"<<std::endl;
       }
       else vertex_id = value->second;
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
@@ -344,7 +359,7 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   
   
   nTrueTrajectories = -999;
-  VertexIdOfMostEnergyInEvent = -999;
+  VertexIdOfMostEnergyInEvent = -9991;
   LightWeight = true;
   GetVertexIdOfMostVisibleEnergy();
   
@@ -871,8 +886,6 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   // Merge these lists
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
-  
-  
 
   nVertices += Other_Event.nVertices;
 
@@ -906,6 +919,8 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
 
   // Reset the map
   TrueVisibleEnergyPerVertex.clear();
+  int min_vertex_id_seen = 1e9;
+  int max_vertex_id_seen = -1;
   // First find how much energy is in each variable
   for (auto& hit : TMS_Hits) {
     for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
@@ -914,12 +929,14 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
       double energy = hit.GetTrueHit().GetEnergyShare(i);
       //std::cout<<"vertex_id = "<<vertex_id<<", energy = "<<energy<<std::endl;
       TrueVisibleEnergyPerVertex[vertex_id] += energy;
+      if (vertex_id < min_vertex_id_seen) min_vertex_id_seen = vertex_id;
+      if (vertex_id > max_vertex_id_seen) max_vertex_id_seen = vertex_id;
     }
   }
   
   // Now find the most energetic vertex
   double max = -1e9;
-  int max_vertex_id = -999;
+  int max_vertex_id = -9992;
   double total_energy = 0;
   for (auto it : TrueVisibleEnergyPerVertex) {
     double vertex = it.first;
@@ -1033,15 +1050,19 @@ double TMS_Event::GetMuonTrueTrackLength() {
   return total;
 }
 
-int TMS_Event::GetTrueParticleIndex(int trackid) {
+int TMS_Event::GetTrueParticleIndex(int vertexid, int trackid) {
   int out = -1;
   // Gracefully deal with trackid = -999
-  if (trackid >= 0) {
+  if (vertexid >= 0 && trackid >= 0) {
     for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
       auto& tp = TMS_TrueParticles.at(i);
-      if (tp.GetTrackId() == trackid) { out = i; break; }
+      if (tp.GetVertexID() == vertexid && tp.GetTrackId() == trackid) { out = i; break; }
     }
   }
+  else {
+    std::cout<<"GetTrueParticleIndex: Case of vertex < 0 or trackid < 0. Vertex id: "<<vertexid<<", track id: "<<trackid<<", n TMS_TrueParticles: "<<TMS_TrueParticles.size()<<std::endl;
+  }
+  if (out < 0) std::cout<<"GetTrueParticleIndex: Case where out < 0. Vertex id: "<<vertexid<<", track id: "<<trackid<<", n TMS_TrueParticles: "<<TMS_TrueParticles.size()<<std::endl;
   return out;
 }
 
