@@ -9,7 +9,7 @@ TMS_Hit::TMS_Hit(TG4HitSegment &edep_seg, int vertex_id) :
   Bar(edep_seg),
   EnergyDeposit(edep_seg.GetEnergyDeposit()),
   // Define time as the average between start and stop of hit
-  Time((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2), 
+  Time(std::fmod((edep_seg.GetStop().T()+edep_seg.GetStart().T())/2, TMS_Manager::GetInstance().Get_Nersc_Spill_Period())), 
   Slice(0), 
   #ifdef RECORD_HIT_DEADTIME
   DeadtimeStart(-999.0),

@@ -18,7 +18,7 @@
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
-#define __TMS_MAX_TRUE_PARTICLES__ 500 // Maximum number of true particles to save info about
+#define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {

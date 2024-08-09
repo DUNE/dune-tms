@@ -90,4 +90,6 @@ TMS_Manager::TMS_Manager() {
   _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
 
   _GEOMETRY_YMIDDLE = toml::find<double>(data, "Geometry", "YBarMiddle");
+  
+  _NERSC_SPILL_PERIOD = 1.2e9;
 }

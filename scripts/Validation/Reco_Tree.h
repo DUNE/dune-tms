@@ -28,6 +28,8 @@ public :
    Int_t           nTracks;
    Int_t           nHits[20];   //[nTracks]
    Float_t         TrackHitPos[20][200][3];   //[nTracks]
+   Float_t         KalmanPos[20][200][3];   //[nTracks]
+   Float_t         KalmanTruePos[20][200][3];   //[nTracks]
    Float_t         StartPos[20][3];   //[nTracks]
    Float_t         Direction[20][3];   //[nTracks]
    Float_t         EndPos[20][3];   //[nTracks]
@@ -42,6 +44,8 @@ public :
    TBranch        *b_nTracks;   //!
    TBranch        *b_nHits;   //!
    TBranch        *b_TrackHitPos;   //!
+   TBranch        *b_KalmanPos;   //!
+   TBranch        *b_KalmanTruePos;   //!
    TBranch        *b_StartPos;   //!
    TBranch        *b_Direction;   //!
    TBranch        *b_EndPos;   //!
@@ -59,6 +63,7 @@ public :
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual Long64_t GetEntriesFast() { return fChain->GetEntriesFast(); };
+   virtual bool HasBranch(const char* branch) { return fChain->GetBranch(branch) != NULL; };
 };
 
 #endif
@@ -127,6 +132,8 @@ void Reco_Tree::Init(TTree *tree)
    fChain->SetBranchAddress("nTracks", &nTracks, &b_nTracks);
    fChain->SetBranchAddress("nHits", nHits, &b_nHits);
    fChain->SetBranchAddress("TrackHitPos", TrackHitPos, &b_TrackHitPos);
+   fChain->SetBranchAddress("KalmanPos", KalmanPos, &b_KalmanPos);
+   fChain->SetBranchAddress("KalmanTruePos", KalmanTruePos, &b_KalmanTruePos);
    fChain->SetBranchAddress("StartPos", StartPos, &b_StartPos);
    fChain->SetBranchAddress("Direction", Direction, &b_Direction);
    fChain->SetBranchAddress("EndPos", EndPos, &b_EndPos);

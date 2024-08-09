@@ -1,5 +1,6 @@
 #include "TMS_TrueHit.h"
 #include "TMS_Readout_Manager.h"
+#include "TMS_Manager.h"
 
 /*
 TMS_TrueHit::TMS_TrueHit() :
@@ -32,7 +33,8 @@ TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) {
   SetX(avg.X());
   SetY(avg.Y());
   SetZ(avg.Z());
-  SetT(avg.T());
+  SetT(std::fmod(avg.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period()));
+  
   TLorentzVector diff = (edep_seg.GetStop() - edep_seg.GetStart());
   SetdX(diff.P());
   SetPE(GetE() * TMS_Readout_Manager::GetInstance().Get_Sim_Optical_LightYield());
