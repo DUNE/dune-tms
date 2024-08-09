@@ -866,6 +866,12 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (auto &part: other_truepart) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
+  
+  // Merge these lists
+  TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
+  TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
+  
+  
 
   nVertices += Other_Event.nVertices;
 
