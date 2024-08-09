@@ -23,10 +23,12 @@ def draw_histograms(input_file):
             obj.GetYaxis().SetTitleOffset(1.4)
             obj.GetZaxis().SetTitleOffset(0.5)
             obj.Draw("colz")
+            print(f"{obj.GetName()} intergral: {obj.Integral()}")
             canvas.Print(os.path.join(output_dir, obj.GetName() + ".png"))
         elif isinstance(obj, ROOT.TH1):
             # For 1D histograms, draw and save as png
             obj.Draw()
+            #print(f"{obj.GetName()} intergral: {obj.Integral()}")
             canvas.Print(os.path.join(output_dir, obj.GetName() + ".png"))
 
     # Close the input ROOT file

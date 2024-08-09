@@ -7,6 +7,7 @@
 // Root specific
 #include <TFile.h>
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TVector3.h>
 
 #include "Truth_Info.h"
@@ -39,6 +40,79 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
     int n_zbins = 50;
     double z_start = 11000;
     double z_end = 18500;
+    
+    bool has_kalman = reco.HasBranch("KalmanPos");
+    std::cout<<"has_kalman status: "<<has_kalman<<std::endl;
+    
+    TH1D hist_ntracks("n_tracks", "N Tracks;N Tracks;N Events", 
+      10, -0.5, 9.5);
+    TH1D hist_track_length("track_length", "Track Length;Track Length (mm);N Tracks", 
+      20, 0, 3000);
+    TH1D hist_track_n_hits("track_n_hits", "Track N Hits;N Hits;N Tracks", 
+      10, 0, 100);
+    TH1D hist_track_hit_dx("track_hit_dx", "Track Hit dx;Hit dx (mm);N Hits", 
+      51, -150, 150);
+    TH1D hist_track_hit_dy("track_hit_dy", "Track Hit dy;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dz("track_hit_dz", "Track Hit dz;Hit dz (mm);N Hits", 
+      51, -40, 40);
+      
+    TH1D hist_track_hit_dy_relative("track_hit_dy_relative", "Track Hit dy, Relative to Hit n-1;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_relative_5("track_hit_dy_relative_5", "Track Hit dy, Relative to Hit n-5;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_relative_10("track_hit_dy_relative_10", "Track Hit dy, Relative to Hit n-10;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_relative_20("track_hit_dy_relative_20", "Track Hit dy, Relative to Hit n-20;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_relative_50("track_hit_dy_relative_50", "Track Hit dy, Relative to Hit n-50;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_relative_start_end("track_hit_dy_relative_start_end", "Track End Hit dy, Relative to start;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_start("track_hit_dy_start", "Track Start Hit dy;Hit dy (mm);N Hits", 
+      51, -500, 500);
+    TH1D hist_track_hit_dy_end("track_hit_dy_end", "Track End Hit dy;Hit dy (mm);N Hits", 
+      51, -500, 500);
+      
+    TH1D hist_track_hit_x("track_hit_x", "Track Hit x;Hit x (mm);N Hits", 
+      51, -4000, 4000);
+    TH1D hist_track_hit_y("track_hit_y", "Track Hit y;Hit y (mm);N Hits", 
+      51, -3600, 400);
+    TH1D hist_track_hit_z("track_hit_z", "Track Hit z;Hit z (mm);N Hits", 
+      51, -10, 19000 );
+    TH2D hist_track_hit_xz("track_hit_xz", "Track Hit x vs z;Hit z (mm);Hit x (mm);N Hits", 
+      101, 11000, 18500, 501, -4000, 4000);
+    TH2D hist_track_hit_yz("track_hit_yz", "Track Hit y vs z;Hit z (mm);Hit y (mm);N Hits", 
+      101, 11000, 18500, 501, -3600, 400);
+      
+    TH2D hist_track_hit_xz_relative_start("track_hit_xz_relative_start", "Track Hit x vs z, Relative to Track Start;Hit z (mm);Hit x (mm);N Hits", 
+      201, 0, 7000, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_end("track_hit_xz_relative_end", "Track Hit x vs z, Relative to Track End;Hit z (mm);Hit x (mm);N Hits", 
+      201, -7000, 0, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_center("track_hit_xz_relative_center", "Track Hit x vs z, Relative to Track Center;Hit z (mm);Hit x (mm);N Hits", 
+      201, -3500, 3500, 301, -3000, 3000);
+      
+    TH2D hist_track_hit_xz_relative_start_p1("track_hit_xz_relative_start_p1", "Track Hit x vs z, Relative to Track Start + 1;Hit z (mm);Hit x (mm);N Hits", 
+      201, 0, 7000, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_start_p2("track_hit_xz_relative_start_p2", "Track Hit x vs z, Relative to Track Start + 2;Hit z (mm);Hit x (mm);N Hits", 
+      201, 0, 7000, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_start_p4("track_hit_xz_relative_start_p4", "Track Hit x vs z, Relative to Track Start + 4;Hit z (mm);Hit x (mm);N Hits", 
+      201, 0, 7000, 301, -3000, 3000);
+      
+    TH2D hist_track_hit_xz_relative_end_m1("track_hit_xz_relative_end_m1", "Track Hit x vs z, Relative to Track End - 1;Hit z (mm);Hit x (mm);N Hits", 
+      201, -7000, 0, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_end_m2("track_hit_xz_relative_end_m2", "Track Hit x vs z, Relative to Track End - 2;Hit z (mm);Hit x (mm);N Hits", 
+      201, -7000, 0, 301, -3000, 3000);
+    TH2D hist_track_hit_xz_relative_end_m4("track_hit_xz_relative_end_m4", "Track Hit x vs z, Relative to Track End - 4;Hit z (mm);Hit x (mm);N Hits", 
+      201, -7000, 0, 301, -3000, 3000);
+      
+    TH2D hist_track_hit_yz_relative_start("track_hit_yz_relative_start", "Track Hit y vs z, Relative to Track Start;Hit z (mm);Hit y (mm);N Hits", 
+      201, 0, 7000, 301, -3000, 3000);
+    TH2D hist_track_hit_yz_relative_end("track_hit_yz_relative_end", "Track Hit y vs z, Relative to Track End;Hit z (mm);Hit y (mm);N Hits", 
+      201, -7000, 0, 301, -3000, 3000);
+    TH2D hist_track_hit_yz_relative_center("track_hit_yz_relative_center", "Track Hit y vs z, Relative to Track Center;Hit z (mm);Hit y (mm);N Hits", 
+      201, -3500, 3500, 301, -3000, 3000);
+      
     TH1D hist_reco_track_z("reco_track_z", "Reco Track Z_{Start};Z (mm);N Tracks", 
       n_zbins, z_start, z_end);
     TH1D hist_true_track_z("true_track_z", "True Track Z_{Start};Z (mm);N Tracks", 
@@ -93,6 +167,99 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
       // Currently reco and truth match
       truth.GetEntry(entry_number);
       reco.GetEntry(entry_number);
+      
+      hist_ntracks.Fill(reco.nTracks);
+        
+      if (!has_kalman) {
+        for (int itrack = 0; itrack < reco.nTracks; itrack++) {
+          for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
+            for (int i = 0; i < 4; i++) {
+              reco.KalmanPos[itrack][ihit][i] = reco.TrackHitPos[itrack][ihit][i];
+              reco.KalmanTruePos[itrack][ihit][i] = truth.RecoTrackTrueHitPosition[itrack][ihit][i];
+            }
+          }
+        }
+      }
+        
+      for (int itrack = 0; itrack < reco.nTracks; itrack++) {
+        hist_track_length.Fill(reco.Length[itrack]);
+        hist_track_n_hits.Fill(reco.nHits[itrack]);
+        
+        hist_track_hit_dy_start.Fill(reco.KalmanPos[itrack][0][1] - reco.KalmanTruePos[itrack][0][1]);
+        hist_track_hit_dy_end.Fill(reco.KalmanPos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][1]);
+        hist_track_hit_dy_relative_start_end.Fill((reco.KalmanPos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanPos[itrack][0][1]) -\
+             (reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanTruePos[itrack][0][1]));
+        std::cout<<"\n\nLooping over hits for track "<<itrack<<std::endl;
+        for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
+          if (reco.KalmanPos[itrack][ihit][2] < 11000) continue;
+          
+          std::cout<<"(x, y, z)=("<<reco.KalmanPos[itrack][ihit][0]<<", "<<reco.KalmanPos[itrack][ihit][1]<<", "<<reco.KalmanPos[itrack][ihit][2]<<")";
+          //std::cout<<", start=("<<reco.KalmanPos[itrack][0][0]<<", "<<reco.KalmanPos[itrack][0][1]<<", "<<reco.KalmanPos[itrack][0][2]<<")";
+          //std::cout<<", end=("<<reco.KalmanPos[itrack][reco.nHits[itrack]-1][0]<<", "<<reco.KalmanPos[itrack][reco.nHits[itrack]-1][1]<<", "<<reco.KalmanPos[itrack][reco.nHits[itrack]-1][2]<<")";
+          std::cout<<std::endl;
+          hist_track_hit_dx.Fill(reco.KalmanPos[itrack][ihit][0] - reco.KalmanTruePos[itrack][ihit][0]);
+          hist_track_hit_dy.Fill(reco.KalmanPos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit][1]);
+          hist_track_hit_dz.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanTruePos[itrack][ihit][2]);
+          
+          hist_track_hit_x.Fill(reco.KalmanPos[itrack][ihit][0]);
+          hist_track_hit_y.Fill(reco.KalmanPos[itrack][ihit][1]);
+          hist_track_hit_z.Fill(reco.KalmanPos[itrack][ihit][2]);
+          hist_track_hit_xz.Fill(reco.KalmanPos[itrack][ihit][2], reco.KalmanPos[itrack][ihit][0]);
+          hist_track_hit_yz.Fill(reco.KalmanPos[itrack][ihit][2], reco.KalmanPos[itrack][ihit][1]);
+          
+          hist_track_hit_xz_relative_start.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][0][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][0][0]);
+          hist_track_hit_xz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][0]);
+          if (reco.nHits[itrack] > 2) 
+            hist_track_hit_xz_relative_end_m1.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-2][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-2][0]);
+          if (reco.nHits[itrack] > 3) 
+            hist_track_hit_xz_relative_end_m2.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-3][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-3][0]);
+          if (reco.nHits[itrack] > 5) 
+            hist_track_hit_xz_relative_end_m4.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-5][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-5][0]);
+          hist_track_hit_xz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][0]);
+                                                
+                                                
+          if (reco.nHits[itrack] > 2) 
+            hist_track_hit_xz_relative_start_p1.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][1][2], 
+                                                  reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][1][0]);
+          if (reco.nHits[itrack] > 3) 
+            hist_track_hit_xz_relative_start_p2.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][2][2], 
+                                                  reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][2][0]);
+          if (reco.nHits[itrack] > 5) 
+            hist_track_hit_xz_relative_start_p4.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][4][2], 
+                                                  reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][4][0]);
+
+
+          hist_track_hit_yz_relative_start.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][1][2], 
+                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][1][1]);
+          hist_track_hit_yz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][2], 
+                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][1]);
+          hist_track_hit_yz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][2], 
+                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][1]);
+          
+          // Same but subtract a relative offset
+          if (ihit > 0)
+            hist_track_hit_dy_relative.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-1][1]) -\
+               (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-1][1]));
+          if (ihit > 5)
+            hist_track_hit_dy_relative_5.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-5][1]) -\
+               (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-5][1]));
+          if (ihit > 10)
+            hist_track_hit_dy_relative_10.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-10][1]) -\
+               (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-10][1]));
+          if (ihit > 20)
+            hist_track_hit_dy_relative_20.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-20][1]) -\
+               (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-20][1]));
+          if (ihit > 50)
+            hist_track_hit_dy_relative_50.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-50][1]) -\
+               (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-50][1]));
+        }
+      }
       
       for (int itrack = 0; itrack < truth.RecoTrackN; itrack++) {
         int particle_index = truth.RecoTrackPrimaryParticleIndex[itrack];
