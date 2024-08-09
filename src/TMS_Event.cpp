@@ -948,6 +948,10 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   VisibleEnergyFromVertexInSlice = max;
   VisibleEnergyFromOtherVerticesInSlice = total_energy - max;
   
+  if (TrueVisibleEnergyPerVertex.find(VertexIdOfMostEnergyInEvent) != TrueVisibleEnergyPerVertex.end())
+    TotalVisibleEnergyFromVertex = TrueVisibleEnergyPerVertex[VertexIdOfMostEnergyInEvent];
+  else std::cout<<"Warning in GetVertexIdOfMostVisibleEnergy: TrueVisibleEnergyPerVertex.Find(VertexIdOfMostEnergyInEvent) == TrueVisibleEnergyPerVertex.end()"<<std::endl;
+  
   return VertexIdOfMostEnergyInEvent;
 }
 
