@@ -90,6 +90,8 @@ def run(c, truth, outfilename, nmax=-1):
         else:
             raise ValueError("Histogram naming error")
         edge_counter += 1
+        if edge_counter == len(bin_edges) - 1:
+            edge_counter = 0  # rest the counter
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
 
