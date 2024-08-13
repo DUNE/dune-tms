@@ -119,7 +119,7 @@ def run(c, truth, outfilename, nmax=-1):
                     KE_muon = truth.Muon_TrueKE
 
                 if inside_lar(x_start, y_start, z_start) and inside_tms(x_end, y_end, z_end):
-                    p_tms_start = ROOT.TVector3D(truth.MomentumTMSStart[4 * index], truth.MomentumTMSStart[4 * index + 1], truth.MomentumTMSStart[4 * index + 2])
+                    p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * index], truth.MomentumTMSStart[4 * index + 1], truth.MomentumTMSStart[4 * index + 2])
                     ke_muon_tms_start = get_muon_ke_entering_tms(p_tms_start)
                     pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
 
