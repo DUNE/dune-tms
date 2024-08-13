@@ -33,15 +33,19 @@ class Momentum:
     def momentum_from_kinetic_energy(self, ke):
         return math.sqrt((ke + MUON_MASS) ** 2 - MUON_MASS ** 2)
 
-    def get_range_index(self):
+    def get_muon_ke_index(self):
         for i, r in enumerate(self.ranges):
             if r[0] <= self.ke <= r[1]:
                 return i
         return None
 
+def get_muon_ke_entering_tms(momentum_tms_start):
+    return math.sqrt(momentum_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+
 def calc_signed_distance(p_x, p_z, x_end_death, z_end_death, x_start_tms, z_start_tms):
     return x_end_death - (p_x / p_z * z_end_death + (x_start_tms - p_x / p_z * z_start_tms))
 
+# NOTE: all values here are in mm.
 def inside_tms(x, y, z):
     return -3500 < x < 3500 and -3700 < y < 1000 and 11000 < z < 18200
 
@@ -62,20 +66,33 @@ def run(c, truth, outfilename, nmax=-1):
     bin_edges_gev = [edge // 1000 for edge in bin_edges]  # integer division to get GeV
 
     # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
-    hist_signed_distance_muon = [ROOT.TH1D(f"muon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
-    hist_signed_distance_amuon = [ROOT.TH1D(f"amuon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    # These two lists of TH1s will use the KE from the True_MuonKE (from its birth)
+    hist_signed_distance_muon_lar_ke = [ROOT.TH1D(f"muon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    hist_signed_distance_amuon_lar_ke = [ROOT.TH1D(f"amuon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+
+    # create histograms that will be sliced based on their entering TMS KE
+    hist_signed_distance_muon_tms_ke = [ROOT.TH1D(f"muon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    hist_signed_distance_amuon_tms_ke = [ROOT.TH1D(f"amuon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
 
     # Set axis labels for each histogram
     edge_counter = 0
-    for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
+    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         hist.GetYaxis().SetTitleOffset(0.95)
-        if hist.GetName().startswith("muon"):  # only want to set the title for the first histogram drawn
-            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV")
-        elif hist.GetName().startswith("amuon"):
+        if hist.GetName().startswith("muon") and "tms_ke" in hist.GetName():  # only want to set the title for the first histogram drawn
+            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Entering TMS")
+        elif hist.GetName().startswith("amuon") and "tms_ke" in hist.GetName():
             hist.SetTitle("")  # Remove the histogram title
+        elif hist.GetName().startswith("muon") and "lar_ke" in hist.GetName():
+            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Inside LAr")
+        elif hist.GetName().startswith("amuon") and "lar_ke" in hist.GetName():
+            hist.SetTitle("")  # Remove the histogram title
+        else:
+            raise ValueError("Histogram naming error")
         edge_counter += 1
+        if edge_counter == len(bin_edges) - 1:
+            edge_counter = 0  # rest the counter
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
 
@@ -103,105 +120,132 @@ def run(c, truth, outfilename, nmax=-1):
                     KE_muon = truth.Muon_TrueKE
 
                 if inside_lar(x_start, y_start, z_start) and inside_tms(x_end, y_end, z_end):
-                    p_z, p_x = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
-                    if region1(x_start_tms) and region1(x_end):
-                        if p_z != 0:
-                            signed_dist = calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
-                    elif region2(x_start_tms) and region2(x_end):
-                        if p_z != 0: 
-                            signed_dist = - calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
-                    elif region3(x_start_tms) and region3(x_end):
-                        if p_z != 0: 
-                            signed_dist = calc_signed_distance(p_x, p_z, x_end, z_end, x_start_tms, z_start_tms)
+                    p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * index], truth.MomentumTMSStart[4 * index + 1], truth.MomentumTMSStart[4 * index + 2])
+                    ke_muon_tms_start = get_muon_ke_entering_tms(p_tms_start)
+                    pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
 
+                    if region1(x_start_tms) and region1(x_end):
+                        if pz_tms_start != 0:
+                            signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+                    elif region2(x_start_tms) and region2(x_end):
+                        if pz_tms_start != 0:
+                            signed_dist = - calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+                    elif region3(x_start_tms) and region3(x_end):
+                        if pz_tms_start != 0:
+                            signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+
+                    # this is the Muon_TrueKE from the birth of the muon (inside LAr)
                     p = Momentum(KE_muon, classification="muon" if pdg == 13 else "amuon")
-                    range_index = p.get_range_index()  # find which set of KE ranges the muon KE falls into
+                    range_index = p.get_muon_ke_index()  # find which set of KE ranges the muon KE falls into
                     if range_index is not None and signed_dist is not None:
                         if pdg == 13:
-                            hist_signed_distance_muon[range_index].Fill(signed_dist)
+                            hist_signed_distance_muon_lar_ke[range_index].Fill(signed_dist)
                         else:
-                            hist_signed_distance_amuon[range_index].Fill(signed_dist)
+                            hist_signed_distance_amuon_lar_ke[range_index].Fill(signed_dist)
+
+                    # this is the MuonKE entering the TMS
+                    p_tms = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon")
+                    range_index_tms = p_tms.get_muon_ke_index()
+                    if range_index_tms is not None and signed_dist is not None:
+                        if pdg == 13:
+                            hist_signed_distance_muon_tms_ke[range_index_tms].Fill(signed_dist)
+                        else:
+                            hist_signed_distance_amuon_tms_ke[range_index_tms].Fill(signed_dist)
+
 
     tf = ROOT.TFile(outfilename, "recreate")
     canvas = ROOT.TCanvas("canvas", "", 800, 600)  # Set an empty string for the title to avoid unwanted titles
 
-    for i in range(len(bin_edges) - 1):
-        hist_signed_distance_muon[i].SetLineColor(ROOT.kRed)
-        hist_signed_distance_amuon[i].SetLineColor(ROOT.kBlue)
+    # make the legend only once, since they will be the same
+    legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
+    legend.SetTextSize(0.03)
+    legend.SetBorderSize(0)
+    legend.SetFillStyle(0)
+    legend.SetFillColor(0)
+    legend.AddEntry(hist_signed_distance_muon_lar_ke[0], "#mu^{-}", "l")  # just pick some index
+    legend.AddEntry(hist_signed_distance_amuon_lar_ke[0], "#mu^{+}", "l")
 
-        hist_signed_distance_muon[i].SetLineWidth(3)
-        hist_signed_distance_amuon[i].SetLineWidth(3)
+    edge_counter = 0
+    # loop through the mu and amu hists together for LAr KE and TMS KE.
+    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon_lar_ke, hist_signed_distance_amuon_lar_ke], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke]]):
+        for hist_mu, hist_amu in zip(hists_mu_list, hists_amu_list):  # pair these together
+            hist_mu.SetLineColor(ROOT.kRed)
+            hist_amu.SetLineColor(ROOT.kBlue)
 
-        hist_signed_distance_muon[i].GetXaxis().CenterTitle()
-        hist_signed_distance_amuon[i].GetXaxis().CenterTitle()
-        hist_signed_distance_muon[i].GetYaxis().CenterTitle()
-        hist_signed_distance_amuon[i].GetYaxis().CenterTitle()
+            hist_mu.SetLineWidth(3)
+            hist_amu.SetLineWidth(3)
 
-        hist_signed_distance_muon[i].Draw("hist")
-        hist_signed_distance_amuon[i].Draw("hist same")
+            hist_mu.GetXaxis().CenterTitle()
+            hist_amu.GetXaxis().CenterTitle()
+            hist_mu.GetYaxis().CenterTitle()
+            hist_amu.GetYaxis().CenterTitle()
 
-        max_content = max(hist_signed_distance_muon[i].GetMaximum(), hist_signed_distance_amuon[i].GetMaximum())
-        hist_signed_distance_muon[i].SetMaximum(max_content * 1.25)
-        hist_signed_distance_amuon[i].SetMaximum(max_content * 1.25)
+            hist_mu.Draw("hist")
+            hist_amu.Draw("hist same")
 
-        legend = ROOT.TLegend(0.65, 0.75, 0.95, 0.9)
-        legend.SetTextSize(0.03)
-        legend.SetBorderSize(0)
-        legend.SetFillStyle(0)
-        legend.SetFillColor(0)
-        legend.AddEntry(hist_signed_distance_muon[i], "#mu^{-}", "l")
-        legend.AddEntry(hist_signed_distance_amuon[i], "#mu^{+}", "l")
-        legend.Draw("same")
+            max_content = max(hist_mu.GetMaximum(), hist_amu.GetMaximum())
+            hist_mu.SetMaximum(max_content * 1.25)
+            hist_amu.SetMaximum(max_content * 1.25)
 
-        # vertical line for easier reading
-        line0 = ROOT.TLine(0, 0, 0, max_content)
-        line0.SetLineColor(ROOT.kBlack)
-        line0.SetLineStyle(2)
-        line0.Draw("same")
+            legend.Draw("same")
 
-        # get the integrals, be sure to not double count the 0 mm bin
-        muon_integral = hist_signed_distance_muon[i].Integral()
-        events_mu_gt_0 = hist_signed_distance_muon[i].Integral(hist_signed_distance_muon[i].FindBin(0), hist_signed_distance_muon[i].GetNbinsX())
-        events_mu_lt_0 = hist_signed_distance_muon[i].Integral(1, (hist_signed_distance_muon[i].FindBin(0) - 1))
-        assert muon_integral == events_mu_gt_0 + events_mu_lt_0, f"Integral mu calculation failed, {hist_signed_distance_muon[i].GetTitle()}: {muon_integral} != {events_mu_gt_0} + {events_mu_lt_0}"
+            # vertical line for easier reading
+            line0 = ROOT.TLine(0, 0, 0, max_content)
+            line0.SetLineColor(ROOT.kBlack)
+            line0.SetLineStyle(2)
+            line0.Draw("same")
 
-        amuon_integral = hist_signed_distance_amuon[i].Integral()
-        events_am_gt_0 = hist_signed_distance_amuon[i].Integral(hist_signed_distance_amuon[i].FindBin(0), hist_signed_distance_amuon[i].GetNbinsX())
-        events_am_lt_0 = hist_signed_distance_amuon[i].Integral(1, (hist_signed_distance_amuon[i].FindBin(0) - 1))
-        assert amuon_integral == events_am_gt_0 + events_am_lt_0, f"Integral amuon calculation failed, {hist_signed_distance_amuon[i].GetTitle()}: {amuon_integral} != {events_am_gt_0} + {events_am_lt_0}"
+            # get the integrals, be sure to not double count the 0 mm bin
+            muon_integral = hist_mu.Integral()
+            events_mu_gt_0 = hist_mu.Integral(hist_mu.FindBin(0), hist_mu.GetNbinsX())
+            events_mu_lt_0 = hist_mu.Integral(1, (hist_mu.FindBin(0) - 1))
+            assert muon_integral == events_mu_gt_0 + events_mu_lt_0, f"Integral mu calculation failed, {hist_mu.GetTitle()}: {muon_integral} != {events_mu_gt_0} + {events_mu_lt_0}"
 
-        # efficiency for Mu and AMu
-        # purity for events of signed distance > or < 0 mm.
-        # we may have zero division error if the integral is zero -- when testing over only a few events.
-        try:
-            efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
-            efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
-            purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
-            purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
-        except ZeroDivisionError:
-            print("Zero division error. Probably due to empty histograms. Setting to -5.0.")
-            efficiency_mu_gt_0 = -5
-            efficiency_amuon_lt_0 = -5
-            purity_mu = -5
-            purity_amuon = -5
+            amuon_integral = hist_amu.Integral()
+            events_am_gt_0 = hist_amu.Integral(hist_amu.FindBin(0), hist_amu.GetNbinsX())
+            events_am_lt_0 = hist_amu.Integral(1, (hist_amu.FindBin(0) - 1))
+            assert amuon_integral == events_am_gt_0 + events_am_lt_0, f"Integral amuon calculation failed, {hist_amu.GetTitle()}: {amuon_integral} != {events_am_gt_0} + {events_am_lt_0}"
+
+            # efficiency for Mu and AMu
+            # purity for events of signed distance > or < 0 mm.
+            # we may have zero division error if the integral is zero -- when testing over only a few events.
+            try:
+                efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
+                efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
+                purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
+                purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
+            except ZeroDivisionError:
+                print("Zero division error. Probably due to empty histograms. Setting to -5.0.")
+                efficiency_mu_gt_0 = -5
+                efficiency_amuon_lt_0 = -5
+                purity_mu = -5
+                purity_amuon = -5
 
 
-        pt = ROOT.TPaveText(0.18, 0.7, 0.48, 0.85, "NDC")
-        pt.AddText(f"Efficiency S.D. > 0 mm: {efficiency_mu_gt_0*100:.2f} %")
-        pt.AddText(f"Efficiency S.D. < 0 mm: {efficiency_amuon_lt_0*100:.2f} %")
-        pt.AddText(f"Purity S.D. > 0 mm: {purity_mu*100:.2f} %")
-        pt.AddText(f"Purity S.D. < 0 mm: {purity_amuon*100:.2f} %")
-        pt.SetTextSize(0.03)
-        pt.SetTextFont(102)
-        pt.SetBorderSize(0)
-        pt.SetFillStyle(0)
-        pt.Draw("same")
+            pt = ROOT.TPaveText(0.18, 0.7, 0.48, 0.85, "NDC")
+            pt.AddText(f"Efficiency S.D. > 0 mm: {efficiency_mu_gt_0*100:.2f} %")
+            pt.AddText(f"Efficiency S.D. < 0 mm: {efficiency_amuon_lt_0*100:.2f} %")
+            pt.AddText(f"Purity S.D. > 0 mm: {purity_mu*100:.2f} %")
+            pt.AddText(f"Purity S.D. < 0 mm: {purity_amuon*100:.2f} %")
+            pt.SetTextSize(0.03)
+            pt.SetTextFont(102)
+            pt.SetBorderSize(0)
+            pt.SetFillStyle(0)
+            pt.Draw("same")
 
-        canvas.Write()
-        for ext in ['png', 'pdf']:
-            canvas.Print(f"{outfilename.replace('.root', '')}_ke_{bin_edges[i]}MeV_{bin_edges[i+1]}MeV." + ext)
+            # use the index to determine if inside LAr or TMS
+            det = "lar" if index == 0 else "tms"
+            print(f'Saving plots of {det}')
 
-    for hist in hist_signed_distance_muon + hist_signed_distance_amuon:
+            canvas.Write()
+            for ext in ['png', 'pdf']:
+                canvas.Print(f"{outfilename.replace('.root', '')}_{det}_ke_{bin_edges[edge_counter]}MeV_{bin_edges[edge_counter+1]}MeV." + ext)
+            edge_counter += 1
+            if edge_counter == len(bin_edges) - 1:
+                edge_counter = 0  # reset the counter
+            # end of loop through mu and amu hists
+
+    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
         hist.Write()
     tf.Close()
     logging.info("Done saving.")
