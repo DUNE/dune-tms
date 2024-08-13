@@ -66,8 +66,8 @@ def run(c, truth, outfilename, nmax=-1):
 
     # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
     # These two lists of TH1s will use the KE from the True_MuonKE (from its birth)
-    hist_signed_distance_muon = [ROOT.TH1D(f"muon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
-    hist_signed_distance_amuon = [ROOT.TH1D(f"amuon_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    hist_signed_distance_muon_lar_ke = [ROOT.TH1D(f"muon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    hist_signed_distance_amuon_lar_ke = [ROOT.TH1D(f"amuon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
 
     # create histograms that will be sliced based on their entering TMS KE
     hist_signed_distance_muon_tms_ke = [ROOT.TH1D(f"muon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
@@ -75,7 +75,7 @@ def run(c, truth, outfilename, nmax=-1):
 
     # Set axis labels for each histogram
     edge_counter = 0
-    for hist in hist_signed_distance_muon + hist_signed_distance_amuon + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
+    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         hist.GetYaxis().SetTitleOffset(0.95)
@@ -83,9 +83,9 @@ def run(c, truth, outfilename, nmax=-1):
             hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Entering TMS")
         elif hist.GetName().startswith("amuon") and "tms_ke" in hist.GetName():
             hist.SetTitle("")  # Remove the histogram title
-        elif hist.GetName().startswith("muon") and "tms_ke" not in hist.GetName():
-            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV")
-        elif hist.GetName().startswith("amuon") and "tms_ke" not in hist.GetName():
+        elif hist.GetName().startswith("muon") and "lar_ke" in hist.GetName():
+            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Inside LAr")
+        elif hist.GetName().startswith("amuon") and "lar_ke" in hist.GetName():
             hist.SetTitle("")  # Remove the histogram title
         else:
             raise ValueError("Histogram naming error")
@@ -138,9 +138,9 @@ def run(c, truth, outfilename, nmax=-1):
                     range_index = p.get_muon_ke_index()  # find which set of KE ranges the muon KE falls into
                     if range_index is not None and signed_dist is not None:
                         if pdg == 13:
-                            hist_signed_distance_muon[range_index].Fill(signed_dist)
+                            hist_signed_distance_muon_lar_ke[range_index].Fill(signed_dist)
                         else:
-                            hist_signed_distance_amuon[range_index].Fill(signed_dist)
+                            hist_signed_distance_amuon_lar_ke[range_index].Fill(signed_dist)
 
                     # this is the MuonKE entering the TMS
                     p_tms = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon")
@@ -161,12 +161,12 @@ def run(c, truth, outfilename, nmax=-1):
     legend.SetBorderSize(0)
     legend.SetFillStyle(0)
     legend.SetFillColor(0)
-    legend.AddEntry(hist_signed_distance_muon[0], "#mu^{-}", "l")  # just pick some index
-    legend.AddEntry(hist_signed_distance_amuon[0], "#mu^{+}", "l")
+    legend.AddEntry(hist_signed_distance_muon_lar_ke[0], "#mu^{-}", "l")  # just pick some index
+    legend.AddEntry(hist_signed_distance_amuon_lar_ke[0], "#mu^{+}", "l")
 
     edge_counter = 0
     # loop through the mu and amu hists together for LAr KE and TMS KE.
-    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon, hist_signed_distance_amuon], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke]]):
+    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon_lar_ke, hist_signed_distance_amuon_lar_ke], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke]]):
         for hist_mu, hist_amu in zip(hists_mu_list, hists_amu_list):  # pair these together
             hist_mu.SetLineColor(ROOT.kRed)
             hist_amu.SetLineColor(ROOT.kBlue)
@@ -240,9 +240,11 @@ def run(c, truth, outfilename, nmax=-1):
             for ext in ['png', 'pdf']:
                 canvas.Print(f"{outfilename.replace('.root', '')}_{det}_ke_{bin_edges[edge_counter]}MeV_{bin_edges[edge_counter+1]}MeV." + ext)
             edge_counter += 1
+            if edge_counter == len(bin_edges) - 1:
+                edge_counter = 0  # reset the counter
             # end of loop through mu and amu hists
 
-    for hist in hist_signed_distance_muon + hist_signed_distance_amuon + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
+    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
         hist.Write()
     tf.Close()
     logging.info("Done saving.")
