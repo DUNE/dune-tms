@@ -45,6 +45,7 @@ def get_muon_ke_entering_tms(momentum_tms_start):
 def calc_signed_distance(p_x, p_z, x_end_death, z_end_death, x_start_tms, z_start_tms):
     return x_end_death - (p_x / p_z * z_end_death + (x_start_tms - p_x / p_z * z_start_tms))
 
+# NOTE: all values here are in mm.
 def inside_tms(x, y, z):
     return -3500 < x < 3500 and -3700 < y < 1000 and 11000 < z < 18200
 
