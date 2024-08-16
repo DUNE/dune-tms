@@ -6,6 +6,8 @@ import ROOT
 import array
 import logging
 
+# TODO: add the B Field info...from the inlist.
+
 # Set ROOT to batch mode and configure styles
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
@@ -106,7 +108,7 @@ def run(c, truth, outfilename, nmax=-1):
             hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Inside LAr")
         elif hist.GetName().startswith("amuon") and "lar_ke" in hist.GetName():
             hist.SetTitle("")  # Remove the histogram title
-        if hist.GetName().startswith("nu") and "lar" in hist.GetName():
+        elif hist.GetName().startswith("nu") and "lar" in hist.GetName():
             hist.SetTitle(rf"{bin_edges[edge_counter]} < E_{{#nu}} < {bin_edges[edge_counter + 1]} GeV Inside LAr")
         elif hist.GetName().startswith("nubar") and "lar" in hist.GetName():
             hist.SetTitle("")
