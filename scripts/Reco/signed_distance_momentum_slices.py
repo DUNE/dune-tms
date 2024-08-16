@@ -96,7 +96,9 @@ def run(c, truth, outfilename, nmax=-1):
 
     # Set axis labels for each histogram
     edge_counter = 0
-    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
+    for hist in (hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke +
+                 hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke +
+                 hist_signed_distance_enu_lar + hist_signed_distance_enubar_lar):
         hist.SetXTitle("Signed Distance (mm)")
         hist.SetYTitle("Events")
         hist.GetYaxis().SetTitleOffset(0.95)
@@ -139,6 +141,7 @@ def run(c, truth, outfilename, nmax=-1):
                 z_start_tms = truth.PositionTMSStart[4*index+2]
 
                 enu = truth.NeutrinoP4[3]  # fourth component is the energy
+                print('index -- pdg -- enu:', index, pdg, enu)
 
                 if isinstance(truth.Muon_TrueKE, (list, tuple, ROOT.vector('float'))):
                     KE_muon = truth.Muon_TrueKE[index]
