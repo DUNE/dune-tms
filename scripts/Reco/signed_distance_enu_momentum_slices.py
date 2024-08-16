@@ -130,7 +130,6 @@ def run(c, truth, outfilename, nmax=-1):
                         if e_nu.energy > 5000:  # skip if the energy is too high
                             print('Ev = {} MeV. Too high and skipping.'.format(e_nu.energy))
                             continue
-                        print('range_index_nu', range_index_nu, '. enu, ', e_nu.energy)
                         if pdg == 13:
                             hist_signed_distance_enu_lar[range_index_nu].Fill(signed_dist)
                         else:
