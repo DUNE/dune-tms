@@ -127,7 +127,7 @@ def run(c, truth, outfilename, nmax=-1):
                     e_nu = Neutrino(enu * 1000, classification="nu" if pdg == 13 else "nubar")
                     range_index_nu = e_nu.get_enu_index()
                     if range_index_nu is not None and signed_dist is not None:
-                        if range_index_nu > len(e_nu.ranges) - 1:  # skip if the energy is too high
+                        if e_nu.energy > 5000:  # skip if the energy is too high
                             print('Ev = {} MeV. Too high and skipping.', e_nu.energy)
                             continue
                         print('range_index_nu', range_index_nu, '. enu, ', e_nu.energy)
