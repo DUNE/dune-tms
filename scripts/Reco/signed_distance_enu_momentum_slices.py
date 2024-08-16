@@ -24,26 +24,12 @@ FUDICIAL_CUT = 50
 LAR_START = (-3478.48, -2166.71, 4179.24)
 LAR_END = (3478.48, 829.282, 9135.88)
 
-class Momentum:
-    def __init__(self, kinetic_energy, classification="muon"):
-        self.ke = kinetic_energy
-        self.classification = classification
-        self.ranges = [(0, 250), (250, 500), (500, 750), (750, 1000),
-                       (1000, 2000), (2000, 3000), (3000, 4000),
-                       (4000, 4250), (4250, 4500), (4500, 4750), (4750, 5000)]  # MeV
-
-    def get_muon_ke_index(self):
-        for i, r in enumerate(self.ranges):
-            if r[0] <= self.ke <= r[1]:
-                return i
-        return None
-
 
 class Neutrino:
     def __init__(self, energy, classification='nu'):
         self.energy = energy
         self.classification = classification
-        self.ranges = [(i, i + 500) for i in range(0, 5000, 500)]  # in 500 MeV slices
+        self.ranges = [(i, i + 500) for i in range(0, 5001, 500)]  # in 500 MeV slices
 
     def get_enu_index(self):
         for i, r in enumerate(self.ranges):
@@ -75,7 +61,7 @@ def region3(x):
     return 2500 < x < 4000
 
 def run(c, truth, outfilename, nmax=-1):
-    bin_edges = array.array('d', [i for i in range(0, 5000, 500)])  # in 500 MeV slices
+    bin_edges = array.array('d', [i for i in range(0, 5001, 500)])  # in 500 MeV slices
 
     # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
     # create histograms that will be sliced based on the Neutrino Energy
