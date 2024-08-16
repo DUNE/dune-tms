@@ -141,7 +141,7 @@ def run(c, truth, outfilename, nmax=-1):
                     e_nu = Neutrino(enu * 1000, classification="nu" if pdg == 13 else "nubar")
                     range_index_nu = e_nu.get_enu_index()
                     if range_index_nu is not None and signed_dist is not None:
-                        if pdg == 14:
+                        if pdg == 13:
                             hist_signed_distance_enu_lar[range_index_nu].Fill(signed_dist)
                         else:
                             hist_signed_distance_enubar_lar[range_index_nu].Fill(signed_dist)
