@@ -128,7 +128,7 @@ def run(c, truth, outfilename, nmax=-1):
                     range_index_nu = e_nu.get_enu_index()
                     if range_index_nu is not None and signed_dist is not None:
                         if e_nu.energy > 5000:  # skip if the energy is too high
-                            print('Ev = {} MeV. Too high and skipping.', e_nu.energy)
+                            print('Ev = {} MeV. Too high and skipping.'.format(e_nu.energy))
                             continue
                         print('range_index_nu', range_index_nu, '. enu, ', e_nu.energy)
                         if pdg == 13:
@@ -153,7 +153,7 @@ def run(c, truth, outfilename, nmax=-1):
 
     edge_counter = 0
     # loop through the mu and amu hists together for LAr KE and TMS KE.
-    for index, (hists_mu_list, hists_amu_list) in enumerate([hist_signed_distance_enu_lar, hist_signed_distance_enubar_lar]):
+    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_enu_lar, hist_signed_distance_enubar_lar]]):
         for hist_mu, hist_amu in zip(hists_mu_list, hists_amu_list):  # pair these together
             hist_mu.SetLineColor(ROOT.kRed)
             hist_amu.SetLineColor(ROOT.kBlue)
