@@ -138,7 +138,7 @@ def run(c, truth, outfilename, nmax=-1):
                 x_start_tms = truth.PositionTMSStart[4*index]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
 
-                enu = truth.NeutrinoP4[4*index+3]  # fourth compnent is the energy
+                enu = truth.NeutrinoP4[3]  # fourth component is the energy
 
                 if isinstance(truth.Muon_TrueKE, (list, tuple, ROOT.vector('float'))):
                     KE_muon = truth.Muon_TrueKE[index]
