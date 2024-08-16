@@ -39,6 +39,20 @@ class Momentum:
                 return i
         return None
 
+
+class Neutrino:
+    def __init__(self, energy, classification='nu'):
+        self.energy = energy
+        self.classification = classification
+        self.ranges = [(i, i + 500) for i in range(0, 5000, 500)]  # in 500 MeV slices
+
+    def get_enu_index(self):
+        for i, r in enumerate(self.ranges):
+            if r[0] <= self.energy <= r[1]:
+                return i
+        return None
+
+
 def get_muon_ke_entering_tms(momentum_tms_start):
     return math.sqrt(momentum_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
 
@@ -74,6 +88,10 @@ def run(c, truth, outfilename, nmax=-1):
     hist_signed_distance_muon_tms_ke = [ROOT.TH1D(f"muon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
     hist_signed_distance_amuon_tms_ke = [ROOT.TH1D(f"amuon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
 
+    # create histograms that will be sliced based on the Neutrino Energy
+    hist_signed_distance_enu_lar = [ROOT.TH1D(f"nu_lar_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges_gev)-1)]
+    hist_signed_distance_enubar_lar = [ROOT.TH1D(f"nubar_lar_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges_gev)-1)]
+
     # Set axis labels for each histogram
     edge_counter = 0
     for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
@@ -88,6 +106,10 @@ def run(c, truth, outfilename, nmax=-1):
             hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Inside LAr")
         elif hist.GetName().startswith("amuon") and "lar_ke" in hist.GetName():
             hist.SetTitle("")  # Remove the histogram title
+        if hist.GetName().startswith("nu") and "lar" in hist.GetName():
+            hist.SetTitle(rf"{bin_edges[edge_counter]} < E_{{#nu}} < {bin_edges[edge_counter + 1]} GeV Inside LAr")
+        elif hist.GetName().startswith("nubar") and "lar" in hist.GetName():
+            hist.SetTitle("")
         else:
             raise ValueError("Histogram naming error")
         edge_counter += 1
@@ -113,6 +135,8 @@ def run(c, truth, outfilename, nmax=-1):
                 z_end = truth.DeathPosition[4*index+2]
                 x_start_tms = truth.PositionTMSStart[4*index]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
+
+                enu = truth.NeutrinoP4[4*index+3]  # fourth compnent is the energy
 
                 if isinstance(truth.Muon_TrueKE, (list, tuple, ROOT.vector('float'))):
                     KE_muon = truth.Muon_TrueKE[index]
@@ -152,6 +176,17 @@ def run(c, truth, outfilename, nmax=-1):
                         else:
                             hist_signed_distance_amuon_tms_ke[range_index_tms].Fill(signed_dist)
 
+                    # fill the neutrino histograms
+                    e_nu = Neutrino(enu, classification="nu" if pdg == 14 else "nubar")
+                    range_index_nu = e_nu.get_enu_index()
+                    if range_index_nu is not None and signed_dist is not None:
+                        if pdg == 14:
+                            hist_signed_distance_enu_lar[range_index_nu].Fill(signed_dist)
+                        else:
+                            hist_signed_distance_enubar_lar[range_index_nu].Fill(signed_dist)
+
+    logging.info("Done filling histograms.")
+
 
     tf = ROOT.TFile(outfilename, "recreate")
     canvas = ROOT.TCanvas("canvas", "", 800, 600)  # Set an empty string for the title to avoid unwanted titles
@@ -167,7 +202,7 @@ def run(c, truth, outfilename, nmax=-1):
 
     edge_counter = 0
     # loop through the mu and amu hists together for LAr KE and TMS KE.
-    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon_lar_ke, hist_signed_distance_amuon_lar_ke], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke]]):
+    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon_lar_ke, hist_signed_distance_amuon_lar_ke], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke], [hist_signed_distance_enu_lar, hist_signed_distance_enubar_lar]]):
         for hist_mu, hist_amu in zip(hists_mu_list, hists_amu_list):  # pair these together
             hist_mu.SetLineColor(ROOT.kRed)
             hist_amu.SetLineColor(ROOT.kBlue)
@@ -234,18 +269,26 @@ def run(c, truth, outfilename, nmax=-1):
             pt.Draw("same")
 
             # use the index to determine if inside LAr or TMS
-            det = "lar" if index == 0 else "tms"
-            print(f'Saving plots of {det}')
+            label = ''
+            if index == 0:
+                label = "lar" # inside LAr
+            elif index == 1:
+                label = "tms"
+            else:
+                label = "enu_lar"
+            print(f'Saving plots of {label}')
 
             canvas.Write()
             for ext in ['png', 'pdf']:
-                canvas.Print(f"{outfilename.replace('.root', '')}_{det}_ke_{bin_edges[edge_counter]}MeV_{bin_edges[edge_counter+1]}MeV." + ext)
+                canvas.Print(f"{outfilename.replace('.root', '')}_{label}_ke_{bin_edges[edge_counter]}MeV_{bin_edges[edge_counter+1]}MeV." + ext)
             edge_counter += 1
             if edge_counter == len(bin_edges) - 1:
                 edge_counter = 0  # reset the counter
             # end of loop through mu and amu hists
 
-    for hist in hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke + hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke:
+    for hist in (hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke +
+                 hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke +
+                 hist_signed_distance_enu_lar + hist_signed_distance_enubar_lar):
         hist.Write()
     tf.Close()
     logging.info("Done saving.")
