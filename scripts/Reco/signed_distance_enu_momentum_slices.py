@@ -7,6 +7,7 @@ import array
 import logging
 
 # TODO: add the B Field info...from the inlist.
+# TODO: add an extra 'slice' (and plot) for any event of Ev > 5 GeV.
 
 # Set ROOT to batch mode and configure styles
 ROOT.gROOT.SetBatch(True)
