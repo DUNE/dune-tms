@@ -6,6 +6,11 @@ import ROOT
 import array
 import logging
 
+# truth_signed_distance_momentum_slices.py
+# This script creates histograms of the signed distance of muons and anti-muons
+# using the Truth_Info TTree. The histograms sliced based in muon kinetic energy
+
+
 # TODO: add the B Field info...from the inlist.
 
 # Set ROOT to batch mode and configure styles
@@ -306,7 +311,7 @@ def validate_then_run(args):
     if not files_to_use: 
         raise ValueError("No input files found")
 
-    outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/signed_distance_momentum_slices"
+    outdir = args.outdir or f"/exp/dune/data/users/{os.environ['USER']}/dune-tms_hists/truth_signed_distance_momentum_slices"
     os.makedirs(outdir, exist_ok=True)
     outfilename = os.path.join(outdir, args.out_rootfile_name)
     if os.path.exists(outfilename) and not args.allow_overwrite:
@@ -324,7 +329,7 @@ def validate_then_run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draws spills.')
     parser.add_argument('--outdir', type=str, default="")
-    parser.add_argument('--out_rootfile_name', type=str, default="dune-tms_hists.root")
+    parser.add_argument('--out_rootfile_name', type=str, default="dune-tms_sd_mu_momentum_slices.root")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--indir', type=str, default="")
     group.add_argument('--inlist', type=str, default="")
