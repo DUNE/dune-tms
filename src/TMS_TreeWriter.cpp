@@ -315,7 +315,12 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueMomentumEnteringTMS[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS,
                      "RecoTrackPrimaryParticleTrueMomentumLeavingTMS[RecoTrackN][4]/F"); 
-                     
+  
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionEnteringTMS", RecoTrackPrimaryParticleTruePositionEnteringTMS, "RecoTrackPrimaryParticleTruePositionEnteringTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingTMS", RecoTrackPrimaryParticleTruePositionLeavingTMS, "RecoTrackPrimaryParticleTruePositionLeavingTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingLAr", RecoTrackPrimaryParticleTruePositionLeavingLAr, "RecoTrackPrimaryParticleTruePositionLeavingLAr[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingLAr", RecoTrackPrimaryParticleTrueMomentumLeavingLAr, "RecoTrackPrimaryParticleTrueMomentumLeavingLAr[RecoTrackN][4]/F");
+
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialStart", RecoTrackPrimaryParticleTMSFiducialStart,
     "RecoTrackPrimaryParticleTMSFiducialStart[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialTouch", RecoTrackPrimaryParticleTMSFiducialTouch,
