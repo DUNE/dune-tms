@@ -3,6 +3,10 @@
 # multiple different muon KE ranges.
 # Each distribution is from a ROOT file.
 
+# Note: user may need to install some python packages:
+# pip install --user matplotlib uproot
+# (--force-reinstall if you have a conflict)
+
 # Aug. 2024.
 #  M. Dolce, mdolce@fnal.gov.
 
