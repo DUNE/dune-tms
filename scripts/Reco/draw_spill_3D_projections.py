@@ -371,12 +371,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
 
 
             # Write the True Muon KE to each spill plot.
-            muon_ke_lar = true_event.Muon_TrueKE
-            p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * i], truth.MomentumTMSStart[4 * i + 1], truth.MomentumTMSStart[4 * i + 2])
-            muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+            if only_true_tms_muons:
+                for idx, pdg in enumerate(true_event.PDG):
+                    print('index: ', idx, 'pdg: ', pdg)
+                    if pdg != abs(13): continue
 
-            x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    muon_ke_lar = true_event.Muon_TrueKE
+                    p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
+                    muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+
+                    x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start}', rotation= 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
