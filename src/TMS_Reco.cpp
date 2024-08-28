@@ -360,7 +360,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Separate planes into different groups
   // 3 degree stereo -> tilted into +3 degree in U group and into -3 degree in V group
   // 90 degree rotated -> horizontal layers in X group
-  std::cout << "Hits to reconstruction: " << CleanedHits.size() << std::endl;
+
   for (auto hit : CleanedHits) {
     // Sorting hits into orientation groups  
     if (hit.GetBar().GetBarType() == TMS_Bar::kUBar) {
@@ -2652,7 +2652,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   // Take average of connecting lines as direction
   front.slope = (slopes_front[0] + slopes_front[1]) / 2;
   front.intercept = (intercepts_front[0] + intercepts_front[1]) / 2;
-  
+
   end.slope = (slopes_end[0] + slopes_end[1]) / 2;
   end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
 

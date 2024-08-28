@@ -146,7 +146,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     //std::cout<<"Ran time slicer"<<std::endl;
     for (int slice = 0; slice < nslices; slice++) {
-      if (slice == 0 || slice == nslices - 1) std::cout<<"Processing slice "<<slice<<" of event number "<<i<<" / "<<N_entries<<std::endl;
       // First make an event based on the slice
       TMS_Event tms_event_slice;
       // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
@@ -200,7 +199,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       event_counter += 1;
       int spill_number = i;
       tms_event_slice.SetSpillNumber(spill_number);
-      std::cout << "Slice number: " << slice << std::endl;
+      
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
 
