@@ -379,9 +379,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     muon_ke_lar = true_event.Muon_TrueKE
                     p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
                     muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
-
-                    x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-                    x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start}', rotation= 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    muon_ke_tms_start /= 1000.0
+                    x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar:.2f} GeV', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf, rotate='90')
+                    x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', rotation= 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf, rotate='90')
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
