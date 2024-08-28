@@ -1620,6 +1620,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << std::endl;
             }
 #endif
+            // Charge ID
+            aTrack.Charge = ChargeID.ID_Track_Charge(aTrack.Hits);
+
             // Track Length
             aTrack.Length = CalculateTrackLength3D(aTrack);
 #ifdef DEBUG
