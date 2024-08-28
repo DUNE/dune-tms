@@ -382,8 +382,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                     x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
 
-                    if muon_ke_tms_start or muon_ke_lar > 5.0:  # GeV
-                        print(f'Event: {i}, Spill {spill_number_cache[i]}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
+                    if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
+                        print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
