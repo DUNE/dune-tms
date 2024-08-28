@@ -13,7 +13,7 @@ orange_cbf = '#e69f00'
 magenta_cbf = '#cc79a7'
 black_cbf = '#000000'
 green_cbf = '#009e73'
-mp.style.use('seaborn-poster')
+mp.style.use('Solarize_Light2')  #mp.style.use('seaborn-poster') #  wasn't working.
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
