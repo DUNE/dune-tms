@@ -373,7 +373,6 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             # Write the True Muon KE to each spill plot.
             if only_true_tms_muons:
                 for idx, pdg in enumerate(true_event.PDG):
-                    print('index: ', idx, 'pdg: ', pdg)
                     if pdg != abs(13): continue
 
                     muon_ke_lar = true_event.Muon_TrueKE
