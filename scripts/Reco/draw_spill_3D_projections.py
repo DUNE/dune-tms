@@ -265,8 +265,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
 
             # I want the number of true hits.
-            nTrueHits = true_event.RecoTrackNHits
-            True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
+            # nTrueHits = true_event.RecoTrackNHits
+            # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
 
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
@@ -277,23 +277,24 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             
             for i in range(nTracks):
 
-                # loop through those true hits in the TMS
-                for hit in range(nTrueHits[i]):
-                    thit_x = True_Hits[i * 600 + hit * 4 + 0]
-                    thit_y = True_Hits[i * 600 + hit * 4 + 1]
-                    thit_z = True_Hits[i * 600 + hit * 4 + 2]
-
-                    # print("THit", thit_x, thit_y, thit_z)
-
-                    if thit_z < 11000.: continue
-
-                    x_z.scatter(thit_z / 1000.0, thit_x / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-                    z_y.scatter(thit_z / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-                    x_y.scatter(thit_x / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-
-                    output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
-                    mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
-                    mp.close()
+                # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
+                # # loop through those true hits in the TMS
+                # for hit in range(nTrueHits[i]):
+                #     thit_x = True_Hits[i * 600 + hit * 4 + 0]
+                #     thit_y = True_Hits[i * 600 + hit * 4 + 1]
+                #     thit_z = True_Hits[i * 600 + hit * 4 + 2]
+                #
+                #     # print("THit", thit_x, thit_y, thit_z)
+                #
+                #     if thit_z < 11000.: continue
+                #
+                #     x_z.scatter(thit_z / 1000.0, thit_x / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #     z_y.scatter(thit_z / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #     x_y.scatter(thit_x / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #
+                #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
+                #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
+                #     mp.close()
 
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[i]):
