@@ -4,6 +4,7 @@ import ROOT
 import array
 import pickle
 import logging
+from math import sqrt
 
 # setup the logger
 logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
@@ -17,9 +18,13 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.TH1.AddDirectory(False)
 ROOT.TH2.AddDirectory(False)
 
+MUON_MASS = 105.7  # MeV/c^2
 FUDICIAL_CUT = 50
 LAR_START = (-3478.48, -2166.71, 4179.24)
 LAR_END = (3478.48, 829.282, 9135.88)
+
+def get_muon_ke_entering_tms(momentum_tms_start):
+    return sqrt(momentum_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
 
 
 def in_between(x_lar_start, x_lar_end, y_lar_start, y_lar_end, z_lar_start, z_lar_end):
@@ -101,32 +106,6 @@ def run(truth, f, outfilename, nmax=-1):
     # User can request fewer events, so check how many we're looping over.
     nevents = truth.GetEntries()
 
-    # Figure out how often to print progress information.
-    # Setting carriage = True will use a carriage return which keeps the progress on a single line
-    # But if you add print statements, it will be ugly so it's not default
-
-    carriage = False
-    if carriage:
-        if nevents <= 100:
-            print_every = 1
-        elif nevents <= 1000:
-            print_every = 10
-        elif nevents <= 10000:
-            print_every = 100
-        else:
-            print_every = 1000
-    else:
-        if nevents < 100:
-            print_every = 1  # Print every event if < 100 events
-        elif 100 <= nevents < 1000:
-            print_every = 20
-        elif 1000 <= nevents < 10000:
-            print_every = 100
-        elif 10000 <= nevents < 100000:
-            print_every = 1000
-        else:
-            print_every = 10000
-
     n_true_muons = 0
     n_muon_total_lar_start_tms_end = 0
     n_correct = 0
@@ -142,12 +121,9 @@ def run(truth, f, outfilename, nmax=-1):
 
     # Now loop over all events
     for i in range(truth.GetEntries()):
-        if i > nevents: break
-        #if i>100000: break
-        if truth != None: truth.GetEntry(i)
-        # Print current progress, with carriage return \r to prevent long list of progress and have everything on a singe line.
-        if i % print_every == 0 and carriage: print(f"\rOn {i} / {nevents}  {i / nevents * 100}%", end='')
-        if i % print_every == 0 and not carriage: print(f"On {i} / {nevents}   {i / nevents * 100:.1f}%")
+
+        if i % 10000 == 0:
+            logging.info(f"Processing event {i} / {nevents} ({100 * i / nevents:.1f}%)")
 
         # use PositionTMSStart, MomentumTMSStart, and PositionTMSEnd, truth level study
         for index, particle in enumerate(truth.PDG):
@@ -295,7 +271,6 @@ def run(truth, f, outfilename, nmax=-1):
     #correct_percentage=n_correct/(n_region1_total+n_region2_total+n_region3_total)
 
     ## Now save all the histograms
-    if carriage: print("\r", end="")  # Erase the current line
     print(f"Completed loop of {nevents} events.From Filename : {f}.Now, Saving to {outfilename}")
 
     # Return this hists if the user requested previews
