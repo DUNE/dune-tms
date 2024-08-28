@@ -146,7 +146,7 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, add_ke_truth_to_plot = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
@@ -371,9 +371,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
 
 
             # Write the True Muon KE to each spill plot.
-            if only_true_tms_muons:
+            if add_ke_truth_to_plot:
                 for idx, pdg in enumerate(true_event.PDG):
-                    print('index: ', idx, 'pdg: ', pdg)
                     if pdg != abs(13): continue
 
                     muon_ke_lar = true_event.Muon_TrueKE / 1000.0
@@ -383,8 +382,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                     x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
 
-                    if muon_ke_tms_start or muon_ke_lar > 5.0:  # GeV
-                        print(f'Event: {i}, Spill {spill_number_cache[i]}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
+                    if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
+                        print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
@@ -441,7 +440,7 @@ if __name__ == "__main__":
     parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
     parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
-    parser.add_argument('--only_true_tms_muons', help = "Only draw events with true muons inside the TMS", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--add_ke_truth_to_plot', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
     parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
@@ -452,11 +451,11 @@ if __name__ == "__main__":
     spill_number = args.spillnum
     time_slice = args.timeslice
     readout_filename =  args.readout_filename
-    only_true_tms_muons = args.only_true_tms_muons
+    add_ke_truth_to_plot = args.add_ke_truth_to_plot
     Xlayers = args.Xlayers
     print(Xlayers)
     calculate_layers(Xlayers)
     print(layer_dict)
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, add_ke_truth_to_plot)
 
