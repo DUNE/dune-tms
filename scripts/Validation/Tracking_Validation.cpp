@@ -3,6 +3,8 @@
 #include <cstring>
 #include <fstream>
 #include <filesystem>
+#include <math.h>       /* atan2 */
+#define TAU 6.283185307179586
 
 // Root specific
 #include <TFile.h>
@@ -10,9 +12,9 @@
 #include <TH2D.h>
 #include <TVector3.h>
 
+#include "Line_Candidates.h"
 #include "Truth_Info.h"
 #include "Reco_Tree.h"
-#include "Line_Candidates.h"
 
 #define IS_WITHIN(x, center, tolerance) (std::abs((x) - (center)) <= (tolerance))
 
@@ -54,12 +56,9 @@ int isTMSContained(TVector3 position, bool thin_only = false) {
   return out;
 }
 
-Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& outputFile) {
+Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, int numEvents, TFile& outputFile) {
     // List all the hists here
     // Make sure to save them too
-    int n_zbins = 50;
-    double z_start = 11000;
-    double z_end = 18500;
     
     bool has_kalman = reco.HasBranch("KalmanPos");
     std::cout<<"has_kalman status: "<<has_kalman<<std::endl;
@@ -179,6 +178,43 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
       100, 12000, 19000, 100, 12000, 19000);
     TH2D hist_endpoint_error_z_all_using_second_z("endpoint_error_z_all_using_second_z", "Track Z Endpoint Error Matrix (all TMS-ending particles, using secondary's z if greater);True Z (mm);Reco Z (mm);N Tracks", 
       100, 12000, 19000, 100, 12000, 19000);
+      
+      // For matching to LAr, we care about the xz direction resolution, the x position resolution, y exiting information
+      // and occupancy information
+      // Mostly for LAr-starting, tms-ending muons
+    TH1D hist_matching_angle_resolution("matching_angle_resolution",  
+      "Matching Angle Resolution (LAr-start, TMS-ending muons only);XZ Angle Reco - True (deg);N Tracks", 
+      101, -60, 60);
+    TH1D hist_matching_angle_true("matching_angle_true",  
+      "True Angle, TMS First Plane (LAr-start, TMS-ending muons only);XZ Angle True (deg);N Tracks", 
+      101, -60, 60);
+    TH1D hist_matching_angle_reco("matching_angle_reco",  
+      "Reco Angle, TMS First Plane (LAr-start, TMS-ending muons only);XZ Angle Reco (deg);N Tracks", 
+      101, -60, 60);
+    TH1D hist_matching_direction_resolution("matching_direction_resolution",  
+      "Matching Direction Resolution (LAr-start, TMS-ending muons only);XZ Direction Reco - True;N Tracks", 
+      101, -1, 1);
+    TH1D hist_matching_x_position_resolution("matching_x_position_resolution",  
+      "Matching X Position Resolution (LAr-start, TMS-ending muons only);Track X Position Reco - True (mm);N Tracks", 
+      101, -250, 250);
+    TH1D hist_matching_y_position_resolution("matching_y_position_resolution",  
+      "Matching Y Position Resolution (LAr-start, TMS-ending muons only);Track Y Position Reco - True (mm);N Tracks", 
+      101, -500, 500);
+    TH1D hist_matching_z_position_resolution("matching_z_position_resolution",  
+      "Matching Z Position Resolution (LAr-start, TMS-ending muons only);Track Z Position Reco - True (mm);N Tracks", 
+      101, -300, 300);
+    TH1D hist_matching_z_position_reco("matching_z_position_reco",  
+      "Matching Reco Z Position (LAr-start, TMS-ending muons only);Track Z Position Reco (mm);N Tracks", 
+      101, 11000, 16000);
+    TH1D hist_matching_z_position_true("matching_z_position_true",  
+      "Matching True Z Position (LAr-start, TMS-ending muons only);Track Z Position True (mm);N Tracks", 
+      101, 11000, 16000);
+    TH2D hist_matching_xz_position_true("matching_xz_position_true",  
+      "Matching True XZ Position (LAr-start, TMS-ending muons only);Track Z Position True (mm);Track X Position True (mm);N Tracks", 
+      101, 11000, 16000, 101, -4000, 4000);
+    // TODO check for track leaving using reco Y. Also check for reco in first two planes cut, and occupancy > some amount cut
+      
+    // TODO make reco eff for muons reco'd in TMS vs not
 
     Long64_t entry_number = 0;
     // Now loop over the ttree
@@ -190,13 +226,13 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
       // Currently reco and truth match
       truth.GetEntry(entry_number);
       reco.GetEntry(entry_number);
-      //lc.GetEntry(entry_number);
+      lc.GetEntry(entry_number);
       
       // Adjust to kalman if needed
       if (!has_kalman) {
         for (int itrack = 0; itrack < reco.nTracks; itrack++) {
           for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
               reco.KalmanPos[itrack][ihit][i] = reco.TrackHitPos[itrack][ihit][i];
               reco.KalmanTruePos[itrack][ihit][i] = truth.RecoTrackTrueHitPosition[itrack][ihit][i];
             }
@@ -213,6 +249,36 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         hist_energy_range.Fill(reco.EnergyRange[itrack]);
         hist_energy_deposit.Fill(reco.EnergyDeposit[itrack]);
         hist_track_length.Fill(reco.Length[itrack]);
+        
+        // Matching
+        //std::cout<<"truth.RecoTrackPrimaryParticleLArFiducialStart[itrack]: "<<truth.RecoTrackPrimaryParticleLArFiducialStart[itrack]<<",\ttruth.RecoTrackPrimaryParticleTMSFiducialEnd[itrack]: "<<truth.RecoTrackPrimaryParticleTMSFiducialEnd[itrack]<<std::endl;
+        if (truth.RecoTrackPrimaryParticleLArFiducialStart[itrack] && truth.RecoTrackPrimaryParticleTMSFiducialEnd[itrack]) {
+          double direction_reco = reco.Direction[itrack][0] / reco.Direction[itrack][2];
+          double direction_true = truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[itrack][0] / truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[itrack][2];
+          double angle_reco = atan2(direction_reco, 1) * 360 / TAU;
+          double angle_true = atan2(direction_true, 1) * 360 / TAU;
+          hist_matching_angle_resolution.Fill(angle_reco - angle_true);
+          hist_matching_angle_true.Fill(angle_true);
+          hist_matching_angle_reco.Fill(angle_reco);
+          hist_matching_direction_resolution.Fill(direction_reco - direction_true);
+          double track_x_reco = reco.StartPos[itrack][0];
+          double track_y_reco = reco.StartPos[itrack][1];
+          double track_z_reco = reco.StartPos[itrack][2];
+          /*
+          double track_x_true = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[itrack][0];
+          double track_y_true = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[itrack][1];
+          double track_z_true = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[itrack][2]; */
+          int particle_index = truth.RecoTrackPrimaryParticleIndex[itrack];
+          double track_x_true = truth.PositionZIsTMSStart[particle_index][0];
+          double track_y_true = truth.PositionZIsTMSStart[particle_index][1];
+          double track_z_true = truth.PositionZIsTMSStart[particle_index][2];
+          hist_matching_x_position_resolution.Fill(track_x_reco - track_x_true);
+          hist_matching_y_position_resolution.Fill(track_y_reco - track_y_true);
+          hist_matching_z_position_resolution.Fill(track_z_reco - track_z_true);
+          hist_matching_z_position_reco.Fill(track_z_reco);
+          hist_matching_z_position_true.Fill(track_z_true);
+          hist_matching_xz_position_true.Fill(track_z_true, track_x_true);
+        }
         
         //std::cout<<"start xyz "<<itrack<<": "<<reco.StartPos[itrack][0]<<","<<reco.StartPos[itrack][1]<<","<<reco.StartPos[itrack][2]<<std::endl;
         //std::cout<<"end xyz "<<itrack<<":   "<<reco.EndPos[itrack][0]<<","<<reco.EndPos[itrack][1]<<","<<reco.EndPos[itrack][2]<<std::endl;
@@ -298,7 +364,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         if (tms_ending) { 
           double true_z = truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2];
           if (!no_secondary && truth.RecoTrackSecondaryParticleTruePositionEnd[itrack][2] > true_z) true_z = truth.RecoTrackSecondaryParticleTruePositionEnd[itrack][2];
-          std::cout<<truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2]<<", "<<truth.RecoTrackSecondaryParticleTruePositionEnd[itrack][2]<<std::endl;
+          //std::cout<<truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2]<<", "<<truth.RecoTrackSecondaryParticleTruePositionEnd[itrack][2]<<std::endl;
           hist_endpoint_error_z_all_using_second_z.Fill(true_z, reco.EndPos[itrack][2]);
         }
       }
@@ -380,10 +446,14 @@ int main(int argc, char* argv[]) {
     if (missing_ttree) {
       throw std::runtime_error("Missing one or more ttree from file");
     }
-    Truth_Info ti(truth);
-    Reco_Tree ri(reco);
-    std::cout<<"About to load Line_Candidates"<<std::endl;
-    //Line_Candidates li(line_candidates);
+    // All these have a large memory footprint, especially Line_Candidates
+    // by declaring them static, it moves it from the stack to the heap, which has more memory allocated
+    // Otherwise, we get a confusing seg fault before main starts
+    // See https://stackoverflow.com/questions/20253267/segmentation-fault-before-main
+    static Truth_Info ti(truth); 
+    static Reco_Tree ri(reco);
+    std::cout<<"About to load Line_Candidates"<<std::endl; 
+    static Line_Candidates li(line_candidates);
     std::cout<<"Loaded Line_Candidates"<<std::endl;
 
     std::string exeName = getExecutableName(argv[0]);
@@ -402,7 +472,7 @@ int main(int argc, char* argv[]) {
     // Create TFile with the output filename
     TFile outputFile(outputFilename.c_str(), "RECREATE");
     
-    PrimaryLoop(ti, ri, numEvents, outputFile);
+    PrimaryLoop(ti, ri, li, numEvents, outputFile);
     
     // Close the output file
     outputFile.Close();

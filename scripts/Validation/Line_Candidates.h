@@ -29,110 +29,110 @@ public :
    Int_t           nLinesV;
    Int_t           nLinesX;
    Int_t           nLines3D;
-   Float_t         SlopeU[4];   //[nLinesU]
-   Float_t         InterceptU[4];   //[nLinesU]
-   Float_t         Slope_DownstreamU[4];   //[nLinesU]
-   Float_t         Intercept_DownstreamU[4];   //[nLinesU]
-   Float_t         Slope_UpstreamU[4];   //[nLinesU]
-   Float_t         Intercept_UpstreamU[4];   //[nLinesU]
-   Float_t         SlopeV[5];   //[nLinesV]
-   Float_t         InterceptV[5];   //[nLinesV]
-   Float_t         Slope_DownstreamV[5];   //[nLinesV]
-   Float_t         Intercept_DownstreamV[5];   //[nLinesV]
-   Float_t         Slope_UpstreamV[5];   //[nLinesV]
-   Float_t         Intercept_UpstreamV[5];   //[nLinesV]
-   Float_t         SlopeX[1];   //[nLinesX]
-   Float_t         InterceptX[1];   //[nLinesX]
-   Float_t         Slope_DownstreamX[1];   //[nLinesX]
-   Float_t         Intercept_DownstreamX[1];   //[nLinesX]
-   Float_t         Slope_UpstreamX[1];   //[nLinesX]
-   Float_t         Intercept_UpstreamX[1];   //[nLinesX]
-   Float_t         DirectionZU[4];   //[nLinesU]
-   Float_t         DirectionZV[5];   //[nLinesV]
-   Float_t         DirectionZX[1];   //[nLinesX]
-   Float_t         DirectionXU[4];   //[nLinesU]
-   Float_t         DirectionXV[5];   //[nLinesV]
-   Float_t         DirectionYX[1];   //[nLinesX]
-   Float_t         DirectionZU_Downstream[4];   //[nLinesU]
-   Float_t         DirectionXU_Downstream[4];   //[nLinesU]
-   Float_t         DirectionZU_Upstream[4];   //[nLinesU]
-   Float_t         DirectionXU_Upstream[4];   //[nLinesU]
-   Float_t         DirectionZV_Downstream[5];   //[nLinesV]
-   Float_t         DirectionXV_Downstream[5];   //[nLinesV]
-   Float_t         DirectionZV_Upstream[5];   //[nLinesV]
-   Float_t         DirectionXV_Upstream[5];   //[nLinesV]
-   Float_t         DirectionZX_Downstream[1];   //[nLinesX]
-   Float_t         DirectionYX_Downstream[1];   //[nLinesX]
-   Float_t         DirectionZX_Upstream[1];   //[nLinesX]
-   Float_t         DirectionYX_Upstream[1];   //[nLinesX]
-   Float_t         FirstHoughHitU[4][2];   //[nLinesU]
-   Float_t         FirstHoughHitV[5][2];   //[nLinesV]
-   Float_t         FirstHoughHitX[1][2];   //[nLinesX]
-   Float_t         LastHoughHitU[4][2];   //[nLinesU]
-   Float_t         LastHoughHitV[5][2];   //[nLinesV]
-   Float_t         LastHoughHitX[1][2];   //[nLinesX]
-   Float_t         FirstHoughHitTimeU[4];   //[nLinesU]
-   Float_t         FirstHoughHitTimeV[5];   //[nLinesV]
-   Float_t         FirstHoughHitTimeX[1];   //[nLinesX]
-   Float_t         LastHoughHitTimeU[4];   //[nLinesU]
-   Float_t         LastHoughHitTimeV[5];   //[nLinesV]
-   Float_t         LastHoughHitTImeX[1];   //[nLinesX]
-   Float_t         HoughEarliestHitTimeU[4];   //[nLinesU]
-   Float_t         HoughEarliestHitTimeV[5];   //[nLinesV]
-   Float_t         HoughEarliestHitTimeX[1];   //[nLinesX]
-   Float_t         HoughLatestHitTimeU[4];   //[nLinesU]
-   Float_t         HoughLatestHitTimeV[5];   //[nLinesV]
-   Float_t         HoughLatestHitTimeX[1];   //[nLinesX]
-   Int_t           FirstHoughPlaneU[4];   //[nLinesU]
-   Int_t           FirstHoughPlaneV[5];   //[nLinesV]
-   Int_t           FirstHoughPlaneX[1];   //[nLinesX]
-   Int_t           LastHoughPlaneU[4];   //[nLinesU]
-   Int_t           LastHoughPlaneV[5];   //[nLinesV]
-   Int_t           LastHoughPlaneX[1];   //[nLinesX]
+   Float_t         SlopeU[20];   //[nLinesU]
+   Float_t         InterceptU[20];   //[nLinesU]
+   Float_t         Slope_DownstreamU[20];   //[nLinesU]
+   Float_t         Intercept_DownstreamU[20];   //[nLinesU]
+   Float_t         Slope_UpstreamU[20];   //[nLinesU]
+   Float_t         Intercept_UpstreamU[20];   //[nLinesU]
+   Float_t         SlopeV[20];   //[nLinesV]
+   Float_t         InterceptV[20];   //[nLinesV]
+   Float_t         Slope_DownstreamV[20];   //[nLinesV]
+   Float_t         Intercept_DownstreamV[20];   //[nLinesV]
+   Float_t         Slope_UpstreamV[20];   //[nLinesV]
+   Float_t         Intercept_UpstreamV[20];   //[nLinesV]
+   Float_t         SlopeX[20];   //[nLinesX]
+   Float_t         InterceptX[20];   //[nLinesX]
+   Float_t         Slope_DownstreamX[20];   //[nLinesX]
+   Float_t         Intercept_DownstreamX[20];   //[nLinesX]
+   Float_t         Slope_UpstreamX[20];   //[nLinesX]
+   Float_t         Intercept_UpstreamX[20];   //[nLinesX]
+   /*Float_t         DirectionZU[20];   //[nLinesU]
+   Float_t         DirectionZV[20];   //[nLinesV]
+   Float_t         DirectionZX[20];   //[nLinesX]
+   Float_t         DirectionXU[20];   //[nLinesU]
+   Float_t         DirectionXV[20];   //[nLinesV]
+   Float_t         DirectionYX[20];   //[nLinesX]
+   Float_t         DirectionZU_Downstream[20];   //[nLinesU]
+   Float_t         DirectionXU_Downstream[20];   //[nLinesU]
+   Float_t         DirectionZU_Upstream[20];   //[nLinesU]
+   Float_t         DirectionXU_Upstream[20];   //[nLinesU]
+   Float_t         DirectionZV_Downstream[20];   //[nLinesV]
+   Float_t         DirectionXV_Downstream[20];   //[nLinesV]
+   Float_t         DirectionZV_Upstream[20];   //[nLinesV]
+   Float_t         DirectionXV_Upstream[20];   //[nLinesV]
+   Float_t         DirectionZX_Downstream[20];   //[nLinesX]
+   Float_t         DirectionYX_Downstream[20];   //[nLinesX]
+   Float_t         DirectionZX_Upstream[20];   //[nLinesX]
+   Float_t         DirectionYX_Upstream[20];   //[nLinesX]
+   Float_t         FirstHoughHitU[25][2];   //[nLinesU]
+   Float_t         FirstHoughHitV[25][2];   //[nLinesV]
+   Float_t         FirstHoughHitX[25][2];   //[nLinesX]
+   Float_t         LastHoughHitU[25][2];   //[nLinesU]
+   Float_t         LastHoughHitV[25][2];   //[nLinesV]
+   Float_t         LastHoughHitX[25][2];   //[nLinesX]
+   Float_t         FirstHoughHitTimeU[20];   //[nLinesU]
+   Float_t         FirstHoughHitTimeV[20];   //[nLinesV]
+   Float_t         FirstHoughHitTimeX[20];   //[nLinesX]
+   Float_t         LastHoughHitTimeU[20];   //[nLinesU]
+   Float_t         LastHoughHitTimeV[20];   //[nLinesV]
+   Float_t         LastHoughHitTImeX[20];   //[nLinesX]
+   Float_t         HoughEarliestHitTimeU[20];   //[nLinesU]
+   Float_t         HoughEarliestHitTimeV[20];   //[nLinesV]
+   Float_t         HoughEarliestHitTimeX[20];   //[nLinesX]
+   Float_t         HoughLatestHitTimeU[20];   //[nLinesU]
+   Float_t         HoughLatestHitTimeV[20];   //[nLinesV]
+   Float_t         HoughLatestHitTimeX[20];   //[nLinesX]
+   Int_t           FirstHoughPlaneU[20];   //[nLinesU]
+   Int_t           FirstHoughPlaneV[20];   //[nLinesV]
+   Int_t           FirstHoughPlaneX[20];   //[nLinesX]
+   Int_t           LastHoughPlaneU[20];   //[nLinesU]
+   Int_t           LastHoughPlaneV[20];   //[nLinesV]
+   Int_t           LastHoughPlaneX[20];   //[nLinesX] */
    Bool_t          TMSStart;
    Float_t         TMSStartTime;
-   Float_t         OccupancyU[4];   //[nLinesU]
-   Float_t         OccupancyV[5];   //[nLinesV]
-   Float_t         OccupancyX[1];   //[nLinesX]
-   Float_t         TrackLengthU[4];   //[nLinesU]
-   Float_t         TrackLengthV[5];   //[nLinesV]
-   Float_t         TrackLengthX[1];   //[nLinesX]
-   Float_t         TotalTrackEnergyU[4];   //[nLinesU]
-   Float_t         TotalTrackEnergyV[5];   //[nLinesV]
-   Float_t         TotalTrackEnergyX[1];   //[nLinesX]
-   Bool_t          TrackStoppingU[4];   //[nLinesU]
-   Bool_t          TrackStoppingV[5];   //[nLinesV]
-   Bool_t          TrackStoppingX[1];   //[nLinesX]
-   Int_t           nHitsInTrackU[4];   //[nLinesU]
-   Int_t           nHitsInTrackV[5];   //[nLinesV]
-   Int_t           nHitsInTrackX[1];   //[nLinesX]
-   Float_t         TrackHitEnergyU[10][200];
-   Float_t         TrackHitEnergyV[10][200];
-   Float_t         TrackHitEnergyX[10][200];
-   Float_t         TrackHitPosU[10][200][2];
-   Float_t         TrackHitPosV[10][200][2];
-   Float_t         TrackHitPosX[10][200][2];
-   Float_t         TrackHitTimeU[10][200];
-   Float_t         TrackHitTimeV[10][200];
-   Float_t         TrackHitTimeX[10][200];
-   Int_t           nClustersU;
+   Float_t         OccupancyU[20];   //[nLinesU]
+   Float_t         OccupancyV[20];   //[nLinesV]
+   Float_t         OccupancyX[20];   //[nLinesX] 
+   Float_t         TrackLengthU[20];   //[nLinesU]
+   Float_t         TrackLengthV[20];   //[nLinesV]
+   Float_t         TrackLengthX[20];   //[nLinesX]
+   Float_t         TotalTrackEnergyU[20];   //[nLinesU]
+   Float_t         TotalTrackEnergyV[20];   //[nLinesV]
+   Float_t         TotalTrackEnergyX[20];   //[nLinesX]
+   Bool_t          TrackStoppingU[20];   //[nLinesU]
+   Bool_t          TrackStoppingV[20];   //[nLinesV]
+   Bool_t          TrackStoppingX[20];   //[nLinesX]
+   Int_t           nHitsInTrackU[20];   //[nLinesU]
+   Int_t           nHitsInTrackV[20];   //[nLinesV]
+   Int_t           nHitsInTrackX[20];   //[nLinesX]
+   Float_t         TrackHitEnergyU[10][500];
+   Float_t         TrackHitEnergyV[10][500];
+   Float_t         TrackHitEnergyX[10][500]; 
+   Float_t         TrackHitPosU[10][500][2]; 
+   Float_t         TrackHitPosV[10][500][2]; 
+   Float_t         TrackHitPosX[10][500][2]; 
+   Float_t         TrackHitTimeU[10][500];
+   Float_t         TrackHitTimeV[10][500];
+   Float_t         TrackHitTimeX[10][500]; 
+   /*Int_t           nClustersU;
    Int_t           nClustersV;
    Int_t           nClusterX;
-   Float_t         ClusterEnergyU[10];   //[nClustersU]
-   Float_t         ClusterEnergyV[9];   //[nClustersV]
-   Float_t         ClusterEnergyX[1];   //[nClustersX]
-   Float_t         ClusterTimeU[10];   //[nClustersU]
-   Float_t         ClusterTimeV[9];   //[nClustersV]
-   Float_t         ClusterTimeX[1];   //[nClustersX]
+   Float_t         ClusterEnergyU[20];   //[nClustersU]
+   Float_t         ClusterEnergyV[20];   //[nClustersV]
+   Float_t         ClusterEnergyX[20];   //[nClustersX]
+   Float_t         ClusterTimeU[20];   //[nClustersU]
+   Float_t         ClusterTimeV[20];   //[nClustersV]
+   Float_t         ClusterTimeX[20];   //[nClustersX]
    Float_t         ClusterPosMeanU[25][2];
    Float_t         ClusterPosMeanV[25][2];
    Float_t         ClusterPosMeanX[25][2];
    Float_t         ClusterPosStdDevU[25][2];
    Float_t         ClusterPosStdDevV[25][2];
    Float_t         ClusterPosStdDevX[25][2];
-   Int_t           nHitsInClusterU[10];   //[nClustersU]
-   Int_t           nHitsInClusterV[9];   //[nClustersV]
-   Int_t           nHitsInClusterX[1];   //[nClustersX]
+   Int_t           nHitsInClusterU[20];   //[nClustersU]
+   Int_t           nHitsInClusterV[20];   //[nClustersV]
+   Int_t           nHitsInClusterX[20];   //[nClustersX]
    Float_t         ClusterHitPosU[25][200][2];
    Float_t         ClusterHitPosV[25][200][2];
    Float_t         ClusterHitPosX[25][200][2];
@@ -144,11 +144,11 @@ public :
    Float_t         ClusterHitTimeX[25][200];
    Int_t           ClusterHitSliceU[25][200];
    Int_t           ClusterHitSliceV[25][200];
-   Int_t           ClusterHitSliceX[25][200];
+   Int_t           ClusterHitSliceX[25][200]; */
    Int_t           nHits;
-   Float_t         RecoHitPos[201][4];   //[nHits]
-   Float_t         RecoHitEnergy[201];   //[nHits]
-   Int_t           RecoHitSlice[201];   //[nHits]
+   Float_t         RecoHitPos[2000][4];   //[nHits]
+   Float_t         RecoHitEnergy[2000];   //[nHits]
+   Int_t           RecoHitSlice[2000];   //[nHits] 
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -176,7 +176,7 @@ public :
    TBranch        *b_Intercept_DownstreamX;   //!
    TBranch        *b_Slope_UpstreamX;   //!
    TBranch        *b_Intercept_UpstreamX;   //!
-   TBranch        *b_DirectionZU;   //!
+   /*TBranch        *b_DirectionZU;   //!
    TBranch        *b_DirectionZV;   //!
    TBranch        *b_DirectionZX;   //!
    TBranch        *b_DirectionXU;   //!
@@ -217,12 +217,12 @@ public :
    TBranch        *b_FirstHoughPlaneX;   //!
    TBranch        *b_LastHoughPlaneU;   //!
    TBranch        *b_LastHoughPlaneV;   //!
-   TBranch        *b_LastHoughPlaneX;   //!
+   TBranch        *b_LastHoughPlaneX;   //! */
    TBranch        *b_TMSStart;   //!
    TBranch        *b_TMSStartTime;   //!
    TBranch        *b_OccupancyU;   //!
    TBranch        *b_OccupancyV;   //!
-   TBranch        *b_OccupancyX;   //!
+   TBranch        *b_OccupancyX;   //! 
    TBranch        *b_TrackLengthU;   //!
    TBranch        *b_TrackLengthV;   //!
    TBranch        *b_TrackLengthX;   //!
@@ -244,7 +244,7 @@ public :
    TBranch        *b_TrackHitTimeU;   //!
    TBranch        *b_TrackHitTimeV;   //!
    TBranch        *b_TrackHitTimeX;   //!
-   TBranch        *b_nClustersU;   //!
+   /*TBranch        *b_nClustersU;   //!
    TBranch        *b_nClustersV;   //!
    TBranch        *b_nClustersX;   //!
    TBranch        *b_ClusterEnergyU;   //!
@@ -273,11 +273,11 @@ public :
    TBranch        *b_ClusterHitTimeX;   //!
    TBranch        *b_ClusterHitSliceU;   //!
    TBranch        *b_ClusterHitSliceV;   //!
-   TBranch        *b_ClusterHitSliceX;   //!
+   TBranch        *b_ClusterHitSliceX;   //! */
    TBranch        *b_nHits;   //!
    TBranch        *b_RecoHitPos;   //!
    TBranch        *b_RecoHitEnergy;   //!
-   TBranch        *b_RecoHitSlice;   //!
+   TBranch        *b_RecoHitSlice;   //! 
 
    Line_Candidates(TTree *tree=0);
    virtual ~Line_Candidates();
@@ -288,9 +288,29 @@ public :
    virtual void     Loop();
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
+   virtual Long64_t GetEntriesFast() { return fChain->GetEntriesFast(); };
 };
 
 #endif
+
+/*
+
+Line_Candidates::~Line_Candidates()
+{
+   if (!fChain) return;
+}
+Line_Candidates::Line_Candidates(TTree *tree) : fChain(0) 
+{
+
+}
+
+Int_t Line_Candidates::Cut(Long64_t entry) { return 0; }
+Int_t    Line_Candidates::GetEntry(Long64_t entry) { return 0; }
+Long64_t Line_Candidates::LoadTree(Long64_t entry) { return 0; }
+void     Line_Candidates::Init(TTree *tree) { }
+void     Line_Candidates::Loop() {}
+Bool_t   Line_Candidates::Notify() { return true; }
+void     Line_Candidates::Show(Long64_t entry)  {}*/
 
 #define Line_Candidates_cxx
 #ifdef Line_Candidates_cxx
@@ -374,7 +394,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("Intercept_DownstreamX", &Intercept_DownstreamX, &b_Intercept_DownstreamX);
    fChain->SetBranchAddress("Slope_UpstreamX", &Slope_UpstreamX, &b_Slope_UpstreamX);
    fChain->SetBranchAddress("Intercept_UpstreamX", &Intercept_UpstreamX, &b_Intercept_UpstreamX);
-   fChain->SetBranchAddress("DirectionZU", DirectionZU, &b_DirectionZU);
+   /*fChain->SetBranchAddress("DirectionZU", DirectionZU, &b_DirectionZU);
    fChain->SetBranchAddress("DirectionZV", DirectionZV, &b_DirectionZV);
    fChain->SetBranchAddress("DirectionZX", &DirectionZX, &b_DirectionZX);
    fChain->SetBranchAddress("DirectionXU", DirectionXU, &b_DirectionXU);
@@ -415,12 +435,12 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("FirstHoughPlaneX", &FirstHoughPlaneX, &b_FirstHoughPlaneX);
    fChain->SetBranchAddress("LastHoughPlaneU", LastHoughPlaneU, &b_LastHoughPlaneU);
    fChain->SetBranchAddress("LastHoughPlaneV", LastHoughPlaneV, &b_LastHoughPlaneV);
-   fChain->SetBranchAddress("LastHoughPlaneX", &LastHoughPlaneX, &b_LastHoughPlaneX);
+   fChain->SetBranchAddress("LastHoughPlaneX", &LastHoughPlaneX, &b_LastHoughPlaneX); 
    fChain->SetBranchAddress("TMSStart", &TMSStart, &b_TMSStart);
    fChain->SetBranchAddress("TMSStartTime", &TMSStartTime, &b_TMSStartTime);
    fChain->SetBranchAddress("OccupancyU", OccupancyU, &b_OccupancyU);
    fChain->SetBranchAddress("OccupancyV", OccupancyV, &b_OccupancyV);
-   fChain->SetBranchAddress("OccupancyX", &OccupancyX, &b_OccupancyX);
+   fChain->SetBranchAddress("OccupancyX", &OccupancyX, &b_OccupancyX); 
    fChain->SetBranchAddress("TrackLengthU", TrackLengthU, &b_TrackLengthU);
    fChain->SetBranchAddress("TrackLengthV", TrackLengthV, &b_TrackLengthV);
    fChain->SetBranchAddress("TrackLengthX", &TrackLengthX, &b_TrackLengthX);
@@ -471,11 +491,11 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("ClusterHitTimeX", ClusterHitTimeX, &b_ClusterHitTimeX);
    fChain->SetBranchAddress("ClusterHitSliceU", ClusterHitSliceU, &b_ClusterHitSliceU);
    fChain->SetBranchAddress("ClusterHitSliceV", ClusterHitSliceV, &b_ClusterHitSliceV);
-   fChain->SetBranchAddress("ClusterHitSliceX", ClusterHitSliceX, &b_ClusterHitSliceX);
-   fChain->SetBranchAddress("nHits", &nHits, &b_nHits);
-   fChain->SetBranchAddress("RecoHitPos", RecoHitPos, &b_RecoHitPos);
-   fChain->SetBranchAddress("RecoHitEnergy", RecoHitEnergy, &b_RecoHitEnergy);
-   fChain->SetBranchAddress("RecoHitSlice", RecoHitSlice, &b_RecoHitSlice);
+   fChain->SetBranchAddress("ClusterHitSliceX", ClusterHitSliceX, &b_ClusterHitSliceX); */
+   //fChain->SetBranchAddress("nHits", &nHits, &b_nHits);
+   //fChain->SetBranchAddress("RecoHitPos", RecoHitPos, &b_RecoHitPos);
+   //fChain->SetBranchAddress("RecoHitEnergy", RecoHitEnergy, &b_RecoHitEnergy);
+   //fChain->SetBranchAddress("RecoHitSlice", RecoHitSlice, &b_RecoHitSlice); 
    Notify();
 }
 

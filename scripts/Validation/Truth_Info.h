@@ -118,6 +118,7 @@ public :
    Float_t         RecoTrackPrimaryParticleTrueTrackLength[10];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[10];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueTrackLengthInTMS[10];   //[RecoTrackN]
+   Float_t         RecoTrackPrimaryParticleTruePositionEnteringTMS[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumEnteringTMS[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumLeavingTMS[10][4];   //[RecoTrackN]
    Bool_t          RecoTrackPrimaryParticleTMSFiducialStart[10];   //[RecoTrackN]
@@ -228,6 +229,7 @@ public :
    TBranch        *b_RecoTrackPrimaryParticleTrueTrackLength;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueTrackLengthIgnoreY;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueTrackLengthInTMS;   //!
+   TBranch        *b_RecoTrackPrimaryParticleTruePositionEnteringTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumEnteringTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumLeavingTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTMSFiducialStart;   //!
@@ -411,6 +413,7 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueTrackLength", RecoTrackPrimaryParticleTrueTrackLength, &b_RecoTrackPrimaryParticleTrueTrackLength);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueTrackLengthIgnoreY", RecoTrackPrimaryParticleTrueTrackLengthIgnoreY, &b_RecoTrackPrimaryParticleTrueTrackLengthIgnoreY);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueTrackLengthInTMS", RecoTrackPrimaryParticleTrueTrackLengthInTMS, &b_RecoTrackPrimaryParticleTrueTrackLengthInTMS);
+   fChain->SetBranchAddress("RecoTrackPrimaryParticleTruePositionEnteringTMS", RecoTrackPrimaryParticleTruePositionEnteringTMS, &b_RecoTrackPrimaryParticleTruePositionEnteringTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumEnteringTMS", RecoTrackPrimaryParticleTrueMomentumEnteringTMS, &b_RecoTrackPrimaryParticleTrueMomentumEnteringTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS, &b_RecoTrackPrimaryParticleTrueMomentumLeavingTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTMSFiducialStart", RecoTrackPrimaryParticleTMSFiducialStart, &b_RecoTrackPrimaryParticleTMSFiducialStart);
