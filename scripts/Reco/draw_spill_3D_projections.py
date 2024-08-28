@@ -13,7 +13,7 @@ orange_cbf = '#e69f00'
 magenta_cbf = '#cc79a7'
 black_cbf = '#000000'
 green_cbf = '#009e73'
-mp.style.use('seaborn-poster')
+mp.style.use('Solarize_Light2')  #mp.style.use('seaborn-poster') #  wasn't working.
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
@@ -376,12 +376,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     print('index: ', idx, 'pdg: ', pdg)
                     if pdg != abs(13): continue
 
-                    muon_ke_lar = true_event.Muon_TrueKE
+                    muon_ke_lar = true_event.Muon_TrueKE / 1000.0
                     p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
                     muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+                    muon_ke_tms_start /= 1000.0
+                    x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
 
-                    x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-                    x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start}', rotation= 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    if muon_ke_tms_start or muon_ke_lar > 5.0:  # GeV
+                        print(f'Event: {i}, Spill {spill_number_cache[i]}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
