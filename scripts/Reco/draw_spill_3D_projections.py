@@ -4,6 +4,7 @@ import matplotlib.pyplot as mp
 import os
 import argparse
 import cppyy.ll
+from math import sqrt
 
 # plotstyle
 red_cbf = '#d55e00'
@@ -27,6 +28,8 @@ tan_3 = 0.05241
 delta_x = 0.0177    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
 delta_z = 0.02      # space of scintilattor with air gap
+
+MUON_MASS = 105.7  # MeV/c^2
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
@@ -366,6 +369,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = green_cbf, marker = '2', alpha = 0.5)
                 x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = green_cbf, marker = '1', alpha = 0.5)
 
+
+            # Write the True Muon KE to each spill plot.
+            muon_ke_lar = true_event.Muon_TrueKE
+            p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * i], truth.MomentumTMSStart[4 * i + 1], truth.MomentumTMSStart[4 * i + 2])
+            muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+
+            x_z.text(3.6, -2.5, f'Muon KE at LAr: {muon_ke_lar}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_z.text(3.6, -2.75, f'Muon KE entering TMS: {muon_ke_tms_start}', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
 
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
