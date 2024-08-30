@@ -53,7 +53,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
     if not truth.GetEntries() > 0:
         print("Didn't get any entries in Truth_Info, are you sure the input_filename is right?\n", input_filename)
             
-    max_n_spills = 121000 # TODO (old) add some meta info to output file with n spill info for file
+    max_n_spills = 129000 # TODO (old) add some meta info to output file with n spill info for file
     
     spill_number_cache = dict()
     n_events = r.GetEntries()
@@ -67,6 +67,14 @@ def draw_performance(out_dir, input_filename, Xlayers):
     Reco_Charge = np.ones((n_events, 5), dtype = float) * -9999.
     True_Charge = np.ones((n_events, 5), dtype = float) * -9999.
     True_KE = np.ones((n_events, 5), dtype = float) * -9999.
+    True_Muon_Track = np.zeros((n_events, 5), dtype = float)    # treat as boolean array: 0 -> false, 1 -> true
+    Reco_Muon_Track = np.zeros((n_events, 5), dtype = float)    # treat as boolean array: 0 -> false, 1 -> true
+    
+    correct_tracks_reco = 0
+    correct_reco_hits = 0
+    correct_true_hits = 0
+    
+    count_muons = 0
     
     for current_spill_number in range(max_n_spills):
         for i in range(n_events):
@@ -90,31 +98,69 @@ def draw_performance(out_dir, input_filename, Xlayers):
                 truth.GetEntry(i)
                 true_event = truth
 
-                
+             
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             Muon_TrueTrackLength = true_event.Muon_TrueTrackLength
             Reco_Track_Length = np.frombuffer(event.Length, dtype = np.float32)
-            Reco_Track_Charge = event.Charge
+            #Reco_Track_Charge = event.Charge
             MomentumTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueMomentumTrackStart, dtype = np.float32)
             True_PDG = true_event.PDG
+            LArFiducialTouch = true_event.RecoTrackPrimaryParticleLArFiducialStart
+            True_Position_TMS_Start = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionEnteringTMS, dtype = np.float32)
+            True_Position_TMS_End = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionLeavingTMS, dtype = np.float32)
+            
+            Reco_Hits = np.frombuffer(event.TrackHitPos, dtype = np.float32)
+            True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype = np.float32)
+            sum_reco_hits = event.nHits
+            sum_true_hits = true_event.RecoTrackNHits
+            
+            Particle_PDG = true_event.LeptonPDG
+            Muon_Start = np.frombuffer(true_event.Muon_Vertex, dtype = np.float32)
+            Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
+            
+            if (abs(Particle_PDG) == 13):
+                if 4179.24 < Muon_Start[2] < 9135.88 and 11582 < Muon_End[2] < 18314:    #12462
+                    if 1159 > Muon_End[1] > -3864 and abs(Muon_End[0]) < 3520:
+                        count_muons += 1
             
             nTracks = event.nTracks
             if nTracks <= 0: continue
             if nTracks > 4: print("Too many tracks in event. Limit to first 5")
             for j in range(nTracks):
                 if j > 4: break
-           
+                
+                # check if (anti-)muon as true primary particle and if origin in LAr
+                if np.abs(True_PDG[j]) == 13 and LArFiducialTouch[j]:
+                    # check if (anti-)muon travesers at least 4 planes in TMS
+                    if (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) >= 440.:
+                        # if so, then this is a true muon: 0 -> 1
+                        True_Muon_Track[i, j] = 1.
+                        counter_correct = 0
+                        for true_hits in range(int(sum_true_hits[j])):
+                            for reco_hits in range(int(sum_reco_hits[j])):
+                                if True_Hits[j*600 + true_hits*4 + 2] == Reco_Hits[j*600 + reco_hits*3 + 2]:
+                                    if np.abs(True_Hits[j*600 + true_hits*4 + 0] - Reco_Hits[j*600 + reco_hits*3 + 0]) <= 2 * 35.42:
+                                        counter_correct += 1
+
+                        if counter_correct / sum_true_hits[j] >= 0.1:
+                            correct_tracks_reco += 1
+                            correct_reco_hits += counter_correct
+                            correct_true_hits += sum_true_hits[j]
+                        
+                        # check if reconstructed tracks exist for this event
+                        if StartPos.size != 0:
+                            # if so, then add all identified as muons: 0 -> number tracks
+                            Reco_Muon_Track[i, j] = 1. #StartPos.size / 3
+                
                 if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] > -8000. and not StartPos.size == 0:
                     # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
                     if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:
                         Reco_Start[i, j, 0] = StartPos[j*3 + 0]
                         Reco_Start[i, j, 1] = StartPos[j*3 + 1]
                         Reco_Start[i, j, 2] = StartPos[j*3 + 2]
-                        #if RecoTrackPrimaryParticleTruePositionTrackStart[2] < 11362:
-                        #    print('PDG: ', true_event.PDG[np.frombuffer(true_event.RecoTrackPrimaryParticleIndex, dtype = np.uint8)[0]], ' End: ', RecoTrackPrimaryParticleTruePositionTrackEnd[2])
                         Primary_True_Start[i, j, 0] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0]
                         Primary_True_Start[i, j, 1] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1]
                         Primary_True_Start[i, j, 2] = RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]
@@ -126,6 +172,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
                         Reco_TrackLength[i, j] = Reco_Track_Length[j]
                         True_Charge[i, j] = True_PDG[j]
                         Reco_Charge[i, j] = Reco_Track_Charge[j]
+                        
                 if RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] > -8000. and not EndPos.size == 0:
                     if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 890. and (RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] - RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2]) > 890.:            
                         Reco_End[i, j, 0] = EndPos[j*3 + 0]
@@ -172,6 +219,10 @@ def draw_performance(out_dir, input_filename, Xlayers):
     # total number of events after filtering
     print("#events reconstruction: ", len(Reco_Start), "# events truth: ", len(Primary_True_Start))
     print("tracklength truth: ", len(True_TrackLength), "reco: ", len(Reco_TrackLength))
+    print("true (anti-)muons: ", sum(True_Muon_Track), "  vs. reconstructed particles: ", sum(Reco_Muon_Track))
+    print("correctly identified tracks: ", correct_tracks_reco)
+    print("  correct hits reco: ", correct_reco_hits, " vs. true hits: ", correct_true_hits, " -> ", correct_reco_hits / correct_true_hits * 100)
+    print("total muons (outside of reco): ", count_muons)
     
     # subtract reconstruction from truth for all directions
     Diff_Start_x = Primary_True_Start_x - Reco_Start_x
@@ -583,7 +634,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
     #mp.savefig('%s/Reco_pure_length.png' % out_dir, bbox_inches = 'tight')
     #mp.close();
     
-    """length_density_hist, length_density_binsX, length_density_binsY = np.histogram2d(reco_pure_length, Reco_TrackLength / 10, bins = [30, 30], range = [[min(reco_pure_length), 6500], [min(Reco_TrackLength / 10), max(Reco_TrackLength / 10)]])
+    length_density_hist, length_density_binsX, length_density_binsY = np.histogram2d(reco_pure_length, Reco_TrackLength / 10, bins = [30, 30], range = [[min(reco_pure_length), 6500], [min(Reco_TrackLength / 10), max(Reco_TrackLength / 10)]])
     
     im = mp.pcolormesh(length_density_binsX, length_density_binsY, np.transpose(length_density_hist), cmap = cmap)
     mp.xlabel('Reco track length [mm]')
@@ -599,7 +650,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
     mp.ylabel('True track density length [$\\frac{g}{cm^2}$]')
     mp.colorbar(im)
     mp.savefig('%s/TrackLength_Density_truth.png' % out_dir, bbox_inches = 'tight')
-    mp.close()"""
+    mp.close()
     
     ### Stopping vs exiting evaluation
     opposite_direction_counter = 0
@@ -825,7 +876,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
     Muons_KE = Muons_KE[Muons_KE != -9999.]
     AMuons_KE = AMuons_KE[AMuons_KE != -9999.]
     
-    muons_ke_hist, muons_ke_bins = np.histogram(Muons_KE, bins = 100, range = (0, 5000))
+    muons_ke_hist, muons_ke_bins = np.histogram(Muons_KE, bins = 50, range = (0, 5000))
     amuons_ke_hist, amuons_ke_bins = np.histogram(AMuons_KE, bins = muons_ke_bins)
     
     true_muons_ke_hist, muons_ke_bins = np.histogram(True_Muons_KE, bins = muons_ke_bins)
@@ -837,10 +888,10 @@ def draw_performance(out_dir, input_filename, Xlayers):
     true_muons_ke_hist_x, true_muons_ke_hist_y = histogram_arr_handle(true_muons_ke_hist, muons_ke_bins)
     true_antimuons_ke_hist_x, true_antimuons_ke_hist_y = histogram_arr_handle(true_antimuons_ke_hist, amuons_ke_bins)
     
-    mp.plot(muons_ke_hist_x, muons_ke_hist_y / true_muons_ke_hist_y, color = blue_cbf, linestyle = '--', linewidth = 2)
-    mp.plot(amuons_ke_hist_x, amuons_ke_hist_y / true_antimuons_ke_hist_y, color = orange_cbf, linestyle = '--', linewidth = 2)
-    mp.fill_between(muons_ke_hist_x, 0, muons_ke_hist_y / true_muons_ke_hist_y, color = blue_cbf, alpha = 0.6, hatch = '//', label = '$\\mu$ correct')
-    mp.fill_between(amuons_ke_hist_x, 0, amuons_ke_hist_y / true_antimuons_ke_hist_y, color = orange_cbf, alpha = 0.6, hatch = '\\\\', label = '$\\bar{\\mu}$ correct')
+    mp.plot(muons_ke_hist_x, muons_ke_hist_y / true_muons_ke_hist_y, color = blue_cbf, linestyle = '-', linewidth = 2)
+    mp.plot(amuons_ke_hist_x, amuons_ke_hist_y / true_antimuons_ke_hist_y, color = orange_cbf, linestyle = '-', linewidth = 2)
+    mp.fill_between(muons_ke_hist_x, 0, muons_ke_hist_y / true_muons_ke_hist_y, color = blue_cbf, alpha = 0.3, hatch = '//', label = '$\\mu$ correct')
+    mp.fill_between(amuons_ke_hist_x, 0, amuons_ke_hist_y / true_antimuons_ke_hist_y, color = orange_cbf, alpha = 0.3, hatch = '\\\\', label = '$\\bar{\\mu}$ correct')
     mp.xlabel('True Muon KE [MeV]')
     mp.ylabel('Fraction')
     mp.legend(loc = 'lower center', fontsize = 'xx-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
