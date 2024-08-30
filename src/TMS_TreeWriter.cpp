@@ -227,16 +227,17 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
 
-  Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
-  Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
-  Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
-  Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
-  Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
-  Reco_Tree->Branch("Charge",       RecoTrackCharge,        "Charge[nTracks]/I");
+  Reco_Tree->Branch("nTracks",          &nTracks,               "nTracks/I");
+  Reco_Tree->Branch("nHits",            nHitsIn3DTrack,         "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",      RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
+  Reco_Tree->Branch("StartPos",         RecoTrackStartPos,      "StartPos[nTracks][3]/F");
+  Reco_Tree->Branch("Direction",        RecoTrackDirection,     "Direction[nTracks][3]/F");
+  Reco_Tree->Branch("EndPos",           RecoTrackEndPos,        "EndPos[nTracks][3]/F");
+  Reco_Tree->Branch("EnergyRange",      RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit",    RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Length",           RecoTrackLength,        "Length[nTracks]/F");
+  Reco_Tree->Branch("Charge",           RecoTrackCharge,        "Charge[nTracks]/I");
 
 
   MakeTruthBranches(Truth_Info);
@@ -1209,18 +1210,20 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   RecoTrackN = Reco_Tracks.size();
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-//    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
-    RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
-    RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
-    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
-    RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    nHitsIn3DTrack[itTrack]          = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    RecoTrackEnergyRange[itTrack]    =       RecoTrack->EnergyRange;
+    RecoTrackLength[itTrack]         =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+    RecoTrackEnergyDeposit[itTrack]  =       RecoTrack->EnergyDeposit;
+    RecoTrackCharge[itTrack]         =       RecoTrack->Charge;
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
     }
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
+      RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
+
+      // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
@@ -1229,7 +1232,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
-//      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
     }
     // Can manually compute direction if it hasn't been set
     if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
