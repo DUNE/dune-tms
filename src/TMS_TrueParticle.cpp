@@ -1,5 +1,7 @@
 #include "TMS_TrueParticle.h"
 
+#include <algorithm>    // std::swap
+
 void TMS_TrueParticle::Print(bool small) {
   std::cout << "Printing TMS_TrueParticle class: " << std::endl;
   std::cout << "  Parent: " << Parent << std::endl;
@@ -33,19 +35,70 @@ void TMS_TrueParticle::Print(bool small) {
 }
 
 TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
+  // Finds the true momentum of the particle at z.
+  // If z is outside the true range of the particle, will still return edges if within range + max_z_dist.
+  // This is useful because reco only measures z in the middle of the scintillator, but the true particle
+  // can start after that. 
+  // If within the range of the particle, it does it lerp (linear interpolation) between 
+  // the two closest points so that you get the exact x,y, and t position where the z was hit
+  
+  bool found_out = false;
   TVector3 out(-99999999, -99999999, -99999999);
-  double z_dist_found = 999999;
-  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
-    double distance = abs(GetPositionPoints()[i].Z() - z);
-    if (distance <= max_z_dist) {
-      // Found a candidate
-      if (distance < z_dist_found) {
-        out = GetMomentumPoints()[i];
-        z_dist_found = distance;
+  
+  // Need at least one position point to check
+  if (GetPositionPoints().size() > 0) {
+    // Then check for cases where position is outside the range
+    double z_start = GetPositionPoints()[0].Z();
+    double z_end = GetPositionPoints()[GetPositionPoints().size()-1].Z();
+    // It's possible that the track is going backwards, so check for that
+    bool is_backwards = false;
+    if (z_start > z_end) is_backwards = true;
+    if (is_backwards) {
+      // In backwards case, z_start and z_end are reversed
+      std::swap(z_start, z_end);   
+    }
+    if (z < z_start || z > z_end || GetPositionPoints().size() == 1) {
+      // Case where Z is outside range, but it's possible that it's still within max_z_dist
+      // Or there's only one point so that z_start == z_end
+      if (z < z_start && z >= z_start - max_z_dist) {
+        if (!is_backwards) out = GetMomentumPoints()[0];
+        else out = GetMomentumPoints()[GetMomentumPoints().size()-1];
+        found_out = true;
+        //std::cout<<"For z="<<z<<",\tmax_z_dist="<<max_z_dist<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\t"<<out.T()<<",\tz<z_start case,\t"<<(z_start - max_z_dist)<<std::endl;
+      }
+      if (z > z_end && z <= z_end + max_z_dist) {
+        if (is_backwards) out = GetMomentumPoints()[0];
+        else out = GetMomentumPoints()[GetMomentumPoints().size()-1];
+        found_out = true;
+        //std::cout<<"For z="<<z<<",\tmax_z_dist="<<max_z_dist<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\t"<<out.T()<<",\tz>z_end case,\t"<<(z_end + max_z_dist)<<std::endl;
       }
     }
-  } 
-  double energy = GetEnergyFromMomentum(out);
+    else {
+      // Main cases where z is inside range of true particle
+      for (size_t i = 0; i < GetPositionPoints().size() - 1; i++) {
+        auto upstream_point = GetPositionPoints()[i].Z();
+        auto downstream_point = GetPositionPoints()[i+1].Z();
+        if (is_backwards) std::swap(upstream_point, downstream_point);
+        if (upstream_point <= z && z <= downstream_point) {
+          // Found case where z is between upstream and downstream points
+          // Find lerping constant
+          // We want a = 1 if z == upstream_point, and a = 0 if z == downstream_point
+          double a = 1;
+          // Make sure to not get nan
+          if (upstream_point != downstream_point) a = (z - downstream_point) / (upstream_point - downstream_point);
+          // By definition, this will give the reverse answer
+          if (is_backwards) a = 1 - a;
+          out = GetMomentumPoints()[i] * a + GetMomentumPoints()[i+1] * (1 - a);
+          //std::cout<<"For z="<<z<<",\tup_z="<<upstream_point<<",\tdown_z="<<downstream_point<<",\tnpoints="<<GetPositionPoints().size()<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\ta="<<a<<std::endl;
+          found_out = true;
+        }
+      }
+    }
+  }
+  else { std::cout<<"Found GetPositionPoints().size()==0 case"<<std::endl; }
+  
+  double energy = -99999999; 
+  if (found_out) energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
@@ -68,23 +121,66 @@ std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double
   return out;
 }
 
+
 TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
+  // Finds the true position of the particle at z.
+  // If z is outside the true range of the particle, will still return edges if within range + max_z_dist.
+  // This is useful because reco only measures z in the middle of the scintillator, but the true particle
+  // can start after that. 
+  // If within the range of the particle, it does it lerp (linear interpolation) between 
+  // the two closest points so that you get the exact x,y, and t position where the z was hit
+  
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
-  double z_dist_found = 999999;
-  //double prev_z = 0;
-  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
-    //std::cout << "pos: " << GetPositionPoints()[i].X() << ", "<< GetPositionPoints()[i].Y() << ", "<< GetPositionPoints()[i].Z() << "     " << GetPositionPoints()[i].Z() - prev_z << std::endl;
-    //prev_z = GetPositionPoints()[i].Z();
-    double distance = GetPositionPoints()[i].Z() - z;
-    if (abs(distance) <= max_z_dist) {
-      // Found a candidate
-      if (abs(distance) < z_dist_found) {
-        out = GetPositionPoints()[i];
-        z_dist_found = distance;
+  
+  // Need at least one position point to check
+  if (GetPositionPoints().size() > 0) {
+    // Then check for cases where position is outside the range
+    double z_start = GetPositionPoints()[0].Z();
+    double z_end = GetPositionPoints()[GetPositionPoints().size()-1].Z();
+    // It's possible that the track is going backwards, so check for that
+    bool is_backwards = false;
+    if (z_start > z_end) is_backwards = true;
+    if (is_backwards) {
+      // In backwards case, z_start and z_end are reversed
+      std::swap(z_start, z_end);   
+    }
+    if (z < z_start || z > z_end || GetPositionPoints().size() == 1) {
+      // Case where Z is outside range, but it's possible that it's still within max_z_dist
+      // Or there's only one point so that z_start == z_end
+      if (z < z_start && z >= z_start - max_z_dist) {
+        if (!is_backwards) out = GetPositionPoints()[0];
+        else out = GetPositionPoints()[GetPositionPoints().size()-1];
+        //std::cout<<"For z="<<z<<",\tmax_z_dist="<<max_z_dist<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\t"<<out.T()<<",\tz<z_start case,\t"<<(z_start - max_z_dist)<<std::endl;
+      }
+      if (z > z_end && z <= z_end + max_z_dist) {
+        if (is_backwards) out = GetPositionPoints()[0];
+        else out = GetPositionPoints()[GetPositionPoints().size()-1];
+        //std::cout<<"For z="<<z<<",\tmax_z_dist="<<max_z_dist<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\t"<<out.T()<<",\tz>z_end case,\t"<<(z_end + max_z_dist)<<std::endl;
+      }
+    }
+    else {
+      // Main cases where z is inside range of true particle
+      for (size_t i = 0; i < GetPositionPoints().size() - 1; i++) {
+        auto upstream_point = GetPositionPoints()[i].Z();
+        auto downstream_point = GetPositionPoints()[i+1].Z();
+        if (is_backwards) std::swap(upstream_point, downstream_point);
+        if (upstream_point <= z && z <= downstream_point) {
+          // Found case where z is between upstream and downstream points
+          // Find lerping constant
+          // We want a = 1 if z == upstream_point, and a = 0 if z == downstream_point
+          double a = 1;
+          // Make sure to not get nan
+          if (upstream_point != downstream_point) a = (z - downstream_point) / (upstream_point - downstream_point);
+          // By definition, this will give the reverse answer
+          if (is_backwards) a = 1 - a;
+          out = GetPositionPoints()[i] * a + GetPositionPoints()[i+1] * (1 - a);
+          // std::cout<<"For z="<<z<<",\tfound out: "<<out.X()<<",\t"<<out.Y()<<",\t"<<out.Z()<<",\t"<<out.T()<<",\ta="<<a<<std::endl;
+        }
       }
     }
   }
-  out.SetZ( out.Z() - z_dist_found );
+  else { std::cout<<"Found GetPositionPoints().size()==0 case"<<std::endl; }
+  
   return out;
 }
 
