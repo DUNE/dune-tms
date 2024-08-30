@@ -236,6 +236,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
   Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
+  Reco_Tree->Branch("Charge",       RecoTrackCharge,        "Charge[nTracks]/I");
 
 
   MakeTruthBranches(Truth_Info);
@@ -1213,6 +1214,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
+    RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
@@ -1253,8 +1255,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      //std::cout<<"checking for primary particle trackid"<<std::endl;
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1344,7 +1345,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1660,6 +1661,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;

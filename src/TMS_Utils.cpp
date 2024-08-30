@@ -121,7 +121,7 @@ caf::SRTMS ConvertEvent() {
 
 namespace TMS_Utils {
   TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits) { 
-      std::unordered_map<int, double> totalMap;
+      std::map<std::pair<int, int>, double> totalMap;
 
       // Iterate through the list of hits
       int total_n_true_particles = 0;
@@ -129,10 +129,12 @@ namespace TMS_Utils {
         auto true_hit = hit.GetTrueHit();
         total_n_true_particles += true_hit.GetNTrueParticles();
         for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+          int vertexid = true_hit.GetVertexIds(i);
           int pid = true_hit.GetPrimaryIds(i);
           double energy = true_hit.GetEnergyShare(i);
+          auto pair = std::make_pair(vertexid, pid);
           // Add the utility to the corresponding pid in the map
-          totalMap[pid] += energy;
+          totalMap[pair] += energy;
         }
       }
 
@@ -151,10 +153,11 @@ namespace TMS_Utils {
   }
 
   struct ParticlePair {
+    int vertexid;
     int trackid;
     double energy;
     
-    ParticlePair(int i, double e) : trackid(i), energy(e) {}
+    ParticlePair(std::pair<int, int> i, double e) : vertexid(i.first), trackid(i.second), energy(e) {}
   };
 
   static bool CompareByEnergy(const ParticlePair& a, const ParticlePair& b) {
@@ -162,7 +165,7 @@ namespace TMS_Utils {
   }
 
 
-  TMS_Utils::ParticleInfo GetSumAndHighest(const std::unordered_map<int, double>& map) {
+  TMS_Utils::ParticleInfo GetSumAndHighest(const std::map<std::pair<int, int>, double>& map) {
       // First make a vector and sort it
       std::vector<ParticlePair> pairs;
       for (const auto& pair : map) {
@@ -174,6 +177,7 @@ namespace TMS_Utils {
       for (const auto& pair : pairs) {
         out.total_energy += pair.energy;
         out.trackids.push_back(pair.trackid);
+        out.vertexids.push_back(pair.vertexid);
         out.energies.push_back(pair.energy);
       }
       

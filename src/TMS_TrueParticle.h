@@ -39,7 +39,7 @@ class TMS_TrueParticle {
     }
 
     TMS_TrueParticle(TG4PrimaryParticle &edep_part, TG4PrimaryVertex &vtx) : 
-      VertexID(-999),
+      VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
@@ -49,8 +49,8 @@ class TMS_TrueParticle {
     }
 
     // Construct directly from edep-sim
-    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal) :
-      VertexID(-999),
+    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal) :
+      VertexID(VertexIDVal),
       Parent(ParentVal), 
       TrackId(TrackVal), 
       PDG(PDGVal), 
@@ -105,6 +105,8 @@ class TMS_TrueParticle {
     void SetDeathPosition(TLorentzVector &deathpos) { DeathPosition = deathpos; };
 
     TVector3       &GetBirthMomentum() { return BirthMomentum; };
+    TLorentzVector GetBirthMomentumAsLorentz() 
+      { auto mom = GetBirthMomentum(); auto en = GetBirthEnergy(); return TLorentzVector(mom.X(), mom.Y(), mom.Z(), en); };
     TLorentzVector &GetBirthPosition() { return BirthPosition; };
 
     TVector3       &GetDeathMomentum() { return DeathMomentum; };

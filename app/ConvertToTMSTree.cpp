@@ -4,6 +4,7 @@
 #include "TTree.h"
 #include "TGeoManager.h"
 #include "TStopwatch.h"
+#include "TParameter.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
@@ -82,25 +83,40 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   // Do we overlay events
   bool Overlay = false;
   // How many events do we want to overlay?
-  int nOverlays = 3;
+  int nOverlays = 50;
   // The vector carrying our events that we want to overlay
   std::vector<TMS_Event> overlay_events;
+  
+  bool NerscOverlay = false;
+  TParameter<float>* spillPeriod_s = (TParameter<float>*)input->Get("spillPeriod_s");
+  if (spillPeriod_s != NULL) NerscOverlay = true;
+  double SpillPeriod = 0;
+  if (NerscOverlay) {
+    std::cout<<"Combining spills"<<std::endl;
+    SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
+    TMS_Manager::GetInstance().Set_Nersc_Spill_Period(SpillPeriod);
+    std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<std::endl;
+  }
+  int current_spill_number = 0;
 
   for (; i < N_entries; ++i) {
+    if (N_entries <= 10 || i % (N_entries/10) == 0) {
+      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
+    }
+    
     events->GetEntry(i);
     // todo, gRoo has a different indexing than events with overlay
     if (gRoo)
       gRoo->GetEntry(i);
-
-#ifndef DEBUG
-    if (N_entries <= 10 || i % (N_entries/10) == 0) {
-#endif
-      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
-    }
+      
+    // Todo: This should no longer be needed when this bug is fixed in the spill builder
+    // https://github.com/DUNE/2x2_sim/issues/54
+    event->EventId = i;
+    //if (event->Primaries.size() > 0)
+    //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
-
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
@@ -111,13 +127,36 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       overlay_events.push_back(tms_event);
       continue;
     }
+    
+    // Keep filling up the vector if within spill
+    if (NerscOverlay) {
+      double next_spill_time = (current_spill_number + 0.5) * SpillPeriod;
+      double current_spill_time = event->Primaries.begin()->Position.T();
+      // Check that this neutrino is within spill, but not last event
+      if (current_spill_time < next_spill_time && i != N_entries - 1) {
+        overlay_events.push_back(tms_event);
+        continue;
+      }
+    }
 
     // Add event information and truth from another event
-    if (Overlay && i % nOverlays == 0) {
+    if (overlay_events.size() > 0) {
       // Now loop over previous events
-      for (auto &event : overlay_events) tms_event.AddEvent(event);
+      std::cout<<"Overlaying "<<overlay_events.size()<<" events"<<std::endl;
+      // The first event should be the starting point so reverse it
+      std::reverse(overlay_events.begin(), overlay_events.end());
+      TMS_Event last_event = overlay_events.back();
+      overlay_events.pop_back();
+      for (auto &event : overlay_events) last_event.AddEvent(event);
       overlay_events.clear();
+      overlay_events.push_back(tms_event);
+      if (NerscOverlay) current_spill_number += 1;
+      tms_event = last_event;
     }
+    
+    // Apply the det sim now, after overlaying events
+    // This doesn't work right now
+    tms_event.ApplyReconstructionEffects();
 
     // Dump information
     //tms_event.Print();
@@ -129,9 +168,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
 
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
     // Check if this is not pileup
-    if (event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
+    if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
       // Fill the info of the one and only true vertex in the spill
       auto primary_vertex = event->Primaries[0];
       int interaction_number = primary_vertex.GetInteractionNumber();
@@ -166,33 +206,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
           
-          if ((unsigned long) primary_vertex_id >= event->Primaries.size())
-              std::cout<<"Warning: primary_vertex_id "<<primary_vertex_id<<" is above event->Primaries.size "<<event->Primaries.size()<<std::endl;
-          else {
-            // Now set the remaining information from the gRoo tchain.
-            auto primary_vertex = event->Primaries[primary_vertex_id];
-            int interaction_number = primary_vertex.GetInteractionNumber();
-            gRoo->GetEntry(interaction_number);
-            tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-            // And the lepton info
-            int lepton_index = -1;
-            int current_index = 0;
-            for (auto particle : primary_vertex.Particles) {
-              int pdg = std::abs(particle.GetPDGCode());
-              if (pdg >= 11 && pdg <= 16) {
-                lepton_index = current_index;
-                break;
-              }
-              current_index += 1;
-            }
-            if (lepton_index >= 0) {
-              auto lepton = primary_vertex.Particles[lepton_index];
-              int lepton_pdg = lepton.GetPDGCode();
-              auto lepton_position = primary_vertex.GetPosition();
-              auto lepton_momentum = lepton.GetMomentum();
-              tms_event_slice.FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum);
-            }
-          }
+          gRoo->GetEntry(primary_vertex_id);
+          tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
+          tms_event_slice.SetLeptonInfoUsingVertexID(primary_vertex_id);
         }
       }
       

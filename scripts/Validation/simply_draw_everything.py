@@ -18,16 +18,26 @@ def draw_histograms(input_file):
     # Loop over all keys in the ROOT file
     for key in root_file.GetListOfKeys():
         obj = key.ReadObj()
+        output_subdir = output_dir
+        name = obj.GetName()
+        split = name.split("_")
+        if len(split) > 2:
+            output_subdir = os.path.join(output_dir, split[0])
+        os.makedirs(output_subdir, exist_ok=True)  
         if isinstance(obj, ROOT.TH2):
             # For 2D histograms, draw with "colz" option and save as png
             obj.GetYaxis().SetTitleOffset(1.4)
             obj.GetZaxis().SetTitleOffset(0.5)
             obj.Draw("colz")
-            canvas.Print(os.path.join(output_dir, obj.GetName() + ".png"))
+            print(f"{obj.GetName()} integral: {obj.Integral()}")
+            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
         elif isinstance(obj, ROOT.TH1):
             # For 1D histograms, draw and save as png
+            top = obj.GetMaximum()*1.2
+            obj.GetYaxis().SetRangeUser(0, top)
             obj.Draw()
-            canvas.Print(os.path.join(output_dir, obj.GetName() + ".png"))
+            #print(f"{obj.GetName()} integral: {obj.Integral()}")
+            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
 
     # Close the input ROOT file
     root_file.Close()
