@@ -15,6 +15,10 @@ TMS_ReadoutTreeWriter::TMS_ReadoutTreeWriter() {
   
   TString Outputname = filename.c_str();
   Outputname.ReplaceAll(".root", "_TMS_Readout.root");
+  // Override output file name if set by the environment.
+  if(std::getenv("ND_PRODUCTION_TMSRECOREADOUT_OUTFILE")) {
+    Outputname = std::getenv("ND_PRODUCTION_TMSRECOREADOUT_OUTFILE");
+  }
   // Make an output file
   Output = new TFile(Outputname, "recreate");
   
