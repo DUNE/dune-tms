@@ -127,7 +127,6 @@ def run(truth, f, outfilename, nmax=-1):
 
         # use PositionTMSStart, MomentumTMSStart, and PositionTMSEnd, truth level study
         for index, particle in enumerate(truth.PDG):
-            print(i)
             signed_dist = None
             if truth.PDG[index] == 13:
                 n_true_muons += 1
