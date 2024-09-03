@@ -192,7 +192,7 @@ def run(truth, f, outfilename, nmax=-1):
                             correct_muon_ke.append(truth.Muon_TrueKE)
                             n_correct += 1
 
-                    if signed_dist != None:
+                    if signed_dist is not None:
                         muon_signed_distances.append(signed_dist)
                         # print(f"{n_correct} / {n_true_muons}")
 
@@ -341,7 +341,7 @@ def validate_then_run(args):
         assert nevents >= -1, f"nevents <= -1, why? {nevents}"
 
         # Now finally run
-        muon_arr, amuon_arr, muon_correct_charge, amuon_correct_charge = run(c, truth, f, outfilename, nevents)
+        muon_arr, amuon_arr, muon_correct_charge, amuon_correct_charge = run(truth, f, outfilename, nevents)
         entire_array["MUONS"][f] = muon_arr
         entire_array["AMUONS"][f] = amuon_arr
         entire_array["MUONS_CORRECT"][f] = muon_correct_charge
