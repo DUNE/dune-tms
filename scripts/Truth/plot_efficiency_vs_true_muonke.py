@@ -103,9 +103,6 @@ def run(truth, f, outfilename, nmax=-1):
         # hist_signed_distance = Hists_Graph("hist_signed_distance", "Muons signed distance: (x_extrapolate - x_truth) (using truth_info);True signed distance(mm) ;Number of muons", 100, -2000, 2000)
         pass
 
-    # User can request fewer events, so check how many we're looping over.
-    nevents = truth.GetEntries()
-
     n_true_muons = 0
     n_muon_total_lar_start_tms_end = 0
     n_correct = 0
@@ -120,7 +117,8 @@ def run(truth, f, outfilename, nmax=-1):
     total_amuon_ke = []
 
     # Now loop over all events
-    for i in range(truth.GetEntries()):
+    nevents = min(truth.GetEntries(), nmax if nmax >= 0 else float("inf"))
+    for i in range(nevents):
 
         if i % 10000 == 0:
             logging.info(f"Processing event {i} / {nevents} ({100 * i / nevents:.1f}%)")
