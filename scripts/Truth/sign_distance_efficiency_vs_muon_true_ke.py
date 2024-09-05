@@ -6,9 +6,11 @@ import ROOT
 import array
 import logging
 
-# signed_distance_efficiency_vs_muon_true_ke.py
+# run this script:
+#   python signed_distance_efficiency_vs_muon_true_ke.py
 # This script creates histograms of the efficiency of signed distance of muons and anti-muons
 # using the Truth_Info TTree, and saves them to a ROOT file.
+# S.D. = signed distance
 
 
 # TODO: add the B Field info...from the inlist to outfile name.
@@ -66,7 +68,7 @@ def region2(x):
 def region3(x):
     return 2500 < x < 4000
 
-def run(c, truth, outfilename, nmax=-1):
+def run(truth, outfilename, nmax=-1):
     bin_edges = array.array('d', [i for i in range(0, 5001, 100)])  # 1 bin is 100 MeV
     # bin_edges_gev = [edge // 1000 for edge in bin_edges]  # integer division to get GeV
 
@@ -295,7 +297,7 @@ def validate_then_run(args):
         truth.Add(f)
     assert c.GetEntries() > 0 and truth.GetEntries() > 0, "No entries in input files"
 
-    run(c, truth, outfilename, args.nevents)
+    run(truth, outfilename, args.nevents)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draws spills.')
