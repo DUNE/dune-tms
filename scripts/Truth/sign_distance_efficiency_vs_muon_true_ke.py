@@ -72,40 +72,26 @@ def run(truth, outfilename, nmax=-1):
     bin_edges = array.array('d', [i for i in range(0, 5001, 100)])  # 1 bin is 100 MeV
     # bin_edges_gev = [edge // 1000 for edge in bin_edges]  # integer division to get GeV
 
-    # create histogram, and bin edges are from -2m -- 2m. This is a list of TH1s
+    # create histogram, for 'True_MuonKE'.
     # These two lists of TH1s will use the KE from the True_MuonKE (from its birth)
-    hist_signed_distance_muon_lar_ke = [ROOT.TH1D(f"muon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
-    hist_signed_distance_amuon_lar_ke = [ROOT.TH1D(f"amuon_lar_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    hist_sd_eff_muon_lar_ke = ROOT.TH1D("muon_sd_eff_lar_ke", "", len(bin_edges)-1, bin_edges[0], bin_edges[-1])  # 0-5 GeV.
+    hist_sd_eff_amuon_lar_ke = ROOT.TH1D("amuon_sd_eff_lar_ke", "", len(bin_edges)-1, bin_edges[0], bin_edges[-1])
 
-    # create histograms that will be sliced based on their entering TMS KE
-    hist_signed_distance_muon_tms_ke = [ROOT.TH1D(f"muon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
-    hist_signed_distance_amuon_tms_ke = [ROOT.TH1D(f"amuon_tms_ke_{i}", "", 100, -2000, 2000) for i in range(len(bin_edges)-1)]
+    # create histogram, for muon TMS KE.
+    hist_sd_eff_muon_tms_ke = ROOT.TH1D("muon_sd_eff_tms_ke", "", len(bin_edges)-1, bin_edges[0], bin_edges[-1])
+    hist_sd_eff_amuon_tms_ke = ROOT.TH1D("amuon_sd_eff_tms_ke", "", len(bin_edges)-1, bin_edges[0], bin_edges[-1])
 
 
     # Set axis labels for each histogram
     edge_counter = 0
-    for hist in (hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke +
-                 hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke):
-        hist.SetXTitle("Signed Distance (mm)")
-        hist.SetYTitle("Events")
+    for hist in (hist_sd_eff_muon_lar_ke + hist_sd_eff_amuon_lar_ke + hist_sd_eff_muon_tms_ke + hist_sd_eff_amuon_tms_ke):
+        hist.SetXTitle("Muon Kinetic Energy (MeV)")
+        hist.SetYTitle("Efficiency")
         hist.GetYaxis().SetTitleOffset(0.95)
-        if hist.GetName().startswith("muon") and "tms_ke" in hist.GetName():  # only want to set the title for the first histogram drawn
-            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Entering TMS")
-        elif hist.GetName().startswith("amuon") and "tms_ke" in hist.GetName():
-            hist.SetTitle("")  # Remove the histogram title
-        elif hist.GetName().startswith("muon") and "lar_ke" in hist.GetName():
-            hist.SetTitle(rf"{bin_edges[edge_counter]} < {'KE_{#mu}'} < {bin_edges[edge_counter + 1]} MeV Inside LAr")
-        elif hist.GetName().startswith("amuon") and "lar_ke" in hist.GetName():
-            hist.SetTitle("")  # Remove the histogram title
-        elif hist.GetName().startswith("nu") and "lar" in hist.GetName():
-            hist.SetTitle(rf"{bin_edges[edge_counter]} < E_{{#nu}} < {bin_edges[edge_counter + 1]} GeV Inside LAr")
-        elif hist.GetName().startswith("nubar") and "lar" in hist.GetName():
-            hist.SetTitle("")
-        else:
-            raise ValueError("Histogram naming error")
-        edge_counter += 1
-        if edge_counter == len(bin_edges) - 1:
-            edge_counter = 0  # rest the counter
+    hist_sd_eff_muon_lar_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_amuon_lar_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Entering TMS")
+    hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Entering Inside TMS")
 
     nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
 
