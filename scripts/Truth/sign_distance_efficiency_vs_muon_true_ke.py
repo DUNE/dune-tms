@@ -93,7 +93,14 @@ def run(truth, outfilename, nmax=-1):
     hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Entering TMS")
     hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Entering Inside TMS")
 
-    nevents = min(c.GetEntries(), nmax if nmax >= 0 else float('inf'))
+    # TODO: purities too...
+    # tallies for the S.D. > 0 and S.D. < 0
+    d_pdg_sd = {'13': [0, 0], '-13': [0, 0]}  # pdg, [sd+, sd-] (13 is muon, -13 is anti-muon)
+    # will be a list of tuples: [(mu KE bin number, efficiency), ...]
+    bin_contents_mu_lar = []
+    bin_contents_amu_lar = []
+    bin_contents_mu_tms = []
+    bin_contents_amu_tms = []
 
     for i in range(nevents):
         if i % 10000 == 0:
