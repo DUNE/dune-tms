@@ -30,19 +30,20 @@ MUON_MASS = 105.7  # MeV/c^2
 FUDICIAL_CUT = 50
 LAR_START = (-3478.48, -2166.71, 4179.24)
 LAR_END = (3478.48, 829.282, 9135.88)
+MUON_KE_BINNING = [(i, i+100) for i in range(0, 5001, 100)]  # MeV
 
 class Momentum:
     def __init__(self, kinetic_energy, classification="muon"):
         self.ke = kinetic_energy
         self.classification = classification
-        self.ranges = [(i, i+99) for i in range(0, 5001, 100)]  # MeV
+        self.ranges = MUON_KE_BINNING  # MeV
 
     def momentum_from_kinetic_energy(self, ke):
         return math.sqrt((ke + MUON_MASS) ** 2 - MUON_MASS ** 2)
 
     def get_muon_ke_index(self):
         for i, r in enumerate(self.ranges):
-            if r[0] <= self.ke <= r[1]:
+            if r[0] <= self.ke < r[1]:  # [lower, upper) bounds
                 return i
         return None
 
@@ -93,14 +94,12 @@ def run(truth, outfilename, nmax=-1):
     hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Entering TMS")
     hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Entering Inside TMS")
 
-    # TODO: purities too...
-    # tallies for the S.D. > 0 and S.D. < 0
-    d_pdg_sd = {'13': [0, 0], '-13': [0, 0]}  # pdg, [sd+, sd-] (13 is muon, -13 is anti-muon)
-    # will be a list of tuples: [(mu KE bin number, efficiency), ...]
-    bin_contents_mu_lar = []
-    bin_contents_amu_lar = []
-    bin_contents_mu_tms = []
-    bin_contents_amu_tms = []
+    # dictionary of bin number (for KE) and events: [bin, sd > 0, sd < 0, sd = 0]
+    data_lar = {}
+    data_tms = {}
+    for binIdx in range(len(MUON_KE_BINNING)):
+        data_lar[binIdx + 1] = [0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
+        data_tms[binIdx + 1] = [0, 0]
 
     for i in range(nevents):
         if i % 10000 == 0:
@@ -120,46 +119,41 @@ def run(truth, outfilename, nmax=-1):
                 x_start_tms = truth.PositionTMSStart[4*index]
                 z_start_tms = truth.PositionTMSStart[4*index+2]
 
-                enu = truth.NeutrinoP4[3]  # fourth component is the energy
-                print('index -- pdg -- enu:', index, pdg, enu)
-
-                if isinstance(truth.Muon_TrueKE, (list, tuple, ROOT.vector('float'))):
-                    KE_muon = truth.Muon_TrueKE[index]
-                else:
-                    KE_muon = truth.Muon_TrueKE
-
+                # check if muon starts in LAr and ends in TMS, before creating any vars.
                 if inside_lar(x_start, y_start, z_start) and inside_tms(x_end, y_end, z_end):
+                    # muon KE at birth (in LAr)
+                    if isinstance(truth.Muon_TrueKE, (list, tuple, ROOT.vector('float'))):
+                        ke_muon_lar = truth.Muon_TrueKE[index]
+                    else:
+                        ke_muon_lar = truth.Muon_TrueKE
+                    muon_ke_lar_bin = Momentum(ke_muon_lar, classification="muon" if pdg == 13 else "amuon").get_muon_ke_index()
+
+                    # muon KE at TMS start
                     p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * index], truth.MomentumTMSStart[4 * index + 1], truth.MomentumTMSStart[4 * index + 2])
                     ke_muon_tms_start = get_muon_ke_entering_tms(p_tms_start)
+                    muon_ke_tms_bin = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon").get_muon_ke_index()
+
+                    # starting and ending momenta in TMS
                     pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
 
-                    if region1(x_start_tms) and region1(x_end):
+                    # must be in the same region to be considered. A good # todo for future...multiple regions.
+                    if (region1(x_start) and region1(x_end)) or (region2(x_start) and region2(x_end)) or (region3(x_start) and region3(x_end)):
                         if pz_tms_start != 0:
                             signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
-                    elif region2(x_start_tms) and region2(x_end):
-                        if pz_tms_start != 0:
-                            signed_dist = - calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
-                    elif region3(x_start_tms) and region3(x_end):
-                        if pz_tms_start != 0:
-                            signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
-
-                    # this is the Muon_TrueKE from the birth of the muon (inside LAr)
-                    p = Momentum(KE_muon, classification="muon" if pdg == 13 else "amuon")
-                    range_index = p.get_muon_ke_index()  # find which set of KE ranges the muon KE falls into
-                    if range_index is not None and signed_dist is not None:
-                        if pdg == 13:
-                            hist_signed_distance_muon_lar_ke[range_index].Fill(signed_dist)
-                        else:
-                            hist_signed_distance_amuon_lar_ke[range_index].Fill(signed_dist)
-
-                    # this is the MuonKE entering the TMS
-                    p_tms = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon")
-                    range_index_tms = p_tms.get_muon_ke_index()
-                    if range_index_tms is not None and signed_dist is not None:
-                        if pdg == 13:
-                            hist_signed_distance_muon_tms_ke[range_index_tms].Fill(signed_dist)
-                        else:
-                            hist_signed_distance_amuon_tms_ke[range_index_tms].Fill(signed_dist)
+                            if signed_dist > 0:
+                                data_lar[muon_ke_lar_bin][0] += 1
+                                data_tms[muon_ke_tms_bin][0] += 1
+                            elif signed_dist < 0:
+                                data_lar[muon_ke_lar_bin][1] += 1
+                                data_tms[muon_ke_tms_bin][1] += 1
+                            elif signed_dist == 0:
+                                data_lar[muon_ke_lar_bin][2] += 1
+                                data_tms[muon_ke_tms_bin][2] += 1
+                            else:
+                                print('Unknown sign distance', signed_dist)
+                    else:
+                        continue
+    logging.info("Done looping through events.")
 
 
     logging.info("Done filling histograms.")
