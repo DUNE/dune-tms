@@ -98,8 +98,8 @@ def run(truth, outfilename, nmax=-1):
     data_lar = {}
     data_tms = {}
     for binIdx in range(len(MUON_KE_BINNING)):
-        data_lar[binIdx + 1] = [0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
-        data_tms[binIdx + 1] = [0, 0]
+        data_lar[binIdx + 1] = [0, 0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
+        data_tms[binIdx + 1] = [0, 0, 0]
 
     # add up the garbage KE values from 'tmsreco.root' Truth_Info TTree
     garbage_ke_count = 0
