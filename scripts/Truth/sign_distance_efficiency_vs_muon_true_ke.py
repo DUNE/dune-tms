@@ -232,8 +232,7 @@ def run(truth, outfilename, nmax=-1):
         for ext in ['png', 'pdf']:
             canvas.Print(f"{outfilename.replace('.root', '')}_{label}_ke." + ext)
 
-    for hist in (hist_sd_eff_muon_lar_ke + hist_sd_eff_amuon_lar_ke +
-                 hist_sd_eff_muon_tms_ke + hist_sd_eff_amuon_tms_ke):
+    for hist in (hist_sd_eff_muon_lar_ke, hist_sd_eff_amuon_lar_ke, hist_sd_eff_muon_tms_ke, hist_sd_eff_amuon_tms_ke):
         hist.Write()
     tf.Close()
     logging.info("Done saving.")
