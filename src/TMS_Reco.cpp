@@ -649,10 +649,38 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       std::cout << "Kalman filter end dir : " << KalmanFilter.EndDirection[0] << ", " << KalmanFilter.EndDirection[1] << ", "  << KalmanFilter.EndDirection[2] << std::endl;
       trk.SetEndDirection(KalmanFilter.EndDirection[0], KalmanFilter.EndDirection[1], KalmanFilter.EndDirection[2]); // Fill the momentum of the TMS_Track obj
       trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
+
+      // Add tracklength with Kalman filter
+      trk.Length = CalculateTrackLengthKalman(trk);
     }
   }
 
   return;
+}
+
+double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D) {
+  // Look at the reconstructed tracks
+  if (Track3D.nKalmanNodes == 0) return -999999999.;
+
+  double final_total = 0;
+  int max_n_nodes_used = 0;
+  double total = 0;
+  int n_nodes = 0;
+  // Loop over each Kalman Node and find the track length
+  for (auto it = (Track3D.KalmanNodes).rbegin(); it != (Track3D.KalmanNodes).rend() && (it+1) != (Track3D.KalmanNodes).rend(); ++it) { // turn direction around
+    auto nextnode = *(it+1); //+
+    // Use the geometry to calculate the track length between hits
+    TVector3 point1((*it).RecoX, (*it).RecoY, (*it).z);
+    TVector3 point2(nextnode.RecoX, nextnode.RecoY, nextnode.z);
+    total += TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+    n_nodes += 1;
+  }
+  if (n_nodes > max_n_nodes_used) {
+    final_total = total;
+    max_n_nodes_used = n_nodes;
+  }
+
+  return final_total;
 }
 
 void TMS_TrackFinder::FindPseudoXTrack() {
