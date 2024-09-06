@@ -1258,10 +1258,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                   std::cout << "Hit: " << UTracks[itU].GetRecoX() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " than: " << VTracks[itV].GetRecoX() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << std::endl;
 #endif
                   // Handling cases of two hits in same plane to be matched
-<<<<<<< HEAD
                   // By adding a loop into these statements one could also take care of more than 2 hits in the same plane/with the same z coordinate
-=======
->>>>>>> feature/3D-Kalman-fitter
+
                   if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
                     CalculateRecoY(UTracks[itU - 1], UTracks[itU - 1], VTracks[itV]);
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV], UTracks[itU - 1]);
@@ -1289,13 +1287,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
                       UTracks[itU - 1].SetRecoY(CompareY(UTracks[itU - 1], VTracks[itV], XTracks[itX]));
                       CalculateRecoX(UTracks[itU - 1], VTracks[itV], UTracks[itU - 1]);
-<<<<<<< HEAD
+
                       (aTrack.Hits).push_back(UTracks[itU]); // This adds the original hit
                       if (itU > 0) --itU; // and this allows for the other hit then to be aded with the next push_back statement
-=======
-                      (aTrack.Hits).push_back(UTracks[itU]);  // This adds the original hit
-                      if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
->>>>>>> feature/3D-Kalman-fitter
                     }
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       VTracks[itV - 1].SetRecoY(CompareY(UTracks[itU], VTracks[itV - 1], XTracks[itX]));
@@ -1304,10 +1298,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itV > 0) --itV;
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
-<<<<<<< HEAD
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
->>>>>>> feature/3D-Kalman-fitter
+
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1361,11 +1353,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       CalculateRecoY(VTracks[itV - 1], UTracks[itU - 1], VTracks[itV - 1]);
                       CalculateRecoX(UTracks[itU - 1], VTracks[itV - 1], VTracks[itV - 1]);
-<<<<<<< HEAD
+
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
-=======
-                      (aTrack.Hits).push_back(VTracks[itV]); // This adds the original hit
->>>>>>> feature/3D-Kalman-fitter
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     (aTrack.Hits).push_back(VTracks[itV]);
@@ -1406,18 +1395,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       VTracks[itV - 1].SetRecoY(CompareY(UTracks[itU - 1], VTracks[itV - 1], XTracks[itX]));
                       CalculateRecoX(UTracks[itU - 1], VTracks[itV - 1], VTracks[itV - 1]);
-<<<<<<< HEAD
+
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
-                      (aTrack.Hits).push_back(VTracks[itV]); // This adds the original hit
-                      if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
-                    }
-                    if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1433,19 +1416,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       VTracks[itV - 1].SetRecoY(CompareY(UTracks[itU], VTracks[itV - 1], XTracks[itX]));
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
-<<<<<<< HEAD
+
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
                       if (itV > 0) --itV; // and this allso for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
-                      (aTrack.Hits).push_back(VTracks[itV]); // This adds the original hit
-                      if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
-                    }
-                    if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
+
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
                     }
@@ -1464,10 +1442,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
-<<<<<<< HEAD
+
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1512,11 +1488,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       CalculateRecoY(VTracks[itV - 1], UTracks[itU], VTracks[itV - 1]);
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
-<<<<<<< HEAD
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
-=======
-                      (aTrack.Hits).push_back(VTracks[itV]); // This adds the original hit
->>>>>>> feature/3D-Kalman-fitter
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     (aTrack.Hits).push_back(VTracks[itV]);
@@ -1530,10 +1502,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
                   if (itV > 0 && itU > 0) {
                     UTracks[itU].SetRecoY(CompareY(UTracks[itU], VTracks[itV - 1], XTracks[itX]));//XTracks[itX].GetNotZ());
-<<<<<<< HEAD
                     XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
-=======
->>>>>>> feature/3D-Kalman-fitter
+
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX]);
                     CalculateRecoX(UTracks[itU], VTracks[itV - 1], UTracks[itU]);
                     if (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
@@ -1543,10 +1513,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
-<<<<<<< HEAD
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1566,10 +1533,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
-<<<<<<< HEAD
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
@@ -1585,18 +1549,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                     if (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                       VTracks[itV - 1].SetRecoY(CompareY(UTracks[itU], VTracks[itV - 1], XTracks[itX]));
                       CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
-<<<<<<< HEAD
+
                       (aTrack.Hits).push_back(VTracks[itV]);  // This adds the original hit
                       if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
                     }
                     if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
                       XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-=======
-                      (aTrack.Hits).push_back(VTracks[itV]); // This adds the original hit
-                      if (itV > 0) --itV; // and this allows for the other hit then to be added with the next push_back statement
-                    }
-                    if (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
->>>>>>> feature/3D-Kalman-fitter
                       CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX - 1]);
                       (aTrack.Hits).push_back(XTracks[itX]);
                       if (itX > 0) --itX;
