@@ -101,6 +101,9 @@ def run(truth, outfilename, nmax=-1):
         data_lar[binIdx + 1] = [0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
         data_tms[binIdx + 1] = [0, 0]
 
+    # add up the garbage KE values from 'tmsreco.root' Truth_Info TTree
+    garbage_ke_count = 0
+
     n_events = min(truth.GetEntries(), nmax if nmax >= 0 else float('inf'))
     for i in range(n_events):
         if i % 10000 == 0:
@@ -133,6 +136,12 @@ def run(truth, outfilename, nmax=-1):
                     ke_muon_tms_start = get_muon_ke_entering_tms(p_tms_start)
                     muon_ke_tms_bin = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon").get_muon_ke_bin()
 
+                    # NOTE: bin number may be None if the KE is outside the binning range.
+                    # this is bc some of the Truth_Info have garbage values (173204975.05692) for KE.
+                    if muon_ke_lar_bin is None or muon_ke_tms_bin is None:
+                        garbage_ke_count += 1
+                        logger.warning(f"Garbage KE value found: {ke_muon_lar} or {ke_muon_tms_start}")
+                        continue
                     # starting and ending momenta in TMS
                     pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
 
@@ -154,6 +163,7 @@ def run(truth, outfilename, nmax=-1):
                     else:
                         continue
     logging.info("Done looping through events.")
+    logging.warning(f"Garbage KE count: {garbage_ke_count}")
 
     # fill the histograms via SetBinContent()  # key is the bin number, value is the sign distance counts [SD>0, SD<0, SD=0].
     for bin_num, sign_dists in data_lar.items():
