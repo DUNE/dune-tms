@@ -41,10 +41,10 @@ class Momentum:
     def momentum_from_kinetic_energy(self, ke):
         return math.sqrt((ke + MUON_MASS) ** 2 - MUON_MASS ** 2)
 
-    def get_muon_ke_index(self):
+    def get_muon_ke_bin(self):
         for i, r in enumerate(self.ranges):
             if r[0] <= self.ke < r[1]:  # [lower, upper) bounds
-                return i
+                return i + 1  # bin number starts at 1 (enumerate idx starts at 0)
         return None
 
 def get_muon_ke_entering_tms(momentum_tms_start):
@@ -126,12 +126,12 @@ def run(truth, outfilename, nmax=-1):
                         ke_muon_lar = truth.Muon_TrueKE[index]
                     else:
                         ke_muon_lar = truth.Muon_TrueKE
-                    muon_ke_lar_bin = Momentum(ke_muon_lar, classification="muon" if pdg == 13 else "amuon").get_muon_ke_index()
+                    muon_ke_lar_bin = Momentum(ke_muon_lar, classification="muon" if pdg == 13 else "amuon").get_muon_ke_bin()
 
                     # muon KE at TMS start
                     p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * index], truth.MomentumTMSStart[4 * index + 1], truth.MomentumTMSStart[4 * index + 2])
                     ke_muon_tms_start = get_muon_ke_entering_tms(p_tms_start)
-                    muon_ke_tms_bin = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon").get_muon_ke_index()
+                    muon_ke_tms_bin = Momentum(ke_muon_tms_start, classification="muon" if pdg == 13 else "amuon").get_muon_ke_bin()
 
                     # starting and ending momenta in TMS
                     pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
