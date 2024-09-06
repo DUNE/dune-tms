@@ -85,7 +85,7 @@ def run(truth, outfilename, nmax=-1):
 
     # Set axis labels for each histogram
     edge_counter = 0
-    for hist in (hist_sd_eff_muon_lar_ke + hist_sd_eff_amuon_lar_ke + hist_sd_eff_muon_tms_ke + hist_sd_eff_amuon_tms_ke):
+    for hist in (hist_sd_eff_muon_lar_ke , hist_sd_eff_amuon_lar_ke , hist_sd_eff_muon_tms_ke , hist_sd_eff_amuon_tms_ke):
         hist.SetXTitle("Muon Kinetic Energy (MeV)")
         hist.SetYTitle("Efficiency")
         hist.GetYaxis().SetTitleOffset(0.95)
