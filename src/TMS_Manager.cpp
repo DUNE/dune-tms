@@ -69,6 +69,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_TRACK_METHOD  = toml::find<std::string>(data, "Recon", "TrackMethod");
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
+
+  _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   

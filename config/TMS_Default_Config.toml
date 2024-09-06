@@ -90,6 +90,9 @@
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
 
+  [Recon.Kalman]
+    Run = true # Whether we run the Kalman filter or not
+
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
     EnergyCut = 2.5 # The cut in MeV to see if a track has come to a stop or not

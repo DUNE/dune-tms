@@ -64,6 +64,8 @@ class TMS_Manager {
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
+    bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
+
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
     
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
@@ -151,6 +153,8 @@ class TMS_Manager {
     bool _RECO_CLUSTERING;
     
     double _NERSC_SPILL_PERIOD;
+
+    bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;

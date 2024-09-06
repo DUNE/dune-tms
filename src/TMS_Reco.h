@@ -248,6 +248,8 @@ class TMS_TrackFinder {
     double CalculateTrackEnergy3D(const TMS_Track &Hits);
     double CalculateTrackKEByRange(const TMS_Track &Hits);
 
+    double CalculateTrackLengthKalman(const TMS_Track &Hits);
+
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
     // Exclude hits Mask from set Orig
@@ -312,7 +314,7 @@ class TMS_TrackFinder {
     void operator=(TMS_TrackFinder const &) = delete;
     ~TMS_TrackFinder() {};
 
-    TMS_Kalman KalmanFitter;
+    TMS_Kalman KalmanFilter;
     TMS_DBScan DBSCAN;
     TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
 

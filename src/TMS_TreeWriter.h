@@ -45,12 +45,18 @@ class TMS_TreeWriter {
     // 3D Track Object Info
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
+    int nKalmanNodes[__TMS_MAX_TRACKS__];
+    float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
-    float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
+    float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
+    float RecoTrackMomentum[__TMS_MAX_TRACKS__];
+    float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
 
