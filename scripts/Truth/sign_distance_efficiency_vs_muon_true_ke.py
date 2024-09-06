@@ -166,12 +166,15 @@ def run(truth, outfilename, nmax=-1):
     logging.warning(f"Garbage KE count: {garbage_ke_count}")
 
     # fill the histograms via SetBinContent()  # key is the bin number, value is the sign distance counts [SD>0, SD<0, SD=0].
+    # NOTE: if --n is small, you may get a divide by zero error: just set denominator to 1 in that case.
     for bin_num, sign_dists in data_lar.items():
-        hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
-        hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
+        total_countable_events = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events if total_countable_events != 0 else 1)
+        hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events if total_countable_events != 0 else 1)
     for bin_num, sign_dists in data_tms.items():
-        hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
-        hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
+        total_countable_events = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events if total_countable_events != 0 else 1)
+        hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events if total_countable_events != 0 else 1)
 
 
     tf = ROOT.TFile(outfilename, "recreate")
