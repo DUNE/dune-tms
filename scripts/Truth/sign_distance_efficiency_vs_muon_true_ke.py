@@ -101,10 +101,10 @@ def run(truth, outfilename, nmax=-1):
         data_lar[binIdx + 1] = [0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
         data_tms[binIdx + 1] = [0, 0]
 
-    for i in range(nevents):
+    n_events = min(truth.GetEntries(), nmax if nmax >= 0 else float('inf'))
+    for i in range(n_events):
         if i % 10000 == 0:
-            logging.info(f"Processing event {i} / {nevents} ({i/nevents*100:.1f}%)")
-        c.GetEntry(i)
+            logging.info(f"Processing event {i} / {n_events} ({i/n_events*100:.1f}%)")
         truth.GetEntry(i)
 
         for index, pdg in enumerate(truth.PDG):
@@ -240,7 +240,7 @@ def validate_then_run(args):
     if os.path.exists(outfilename) and not args.allow_overwrite:
         raise ValueError(f"Output file {outfilename} already exists")
 
-    # get the TTrees: Line_Candidates (Reco) and Truth_Info
+    # get the TTrees: Line_Candidates (Reco) and Truth_Info, though we don't use Line_Candidates here.
     c, truth = ROOT.TChain("Line_Candidates"), ROOT.TChain("Truth_Info")
     for f in files_to_use:
         c.Add(f)
@@ -263,4 +263,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     validate_then_run(args)
-
