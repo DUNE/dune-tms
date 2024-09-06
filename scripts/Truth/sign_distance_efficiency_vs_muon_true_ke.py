@@ -213,7 +213,7 @@ def run(truth, outfilename, nmax=-1):
         legend.Draw("same")
 
         # vertical line for easier reading
-        line_half = ROOT.TLine(0, 0.5, hist_mu.GetBinLowEdge(hist_mu.GetNbinsX() + hist_mu.GetBinWidth(hist_mu.GetNbinsX())), 0.5)
+        line_half = ROOT.TLine(0, 0.5, hist_mu.GetBinLowEdge(hist_mu.GetNbinsX()) + hist_mu.GetBinWidth(hist_mu.GetNbinsX()), 0.5)
         line_half.SetLineColor(ROOT.kBlack)
         line_half.SetLineStyle(2)
         line_half.Draw("same")
