@@ -155,8 +155,13 @@ def run(truth, outfilename, nmax=-1):
                         continue
     logging.info("Done looping through events.")
 
-
-    logging.info("Done filling histograms.")
+    # fill the histograms via SetBinContent()  # key is the bin number, value is the sign distance counts [SD>0, SD<0, SD=0].
+    for bin_num, sign_dists in data_lar.items():
+        hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
+        hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
+    for bin_num, sign_dists in data_tms.items():
+        hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
+        hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / (sign_dists[0] + sign_dists[1] + sign_dists[2]))
 
 
     tf = ROOT.TFile(outfilename, "recreate")
@@ -168,100 +173,58 @@ def run(truth, outfilename, nmax=-1):
     legend.SetBorderSize(0)
     legend.SetFillStyle(0)
     legend.SetFillColor(0)
-    legend.AddEntry(hist_signed_distance_muon_lar_ke[0], "#mu^{-}", "l")  # just pick some index
-    legend.AddEntry(hist_signed_distance_amuon_lar_ke[0], "#mu^{+}", "l")
+    legend.AddEntry(hist_sd_eff_muon_lar_ke, "#mu^{-}", "l")  # just pick one mu-amu pair
+    legend.AddEntry(hist_sd_eff_amuon_lar_ke, "#mu^{+}", "l")
 
     edge_counter = 0
     # loop through the mu and amu hists together for LAr KE and TMS KE.
-    for index, (hists_mu_list, hists_amu_list) in enumerate([[hist_signed_distance_muon_lar_ke, hist_signed_distance_amuon_lar_ke], [hist_signed_distance_muon_tms_ke, hist_signed_distance_amuon_tms_ke]]):
-        for hist_mu, hist_amu in zip(hists_mu_list, hists_amu_list):  # pair these together
-            hist_mu.SetLineColor(ROOT.kRed)
-            hist_amu.SetLineColor(ROOT.kBlue)
+    for index, (hist_mu, hist_amu) in enumerate([[hist_sd_eff_muon_lar_ke, hist_sd_eff_amuon_lar_ke], [hist_sd_eff_muon_tms_ke, hist_sd_eff_amuon_tms_ke]]):
+        hist_mu.SetLineColor(ROOT.kRed)
+        hist_amu.SetLineColor(ROOT.kBlue)
 
-            hist_mu.SetLineWidth(3)
-            hist_amu.SetLineWidth(3)
+        hist_mu.SetLineWidth(3)
+        hist_amu.SetLineWidth(3)
 
-            hist_mu.GetXaxis().CenterTitle()
-            hist_amu.GetXaxis().CenterTitle()
-            hist_mu.GetYaxis().CenterTitle()
-            hist_amu.GetYaxis().CenterTitle()
+        hist_mu.GetXaxis().CenterTitle()
+        hist_amu.GetXaxis().CenterTitle()
+        hist_mu.GetYaxis().CenterTitle()
+        hist_amu.GetYaxis().CenterTitle()
 
-            hist_mu.Draw("hist")
-            hist_amu.Draw("hist same")
+        hist_mu.Draw("hist")
+        hist_amu.Draw("hist same")
 
-            max_content = max(hist_mu.GetMaximum(), hist_amu.GetMaximum())
-            hist_mu.SetMaximum(max_content * 1.25)
-            hist_amu.SetMaximum(max_content * 1.25)
+        max_content = max(hist_mu.GetMaximum(), hist_amu.GetMaximum())
+        hist_mu.SetMaximum(max_content * 1.25)
+        hist_amu.SetMaximum(max_content * 1.25)
 
-            legend.Draw("same")
+        legend.Draw("same")
 
-            # vertical line for easier reading
-            line0 = ROOT.TLine(0, 0, 0, max_content)
-            line0.SetLineColor(ROOT.kBlack)
-            line0.SetLineStyle(2)
-            line0.Draw("same")
+        # vertical line for easier reading
+        line_half = ROOT.TLine(0, 0.5, hist_mu.GetXaxis().GetMaximum(), 0.5)
+        line_half.SetLineColor(ROOT.kBlack)
+        line_half.SetLineStyle(2)
+        line_half.Draw("same")
 
-            # get the integrals, be sure to not double count the 0 mm bin
-            muon_integral = hist_mu.Integral()
-            events_mu_gt_0 = hist_mu.Integral(hist_mu.FindBin(0), hist_mu.GetNbinsX())
-            events_mu_lt_0 = hist_mu.Integral(1, (hist_mu.FindBin(0) - 1))
-            assert muon_integral == events_mu_gt_0 + events_mu_lt_0, f"Integral mu calculation failed, {hist_mu.GetTitle()}: {muon_integral} != {events_mu_gt_0} + {events_mu_lt_0}"
+        # use the index to determine if inside LAr or TMS
+        label = ''
+        if index == 0:
+            label = "lar"  # inside LAr
+        elif index == 1:
+            label = "tms"
+        else:
+            print("unknown")
+        print(f'Saving plots of {label}')
 
-            amuon_integral = hist_amu.Integral()
-            events_am_gt_0 = hist_amu.Integral(hist_amu.FindBin(0), hist_amu.GetNbinsX())
-            events_am_lt_0 = hist_amu.Integral(1, (hist_amu.FindBin(0) - 1))
-            assert amuon_integral == events_am_gt_0 + events_am_lt_0, f"Integral amuon calculation failed, {hist_amu.GetTitle()}: {amuon_integral} != {events_am_gt_0} + {events_am_lt_0}"
+        canvas.Write()
+        for ext in ['png', 'pdf']:
+            canvas.Print(f"{outfilename.replace('.root', '')}_{label}_ke." + ext)
 
-            # efficiency for Mu and AMu
-            # purity for events of signed distance > or < 0 mm.
-            # we may have zero division error if the integral is zero -- when testing over only a few events.
-            try:
-                efficiency_mu_gt_0 = events_mu_gt_0 / muon_integral
-                efficiency_amuon_lt_0 = events_am_lt_0 / amuon_integral
-                purity_mu = events_mu_gt_0 / (events_mu_gt_0 + events_am_gt_0)
-                purity_amuon = events_am_lt_0 / (events_mu_lt_0 + events_am_lt_0)
-            except ZeroDivisionError:
-                print("Zero division error. Probably due to empty histograms. Setting to -5.0.")
-                efficiency_mu_gt_0 = -5
-                efficiency_amuon_lt_0 = -5
-                purity_mu = -5
-                purity_amuon = -5
-
-
-            pt = ROOT.TPaveText(0.18, 0.7, 0.48, 0.85, "NDC")
-            pt.AddText(f"Efficiency S.D. > 0 mm: {efficiency_mu_gt_0*100:.2f} %")
-            pt.AddText(f"Efficiency S.D. < 0 mm: {efficiency_amuon_lt_0*100:.2f} %")
-            pt.AddText(f"Purity S.D. > 0 mm: {purity_mu*100:.2f} %")
-            pt.AddText(f"Purity S.D. < 0 mm: {purity_amuon*100:.2f} %")
-            pt.SetTextSize(0.03)
-            pt.SetTextFont(102)
-            pt.SetBorderSize(0)
-            pt.SetFillStyle(0)
-            pt.Draw("same")
-
-            # use the index to determine if inside LAr or TMS
-            label = ''
-            if index == 0:
-                label = "lar" # inside LAr
-            elif index == 1:
-                label = "tms"
-            else:
-                label = "enu_lar"
-            print(f'Saving plots of {label}')
-
-            canvas.Write()
-            for ext in ['png', 'pdf']:
-                canvas.Print(f"{outfilename.replace('.root', '')}_{label}_ke_{bin_edges[edge_counter]}MeV_{bin_edges[edge_counter+1]}MeV." + ext)
-            edge_counter += 1
-            if edge_counter == len(bin_edges) - 1:
-                edge_counter = 0  # reset the counter
-            # end of loop through mu and amu hists
-
-    for hist in (hist_signed_distance_muon_lar_ke + hist_signed_distance_amuon_lar_ke +
-                 hist_signed_distance_muon_tms_ke + hist_signed_distance_amuon_tms_ke):
+    for hist in (hist_sd_eff_muon_lar_ke + hist_sd_eff_amuon_lar_ke +
+                 hist_sd_eff_muon_tms_ke + hist_sd_eff_amuon_tms_ke):
         hist.Write()
     tf.Close()
     logging.info("Done saving.")
+
 
 def validate_then_run(args):
     indir = args.indir
