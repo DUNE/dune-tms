@@ -227,21 +227,22 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
 
-  Reco_Tree->Branch("nTracks",       &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",         nHitsIn3DTrack,         "nHits[nTracks]/I");
-  Reco_Tree->Branch("TrackHitPos",   RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("nKalmanNodes",  nKalmanNodes,           "nKalmanNodes[nTracks]/I");
-  Reco_Tree->Branch("KalmanPos",     RecoTrackKalmanPos,     "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("KalmanTruePos", RecoTrackKalmanTruePos, "TrackHitTruePos[nTracks][200][3]/F");
-  Reco_Tree->Branch("StartPos",      RecoTrackStartPos,      "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("StartDirection",RecoTrackStartDirection,"StartDirection[nTracks][3]/F");
-  Reco_Tree->Branch("EndDirection",  RecoTrackEndDirection,  "StartDirection[nTracks][3]/F");
-  Reco_Tree->Branch("EndPos",        RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("EnergyRange",   RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
-  Reco_Tree->Branch("EnergyDeposit", RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
-  Reco_Tree->Branch("Momentum",      RecoTrackMomentum,      "Momentum[nTracks]/F");
-  Reco_Tree->Branch("Length",        RecoTrackLength,        "Length[nTracks]/F");
-
+  Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
+  Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
+  Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndDirectioN",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
+  Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
+  Reco_Tree->Branch("Direction",      RecoTrackDirection,       "Direction[nTracks][3]/F");
+  Reco_Tree->Branch("EndPos",         RecoTrackEndPos,          "EndPos[nTracks][3]/F");
+  Reco_Tree->Branch("EnergyRange",    RecoTrackEnergyRange,     "EnergyRange[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
+  Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
+  Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
@@ -320,7 +321,16 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueMomentumEnteringTMS[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS,
                      "RecoTrackPrimaryParticleTrueMomentumLeavingTMS[RecoTrackN][4]/F"); 
-                     
+  
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionEnteringTMS", RecoTrackPrimaryParticleTruePositionEnteringTMS,
+                     "RecoTrackPrimaryParticleTruePositionEnteringTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingTMS", RecoTrackPrimaryParticleTruePositionLeavingTMS,
+                     "RecoTrackPrimaryParticleTruePositionLeavingTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingLAr", RecoTrackPrimaryParticleTruePositionLeavingLAr,
+                     "RecoTrackPrimaryParticleTruePositionLeavingLAr[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingLAr", RecoTrackPrimaryParticleTrueMomentumLeavingLAr,
+                     "RecoTrackPrimaryParticleTrueMomentumLeavingLAr[RecoTrackN][4]/F");
+
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialStart", RecoTrackPrimaryParticleTMSFiducialStart,
     "RecoTrackPrimaryParticleTMSFiducialStart[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialTouch", RecoTrackPrimaryParticleTMSFiducialTouch,
@@ -1211,6 +1221,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackLength[itTrack]        =       RecoTrack->Length;//0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
+    RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1273,8 +1284,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      //std::cout<<"checking for primary particle trackid"<<std::endl;
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1363,7 +1373,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1680,6 +1690,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;

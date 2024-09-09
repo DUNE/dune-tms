@@ -20,6 +20,10 @@
     MinPoints = 2
     # How far away can a bar/plane combination be to include in a cluster
     Epsilon = 2.5
+    # Amount of neighbouring hits a hit needs to have for pre-clustering (DBSCAN)
+    PreDBNeighbours = 9
+    # Maximal distance to hits to count as neighbours for pre-clustering (DBSCAN)
+    PreDBDistance = 2.5
 
   [Recon.Hough]
     # The highest number of Hough transforms we can run after each other
@@ -42,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = false
+    FirstCluster = true #false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -63,11 +67,11 @@
 
   [Recon.TrackMatch3D]
     # How many plane layers can the ends/starts of the two simple tracks be away from each other?
-    PlaneLimit = 3
+    PlaneLimit = 2
     # How many bars can the ends/starts of the two simple tracks be away from each other?
     BarLimit = 12
     # How many ns can the ends/starts of the two simple tracks be away from each other?
-    TimeLimit = 30
+    TimeLimit = 16  #30
     # How many ns can the ends/starts of a X simple track be away from U simple track?
     XTimeLimit = 15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
     # What is the 'anchor point' of the scintillator bars in y [mm]?
