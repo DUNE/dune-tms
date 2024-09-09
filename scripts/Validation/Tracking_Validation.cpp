@@ -91,7 +91,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     // First draw some hists for validation
     TH1D hist_ntracks("n_tracks", "N Tracks;N Tracks;N Events", 
       10, -0.5, 9.5);
-    TH1D hist_nhits("n_hits", "N Hits;N Hits;N Tracks", 
+    TH1D hist_nhits("n_hits", "N Hits per Track;N Hits;N Tracks", 
       25, 0, 100);
     TH1D hist_energy_range("energy_range", "Energy Range;Energy Range (MeV);N Tracks", 
       20, 0, 5000);
@@ -467,7 +467,7 @@ int main(int argc, char* argv[]) {
     }
     
     // Create output filename
-    std::string outputFilename = directoryPath + getOutputFilename(inputFilename);
+    std::string outputFilename = directoryPath + GIT_BRANCH_NAME + "_" + getOutputFilename(inputFilename);
 
     // Create TFile with the output filename
     TFile outputFile(outputFilename.c_str(), "RECREATE");
