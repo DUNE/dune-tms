@@ -91,10 +91,10 @@ def run(truth, outfilename, nmax=-1):
         hist.SetXTitle("Muon Kinetic Energy (MeV)")
         hist.SetYTitle("Efficiency")
         hist.GetYaxis().SetTitleOffset(0.95)
-    hist_sd_eff_muon_lar_ke.SetTitle(r"\mu^-" "Signed Distance Efficiency, KE Inside LAr")
-    hist_sd_eff_amuon_lar_ke.SetTitle(r"\mu^+" "Signed Distance Efficiency, KE Inside LAr")
-    hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^-" "Signed Distance Efficiency, KE Entering TMS")
-    hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+" "Signed Distance Efficiency, KE Entering Inside TMS")
+    hist_sd_eff_muon_lar_ke.SetTitle("Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_amuon_lar_ke.SetTitle("Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_muon_tms_ke.SetTitle("Signed Distance Efficiency, KE Entering TMS")
+    hist_sd_eff_amuon_tms_ke.SetTitle("Signed Distance Efficiency, KE Entering Inside TMS")
 
     # dictionary of bin number (for KE) and events: [bin, sd > 0, sd < 0, sd = 0]
     data_lar = {}
