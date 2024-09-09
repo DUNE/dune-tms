@@ -236,7 +236,6 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
   Reco_Tree->Branch("EndDirectioN",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
   Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("Direction",      RecoTrackDirection,       "Direction[nTracks][3]/F");
   Reco_Tree->Branch("EndPos",         RecoTrackEndPos,          "EndPos[nTracks][3]/F");
   Reco_Tree->Branch("EnergyRange",    RecoTrackEnergyRange,     "EnergyRange[nTracks]/F");
   Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
