@@ -1649,29 +1649,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             // Charge ID
             aTrack.Charge = ChargeID.ID_Track_Charge(aTrack.Hits);
 
-            // Charge ID
-            aTrack.Charge = ChargeID.ID_Track_Charge(aTrack.Hits);
-
-            // Smoothing of start and end of track in case of too much 'flailing around' in the y direction
-            // end
-            bool SameSign = true;
-            if ((aTrack.End[1] > 0 && aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY() < 0) || (aTrack.End[1] < 0 && aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY() > 0)) SameSign = false;
-            if ((SameSign && std::abs(aTrack.End[1] - aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) >= 674.6) || (!SameSign && std::abs(aTrack.End[1]) + std::abs(aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) >= 674.6)) {
-              aTrack.End[1] = (aTrack.End[1] + aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) / 2;
-              if (aTrack.End[1] > 244.0) aTrack.End[1] = 244.0;
-              else if (aTrack.End[1] < -2040.0) aTrack.End[1] = -2949.0;
-              aTrack.Hits[aTrack.Hits.size() - 1].SetRecoY(aTrack.End[1]);
-            }
-            // start
-            SameSign = true;
-            if ((aTrack.Start[1] > 0 && aTrack.Hits[2].GetRecoY() < 0) || (aTrack.Start[1] < 0 && aTrack.Hits[2].GetRecoY() > 0)) SameSign = false;
-            if ((SameSign && std::abs(aTrack.Start[1] - aTrack.Hits[2].GetRecoY()) >= 674.6) || (!SameSign && std::abs(aTrack.Start[1]) + std::abs(aTrack.Hits[2].GetRecoY()) >= 674.6)) {
-              aTrack.Start[1] = (aTrack.Start[1] + aTrack.Hits[2].GetRecoY()) / 2;
-              if (aTrack.Start[1] > 244.0) aTrack.Start[1] = 244.0;
-              else if (aTrack.Start[1] < -2949.0) aTrack.Start[1] = -2949.0;
-              aTrack.Hits[0].SetRecoY(aTrack.Start[1]);
-            }
-
             // Track Length
             aTrack.Length = CalculateTrackLength3D(aTrack);
 #ifdef DEBUG
