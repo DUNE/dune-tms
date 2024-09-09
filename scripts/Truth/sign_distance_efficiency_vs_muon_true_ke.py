@@ -149,10 +149,41 @@ def run(truth, outfilename, nmax=-1):
                     # starting and ending momenta in TMS
                     pz_tms_start, px_tms_start = truth.MomentumTMSStart[4 * index + 2], truth.MomentumTMSStart[4 * index]
 
-                    # must be in the same region to be considered. A good # todo for future...multiple regions.
-                    if (region1(x_start) and region1(x_end)) or (region2(x_start) and region2(x_end)) or (region3(x_start) and region3(x_end)):
+                    signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+
+                    # muon must be entirely in the same region to be considered. A good # todo for future...multiple regions.
+                    # B-field for Region 1 and 3 point in the same direction. Region 2 is opposite.
+                    if (region1(x_start) and region1(x_end)) or (region3(x_start) and region3(x_end)):
                         if pz_tms_start != 0:
-                            signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+                            # Recall: [sd > 0, sd < 0, sd = 0]
+                            if signed_dist > 0:
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][0] += 1
+                                    data_tms_mu[muon_ke_tms_bin][0] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][0] += 1
+                                    data_tms_amu[muon_ke_tms_bin][0] += 1
+                            elif signed_dist < 0:
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][1] += 1
+                                    data_tms_mu[muon_ke_tms_bin][1] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][1] += 1
+                                    data_tms_amu[muon_ke_tms_bin][1] += 1
+                            elif signed_dist == 0:
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][2] += 1
+                                    data_tms_mu[muon_ke_tms_bin][2] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][2] += 1
+                                    data_tms_amu[muon_ke_tms_bin][2] += 1
+                            else:
+                                print('Unknown sign distance', signed_dist)
+
+                    # B-field in Region 2 is opposite direction. Flip sign.
+                    elif region2(x_start) and region2(x_end):
+                        if pz_tms_start != 0:
+                            signed_dist = - signed_dist
                             # Recall: [sd > 0, sd < 0, sd = 0]
                             if signed_dist > 0:
                                 if pdg == 13:
