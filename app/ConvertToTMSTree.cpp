@@ -88,14 +88,18 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   std::vector<TMS_Event> overlay_events;
   
   bool NerscOverlay = false;
-  TParameter<float>* spillPeriod_s = (TParameter<float>*)input->Get("spillPeriod_s");
+  TParameter<double>* spillPeriod_s = (TParameter<double>*)input->Get("spillPeriod_s");
   if (spillPeriod_s != NULL) NerscOverlay = true;
   double SpillPeriod = 0;
   if (NerscOverlay) {
     std::cout<<"Combining spills"<<std::endl;
     SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
+    std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<"ns"<<std::endl;
+    if (SpillPeriod < 1e7 || SpillPeriod > 1e11) {
+      std::cout<<"Fatal: Found spillSeriod_s that is unusually high or low. Expecting something like ~1.2e9 ns"<<std::endl;
+      exit(1);
+    }
     TMS_Manager::GetInstance().Set_Nersc_Spill_Period(SpillPeriod);
-    std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<std::endl;
   }
   int current_spill_number = 0;
 
@@ -130,7 +134,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Keep filling up the vector if within spill
     if (NerscOverlay) {
-      double next_spill_time = (current_spill_number + 0.5) * SpillPeriod;
+      double next_spill_time = (current_spill_number + 0.5) * TMS_Manager::GetInstance().Get_Nersc_Spill_Period();
       double current_spill_time = event->Primaries.begin()->Position.T();
       // Check that this neutrino is within spill, but not last event
       if (current_spill_time < next_spill_time && i != N_entries - 1) {
@@ -149,8 +153,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       overlay_events.pop_back();
       for (auto &event : overlay_events) last_event.AddEvent(event);
       overlay_events.clear();
+      // Now add this event as the first event in the next set
       overlay_events.push_back(tms_event);
       if (NerscOverlay) current_spill_number += 1;
+      // ... and make this event the combined spill called "last_event"
       tms_event = last_event;
     }
     
