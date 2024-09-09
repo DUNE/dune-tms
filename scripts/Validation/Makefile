@@ -8,6 +8,11 @@ SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 EXEC = $(SRCS:.cpp=)
 
+BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_STATUS := $(shell git diff-index --quiet HEAD -- src/ app/ || echo "-modified")
+
+CXXFLAGS += -DGIT_BRANCH_NAME=\"$(BRANCH_NAME)$(GIT_STATUS)\"
+
 .PHONY: all clean
 
 all: $(EXEC)
