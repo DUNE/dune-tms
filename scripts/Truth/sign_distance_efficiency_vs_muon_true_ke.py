@@ -96,12 +96,14 @@ def run(truth, outfilename, nmax=-1):
     hist_sd_eff_muon_tms_ke.SetTitle("Signed Distance Efficiency, KE Entering TMS")
     hist_sd_eff_amuon_tms_ke.SetTitle("Signed Distance Efficiency, KE Entering Inside TMS")
 
-    # dictionary of bin number (for KE) and events: [bin, sd > 0, sd < 0, sd = 0]
-    data_lar = {}
-    data_tms = {}
+    # dictionary of bin number (for KE) and events: {key=bin_number, value=[sd > 0, sd < 0, sd = 0]}
+    # Need separate containers for muons and anti-muons.
+    data_lar_mu, data_tms_mu, data_lar_amu, data_tms_amu = {}, {}, {}, {}
     for binIdx in range(len(MUON_KE_BINNING)):
-        data_lar[binIdx + 1] = [0, 0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
-        data_tms[binIdx + 1] = [0, 0, 0]
+        data_lar_mu[binIdx + 1] = [0, 0, 0]  # first index is S.D. > 0, second is S.D. < 0, third is S.D. = 0.
+        data_tms_mu[binIdx + 1] = [0, 0, 0]
+        data_lar_amu[binIdx + 1] = [0, 0, 0]
+        data_tms_amu[binIdx + 1] = [0, 0, 0]
 
     # add up the garbage KE values from 'tmsreco.root' Truth_Info TTree
     garbage_ke_count = 0
@@ -151,15 +153,28 @@ def run(truth, outfilename, nmax=-1):
                     if (region1(x_start) and region1(x_end)) or (region2(x_start) and region2(x_end)) or (region3(x_start) and region3(x_end)):
                         if pz_tms_start != 0:
                             signed_dist = calc_signed_distance(px_tms_start, pz_tms_start, x_end, z_end, x_start_tms, z_start_tms)
+                            # Recall: [sd > 0, sd < 0, sd = 0]
                             if signed_dist > 0:
-                                data_lar[muon_ke_lar_bin][0] += 1
-                                data_tms[muon_ke_tms_bin][0] += 1
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][0] += 1
+                                    data_tms_mu[muon_ke_tms_bin][0] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][0] += 1
+                                    data_tms_amu[muon_ke_tms_bin][0] += 1
                             elif signed_dist < 0:
-                                data_lar[muon_ke_lar_bin][1] += 1
-                                data_tms[muon_ke_tms_bin][1] += 1
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][1] += 1
+                                    data_tms_mu[muon_ke_tms_bin][1] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][1] += 1
+                                    data_tms_amu[muon_ke_tms_bin][1] += 1
                             elif signed_dist == 0:
-                                data_lar[muon_ke_lar_bin][2] += 1
-                                data_tms[muon_ke_tms_bin][2] += 1
+                                if pdg == 13:
+                                    data_lar_mu[muon_ke_lar_bin][2] += 1
+                                    data_tms_mu[muon_ke_tms_bin][2] += 1
+                                else:
+                                    data_lar_amu[muon_ke_lar_bin][2] += 1
+                                    data_tms_amu[muon_ke_tms_bin][2] += 1
                             else:
                                 print('Unknown sign distance', signed_dist)
                     else:
@@ -168,15 +183,20 @@ def run(truth, outfilename, nmax=-1):
     logging.warning(f"Garbage KE count: {garbage_ke_count}")
 
     # fill the histograms via SetBinContent()  # key is the bin number, value is the sign distance counts [SD>0, SD<0, SD=0].
-    # NOTE: if --n is small, you may get a divide by zero error: just set denominator to 1 in that case.
-    for bin_num, sign_dists in data_lar.items():
-        total_countable_events = (sign_dists[0] + sign_dists[1] + sign_dists[2])
-        hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events if total_countable_events != 0 else 1)
-        hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events if total_countable_events != 0 else 1)
-    for bin_num, sign_dists in data_tms.items():
-        total_countable_events = (sign_dists[0] + sign_dists[1] + sign_dists[2])
-        hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events if total_countable_events != 0 else 1)
-        hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events if total_countable_events != 0 else 1)
+    # NOTE: if --n is small, you may get a divide by zero error: just set denominator to 'inf' in that case.
+    # NOTE: number of muon events is not necessarily the same as anti-muon events.
+    for bin_num, sign_dists in data_lar_mu.items():
+        total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else float('inf'))
+    for bin_num, sign_dists in data_lar_amu.items():
+        total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else float('inf'))
+    for bin_num, sign_dists in data_tms_mu.items():
+        total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else float('inf'))
+    for bin_num, sign_dists in data_tms_amu.items():
+        total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else float('inf'))
 
 
     tf = ROOT.TFile(outfilename, "recreate")
