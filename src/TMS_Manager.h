@@ -24,6 +24,8 @@ class TMS_Manager {
 
     int Get_Reco_DBSCAN_MinPoints() { return _RECO_DBSCAN_MinPoints; };
     double Get_Reco_DBSCAN_Epsilon() { return _RECO_DBSCAN_Epsilon; };
+    int Get_Reco_DBSCAN_PreDBNeighbours() { return _RECO_DBSCAN_PreDBNeighbours; };
+    double Get_Reco_DBSCAN_PreDBDistance() { return _RECO_DBSCAN_PreDBDistance; };
 
     int Get_Reco_HOUGH_MaxHough() { return _RECO_HOUGH_MaxHough; };
     double Get_Reco_HOUGH_MinInterp() { return _RECO_HOUGH_MinInterp; };
@@ -61,6 +63,8 @@ class TMS_Manager {
 
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
+
+    bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
     
@@ -108,6 +112,8 @@ class TMS_Manager {
 
     int _RECO_DBSCAN_MinPoints;
     double _RECO_DBSCAN_Epsilon;
+    int _RECO_DBSCAN_PreDBNeighbours;
+    double _RECO_DBSCAN_PreDBDistance;
 
     int _RECO_HOUGH_MaxHough;
     double _RECO_HOUGH_MinInterp;
@@ -147,6 +153,8 @@ class TMS_Manager {
     bool _RECO_CLUSTERING;
     
     double _NERSC_SPILL_PERIOD;
+
+    bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;

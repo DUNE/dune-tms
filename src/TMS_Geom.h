@@ -85,11 +85,21 @@ class TMS_Geom {
     static bool StaticIsInsideTMSThin(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSThin(position); };
     bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFirstTwoModules()); };
     static bool StaticIsInsideTMSFirstTwoModules(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(position); };
-    bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
-    static bool StaticIsInsideTMSMass(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSMass(position); };
-    
     bool IsInsideReasonableSize(TVector3 position) const { return IsInsideBox(position, TVector3(-10000, -10000, 3000), TVector3(10000, 10000, 20000)); };
     static bool StaticIsInsideReasonableSize(TVector3 position) { return TMS_Geom::GetInstance().IsInsideReasonableSize(position); };
+
+    static bool StaticIsInsideTMSMass(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSMass(position); };
+
+    bool IsInsideNearDetectorVolume(TVector3 position) const
+    { 
+      return (
+              IsInsideBox(position, GetStartOfLAr(), GetEndOfLAr()) ||
+              IsInsideBox(position, GetStartOfTMS(), GetEndOfTMS())
+              //IsInsideBox(position, GetStartOfSAND(), GetEndOfSAND())
+             );
+    };
+    bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
+    
     
     
     std::string GetNameOfDetector(const TVector3 &point) {
@@ -136,9 +146,9 @@ class TMS_Geom {
       if (dx == 600000) ScaleFactor = 1;
       else if (dx == 60000) ScaleFactor = 10;
       else {
-       std::cout << "DX: " << box->GetDX() << std::endl;
-       std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
-       throw;
+        std::cout << "DX: " << box->GetDX() << std::endl;
+        std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
+        throw;
       }
       // set ScaleFactor temporarilty to 10
       //ScaleFactor = 10;
@@ -191,6 +201,11 @@ class TMS_Geom {
     
     TGeoNode* FindNode(double x, double y, double z) {
       Unscale(x, y, z);
+      TVector3 vec = TVector3(x,y,z);
+      //if (!IsInsideNearDetectorVolume(vec))
+        //std::cout << "Not in a detector?? " << x << ", " << y << ", " << z << std::endl;
+        //return NULL;
+
       return geom->FindNode(x, y, z);
     }
 
@@ -200,11 +215,17 @@ class TMS_Geom {
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
 
+//      std::cout << "[TMS_Geom.h] Getting materials between the points:" << std::endl
+//                  << "    point1: " << point1.X() << ", "<< point1.Y() << ", "<< point1.Z() << std::endl
+//                  << "    point2: " << point2.X() << ", "<< point2.Y() << ", "<< point2.Z() << std::endl;
+
       // The returned vector of materials
       // Also want how much of the material was passed through
       std::vector<std::pair<TGeoMaterial*,double> > Materials;     
 
-      if ((point1 - point2).Mag() == 0) return Materials;
+      if ((point1 - point2).Mag() <= 1E-3) 
+        return Materials;
+
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
 
@@ -327,6 +348,7 @@ class TMS_Geom {
       double step = geom->GetStep();
       // Walk through until we're in the same volume as our final point
       //while (!geom->IsSameLocation(point2.X(), point2.Y(), point2.Z()) && step < Unscale(__GEOM_LARGE_STEP__)) {
+      std::cout << "Stepping, step size: " << step << std::endl;
       while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
         // Get the material of the current point
         TGeoMaterial *mat = geom->GetCurrentNode()->GetMedium()->GetMaterial();
@@ -405,17 +427,13 @@ class TMS_Geom {
     
     // Walks through all the pairs of nodes and returns the total track length
     double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
-      //std::cout<<"Getting track length for "<<nodes.size()<<" nodes"<<std::endl;
       double out = 0;
-      if (nodes.size() != 19) return out;
       // for unsigned ints, 0-1 = MAX_UNSIGNED_INT, so need to verify that size > 0
       if (nodes.size() > 1) { 
         // Loop over all pairs of vectors
         for (size_t i = 0; i < nodes.size() - 1; i++) {
           auto p1 = nodes.at(i);
           auto p2 = nodes.at(i+1);
-          //std::cout<<"p1 is in "<<GetNameOfDetector(p1)<<" volume, ";
-          //std::cout<<"p2 is in "<<GetNameOfDetector(p2)<<" volume"<<std::endl;
           if (ignore_y) {
             TVector3 p1_without_y(p1);
             TVector3 p2_without_y(p2);
@@ -436,7 +454,6 @@ class TMS_Geom {
           }
         }
       }
-      //std::cout<<"Finished track length for "<<nodes.size()<<" nodes and got "<<out<<" g/cm^2"<<std::endl;
       return out;
     }
 

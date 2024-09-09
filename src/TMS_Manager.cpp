@@ -30,6 +30,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_DBSCAN_MinPoints = toml::find<int>(data, "Recon", "DBSCAN", "MinPoints");
   _RECO_DBSCAN_Epsilon = toml::find<double>(data, "Recon", "DBSCAN", "Epsilon");
+  _RECO_DBSCAN_PreDBNeighbours = toml::find<int>(data, "Recon", "DBSCAN", "PreDBNeighbours");
+  _RECO_DBSCAN_PreDBDistance = toml::find<double>(data, "Recon", "DBSCAN", "PreDBDistance");
 
   _RECO_HOUGH_MaxHough = toml::find<int>(data, "Recon", "Hough", "MaxTrans");
   _RECO_HOUGH_MinInterp = toml::find<double>(data, "Recon", "Hough", "MinInter");
@@ -67,6 +69,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_TRACK_METHOD  = toml::find<std::string>(data, "Recon", "TrackMethod");
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
+
+  _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   
