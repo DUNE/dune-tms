@@ -45,6 +45,8 @@ class Momentum:
         for i, r in enumerate(self.ranges):
             if r[0] <= self.ke < r[1]:  # [lower, upper) bounds
                 return i + 1  # bin number starts at 1 (enumerate idx starts at 0)
+            elif self.ke >= self.ranges[-1][1]:  # if the KE is greater than the last bin, return the last bin, which is an overflow.
+                return len(self.ranges)
         return None
 
 def get_muon_ke_entering_tms(momentum_tms_start):
@@ -89,10 +91,10 @@ def run(truth, outfilename, nmax=-1):
         hist.SetXTitle("Muon Kinetic Energy (MeV)")
         hist.SetYTitle("Efficiency")
         hist.GetYaxis().SetTitleOffset(0.95)
-    hist_sd_eff_muon_lar_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Inside LAr")
-    hist_sd_eff_amuon_lar_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Inside LAr")
-    hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^- Signed Distance Efficiency, KE Entering TMS")
-    hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+ Signed Distance Efficiency, KE Entering Inside TMS")
+    hist_sd_eff_muon_lar_ke.SetTitle(r"\mu^-" "Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_amuon_lar_ke.SetTitle(r"\mu^+" "Signed Distance Efficiency, KE Inside LAr")
+    hist_sd_eff_muon_tms_ke.SetTitle(r"\mu^-" "Signed Distance Efficiency, KE Entering TMS")
+    hist_sd_eff_amuon_tms_ke.SetTitle(r"\mu^+" "Signed Distance Efficiency, KE Entering Inside TMS")
 
     # dictionary of bin number (for KE) and events: [bin, sd > 0, sd < 0, sd = 0]
     data_lar = {}
@@ -207,8 +209,8 @@ def run(truth, outfilename, nmax=-1):
         hist_amu.Draw("hist same")
 
         max_content = max(hist_mu.GetMaximum(), hist_amu.GetMaximum())
-        hist_mu.SetMaximum(max_content * 1.25)
-        hist_amu.SetMaximum(max_content * 1.25)
+        hist_mu.SetMaximum(max_content * 1.4)
+        hist_amu.SetMaximum(max_content * 1.4)
 
         legend.Draw("same")
 
