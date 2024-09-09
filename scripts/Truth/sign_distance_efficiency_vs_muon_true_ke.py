@@ -187,15 +187,19 @@ def run(truth, outfilename, nmax=-1):
     # NOTE: number of muon events is not necessarily the same as anti-muon events.
     for bin_num, sign_dists in data_lar_mu.items():
         total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        print('lar_data_mu -- bin_num:', bin_num, ' signed_dists:', sign_dists, ' total:', total_countable_events_in_bin)
         hist_sd_eff_muon_lar_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else 0.)
     for bin_num, sign_dists in data_lar_amu.items():
         total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        print('lar_data_amu -- bin_num:', bin_num, ' signed_dists:', sign_dists, ' total:', total_countable_events_in_bin)
         hist_sd_eff_amuon_lar_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else 0.)
     for bin_num, sign_dists in data_tms_mu.items():
         total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        print('tms_data_mu -- bin_num:', bin_num, ' signed_dists:', sign_dists, ' total:', total_countable_events_in_bin)
         hist_sd_eff_muon_tms_ke.SetBinContent(bin_num, sign_dists[0] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else 0.)
     for bin_num, sign_dists in data_tms_amu.items():
         total_countable_events_in_bin = (sign_dists[0] + sign_dists[1] + sign_dists[2])
+        print('tms_data_amu -- bin_num:', bin_num, ' signed_dists:', sign_dists, ' total:', total_countable_events_in_bin)
         hist_sd_eff_amuon_tms_ke.SetBinContent(bin_num, sign_dists[1] / total_countable_events_in_bin if total_countable_events_in_bin != 0 else 0.)
 
 
