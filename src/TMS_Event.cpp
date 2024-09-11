@@ -862,6 +862,8 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   // Merge these lists
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
+  // Reset this to recalculate on next call
+  VertexIdOfMostEnergyInEvent = -9999;
 
   nVertices += Other_Event.nVertices;
 
@@ -917,7 +919,7 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   for (auto it : TrueVisibleEnergyPerVertex) {
     double vertex = it.first;
     double energy = it.second;
-    if (energy > max) { max = energy; max_vertex_id = vertex; }
+    if (energy >= max) { max = energy; max_vertex_id = vertex; }
     total_energy += energy;
   }
   VertexIdOfMostEnergyInEvent = max_vertex_id;
@@ -926,7 +928,11 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   
   if (TrueVisibleEnergyPerVertex.find(VertexIdOfMostEnergyInEvent) != TrueVisibleEnergyPerVertex.end())
     TotalVisibleEnergyFromVertex = TrueVisibleEnergyPerVertex[VertexIdOfMostEnergyInEvent];
-  else std::cout<<"Warning in GetVertexIdOfMostVisibleEnergy: TrueVisibleEnergyPerVertex.Find(VertexIdOfMostEnergyInEvent) == TrueVisibleEnergyPerVertex.end()"<<std::endl;
+  else {
+    if (TrueVisibleEnergyPerVertex.size() > 0) {
+      std::cout<<"Warning in GetVertexIdOfMostVisibleEnergy: TrueVisibleEnergyPerVertex.Find(VertexIdOfMostEnergyInEvent) == TrueVisibleEnergyPerVertex.end()"<<std::endl;
+    }
+  }
   
   return VertexIdOfMostEnergyInEvent;
 }
