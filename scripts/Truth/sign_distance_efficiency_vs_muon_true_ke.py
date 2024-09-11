@@ -12,7 +12,11 @@ import logging
 # using the Truth_Info TTree, and saves them to a ROOT file.
 # S.D. = signed distance
 
-
+# TODO: should consider more realistic fiducial volume cuts.
+# TODO: could consider using multiple regions for the signed distance calculation.
+# TODO: for calculating the efficiency, maybe use a more observable 'cut' like, S.D of 20 mm..?
+# TODO: add purities.
+# TODO: some count of the events that start + end in two different regions.
 # TODO: add the B Field info...from the inlist to outfile name.
 
 # Set ROOT to batch mode and configure styles
