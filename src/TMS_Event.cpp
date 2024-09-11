@@ -18,8 +18,9 @@ TMS_Event::TMS_Event() {
 
 
 static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
-  //if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
-  if (!tp.IsPrimary()) return true;
+  if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
+  // Don't worry about really low visible energy
+  if (tp.GetTrueVisibleEnergy() < 0.5 && !tp.IsPrimary()) return true;
   else return false;
 };
 
@@ -33,7 +34,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   bool TMSOnly = false;
   bool TMSLArOnly = false;
   bool OnlyPrimary = false;
-  bool OnlyPrimaryOrInteresting = true;
+  bool OnlyPrimaryOrInteresting = false;
   bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   
   int nPrimary = 0;
@@ -252,26 +253,18 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       }
       else vertex_id = value->second;
       TMS_Hit hit = TMS_Hit(edep_hit, vertex_id);
-      TMS_Hits.push_back(std::move(hit));
-      
-      // todo, maybe skip for michel electrons or late neutrons
-      for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
-        TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
-        TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+      int barnum = hit.GetBarNumber();
+      // Only add if within the TMS
+      // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
+      if (barnum >= 0) {
+        TMS_Hits.push_back(std::move(hit));
+        
+        // todo, maybe skip for michel electrons or late neutrons
+        for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
+          TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+          TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetVertexIds(i) * 100000 + hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
+        }
       }
-
-      // Loop through the True Particle list and associate
-      /*
-      // Now associate the hits with the muon
-      int PrimaryId = edep_hit.GetPrimaryId();
-      for (auto &TrueParticle : TMS_TrueParticles) {
-      // Check the primary ID
-      if (TrueParticle.GetTrackId() != PrimaryId) continue;
-      TLorentzVector Position = (edep_hit.GetStop()+edep_hit.GetStart());
-      Position *= 0.5;
-      TrueParticle.AddPoint(Position);
-      }
-      */
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
 }
@@ -281,15 +274,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   //std::cout<<"Making TMS event"<<std::endl;
   bool OnlyPrimaryOrVisibleEnergy = true;
-
-  /*
-  if (LightWeight) {
-    OnlyMuon = true;
-    TMSOnly = true;
-    TMSLArOnly = true;
-    OnlyPrimary = true;
-  }
-  */
 
   // Save down the event number
   EventNumber = EventCounter;
@@ -305,12 +289,12 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 
   ProcessTG4Event(event, FillEvent);
   
-  
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
     double energy = 0;
     // If it's not in the map, don't create it
-    auto it = TrueVisibleEnergyPerParticle.find(i);
+    int key = TMS_TrueParticles[i].GetVertexID() * 100000 + TMS_TrueParticles[i].GetTrackId();
+    auto it = TrueVisibleEnergyPerParticle.find(key);
     if (it != TrueVisibleEnergyPerParticle.end()) {
       energy = it->second;
     }
@@ -388,14 +372,6 @@ void TMS_Event::MergeCoincidentHits() {
     double y = (*it).GetNotZ();
     //double e = hit.GetE();
     double t = (*it).GetT();
-    
-    // Strip out hits that are outside the actual volume 
-    // This is probably some bug in the geometry that sometimes gives hits in the z=30k mm (i.e. 10m downstream of the end of the TMS)
-    // TODO figure out why these happen
-    if (z > TMS_Const::TMS_End[2] || z < TMS_Const::TMS_Start[2]) {
-      (*it).SetPedSup(true);
-      continue;
-    }
 
     // Look ahead to find duplicates, but stop when z != z2
     std::vector<std::vector<TMS_Hit>::iterator> duplicates;
