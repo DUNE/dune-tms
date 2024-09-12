@@ -88,7 +88,7 @@ for i, d in enumerate([d_bfield_th1s_muon_lar, b_field_th1s_muon_tms, b_field_th
     fig = plt.figure(figsize=(10, 6))
     color_idx = 0
     for key_bfield, th1 in d.items():
-        det = 'tms' if (i % 2 == 0) else 'lar'
+        det = 'lar' if (i == 0 or i == 2) else 'tms'
         particle = 'muon' if (i <= 1) else 'amuon'
         pdg_string = fr'$\mu^-$' if particle == "muon" else fr'$\mu^+$'
         plt.step(th1.axis().edges()[:-1], th1.values(), where='post', label=f'{pdg_string} @ {key_bfield.replace("p", ".")}', color=list_colors[color_idx])
