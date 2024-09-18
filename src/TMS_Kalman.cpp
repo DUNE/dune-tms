@@ -115,6 +115,17 @@ void TMS_Kalman::RunKalman() {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
+    
+    if ( (KalmanNodes[i].CurrentState.x < TMS_Const::TMS_Start[0]) || (KalmanNodes[i].CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+    {
+      std::cerr << "lol x value outside TMS: " << KalmanNodes[i].CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+      return;
+    }
+    if ( (KalmanNodes[i].CurrentState.y < TMS_Const::TMS_Start[1]) || (KalmanNodes[i].CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+    {
+      std::cerr << "lol y value outside TMS: " << KalmanNodes[i].CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+      return;
+    }
   }
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
@@ -342,14 +353,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //'CovarianceMatrix.Print();
   //GainMatrix.Print();
   //CurrentState.Print();
-  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
-  {
-    std::cerr << "lol x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-  }
-  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
-  {
-    std::cerr << "lol y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-  }
+//  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+//  {
+//    std::cerr << "lol x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+//  }
+//  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+//  {
+//    std::cerr << "lol y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+//  }
 
   Node.SetRecoXY(CurrentState);
   if (Talk) Node.PrintTrueReco();
