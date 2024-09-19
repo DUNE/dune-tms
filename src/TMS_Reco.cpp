@@ -89,6 +89,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
 
 void TMS_TrackFinder::ClearClass() {
 
+/*
   // Check through the Houghlines
   for (auto &i: HoughLinesU) {
     delete i.second;
@@ -134,7 +135,7 @@ void TMS_TrackFinder::ClearClass() {
   UHitGroup.clear();
   VHitGroup.clear();
   XHitGroup.clear();
-
+*/
   HoughTracks3D.clear();
 }
 

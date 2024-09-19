@@ -1197,7 +1197,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
 
   // Fill up the info only if all above has passed
-  Branch_Lines->Fill();
+  //Branch_Lines->Fill();
 
 
   // Fill the 3D Tracks
