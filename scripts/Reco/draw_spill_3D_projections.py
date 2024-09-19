@@ -13,7 +13,7 @@ orange_cbf = '#e69f00'
 magenta_cbf = '#cc79a7'
 black_cbf = '#000000'
 green_cbf = '#009e73'
-mp.style.use('Solarize_Light2')  #mp.style.use('seaborn-poster') #  wasn't working.
+mp.style.use('seaborn-v0_8-poster')
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
@@ -146,7 +146,7 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, add_ke_truth_to_plot = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
@@ -371,7 +371,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
 
 
             # Write the True Muon KE to each spill plot.
-            if add_ke_truth_to_plot:
+            if report_true_ke:
                 for idx, pdg in enumerate(true_event.PDG):
                     if pdg != abs(13): continue
 
@@ -440,7 +440,7 @@ if __name__ == "__main__":
     parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
     parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
-    parser.add_argument('--add_ke_truth_to_plot', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
     parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
@@ -451,11 +451,11 @@ if __name__ == "__main__":
     spill_number = args.spillnum
     time_slice = args.timeslice
     readout_filename =  args.readout_filename
-    add_ke_truth_to_plot = args.add_ke_truth_to_plot
+    report_true_ke = args.report_true_ke
     Xlayers = args.Xlayers
     print(Xlayers)
     calculate_layers(Xlayers)
     print(layer_dict)
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, add_ke_truth_to_plot)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke)
 
