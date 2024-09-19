@@ -1938,7 +1938,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
   
-  TF1* HoughCopy = (TF1*)HoughLineU->Clone();
+  TF1* HoughCopy;// = (TF1*)HoughLineU->Clone();
 
   if (hitgroup == 'U') {
     HoughLineU->SetRange(zMinHough, zMaxHough);
@@ -3384,14 +3384,14 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
 
     // Find which rho bin this corresponds to
     int c_bin = FindBin(c);
-      /*
+
       if (i > nSlope || c_bin > nIntercept) {
       std::cout << "c: " << c << std::endl;
       std::cout << "m: " << m << std::endl;
       std::cout << "i: " << i << std::endl;
       std::cout << "cbin: " << c_bin << std::endl;
       }
-      */
+
     // Fill the accumulator
     Accumulator[i][c_bin]++;
   }
