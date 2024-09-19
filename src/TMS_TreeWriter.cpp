@@ -26,8 +26,8 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Outputname += Form("_Cluster%i", TMS_Manager::GetInstance().Get_Reco_Clustering());
   Outputname += ".root";
   // Override output file name if set by the environment.
-  if(std::getenv("ND_PRODUCTION_TMS_OUTFILE")) {
-    Outputname = std::getenv("ND_PRODUCTION_TMS_OUTFILE");
+  if(std::getenv("ND_PRODUCTION_TMSRECO_OUTFILE")) {
+    Outputname = std::getenv("ND_PRODUCTION_TMSRECO_OUTFILE");
   }
   // Make an output file
   Output = new TFile(Outputname, "recreate");
@@ -227,17 +227,22 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
 
-  Reco_Tree->Branch("nTracks",      &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",        nHitsIn3DTrack,         "nHits[nTracks]/I");
-  Reco_Tree->Branch("TrackHitPos",  RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("StartPos",     RecoTrackStartPos,      "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("Direction",    RecoTrackDirection,     "Direction[nTracks][3]/F");
-  Reco_Tree->Branch("EndPos",       RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("EnergyRange",  RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
-  Reco_Tree->Branch("EnergyDeposit",RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
-  Reco_Tree->Branch("Length",       RecoTrackLength,        "Length[nTracks]/F");
-  Reco_Tree->Branch("Charge",       RecoTrackCharge,        "Charge[nTracks]/I");
-
+  Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
+  Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
+  Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndDirectioN",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
+  Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
+  Reco_Tree->Branch("EndPos",         RecoTrackEndPos,          "EndPos[nTracks][3]/F");
+  Reco_Tree->Branch("EnergyRange",    RecoTrackEnergyRange,     "EnergyRange[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
+  Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
+  Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
@@ -316,7 +321,16 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueMomentumEnteringTMS[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS,
                      "RecoTrackPrimaryParticleTrueMomentumLeavingTMS[RecoTrackN][4]/F"); 
-                     
+  
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionEnteringTMS", RecoTrackPrimaryParticleTruePositionEnteringTMS,
+                     "RecoTrackPrimaryParticleTruePositionEnteringTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingTMS", RecoTrackPrimaryParticleTruePositionLeavingTMS,
+                     "RecoTrackPrimaryParticleTruePositionLeavingTMS[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionLeavingLAr", RecoTrackPrimaryParticleTruePositionLeavingLAr,
+                     "RecoTrackPrimaryParticleTruePositionLeavingLAr[RecoTrackN][4]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingLAr", RecoTrackPrimaryParticleTrueMomentumLeavingLAr,
+                     "RecoTrackPrimaryParticleTrueMomentumLeavingLAr[RecoTrackN][4]/F");
+
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialStart", RecoTrackPrimaryParticleTMSFiducialStart,
     "RecoTrackPrimaryParticleTMSFiducialStart[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleTMSFiducialTouch", RecoTrackPrimaryParticleTMSFiducialTouch,
@@ -1201,17 +1215,44 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    //nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
-    RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+    RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
+    RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
-      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
+      RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
+      RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
     }
+
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
+      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
+        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
+        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
+      //}
+      RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
+      RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
+      RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+
+      RecoTrackKalmanTruePos[itTrack][j][0] = RecoTrack->KalmanNodes[j].TrueX;
+      RecoTrackKalmanTruePos[itTrack][j][1] = RecoTrack->KalmanNodes[j].TrueY;
+      RecoTrackKalmanTruePos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+
+      //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].CurrentState.x;
+      //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].CurrentState.y;
+      //RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].CurrentState.z;
+    }
+
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
+      RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
+
+      // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
@@ -1220,16 +1261,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
-//      std::cout << "TreeWriter hit position: " << RecoTrackHitPos[itTrack][j][0] << " " << RecoTrackHitPos[itTrack][j][1] << " " << RecoTrackHitPos[itTrack][j][2] << std::endl;
     }
     // Can manually compute direction if it hasn't been set
-    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
-    { // If true it seems the direction hasn't been set
-      for (int j = 0; j < 3; j++)
-      { // Right now no need to make sure this is a unit vector
-        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
-      }
-    }
+//    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
+//    { // If true it seems the direction hasn't been set
+//      for (int j = 0; j < 3; j++)
+//      { // Right now no need to make sure this is a unit vector
+//        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
+//      }
+//    }
     
     // Now fill truth info
     if (itTrack >= __TMS_MAX_LINES__) {
@@ -1246,8 +1286,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      //std::cout<<"checking for primary particle trackid"<<std::endl;
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1269,7 +1308,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       if (itTrack < __TMS_MAX_LINES__) {
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackStart[itTrack], tp.GetMomentumAtZ(start_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
-        //std::cout << "Setting tp shite: " << tp.GetPositionAtZ(start_z, max_z_distance).X() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Y() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Z()  << ",\t" << start_z << " " <<  max_z_distance << std::endl;
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
         
@@ -1337,7 +1375,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1642,8 +1680,9 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
-      RecoTrackDirection[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackStartDirection[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackEndDirection[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
