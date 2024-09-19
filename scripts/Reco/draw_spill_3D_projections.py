@@ -4,6 +4,7 @@ import matplotlib.pyplot as mp
 import os
 import argparse
 import cppyy.ll
+from math import sqrt
 
 # plotstyle
 red_cbf = '#d55e00'
@@ -12,7 +13,7 @@ orange_cbf = '#e69f00'
 magenta_cbf = '#cc79a7'
 black_cbf = '#000000'
 green_cbf = '#009e73'
-mp.style.use('seaborn-poster')
+mp.style.use('seaborn-v0_8-poster')
 
 mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
@@ -27,6 +28,8 @@ tan_3 = 0.05241
 delta_x = 0.0177    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
 delta_z = 0.02      # space of scintilattor with air gap
+
+MUON_MASS = 105.7  # MeV/c^2
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
@@ -143,7 +146,7 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
@@ -268,13 +271,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
             #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
+            
+            # I want the number of true hits.
+            # nTrueHits = true_event.RecoTrackNHits
+            # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
 
-            if DrawKalmanTrack:
-                nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
-                nKalmanNodes = np.array([nKalmanNodes[i] for i in range(0, nTracks * 4, 4)])
-                KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
-                KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
-                                        
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
             #Direction = np.frombuffer(event.Direction, dtype = np.float32)
@@ -283,7 +284,26 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             
             for i in range(nTracks):
-         
+
+                # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
+                # # loop through those true hits in the TMS
+                # for hit in range(nTrueHits[i]):
+                #     thit_x = True_Hits[i * 600 + hit * 4 + 0]
+                #     thit_y = True_Hits[i * 600 + hit * 4 + 1]
+                #     thit_z = True_Hits[i * 600 + hit * 4 + 2]
+                #
+                #     # print("THit", thit_x, thit_y, thit_z)
+                #
+                #     if thit_z < 11000.: continue
+                #
+                #     x_z.scatter(thit_z / 1000.0, thit_x / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #     z_y.scatter(thit_z / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #     x_y.scatter(thit_x / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
+                #
+                #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
+                #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
+                #     mp.close()
+
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[i]):
 
@@ -383,6 +403,21 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
 
 
+            # Write the True Muon KE to each spill plot.
+            if report_true_ke:
+                for idx, pdg in enumerate(true_event.PDG):
+                    if pdg != abs(13): continue
+
+                    muon_ke_lar = true_event.Muon_TrueKE / 1000.0
+                    p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
+                    muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+                    muon_ke_tms_start /= 1000.0
+                    x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                    x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+
+                    if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
+                        print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
+
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
             mp.close()
@@ -438,7 +473,7 @@ if __name__ == "__main__":
     parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
     parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
-    parser.add_argument('--only_true_tms_muons', help = "Only draw events with true muons inside the TMS", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
     parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
@@ -449,11 +484,11 @@ if __name__ == "__main__":
     spill_number = args.spillnum
     time_slice = args.timeslice
     readout_filename =  args.readout_filename
-    only_true_tms_muons = args.only_true_tms_muons
+    report_true_ke = args.report_true_ke
     Xlayers = args.Xlayers
     print(Xlayers)
     calculate_layers(Xlayers)
     print(layer_dict)
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke)
 
