@@ -19,10 +19,13 @@ class TMS_TrueHit {
     // Explicitly create copy construct and assignment operators
     // Or else true particle information is lost 
     // Copy constructor
-    TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare)
+    TMS_TrueHit(const TMS_TrueHit& other) //: PrimaryIds(other.PrimaryIds),
+      //VertexIds(other.VertexIds), EnergyShare(other.EnergyShare)
     {
         if (this != &other) {
+          PrimaryIds = other.PrimaryIds;
+          VertexIds = other.VertexIds;
+          EnergyShare = other.EnergyShare;
           x = other.x;
           y = other.y;
           z = other.z;

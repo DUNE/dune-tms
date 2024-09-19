@@ -29,23 +29,23 @@ class TMS_TrueParticle {
     }
 
     // Copy over the edep-sim info
-    TMS_TrueParticle(TG4PrimaryParticle &edep_part) :
+    TMS_TrueParticle(TG4PrimaryParticle edep_part) :
       VertexID(-999),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
       TrueVisibleEnergy(-999),
-      BirthMomentum(edep_part.GetMomentum().Vect()) {
+      BirthMomentum(TVector3(edep_part.GetMomentum().Vect())) {
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle &edep_part, TG4PrimaryVertex &vtx) : 
+    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx) : 
       VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
       TrueVisibleEnergy(-999),
-      BirthMomentum(edep_part.GetMomentum().Vect()),
-      BirthPosition(vtx.GetPosition()) {
+      BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
+      BirthPosition(TLorentzVector(vtx.GetPosition())) {
     }
 
     // Construct directly from edep-sim
@@ -57,22 +57,24 @@ class TMS_TrueParticle {
       TrueVisibleEnergy(-999) {
     }
 
+    ~TMS_TrueParticle();
+
     // Print
     void Print(bool small = false);
 
     // Add a point in for this true particle
     void AddPoint(TLorentzVector &Position, TVector3 &Momentum) {
-      PositionPoints.emplace_back(Position);
-      MomentumPoints.emplace_back(Momentum);
+      PositionPoints.emplace_back(TLorentzVector(Position));
+      MomentumPoints.emplace_back(TVector3(Momentum));
     }
 
     void AddPoint(TLorentzVector &Position) {
-      PositionPoints.emplace_back(Position);
+      PositionPoints.emplace_back(TLorentzVector(Position));
     }
 
     void AddPoint(TLorentzVector &Position, TVector3 &Momentum, int &G4Process, int &G4Subprocess)  {
-      PositionPoints.emplace_back(Position);
-      MomentumPoints.emplace_back(Momentum);
+      PositionPoints.emplace_back(TLorentzVector(Position));
+      MomentumPoints.emplace_back(TVector3(Momentum));
       Process.emplace_back(G4Process);
       Subprocess.emplace_back(G4Subprocess);
     }
@@ -98,11 +100,11 @@ class TMS_TrueParticle {
       VertexID = vtx;
     }
 
-    void SetBirthMomentum(TVector3 &birthmom) { BirthMomentum = birthmom; };
-    void SetBirthPosition(TLorentzVector &birthpos) { BirthPosition = birthpos; };
+    void SetBirthMomentum(TVector3 &birthmom) { BirthMomentum = TVector3(birthmom); };
+    void SetBirthPosition(TLorentzVector &birthpos) { BirthPosition = TLorentzVector(birthpos); };
 
-    void SetDeathMomentum(TVector3 &deathmom) { DeathMomentum = deathmom; };
-    void SetDeathPosition(TLorentzVector &deathpos) { DeathPosition = deathpos; };
+    void SetDeathMomentum(TVector3 &deathmom) { DeathMomentum = TVector3(deathmom); };
+    void SetDeathPosition(TLorentzVector &deathpos) { DeathPosition = TLorentzVector(deathpos); };
 
     TVector3       &GetBirthMomentum() { return BirthMomentum; };
     TLorentzVector GetBirthMomentumAsLorentz() 

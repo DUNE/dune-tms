@@ -2,6 +2,17 @@
 
 #include <algorithm>    // std::swap
 
+TMS_TrueParticle::~TMS_TrueParticle() {
+  // Don't delete the elements since root will do that
+  PositionPoints.clear();
+  MomentumPoints.clear();
+
+  DeathMomentum = TVector3();
+  BirthMomentum = TVector3();
+  BirthPosition = TLorentzVector();
+  DeathPosition = TLorentzVector();
+}
+
 void TMS_TrueParticle::Print(bool small) {
   std::cout << "Printing TMS_TrueParticle class: " << std::endl;
   std::cout << "  Parent: " << Parent << std::endl;
