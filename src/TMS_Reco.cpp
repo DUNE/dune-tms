@@ -1938,17 +1938,20 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
   //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
   
-  TF1* HoughCopy;// = (TF1*)HoughLineU->Clone();
+  //TF1* HoughCopy;// = (TF1*)HoughLineU->Clone();
 
   if (hitgroup == 'U') {
     HoughLineU->SetRange(zMinHough, zMaxHough);
-    HoughCopy = (TF1*)HoughLineU->Clone();
+    //HoughCopy = (TF1*)HoughLineU->Clone();
+    HoughLinesU.push_back(std::move(std::make_pair(IsXZ, HoughLineU)));
   } else if (hitgroup == 'V') {
     HoughLineV->SetRange(zMinHough, zMaxHough);
-    HoughCopy = (TF1*)HoughLineV->Clone();
+    //HoughCopy = (TF1*)HoughLineV->Clone();
+    HoughLinesV.push_back(std::move(std::make_pair(IsXZ, HoughLineV)));
   } else if (hitgroup == 'X') {
     HoughLineX->SetRange(zMinHough, zMaxHough);
-    HoughCopy = (TF1*)HoughLineX->Clone();
+    //HoughCopy = (TF1*)HoughLineX->Clone();
+    HoughLinesX.push_back(std::move(std::make_pair(IsXZ, HoughLineX)));
   } else {
 #ifdef DEBUG
     std::cout << "Something is going wrong with the assigning of hitgroup" << std::endl;
@@ -1956,14 +1959,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     return TMS_Hits;
   }
 
-  std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
-  if (hitgroup == 'U') {
-    HoughLinesU.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 'V') {
-    HoughLinesV.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 'X') {
-    HoughLinesX.push_back(std::move(HoughPairs));
-  }
+  //std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
+  //if (hitgroup == 'U') {
+  //  HoughLinesU.push_back(std::move(HoughPairs));
+  //} else if (hitgroup == 'V') {
+  //  HoughLinesV.push_back(std::move(HoughPairs));
+  //} else if (hitgroup == 'X') {
+  //  HoughLinesX.push_back(std::move(HoughPairs));
+ // }
 
   // Then run a clustering on the Hough Transform
   // Hough transform is most likely to pick out straigh features at begining of track candidate, so start looking there
