@@ -18,3 +18,7 @@ clean:
 all: check-submodule
 	make -j8 -C src
 	make -j8 -C app
+
+sanitize: check-submodule
+	make -j8 -C src sanitize
+	make -j8 -C app sanitize

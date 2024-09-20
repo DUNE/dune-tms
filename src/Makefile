@@ -73,6 +73,10 @@ endif
 
 all: directories libTMS_Prod
 
+# Sanitize target
+sanitize: CXXFLAGS := $(CXXFLAGS) -fsanitize=address
+sanitize: all
+
 directories: $(LIB_DIR)
 
 $(LIB_DIR):
