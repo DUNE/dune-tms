@@ -452,7 +452,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   SpillNo = event.GetSpillNumber();
   Reaction = event.GetReaction();
 
-  NeutrinoPDG = event.GetNeutrinoPDG();
+  /*NeutrinoPDG = event.GetNeutrinoPDG();
   NeutrinoP4[0] = event.GetNeutrinoP4().X();
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
@@ -461,17 +461,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoX4[1] = event.GetNeutrinoVtx().Y();
   NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
-  NeutrinoP4[0] = event.GetNeutrinoP4().X();
+  NeutrinoP4[0] = event.GetNeutrinoP4().X();*/
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
   // Lepton info
-  LeptonPDG = event.GetLeptonPDG();
+  /*LeptonPDG = event.GetLeptonPDG();
   LeptonP4[1] = event.GetLeptonP4().Y();
   LeptonP4[2] = event.GetLeptonP4().Z();
   LeptonP4[3] = event.GetLeptonP4().T();
   LeptonX4[0] = event.GetLeptonX4().X();
   LeptonX4[1] = event.GetLeptonX4().Y();
   LeptonX4[2] = event.GetLeptonX4().Z();
-  LeptonX4[3] = event.GetLeptonX4().T();
+  LeptonX4[3] = event.GetLeptonX4().T();*/
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
   VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
@@ -512,11 +512,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     Muon_Death[3] = (*it).GetDeathPosition().T();
   }
   
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
+  /*TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);*/
     
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
@@ -1196,9 +1196,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
-  // Fill up the info only if all above has passed
-  //Branch_Lines->Fill();
-
 
   // Fill the 3D Tracks
   // First get the tracks for this event:
@@ -1371,6 +1368,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
   }
 
+  // Fill up the info only if all above has passed
+  Branch_Lines->Fill();
   Reco_Tree->Fill();
   Truth_Info->Fill();
 }
@@ -1389,7 +1388,7 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
 
-  NeutrinoPDG = event.GetNeutrinoPDG();
+  /*NeutrinoPDG = event.GetNeutrinoPDG();
   NeutrinoP4[0] = event.GetNeutrinoP4().X();
   NeutrinoP4[1] = event.GetNeutrinoP4().Y();
   NeutrinoP4[2] = event.GetNeutrinoP4().Z();
@@ -1397,14 +1396,14 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   NeutrinoX4[0] = event.GetNeutrinoVtx().X();
   NeutrinoX4[1] = event.GetNeutrinoVtx().Y();
   NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
-  NeutrinoX4[3] = event.GetNeutrinoVtx().T();
+  NeutrinoX4[3] = event.GetNeutrinoVtx().T();*/
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
+  /*TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);*/
     
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
   nTrueParticles = TrueParticles.size();

@@ -188,8 +188,8 @@ int main(int argc, char** argv) {
     TMS_Event tms_event = TMS_Event(*event, true);
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
 
-    int pdg = tms_event.GetNeutrinoPDG();
-    double enu = tms_event.GetNeutrinoP4().E();
+    int pdg = -999; // tms_event.GetNeutrinoPDG();
+    double enu = -999; // tms_event.GetNeutrinoP4().E();
     TString reaction = tms_event.GetReaction().c_str();
     // Get the true muon info
     double muonke = tms_event.GetMuonTrueKE();

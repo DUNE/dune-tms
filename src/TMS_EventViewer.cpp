@@ -345,8 +345,8 @@ void TMS_EventViewer::Draw(TMS_Event &event) {
   std::vector<std::pair<bool, TF1*> > HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
   std::vector<std::pair<bool, TF1*> > HoughLinesX = TMS_TrackFinder::GetFinder().GetHoughLinesX();
 
-  int pdg = event.GetNeutrinoPDG();
-  double enu = event.GetNeutrinoP4().E();
+  int pdg = -999; // event.GetNeutrinoPDG();
+  double enu = -999; // event.GetNeutrinoP4().E();
   TString reaction = event.GetReaction().c_str();
   // Get the true muon info
   double muonke = event.GetMuonTrueKE();

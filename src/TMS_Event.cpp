@@ -344,10 +344,10 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
-      TrueNeutrino(event.TrueNeutrino), 
-      TrueNeutrinoPosition(event.TrueNeutrinoPosition),
-      TrueLeptonPosition(event.TrueLeptonPosition), 
-      TrueLeptonMomentum(event.TrueLeptonMomentum),  
+      //TrueNeutrino(event.TrueNeutrino), 
+      //TrueNeutrinoPosition(event.TrueNeutrinoPosition),
+      //TrueLeptonPosition(event.TrueLeptonPosition), 
+      //TrueLeptonMomentum(event.TrueLeptonMomentum),  
       TrueVisibleEnergyPerVertex(event.TrueVisibleEnergyPerVertex), 
       TrueVisibleEnergyPerParticle(event.TrueVisibleEnergyPerParticle), 
       ChannelPositions(event.ChannelPositions), 
@@ -895,7 +895,7 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], 
   double vtx[__EDEP_SIM_MAX_PART__][4]) {
-  TrueNeutrino.first.SetX(p4[0][0]);
+  /*TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
@@ -903,14 +903,14 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrinoPosition.SetX(vtx[0][0]);
   TrueNeutrinoPosition.SetY(vtx[0][1]);
   TrueNeutrinoPosition.SetZ(vtx[0][2]);
-  TrueNeutrinoPosition.SetT(vtx[0][3]);
+  TrueNeutrinoPosition.SetT(vtx[0][3]);*/
 }
 
 void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid) {
   TrueLeptonPDG = pdg;
-  TrueLeptonPosition = position;
+  /*TrueLeptonPosition = position;
   TrueLeptonMomentum = momentum;
-  TrueLeptonVertexID = vertexid;
+  TrueLeptonVertexID = vertexid;*/
 }
 
 int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
@@ -972,7 +972,7 @@ void TMS_Event::Print() {
   std::cout << "  Using geometry: " << TMS_Geom::GetInstance().GetGeometry()->GetName() << ", " << TMS_Geom::GetInstance().GetGeometry()->GetTitle() << std::endl;
   std::cout << "  From: " << TMS_Geom::GetInstance().GetFileName() << std::endl;
   std::cout << "  Initial state neutrino from gRooTracker: " << std::endl;
-  std::cout << "  PDG: " << TrueNeutrino.second << " (px, py, pz, E) = (" << TrueNeutrino.first.X() << ", " << TrueNeutrino.first.Y() << ", " << TrueNeutrino.first.Z() << ", " << TrueNeutrino.first.T() << ")" << std::endl;
+  //std::cout << "  PDG: " << TrueNeutrino.second << " (px, py, pz, E) = (" << TrueNeutrino.first.X() << ", " << TrueNeutrino.first.Y() << ", " << TrueNeutrino.first.Z() << ", " << TrueNeutrino.first.T() << ")" << std::endl;
   std::cout << "  N True primary particles: " << TMS_TruePrimaryParticles.size() << std::endl;
   std::cout << "  N True filtered trajectories: " << TMS_TrueParticles.size() << std::endl;
   std::cout << "  N True unfiltered trajectories: " << nTrueTrajectories << std::endl;

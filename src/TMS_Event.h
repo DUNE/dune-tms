@@ -55,12 +55,12 @@ class TMS_Event {
     // Include some truth metadata, like process, energy, lepton momentum
     void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double vtx[100][4]);
 
-    int GetNeutrinoPDG() { return TrueNeutrino.second; };
-    TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
-    TLorentzVector GetNeutrinoVtx() { return TrueNeutrinoPosition; };
+    //int GetNeutrinoPDG() { return TrueNeutrino.second; };
+    //TLorentzVector GetNeutrinoP4() { return TrueNeutrino.first; };
+    //TLorentzVector GetNeutrinoVtx() { return TrueNeutrinoPosition; };
     int GetLeptonPDG() { return TrueLeptonPDG; };
-    TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
-    TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
+    //TLorentzVector GetLeptonX4() { return TrueLeptonPosition; };
+    //TLorentzVector GetLeptonP4() { return TrueLeptonMomentum; };
     
     void FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid);
     
@@ -146,12 +146,12 @@ class TMS_Event {
     int SpillNumber;
 
     // Saves down the true Neutrino information from the gRooTracker passthrough (not available in edep-sim or G4)
-    std::pair<TLorentzVector,int> TrueNeutrino;
-    TLorentzVector TrueNeutrinoPosition;
+    //std::pair<TLorentzVector,int> TrueNeutrino;
+    //TLorentzVector TrueNeutrinoPosition;
     int TrueLeptonPDG;
     int TrueLeptonVertexID;
-    TLorentzVector TrueLeptonPosition;
-    TLorentzVector TrueLeptonMomentum;
+    //TLorentzVector TrueLeptonPosition;
+    //TLorentzVector TrueLeptonMomentum;
     std::map<int, double> TrueVisibleEnergyPerVertex;
     std::map<int, double> TrueVisibleEnergyPerParticle;
     
