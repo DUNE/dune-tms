@@ -3389,15 +3389,17 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
     // Find which rho bin this corresponds to
     int c_bin = FindBin(c);
 
-      if (i > nSlope || c_bin > nIntercept) {
+      if (i >= nSlope || c_bin >= nIntercept || c_bin < 0) {
       std::cout << "c: " << c << std::endl;
       std::cout << "m: " << m << std::endl;
       std::cout << "i: " << i << std::endl;
       std::cout << "cbin: " << c_bin << std::endl;
       }
+    if (c_bin < 0) c_bin = 0;
+    if (c_bin >= nIntercept) c_bin = nIntercept - 1;
 
     // Fill the accumulator
-    Accumulator[i][c_bin]++;
+    if (i > 0 && c_bin > 0 && i < nSlope && c_bin < nIntercept) Accumulator[i][c_bin]++;
   }
 }
 
