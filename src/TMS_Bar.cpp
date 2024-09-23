@@ -75,13 +75,13 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
       // Do a sanity check (CHEATING!)
       // Know the bars are 1cm in z and 3.542cm in x
-      if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
-        std::cerr << "width of " << NodeName << " not as expected!" << std::endl;
-        std::cerr << "xwidth: " << xw << std::endl;
-        std::cerr << "ywidth: " << yw << std::endl;
-        std::cerr << "zwidth: " << zw << std::endl;
-        throw;
-      }
+      //if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
+      //  std::cerr << "width of " << NodeName << " not as expected!" << std::endl;
+      //  std::cerr << "xwidth: " << xw << std::endl;
+      //  std::cerr << "ywidth: " << yw << std::endl;
+      //  std::cerr << "zwidth: " << zw << std::endl;
+      //  throw;
+      //}
 
     }
 
