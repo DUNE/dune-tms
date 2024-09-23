@@ -168,10 +168,18 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[4] = PreviousState.qp;
 
 
-  if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+  if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) { // point outside x region
     std::cerr << "Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-  if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+    Node.PrintTrueReco();
+    PreviousState.Print();
+    CurrentState.Print();
+  }
+  if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) { // point outside y region
     std::cerr << "Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    Node.PrintTrueReco();
+    PreviousState.Print();
+    CurrentState.Print();
+  }
     
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
@@ -233,9 +241,15 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     TotalLength += thickness;
 
     // Update the Bethe Bloch calculator to use this material
-    Material matter(density);
-
-    Bethe.fMaterial = matter;
+    try {
+      Material matter(density);
+      Bethe.fMaterial = matter;
+      // Set the material for the multiple scattering
+      MSC.fMaterial = matter;
+    }
+    catch (std::invalid_argument const& ex) {
+      std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
+    }
 
     // Subtract off the energy loss for this material
     if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
@@ -246,8 +260,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     double en_var = Bethe.Calc_dEdx_Straggling(en)*density*thickness;
     total_en_var += en_var*en_var;
 
-    // Set the material for the multiple scattering
-    MSC.fMaterial = matter;
     // Calculate this before or after the energy subtraction/addition?
     MSC.Calc_MS(en, thickness*density);
 
@@ -347,10 +359,16 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
     std::cerr << "lol x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    Node.PrintTrueReco();
+    PreviousState.Print();
+    CurrentState.Print();
   }
   if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
   {
     std::cerr << "lol y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    Node.PrintTrueReco();
+    PreviousState.Print();
+    CurrentState.Print();
   }
 
   Node.SetRecoXY(CurrentState);

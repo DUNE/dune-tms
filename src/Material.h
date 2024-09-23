@@ -71,6 +71,8 @@ class Material {
         fMaterialType = kAir;
       } else {
         fMaterialType = kUnknown;
+        std::cout<<"Made material with unknown fMaterialType, given density "<<density<<std::endl;
+        throw std::invalid_argument("Material error: do not know how to deal with density");
       }
 
       SetProperties();
