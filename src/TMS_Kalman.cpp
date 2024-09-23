@@ -56,7 +56,9 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     }
   }
 
-  const int N_LAYER_BACK = 10;
+  int N_LAYER_BACK = 10;
+  // Can't look back further than the first element
+  if (Candidates.size() < (unsigned)N_LAYER_BACK) N_LAYER_BACK = Candidates.size();
 
   AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
   AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY())/(Candidates.front().GetZ() - Candidates.back().GetZ());
