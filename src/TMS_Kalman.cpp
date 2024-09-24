@@ -314,7 +314,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     CovarianceMatrix(2,2) = 1.50;
     CovarianceMatrix(3,3) = 2.50;
     CovarianceMatrix(4,4) = 1.0;
-    std::cout << "Initialising covariance!" << std::endl;
+    if (Talk) std::cout << "Initialising covariance!" << std::endl;
   }
 
   Node.FillNoiseMatrix(); // Full the matrix for multiple scattering
