@@ -3797,7 +3797,7 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
       */
     // Fill the accumulator, but only within bounds
     // We don't care about lines outside of bounds
-    if (i > 0 && c_bin > 0 && i < nSlope && c_bin < nIntercept) Accumulator[i][c_bin]++;
+    if (i >= 0 && c_bin >= 0 && i < nSlope && c_bin < nIntercept) Accumulator[i][c_bin]++;
   }
 }
 
