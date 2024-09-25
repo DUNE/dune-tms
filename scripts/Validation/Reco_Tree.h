@@ -135,7 +135,9 @@ void Reco_Tree::Init(TTree *tree)
    fChain->SetBranchAddress("KalmanPos", KalmanPos, &b_KalmanPos);
    fChain->SetBranchAddress("KalmanTruePos", KalmanTruePos, &b_KalmanTruePos);
    fChain->SetBranchAddress("StartPos", StartPos, &b_StartPos);
-   fChain->SetBranchAddress("Direction", Direction, &b_Direction);
+   // Used to be Direction, now is StartDirection, check for both options depending on the file
+   if (HasBranch("Direction")) fChain->SetBranchAddress("Direction", Direction, &b_Direction);
+   else fChain->SetBranchAddress("StartDirection", Direction, &b_Direction);
    fChain->SetBranchAddress("EndPos", EndPos, &b_EndPos);
    fChain->SetBranchAddress("EnergyRange", EnergyRange, &b_EnergyRange);
    fChain->SetBranchAddress("EnergyDeposit", EnergyDeposit, &b_EnergyDeposit);
