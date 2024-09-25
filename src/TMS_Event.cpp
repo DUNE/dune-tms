@@ -16,7 +16,6 @@ TMS_Event::TMS_Event() {
   LightWeight = true;
 }
 
-
 static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
   if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
   // Don't worry about really low visible energy
@@ -1016,16 +1015,16 @@ double TMS_Event::GetMuonTrueTrackLength() {
 
     std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
     int num = 0;
-    for (auto pnt = pos.begin(); pnt != pos.end(); ++pnt, ++num) {
+    for (auto pnt = pos.begin(); (pnt+1) != pos.end(); ++pnt, ++num) {
       auto nextpnt = *(pnt+1);
       TVector3 point1((*pnt).X(), (*pnt).Y(), (*pnt).Z());  //-200
       TVector3 point2(nextpnt.X(), nextpnt.Y(), nextpnt.Z()); //-200
       if (TMS_Geom::GetInstance().IsInsideTMS(point1) && TMS_Geom::GetInstance().IsInsideTMS(point2)) {
-      if ((point2-point1).Mag() > 100) {
-        continue;
-      }
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-      total += tracklength;
+        if ((point2-point1).Mag() > 100) {
+          continue;
+        }
+        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+        total += tracklength;
       }
     }
   }

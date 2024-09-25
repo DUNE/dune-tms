@@ -234,7 +234,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
-  Reco_Tree->Branch("EndDirectioN",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndDirection",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
   Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
   Reco_Tree->Branch("EndPos",         RecoTrackEndPos,          "EndPos[nTracks][3]/F");
   Reco_Tree->Branch("EnergyRange",    RecoTrackEnergyRange,     "EnergyRange[nTracks]/F");
