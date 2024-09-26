@@ -121,6 +121,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    tms_event.SetSpillNumber(i);
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
@@ -152,6 +153,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       TMS_Event last_event = overlay_events.back();
       overlay_events.pop_back();
       for (auto &event : overlay_events) last_event.AddEvent(event);
+      // Make sure to set the spill number correctly
+      last_event.SetSpillNumber(current_spill_number);
       overlay_events.clear();
       // Now add this event as the first event in the next set
       overlay_events.push_back(tms_event);
@@ -172,7 +175,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
-
+    
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
@@ -219,8 +222,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       }
       
       event_counter += 1;
-      int spill_number = i;
-      tms_event_slice.SetSpillNumber(spill_number);
       
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
