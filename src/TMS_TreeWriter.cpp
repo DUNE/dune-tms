@@ -438,7 +438,8 @@ static void setPosition(float *branch, TLorentzVector position) {
     branch[0] = position.X();
     branch[1] = position.Y();
     branch[2] = position.Z();
-    branch[3] = position.T();
+    // We're saving floats, so remove giant offset or else we'll have trouble
+    branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
