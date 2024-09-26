@@ -19,6 +19,8 @@
 #include "TMS_EventViewer.h"
 // Reconstructor
 #include "TMS_Reco.h"
+// Time slicer
+#include "TMS_TimeSlicer.h"
 // TTree writer
 #include "TMS_TreeWriter.h"
 // TTree writer for det sim
