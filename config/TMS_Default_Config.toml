@@ -46,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = true #false
+    FirstCluster = false  #true
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -91,7 +91,7 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = true # Whether we run the Kalman filter or not
+    Run = false #true # Whether we run the Kalman filter or not
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
