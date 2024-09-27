@@ -33,8 +33,9 @@ namespace TMS_KinConst {
 namespace TMS_Const {
 
   // Number of planes, check against geometry
-  const int TMS_nThinPlanes = 40;
-  const int TMS_nThickPlanes = 60;
+  const int TMS_nThinPlanes = 50;
+  const int TMS_nThickPlanes = 40;
+  const int TMS_nDoublePlanes = 8;
 
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
   const double Dead_Region_Track_Length = 24.35;
@@ -71,17 +72,23 @@ namespace TMS_Const {
   const double TMS_End_Bars_Only[] = {3350, 240, TMS_Thick_End};
 
   // Gap for TMS region that is thin iron layer (mm)
-  const double TMS_Thin_gap = 55;
+  const double TMS_Thin_gap = 65;
   // Gap for TMS region that is thick iron layer (mm)
-  const double TMS_Thick_gap = 80;
+  const double TMS_Thick_gap = 90;
+  // Gap for TMS region that is double thick iron layer (mm)
+  const double TMS_Double_gap = 130;
 
   // z
   // TMS scintillator width (10 mm)
-  const double TMS_Scint_Width = 10;
-  //TMS steel width in thin region (15 mm);
+  const double TMS_Scint_Width = 17;
+  // TMS aluminium enclosure width (1mm)
+  const double TMS_Enclosure_Width = 1;
+  // TMS steel width in thin region (15 mm);
   const double TMS_Thin_Steel_Width = 15;
-  //TMS steel width in thick region (40 mm);
+  // TMS steel width in thick region (40 mm);
   const double TMS_Thick_Steel_Width = 40;
+  // TMS steel width in double thick region (80 mm);
+  const double TMS_Double_Steel_Width = 80;
 
   // Offsets to put the TMS in the middle
   const double TMS_Det_Offset[] = { 0., 0., 0. };
@@ -122,9 +129,9 @@ namespace TMS_Const {
 
   const double TMS_Small_Num = 1.E-5;
 
-  const int nModulesPerSubModule = 48;
-  const int nModules = 8;
-  const int nPlanes = 100;
+  const int nModulesPerSubModule = 32;
+  const int nModules = 12;
+  const int nPlanes = 102;
 
 }
 
