@@ -271,6 +271,7 @@ class TMS_TreeWriter {
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
     bool IsPrimary[__TMS_MAX_TRUE_PARTICLES__];
+    int ParticleTimeSlice[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLength[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthIgnoreY[__TMS_MAX_TRUE_PARTICLES__];

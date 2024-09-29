@@ -158,6 +158,35 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       std::cout<<percent<<"% of the energy"<<std::endl;
     }
     
+    // Make a measurement of each slice location
+    std::vector<std::pair<double, double>> slice_bounds;
+    // Want the indices to match up, so add pair for slice 0
+    slice_bounds.push_back(std::make_pair(0, SPILL_LENGTH));
+    int prev_slice = -1;
+    bool have_prev_slice = false;
+    double slice_start_time = -999;
+    double slice_end_time = -999;
+    for (int i = 0; i < NUMBER_OF_SLICES; i++) {
+      int current_slice = time_slices[i];
+      double current_slice_time = i / DT;
+      if (current_slice != prev_slice) {
+        // Write out the current slice and then start a new slice
+        if (have_prev_slice) {
+          // Last slice end time = window before this one, so subtract DT
+          slice_end_time = current_slice_time - DT;
+          slice_bounds.push_back(std::make_pair(slice_start_time, slice_end_time));
+          have_prev_slice = false;
+        }
+        
+        // Only start tracking the next slice if not equal to zero
+        if (current_slice != 0) {
+          prev_slice = current_slice;
+          slice_end_time = current_slice_time;
+          have_prev_slice = true;
+        }
+      }
+    }
+    
     // Finally assign hits based on slice
     std::vector<TMS_Hit> changed_hits;
     for (auto hit : hits) {
@@ -169,6 +198,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       changed_hits.push_back(hit);
     }
     event.SetHitsRaw(changed_hits);
+    // TODO add slice bounds to event and save them with tree writer. Then save info with particles as well
   }
   return nslices;
 }

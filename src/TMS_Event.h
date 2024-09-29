@@ -99,6 +99,9 @@ class TMS_Event {
     void ApplyReconstructionEffects();
     
     void SetLeptonInfoUsingVertexID(int vertexid);
+    
+    void AddTimeSliceInformation(std::vector<std::pair<double, double>> time_slice_bounds) 
+         { TimeSliceBounds.insert(TimeSliceBounds.end(), time_slice_bounds.begin(), time_slice_bounds.end()); };
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -163,6 +166,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ChannelPositions;
     std::vector<std::pair<float, float>> DeadChannelTimes;
     std::vector<std::pair<float, float>> ReadChannelTimes;
+    std::vector<std::pair<double, double>> TimeSliceBounds;
 
     std::default_random_engine generator;
     
