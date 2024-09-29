@@ -264,6 +264,11 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetVertexIds(i) * 100000 + hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
         }
       }
+      else {
+        // Add all non-tms hits to another vector
+        // We only need it for truth info so just save truth info
+        Other_Hits.push_back(TMS_TrueHit(edep_hit, vertex_id));
+      }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
 }
@@ -1080,3 +1085,25 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
       TLorentzVector(-9999999, -999999, -999999, -999999), vertexid);
   }
 }
+
+double TMS_Event::CalculateEnergyInLArOuterShell(double thickness) {
+  double out = 0;
+  for (const auto& hit : Other_Hits) {
+    TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+    if (TMS_Geom::GetInstance().IsInsideLAr(position, thickness) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
+      out += hit.GetE();
+    }
+  }
+  return out;
+}
+
+
+
+
+
+
+
+
+
+
+

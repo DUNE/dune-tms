@@ -102,12 +102,15 @@ class TMS_Event {
     
     void AddTimeSliceInformation(std::vector<std::pair<double, double>> time_slice_bounds) 
          { TimeSliceBounds.insert(TimeSliceBounds.end(), time_slice_bounds.begin(), time_slice_bounds.end()); };
+         
+     double CalculateEnergyInLArOuterShell(double thickness);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
 
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
+    std::vector<TMS_TrueHit> Other_Hits;
     
     void MergeCoincidentHits();
     void SimulateOpticalModel();
