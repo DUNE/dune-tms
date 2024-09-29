@@ -85,12 +85,12 @@ class TMS_Manager {
     double Get_FIDUCIAL_TMS_END_X() { return _FIDUCIAL_TMS_END_X; };
     double Get_FIDUCIAL_TMS_END_Y() { return _FIDUCIAL_TMS_END_Y; };
     double Get_FIDUCIAL_TMS_END_Z() { return _FIDUCIAL_TMS_END_Z; };
-    double Get_FIDUCIAL_LAR_START_X() { return _FIDUCIAL_LAR_START_X; };
-    double Get_FIDUCIAL_LAR_START_Y() { return _FIDUCIAL_LAR_START_Y; };
-    double Get_FIDUCIAL_LAR_START_Z() { return _FIDUCIAL_LAR_START_Z; };
-    double Get_FIDUCIAL_LAR_END_X() { return _FIDUCIAL_LAR_END_X; };
-    double Get_FIDUCIAL_LAR_END_Y() { return _FIDUCIAL_LAR_END_Y; };
-    double Get_FIDUCIAL_LAR_END_Z() { return _FIDUCIAL_LAR_END_Z; };
+    double Get_ACTIVE_LAR_START_X() { return _ACTIVE_LAR_START_X; };
+    double Get_ACTIVE_LAR_START_Y() { return _ACTIVE_LAR_START_Y; };
+    double Get_ACTIVE_LAR_START_Z() { return _ACTIVE_LAR_START_Z; };
+    double Get_ACTIVE_LAR_END_X() { return _ACTIVE_LAR_END_X; };
+    double Get_ACTIVE_LAR_END_Y() { return _ACTIVE_LAR_END_Y; };
+    double Get_ACTIVE_LAR_END_Z() { return _ACTIVE_LAR_END_Z; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
@@ -176,12 +176,12 @@ class TMS_Manager {
     double _FIDUCIAL_TMS_END_X;
     double _FIDUCIAL_TMS_END_Y;
     double _FIDUCIAL_TMS_END_Z;
-    double _FIDUCIAL_LAR_START_X;
-    double _FIDUCIAL_LAR_START_Y;
-    double _FIDUCIAL_LAR_START_Z;
-    double _FIDUCIAL_LAR_END_X;
-    double _FIDUCIAL_LAR_END_Y;
-    double _FIDUCIAL_LAR_END_Z;
+    double _ACTIVE_LAR_START_X;
+    double _ACTIVE_LAR_START_Y;
+    double _ACTIVE_LAR_START_Z;
+    double _ACTIVE_LAR_END_X;
+    double _ACTIVE_LAR_END_Y;
+    double _ACTIVE_LAR_END_Z;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;

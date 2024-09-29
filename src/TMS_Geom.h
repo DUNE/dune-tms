@@ -63,10 +63,10 @@ class TMS_Geom {
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Z()); };
     inline TVector3 GetEndOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_X(), 
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Z()); };
-    inline TVector3 GetStartOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_X(), 
-        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Z()); };
-    inline TVector3 GetEndOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_X(), 
-        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Z()); };
+    inline TVector3 GetStartOfLArActive() const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X(), 
+        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y(), TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z()); };
+    inline TVector3 GetEndOfLArActive() const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X(), 
+        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y(), TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z()); };
     
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
@@ -77,7 +77,7 @@ class TMS_Geom {
       if (position.Z() > end.Z()) return false;
       return true;
     };
-    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
+    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLArActive(), GetEndOfLArActive()); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
