@@ -1086,12 +1086,14 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
   }
 }
 
-double TMS_Event::CalculateEnergyInLArOuterShell(double thickness) {
+double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid) {
   double out = 0;
   for (const auto& hit : Other_Hits) {
-    TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
-    if (TMS_Geom::GetInstance().IsInsideLAr(position, thickness) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
-      out += hit.GetE();
+    if (vertexid >= 0 && hit.GetVertexId() == vertexid) {
+      TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+      if (TMS_Geom::GetInstance().IsInsideLAr(position, thickness) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
+        out += hit.GetE();
+      }
     }
   }
   return out;
