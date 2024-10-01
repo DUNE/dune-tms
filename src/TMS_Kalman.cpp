@@ -298,7 +298,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   H_T.Zero();
   for (int l=0; l<2; l++) { H(l,l) = 1.0; H_T(l,l) = 1.0; }
 
-
   double sigma = MSC.Calc_MS_Sigma();
 
   if (TotalPathLength >= 1.0) { // If path is 0 we're in the first Node, set initial cov
