@@ -67,20 +67,21 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       Node.LayerBarLength   = hit.GetBar().GetBarLength();
 
       KalmanNodes.emplace_back(std::move(Node));
-    } else { // TODO: Handle layers with more than one hit, waiting on Asa to confirm potential structures
+//    } else { // TODO: Handle layers with more than one hit, waiting on Asa to confirm potential structures
 //      //std::cout << "more than one hit per layer? Kalman unhappy " << i << "\t " << j-i << std::endl;
 //      for (int k = i; k<j; k++)
 //      {
-      }
+//      }
     }
   }
 
   int N_LAYER_BACK = 10;
   // Can't look back further than the first element
-  if (Candidates.size() < (unsigned)N_LAYER_BACK) N_LAYER_BACK = Candidates.size();
+  if (Candidates.size() < (unsigned)N_LAYER_BACK)
+    N_LAYER_BACK = Candidates.size();
 
-  AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX())/(Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
-  AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY())/(Candidates.front().GetZ() - Candidates.back().GetZ());
+  AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX()) / (Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
+  AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY()) / (Candidates.front().GetZ() - Candidates.back().GetZ());
 
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
