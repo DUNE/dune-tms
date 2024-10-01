@@ -121,14 +121,10 @@ void TMS_Kalman::RunKalman() {
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
-  //std::cout << "filter start pos : " << KalmanNodes.back().CurrentState.x << ", " << KalmanNodes.back().CurrentState.y << ", "  << KalmanNodes.back().CurrentState.z << std::endl;
   SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
-  //std::cout << "filter end pos : " << KalmanNodes.at(1).CurrentState.x << ", " << KalmanNodes.at(1).CurrentState.y << ", "  << KalmanNodes.at(1).CurrentState.z << std::endl;
   SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
 
-  //std::cout << "filter start dir: " << KalmanNodes.back().CurrentState.dxdz << ", " << KalmanNodes.back().CurrentState.dydz << std::endl;
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
-  //std::cout << "filter end dir: " << KalmanNodes.at(1).CurrentState.dxdz << ", " << KalmanNodes.at(1).CurrentState.dydz << std::endl;
   SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
 
   if (std::isnan(momentum) || std::isinf(momentum)){
@@ -169,13 +165,13 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
 
   if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) { // point outside x region
-    std::cerr << "Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    std::cerr << "[TMS_Kalman.cpp] Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
     Node.PrintTrueReco();
     PreviousState.Print();
     CurrentState.Print();
   }
   if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) { // point outside y region
-    std::cerr << "Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    std::cerr << "[TMS_Kalman.cpp] Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
     Node.PrintTrueReco();
     PreviousState.Print();
     CurrentState.Print();
