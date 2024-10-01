@@ -82,7 +82,7 @@ def draw_histograms(input_file):
     
     # Draw the stacks
     # First define some unique colors and line styles
-    colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kBlack]
+    colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kBlack, ROOT.kCyan]
     line_styles = [1, 2, 7, 9]
     # Loop over each stack
     for name, hist_and_name in stack_plots.items():
@@ -123,7 +123,7 @@ def draw_histograms(input_file):
         # Draw first to make the underlying histogram
         hist_stack.Draw("nostack")
         if first_hist != None:
-            hist_stack.SetTitle(first_hist.GetTitle().replace(f" for {first_hist_name}", ""))
+            hist_stack.SetTitle(first_hist.GetTitle().replace(f" for {first_hist_name}", "").split(":")[0])
             hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
             hist_stack.GetYaxis().SetTitle(first_hist.GetYaxis().GetTitle())
         
