@@ -204,26 +204,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[3] = PreviousState.dydz;
   PreviousVec[4] = PreviousState.qp;
 
-  if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) { // point outside x region
-    std::cerr << "[TMS_Kalman.cpp] Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
-  if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) { // point outside y region
-    std::cerr << "[TMS_Kalman.cpp] Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
-    
-
   TVectorD UpdateVec = Transfer*(PreviousVec);
 
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
@@ -400,16 +380,22 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
     std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-    Node.PrintTrueReco();
-    PreviousState.Print();
-    CurrentState.Print();
+    if (Talk)
+    {
+      Node.PrintTrueReco();
+      PreviousState.Print();
+      CurrentState.Print();
+    }
   }
   if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
   {
     std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-    Node.PrintTrueReco();
-    PreviousState.Print();
-    CurrentState.Print();
+    if (Talk)
+    {
+      Node.PrintTrueReco();
+      PreviousState.Print();
+      CurrentState.Print();
+    }
   }
 
   Node.SetRecoXY(CurrentState);
