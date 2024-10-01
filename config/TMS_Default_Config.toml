@@ -55,7 +55,7 @@
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
-    Extrapolation = false
+    Extrapolation = true
     # Maximal distance from start/end hit to first added hit by extrapolation
     ExtrapolateDist = 4
     # Maximal distance from first added hit (by extrapolation) to last added hit
