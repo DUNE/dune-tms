@@ -46,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = true
+    FirstCluster = false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -55,7 +55,7 @@
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
-    Extrapolation = true
+    Extrapolation = false
     # Maximal distance from start/end hit to first added hit by extrapolation
     ExtrapolateDist = 4
     # Maximal distance from first added hit (by extrapolation) to last added hit
