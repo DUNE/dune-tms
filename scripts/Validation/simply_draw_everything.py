@@ -1,9 +1,28 @@
 import os
+import collections
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
 
 import sys
+
+def get_subdir_and_name(hist_name):
+    subdir = ""
+    name = hist_name.strip()
+    split = name.split("__")
+    if len(split) > 2:
+        # Subdir
+        subdir = split[0].replace("_", "/")
+        name = split[1]
+    else:
+        # Simple subdir
+        split = name.split("_")
+        subdir = split[0]
+        # And the rest is the name
+        name = "_".join(split[1:])
+    print(hist_name, subdir, name)
+    return subdir, name
+    
 
 def draw_histograms(input_file):
     # Open the input ROOT file
@@ -17,18 +36,24 @@ def draw_histograms(input_file):
     
     recoeff_plots_numerators = dict()
     recoeff_plots_denominators = dict()
+    
+    stack_plots = collections.defaultdict(dict)
 
     # Loop over all keys in the ROOT file
     for key in root_file.GetListOfKeys():
         obj = key.ReadObj()
         output_subdir = output_dir
         name = obj.GetName()
-        split = name.split("_")
-        if len(split) > 2:
-            output_subdir = os.path.join(output_dir, split[0])
+            
+        subdir, image_name = get_subdir_and_name(name)
+        output_subdir = os.path.join(output_dir, subdir)
+            
+        # Can add reco eff
         reco_eff = False
         if "numerator" in name or "denominator" in name: reco_eff = True
-        if reco_eff:
+        stack = False
+        if "stack" in name: stack = True
+        if reco_eff or stack:
             output_subdir = os.path.join(output_subdir, "additional_plots")
         os.makedirs(output_subdir, exist_ok=True)  
         if isinstance(obj, ROOT.TH2):
@@ -37,19 +62,63 @@ def draw_histograms(input_file):
             obj.GetZaxis().SetTitleOffset(0.5)
             obj.Draw("colz")
             print(f"{obj.GetName()} integral: {obj.Integral()}")
-            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
+            canvas.Print(os.path.join(output_subdir, image_name + ".png"))
         elif isinstance(obj, ROOT.TH1):
             # For 1D histograms, draw and save as png
             top = obj.GetMaximum()*1.2
             obj.GetYaxis().SetRangeUser(0, top)
             obj.Draw()
             #print(f"{obj.GetName()} integral: {obj.Integral()}")
-            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
+            canvas.Print(os.path.join(output_subdir, image_name + ".png"))
         if reco_eff:
             key = name.replace("_numerator", "").replace("_denominator", "")
             if "numerator" in name: recoeff_plots_numerators[key] = obj 
             if "denominator" in name: recoeff_plots_denominators[key] = obj 
-            
+        if stack:
+            split_stack = name.split("_stack_")
+            stack_key = split_stack[0]
+            stack_plots[stack_key][split_stack[1]] = obj
+            stack_plots[stack_key + "_log"][split_stack[1]] = obj
+    
+    colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kBlack]
+    line_styles = [1, 2, 7, 9]
+    for name, hist_and_name in stack_plots.items():
+        print(f"Doing stack plot {name}")
+        index = 0
+        first_hist = None
+        ymax = 0
+        hist_stack = ROOT.THStack()
+        
+        log = False
+        if "log" in name: log = True
+        if log: canvas.SetLogy(True)
+        else: canvas.SetLogy(False)
+        
+        headroom = 1.1
+        if log: headroom = 6
+        for item_name, hist in hist_and_name.items():
+            print(f"Doing stack plot subhist {item_name}. Integral: {hist.Integral()}")
+            hist.SetLineColor(colors[index % len(colors)])
+            hist.SetLineStyle(line_styles[index % len(line_styles)])
+            #hist.DrawCopy("" if index == 0 else "same")
+            if index == 0: first_hist = hist
+            ymax = max(ymax, hist.GetMaximum())
+            hist_stack.Add(hist)
+            if log: hist.GetYaxis().SetRangeUser(10, ymax*headroom)
+            index += 1
+        #if first_hist != None:
+        #    if not log: first_hist.GetYaxis().SetRangeUser(0, ymax*headroom)
+        print(f"ymax: {ymax}")
+        hist_stack.Draw("nostack")
+        subdir, image_name = get_subdir_and_name(name)
+        output_subdir = os.path.join(output_dir, subdir)
+        
+        outfilename = os.path.join(output_subdir, image_name + ".png")
+        print(f"Saving in {outfilename}")
+        canvas.Print(outfilename)
+        
+    # Turn off log y if it's already on
+    canvas.SetLogy(False)
     all_names = set(recoeff_plots_numerators.keys()) & set(recoeff_plots_denominators.keys())
     for name in all_names:
         error = False
@@ -73,13 +142,11 @@ def draw_histograms(input_file):
         numerator.Draw()
         
         
-        output_subdir = output_dir
         name = numerator.GetName()
         name = name.replace("_numerator", "")
-        split = name.split("_")
-        if len(split) > 1:
-            output_subdir = os.path.join(output_dir, split[0])
-        canvas.Print(os.path.join(output_subdir, name + ".png"))
+        subdir, image_name = get_subdir_and_name(name)
+        output_subdir = os.path.join(output_dir, subdir)
+        canvas.Print(os.path.join(output_subdir, image_name + ".png"))
 
     # Close the input ROOT file
     root_file.Close()
