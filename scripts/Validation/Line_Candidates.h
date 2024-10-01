@@ -492,10 +492,10 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("ClusterHitSliceU", ClusterHitSliceU, &b_ClusterHitSliceU);
    fChain->SetBranchAddress("ClusterHitSliceV", ClusterHitSliceV, &b_ClusterHitSliceV);
    fChain->SetBranchAddress("ClusterHitSliceX", ClusterHitSliceX, &b_ClusterHitSliceX); */
-   //fChain->SetBranchAddress("nHits", &nHits, &b_nHits);
-   //fChain->SetBranchAddress("RecoHitPos", RecoHitPos, &b_RecoHitPos);
-   //fChain->SetBranchAddress("RecoHitEnergy", RecoHitEnergy, &b_RecoHitEnergy);
-   //fChain->SetBranchAddress("RecoHitSlice", RecoHitSlice, &b_RecoHitSlice); 
+   fChain->SetBranchAddress("nHits", &nHits, &b_nHits);
+   fChain->SetBranchAddress("RecoHitPos", RecoHitPos, &b_RecoHitPos);
+   fChain->SetBranchAddress("RecoHitEnergy", RecoHitEnergy, &b_RecoHitEnergy);
+   fChain->SetBranchAddress("RecoHitSlice", RecoHitSlice, &b_RecoHitSlice); 
    Notify();
 }
 

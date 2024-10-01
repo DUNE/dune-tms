@@ -28,14 +28,20 @@ public :
    Int_t           nTracks;
    Int_t           nHits[20];   //[nTracks]
    Float_t         TrackHitPos[20][200][3];   //[nTracks]
+   Int_t           nKalmanNodes[20];   //[nTracks]
    Float_t         KalmanPos[20][200][3];   //[nTracks]
    Float_t         KalmanTruePos[20][200][3];   //[nTracks]
-   Float_t         StartPos[20][3];   //[nTracks]
+   Float_t         StartDirection[10][3];   //[nTracks]
    Float_t         Direction[20][3];   //[nTracks]
+   Float_t         EndDirection[10][3];   //[nTracks]
+   Float_t         StartPos[20][3];   //[nTracks]
    Float_t         EndPos[20][3];   //[nTracks]
    Float_t         EnergyRange[20];   //[nTracks]
    Float_t         EnergyDeposit[20];   //[nTracks]
+   Float_t         Momentum[7];   //[nTracks]
    Float_t         Length[20];   //[nTracks]
+   Int_t           Charge[20];   //[nTracks]
+   Float_t         TrackHitEnergies[20][200];
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -44,14 +50,20 @@ public :
    TBranch        *b_nTracks;   //!
    TBranch        *b_nHits;   //!
    TBranch        *b_TrackHitPos;   //!
+   TBranch        *b_nKalmanNodes;   //!
    TBranch        *b_KalmanPos;   //!
    TBranch        *b_KalmanTruePos;   //!
-   TBranch        *b_StartPos;   //!
+   TBranch        *b_StartDirection;   //!
    TBranch        *b_Direction;   //!
+   TBranch        *b_EndDirection;   //!
+   TBranch        *b_StartPos;   //!
    TBranch        *b_EndPos;   //!
    TBranch        *b_EnergyRange;   //!
    TBranch        *b_EnergyDeposit;   //!
+   TBranch        *b_Momentum;   //!
    TBranch        *b_Length;   //!
+   TBranch        *b_Charge;   //!
+   TBranch        *b_RecoTrackHitEnergies;   //!
 
    Reco_Tree(TTree *tree=0);
    virtual ~Reco_Tree();
@@ -132,16 +144,21 @@ void Reco_Tree::Init(TTree *tree)
    fChain->SetBranchAddress("nTracks", &nTracks, &b_nTracks);
    fChain->SetBranchAddress("nHits", nHits, &b_nHits);
    fChain->SetBranchAddress("TrackHitPos", TrackHitPos, &b_TrackHitPos);
+   fChain->SetBranchAddress("nKalmanNodes", nKalmanNodes, &b_nKalmanNodes);
    fChain->SetBranchAddress("KalmanPos", KalmanPos, &b_KalmanPos);
    fChain->SetBranchAddress("KalmanTruePos", KalmanTruePos, &b_KalmanTruePos);
-   fChain->SetBranchAddress("StartPos", StartPos, &b_StartPos);
    // Used to be Direction, now is StartDirection, check for both options depending on the file
    if (HasBranch("Direction")) fChain->SetBranchAddress("Direction", Direction, &b_Direction);
    else fChain->SetBranchAddress("StartDirection", Direction, &b_Direction);
+   fChain->SetBranchAddress("EndDirection", EndDirection, &b_EndDirection);
+   fChain->SetBranchAddress("StartPos", StartPos, &b_StartPos);
    fChain->SetBranchAddress("EndPos", EndPos, &b_EndPos);
    fChain->SetBranchAddress("EnergyRange", EnergyRange, &b_EnergyRange);
    fChain->SetBranchAddress("EnergyDeposit", EnergyDeposit, &b_EnergyDeposit);
+   fChain->SetBranchAddress("Momentum", Momentum, &b_Momentum);
    fChain->SetBranchAddress("Length", Length, &b_Length);
+   fChain->SetBranchAddress("Charge", Charge, &b_Charge);
+   fChain->SetBranchAddress("TrackHitEnergies", TrackHitEnergies, &b_RecoTrackHitEnergies);
    Notify();
 }
 
