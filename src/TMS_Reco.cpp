@@ -509,118 +509,17 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 #endif
   
   // Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
-  int linenoU = 0;
-  for (auto Lines: HoughCandidatesU) {
-    std::pair<bool, TF1*> houghline = HoughLinesU[linenoU];
-    double slope, intercept = 0;
-    GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-      //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
-      //std::cout << "New slope: " << slope << std::endl;
-      //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
-      //std::cout << "New intercept: " << intercept << std::endl;
+  UpDownStruct UpDownStreamLineU = RefitUpDownStream(HoughCandidatesU, HoughLinesU);
+  HoughLinesU_Upstream = UpDownStreamLineU.UpstreamLine;
+  HoughLinesU_Downstream = UpDownStreamLineU.DownstreamLine;
 
-      HoughLinesU[linenoU].second->SetParameter(0, intercept);
-      HoughLinesU[linenoU].second->SetParameter(1, slope);
-    }
+  UpDownStruct UpDownStreamLineV = RefitUpDownStream(HoughCandidatesV, HoughLinesV);
+  HoughLinesV_Upstream = UpDownStreamLineV.UpstreamLine;
+  HoughLinesV_Downstream = UpDownStreamLineV.DownstreamLine;
 
-    // The number of hits in this track, take 20% and call upstream and dowstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
-    // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
-    std::vector<TMS_Hit> upstream;
-    std::vector<TMS_Hit> downstream;
-    for (int i = 0; i < nrescanhits; ++i) {
-      upstream.push_back(Lines[Lines.size()-1-i]);
-      downstream.push_back(Lines[i]);
-    }
-
-    double upstreamslope, upstreamintercept = 0;
-    double downstreamslope, downstreamintercept = 0;
-    GetHoughLine(upstream, upstreamslope, upstreamintercept);
-    GetHoughLine(downstream, downstreamslope, downstreamintercept);
-
-    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
-    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
-
-    HoughLinesU_Upstream.push_back(upstreamline);
-    HoughLinesU_Downstream.push_back(downstreamline);
-
-    linenoU++;
-  }
-
-  int linenoV = 0;
-  for (auto Lines: HoughCandidatesV) {
-    std::pair<bool, TF1*> houghline = HoughLinesV[linenoV];
-    double slope, intercept = 0;
-    GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-      HoughLinesV[linenoV].second->SetParameter(0, intercept);
-      HoughLinesV[linenoV].second->SetParameter(1, slope);
-    }
-    
-    // The number of hits in this track, trake 20% and call upstream and downstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
-    // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
-    std::vector<TMS_Hit> upstream;
-    std::vector<TMS_Hit> downstream;
-    for (int i = 0; i < nrescanhits; ++i) {
-      upstream.push_back(Lines[Lines.size()-1-i]);
-      downstream.push_back(Lines[i]);
-   }
-
-   double upstreamslope, upstreamintercept = 0;
-   double downstreamslope, downstreamintercept = 0;
-   GetHoughLine(upstream, upstreamslope, upstreamintercept);
-   GetHoughLine(downstream, downstreamslope, downstreamintercept);
-
-   std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
-   std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
-
-   HoughLinesV_Upstream.push_back(upstreamline);
-   HoughLinesV_Downstream.push_back(downstreamline);
-
-   linenoV++;
-  }
-
-  int linenoX = 0;
-  for (auto Lines: HoughCandidatesX) {
-    std::pair<bool, TF1*> houghline = HoughLinesX[linenoX];
-    double slope, intercept = 0;
-    GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
-      HoughLinesX[linenoX].second->SetParameter(0, intercept);
-      HoughLinesX[linenoX].second->SetParameter(1, slope);
-    }
-    
-    // The number of hits in this track, trake 20% and call upstream and downstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
-    // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
-    std::vector<TMS_Hit> upstream;
-    std::vector<TMS_Hit> downstream;
-    for (int i = 0; i < nrescanhits; ++i) {
-      upstream.push_back(Lines[Lines.size()-1-i]);
-      downstream.push_back(Lines[i]);
-   }
-
-   double upstreamslope, upstreamintercept = 0;
-   double downstreamslope, downstreamintercept = 0;
-   GetHoughLine(upstream, upstreamslope, upstreamintercept);
-   GetHoughLine(downstream, downstreamslope, downstreamintercept);
-
-   std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
-   std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
-
-   HoughLinesX_Upstream.push_back(upstreamline);
-   HoughLinesX_Downstream.push_back(downstreamline);
-
-   linenoX++;
-  }
+  UpDownStruct UpDownStreamLineX = RefitUpDownStream(HoughCandidatesX, HoughLinesX);
+  HoughLinesX_Upstream = UpDownStreamLineX.UpstreamLine;
+  HoughLinesX_Downstream = UpDownStreamLineX.DownstreamLine;
 
   // Run a pseudo track finding for X hits, if they exist but not enough for a track to be found
   if (!XHitGroup.empty() && HoughCandidatesX.empty()) {
@@ -701,6 +600,53 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   }
 
   return;
+}
+
+TMS_TrackFinder::UpDownStruct TMS_TrackFinder::RefitUpDownStream(const std::vector<std::vector<TMS_Hit> > &HoughCandidates, const std::vector<std::pair<bool, TF1*> > &HoughLines) {
+// Now we've got our tracks, refit the upstream and downstream separately with the Hough transform
+  int lineno = 0;
+  UpDownStruct UpDown;
+  for (auto Lines: HoughCandidates) {
+    std::pair<bool, TF1*> houghline = HoughLines[lineno];
+    double slope, intercept = 0;
+    GetHoughLine(Lines, slope, intercept);
+    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
+        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+      //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
+      //std::cout << "New slope: " << slope << std::endl;
+      //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
+      //std::cout << "New intercept: " << intercept << std::endl;
+
+      HoughLines[lineno].second->SetParameter(0, intercept);
+      HoughLines[lineno].second->SetParameter(1, slope);
+    }
+
+    // The number of hits in this track, take 20% and call upstream and dowstream segments
+    int nrescanhits = 0.3*Lines.size()+1;
+    // If there are only a few hits, use all of them
+    if (nrescanhits < 5) nrescanhits = Lines.size();
+    std::vector<TMS_Hit> upstream;
+    std::vector<TMS_Hit> downstream;
+    for (int i = 0; i < nrescanhits; ++i) {
+      upstream.push_back(Lines[Lines.size()-1-i]);
+      downstream.push_back(Lines[i]);
+    }
+
+    double upstreamslope, upstreamintercept = 0;
+    double downstreamslope, downstreamintercept = 0;
+    GetHoughLine(upstream, upstreamslope, upstreamintercept);
+    GetHoughLine(downstream, downstreamslope, downstreamintercept);
+
+    std::pair<double, double> upstreamline = std::pair<double,double>(upstreamintercept, upstreamslope);
+    std::pair<double, double> downstreamline = std::pair<double,double>(downstreamintercept, downstreamslope);
+
+    UpDown.UpstreamLine.push_back(upstreamline);//HoughLinesU_Upstream.push_back(upstreamline);
+    UpDown.DownstreamLine.push_back(downstreamline);//HoughLinesU_Downstream.push_back(downstreamline);
+
+    lineno++;
+  }
+
+  return UpDown;
 }
 
 std::vector<std::vector<TMS_Hit>> TMS_TrackFinder::BackExtension(const std::vector<std::vector<TMS_Hit> > &HoughCandidates, const std::vector<std::vector<TMS_Hit> > &DBScanCandidates) { 

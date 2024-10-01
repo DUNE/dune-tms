@@ -265,6 +265,8 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
     std::vector<std::vector<TMS_Hit> > BackExtension(const std::vector<std::vector<TMS_Hit> > &TrackHits, const std::vector<std::vector<TMS_Hit> > &Hits);
+    struct UpDownStruct {std::vector<std::pair<double, double> > UpstreamLine; std::vector<std::pair<double, double> > DownstreamLine;}; 
+    UpDownStruct RefitUpDownStream(const std::vector<std::vector<TMS_Hit> > &TrackHits, const std::vector<std::pair<bool, TF1*> > &HoughLines);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
@@ -400,6 +402,7 @@ class TMS_TrackFinder {
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit); 
+
 };
 
 #endif
