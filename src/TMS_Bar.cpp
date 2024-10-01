@@ -64,6 +64,9 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       zw = 2*box->GetDZ();
       TMS_Geom::GetInstance().Scale(xw, yw, zw);
 
+      BarWidth  = (xw>yw) ? yw : xw;
+      BarLength = (xw>yw) ? xw : yw;
+
       Double_t position[3];
       const Double_t local[3] = {0, 0, 0};
       geom->GetCurrentMatrix()->LocalToMaster(local, position);
@@ -76,11 +79,11 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       // Do a sanity check (CHEATING!)
       // Know the bars are 1cm in z and 3.542cm in x
       if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
-        std::cerr << "width of " << NodeName << " not as expected!" << std::endl;
+        std::cerr << "width of " << NodeName << " not as expected! (1cm deep, 1 3.542cm wide)" << std::endl;
         std::cerr << "xwidth: " << xw << std::endl;
         std::cerr << "ywidth: " << yw << std::endl;
         std::cerr << "zwidth: " << zw << std::endl;
-        throw;
+        // throw; // Remove this for now, hard assumes bar geometry
       }
 
     }

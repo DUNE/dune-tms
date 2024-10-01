@@ -1,4 +1,5 @@
 #include "TMS_Kalman.h"
+#include "TMS_Geom.h"
 
 TMS_Kalman::TMS_Kalman() : 
   Bethe(Material::kPolyStyrene),
@@ -35,9 +36,22 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     double x = hit.GetRecoX();
     double y = hit.GetRecoY();
     double z = hit.GetZ();
+
     TVector3 vecc = TVector3(x,y,z);
+
     if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
-      std::cout << "not in TMS?? hit " << i << "(backwards) : " << x << ", " << y << ", " << z << std::endl;
+    {
+      std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
+      std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
+      //throw; // yeet it
+    }
+
+    int j;
+    for (j=i; j<nCand; j++)
+      if (abs(Candidates[j].GetZ() - z) > 1E-3)
+      {
+        break;
+      }
 
     double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
     double DeltaZ = future_z-z;
@@ -48,11 +62,16 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
       TMS_KalmanNode Node(x, y, z, DeltaZ);
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
-      Node.LayerOrientation = hit.GetBar().GetBarType(); // Make sure we set the bar orientation // TODO: Add to constructor?
+      Node.LayerOrientation = hit.GetBar().GetBarType();
+      Node.LayerBarWidth    = hit.GetBar().GetBarWidth();
+      Node.LayerBarLength   = hit.GetBar().GetBarLength();
 
       KalmanNodes.emplace_back(std::move(Node));
-    } else {
-      if (Talk) std::cerr << "[TMS_Kalman.cpp] Weirdness -- Dropping Delta_Z = " << DeltaZ << ", z = " << z << ", multiple hits in one plane?" << std::endl;
+    } else { // TODO: Handle layers with more than one hit, waiting on Asa to confirm potential structures
+//      //std::cout << "more than one hit per layer? Kalman unhappy " << i << "\t " << j-i << std::endl;
+//      for (int k = i; k<j; k++)
+//      {
+      }
     }
   }
 
@@ -74,6 +93,10 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
     if (Talk) std::cout << "momentum estimate from length: " << momest << std::endl;
     KalmanNodes.front().PreviousState.qp = 1./momest;
     KalmanNodes.front().CurrentState.qp = 1./momest;
+    KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
+    KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
+    KalmanNodes.back().PreviousState.dxdz = 0.0;//AverageXSlope;
+    KalmanNodes.back().PreviousState.dydz = 0.0;//AverageYSlope;
   } else { // TODO check if 0 is sane
     KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
     KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
@@ -152,9 +175,19 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Initialise to something sane(-ish)
   if (PreviousState.dxdz ==  -999.9)
+  {
     PreviousState.dxdz = TMS_Kalman::AverageXSlope;
+  }
   if (PreviousState.dydz ==  -999.9)
-    PreviousState.dydz = TMS_Kalman::AverageYSlope;
+  {
+    if ( abs(TMS_Kalman::AverageYSlope) > 0.5 )
+    {
+      std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
+      PreviousState.dydz = 0.0;
+    } else {
+      PreviousState.dydz = TMS_Kalman::AverageYSlope;
+    }
+  }
 
   TVectorD PreviousVec(5);
   PreviousVec[0] = PreviousState.x;
@@ -163,18 +196,23 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[3] = PreviousState.dydz;
   PreviousVec[4] = PreviousState.qp;
 
-
   if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) { // point outside x region
     std::cerr << "[TMS_Kalman.cpp] Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-    Node.PrintTrueReco();
-    PreviousState.Print();
-    CurrentState.Print();
+    if (Talk)
+    {
+      Node.PrintTrueReco();
+      PreviousState.Print();
+      CurrentState.Print();
+    }
   }
   if ( (PreviousState.y < TMS_Const::TMS_Start[1]) || (PreviousState.y > TMS_Const::TMS_End[1]) ) { // point outside y region
     std::cerr << "[TMS_Kalman.cpp] Predicted y value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-    Node.PrintTrueReco();
-    PreviousState.Print();
-    CurrentState.Print();
+    if (Talk)
+    {
+      Node.PrintTrueReco();
+      PreviousState.Print();
+      CurrentState.Print();
+    }
   }
     
 
@@ -272,7 +310,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double p_up;
   if (p_2_up > 0) p_up = sqrt(p_2_up);
   else {
-    std::cerr << "negative momentum squared, setting momentum to 1 MeV" << std::endl;
+    std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
     //p_up = 1;
     p_up = sqrt(en*en);
   }
@@ -353,14 +391,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //CurrentState.Print();
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
-    std::cerr << "lol x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
     Node.PrintTrueReco();
     PreviousState.Print();
     CurrentState.Print();
   }
   if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
   {
-    std::cerr << "lol y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
     Node.PrintTrueReco();
     PreviousState.Print();
     CurrentState.Print();

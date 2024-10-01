@@ -102,6 +102,8 @@ class TMS_KalmanNode {
   double TrueY;
 
   TMS_Bar::BarType LayerOrientation;
+  double LayerBarWidth;
+  double LayerBarLength;
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState CurrentState;
@@ -142,8 +144,8 @@ class TMS_KalmanNode {
   void FillNoiseMatrix()
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
-    double A = 10.0; //10.0 mm bar width based uncert
-    double B = 4000.0; //4000.0 mm bar length based uncert
+    double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
+    double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
 
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {
