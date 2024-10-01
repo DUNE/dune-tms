@@ -175,13 +175,20 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &TransferT = Node.TransferMatrixT;
 
   // Initialise to something sane(-ish)
-  if (PreviousState.dxdz ==  -999.9)
+  if (PreviousState.dxdz ==  -999.9) // Only on initialisation?
   {
-    PreviousState.dxdz = TMS_Kalman::AverageXSlope;
+    //PreviousState.dxdz = TMS_Kalman::AverageXSlope;
+    if ( abs(TMS_Kalman::AverageXSlope) > 2.0 )
+    {
+      std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
+      PreviousState.dydz = 0.0;
+    } else {
+      PreviousState.dydz = TMS_Kalman::AverageXSlope;
+    }
   }
-  if (PreviousState.dydz ==  -999.9)
+  if (PreviousState.dydz ==  -999.9) // Only on initialisation?
   {
-    if ( abs(TMS_Kalman::AverageYSlope) > 0.5 )
+    if ( abs(TMS_Kalman::AverageYSlope) > 1.5 )
     {
       std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dydz = 0.0;
