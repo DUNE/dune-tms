@@ -34,9 +34,9 @@ def draw_histograms(input_file):
     
     canvas = ROOT.TCanvas("canvas", "canvas", 800, 600)
     
+    # Save special plots here
     recoeff_plots_numerators = dict()
     recoeff_plots_denominators = dict()
-    
     stack_plots = collections.defaultdict(dict)
 
     # Loop over all keys in the ROOT file
@@ -80,14 +80,21 @@ def draw_histograms(input_file):
             stack_plots[stack_key][split_stack[1]] = obj
             stack_plots[stack_key + "_log"][split_stack[1]] = obj
     
+    # Draw the stacks
+    # First define some unique colors and line styles
     colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kBlack]
     line_styles = [1, 2, 7, 9]
+    # Loop over each stack
     for name, hist_and_name in stack_plots.items():
-        print(f"Doing stack plot {name}")
         index = 0
         first_hist = None
+        first_hist_name = None
         ymax = 0
         hist_stack = ROOT.THStack()
+        leg = ROOT.TLegend(0.2,0.7,0.8,0.9)
+        leg.SetFillStyle(0)
+        leg.SetBorderSize(0)
+        leg.SetNColumns(4)
         
         log = False
         if "log" in name: log = True
@@ -95,32 +102,53 @@ def draw_histograms(input_file):
         else: canvas.SetLogy(False)
         
         headroom = 1.1
-        if log: headroom = 6
-        for item_name, hist in hist_and_name.items():
-            print(f"Doing stack plot subhist {item_name}. Integral: {hist.Integral()}")
+        if log: headroom = 3
+        
+        # We have this preferred order if possible. If not, set the key to the end and append it to the list automatically
+        preferred_order = "Muon Electron Proton Pion Kaon Neutron Other Unknown".split()
+        l = list(hist_and_name.items())
+        l.sort(key=lambda x: preferred_order.index(x[0]) if x[0] in preferred_order else len(preferred_order))
+        for item_name, hist in l:
             hist.SetLineColor(colors[index % len(colors)])
             hist.SetLineStyle(line_styles[index % len(line_styles)])
-            #hist.DrawCopy("" if index == 0 else "same")
-            if index == 0: first_hist = hist
+            if index == 0: 
+                first_hist = hist
+                first_hist_name = item_name
             ymax = max(ymax, hist.GetMaximum())
             hist_stack.Add(hist)
-            if log: hist.GetYaxis().SetRangeUser(10, ymax*headroom)
+            leg.AddEntry(hist, item_name, "lep")
             index += 1
-        #if first_hist != None:
-        #    if not log: first_hist.GetYaxis().SetRangeUser(0, ymax*headroom)
-        print(f"ymax: {ymax}")
+            
+        # Use the first hist to set the title and stuff
+        # Draw first to make the underlying histogram
         hist_stack.Draw("nostack")
+        if first_hist != None:
+            hist_stack.SetTitle(first_hist.GetTitle().replace(f" for {first_hist_name}", ""))
+            hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
+            hist_stack.GetYaxis().SetTitle(first_hist.GetYaxis().GetTitle())
+        
+        # Canvas gets mad if min is set to zero because log(0) is issue
+        ymin = 0
+        if log: ymin = 10
+        for hist in hist_and_name.values():
+            if log: hist.GetYaxis().SetRangeUser(ymin, ymax*headroom)
+                
+        # Now finally draw and save
+        hist_stack.Draw("nostack")
+        leg.Draw()
         subdir, image_name = get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
-        
         outfilename = os.path.join(output_subdir, image_name + ".png")
         print(f"Saving in {outfilename}")
         canvas.Print(outfilename)
         
     # Turn off log y if it's already on
     canvas.SetLogy(False)
+    
+    # Draw reco eff
     all_names = set(recoeff_plots_numerators.keys()) & set(recoeff_plots_denominators.keys())
     for name in all_names:
+        # First confirm we have both numerator and denominator
         error = False
         if name not in recoeff_plots_numerators:
             print(f"Didn't find {name} in {recoeff_plots_numerators}")
@@ -128,20 +156,25 @@ def draw_histograms(input_file):
         if name not in recoeff_plots_denominators:
             print(f"Didn't find {name} in {recoeff_plots_denominators}")
             error = True
+        # Skip gracefully it not
         if error:
             print(f"Had one or more errors, skipping {name}")
             continue
+            
+        # Get the numerator and denominator, and then divide
         numerator = recoeff_plots_numerators[name]
         denominator = recoeff_plots_denominators[name]
         newtitle = numerator.GetTitle()
         newtitle = newtitle.replace("Numerator", "").strip()
         numerator.SetTitle(newtitle)
         numerator.Divide(denominator)
-        numerator.GetYaxis().SetRangeUser(0, 1.2)
+        
+        # Now make it look nice, and draw
+        numerator.GetYaxis().SetRangeUser(0, 1.0)
         numerator.GetYaxis().SetTitle("Reconstruction Efficiency")
         numerator.Draw()
         
-        
+        # Get an output name and subdir, and save
         name = numerator.GetName()
         name = name.replace("_numerator", "")
         subdir, image_name = get_subdir_and_name(name)
