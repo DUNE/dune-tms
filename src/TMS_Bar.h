@@ -97,6 +97,7 @@ class TMS_Bar {
     int PlaneNumber;
     // The bar number in this plane
     int BarNumber;
+    // Bar Width and Length in mm, Length is always the long dimension
     int BarWidth;
     int BarLength;
     // The global bar number (0-100) 
