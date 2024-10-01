@@ -264,6 +264,8 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
     std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
 
+    std::vector<std::vector<TMS_Hit> > BackExtension(const std::vector<std::vector<TMS_Hit> > &TrackHits, const std::vector<std::vector<TMS_Hit> > &Hits);
+
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
     void FindPseudoXTrack();

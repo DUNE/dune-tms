@@ -427,65 +427,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       std::cout << "Back extension" << std::endl;
       std::cout << "Found " << HoughCandidatesU.size() << " U simple tracks and " << HoughCandidatesV.size() << " V simple tracks" << std::endl;
 #endif
-      // Extend potentially back into the pre-clusters now
-      for (auto it = HoughCandidatesU.begin(); it != HoughCandidatesU.end(); ++it) {
-        for (auto jt : DBScanCandidatesU) {
-          std::vector<TMS_Hit> HoughU = (*it);
-          std::vector<TMS_Hit> preU = jt;
-          
-          SpatialPrio(HoughU);
 
-          // Call the extrapolation function
-          if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) HoughU = Extrapolation(HoughU, preU);
-          // Now add the new hits to the original track
-          for (auto HoughIt = HoughU.begin(); HoughIt != HoughU.end(); ) {
-            bool match = false;
-            for (auto TrackHits = (*it).begin(); TrackHits != (*it).end(); ++TrackHits) {
-              if ((*HoughIt) == (*TrackHits)) match = true;
-            }
-            if (!match) (*it).push_back(std::move(*HoughIt));
-            else HoughIt++;
-          }
-        }
-      }
-      // Same as for U above
-      for (auto it = HoughCandidatesV.begin(); it != HoughCandidatesV.end(); ++it) {
-        for (auto jt : DBScanCandidatesV) {
-          std::vector<TMS_Hit> HoughV = (*it);
-          std::vector<TMS_Hit> preV = jt;
-
-          SpatialPrio(HoughV);
-
-          if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) HoughV = Extrapolation(HoughV, preV);
-          for (auto HoughIt = HoughV.begin(); HoughIt != HoughV.end(); ) {
-            bool match = false;
-            for (auto TrackHits = (*it).begin(); TrackHits != (*it).end(); ++TrackHits) {
-              if ((*HoughIt) == (*TrackHits)) match = true;
-            }
-            if (!match) (*it).push_back(std::move(*HoughIt));
-            else HoughIt++;
-          }
-        }
-      }
-      // Same as for U above
-      for (auto it = HoughCandidatesX.begin(); it != HoughCandidatesX.end(); ++it) {
-        for (auto jt : DBScanCandidatesX) { 
-          std::vector<TMS_Hit> HoughX = (*it);
-          std::vector<TMS_Hit> preX = jt;
-
-          SpatialPrio(HoughX);
-
-          if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) HoughX = Extrapolation(HoughX, preX);
-          for (auto HoughIt = HoughX.begin(); HoughIt != HoughX.end(); ) {
-            bool match = false;
-            for (auto TrackHits = (*it).begin(); TrackHits != (*it).end(); ++TrackHits) {
-              if ((*HoughIt) == (*TrackHits)) match = true;
-            }
-            if (!match) (*it).push_back(std::move(*HoughIt));
-            else HoughIt++;
-          }
-        }
-      }
+      HoughCandidatesU = BackExtension(HoughCandidatesU, DBScanCandidatesU);
+      HoughCandidatesV = BackExtension(HoughCandidatesV, DBScanCandidatesV);
+      HoughCandidatesX = BackExtension(HoughCandidatesX, DBScanCandidatesX);
 
       // Restore overwritten DBSCAN parameters to their previous values for final clustering
       DBSCAN.SetEpsilon(TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon());
@@ -757,6 +702,37 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   return;
 }
+
+std::vector<std::vector<TMS_Hit>> TMS_TrackFinder::BackExtension(const std::vector<std::vector<TMS_Hit> > &HoughCandidates, const std::vector<std::vector<TMS_Hit> > &DBScanCandidates) { 
+  std::vector<std::vector<TMS_Hit> > output = HoughCandidates;
+  if (HoughCandidates.empty() || DBScanCandidates.empty()) return output;
+
+  // Extend potentially back into the pre-clusters now
+  for (auto it = output.begin(); it != output.end(); ++it) {
+
+    for (auto jt : DBScanCandidates) {
+      std::vector<TMS_Hit> Hough = (*it);
+      std::vector<TMS_Hit> pre = jt;
+          
+      SpatialPrio(Hough);
+
+      // Call the extrapolation function
+      if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) Hough = Extrapolation(Hough, pre);
+      // Now add the new hits to the original track
+      for (auto HoughIt = Hough.begin(); HoughIt != Hough.end(); ) {
+        bool match = false;
+        for (auto TrackHits = (*it).begin(); TrackHits != (*it).end(); ++TrackHits) {
+          if ((*HoughIt) == (*TrackHits)) match = true;
+        }
+        if (!match) (*it).push_back(std::move(*HoughIt));
+        else HoughIt++;
+      }
+    }
+  }
+
+  return output;
+}
+
 
 double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
