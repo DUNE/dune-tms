@@ -11,6 +11,10 @@
 #include <TH1D.h>
 #include <TH2D.h>
 #include <TVector3.h>
+#include <TCanvas.h>
+#include <TStyle.h>
+#include <TMarker.h>
+#include <TString.h>
 
 #include "Line_Candidates.h"
 #include "Truth_Info.h"
@@ -34,6 +38,275 @@ int GetHitLocationCodeSingle(float x, bool isx) {
   else if (xlooksz) out = 3;
   else out = 2;
   return out;
+}
+
+std::string getExecutableName(const char* arg) {
+    std::string executableName = arg; // Convert to std::string
+    size_t lastSlash = executableName.find_last_of("/\\"); // Find last occurrence of '/' or '\'
+    if (lastSlash != std::string::npos) {
+        executableName = executableName.substr(lastSlash + 1); // Extract substring after the last slash
+    }
+    size_t extensionPos = executableName.find_last_of('.'); // Find last occurrence of '.'
+    if (extensionPos != std::string::npos) {
+        executableName = executableName.substr(0, extensionPos); // Remove extension
+    }
+    return executableName;
+}
+
+bool createDirectory(const std::string& path) {
+    try {
+        // Create directory and its parents if they don't exist
+        std::filesystem::create_directories(path);
+        return true;
+    } catch(const std::exception& e) {
+        std::cerr << "Error creating directory: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, Line_Candidates& lc, Truth_Info& truth) { 
+  std::string directoryPath ="/exp/dune/data/users/" + std::string(getenv("USER")) + "/dune-tms/Validation/EventDisplays/" + reason + "/";
+  createDirectory(directoryPath);
+  static TCanvas* canvas;
+  if (canvas == NULL) {
+    gStyle->SetOptStat(0);
+    gROOT->SetBatch(kTRUE); 
+    canvas = new TCanvas();
+    canvas->SetLeftMargin(0.12);
+    canvas->Divide(1, 2);
+  }
+  
+  TH2D hist("", "Event Display;Z (mm);X (mm);N Hits", 100, 11000, 19000, 100, -4000, 4000);
+  TH2D histy("", "Event Display;Z (mm);Y (mm);N Hits", 100, 11000, 19000, 100, -5000, 1000);
+  
+  
+  std::vector<TMarker> markers;
+  std::vector<TMarker> markersy;
+  // Get approx time slice range
+  float hit_time_earliest = 1e9;
+  float hit_time_latest = -1e9;
+  for (int ih = 0; ih < lc.nHits; ih++) {
+    if (lc.RecoHitPos[ih][3] > hit_time_latest) hit_time_latest = lc.RecoHitPos[ih][3];
+    if (lc.RecoHitPos[ih][3] < hit_time_earliest) hit_time_earliest = lc.RecoHitPos[ih][3];
+    {
+      float mx = lc.RecoHitPos[ih][2];
+      float my = lc.RecoHitPos[ih][0];
+      TMarker marker(mx, my, 21);
+      markers.push_back(marker);
+    }
+    {
+      float mx = lc.RecoHitPos[ih][2];
+      float my = lc.RecoHitPos[ih][1];
+      TMarker marker(mx, my, 21);
+      markersy.push_back(marker);
+    }
+  }
+  for (int it = 0; it < reco.nTracks; it++) {
+    for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
+      {
+        float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
+        float my = truth.RecoTrackTrueHitPosition[it][ih][0];
+        TMarker marker(mx, my, 21);
+        marker.SetMarkerColor(kGreen);
+        markers.push_back(marker);
+      }
+      {
+        float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
+        float my = truth.RecoTrackTrueHitPosition[it][ih][1];
+        TMarker marker(mx, my, 21);
+        marker.SetMarkerColor(kGreen);
+        markersy.push_back(marker);
+      }
+      {
+        float mx = reco.TrackHitPos[it][ih][2];
+        float my = reco.TrackHitPos[it][ih][0];
+        TMarker marker(mx, my, 20);
+        marker.SetMarkerColor(kRed);
+        markers.push_back(marker);
+      }
+      {
+        float mx = reco.TrackHitPos[it][ih][2];
+        float my = reco.TrackHitPos[it][ih][1];
+        TMarker marker(mx, my, 20);
+        marker.SetMarkerColor(kRed);
+        markersy.push_back(marker);
+      }
+    }
+  }
+  if (false) {
+    int colors[] = {kGreen, kRed, kBlue, kOrange, kYellow, kMagenta, kGreen + 2};
+    int ncolors = sizeof(colors)/sizeof(colors[0]);
+    int n_offset = 0;
+    for (int it = 0; it < truth.nParticles; it++) {
+      // Only draw muons
+      if (std::abs(truth.PDG[it]) == 13) {
+        {
+          float mx = truth.BirthPosition[it][2];
+          float my = truth.BirthPosition[it][0];
+          if (mx < 11000) {
+            mx = truth.PositionZIsTMSStart[it][2];
+            my = truth.PositionZIsTMSStart[it][0];
+          }
+          TMarker marker(mx, my, 22);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.BirthPosition[it][2];
+          float my = truth.BirthPosition[it][1];
+          if (mx < 11000) {
+            mx = truth.PositionZIsTMSStart[it][2];
+            my = truth.PositionZIsTMSStart[it][1];
+          }
+          TMarker marker(mx, my, 22);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          markersy.push_back(marker);
+        }
+        {
+          float mx = truth.DeathPosition[it][2];
+          float my = truth.DeathPosition[it][0];
+          if (mx > 19000) {
+            mx = truth.PositionZIsTMSEnd[it][2];
+            my = truth.PositionZIsTMSEnd[it][0];
+          }
+          TMarker marker(mx, my, 23);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.DeathPosition[it][2];
+          float my = truth.DeathPosition[it][1];
+          if (mx > 19000) {
+            mx = truth.PositionZIsTMSEnd[it][2];
+            my = truth.PositionZIsTMSEnd[it][1];
+          }
+          TMarker marker(mx, my, 23);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          markersy.push_back(marker);
+        }
+        n_offset += 1;
+      }
+    }
+  }
+  
+  // Now draw
+  canvas->cd(1);
+  hist.Draw("Axis");
+  for (auto& marker : markers) {
+    marker.Draw();
+  }
+  canvas->cd(2);
+  histy.Draw("Axis");
+  for (auto& marker : markersy) {
+    marker.Draw();
+  }
+  
+  canvas->Print((directoryPath + outfilename + ".png").c_str());
+}
+
+// If one of these flags is set, then it fails the cut
+// set flag: flags |= FOO;
+// clear: flags &= ~FOO;
+// check that flag is set: if (flags & FOO)
+// check that flag is not set: if ((flags & FOO) == 0)
+enum TMSCutFlags {
+  TMSCutAny =        1 << 1, // Fails any cut
+  TMSCutStartFront = 1 << 2, 
+  TMSCutAnyEndCuts = 1 << 3, // fails 4, 5, or 6
+  TMSCutZCut =       1 << 4,
+  TMSCutYCut =       1 << 5,
+  TMSCutUVCut =      1 << 6
+};
+
+const double TMS_START_Z = 11362;
+const double TMS_LAST_PLANE_Z = 17900; // mm // 18314.0 - 50; // End Z - 5cm
+const double TMS_Y_TOP = 160.0; // Top of scintillator (I'm 99% sure starting from where U/V overlap)
+const double TMS_Y_BOTTOM = -2850.0; // Bottom of scinillator (also measured from U/V overlap)
+const double TMS_Y_MIDDLE = 0.5 * (TMS_Y_TOP + TMS_Y_BOTTOM);
+const double TMS_X_EXTENT = 3300.0; // Assumes things are symmetrical right now
+const double Y_BUFFER = 400; // mm, 40 cm
+const double X_BUFFER = 30; // mm, 3cm bar thickness?
+const double Z_BUFFER = 100; // mm, two thin planes
+const double VIEW_ANGLE = 3.0 * TMath::DegToRad(); 
+
+TVector3 GetRotatedVector(TVector3 v, bool u) {
+  double angle = VIEW_ANGLE;
+  if (u) angle *= -1; // Opposite direction
+  // Step 1: Translate to middle of TMS
+  v.SetY(v.Y() - TMS_Y_MIDDLE);
+  // Step 2: Rotate the vector around the z-axis
+  v.RotateZ(angle);
+  // Step 3: Translate the vector back
+  v.SetY(v.Y() + TMS_Y_MIDDLE);
+  return v;
+}
+
+void FillHistWithTMSCutFlagInfo(TH1 &hist, int flags) {
+  // Fill passing case
+  if (flags == 0) hist.Fill(0);
+  // Check and fill for each flag
+  if (flags & TMSCutAny) hist.Fill(1);
+  if (flags & TMSCutStartFront) hist.Fill(2);
+  if (flags & TMSCutAnyEndCuts) hist.Fill(3);
+  if (flags & TMSCutZCut) hist.Fill(4);
+  if (flags & TMSCutYCut) hist.Fill(5);
+  if (flags & TMSCutUVCut) hist.Fill(6);
+}
+
+int TMSStartPointThruFront(TVector3 startpoint) {
+  // Check that it's in the first two planes or so
+  int out = 0;
+  if (startpoint.Z() < TMS_START_Z) 
+    out |= TMSCutStartFront;
+  if (startpoint.Z() > TMS_START_Z + Z_BUFFER) 
+    out |= TMSCutStartFront;
+    
+  const int ANYCUTS = (TMSCutZCut | TMSCutYCut | TMSCutUVCut | TMSCutAnyEndCuts | TMSCutStartFront);
+  if ((out & ANYCUTS)) 
+    out |= TMSCutAny;
+  
+  return out;
+}
+
+int TMSEndpointUncontained(TVector3 endpoint) {
+  // Returns flag representing which cut was missed
+  // Zero means it passes all cuts
+  int out = 0;
+  
+  // Check that muon is not in last scinillator plane because it may be exiting then
+  if (endpoint.Z() > TMS_LAST_PLANE_Z) 
+    out |= TMSCutZCut;
+  // Also check that it's contained inside the start of the TMS when using truth info
+  if (endpoint.Z() < TMS_START_Z) 
+    out |= TMSCutZCut;
+  
+  // Check that muon is not within 40cm in y of start and bottom
+  const double Y = endpoint.Y();
+  if (TMS_Y_BOTTOM + Y_BUFFER > Y || Y > TMS_Y_TOP - Y_BUFFER)
+    out |= TMSCutYCut;
+    
+  // Check that x is within hexagon made by U and V views
+  // Do it by rotating to the views and checking each one separately
+  // Y position is checked by y cut above
+  auto endpoint_v = GetRotatedVector(endpoint, false);
+  auto endpoint_u = GetRotatedVector(endpoint, true);
+  if (std::abs(endpoint_v.X()) > TMS_X_EXTENT - X_BUFFER || std::abs(endpoint_u.X()) > TMS_X_EXTENT - X_BUFFER) 
+    out |= TMSCutUVCut;
+  
+  // Set that all cuts passed if they did
+  const int ANYENDCUTS = (TMSCutZCut | TMSCutYCut | TMSCutUVCut);
+  if ((out & ANYENDCUTS)) 
+    out |= TMSCutAnyEndCuts;
+  
+  // Set that all cuts passed if they did
+  const int ANYCUTS = (TMSCutZCut | TMSCutYCut | TMSCutUVCut | TMSCutAnyEndCuts | TMSCutStartFront);
+  if ((out & ANYCUTS)) 
+    out |= TMSCutAny;
+  return out;
+}
+
+int CheckTMSCuts(TVector3 startpoint, TVector3 endpoint) {
+  return TMSStartPointThruFront(startpoint) | TMSEndpointUncontained(endpoint);
 }
 
 TVector3 calculatePositionAtZ(double z_new, TVector3 start, double xz_dir, double yz_dir = 1.0) {
@@ -127,6 +400,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
 
     bool has_kalman = reco.HasBranch("KalmanPos");
     std::cout<<"has_kalman status: "<<has_kalman<<std::endl;
+    has_kalman = true;
 
     // Want to plot:
     // Reco vs RecoTrackTrueHitPosition
@@ -154,15 +428,15 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     const int nzfine = (int)(4000 / (plane_pitch));
 
     // First draw some hists for validation
-    TH1D hist_ntracks("n_tracks", "N Tracks;N Tracks;N Events",
+    TH1D hist_ntracks("basic_n_tracks", "N Tracks;N Tracks;N Events",
       10, -0.5, 9.5);
-    TH1D hist_nhits("n_hits", "N Hits per Track;N Hits;N Tracks",
+    TH1D hist_nhits("basic_n_hits", "N Hits per Track;N Hits;N Tracks",
       25, 0, 100);
-    TH1D hist_energy_range("energy_range", "Energy Range;Energy Range (MeV);N Tracks",
+    TH1D hist_energy_range("basic_energy_range", "Energy Range;Energy Range (MeV);N Tracks",
       20, 0, 5000);
-    TH1D hist_energy_deposit("energy_deposit", "Energy Deposit;Energy Deposit (MeV);N Tracks",
+    TH1D hist_energy_deposit("basic_energy_deposit", "Energy Deposit;Energy Deposit (MeV);N Tracks",
       20, 0, 5000);
-    TH1D hist_track_length("track_length", "Track Length;Track Areal Density (g/cm^2);N Tracks",
+    TH1D hist_track_length("basic_track_length", "Track Length;Track Areal Density (g/cm^2);N Tracks",
       20, 0, 3000);
     TH2D hist_track_hits_xz("track_hits_xz", "Track Hit X vs Z;Z (mm);X (mm); N Hits",
       nz, 0, 19000, 100, -5000, 5000);
@@ -176,19 +450,19 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       nz, 0, 19000, 100, -5000, 5000);
 
     // Now some reco-only validation
-    TH2D hist_track_hits_xz_relative_to_start("track_hits_xz_relative_to_start", "Track Hit X vs Z, Relative to Start;Z (mm);X (mm); N Hits",
+    TH2D hist_track_hits_xz_relative_to_start("track_relative__hits_xz_relative_to_start", "Track Hit X vs Z, Relative to Start;Z (mm);X (mm); N Hits",
       nzfine, -2000, 2000, 100, -4000, 4000);
-    TH2D hist_track_hits_xz_relative_to_third("track_hits_xz_relative_to_third", "Track Hit X vs Z, Relative to Third Hit;Z (mm);X (mm); N Hits",
+    TH2D hist_track_hits_xz_relative_to_third("track_relative__hits_xz_relative_to_third", "Track Hit X vs Z, Relative to Third Hit;Z (mm);X (mm); N Hits",
       nzfine, -2000, 2000, 100, -4000, 4000);
-    TH2D hist_track_hits_xz_relative_to_end("track_hits_xz_relative_to_end", "Track Hit X vs Z, Relative to End;Z (mm);X (mm); N Hits",
+    TH2D hist_track_hits_xz_relative_to_end("track_relative__hits_xz_relative_to_end", "Track Hit X vs Z, Relative to End;Z (mm);X (mm); N Hits",
       nzfine, -2000, 2000, 100, -4000, 4000);
-    TH2D hist_track_hits_xz_relative_to_third_last("track_hits_xz_relative_to_third_last",
+    TH2D hist_track_hits_xz_relative_to_third_last("track_relative__hits_xz_relative_to_third_last",
       "Track Hit X vs Z, Relative to Third Last Hit;Z (mm);X (mm); N Hits",
       nzfine, -2000, 2000, 100, -4000, 4000);
 
-    TH1D hist_track_hits_z_relative_to_start("track_hits_z_relative_to_start", "Track Hit Z, Relative to Start;Z (mm); N Hits",
+    TH1D hist_track_hits_z_relative_to_start("track_relative__hits_z_relative_to_start", "Track Hit Z, Relative to Start;Z (mm); N Hits",
       nzfine, -2000, 2000);
-    TH1D hist_track_hits_z_relative_to_third("track_hits_z_relative_to_third", "Track Hit Z, Relative to Third Hit;Z (mm); N Hits",
+    TH1D hist_track_hits_z_relative_to_third("track_relative__hits_z_relative_to_third", "Track Hit Z, Relative to Third Hit;Z (mm); N Hits",
       nzfine, -2000, 2000);
 
     TH2D hist_comp_track_dz_vs_n_hits("comp_track_dz_vs_n_hits",
@@ -294,7 +568,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     TH2D hist_matching_yz_position_reco("matching_yz_position_reco",
       "Matching Reco YZ Position (LAr-start, TMS-ending muons only);Track Z Position Reco (mm);Track Y Position Reco (mm);N Tracks",
       101, 11000, 16000, 101, -4000, 1000);
-    TH2D hist_matching_xy_position_reco("matching_xz_position_reco",
+    TH2D hist_matching_xy_position_reco("matching_xy_position_reco",
       "Matching Reco XY Position (LAr-start, TMS-ending muons only);Track X Position Reco (mm);Track Y Position Reco (mm);N Tracks",
       101, -4000, 4000, 101, -4000, 1000);
 
@@ -318,6 +592,59 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     TH1D hist_matching_true_extrap_y_vs_true_lar("matching_true_extrap_y_vs_true_lar",
       "Matching Y Position True TMS Track Extrap - True LAr (LAr-start, TMS-ending muons only);True Track Y Extrap - True LAr Y (mm);N Tracks",
       101, -500, 500);
+      
+    TH1D hist_containment_TMS_reco_endpoint_cut("containment_TMS_reco_endpoint_cut",
+      "Raw containment cut flags using reco muon endpoint;;N Tracks",
+      7, 0, 7);
+    TH1D hist_containment_TMS_reco_endpoint_cut_eff_numerator("containment_TMS_reco_endpoint_cut_eff_numerator",
+      "Reco Tracks which are removed by TMS containment cuts;;N Tracks",
+      7, 0, 7);
+    TH1D hist_containment_TMS_reco_endpoint_cut_eff_denominator("containment_TMS_reco_endpoint_cut_eff_denominator",
+      "Raw containment cut flags using reco muon endpoint;;N Tracks",
+      7, 0, 7);
+    TH1D hist_containment_TMS_true_endpoint_cut("containment_TMS_true_endpoint_cut",
+      "Raw containment cut flags using true muon endpoint for reco tracks;;N Tracks",
+      7, 0, 7);
+    TH1D hist_containment_TMS_true_endpoint_cut_eff_numerator("containment_TMS_true_endpoint_cut_eff_numerator",
+      "Raw containment cut flags using true muon endpoint for reco tracks;;N Tracks",
+      7, 0, 7);
+    TH1D hist_containment_TMS_true_endpoint_cut_eff_denominator("containment_TMS_true_endpoint_cut_eff_denominator",
+      "Raw containment cut flags using true muon endpoint for reco tracks;;N Tracks",
+      7, 0, 7);
+    const char *flags[] = {"Passes all cuts", "Failed Any Cut", "Fail First Two Plane", "Fail Any Endpoint Cut", "Fail Last Plane Cut", "Fail Y Cut", "Fail UV Cut", " "};
+    const int nflags = sizeof(flags) / sizeof(flags[0]);
+    hist_containment_TMS_reco_endpoint_cut.SetNdivisions(nflags);
+    hist_containment_TMS_reco_endpoint_cut_eff_numerator.SetNdivisions(nflags);
+    hist_containment_TMS_reco_endpoint_cut_eff_denominator.SetNdivisions(nflags);
+    hist_containment_TMS_true_endpoint_cut.SetNdivisions(nflags);
+    hist_containment_TMS_true_endpoint_cut_eff_numerator.SetNdivisions(nflags);
+    hist_containment_TMS_true_endpoint_cut_eff_denominator.SetNdivisions(nflags);
+    for (int i = 0; i < nflags; i++) {
+      hist_containment_TMS_reco_endpoint_cut.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+      hist_containment_TMS_reco_endpoint_cut_eff_numerator.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+      hist_containment_TMS_reco_endpoint_cut_eff_denominator.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+      hist_containment_TMS_true_endpoint_cut.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+      hist_containment_TMS_true_endpoint_cut_eff_numerator.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+      hist_containment_TMS_true_endpoint_cut_eff_denominator.GetXaxis()->ChangeLabel(i+1, 350, -1, 11, -1, -1, flags[i]);
+    }
+    
+    TH1D hist_containment_reco_endpoint_all_tracks("containment_reco_endpoint_all_tracks",
+      "All Track Endpoint Reco Z Position;Z (mm);N Tracks",
+      101, 11000, 19000);
+    TH1D hist_containment_reco_endpoint_passes_cuts("containment_reco_endpoint_passes_cuts",
+      "Track Endpoint Reco Z Position, passes containment;Z (mm);N Tracks",
+      101, 11000, 19000);
+    TH2D hist_containment_check_tms_cut_all_tracks("containment_check_tms_cut_all_tracks",
+      "Track XY Position;Track X Position (mm);Track Y Position (mm);N Tracks",
+      101, -4000, 4000, 101, -4000, 1000);
+    TH2D hist_containment_check_tms_cut_pass_uv_cut("containment_check_tms_cut_pass_uv_cut",
+      "XY for Tracks That Pass UV Cut;Track X Position (mm);Track Y Position (mm);N Tracks",
+      101, -4000, 4000, 101, -4000, 1000);
+    TH2D hist_containment_check_tms_cut_pass_all_cuts("containment_check_tms_cut_pass_all_cuts",
+      "XY for Tracks That Pass All Cuts;Track X Position (mm);Track Y Position (mm);N Tracks",
+      101, -4000, 4000, 101, -4000, 1000);
+    // TODO check reco eff vs muon entering energy given this cut
+    // But also only calculate primary reco eff for nd physics sample
 
     // TODO Make direction extrap as well
     // Make plots about resolution assuming we don't take into account direction, just to see.
@@ -379,11 +706,11 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       {
         std::string name = "particledepth_track_endpoints_stack_" + std::string(particle_type);
         std::string title = "Reco Track Endpoint for " + std::string(particle_type) + ";Z (mm);N Tracks";
-        TH1D hist(name.c_str(), title.c_str(), 101, 0, 25000);
+        TH1D hist(name.c_str(), title.c_str(), 51, 11000, 19000);
         hist_particledepth_track_endpoints_stack.push_back(hist);
 
         std::string name2 = "particledepth_true_endpoints_stack_" + std::string(particle_type);
-        std::string title2 = "True Particle Endpoint for " + std::string(particle_type) + ";Z (mm);N Tracks";
+        std::string title2 = "True Particle Endpoint for Primary Particle of Reco Track for " + std::string(particle_type) + ";Z (mm);N Tracks";
         TH1D hist2(name2.c_str(), title2.c_str(), 101, 0, 25000);
         hist_particledepth_true_endpoints_stack.push_back(hist2);
 
@@ -445,11 +772,29 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
               reco.KalmanTruePos[itrack][ihit][i] = truth.RecoTrackTrueHitPosition[itrack][ihit][i];
             }
           }
+          reco.nKalmanNodes[itrack] = reco.nHits[itrack];
         }
+      }
+      // Fix n kalman nodes which is always zero.
+      for (int itrack = 0; itrack < reco.nTracks; itrack++) {
+        int n_nonzero = 0;
+        for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
+          // Since kalman pos need to be above z = 11000, we can use this to find zero points safely
+          if (reco.KalmanPos[itrack][ihit][2] > 1000) n_nonzero++;
+        }
+        reco.nKalmanNodes[itrack] = n_nonzero;
+        //std::cout<<"track num: "<<itrack<<"\tn hits: "<<reco.nHits[itrack]<<"\tn kalman nodes: "<<reco.nKalmanNodes[itrack]<<std::endl;
       }
 
       // TODO calculate plane number and then check per plane occupancy
       // Also related is total visible energy so compare that to true value
+      
+       
+      //std::cout<<entry_number<<": "<<reco.SpillNo<<", "<<reco.SliceNo<<", "<<reco.EventNo<<std::endl;
+      if (lc.nHits > 100) {
+        //DrawSlice(TString::Format("test_%d", entry_number).Data(), "test_event_displays", "test job", reco, lc, truth);
+      }
+     // if (entry_number > 700) exit(1); // TODO delete
 
       // Calculate reco eff, denominators
       // Only fill once per spill since all particles per spill are saved, not just this time slice's
@@ -486,6 +831,47 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           hist_recoeff_muon_ke_tms_enter_numerator.Fill(muon_starting_ke);
         }
       }
+      
+      // Check the TMS cuts using reco information
+      for (int itrack = 0; itrack < reco.nTracks; itrack++) {
+        // Fill using reco track endpoint
+        TVector3 track_startpoint(reco.StartPos[itrack][0], reco.StartPos[itrack][1], reco.StartPos[itrack][2]);
+        TVector3 track_endpoint(reco.EndPos[itrack][0], reco.EndPos[itrack][1], reco.EndPos[itrack][2]);
+        auto flags = CheckTMSCuts(track_startpoint, track_endpoint);
+        FillHistWithTMSCutFlagInfo(hist_containment_TMS_reco_endpoint_cut, flags);
+        FillHistWithTMSCutFlagInfo(hist_containment_TMS_reco_endpoint_cut_eff_numerator, flags);
+        for (int i = 0; i < hist_containment_TMS_reco_endpoint_cut_eff_denominator.GetXaxis()->GetNbins(); i++)
+          hist_containment_TMS_reco_endpoint_cut_eff_denominator.Fill(i);
+          
+        hist_containment_reco_endpoint_all_tracks.Fill(track_endpoint.Z());
+        if (flags == 0) hist_containment_reco_endpoint_passes_cuts.Fill(track_endpoint.Z());
+        
+        // Fill same but using true endpoint of the reco track
+        int particle_index = truth.RecoTrackPrimaryParticleIndex[itrack];
+        if (particle_index >= 0 && particle_index < truth.nTrueParticles) {
+          TVector3 true_track_startpoint(truth.PositionZIsTMSStart[particle_index][0], 
+                                         truth.PositionZIsTMSStart[particle_index][1], 
+                                         truth.PositionZIsTMSStart[particle_index][2]);
+          TVector3 true_track_endpoint(truth.DeathPosition[itrack][0], 
+                                        truth.DeathPosition[itrack][1], 
+                                        truth.DeathPosition[itrack][2]);
+          auto true_flags = CheckTMSCuts(true_track_startpoint, true_track_endpoint);
+          FillHistWithTMSCutFlagInfo(hist_containment_TMS_true_endpoint_cut, true_flags);
+          FillHistWithTMSCutFlagInfo(hist_containment_TMS_true_endpoint_cut_eff_numerator, true_flags);
+          for (int i = 0; i < hist_containment_TMS_true_endpoint_cut_eff_denominator.GetXaxis()->GetNbins(); i++)
+            hist_containment_TMS_true_endpoint_cut_eff_denominator.Fill(i);
+          
+          
+          
+          
+          // Check which tracks pass the UV cut
+          hist_containment_check_tms_cut_all_tracks.Fill(true_track_endpoint.X(), true_track_endpoint.Y());
+          if ((true_flags & TMSCutUVCut) == 0) 
+            hist_containment_check_tms_cut_pass_uv_cut.Fill(true_track_endpoint.X(), true_track_endpoint.Y());
+          if (true_flags == 0) 
+            hist_containment_check_tms_cut_pass_all_cuts.Fill(true_track_endpoint.X(), true_track_endpoint.Y());
+        }
+      }
 
       // Loop over tracks and record information about particles that were reconstructed
       for (int itrack = 0; itrack < reco.nTracks; itrack++) {
@@ -496,9 +882,12 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         if (secondary_pdg == -1 && truth.RecoTrackSecondaryParticleTrueVisibleEnergy[itrack] > 0) secondary_pdg = 9;
 
         // Now fill hists:
-        hist_recotrack_primary_particle_pdg.Fill(primary_pdg, 1);
-        hist_recotrack_secondary_particle_pdg.Fill(secondary_pdg, 1);
-        hist_recotrack_has_secondary_particle.Fill((secondary_pdg < 0) ? 0 : 1);
+        if (truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2] > 11000) 
+          hist_recotrack_primary_particle_pdg.Fill(primary_pdg, 1);
+        if (truth.RecoTrackSecondaryParticleTruePositionEnd[itrack][2] > 11000) {
+          hist_recotrack_secondary_particle_pdg.Fill(secondary_pdg, 1);
+          hist_recotrack_has_secondary_particle.Fill((secondary_pdg < 0) ? 0 : 1);
+        }
         // TODO are eff and purity calculations right? They seem low
         double pur = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[itrack] / truth.RecoTrackTrueVisibleEnergy[itrack];
         if (pur < 1 && truth.RecoTrackSecondaryParticleTrueVisibleEnergy[itrack] == 0)
@@ -512,13 +901,17 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           //std::cout<<"pur: "<<pur<<", eff: "<<eff<<", secondary_pdg: "<<secondary_pdg<<", "<<truth.RecoTrackSecondaryParticlePDG[itrack]<<std::endl;
         }
         //else std::cout<<"pur: "<<pur<<", secondary_pdg: "<<secondary_pdg<<", "<<truth.RecoTrackSecondaryParticlePDG[itrack]<<std::endl;
+        
+        bool is_good_truth_matching = true;
+        if (truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2] < 11000) is_good_truth_matching = false;
 
         int index = PDGtoIndexReduced(truth.RecoTrackPrimaryParticlePDG[itrack]);
-        hist_particledepth_track_endpoints_stack[index].Fill(reco.EndPos[itrack][2]);
+        if (is_good_truth_matching) hist_particledepth_track_endpoints_stack[index].Fill(reco.EndPos[itrack][2]);
         //if (truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2] > truth.RecoTrackPrimaryParticleTruePositionStart[itrack][2])
-        hist_particledepth_true_endpoints_stack[index].Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2]);
+        if (is_good_truth_matching) hist_particledepth_true_endpoints_stack[index].Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[itrack][2]);
+        
 
-        if (particle_index >= 0 && particle_index < truth.nTrueParticles) { //  && !truth.IsPrimary[particle_index]
+        if (particle_index >= 0 && particle_index < truth.nTrueParticles && is_good_truth_matching) { //  && !truth.IsPrimary[particle_index]
           double true_visible_energy = truth.TrueVisibleEnergy[particle_index];
           // RecoTrackPrimaryParticleTrueVisibleEnergy is true vis energy on track only
           double reco_visible_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[itrack];
@@ -566,7 +959,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
 
       hist_ntracks.Fill(reco.nTracks);
       for (int itrack = 0; itrack < reco.nTracks; itrack++) {
-        hist_nhits.Fill(reco.nHits[itrack]);
+        hist_nhits.Fill(reco.nKalmanNodes[itrack]);
         hist_energy_range.Fill(reco.EnergyRange[itrack]);
         hist_energy_deposit.Fill(reco.EnergyDeposit[itrack]);
         hist_track_length.Fill(reco.Length[itrack]);
@@ -637,12 +1030,12 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         //std::cout<<"end xyz "<<itrack<<":   "<<reco.EndPos[itrack][0]<<","<<reco.EndPos[itrack][1]<<","<<reco.EndPos[itrack][2]<<std::endl;
         hist_track_start_pos_xz.Fill(reco.StartPos[itrack][2], reco.StartPos[itrack][0]);
         hist_track_end_pos_xz.Fill(reco.EndPos[itrack][2], reco.EndPos[itrack][0]);
-        for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
+        for (int ihit = 0; ihit < reco.nKalmanNodes[itrack]; ihit++) {
           hist_track_hits_xz.Fill(reco.KalmanPos[itrack][ihit][2], reco.KalmanPos[itrack][ihit][0]);
           hist_track_hits_yz.Fill(reco.KalmanPos[itrack][ihit][2], reco.KalmanPos[itrack][ihit][1]);
           hist_track_hits_xy.Fill(reco.KalmanPos[itrack][ihit][0], reco.KalmanPos[itrack][ihit][1]);
 
-          int last_index = reco.nHits[itrack] - 1;
+          int last_index = reco.nKalmanNodes[itrack] - 1;
           double z_relative_start = reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][0][2];
           double x_relative_start = reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][0][0];
           double z_relative_end = reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][last_index][2];
@@ -650,7 +1043,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           hist_track_hits_xz_relative_to_start.Fill(z_relative_start, x_relative_start);
           hist_track_hits_xz_relative_to_end.Fill(z_relative_end, x_relative_end);
           hist_track_hits_z_relative_to_start.Fill(z_relative_start);
-          if (reco.nHits[itrack] >= 3) {
+          if (reco.nKalmanNodes[itrack] >= 3) {
             double z_relative_start_m3 = reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][2][2];
             double x_relative_start_m3 = reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][2][0];
             double z_relative_end_m3 = reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][last_index - 2][2];
@@ -688,7 +1081,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         // as well as n hits
         // So something that's off diagonal in n hits means that it may have skipped a hit
         double dz = reco.EndPos[itrack][2] - reco.StartPos[itrack][2];
-        hist_comp_track_dz_vs_n_hits.Fill(dz, reco.nHits[itrack]);
+        hist_comp_track_dz_vs_n_hits.Fill(dz, reco.nKalmanNodes[itrack]);
         hist_comp_track_dz_vs_length.Fill(dz, reco.Length[itrack]);
 
         // https://pdg.lbl.gov/2007/reviews/montecarlorpp.pdf
@@ -730,30 +1123,6 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
 
     std::cout<<"Finished loop over "<<entries_visited<<" entries"<<std::endl;
     return entries_visited;
-}
-
-std::string getExecutableName(const char* arg) {
-    std::string executableName = arg; // Convert to std::string
-    size_t lastSlash = executableName.find_last_of("/\\"); // Find last occurrence of '/' or '\'
-    if (lastSlash != std::string::npos) {
-        executableName = executableName.substr(lastSlash + 1); // Extract substring after the last slash
-    }
-    size_t extensionPos = executableName.find_last_of('.'); // Find last occurrence of '.'
-    if (extensionPos != std::string::npos) {
-        executableName = executableName.substr(0, extensionPos); // Remove extension
-    }
-    return executableName;
-}
-
-bool createDirectory(const std::string& path) {
-    try {
-        // Create directory and its parents if they don't exist
-        std::filesystem::create_directories(path);
-        return true;
-    } catch(const std::exception& e) {
-        std::cerr << "Error creating directory: " << e.what() << std::endl;
-        return false;
-    }
 }
 
 std::string getOutputFilename(const std::string& inputFilename) {
