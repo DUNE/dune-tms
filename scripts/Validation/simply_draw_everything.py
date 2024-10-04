@@ -10,16 +10,8 @@ def get_subdir_and_name(hist_name):
     subdir = ""
     name = hist_name.strip()
     split = name.split("__")
-    if len(split) > 2:
-        # Subdir
-        subdir = split[0].replace("_", "/")
-        name = split[1]
-    else:
-        # Simple subdir
-        split = name.split("_")
-        subdir = split[0]
-        # And the rest is the name
-        name = "_".join(split[1:])
+    subdir = os.path.join(*split[:-1])
+    name = split[-1]
     print(hist_name, subdir, name)
     return subdir, name
     
