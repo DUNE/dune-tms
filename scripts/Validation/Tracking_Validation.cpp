@@ -26,6 +26,8 @@
 
 std::string save_location = "";
 
+const float CM = 0.1; // cm per mm
+
 int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
   bool is999 = IS_WITHIN(x, -999, 1) || IS_WITHIN(x, -9999, 1) || IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) || IS_WITHIN(x, -999999, 1);
@@ -375,8 +377,9 @@ bool LArFiducialCut(TVector3 position, double distance = 500, double downstream 
 }
 
 int PDGtoIndex(int pdgCode) {
+    // const char *pdg[] = {"e^{+/-}, #gamma", "#mu^{-}", "#mu^{+}", "#pi^{+}", "#pi^{-}", "K", "n", "p", "other", "unknown"};
     // Unknown is -999999999
-    if (pdgCode < -999999990) return -1;
+    if (pdgCode < -999999990) return 9;
     switch (pdgCode) {
         case 11:   return 0;   // e-
         case -11:  return 0;   // e+
@@ -398,7 +401,7 @@ int PDGtoIndex(int pdgCode) {
 }
 
 int PDGtoIndexReduced(int pdgCode) {
-    const char *particle_types[] = {"electron", "muon", "pion", "kaon", "neutron", "proton", "other", "unknown"};
+    // const char *particle_types[] = {"electron", "muon", "pion", "kaon", "neutron", "proton", "other", "unknown"};
     if (pdgCode < -999999990) return 7;
     switch (pdgCode) {
         case 11:   return 0;   // e-
@@ -423,11 +426,33 @@ int PDGtoIndexReduced(int pdgCode) {
 std::unordered_map<std::string, TH1*> mapForGetHist;
 
 std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
-  if (axis_name == "ntracks") {
-    return std::make_tuple("N Tracks", 10, -0.5, 9.5);
-  }
+  if (axis_name == "ntracks") return std::make_tuple("N Tracks", 10, -0.5, 9.5);
+  if (axis_name == "n0-120") return std::make_tuple("N", 24, 0, 120);
+  if (axis_name == "n0-500") return std::make_tuple("N", 25, 0, 500);
+  if (axis_name == "EventNo") return std::make_tuple("Event Number", 100, 0, 5000);
+  if (axis_name == "SliceNo") return std::make_tuple("Slice Number", 61, -0.5, 60.5);
+  if (axis_name == "SpillNo") return std::make_tuple("Spill Number", 100, 0, 300);
+  if (axis_name == "X") return std::make_tuple("X (cm)", 100, -400, 400);
+  if (axis_name == "Y") return std::make_tuple("Y (cm)", 100, -500, 100);
+  if (axis_name == "Z") return std::make_tuple("Z (cm)", 100, 1100, 1900);
+  if (axis_name == "direction_xz") return std::make_tuple("XZ Direction", 31, -2, 2);
+  if (axis_name == "dx") return std::make_tuple("dX (cm)", 100, -100, 100);
+  if (axis_name == "dy") return std::make_tuple("dY (cm)", 100, -100, 100);
+  if (axis_name == "dz") return std::make_tuple("dZ (cm)", 100, -100, 100);
+  if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
   std::cerr<<"Fatal: Add axis to GetBinning. Did not understand axis name "<<axis_name<<std::endl;
   throw std::runtime_error("Unable to understand axis name");
+}
+
+void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::string zaxis = "") {
+  if (xaxis == "pdg") {
+    const char *pdg[] = {"e^{+/-}, #gamma", "#mu^{-}", "#mu^{+}", "#pi^{+}", "#pi^{-}", "K", "n", "p", "other", "unknown"};
+    const int npdg = sizeof(pdg) / sizeof(pdg[0]);
+    hist->SetNdivisions(npdg);
+    for (int ib = 0; ib < npdg; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
+    }
+  }
 }
 
 TH1* MakeHist(std::string directory_and_name, std::string title, std::string xaxis, std::string yaxis = "", std::string zaxis = "") {
@@ -449,6 +474,7 @@ TH1* MakeHist(std::string directory_and_name, std::string title, std::string xax
     auto complete_title = title + ";" + xaxis_title;
     auto out = new TH1D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_start, xaxis_end);
     // Add special naming here
+    AdjustAxis(out, xaxis);
     return out;
   }
 }
@@ -481,7 +507,7 @@ TH1* GetHist(std::string directory_and_name, std::string title, std::string xaxi
       total_no_make_time += duration;
       n_no_makes += 1;
     }
-    if (n_lookups % 1000 == 0 || did_make) {
+    if (n_lookups % 1000000 == 0) {
       double avg_lookup_time = total_lookup_time / n_lookups;
       double avg_make_time = total_make_time / n_makes;
       double avg_no_make_time = total_no_make_time / n_no_makes;
@@ -522,12 +548,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     // StartPos, EndPos, nHits, TrackHitPos/KalmanPos
     // EnergyRange, EnergyDeposit, Length
 
-    const double plane_pitch = 37;
-    const int nz = (int)(19000 / (plane_pitch * 10));
-    const int nzfine = (int)(4000 / (plane_pitch));
-
-
     int last_spill_seen = -1;
+    
+    auto time_start = std::chrono::high_resolution_clock::now();
 
     Long64_t entry_number = 0;
     // Now loop over the ttree
@@ -543,10 +566,55 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       reco.GetEntry(entry_number);
       lc.GetEntry(entry_number);
       
-      // Fill some basic variables
-      GetHist("basic__ntracks", "N Reco Tracks", "ntracks")->Fill(reco.nTracks);
-      GetHist("basic__test__ntracks", "N Reco Tracks", "ntracks")->Fill(reco.nTracks);
-      GetHist("basic__test__test2__ntracks", "N Reco Tracks", "ntracks")->Fill(reco.nTracks);
+      // Fill some basic "raw" variables from the reco tree
+      GetHist("basic__raw__EventNo", "EventNo", "EventNo")->Fill(reco.EventNo);
+      GetHist("basic__raw__SliceNo", "SliceNo", "SliceNo")->Fill(reco.SliceNo);
+      GetHist("basic__raw__SpillNo", "SpillNo", "SpillNo")->Fill(reco.SpillNo);
+   
+      GetHist("basic__raw__ntracks", "N Reco Tracks", "ntracks")->Fill(reco.nTracks);
+      for (int it = 0; it < reco.nTracks; it++) {
+        GetHist("basic__raw__nHits", "nHits", "n0-120")->Fill(reco.nHits[it]);
+        GetHist("basic__raw__nKalmanNodes", "nKalmanNodes", "n0-120")->Fill(reco.nKalmanNodes[it]);
+        for (int ih = 0; ih < reco.nHits[it]; ih++) {
+          GetHist("basic__raw__TrackHitPos_X", "TrackHitPos X", "X")->Fill(reco.TrackHitPos[it][ih][0] * CM);
+          GetHist("basic__raw__TrackHitPos_Y", "TrackHitPos Y", "Y")->Fill(reco.TrackHitPos[it][ih][1] * CM);
+          GetHist("basic__raw__TrackHitPos_Z", "TrackHitPos Z", "Z")->Fill(reco.TrackHitPos[it][ih][2] * CM);
+        }
+        for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
+          GetHist("basic__raw__KalmanPos_X", "KalmanPos X", "X")->Fill(reco.KalmanPos[it][ih][0] * CM);
+          GetHist("basic__raw__KalmanPos_Y", "KalmanPos Y", "Y")->Fill(reco.KalmanPos[it][ih][1] * CM);
+          GetHist("basic__raw__KalmanPos_Z", "KalmanPos Z", "Z")->Fill(reco.KalmanPos[it][ih][2] * CM);
+          GetHist("basic__raw__KalmanTruePos_X", "KalmanTruePos X", "X")->Fill(reco.KalmanTruePos[it][ih][0] * CM);
+          GetHist("basic__raw__KalmanTruePos_Y", "KalmanTruePos Y", "Y")->Fill(reco.KalmanTruePos[it][ih][1] * CM);
+          GetHist("basic__raw__KalmanTruePos_Z", "KalmanTruePos Z", "Z")->Fill(reco.KalmanTruePos[it][ih][2] * CM);
+        }
+        GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0] * CM);
+        GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1] * CM);
+        GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2] * CM);
+        GetHist("basic__raw__StartDirection_XZ", "StartDirection", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
+        GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0] * CM);
+        GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
+        GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
+        GetHist("basic__raw__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+      }
+      // TODO finish adding these vars
+      // TODO add "fixes" to direction, etc and see if that fixes things
+      
+      /*
+   // Used to be Direction, now is StartDirection, check for both options depending on the file
+   //if (HasBranch("Direction")) fChain->SetBranchAddress("Direction", Direction, &b_Direction);
+   //else fChain->SetBranchAddress("StartDirection", Direction, &b_Direction);
+   fChain->SetBranchAddress("StartDirection", StartDirection, &b_StartDirection);
+   fChain->SetBranchAddress("EndDirection", EndDirection, &b_EndDirection);
+   fChain->SetBranchAddress("StartPos", StartPos, &b_StartPos);
+   fChain->SetBranchAddress("EndPos", EndPos, &b_EndPos);
+   fChain->SetBranchAddress("EnergyRange", EnergyRange, &b_EnergyRange);
+   fChain->SetBranchAddress("EnergyDeposit", EnergyDeposit, &b_EnergyDeposit);
+   fChain->SetBranchAddress("Momentum", Momentum, &b_Momentum);
+   fChain->SetBranchAddress("Length", Length, &b_Length);
+   fChain->SetBranchAddress("Charge", Charge, &b_Charge);
+   fChain->SetBranchAddress("TrackHitEnergies", TrackHitEnergies, &b_RecoTrackHitEnergies); */
+      
 
       // Adjust to kalman if needed
       if (!has_kalman) {
@@ -571,9 +639,21 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         //std::cout<<"track num: "<<itrack<<"\tn hits: "<<reco.nHits[itrack]<<"\tn kalman nodes: "<<reco.nKalmanNodes[itrack]<<std::endl;
       }
       
+      if (last_spill_seen != reco.SpillNo) {
+        GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500")->Fill(truth.nTrueParticles);
+        GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles", "n0-500")->Fill(truth.nTruePrimaryParticles);
+        GetHist("basic__truth__nTrueForgottenParticles", "nTrueForgottenParticles", "n0-120")->Fill(truth.nTrueForgottenParticles);
+        for (int ip = 0; ip < truth.nTrueParticles; ip++) {
+          GetHist("basic__truth__PDG", "PDG", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
+          if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
+          if (!truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
+        }
+        last_spill_seen = reco.SpillNo;
+      }
+      
       // Example of drawing for a reason
-      if (reco.nTracks > 2) {
-        DrawSlice(TString::Format("entry_%d", entry_number).Data(), "high_reco_track_multiplicity", 
+      if (reco.nTracks > 2 && false) {
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "high_reco_track_multiplicity", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth);
       }
 
@@ -588,12 +668,18 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       //if (entry_number > 700) exit(1); // TODO delete
 
     } // End for loop over entries
+    
+    
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start).count();
+    
     // Now save the hists
     outputFile.Write();
 
     auto entries_visited = entry_number;
+    double avg_time = duration / ((double) entries_visited);
 
-    std::cout<<"Finished loop over "<<entries_visited<<" entries"<<std::endl;
+    std::cout<<"Loop took "<<avg_time<<"us per event. "<<duration<<"us total for "<<entries_visited<<" entries"<<std::endl;
     return entries_visited;
 }
 
