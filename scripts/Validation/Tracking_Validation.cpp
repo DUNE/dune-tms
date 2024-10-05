@@ -26,7 +26,8 @@
 
 std::string save_location = "";
 
-const float CM = 0.1; // cm per mm
+const double CM = 0.1; // cm per mm
+const double DEG = 360 / TAU;
 
 int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
@@ -440,8 +441,17 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "dy") return std::make_tuple("dY (cm)", 100, -100, 100);
   if (axis_name == "dz") return std::make_tuple("dZ (cm)", 100, -100, 100);
   if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
+  if (axis_name == "angle_tms_enter") return std::make_tuple("Angle (deg)", 30, -60, 60);
   std::cerr<<"Fatal: Add axis to GetBinning. Did not understand axis name "<<axis_name<<std::endl;
   throw std::runtime_error("Unable to understand axis name");
+}
+
+double muon_ke_bins[] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0, 5.1};
+int n_muon_ke_bins = sizeof(muon_ke_bins) / sizeof(double) - 1;
+
+std::tuple<bool, std::string, int, double*> GetComplexBinning(std::string axis_name) {
+  if (axis_name == "ke_tms_enter") return std::make_tuple(true, "Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
+  return std::make_tuple(false, "", 0, (double*)NULL);
 }
 
 void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::string zaxis = "") {
@@ -466,13 +476,23 @@ TH1* MakeHist(std::string directory_and_name, std::string title, std::string xax
   }
   else {
     // 1d hist case
+    TH1D* out;
     std::string xaxis_title;
     int xaxis_nbins;
-    double xaxis_start;
-    double xaxis_end;
-    std::tie(xaxis_title,  xaxis_nbins, xaxis_start, xaxis_end) = GetBinning(xaxis);
-    auto complete_title = title + ";" + xaxis_title;
-    auto out = new TH1D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_start, xaxis_end);
+    double* xaxis_bins;
+    bool has_complex_binning;
+    std::tie(has_complex_binning, xaxis_title,  xaxis_nbins, xaxis_bins) = GetComplexBinning(xaxis);
+    if (has_complex_binning) {
+    
+      auto complete_title = title + ";" + xaxis_title;
+      out = new TH1D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_bins);
+    } else {
+      double xaxis_start;
+      double xaxis_end;
+      std::tie(xaxis_title,  xaxis_nbins, xaxis_start, xaxis_end) = GetBinning(xaxis);
+      auto complete_title = title + ";" + xaxis_title;
+      out = new TH1D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_start, xaxis_end);
+    }
     // Add special naming here
     AdjustAxis(out, xaxis);
     return out;
@@ -678,6 +698,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
         GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
         GetHist("basic__fixed__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        
+        
+        
       }
       
       if (on_new_spill) {
@@ -688,6 +711,34 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           GetHist("basic__truth__PDG", "PDG", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (!truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
+          
+          bool ismuon = abs(truth.PDG[ip]) == 13;
+          // TODO add truth cut that we started in LAr fiducial and ended in TMS
+          if (ismuon) {
+            double muon_starting_ke = truth.MomentumTMSStart[ip][3] * 1e-3;
+            if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
+            GetHist("reco_eff__muon_ke_tms_enter_denominator", "Reco Eff Muon KE Entering TMS: Denominator", 
+              "ke_tms_enter")->Fill(muon_starting_ke);
+            double muon_starting_angle = std::atan2(truth.MomentumTMSStart[ip][0], truth.MomentumTMSStart[ip][2]) * DEG;
+            GetHist("reco_eff__angle_tms_enter_denominator", "Reco Eff Muon Angle Entering TMS: Denominator", 
+              "angle_tms_enter")->Fill(muon_starting_angle);
+          }
+        }
+      }
+      
+      // Fill numerators of reco_eff plots here
+      for (int it = 0; it < reco.nTracks; it++) {
+        // TODO add cut that it starts in LAr and ends in TMS
+        bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
+        if (ismuon) {
+          double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
+          if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
+          GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reco Eff Muon KE Entering TMS: Numerator", 
+            "ke_tms_enter")->Fill(muon_starting_ke);
+          double muon_starting_angle = std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][0],
+                                                  truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2]) * DEG;
+          GetHist("reco_eff__angle_tms_enter_numerator", "Reco Eff Muon Angle Entering TMS: Numerator", 
+            "angle_tms_enter")->Fill(muon_starting_angle);
         }
       }
       
