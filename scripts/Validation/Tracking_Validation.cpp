@@ -566,6 +566,14 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       reco.GetEntry(entry_number);
       lc.GetEntry(entry_number);
       
+      // Check if we're on a new spill
+      // Some things should only be filled per spill
+      bool on_new_spill = false;
+      if (last_spill_seen != reco.SpillNo) {
+        on_new_spill = true;
+        last_spill_seen = reco.SpillNo;
+      }
+      
       // Fill some basic "raw" variables from the reco tree
       GetHist("basic__raw__EventNo", "EventNo", "EventNo")->Fill(reco.EventNo);
       GetHist("basic__raw__SliceNo", "SliceNo", "SliceNo")->Fill(reco.SliceNo);
@@ -639,7 +647,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         //std::cout<<"track num: "<<itrack<<"\tn hits: "<<reco.nHits[itrack]<<"\tn kalman nodes: "<<reco.nKalmanNodes[itrack]<<std::endl;
       }
       
-      if (last_spill_seen != reco.SpillNo) {
+      if (on_new_spill) {
         GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500")->Fill(truth.nTrueParticles);
         GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles", "n0-500")->Fill(truth.nTruePrimaryParticles);
         GetHist("basic__truth__nTrueForgottenParticles", "nTrueForgottenParticles", "n0-120")->Fill(truth.nTrueForgottenParticles);
@@ -648,7 +656,6 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (!truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
         }
-        last_spill_seen = reco.SpillNo;
       }
       
       // Example of drawing for a reason
