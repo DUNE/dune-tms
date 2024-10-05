@@ -644,7 +644,40 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           if (reco.KalmanPos[itrack][ihit][2] > 1000) n_nonzero++;
         }
         reco.nKalmanNodes[itrack] = n_nonzero;
-        //std::cout<<"track num: "<<itrack<<"\tn hits: "<<reco.nHits[itrack]<<"\tn kalman nodes: "<<reco.nKalmanNodes[itrack]<<std::endl;
+        
+        if (reco.nHits[itrack] > 0) {
+          const int LOOKBACK_WINDOW = 10;
+          int n_nodes = n_nonzero > LOOKBACK_WINDOW ? LOOKBACK_WINDOW : n_nonzero;
+          n_nodes -= 1;
+          reco.StartDirection[itrack][0] = reco.KalmanPos[itrack][0][0] - reco.KalmanPos[itrack][n_nodes][0];
+          reco.StartDirection[itrack][1] = reco.KalmanPos[itrack][0][1] - reco.KalmanPos[itrack][n_nodes][1];
+          reco.StartDirection[itrack][2] = reco.KalmanPos[itrack][0][2] - reco.KalmanPos[itrack][n_nodes][2];
+
+          int last_index = reco.nKalmanNodes[itrack] - 1;
+          reco.EndDirection[itrack][0] = reco.KalmanPos[itrack][last_index][0] - reco.KalmanPos[itrack][last_index - n_nodes][0];
+          reco.EndDirection[itrack][1] = reco.KalmanPos[itrack][last_index][1] - reco.KalmanPos[itrack][last_index - n_nodes][1];
+          reco.EndDirection[itrack][2] = reco.KalmanPos[itrack][last_index][2] - reco.KalmanPos[itrack][last_index - n_nodes][2];
+        }
+      }
+      
+      for (int it = 0; it < reco.nTracks; it++) {
+        GetHist("basic__fixed__nKalmanNodes", "nKalmanNodes", "n0-120")->Fill(reco.nKalmanNodes[it]);
+        for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
+          GetHist("basic__fixed__KalmanPos_X", "KalmanPos X", "X")->Fill(reco.KalmanPos[it][ih][0] * CM);
+          GetHist("basic__fixed__KalmanPos_Y", "KalmanPos Y", "Y")->Fill(reco.KalmanPos[it][ih][1] * CM);
+          GetHist("basic__fixed__KalmanPos_Z", "KalmanPos Z", "Z")->Fill(reco.KalmanPos[it][ih][2] * CM);
+          GetHist("basic__fixed__KalmanTruePos_X", "KalmanTruePos X", "X")->Fill(reco.KalmanTruePos[it][ih][0] * CM);
+          GetHist("basic__fixed__KalmanTruePos_Y", "KalmanTruePos Y", "Y")->Fill(reco.KalmanTruePos[it][ih][1] * CM);
+          GetHist("basic__fixed__KalmanTruePos_Z", "KalmanTruePos Z", "Z")->Fill(reco.KalmanTruePos[it][ih][2] * CM);
+        }
+        GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0] * CM);
+        GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1] * CM);
+        GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2] * CM);
+        GetHist("basic__fixed__StartDirection_XZ", "StartDirection", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
+        GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0] * CM);
+        GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
+        GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
+        GetHist("basic__fixed__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
       }
       
       if (on_new_spill) {
