@@ -343,7 +343,7 @@ int isTMSContained(TVector3 position, bool thin_only = false) {
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Thick_End = 18294;  
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
   const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
   if (position.X() < TMS_Start_Bars_Only[0]) out += 1 << 0;
@@ -426,6 +426,14 @@ int PDGtoIndexReduced(int pdgCode) {
 
 std::unordered_map<std::string, TH1*> mapForGetHist;
 
+std::unordered_map<std::string, std::tuple<std::string, int, double, double>> registeredAxes;
+inline void RegisterAxis(std::string axis_name, std::tuple<std::string, int, double, double> axis_tuple) {
+  // Only register the first time
+  if (registeredAxes.find(axis_name) == registeredAxes.end()) {
+    registeredAxes[axis_name] = axis_tuple;
+  }
+}
+
 std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "ntracks") return std::make_tuple("N Tracks", 10, -0.5, 9.5);
   if (axis_name == "n0-120") return std::make_tuple("N", 24, 0, 120);
@@ -442,6 +450,16 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "dz") return std::make_tuple("dZ (cm)", 100, -100, 100);
   if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
   if (axis_name == "angle_tms_enter") return std::make_tuple("Angle (deg)", 30, -60, 60);
+  if (axis_name == "unusual_hit_locations") return std::make_tuple("Hit Location", 4, -0.5, 3.5);
+  if (axis_name == "charge") return std::make_tuple("Charge", 50, -100, 100);
+  if (axis_name == "areal_density") return std::make_tuple("Areal Density (g/cm^2)", 50, 0, 3000);
+  if (axis_name == "momentum") return std::make_tuple("Momentum (GeV)", 50, 0, 5);
+  if (axis_name == "energy_range") return std::make_tuple("Energy Range (GeV)", 50, 0, 5);
+  if (axis_name == "energy_deposit") return std::make_tuple("Energy Deposit (MeV)", 50, 0, 3000);
+  
+  // Allow for registered axis so we don't need to add them away from where they're used
+  if (registeredAxes.find(axis_name) != registeredAxes.end()) return registeredAxes[axis_name];
+  
   std::cerr<<"Fatal: Add axis to GetBinning. Did not understand axis name "<<axis_name<<std::endl;
   throw std::runtime_error("Unable to understand axis name");
 }
@@ -461,6 +479,15 @@ void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::strin
     hist->SetNdivisions(npdg);
     for (int ib = 0; ib < npdg; ib++) {
       hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
+    }
+  }
+  
+  if (xaxis == "unusual_hit_locations") {
+    const char *labels[] = {"Hit at Zero", "Hit at -999", "Hit Below Fiducial", "Hit Above Fiducial"};
+    const int nlabels = sizeof(labels) / sizeof(labels[0]);
+    hist->SetNdivisions(nlabels);
+    for (int ib = 0; ib < nlabels; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, labels[ib]);
     }
   }
 }
@@ -624,6 +651,13 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
         GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
         GetHist("basic__raw__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        
+        
+        GetHist("basic__raw__Charge", "Charge", "charge")->Fill(reco.Charge[it]);
+        GetHist("basic__raw__Length", "Areal Density, AKA Length", "areal_density")->Fill(reco.Length[it]);
+        GetHist("basic__raw__Momentum", "Momentum", "momentum")->Fill(reco.Momentum[it]);
+        GetHist("basic__raw__EnergyRange", "EnergyRange", "energy_range")->Fill(reco.EnergyRange[it]);
+        GetHist("basic__raw__EnergyDeposit", "EnergyDeposit", "energy_deposit")->Fill(reco.EnergyDeposit[it]);
       }
       // TODO finish adding these vars
       // TODO add "fixes" to direction, etc and see if that fixes things
@@ -700,7 +734,32 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__fixed__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
         
         
-        
+        // Check for reco hits outside the TMS scint volume
+        for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
+          int hit_flag_x = -1;
+          int hit_flag_y = -1;
+          int hit_flag_z = -1;
+          if (std::abs(reco.KalmanPos[it][ih][2]) < 0.01) hit_flag_z = 0;
+          if (reco.KalmanPos[it][ih][2] < -990) hit_flag_z = 1;
+          if (reco.KalmanPos[it][ih][2] < 11362) hit_flag_z = 2;
+          if (reco.KalmanPos[it][ih][2] > 18313) hit_flag_z = 3;
+          if (hit_flag_z == 3) std::cout<<"reco.KalmanPos[it][ih][2]: "<<reco.KalmanPos[it][ih][2]<<std::endl;
+          if (reco.KalmanPos[it][ih][1] < -2950) hit_flag_y = 2;
+          if (reco.KalmanPos[it][ih][1] > 240) hit_flag_y = 3;
+          if (reco.KalmanPos[it][ih][0] < -3350) hit_flag_x = 2;
+          if (reco.KalmanPos[it][ih][0] > 3350) hit_flag_x = 3;
+          // Only check x and y == 0 if z is strange
+          if (hit_flag_z != -1) {
+            if (std::abs(reco.KalmanPos[it][ih][0]) < 0.01) hit_flag_x = 0;
+            if (std::abs(reco.KalmanPos[it][ih][1]) < 0.01) hit_flag_y = 0;
+          }
+          if (hit_flag_z != -1) 
+            GetHist("basic__sanity__Unusual_Reco_Hit_Locations_Z", "Unusual Reco Hit Locations Z", "unusual_hit_locations")->Fill(hit_flag_z);
+          if (hit_flag_x != -1) 
+            GetHist("basic__sanity__Unusual_Reco_Hit_Locations_X", "Unusual Reco Hit Locations X", "unusual_hit_locations")->Fill(hit_flag_x);
+          if (hit_flag_y != -1) 
+            GetHist("basic__sanity__Unusual_Reco_Hit_Locations_Y", "Unusual Reco Hit Locations Y", "unusual_hit_locations")->Fill(hit_flag_y);
+        }
       }
       
       if (on_new_spill) {
@@ -739,6 +798,24 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                                                   truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2]) * DEG;
           GetHist("reco_eff__angle_tms_enter_numerator", "Reco Eff Muon Angle Entering TMS: Numerator", 
             "angle_tms_enter")->Fill(muon_starting_angle);
+        }
+      }
+      
+      RegisterAxis("energy_resolution", std::make_tuple("Energy Resolution, Reco - True (GeV)", 21, -0.2, 0.2));
+      for (int it = 0; it < reco.nTracks; it++) {
+        bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
+        if (ismuon) {
+          double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
+          double estimated_reco_ke = (82+1.75*reco.Length[it])*1e-3;
+          double resolution = estimated_reco_ke - muon_starting_ke;
+          
+          GetHist("resolution__muon_ke", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
+          if (muon_starting_ke <= 0.5) GetHist("resolution__muon_ke_stack_lt_05", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
+          if (0.5 < muon_starting_ke && muon_starting_ke <= 3)
+            GetHist("resolution__muon_ke_stack_gt05_lt3", "Muon KE Resolution for ", "energy_resolution")->Fill(resolution);
+          if (3 < muon_starting_ke && muon_starting_ke <= 5)
+            GetHist("resolution__muon_ke_stack_gt3_lt5", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
+          if (muon_starting_ke >= 5) GetHist("resolution__muon_ke_stack_gt5", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
         }
       }
       
