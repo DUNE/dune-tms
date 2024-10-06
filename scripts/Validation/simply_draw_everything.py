@@ -16,6 +16,7 @@ def get_subdir_and_name(hist_name):
     return subdir, name
     
 
+# TODO erase the output dir subdirs (except event displays) because sometimes the hists don't exist if they weren't filled at least once
 def draw_histograms(input_file):
     # Open the input ROOT file
     root_file = ROOT.TFile.Open(input_file)
@@ -113,7 +114,7 @@ def draw_histograms(input_file):
             
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
-        hist_stack.Draw("nostack")
+        hist_stack.Draw("nostack" if "nostack" in first_hist.GetName() else "stack")
         if first_hist != None:
             hist_stack.SetTitle(first_hist.GetTitle().replace(f" for {first_hist_name}", "").split(":")[0])
             hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
