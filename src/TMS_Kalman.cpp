@@ -145,11 +145,17 @@ void TMS_Kalman::RunKalman() {
 
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
+  // Set start pos/dir
   SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
-  SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
-
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
-  SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
+  // Set end pos/dir
+  if (KalmanNodes.size() > 1) {
+    SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
+    SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
+  } else { // Kalman output is rubbish in this case, but we don't crash :)
+    SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
+    SetEndDirection(KalmanNodes.front().CurrentState.dxdz, KalmanNodes.front().CurrentState.dydz);
+  }
 
   if (std::isnan(momentum) || std::isinf(momentum)){
     std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
@@ -181,9 +187,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     if ( abs(TMS_Kalman::AverageXSlope) > 2.0 )
     {
       std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
-      PreviousState.dydz = 0.0;
+      PreviousState.dxdz = 0.0;
     } else {
-      PreviousState.dydz = TMS_Kalman::AverageXSlope;
+      PreviousState.dxdz = TMS_Kalman::AverageXSlope;
     }
   }
   if (PreviousState.dydz ==  -999.9) // Only on initialisation?
