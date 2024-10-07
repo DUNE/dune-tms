@@ -68,7 +68,8 @@ def draw_histograms(input_file):
             if "numerator" in name: recoeff_plots_numerators[key] = obj 
             if "denominator" in name: recoeff_plots_denominators[key] = obj 
         if stack:
-            split_stack = name.split("_stack_")
+            if "_stack_" in name: split_stack = name.split("_stack_")
+            if "_nostack_" in name: split_stack = name.split("_nostack_")
             stack_key = split_stack[0]
             stack_plots[stack_key][split_stack[1]] = obj
             stack_plots[stack_key + "_log"][split_stack[1]] = obj
@@ -84,10 +85,10 @@ def draw_histograms(input_file):
         first_hist_name = None
         ymax = 0
         hist_stack = ROOT.THStack()
-        leg = ROOT.TLegend(0.2,0.7,0.8,0.9)
+        leg = ROOT.TLegend(0.2,0.75,0.8,0.90)
         leg.SetFillStyle(0)
         leg.SetBorderSize(0)
-        leg.SetNColumns(4)
+        leg.SetNColumns(2)
         
         log = False
         if "log" in name: log = True
@@ -97,10 +98,8 @@ def draw_histograms(input_file):
         headroom = 1.1
         if log: headroom = 3
         
-        # We have this preferred order if possible. If not, set the key to the end and append it to the list automatically
-        preferred_order = "Muon Electron Proton Pion Kaon Neutron Other Unknown".split()
         l = list(hist_and_name.items())
-        l.sort(key=lambda x: preferred_order.index(x[0]) if x[0] in preferred_order else len(preferred_order))
+        l.sort()
         for item_name, hist in l:
             hist.SetLineColor(colors[index % len(colors)])
             hist.SetLineStyle(line_styles[index % len(line_styles)])
@@ -109,14 +108,17 @@ def draw_histograms(input_file):
                 first_hist_name = item_name
             ymax = max(ymax, hist.GetMaximum())
             hist_stack.Add(hist)
-            leg.AddEntry(hist, item_name, "lep")
+            name_for_legend = item_name
+            if ":" in hist.GetTitle():
+                name_for_legend = hist.GetTitle().split(":")[1].strip()
+            leg.AddEntry(hist, name_for_legend, "lep")
             index += 1
             
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
         hist_stack.Draw("nostack" if "nostack" in first_hist.GetName() else "stack")
         if first_hist != None:
-            hist_stack.SetTitle(first_hist.GetTitle().replace(f" for {first_hist_name}", "").split(":")[0])
+            hist_stack.SetTitle(first_hist.GetTitle().replace(f": {first_hist_name}", "").split(":")[0])
             hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
             hist_stack.GetYaxis().SetTitle(first_hist.GetYaxis().GetTitle())
         
@@ -127,7 +129,7 @@ def draw_histograms(input_file):
             if log: hist.GetYaxis().SetRangeUser(ymin, ymax*headroom)
                 
         # Now finally draw and save
-        hist_stack.Draw("nostack")
+        hist_stack.Draw("nostack" if "nostack" in first_hist.GetName() else "stack")
         leg.Draw()
         subdir, image_name = get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
