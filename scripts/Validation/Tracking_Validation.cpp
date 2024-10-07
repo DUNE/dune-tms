@@ -434,6 +434,16 @@ inline void RegisterAxis(std::string axis_name, std::tuple<std::string, int, dou
   }
 }
 
+class AutoregisterAxis {
+public:
+    AutoregisterAxis(const std::string& name, std::tuple<std::string, int, double, double> axis_tuple) {
+        std::cout<<"Registering axis "<<name<<std::endl;
+        RegisterAxis(name, axis_tuple);
+    }
+};
+
+#define REGISTER_AXIS(name, axis_tuple) static AutoregisterAxis reg_axis_##__COUNTER__(name, axis_tuple)
+
 std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "ntracks") return std::make_tuple("N Tracks", 10, -0.5, 9.5);
   if (axis_name == "n0-120") return std::make_tuple("N", 24, 0, 120);
@@ -801,7 +811,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
       
-      RegisterAxis("energy_resolution", std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
+      REGISTER_AXIS("energy_resolution", std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {
         bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
         if (ismuon) {
