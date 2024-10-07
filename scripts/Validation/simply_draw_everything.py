@@ -72,7 +72,7 @@ def draw_histograms(input_file):
             if "_nostack_" in name: split_stack = name.split("_nostack_")
             stack_key = split_stack[0]
             stack_plots[stack_key][split_stack[1]] = obj
-            stack_plots[stack_key + "_log"][split_stack[1]] = obj
+            #stack_plots[stack_key + "_log"][split_stack[1]] = obj
     
     # Draw the stacks
     # First define some unique colors and line styles
@@ -95,12 +95,20 @@ def draw_histograms(input_file):
         if log: canvas.SetLogy(True)
         else: canvas.SetLogy(False)
         
-        headroom = 1.1
+        area_norm = False
+        if "area_norm" in name:
+            area_norm = True
+        
+        headroom = 1.3
         if log: headroom = 3
         
         l = list(hist_and_name.items())
         l.sort()
         for item_name, hist in l:
+            if area_norm:
+                integral = hist.Integral()
+                if integral != 0:
+                    hist.Scale(1/integral)
             hist.SetLineColor(colors[index % len(colors)])
             hist.SetLineStyle(line_styles[index % len(line_styles)])
             if index == 0: 
@@ -116,7 +124,7 @@ def draw_histograms(input_file):
             
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
-        hist_stack.Draw("nostack" if "nostack" in first_hist.GetName() else "stack")
+        hist_stack.Draw("hist nostack" if "nostack" in first_hist.GetName() else "hist stack")
         if first_hist != None:
             hist_stack.SetTitle(first_hist.GetTitle().replace(f": {first_hist_name}", "").split(":")[0])
             hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
@@ -126,10 +134,10 @@ def draw_histograms(input_file):
         ymin = 0
         if log: ymin = 10
         for hist in hist_and_name.values():
-            if log: hist.GetYaxis().SetRangeUser(ymin, ymax*headroom)
+            hist.GetYaxis().SetRangeUser(ymin, ymax*headroom)
                 
         # Now finally draw and save
-        hist_stack.Draw("nostack" if "nostack" in first_hist.GetName() else "stack")
+        hist_stack.Draw("hist nostack" if "nostack" in first_hist.GetName() else "hist stack")
         leg.Draw()
         subdir, image_name = get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
