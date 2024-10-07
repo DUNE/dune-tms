@@ -801,21 +801,34 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
       
-      RegisterAxis("energy_resolution", std::make_tuple("Energy Resolution, Reco - True (GeV)", 21, -0.2, 0.2));
+      RegisterAxis("energy_resolution", std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {
         bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
         if (ismuon) {
           double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
           double estimated_reco_ke = (82+1.75*reco.Length[it])*1e-3;
           double resolution = estimated_reco_ke - muon_starting_ke;
+          double fractional_resolution = resolution / muon_starting_ke;
           
-          GetHist("resolution__muon_ke", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
-          if (muon_starting_ke <= 0.5) GetHist("resolution__muon_ke_stack_lt_05", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
-          if (0.5 < muon_starting_ke && muon_starting_ke <= 3)
-            GetHist("resolution__muon_ke_stack_gt05_lt3", "Muon KE Resolution for ", "energy_resolution")->Fill(resolution);
-          if (3 < muon_starting_ke && muon_starting_ke <= 5)
-            GetHist("resolution__muon_ke_stack_gt3_lt5", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
-          if (muon_starting_ke >= 5) GetHist("resolution__muon_ke_stack_gt5", "Muon KE Resolution", "energy_resolution")->Fill(resolution);
+          GetHist("resolution__muon_ke", "Muon KE Resolution", "energy_resolution")->Fill(fractional_resolution);
+          if (muon_starting_ke <= 0.5) 
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_1_le05", 
+                    "Muon KE Resolution: True P_{#mu}/GeV<0.5", "energy_resolution")->Fill(fractional_resolution);
+          if (0.5 < muon_starting_ke && muon_starting_ke <= 1.5)
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_2_gt05_le15", 
+                    "Muon KE Resolution: 0.5<True P_{#mu}/GeV<1.5", "energy_resolution")->Fill(fractional_resolution);
+          if (1.5 < muon_starting_ke && muon_starting_ke <= 2.5)
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_3_gt15_le25", 
+                    "Muon KE Resolution: 1.5<True P_{#mu}/GeV<2.5", "energy_resolution")->Fill(fractional_resolution);
+          if (2.5 < muon_starting_ke && muon_starting_ke <= 3.5)
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_4_gt25_le35", 
+                    "Muon KE Resolution: 2.5<True P_{#mu}/GeV<3.5", "energy_resolution")->Fill(fractional_resolution);
+          if (3.5 < muon_starting_ke && muon_starting_ke <= 4.5)
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_5_gt35_le45", 
+                    "Muon KE Resolutionn: 3.5<True P_{#mu}/GeV<4.5", "energy_resolution")->Fill(fractional_resolution);
+          if (muon_starting_ke > 4.5) 
+            GetHist("resolution__muon_ke_binned_area_norm_nostack_6_gt45", 
+                    "Muon KE Resolution: 4.5<True P_{#mu}/GeV", "energy_resolution")->Fill(fractional_resolution);
         }
       }
       
