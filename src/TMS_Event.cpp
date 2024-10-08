@@ -328,7 +328,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)), Other_Hits(event.Other_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
@@ -1089,12 +1089,21 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
 double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid) {
   double out = 0;
   for (const auto& hit : Other_Hits) {
-    if (vertexid >= 0 && hit.GetVertexId() == vertexid) {
+    if (vertexid < 0 || hit.GetVertexId() == vertexid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
-      if (TMS_Geom::GetInstance().IsInsideLAr(position, thickness) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
+      if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
         out += hit.GetE();
       }
     }
+  }
+  return out;
+}
+
+double TMS_Event::CalculateEnergyInLAr(int vertexid) {
+  double out = 0;
+  for (const auto& hit : Other_Hits) {
+    if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexId() == vertexid) out += hit.GetE();
   }
   return out;
 }

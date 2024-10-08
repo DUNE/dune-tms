@@ -104,6 +104,7 @@ class TMS_Event {
          { TimeSliceBounds.insert(TimeSliceBounds.end(), time_slice_bounds.begin(), time_slice_bounds.end()); };
          
      double CalculateEnergyInLArOuterShell(double thickness, int vertexid = -1);
+     double CalculateEnergyInLAr(int vertexid = -1);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
