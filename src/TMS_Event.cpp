@@ -54,10 +54,17 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     TG4PrimaryVertex vtx = *it;
     Reaction = (*it).GetReaction();
     
+    // Interaction number is off-by-one in recent microprod files, so set it manually
+    // See https://github.com/DUNE/2x2_sim/issues/61
+    vtx.InteractionNumber = current_vertexid;
     // Ideally we'd do it like this, but it's not supported by the spill builder
     // See https://github.com/DUNE/2x2_sim/issues/54
     if (use_GetInteractionNumber)
       current_vertexid = vtx.GetInteractionNumber();
+    if (current_vertexid < 0) {
+      std::cout<<"Fatal: Got a current_vertexid < 0 in TMS_Event: "<<current_vertexid<<std::endl;
+      throw std::runtime_error("Fatal: Get a vertex id < 0");
+    }
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -69,6 +76,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
         TMS_TruePrimaryParticles.emplace_back(truepart);
+        
+        if (current_vertexid != truepart.GetVertexID()) {
+          std::cout<<"Fatal: TMS_TrueParticle's vertex id was set incorrectly in true primary particle list" \
+                     " and doesn't match the current id: true part vtx id: ";
+          std::cout<<truepart.GetVertexID()<<" vs current: "<<current_vertexid<<std::endl;
+          throw std::runtime_error("Fatal: TMS_TrueParticle's vertex id was set incorrectly");
+        }
       }
 
       // Number of true trajectories
@@ -169,6 +183,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             TMS_TrueParticle part(ParentId, TrackId, PDGcode, current_vertexid);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
+        
+            if (current_vertexid != part.GetVertexID()) {
+              std::cout<<"Fatal: TMS_TrueParticle's vertex id was set incorrectly in all particle list " \
+                         "and doesn't match the current id: true part vtx id: ";
+              std::cout<<part.GetVertexID()<<" vs current: "<<current_vertexid<<std::endl;
+              throw std::runtime_error("Fatal: TMS_TrueParticle's vertex id was set incorrectly in all particle list");
+            }
           } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
@@ -863,6 +884,11 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (auto &part: other_truepart) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
+  // And true primary particles
+  std::vector<TMS_TrueParticle> other_trueprimpart = Other_Event.TMS_TruePrimaryParticles;
+  for (auto &part: other_trueprimpart) {
+    TMS_TruePrimaryParticles.emplace_back(std::move(part));
+  }
   
   // Merge these lists
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
@@ -1056,7 +1082,7 @@ int TMS_Event::GetTrueParticleIndex(int vertexid, int trackid) {
 int TMS_Event::GetPrimaryLeptonOfVertexID(int vertexid) {
   int lepton_index = -999;
   int current_index = 0;
-  for (auto particle : TMS_TruePrimaryParticles) {
+  for (auto& particle : TMS_TruePrimaryParticles) {
     if (particle.GetVertexID() == vertexid) {
       int pdg = std::abs(particle.GetPDG());
       if (pdg >= 11 && pdg <= 16) {
@@ -1081,6 +1107,8 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
     FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum, vertexid);
   }
   else {
+    std::cout<<"Warning in SetLeptonInfoUsingVertexID: GetPrimaryLeptonOfVertexID didn't"
+               "return a valid particle index for vertex id "<<vertexid<<std::endl;
     FillTrueLeptonInfo(-9999999, TLorentzVector(-9999999, -999999, -999999, -999999), 
       TLorentzVector(-9999999, -999999, -999999, -999999), vertexid);
   }
@@ -1100,6 +1128,20 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid)
 }
 
 double TMS_Event::CalculateEnergyInLAr(int vertexid) {
+  double out = 0;
+  for (const auto& hit : Other_Hits) {
+    if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexId() == vertexid) { 
+      TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+      if (TMS_Geom::GetInstance().IsInsideLAr(position))
+        out += hit.GetE();
+    }
+  }
+  return out;
+}
+
+
+double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
   double out = 0;
   for (const auto& hit : Other_Hits) {
     if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;

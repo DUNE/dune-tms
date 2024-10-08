@@ -46,6 +46,10 @@ class TMS_TrueParticle {
       TrueVisibleEnergy(-999),
       BirthMomentum(edep_part.GetMomentum().Vect()),
       BirthPosition(vtx.GetPosition()) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
+      }
     }
 
     // Construct directly from edep-sim
@@ -55,6 +59,10 @@ class TMS_TrueParticle {
       TrackId(TrackVal), 
       PDG(PDGVal), 
       TrueVisibleEnergy(-999) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal: Get a vertex id < 0");
+      }
     }
 
     // Print

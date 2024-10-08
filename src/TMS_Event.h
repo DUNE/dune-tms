@@ -105,6 +105,7 @@ class TMS_Event {
          
      double CalculateEnergyInLArOuterShell(double thickness, int vertexid = -1);
      double CalculateEnergyInLAr(int vertexid = -1);
+     double CalculateTotalNonTMSEnergy(int vertexid = -1);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
