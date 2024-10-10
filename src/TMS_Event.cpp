@@ -878,6 +878,11 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (auto &hit: other_hits) {
     TMS_Hits.emplace_back(std::move(hit));
   }
+  
+  // Do the same for non-tms hits
+  for (auto &hit: Other_Event.Other_Hits) {
+    Other_Hits.emplace_back(std::move(hit));
+  }
 
   // Do the same for the true particles
   std::vector<TMS_TrueParticle> other_truepart = Other_Event.GetTrueParticles();
@@ -897,7 +902,6 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   VertexIdOfMostEnergyInEvent = -9999;
 
   nVertices += Other_Event.nVertices;
-
 }
 
 // For now just fill the true neutrino
