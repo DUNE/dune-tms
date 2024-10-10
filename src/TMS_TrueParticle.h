@@ -89,12 +89,12 @@ class TMS_TrueParticle {
     void SetTrackId(int num) { TrackId = num; };
     void SetPDG(int num) { PDG = num; };
 
-    int GetPDG() { return PDG; };
-    int GetParent() { return Parent; };
-    bool IsPrimary() { return Parent < 0; };
-    int GetTrackId() { return TrackId; };
-    int GetVertexID() { return VertexID; };
-    double GetTrueVisibleEnergy() { return TrueVisibleEnergy; };
+    int GetPDG() const { return PDG; };
+    int GetParent() const { return Parent; };
+    bool IsPrimary() const { return Parent < 0; };
+    int GetTrackId() const { return TrackId; };
+    int GetVertexID() const { return VertexID; };
+    double GetTrueVisibleEnergy() const { return TrueVisibleEnergy; };
     void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
