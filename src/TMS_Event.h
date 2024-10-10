@@ -112,7 +112,7 @@ class TMS_Event {
 
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
-    std::vector<TMS_TrueHit> Other_Hits;
+    std::vector<TMS_TrueHit> NonTMS_Hits;
     
     void MergeCoincidentHits();
     void SimulateOpticalModel();

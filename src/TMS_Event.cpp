@@ -288,7 +288,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       else {
         // Add all non-tms hits to another vector
         // We only need it for truth info so just save truth info
-        Other_Hits.push_back(TMS_TrueHit(edep_hit, vertex_id));
+        NonTMS_Hits.push_back(TMS_TrueHit(edep_hit, vertex_id));
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
@@ -349,7 +349,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)), Other_Hits(event.Other_Hits),
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)), NonTMS_Hits(event.NonTMS_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
@@ -880,8 +880,8 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   }
   
   // Do the same for non-tms hits
-  for (auto &hit: Other_Event.Other_Hits) {
-    Other_Hits.emplace_back(std::move(hit));
+  for (auto &hit: Other_Event.NonTMS_Hits) {
+    NonTMS_Hits.emplace_back(std::move(hit));
   }
 
   // Do the same for the true particles
@@ -1120,7 +1120,7 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
 
 double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid) {
   double out = 0;
-  for (const auto& hit : Other_Hits) {
+  for (const auto& hit : NonTMS_Hits) {
     if (vertexid < 0 || hit.GetVertexId() == vertexid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
@@ -1133,7 +1133,7 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid)
 
 double TMS_Event::CalculateEnergyInLAr(int vertexid) {
   double out = 0;
-  for (const auto& hit : Other_Hits) {
+  for (const auto& hit : NonTMS_Hits) {
     if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
     if (vertexid < 0 || hit.GetVertexId() == vertexid) { 
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
@@ -1147,7 +1147,7 @@ double TMS_Event::CalculateEnergyInLAr(int vertexid) {
 
 double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
   double out = 0;
-  for (const auto& hit : Other_Hits) {
+  for (const auto& hit : NonTMS_Hits) {
     if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
     if (vertexid < 0 || hit.GetVertexId() == vertexid) out += hit.GetE();
   }
