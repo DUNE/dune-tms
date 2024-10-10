@@ -86,6 +86,8 @@ TMS_Manager::TMS_Manager() {
   _ACTIVE_LAR_END_X = toml::find<double>(data, "Fiducial", "LAr", "End", "X");
   _ACTIVE_LAR_END_Y = toml::find<double>(data, "Fiducial", "LAr", "End", "Y");
   _ACTIVE_LAR_END_Z = toml::find<double>(data, "Fiducial", "LAr", "End", "Z");
+  
+  _LAR_OUTER_SHELL_THICKNESS = toml::find<double>(data, "Fiducial", "LAr", "OuterShellThickness");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 

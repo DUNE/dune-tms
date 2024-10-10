@@ -92,6 +92,8 @@ class TMS_Manager {
     double Get_ACTIVE_LAR_END_Y() { return _ACTIVE_LAR_END_Y; };
     double Get_ACTIVE_LAR_END_Z() { return _ACTIVE_LAR_END_Z; };
 
+    double Get_LAR_OUTER_SHELL_THICKNESS() { return _LAR_OUTER_SHELL_THICKNESS; };
+
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
@@ -182,6 +184,8 @@ class TMS_Manager {
     double _ACTIVE_LAR_END_X;
     double _ACTIVE_LAR_END_Y;
     double _ACTIVE_LAR_END_Z;
+    
+    double _LAR_OUTER_SHELL_THICKNESS;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
