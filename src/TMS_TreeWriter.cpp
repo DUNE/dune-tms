@@ -264,6 +264,13 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
   Truth_Info->Branch("VertexVisibleEnergyFractionInSlice", &VertexVisibleEnergyFractionInSlice, "VertexVisibleEnergyFractionInSlice/F");
   Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction", &PrimaryVertexVisibleEnergyFraction, "PrimaryVertexVisibleEnergyFraction/F");
+
+  Truth_Info->Branch("LArOuterShellEnergy", &LArOuterShellEnergy, "LArOuterShellEnergy/F");
+  Truth_Info->Branch("LArOuterShellEnergyFromVertex", &LArOuterShellEnergyFromVertex, "LArOuterShellEnergyFromVertex/F");
+  Truth_Info->Branch("LArTotalEnergy", &LArTotalEnergy, "LArTotalEnergy/F");
+  Truth_Info->Branch("LArTotalEnergyFromVertex", &LArTotalEnergyFromVertex, "LArTotalEnergyFromVertex/F");
+  Truth_Info->Branch("TotalNonTMSEnergy", &TotalNonTMSEnergy, "TotalNonTMSEnergy/F");
+  Truth_Info->Branch("TotalNonTMSEnergyFromVertex", &TotalNonTMSEnergyFromVertex, "TotalNonTMSEnergyFromVertex/F");
   
   Truth_Info->Branch("RecoTrackN", &RecoTrackN, "RecoTrackN/I");
   Truth_Info->Branch("RecoTrackTrueVisibleEnergy", RecoTrackTrueVisibleEnergy,
@@ -595,6 +602,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
     
   }
+  
+  // Fill LAr hit outer shell energy info
+  // Case 1: All energy in outer shell, useful only for single event interactions
+  // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
+  double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS(); // mm
+  LArOuterShellEnergy = event.CalculateEnergyInLArOuterShell(thickness);
+  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexIdOfMostEnergyInEvent);
+  LArTotalEnergy = event.CalculateEnergyInLAr();
+  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexIdOfMostEnergyInEvent);
+  TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
+  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexIdOfMostEnergyInEvent);
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
@@ -1520,6 +1538,8 @@ void TMS_TreeWriter::Clear() {
 
   EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
   VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
+  LArOuterShellEnergy = LArTotalEnergy = TotalNonTMSEnergy = DEFAULT_CLEARING_FLOAT;
+  LArOuterShellEnergyFromVertex = LArTotalEnergyFromVertex = TotalNonTMSEnergyFromVertex = DEFAULT_CLEARING_FLOAT;
   Reaction = "";
   IsCC = false;
   for (int i = 0; i < 4; ++i) {
