@@ -373,6 +373,11 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
+  
+  truth->Branch("TrueNonTMSNHits", &TrueNonTMSNHits, "TrueNonTMSNHits/I");
+  truth->Branch("TrueNonTMSHitPos", TrueNonTMSHitPos, "TrueNonTMSHitPos[TrueNonTMSNHits][4]/F");
+  truth->Branch("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, "TrueNonTMSHitEnergy[TrueNonTMSNHits]/F");
+  truth->Branch("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, "TrueNonTMSHitVertexID[TrueNonTMSNHits]/I");
 
   truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
   truth->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
@@ -1525,6 +1530,31 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
     
   }
+  
+  TrueNonTMSNHits = event.GetNonTMSHits().size();
+  if (TrueNonTMSNHits > __TMS_MAX_TRUE_NONTMS_HITS__) TrueNonTMSNHits = __TMS_MAX_TRUE_NONTMS_HITS__;
+  std::cout<<"TrueNonTMSNHits: "<<TrueNonTMSNHits<<std::endl;
+  int index = 0;
+  for (auto& hit : event.GetNonTMSHits()) {
+    if (index >= __TMS_MAX_TRUE_NONTMS_HITS__) {
+      std::cout<<"Warning: Found nontms hits than __TMS_MAX_TRUE_NONTMS_HITS__. "
+                 "This this happens often, increase limit from "<<__TMS_MAX_TRUE_NONTMS_HITS__<<std::endl;
+      break;
+    }
+    TrueNonTMSHitPos[index][0] = hit.GetX();
+    TrueNonTMSHitPos[index][1] = hit.GetY();
+    TrueNonTMSHitPos[index][2] = hit.GetZ();
+    TrueNonTMSHitPos[index][3] = hit.GetT();
+    TrueNonTMSHitEnergy[index] = hit.GetE();
+    if (hit.GetNTrueParticles() > 1) {
+      std::cout<<"Fatal: found > 1 true hit GetNTrueParticles(). Expecting exactly one"<<hit.GetNTrueParticles()<<std::endl;
+      throw std::runtime_error("Fatal: found > 1 true hit GetNTrueParticles()");
+    }
+    if (hit.GetNTrueParticles() == 1) {
+      TrueNonTMSHitVertexID[index] = hit.GetVertexIds(0);
+    }
+    index += 1;
+  }
 
   Truth_Spill->Fill();
 }
@@ -1772,6 +1802,7 @@ void TMS_TreeWriter::Clear() {
   }
     
   nTrueParticles = 0;
+  TrueNonTMSNHits = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
     VertexID[i] = DEFAULT_CLEARING_FLOAT;
     Parent[i] = DEFAULT_CLEARING_FLOAT;
@@ -1790,8 +1821,13 @@ void TMS_TreeWriter::Clear() {
     LArFiducialStart[i] = false;
     LArFiducialTouch[i] = false;
     LArFiducialEnd[i] = false;
+    
+    TrueNonTMSHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNonTMSHitVertexID[i] = -99999;
 
     for (int j = 0; j < 4; ++j) {
+      TrueNonTMSHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
+      
       BirthMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
       BirthPosition[i][j] = DEFAULT_CLEARING_FLOAT;
       DeathMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
