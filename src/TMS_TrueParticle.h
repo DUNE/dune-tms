@@ -96,6 +96,8 @@ class TMS_TrueParticle {
     int GetVertexID() const { return VertexID; };
     double GetTrueVisibleEnergy() const { return TrueVisibleEnergy; };
     void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
+    int GetNTrueHits() const { return NTrueHits; };
+    void SetNTrueHits(int n) { NTrueHits = n; };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
@@ -177,6 +179,7 @@ class TMS_TrueParticle {
     int TrackId;
     int PDG;
     double TrueVisibleEnergy;
+    int NTrueHits;
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;
