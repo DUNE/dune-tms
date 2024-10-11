@@ -828,8 +828,8 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           // Cleanliness = true primary on track / true all on track, lower -> more contamination
           double completeness_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] / truth.TrueVisibleEnergy[particle_index];
           double cleanliness_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] / truth.RecoTrackTrueVisibleEnergy[it];
-          double completeness_nhits = 0;
-          double cleanliness_nhits = 0;
+          double completeness_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] / (double) truth.TrueNHits[particle_index]; // Also can do TrueNHitsInSlice
+          double cleanliness_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] / (double) truth.RecoTrackNHits[it];
           GetHist("basic__reco_track__completeness_energy", 
                   "Reco Track Completeness, Visible Energy", "completeness")->Fill(completeness_energy);
           GetHist("basic__reco_track__cleanliness_energy", 

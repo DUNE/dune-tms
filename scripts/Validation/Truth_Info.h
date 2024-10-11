@@ -42,6 +42,9 @@ public :
    Int_t           PDG[20000];   //[nTrueParticles]
    Bool_t          IsPrimary[20000];   //[nTrueParticles]
    Float_t         TrueVisibleEnergy[20000];   //[nTrueParticles]
+   Int_t           TrueNHits[20000];   //[nTrueParticles]
+   Float_t         TrueVisibleEnergyInSlice[20000];   //[nTrueParticles]
+   Int_t           TrueNHitsInSlice[20000];   //[nTrueParticles]
    Float_t         TruePathLength[20000];   //[nTrueParticles]
    Float_t         TruePathLengthIgnoreY[20000];   //[nTrueParticles]
    Float_t         TruePathLengthInTMS[20000];   //[nTrueParticles]
@@ -97,8 +100,10 @@ public :
    Float_t         RecoTrackTrueVisibleEnergy[10];   //[RecoTrackN]
    Int_t           RecoTrackPrimaryParticleIndex[10];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueVisibleEnergy[10];   //[RecoTrackN]
+   Int_t           RecoTrackPrimaryParticleTrueNHits[10]; //[RecoTrackN]
    Int_t           RecoTrackSecondaryParticleIndex[10];   //[RecoTrackN]
    Float_t         RecoTrackSecondaryParticleTrueVisibleEnergy[10];   //[RecoTrackN]
+   Int_t         RecoTrackSecondaryParticleTrueNHits[10];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumTrackStart[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTruePositionTrackStart[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumTrackEnd[10][4];   //[RecoTrackN]
@@ -153,6 +158,9 @@ public :
    TBranch        *b_PDG;   //!
    TBranch        *b_IsPrimary;   //!
    TBranch        *b_TrueVisibleEnergy;   //!
+   TBranch        *b_TrueNHits;   //!
+   TBranch        *b_TrueVisibleEnergyInSlice;   //!
+   TBranch        *b_TrueNHitsInSlice;   //!
    TBranch        *b_TruePathLength;   //!
    TBranch        *b_TruePathLengthIgnoreY;   //!
    TBranch        *b_TruePathLengthInTMS;   //!
@@ -208,8 +216,10 @@ public :
    TBranch        *b_RecoTrackTrueVisibleEnergy;   //!
    TBranch        *b_RecoTrackPrimaryParticleIndex;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueVisibleEnergy;   //!
+   TBranch        *b_RecoTrackPrimaryParticleTrueNHits;   //!
    TBranch        *b_RecoTrackSecondaryParticleIndex;   //!
    TBranch        *b_RecoTrackSecondaryParticleTrueVisibleEnergy;   //!
+   TBranch        *b_RecoTrackSecondaryParticleTrueNHits;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumTrackStart;   //!
    TBranch        *b_RecoTrackPrimaryParticleTruePositionTrackStart;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumTrackEnd;   //!
@@ -337,6 +347,9 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("PDG", PDG, &b_PDG);
    fChain->SetBranchAddress("IsPrimary", IsPrimary, &b_IsPrimary);
    fChain->SetBranchAddress("TrueVisibleEnergy", TrueVisibleEnergy, &b_TrueVisibleEnergy);
+   fChain->SetBranchAddress("TrueNHits", TrueNHits, &b_TrueNHits);
+   fChain->SetBranchAddress("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, &b_TrueVisibleEnergyInSlice);
+   fChain->SetBranchAddress("TrueNHitsInSlice", TrueNHitsInSlice, &b_TrueNHitsInSlice);
    fChain->SetBranchAddress("TruePathLength", TruePathLength, &b_TruePathLength);
    fChain->SetBranchAddress("TruePathLengthIgnoreY", TruePathLengthIgnoreY, &b_TruePathLengthIgnoreY);
    fChain->SetBranchAddress("TruePathLengthInTMS", TruePathLengthInTMS, &b_TruePathLengthInTMS);
@@ -392,8 +405,10 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("RecoTrackTrueVisibleEnergy", RecoTrackTrueVisibleEnergy, &b_RecoTrackTrueVisibleEnergy);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleIndex", RecoTrackPrimaryParticleIndex, &b_RecoTrackPrimaryParticleIndex);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueVisibleEnergy", RecoTrackPrimaryParticleTrueVisibleEnergy, &b_RecoTrackPrimaryParticleTrueVisibleEnergy);
+   fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueNHits", RecoTrackPrimaryParticleTrueNHits, &b_RecoTrackPrimaryParticleTrueNHits);
    fChain->SetBranchAddress("RecoTrackSecondaryParticleIndex", RecoTrackSecondaryParticleIndex, &b_RecoTrackSecondaryParticleIndex);
    fChain->SetBranchAddress("RecoTrackSecondaryParticleTrueVisibleEnergy", RecoTrackSecondaryParticleTrueVisibleEnergy, &b_RecoTrackSecondaryParticleTrueVisibleEnergy);
+   fChain->SetBranchAddress("RecoTrackSecondaryParticleTrueNHits", RecoTrackSecondaryParticleTrueNHits, &b_RecoTrackSecondaryParticleTrueNHits);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumTrackStart", RecoTrackPrimaryParticleTrueMomentumTrackStart, &b_RecoTrackPrimaryParticleTrueMomentumTrackStart);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTruePositionTrackStart", RecoTrackPrimaryParticleTruePositionTrackStart, &b_RecoTrackPrimaryParticleTruePositionTrackStart);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumTrackEnd", RecoTrackPrimaryParticleTrueMomentumTrackEnd, &b_RecoTrackPrimaryParticleTrueMomentumTrackEnd);
