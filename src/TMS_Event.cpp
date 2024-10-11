@@ -1233,9 +1233,14 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
     // Only count hits that are not ped subtracted
     if (!hit.GetPedSup()) {
       auto true_hit = hit.GetTrueHit();
+      // Only add 1 hit for each key once, so track if we saw a key already
+      std::map<int, int> key_seen;
       for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
         int key = true_hit.GetVertexIds(i) * 100000 + true_hit.GetPrimaryIds(i);
-        NHitsPerParticle[key] += 1;
+        if (key_seen.find(key) == key_seen.end()) { 
+          NHitsPerParticle[key] += 1;
+          key_seen[key] = 1;
+        }
         EnergyPerParticle[key] += true_hit.GetEnergyShare(i);
       }
     }
