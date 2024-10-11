@@ -1539,7 +1539,6 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   
   TrueNonTMSNHits = event.GetNonTMSHits().size();
   if (TrueNonTMSNHits > __TMS_MAX_TRUE_NONTMS_HITS__) TrueNonTMSNHits = __TMS_MAX_TRUE_NONTMS_HITS__;
-  std::cout<<"TrueNonTMSNHits: "<<TrueNonTMSNHits<<std::endl;
   int index = 0;
   for (auto& hit : event.GetNonTMSHits()) {
     if (index >= __TMS_MAX_TRUE_NONTMS_HITS__) {
