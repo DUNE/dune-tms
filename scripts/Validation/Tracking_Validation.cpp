@@ -442,7 +442,7 @@ public:
     }
 };
 
-#define REGISTER_AXIS(name, axis_tuple) static AutoregisterAxis reg_axis_##__COUNTER__(name, axis_tuple)
+#define REGISTER_AXIS(name, axis_tuple) static AutoregisterAxis reg_axis_ ## name(#name, axis_tuple)
 
 std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "ntracks") return std::make_tuple("N Tracks", 10, -0.5, 9.5);
@@ -811,7 +811,37 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
       
-      REGISTER_AXIS("energy_resolution", std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
+      // Truth matching information
+      REGISTER_AXIS(completeness, std::make_tuple("Track Completeness (primary on track / primary)", 20, 0, 1));
+      REGISTER_AXIS(cleanliness, std::make_tuple("Track Cleanliness (primary on track / total on track)", 20, 0, 1));
+      for (int it = 0; it < reco.nTracks; it++) {
+        GetHist("basic__reco_track__primary_pdg", 
+                "Reco Track Primary Particle PDG", "pdg")->Fill(PDGtoIndex(truth.RecoTrackPrimaryParticlePDG[it]));
+        GetHist("basic__reco_track__secondary_pdg", 
+                "Reco Track Secondary Particle PDG", "pdg")->Fill(PDGtoIndex(truth.RecoTrackSecondaryParticlePDG[it]));
+        int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
+        if (particle_index < 0 || particle_index >= truth.nTrueParticles) {
+          std::cout<<"Found a particle index outside the range: "<<particle_index<<", nTrueParticles="<<truth.nTrueParticles<<std::endl;
+        }
+        else {
+          // Completeness = true primary on track / true primary, lower -> more missed hits
+          // Cleanliness = true primary on track / true all on track, lower -> more contamination
+          double completeness_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] / truth.TrueVisibleEnergy[particle_index];
+          double cleanliness_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] / truth.RecoTrackTrueVisibleEnergy[it];
+          double completeness_nhits = 0;
+          double cleanliness_nhits = 0;
+          GetHist("basic__reco_track__completeness_energy", 
+                  "Reco Track Completeness, Visible Energy", "completeness")->Fill(completeness_energy);
+          GetHist("basic__reco_track__cleanliness_energy", 
+                  "Reco Track Cleanliness, Visible Energy", "cleanliness")->Fill(cleanliness_energy);
+          GetHist("basic__reco_track__completeness_nhits", 
+                  "Reco Track Completeness, N Hits", "completeness")->Fill(completeness_nhits);
+          GetHist("basic__reco_track__cleanliness_nhits", 
+                  "Reco Track Cleanliness, N Hits", "cleanliness")->Fill(cleanliness_nhits);
+        }
+      }
+      
+      REGISTER_AXIS(energy_resolution, std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {
         bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
         if (ismuon) {
