@@ -346,9 +346,11 @@ class TMS_TreeWriter {
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackPrimaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleTrueNHits[__TMS_MAX_LINES__];
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackSecondaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__]; 
+    int RecoTrackSecondaryParticleTrueNHits[__TMS_MAX_LINES__]; 
     
     // Save truth info about primary particle
     int RecoTrackPrimaryParticlePDG[__TMS_MAX_LINES__];

@@ -281,9 +281,13 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackPrimaryParticleIndex", RecoTrackPrimaryParticleIndex, "RecoTrackPrimaryParticleIndex[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueVisibleEnergy", RecoTrackPrimaryParticleTrueVisibleEnergy,
                      "RecoTrackPrimaryParticleTrueVisibleEnergy[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueNHits", RecoTrackPrimaryParticleTrueNHits,
+                     "RecoTrackPrimaryParticleTrueNHits[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleIndex", RecoTrackSecondaryParticleIndex, "RecoTrackSecondaryParticleIndex[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleTrueVisibleEnergy", RecoTrackSecondaryParticleTrueVisibleEnergy,
                      "RecoTrackSecondaryParticleTrueVisibleEnergy[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackSecondaryParticleTrueNHits", RecoTrackSecondaryParticleTrueNHits,
+                     "RecoTrackSecondaryParticleTrueNHits[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumTrackStart", RecoTrackPrimaryParticleTrueMomentumTrackStart,
                      "RecoTrackPrimaryParticleTrueMomentumTrackStart[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionTrackStart", RecoTrackPrimaryParticleTruePositionTrackStart,
@@ -1434,6 +1438,30 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackSecondaryParticleIndex[itTrack] = true_secondary_particle_index;
     RecoTrackSecondaryParticleTrueVisibleEnergy[itTrack] = true_secondary_visible_energy;
     
+    
+    RecoTrackPrimaryParticleTrueNHits[itTrack] = 0;
+    RecoTrackSecondaryParticleTrueNHits[itTrack] = 0;
+    if (particle_info.vertexids.size() > 0) {
+      // Loop through all the hits, check if truth info matches primary (or secondary) particle, and then add to count
+      for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
+        auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
+        for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+          if (true_hit.GetVertexIds(i) == particle_info.vertexids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
+            RecoTrackPrimaryParticleTrueNHits[itTrack] += 1;
+            // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
+            break; 
+          }
+          if (particle_info.vertexids.size() > 1) {
+            if (true_hit.GetVertexIds(i) == particle_info.vertexids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
+              RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
+              // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
+              break; 
+            }
+          }
+        }
+      }
+    }
+    
   }
 
   Reco_Tree->Fill();
@@ -1766,8 +1794,10 @@ void TMS_TreeWriter::Clear() {
     RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
 
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
