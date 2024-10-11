@@ -35,6 +35,10 @@ class TMS_Event {
     std::vector<TMS_Track> GetTracks() {return TMS_Tracks;}; // Needs filled
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
+    
+    const std::vector<TMS_TrueHit> GetNonTMSHits() { return NonTMS_Hits; };
+    
+    bool IsInTimeSlice(double t) const;
 
     double GetMuonTrueKE();
     double GetMuonTrueTrackLength();
@@ -64,13 +68,13 @@ class TMS_Event {
     
     void FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid);
     
-    int GetNSlices() { return NSlices; }; 
+    int GetNSlices() const { return NSlices; }; 
     void SetNSlices(int n) { NSlices = n; };
     
-    int GetSliceNumber() { return SliceNumber; };
+    int GetSliceNumber() const { return SliceNumber; };
     void SetSliceNumber(int slice) { SliceNumber = slice; };
     
-    int GetSpillNumber() { return SpillNumber; };
+    int GetSpillNumber() const { return SpillNumber; };
     void SetSpillNumber(int spill) { SpillNumber = spill; };
     
     void SortHits(bool(*comp)(TMS_Hit& a, TMS_Hit& b)) { std::sort(TMS_Hits.begin(), TMS_Hits.end(), comp); };

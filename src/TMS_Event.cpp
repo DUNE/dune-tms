@@ -866,6 +866,34 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
   return out;
 }
 
+bool TMS_Event::IsInTimeSlice(double time) const {
+  int current_time_slice = GetSliceNumber();
+  bool out;
+  if (current_time_slice == 0) {
+    // Special case: Make sure t isn't part of any other time slice
+    out = true;
+    for (const auto& bounds : TimeSliceBounds) {
+      double start = bounds.first;
+      double end = bounds.second;
+      // If t is within any bound, then it's not part of slice zero so it's not in slice 0
+      if (start <= time && time <= end) { out = false; break; }
+    }
+  }
+  else {
+    // Check if t is within time slice bounds
+    if (current_time_slice < 0 || current_time_slice > (int) TimeSliceBounds.size()) {
+      std::cout<<"Fatal: IsInTimeSlice got slice number outside time slice bounds. Got: "<<current_time_slice;
+      std::cout<<", TimeSliceBounds.size(): "<<TimeSliceBounds.size()<<std::endl;
+      throw std::runtime_error("Fatal: IsInTimeSlice got slice number outside time slice bounds");
+    }
+    double start = TimeSliceBounds[current_time_slice].first;
+    double end = TimeSliceBounds[current_time_slice].second;
+    if (start <= time && time <= end) out = true;
+    else out = false;
+  }
+  return out;
+}
+
 // Add a separate event to this event
 // Handy for making hacked overlays
 void TMS_Event::AddEvent(TMS_Event &Other_Event) {
@@ -1120,6 +1148,7 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
 
 double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid) {
   double out = 0;
+  // Lar doesn't have good timing info, so we want all non tms hits, not just in this slice
   for (const auto& hit : NonTMS_Hits) {
     if (vertexid < 0 || hit.GetVertexId() == vertexid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
