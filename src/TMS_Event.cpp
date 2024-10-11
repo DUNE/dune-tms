@@ -324,7 +324,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
     if (it != TrueVisibleEnergyPerParticle.end()) {
       energy = it->second;
     }
-    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy, false);
   }
   nTrueForgottenParticles = -1;
   if (OnlyPrimaryOrVisibleEnergy) {
@@ -393,6 +393,9 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       Reaction = Reactions[primary_vertex_id];
     else { Reaction = "NA"; std::cout<<"Warning: couldn't find reaction for primary vertex"<<std::endl; }
   }
+
+  // Update the counts per slice
+  ConnectTrueHitWithTrueParticle(true);
 }
 
 void TMS_Event::MergeCoincidentHits() {
@@ -961,6 +964,16 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   nVertices += Other_Event.nVertices;
 }
 
+void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
+  for (auto &event : overlay_events) AddEvent(event);
+    
+  // Apply the det sim now, after overlaying events
+  // The timing and optical model were moved to the initial event creation
+  ApplyReconstructionEffects();
+  // Connect true vis E and true n hits with true particles
+  ConnectTrueHitWithTrueParticle(false);
+}
+
 // For now just fill the true neutrino
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], 
@@ -1212,8 +1225,34 @@ double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
   return out;
 }
 
-
-
+void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
+  // Now count the number of true hits per particle
+  std::map<int, int> NHitsPerParticle;
+  std::map<int, double> EnergyPerParticle;
+  for (auto& hit : TMS_Hits) {
+    // Only count hits that are not ped subtracted
+    if (!hit.GetPedSup()) {
+      auto true_hit = hit.GetTrueHit();
+      for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+        int key = true_hit.GetVertexIds(i) * 100000 + true_hit.GetPrimaryIds(i);
+        NHitsPerParticle[key] += 1;
+        EnergyPerParticle[key] += true_hit.GetEnergyShare(i);
+      }
+    }
+  }
+  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+    int count = 0;
+    double energy = 0;
+    // If it's not in the map, don't create it
+    int key = TMS_TrueParticles[i].GetVertexID() * 100000 + TMS_TrueParticles[i].GetTrackId();
+    if (NHitsPerParticle.find(key) != NHitsPerParticle.end()) {
+      count = NHitsPerParticle[key];
+      energy = EnergyPerParticle[key];
+    }
+    TMS_TrueParticles[i].SetNTrueHits(count, slice);
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy, slice);
+  }
+}
 
 
 

@@ -154,7 +154,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       std::reverse(overlay_events.begin(), overlay_events.end());
       TMS_Event last_event = overlay_events.back();
       overlay_events.pop_back();
-      for (auto &event : overlay_events) last_event.AddEvent(event);
+      last_event.OverlayEvents(overlay_events);
       // Make sure to set the spill number correctly
       last_event.SetSpillNumber(current_spill_number);
       overlay_events.clear();
@@ -164,10 +164,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // ... and make this event the combined spill called "last_event"
       tms_event = last_event;
     }
-    
-    // Apply the det sim now, after overlaying events
-    // This doesn't work right now
-    tms_event.ApplyReconstructionEffects();
 
     // Dump information
     //tms_event.Print();

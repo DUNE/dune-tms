@@ -26,6 +26,7 @@ class TMS_Event {
     void ProcessTG4Event(TG4Event &event, bool FillEvent = true);
 
     void AddEvent(TMS_Event &);
+    void OverlayEvents(std::vector<TMS_Event>& overlay_events);
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
@@ -112,6 +113,8 @@ class TMS_Event {
      double CalculateEnergyInLArOuterShell(double thickness, int vertexid = -1);
      double CalculateEnergyInLAr(int vertexid = -1);
      double CalculateTotalNonTMSEnergy(int vertexid = -1);
+     
+     void ConnectTrueHitWithTrueParticle(bool slide);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
