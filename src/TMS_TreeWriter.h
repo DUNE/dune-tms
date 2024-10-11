@@ -19,7 +19,7 @@
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
-#define __TMS_MAX_TRUE_NONTMS_HITS__ 60000 // Maximum number of true particles to save info about
+#define __TMS_MAX_TRUE_NONTMS_HITS__ 100000 // Maximum number of true particles to save info about
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
@@ -283,6 +283,9 @@ class TMS_TreeWriter {
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
     bool IsPrimary[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
+    int TrueNHits[__TMS_MAX_TRUE_PARTICLES__];
+    float TrueVisibleEnergyInSlice[__TMS_MAX_TRUE_PARTICLES__];
+    int TrueNHitsInSlice[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLength[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthInTMS[__TMS_MAX_TRUE_PARTICLES__];

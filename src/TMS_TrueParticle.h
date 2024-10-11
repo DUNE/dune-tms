@@ -94,10 +94,10 @@ class TMS_TrueParticle {
     bool IsPrimary() const { return Parent < 0; };
     int GetTrackId() const { return TrackId; };
     int GetVertexID() const { return VertexID; };
-    double GetTrueVisibleEnergy() const { return TrueVisibleEnergy; };
-    void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
-    int GetNTrueHits() const { return NTrueHits; };
-    void SetNTrueHits(int n) { NTrueHits = n; };
+    double GetTrueVisibleEnergy(bool slice = false) const { if (slice) { return TrueVisibleEnergySlice; } else { return TrueVisibleEnergy; } };
+    void SetTrueVisibleEnergy(double energy, bool slice) { if (slice) { TrueVisibleEnergySlice = energy; } else { TrueVisibleEnergy = energy; } };
+    int GetNTrueHits(bool slice) const { if (slice) { return NTrueHitsSlice; } else { return NTrueHits; } };
+    void SetNTrueHits(int n, bool slice) { if (slice) { NTrueHitsSlice = n; } else { NTrueHits = n; } };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
@@ -180,6 +180,8 @@ class TMS_TrueParticle {
     int PDG;
     double TrueVisibleEnergy;
     int NTrueHits;
+    double TrueVisibleEnergySlice;
+    int NTrueHitsSlice;
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;

@@ -362,6 +362,9 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackSecondaryParticleTruePositionStart[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionEnd", RecoTrackSecondaryParticleTruePositionEnd,
                      "RecoTrackSecondaryParticleTruePositionEnd[RecoTrackN][4]/F"); 
+                     
+  Truth_Info->Branch("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, "TrueVisibleEnergyInSlice[nTrueParticles]/F");
+  Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -391,6 +394,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
   truth->Branch("IsPrimary", IsPrimary, "IsPrimary[nTrueParticles]/O");
   truth->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
+  truth->Branch("TrueNHits", TrueNHits, "TrueNHits[nTrueParticles]/I");
   truth->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
   truth->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
   truth->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
@@ -557,7 +561,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     PDG[index] = (*it).GetPDG();
     IsPrimary[index] = (*it).IsPrimary();
     if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
+    TrueNHits[index] = (*it).GetNTrueHits(false);
+    TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
+    TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
     TVector3 location_death = (*it).GetDeathPosition().Vect();
@@ -1483,7 +1490,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     PDG[index] = (*it).GetPDG();
     IsPrimary[index] = (*it).IsPrimary();
     if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
+    TrueNHits[index] = (*it).GetNTrueHits(false);
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
     TVector3 location_death = (*it).GetDeathPosition().Vect();
@@ -1817,6 +1825,9 @@ void TMS_TreeWriter::Clear() {
     PDG[i] = DEFAULT_CLEARING_FLOAT;
     IsPrimary[i] = false;
     TrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNHits[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVisibleEnergyInSlice[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNHitsInSlice[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLength[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLengthIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLengthInTMS[i] = DEFAULT_CLEARING_FLOAT;
