@@ -55,6 +55,7 @@ class TMS_Event {
     int GetEventNumber() { return EventNumber; };
     //void SetEventNumber(int num) { EventNumber = num; };
     std::string GetReaction() { return Reaction; };
+    void SetReaction(std::string reaction) { Reaction = reaction; };
     
     // Include some truth metadata, like process, energy, lepton momentum
     void FillTruthFromGRooTracker(int pdg[100], double p4[100][4], double vtx[100][4]);
@@ -147,6 +148,7 @@ class TMS_Event {
     int nVertices;
 
     std::string Reaction;
+    std::map<int, std::string> Reactions;
  
     // Counts how many times constructor has been called
     static int EventCounter;

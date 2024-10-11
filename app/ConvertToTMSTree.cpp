@@ -211,15 +211,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
         if (primary_vertex_id >= 0) {
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
-          
           if (map.find(primary_vertex_id) == map.end()) 
               std::cout<<"Warning: Didn't find primary_vertex_id "<<primary_vertex_id<<" inside map of size "<<map.size()<<std::endl;
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
-          
           gRoo->GetEntry(primary_vertex_id);
           tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-          tms_event_slice.SetLeptonInfoUsingVertexID(primary_vertex_id);
         }
       }
       

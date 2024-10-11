@@ -65,6 +65,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       std::cout<<"Fatal: Got a current_vertexid < 0 in TMS_Event: "<<current_vertexid<<std::endl;
       throw std::runtime_error("Fatal: Get a vertex id < 0");
     }
+    Reactions[current_vertexid] = Reaction;
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -352,7 +353,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)), NonTMS_Hits(event.NonTMS_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
-      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
+      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
       TrueLeptonPosition(event.TrueLeptonPosition), 
@@ -381,6 +382,16 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   }
   else {
     EventNumber = event.EventNumber;
+  }
+  
+  Reaction = "";
+  
+  int primary_vertex_id = GetVertexIdOfMostVisibleEnergy();
+  if (primary_vertex_id >= 0) {
+    SetLeptonInfoUsingVertexID(primary_vertex_id);
+    if (Reactions.find(primary_vertex_id) != Reactions.end()) 
+      Reaction = Reactions[primary_vertex_id];
+    else { Reaction = "NA"; std::cout<<"Warning: couldn't find reaction for primary vertex"<<std::endl; }
   }
 }
 
@@ -943,6 +954,7 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   // Merge these lists
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
+  Reactions.merge(Other_Event.Reactions);
   // Reset this to recalculate on next call
   VertexIdOfMostEnergyInEvent = -9999;
 
