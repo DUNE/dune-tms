@@ -243,6 +243,9 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
+  
+  Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
+  Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
@@ -1236,6 +1239,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
   nTracks = Reco_Tracks.size();
   RecoTrackN = Reco_Tracks.size();
+  
+  TimeSliceStartTime = event.GetTimeSliceBounds().first;
+  TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
@@ -1728,6 +1734,8 @@ void TMS_TreeWriter::Clear() {
 
   // Reset track information
   nTracks = DEFAULT_CLEARING_FLOAT;
+  TimeSliceStartTime = DEFAULT_CLEARING_FLOAT;
+  TimeSliceEndTime = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
     for (int j = 0; j < 3; ++j) {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;

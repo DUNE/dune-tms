@@ -106,6 +106,7 @@ class TMS_Event {
     
     void AddTimeSliceInformation(std::vector<std::pair<double, double>> time_slice_bounds) 
          { TimeSliceBounds.insert(TimeSliceBounds.end(), time_slice_bounds.begin(), time_slice_bounds.end()); };
+     std::pair<double, double> GetTimeSliceBounds(int slice = -1);
          
      double CalculateEnergyInLArOuterShell(double thickness, int vertexid = -1);
      double CalculateEnergyInLAr(int vertexid = -1);

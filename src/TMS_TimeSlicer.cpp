@@ -179,9 +179,10 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
         }
         
         // Only start tracking the next slice if not equal to zero
-        if (current_slice != 0) {
+        if (!have_prev_slice && current_slice != 0) {
           prev_slice = current_slice;
           slice_end_time = current_slice_time;
+          slice_start_time = current_slice_time;
           have_prev_slice = true;
         }
       }
@@ -198,7 +199,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
       changed_hits.push_back(hit);
     }
     event.SetHitsRaw(changed_hits);
-    // TODO add slice bounds to event and save them with tree writer. Then save info with particles as well
+    event.AddTimeSliceInformation(slice_bounds);
   }
   return nslices;
 }

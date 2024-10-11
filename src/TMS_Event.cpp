@@ -894,6 +894,23 @@ bool TMS_Event::IsInTimeSlice(double time) const {
   return out;
 }
 
+std::pair<double, double> TMS_Event::GetTimeSliceBounds(int slice) {
+  if (slice == -1) {
+    if (GetSliceNumber() == -1) {
+      std::cout<<"Warning: Found circular logic in GetTimeSliceBounds. Returning default bounds"<<std::endl;
+      return std::make_pair(0.0, 10000.0);
+    }
+    return GetTimeSliceBounds(GetSliceNumber());
+  }
+  else {
+    if (slice < 0 || slice >= (int) TimeSliceBounds.size()) {
+      std::cout<<"Fatal: GetTimeSliceBounds error: slice: "<<slice<<" outside TimeSliceBounds.size(): "<<TimeSliceBounds.size()<<std::endl;
+      throw std::runtime_error("GetTimeSliceBounds error: slice outside TimeSliceBounds range");
+    }
+    return TimeSliceBounds[slice];
+  }
+}
+
 // Add a separate event to this event
 // Handy for making hacked overlays
 void TMS_Event::AddEvent(TMS_Event &Other_Event) {
