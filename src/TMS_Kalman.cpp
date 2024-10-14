@@ -336,7 +336,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], CurrentState.qp, sigma, false); // Fill the matrix for multiple scattering
   } else { // Initialise cov to something 'sane'-ish
     UpdatedCovarianceMatrix.Zero(); // zero this out to be sure
-    CovarianceMatrix(0,0) = 200.0;
+    CovarianceMatrix(0,0) = 200.0; // TODO: enable swapping the x and y for z layers, should rarely happen
     CovarianceMatrix(1,1) = 1.0E3;
     CovarianceMatrix(2,2) = 1.50;
     CovarianceMatrix(3,3) = 2.50;
