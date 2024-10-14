@@ -1231,11 +1231,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
-      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
-        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
-        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
-      //}
       RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
       RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
       RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
@@ -1243,10 +1238,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanTruePos[itTrack][j][0] = RecoTrack->KalmanNodes[j].TrueX;
       RecoTrackKalmanTruePos[itTrack][j][1] = RecoTrack->KalmanNodes[j].TrueY;
       RecoTrackKalmanTruePos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
-
-      //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].CurrentState.x;
-      //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].CurrentState.y;
-      //RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].CurrentState.z;
     }
 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
@@ -1254,7 +1245,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
       // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX(); // GetNotZ?
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
       } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
