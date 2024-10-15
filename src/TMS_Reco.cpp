@@ -1622,6 +1622,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             }
             // Sort track
             SpatialPrio(aTrack.Hits);
+
+            // TODO check if we have track smoothing turned on via TMS_Manager::GetInstance()
+            aTrack.ApplyTrackSmoothing();
             
             // Smoothing of start and end of track in case of too much 'flailing around' in the y direction
             // end
