@@ -53,7 +53,7 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
         if (b.GetBar().GetBarType() != TMS_Bar::kXBar) {
          index_to_use = i+1;
          hit_that_needs_y_info = b;
-          auto hit_that_has_y_info = a;
+         hit_that_has_y_info = a;
         }
         new_y_positions[index_to_use] = std::make_pair(hit_that_has_y_info.GetRecoY(), 1);
       }
@@ -83,13 +83,14 @@ double TMS_Track::getAvgYSlopeBetween(size_t ia, size_t ib) const {
   double yb = b.GetRecoY();
   double za = a.GetZ();
   double zb = b.GetZ();
-  if (za != zb) out = (ya - yb) / (za - zb);
+  if (std::abs(za - zb) > 0.0001) out = (ya - yb) / (za - zb);
   return out;
 }
 
 double TMS_Track::getMaxAllowedSlope(size_t ia, size_t ib) const {
   // For a pure UV detector, the max allowed slope is 30cm / dz assuming everything stays within same section of y hits
   double dz = Hits.at(ia).GetZ() - Hits.at(ib).GetZ();
+  if (std::abs(dz) < 0.00001) return 10;
   double sign = 1;
   if (Hits.at(ia).GetRecoY() - Hits.at(ib).GetRecoY() > 0) sign = -1;
   return sign * 300 / dz;
