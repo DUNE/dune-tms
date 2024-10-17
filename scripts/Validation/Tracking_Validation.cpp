@@ -867,6 +867,25 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                   "Reco Track Completeness, N Hits", "completeness")->Fill(completeness_nhits);
           GetHist("basic__reco_track__cleanliness_nhits", 
                   "Reco Track Cleanliness, N Hits", "cleanliness")->Fill(cleanliness_nhits);
+                  
+          if (completeness_energy < 0.5)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/under_50_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (completeness_energy >= 0.67 && completeness_energy <= 0.73)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/around_70_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (completeness_energy >= 0.98)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/above_98_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (cleanliness_energy < 0.5)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "cleanliness/under_50_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (cleanliness_energy >= 0.67 && cleanliness_energy <= 0.73)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "cleanliness/around_70_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (cleanliness_energy >= 0.98)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "cleanliness/above_98_percent", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
         }
       }
       
