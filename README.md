@@ -48,6 +48,9 @@ All run-time configuration happens through `config/TMS_Default_Config.toml`. At 
 * `scripts` contains simple scripts to run TMS studies in truth without reconstruction. Will produce output like `/pnfs/dune/persistent/ndmuonspect/FlatTrees`
 * `utils` contains helper files mostly used for generating events with `edep-sim`. Most of the time you won't need these and they're mostly for documentation. You can also find these at `/pnfs/dune/persistent/ndmuonspect/Geometries`.
 
+# Production at NERSC
+The `dune-tms` repository features in the simulation and reconstruction chain of the full DUNE ND complex in the step referred to as `tms-reco`. The chain is currently exercised at NERSC using an SL7 container. Details of how to install the necessary software for, and, run both interctively and via batch job can be found [here](https://github.com/DUNE/ND_Production/tree/main/nersc/run-tms-reco) in the `run-tms-reco` subdirectory of the `ND_Production` repository. 
+
 # Contact
 * Liam O'Sullivan, [liam.osullivan@uni-mainz.de](mailto:liam.osullivan@uni-mainz.de)
 * Gavin Davies, [gsdavies@phy.olemiss.edu](mailto:gsdavies@phy.olemiss.edu)
