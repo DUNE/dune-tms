@@ -916,6 +916,25 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
             GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_with_offset", 
                     "Reco Track Hit Resolution Y: With Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
             avg_offset += dy;
+            
+            if (ih == 0) {
+              GetHist("resolution__reco_track__hit_resolution_x_first_hit", 
+                      "Reco Track Hit Resolution X, First Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
+              GetHist("resolution__reco_track__hit_resolution_y_first_hit", 
+                      "Reco Track Hit Resolution Y, First Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
+            }
+            if (ih == reco.nHits[0] - 1) {
+              GetHist("resolution__reco_track__hit_resolution_x_last_hit", 
+                      "Reco Track Hit Resolution X, Last Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
+              GetHist("resolution__reco_track__hit_resolution_y_last_hit", 
+                      "Reco Track Hit Resolution Y, Last Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
+            }
+            if (ih >= reco.nHits[0] * 0.33 && ih <= reco.nHits[0] * 0.66) {
+              GetHist("resolution__reco_track__hit_resolution_x_middle_third", 
+                      "Reco Track Hit Resolution X, Middle Third Hits Only", "hit_position_resolution_x")->Fill(dx*CM);
+              GetHist("resolution__reco_track__hit_resolution_y_middle_third", 
+                      "Reco Track Hit Resolution Y, Middle Third Hits Only", "hit_position_resolution_y")->Fill(dy*CM);
+            }
           }
           avg_offset /= reco.nHits[0];
           bool draw_slice = false;
