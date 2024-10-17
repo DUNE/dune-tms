@@ -46,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = true #false
+    FirstCluster = false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -81,7 +81,7 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 10
+    DirectionDistance = 14
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
