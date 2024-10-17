@@ -71,7 +71,36 @@ bool createDirectory(const std::string& path) {
     }
 }
 
-void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, Line_Candidates& lc, Truth_Info& truth) { 
+namespace DrawSliceN {
+  enum max_prints {
+      disabled, 
+      handfull,
+      few,
+      many,
+      all
+  };
+
+
+  int GetMaxDrawSlicePrints(max_prints n) {
+    switch (n) {
+      case disabled: return 0;
+      case handfull: return 5;
+      case few: return 20;
+      case many: return 50;
+      case all: return -1;
+      default: return 0;
+    }
+  }
+}
+
+void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, 
+                Line_Candidates& lc, Truth_Info& truth, DrawSliceN::max_prints max_n_prints = DrawSliceN::all) { 
+  // Quit early if we already drew n copies of slices that have this reason
+  static std::map<std::string, int> nSlicesDrawn;
+  int nmax = GetMaxDrawSlicePrints(max_n_prints);
+  if (nmax >= 0 && nSlicesDrawn[reason] >= nmax) return;
+  nSlicesDrawn[reason] += 1;
+
   if (save_location == "") {
     throw std::runtime_error("Do not have a save directory for the event displays in DrawSlice");
   }
@@ -872,12 +901,66 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
       
-      // Example of drawing for a reason
-      if (reco.nTracks > 2 && false) {
-        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "high_reco_track_multiplicity", 
-                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth);
+      
+      REGISTER_AXIS(hit_position_resolution_x, std::make_tuple("Hit Position Resolution Z (Reco - True) (cm)", 21, -4, 4));
+      REGISTER_AXIS(hit_position_resolution_y, std::make_tuple("Hit Position Resolution Y (Reco - True) (cm)", 21, -40, 40));
+      if (reco.nTracks == 1) {
+          double avg_offset = 0;
+          for (int ih = 0; ih < reco.nHits[0]; ih++) {
+            double dx = reco.TrackHitPos[0][ih][0] - truth.RecoTrackTrueHitPosition[0][ih][0];
+            GetHist("resolution__reco_track__hit_resolution_x", 
+                    "Reco Track Hit Resolution X", "hit_position_resolution_x")->Fill(dx*CM);
+            double dy = reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1];
+            GetHist("resolution__reco_track__hit_resolution_y", 
+                    "Reco Track Hit Resolution Y", "hit_position_resolution_y")->Fill(dy*CM);
+            GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_with_offset", 
+                    "Reco Track Hit Resolution Y: With Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
+            avg_offset += dy;
+          }
+          avg_offset /= reco.nHits[0];
+          bool draw_slice = false;
+          bool draw_slice_large = false;
+          for (int ih = 0; ih < reco.nHits[0]; ih++) {
+            double dy = (reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1]) - avg_offset;
+            GetHist("resolution__reco_track__hit_resolution_y_offset_removed", 
+                    "Reco Track Hit Resolution Y with Offset Removed", "hit_position_resolution_y")->Fill(dy*CM);
+            GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_without_offset", 
+                    "Reco Track Hit Resolution Y: Without Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
+            if (dy*CM > 30 && !draw_slice) {
+              DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution", 
+                        TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+              draw_slice = true;
+            }
+            if (dy*CM > 60 && !draw_slice_large) {
+              DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution_large_deviation", 
+                        TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+              draw_slice_large = true;
+            }
+          
+          }
       }
-
+      
+      // Example of drawing for a reason
+      if (reco.nTracks > 2) {
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "high_reco_track_multiplicity", 
+                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::few);
+      }
+      
+      if (reco.nTracks == 1) {
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "single_track", 
+                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::few);
+                  
+        bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[0]) == 13;
+        if (ismuon) {
+          double muon_starting_angle = std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[0][1],
+                                                  truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[0][2]) * DEG;
+          if (std::abs(muon_starting_angle) > 20) {
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "single_track_high_angle", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::few);
+          }
+        }
+      }
+      
       // TODO calculate plane number and then check per plane occupancy
       // Also related is total visible energy so compare that to true value
       
