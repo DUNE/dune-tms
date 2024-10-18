@@ -38,8 +38,8 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
         double slope_estimate = 0;
         double ya = slope_estimate * (a.GetZ() - shared_z) + shared_y;
         double yb = slope_estimate * (b.GetZ() - shared_z) + shared_y;
-        double ya_uncertainty = 0;
-        double yb_uncertainty = 0;
+        double ya_uncertainty = 12;
+        double yb_uncertainty = 12;
         // todo, if the positions already exist in map, do something clever like weighted avg
         new_y_positions[i] = std::make_pair(ya, ya_uncertainty);
         new_y_positions[i+1] = std::make_pair(yb, yb_uncertainty);
@@ -56,7 +56,7 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
          hit_that_needs_y_info = b;
          hit_that_has_y_info = a;
         }
-        new_y_positions[index_to_use] = std::make_pair(hit_that_has_y_info.GetRecoY(), 1);
+        new_y_positions[index_to_use] = std::make_pair(hit_that_has_y_info.GetRecoY(), 5);
       }
     }
   }
