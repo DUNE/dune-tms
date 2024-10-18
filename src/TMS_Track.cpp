@@ -125,9 +125,9 @@ void TMS_Track::simpleTrackSmoothing() {
     // Fix beginning of track
     double avg_slope_to_use_front = avg_slope;
     double max_allowed_slope_front = getMaxAllowedSlope(0, points.front());
-    if (std::abs(avg_slope_to_use_front) > max_allowed_slope_front) 
+    if (std::abs(avg_slope_to_use_front) > std::abs(max_allowed_slope_front)) 
       // Rescale to equal the max slope, but retain the sign
-      avg_slope_to_use_front /= (max_allowed_slope_front / std::abs(avg_slope_to_use_front));
+      avg_slope_to_use_front *= (std::abs(max_allowed_slope_front) / std::abs(avg_slope_to_use_front));
     // Use these points as anchor and lerp from there
     double yf = Hits[points.front()].GetRecoY();
     double zf = Hits[points.front()].GetZ();
@@ -140,9 +140,9 @@ void TMS_Track::simpleTrackSmoothing() {
     // Fix end of track
     double avg_slope_to_use_back = avg_slope;
     double max_allowed_slope_back = getMaxAllowedSlope(points.back(), Hits.size() - 1);
-    if (std::abs(avg_slope_to_use_back) > max_allowed_slope_back) 
+    if (std::abs(avg_slope_to_use_back) > std::abs(max_allowed_slope_back)) 
       // Rescale to equal the max slope, but retain the sign
-      avg_slope_to_use_back /= (max_allowed_slope_back / std::abs(avg_slope_to_use_back));
+      avg_slope_to_use_back *= (std::abs(max_allowed_slope_back) / std::abs(avg_slope_to_use_back));
     // Use these points as anchor and lerp from there
     double yb = Hits[points.back()].GetRecoY();
     double zb = Hits[points.back()].GetZ();
