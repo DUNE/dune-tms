@@ -18,6 +18,7 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
     auto a = Hits[i];
     auto b = Hits[i+1];
     //std::cout<<"a.GetRecoY(): "<<a.GetRecoY()<<", b.GetRecoY(): "<<b.GetRecoY()<<std::endl;
+    // A transition point is a point where a.RecoY != b.RecoY. Check for 0.001 due to floating point imprecision
     if (abs(a.GetRecoY() - b.GetRecoY()) > 0.001) {
       // This is a hit transition
       bool foundU = false;
@@ -66,9 +67,8 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
     auto position_and_uncertainty = update.second;
     double y = position_and_uncertainty.first;
     double y_uncertainty = position_and_uncertainty.second;
-    if (index > Hits.size()) throw std::runtime_error("Got index outside track vector size");
-    Hits[index].SetRecoY(y);
-    Hits[index].SetRecoYUncertainty(y_uncertainty);
+    Hits.at(index).SetRecoY(y);
+    Hits.at(index).SetRecoYUncertainty(y_uncertainty);
     out.push_back(index);
   }
   return out;
@@ -120,6 +120,7 @@ void TMS_Track::simpleTrackSmoothing() {
   // So check for a max allowed slope
   // Yes, we may want to extend the slope as it was at the last transition, but
   // I found this was too sensitive to small changes
+  // It may be better to take a local avg of some sort
   if (points.size() > 0) {
     // Fix beginning of track
     double avg_slope_to_use_front = avg_slope;
@@ -161,19 +162,45 @@ void TMS_Track::simpleTrackSmoothing() {
       double z = Hits[points.at(i)].GetZ();
       // Loop through all hits between i and i+1, and set y based on avg slope
       for (size_t j = points.at(i)+1; j < points.at(i+1); j++) {
-        auto a = Hits[j];
+        auto& a = Hits[j];
         double ya = avg_slope_to_use * (a.GetZ() - z) + y;
+        double initial_reco_y = a.GetRecoY();
         a.SetRecoY(ya);
       }
     }
   }
 }
 
+double TMS_Track::CalculateTrackSmoothnessY() {
+  double out = 0;
+  for (size_t i = 0; i+1 < Hits.size(); i++) {
+    double dy = Hits.at(i).GetRecoY() - Hits.at(i+1).GetRecoY();
+    out += std::abs(dy);
+  }
+  return out / Hits.size();
+}
+
+void TMS_Track::LookForHitsOutsideTMS() {
+  for (auto& hit : Hits) {
+    TVector3 position(hit.GetRecoX(), hit.GetRecoY(), hit.GetZ());
+    //if (!TMS_Geom::StaticIsInsideTMS(position)) {
+    if (position.Y() > 500 || position.Y() < -3500) {
+      std::cout<<"Fount point outside TMS with x,y,z="<<position.X()<<","<<position.Y()<<","<<position.Z()<<std::endl;
+    }
+  }
+}
+
 void TMS_Track::ApplyTrackSmoothing() {
+  LookForHitsOutsideTMS();
+  double initial_track_smoothness = CalculateTrackSmoothnessY();
   std::string strategy = "simple";
   if (strategy == "simple") simpleTrackSmoothing();
   // The next level would be to do a minimization that minimizes curvature + chi2, 
   // where chi2 takes into account the uncertainty of each point. Basically almost kalman filter
+  double final_track_smoothness = CalculateTrackSmoothnessY();
+  /*std::cout<<"Track smoothness initial: "<<initial_track_smoothness;
+  std::cout<<",\ttrack smoothness final: "<<final_track_smoothness;
+  std::cout<<",\tn hits: "<<Hits.size()<<std::endl;*/
 }
 
 

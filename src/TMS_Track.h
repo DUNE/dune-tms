@@ -71,6 +71,8 @@ class TMS_Track {
     }
 
     void ApplyTrackSmoothing();
+    double CalculateTrackSmoothnessY();
+    void LookForHitsOutsideTMS();
 
 
   // a lot of the vars from above can be moved into this in future
