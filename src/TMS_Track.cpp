@@ -125,7 +125,9 @@ void TMS_Track::simpleTrackSmoothing() {
     // Fix beginning of track
     double avg_slope_to_use_front = avg_slope;
     double max_allowed_slope_front = getMaxAllowedSlope(0, points.front());
-    if (avg_slope_to_use_front > max_allowed_slope_front) avg_slope_to_use_front = max_allowed_slope_front;
+    if (std::abs(avg_slope_to_use_front) > max_allowed_slope_front) 
+      // Rescale to equal the max slope, but retain the sign
+      avg_slope_to_use_front /= (max_allowed_slope_front / std::abs(avg_slope_to_use_front));
     // Use these points as anchor and lerp from there
     double yf = Hits[points.front()].GetRecoY();
     double zf = Hits[points.front()].GetZ();
@@ -138,7 +140,9 @@ void TMS_Track::simpleTrackSmoothing() {
     // Fix end of track
     double avg_slope_to_use_back = avg_slope;
     double max_allowed_slope_back = getMaxAllowedSlope(points.back(), Hits.size() - 1);
-    if (avg_slope_to_use_back > max_allowed_slope_back) avg_slope_to_use_back = max_allowed_slope_back;
+    if (std::abs(avg_slope_to_use_back) > max_allowed_slope_back) 
+      // Rescale to equal the max slope, but retain the sign
+      avg_slope_to_use_back /= (max_allowed_slope_back / std::abs(avg_slope_to_use_back));
     // Use these points as anchor and lerp from there
     double yb = Hits[points.back()].GetRecoY();
     double zb = Hits[points.back()].GetZ();
@@ -164,7 +168,6 @@ void TMS_Track::simpleTrackSmoothing() {
       for (size_t j = points.at(i)+1; j < points.at(i+1); j++) {
         auto& a = Hits[j];
         double ya = avg_slope_to_use * (a.GetZ() - z) + y;
-        double initial_reco_y = a.GetRecoY();
         a.SetRecoY(ya);
       }
     }
@@ -190,14 +193,39 @@ void TMS_Track::LookForHitsOutsideTMS() {
   }
 }
 
+void TMS_Track::setDefaultUncertainty() {
+  for (auto& hit : Hits) {
+    // If this is a Y, V, or U hit, the uncertainty is ~30cm
+    // If it's X, the uncertainty in y is ~5cm
+    // And vice versa
+    auto bar_type = hit.GetBar().GetBarType();
+    double uncertainty_y = -999.0;
+    if (bar_type == TMS_Bar::kXBar) uncertainty_y = 50; // mm
+    if (bar_type == TMS_Bar::kUBar) uncertainty_y = 300; // mm
+    if (bar_type == TMS_Bar::kVBar) uncertainty_y = 300; // mm
+    if (bar_type == TMS_Bar::kYBar) uncertainty_y = 300; // mm
+    if (uncertainty_y < 0) throw std::runtime_error("This shouldn't happen. Didn't find uncertainty");
+    double uncertainty_x = -999.0;
+    if (bar_type == TMS_Bar::kXBar) uncertainty_x = 300; // mm
+    if (bar_type == TMS_Bar::kUBar) uncertainty_x = 50; // mm
+    if (bar_type == TMS_Bar::kVBar) uncertainty_x = 50; // mm
+    if (bar_type == TMS_Bar::kYBar) uncertainty_x = 50; // mm
+    if (uncertainty_x < 0) throw std::runtime_error("This shouldn't happen. Didn't find uncertainty");
+    hit.SetRecoYUncertainty(uncertainty_y);
+    hit.SetRecoXUncertainty(uncertainty_x);
+  }
+}
+
 void TMS_Track::ApplyTrackSmoothing() {
-  LookForHitsOutsideTMS();
-  double initial_track_smoothness = CalculateTrackSmoothnessY();
+  //LookForHitsOutsideTMS();
+  //double initial_track_smoothness = CalculateTrackSmoothnessY();
+  // Ideally this would be done in reco somewhere but idk where
+  setDefaultUncertainty();
   std::string strategy = "simple";
   if (strategy == "simple") simpleTrackSmoothing();
   // The next level would be to do a minimization that minimizes curvature + chi2, 
   // where chi2 takes into account the uncertainty of each point. Basically almost kalman filter
-  double final_track_smoothness = CalculateTrackSmoothnessY();
+  //double final_track_smoothness = CalculateTrackSmoothnessY();
   /*std::cout<<"Track smoothness initial: "<<initial_track_smoothness;
   std::cout<<",\ttrack smoothness final: "<<final_track_smoothness;
   std::cout<<",\tn hits: "<<Hits.size()<<std::endl;*/

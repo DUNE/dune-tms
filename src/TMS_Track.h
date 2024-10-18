@@ -77,6 +77,7 @@ class TMS_Track {
 
   // a lot of the vars from above can be moved into this in future
   private:
+    void setDefaultUncertainty();
     std::vector<size_t> findYTransitionPoints();
     double getAvgYSlopeBetween(size_t ia, size_t ib) const;
     double getMaxAllowedSlope(size_t ia, size_t ib) const;
