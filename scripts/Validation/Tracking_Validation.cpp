@@ -23,6 +23,7 @@
 #include "Reco_Tree.h"
 
 #define IS_WITHIN(x, center, tolerance) (std::abs((x) - (center)) <= (tolerance))
+#define print(var) std::cout << #var << " = " << var << std::endl;
 
 std::string save_location = "";
 
@@ -921,62 +922,87 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       }
       
       
-      REGISTER_AXIS(hit_position_resolution_x, std::make_tuple("Hit Position Resolution Z (Reco - True) (cm)", 21, -4, 4));
+      REGISTER_AXIS(hit_position_resolution_x, std::make_tuple("Hit Position Resolution X (Reco - True) (cm)", 21, -4, 4));
       REGISTER_AXIS(hit_position_resolution_y, std::make_tuple("Hit Position Resolution Y (Reco - True) (cm)", 21, -40, 40));
+      REGISTER_AXIS(slope_yz_resolution_track_start, std::make_tuple("Starting YZ Slope Resolution (Reco - True) (deg)", 21, -40, 40));
+      REGISTER_AXIS(slope_yz_resolution_track_end, std::make_tuple("Ending YZ Slope Resolution (Reco - True) (deg)", 21, -40, 40));
       if (reco.nTracks == 1) {
-          double avg_offset = 0;
-          for (int ih = 0; ih < reco.nHits[0]; ih++) {
-            double dx = reco.TrackHitPos[0][ih][0] - truth.RecoTrackTrueHitPosition[0][ih][0];
-            GetHist("resolution__reco_track__hit_resolution_x", 
-                    "Reco Track Hit Resolution X", "hit_position_resolution_x")->Fill(dx*CM);
-            double dy = reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1];
-            GetHist("resolution__reco_track__hit_resolution_y", 
-                    "Reco Track Hit Resolution Y", "hit_position_resolution_y")->Fill(dy*CM);
-            GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_with_offset", 
-                    "Reco Track Hit Resolution Y: With Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
-            avg_offset += dy;
-            
-            if (ih == 0) {
-              GetHist("resolution__reco_track__hit_resolution_x_first_hit", 
-                      "Reco Track Hit Resolution X, First Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
-              GetHist("resolution__reco_track__hit_resolution_y_first_hit", 
-                      "Reco Track Hit Resolution Y, First Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
-            }
-            if (ih == reco.nHits[0] - 1) {
-              GetHist("resolution__reco_track__hit_resolution_x_last_hit", 
-                      "Reco Track Hit Resolution X, Last Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
-              GetHist("resolution__reco_track__hit_resolution_y_last_hit", 
-                      "Reco Track Hit Resolution Y, Last Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
-            }
-            if (ih >= reco.nHits[0] * 0.33 && ih <= reco.nHits[0] * 0.66) {
-              GetHist("resolution__reco_track__hit_resolution_x_middle_third", 
-                      "Reco Track Hit Resolution X, Middle Third Hits Only", "hit_position_resolution_x")->Fill(dx*CM);
-              GetHist("resolution__reco_track__hit_resolution_y_middle_third", 
-                      "Reco Track Hit Resolution Y, Middle Third Hits Only", "hit_position_resolution_y")->Fill(dy*CM);
-            }
-          }
-          avg_offset /= reco.nHits[0];
-          bool draw_slice = false;
-          bool draw_slice_large = false;
-          for (int ih = 0; ih < reco.nHits[0]; ih++) {
-            double dy = (reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1]) - avg_offset;
-            GetHist("resolution__reco_track__hit_resolution_y_offset_removed", 
-                    "Reco Track Hit Resolution Y with Offset Removed", "hit_position_resolution_y")->Fill(dy*CM);
-            GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_without_offset", 
-                    "Reco Track Hit Resolution Y: Without Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
-            if (dy*CM > 30 && !draw_slice) {
-              DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution", 
-                        TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
-              draw_slice = true;
-            }
-            if (dy*CM > 60 && !draw_slice_large) {
-              DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution_large_deviation", 
-                        TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
-              draw_slice_large = true;
-            }
+        double avg_offset = 0;
+        for (int ih = 0; ih < reco.nHits[0]; ih++) {
+          double dx = reco.TrackHitPos[0][ih][0] - truth.RecoTrackTrueHitPosition[0][ih][0];
+          GetHist("resolution__reco_track__hit_resolution_x", 
+                  "Reco Track Hit Resolution X", "hit_position_resolution_x")->Fill(dx*CM);
+          double dy = reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1];
+          GetHist("resolution__reco_track__hit_resolution_y", 
+                  "Reco Track Hit Resolution Y", "hit_position_resolution_y")->Fill(dy*CM);
+          GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_with_offset", 
+                  "Reco Track Hit Resolution Y: With Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
+          avg_offset += dy;
           
+          if (ih == 0) {
+            GetHist("resolution__reco_track__hit_resolution_x_first_hit", 
+                    "Reco Track Hit Resolution X, First Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
+            GetHist("resolution__reco_track__hit_resolution_y_first_hit", 
+                    "Reco Track Hit Resolution Y, First Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
           }
+          if (ih == reco.nHits[0] - 1) {
+            GetHist("resolution__reco_track__hit_resolution_x_last_hit", 
+                    "Reco Track Hit Resolution X, Last Hit Only", "hit_position_resolution_x")->Fill(dx*CM);
+            GetHist("resolution__reco_track__hit_resolution_y_last_hit", 
+                    "Reco Track Hit Resolution Y, Last Hit Only", "hit_position_resolution_y")->Fill(dy*CM);
+          }
+          if (ih >= reco.nHits[0] * 0.33 && ih <= reco.nHits[0] * 0.66) {
+            GetHist("resolution__reco_track__hit_resolution_x_middle_third", 
+                    "Reco Track Hit Resolution X, Middle Third Hits Only", "hit_position_resolution_x")->Fill(dx*CM);
+            GetHist("resolution__reco_track__hit_resolution_y_middle_third", 
+                    "Reco Track Hit Resolution Y, Middle Third Hits Only", "hit_position_resolution_y")->Fill(dy*CM);
+          }
+        }
+        avg_offset /= reco.nHits[0];
+        bool draw_slice = false;
+        bool draw_slice_large = false;
+        for (int ih = 0; ih < reco.nHits[0]; ih++) {
+          double dy = (reco.TrackHitPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1]) - avg_offset;
+          GetHist("resolution__reco_track__hit_resolution_y_offset_removed", 
+                  "Reco Track Hit Resolution Y with Offset Removed", "hit_position_resolution_y")->Fill(dy*CM);
+          GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_without_offset", 
+                  "Reco Track Hit Resolution Y: Without Arb Y Offset", "hit_position_resolution_y")->Fill(dy*CM);
+          if (dy*CM > 30 && !draw_slice) {
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+            draw_slice = true;
+          }
+          if (dy*CM > 60 && !draw_slice_large) {
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_hit_y_resolution_large_deviation", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+            draw_slice_large = true;
+          }
+        }
+        double slope_start_reco = DEG*std::atan2(reco.StartDirection[0][1], reco.StartDirection[0][2]);
+        double slope_start_true = DEG*std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[0][1],
+                                             truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[0][2]);
+        double slope_end_reco = DEG*std::atan2(reco.EndDirection[0][1], reco.EndDirection[0][2]) - 180;
+        double slope_end_true = DEG*std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumTrackEnd[0][1],
+                                           truth.RecoTrackPrimaryParticleTrueMomentumTrackEnd[0][2]);
+        
+        GetHist("resolution__reco_track__slope_yz_start", 
+                "Reco Track Starting YZ Slope Resolution", "slope_yz_resolution_track_start")->Fill(slope_start_reco - slope_start_true);
+        GetHist("resolution__reco_track__slope_yz_end", 
+                "Reco Track Ending YZ Slope Resolution", "slope_yz_resolution_track_end")->Fill(slope_end_reco - slope_end_true);
+        
+        if (std::abs(slope_start_reco - slope_start_true) > 30)
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "slope/start_resolution_above_30", 
+                    TString::Format("resolution = %f", slope_start_reco - slope_start_true).Data(), reco, lc, truth, DrawSliceN::handfull);
+        if (std::abs(slope_end_reco - slope_end_true) > 30)
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "slope/end_resolution_above_30", 
+                    TString::Format("resolution = %f", slope_start_reco - slope_start_true).Data(), reco, lc, truth, DrawSliceN::handfull);
+        
       }
+      
+      // Want to compare
+      if (entry_number == 341 || entry_number == 118)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "special", 
+                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
       
       // Example of drawing for a reason
       if (reco.nTracks > 2) {
