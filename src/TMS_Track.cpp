@@ -14,10 +14,11 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
   // Loop over hits but don't update positions right away
   // so we don't influence downstream hits
   std::map<size_t, std::pair<double, double>> new_y_positions;
+  const double uncertainty_transition_point = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UncertaintyForUVTransitionPoints();
+  const double uncertainty_good = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UncertaintyGoodDirection();
   for (size_t i = 0; i + 1 < Hits.size(); i++) {
     auto a = Hits[i];
     auto b = Hits[i+1];
-    //std::cout<<"a.GetRecoY(): "<<a.GetRecoY()<<", b.GetRecoY(): "<<b.GetRecoY()<<std::endl;
     // A transition point is a point where a.RecoY != b.RecoY. Check for 0.001 due to floating point imprecision
     if (abs(a.GetRecoY() - b.GetRecoY()) > 0.001) {
       // This is a hit transition
@@ -38,8 +39,8 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
         double slope_estimate = 0;
         double ya = slope_estimate * (a.GetZ() - shared_z) + shared_y;
         double yb = slope_estimate * (b.GetZ() - shared_z) + shared_y;
-        double ya_uncertainty = 12;
-        double yb_uncertainty = 12;
+        double ya_uncertainty = uncertainty_transition_point;
+        double yb_uncertainty = uncertainty_transition_point;
         // todo, if the positions already exist in map, do something clever like weighted avg
         new_y_positions[i] = std::make_pair(ya, ya_uncertainty);
         new_y_positions[i+1] = std::make_pair(yb, yb_uncertainty);
@@ -56,7 +57,7 @@ std::vector<size_t> TMS_Track::findYTransitionPoints() {
          hit_that_needs_y_info = b;
          hit_that_has_y_info = a;
         }
-        new_y_positions[index_to_use] = std::make_pair(hit_that_has_y_info.GetRecoY(), 5);
+        new_y_positions[index_to_use] = std::make_pair(hit_that_has_y_info.GetRecoY(), uncertainty_good);
       }
     }
   }
@@ -90,10 +91,12 @@ double TMS_Track::getAvgYSlopeBetween(size_t ia, size_t ib) const {
 double TMS_Track::getMaxAllowedSlope(size_t ia, size_t ib) const {
   // For a pure UV detector, the max allowed slope is 30cm / dz assuming everything stays within same section of y hits
   double dz = Hits.at(ia).GetZ() - Hits.at(ib).GetZ();
+  // This shouldn't happen but if it does, return a default 10 which is very steep
   if (std::abs(dz) < 0.00001) return 10;
   double sign = 1;
   if (Hits.at(ia).GetRecoY() - Hits.at(ib).GetRecoY() > 0) sign = -1;
-  return sign * 300 / dz;
+  const double max_y_distance = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints();
+  return sign * max_y_distance / dz;
 }
 
 void TMS_Track::simpleTrackSmoothing() {
@@ -186,9 +189,8 @@ double TMS_Track::CalculateTrackSmoothnessY() {
 void TMS_Track::LookForHitsOutsideTMS() {
   for (auto& hit : Hits) {
     TVector3 position(hit.GetRecoX(), hit.GetRecoY(), hit.GetZ());
-    //if (!TMS_Geom::StaticIsInsideTMS(position)) {
-    if (position.Y() > 500 || position.Y() < -3500) {
-      std::cout<<"Fount point outside TMS with x,y,z="<<position.X()<<","<<position.Y()<<","<<position.Z()<<std::endl;
+    if (!TMS_Geom::StaticIsInsideTMS(position)) {
+      std::cout<<"Found point outside TMS with x,y,z="<<position.X()<<","<<position.Y()<<","<<position.Z()<<std::endl;
     }
   }
 }
@@ -200,16 +202,18 @@ void TMS_Track::setDefaultUncertainty() {
     // And vice versa
     auto bar_type = hit.GetBar().GetBarType();
     double uncertainty_y = -999.0;
-    if (bar_type == TMS_Bar::kXBar) uncertainty_y = 50; // mm
-    if (bar_type == TMS_Bar::kUBar) uncertainty_y = 300; // mm
-    if (bar_type == TMS_Bar::kVBar) uncertainty_y = 300; // mm
-    if (bar_type == TMS_Bar::kYBar) uncertainty_y = 300; // mm
+    const double uncertainty_good = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UncertaintyGoodDirection();
+    const double uncertainty_bad = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UncertaintyBadDirection();
+    if (bar_type == TMS_Bar::kXBar) uncertainty_y = uncertainty_good; // mm
+    if (bar_type == TMS_Bar::kUBar) uncertainty_y = uncertainty_bad; // mm
+    if (bar_type == TMS_Bar::kVBar) uncertainty_y = uncertainty_bad; // mm
+    if (bar_type == TMS_Bar::kYBar) uncertainty_y = uncertainty_bad; // mm
     if (uncertainty_y < 0) throw std::runtime_error("This shouldn't happen. Didn't find uncertainty");
     double uncertainty_x = -999.0;
-    if (bar_type == TMS_Bar::kXBar) uncertainty_x = 300; // mm
-    if (bar_type == TMS_Bar::kUBar) uncertainty_x = 50; // mm
-    if (bar_type == TMS_Bar::kVBar) uncertainty_x = 50; // mm
-    if (bar_type == TMS_Bar::kYBar) uncertainty_x = 50; // mm
+    if (bar_type == TMS_Bar::kXBar) uncertainty_x = uncertainty_bad; // mm
+    if (bar_type == TMS_Bar::kUBar) uncertainty_x = uncertainty_good; // mm
+    if (bar_type == TMS_Bar::kVBar) uncertainty_x = uncertainty_good; // mm
+    if (bar_type == TMS_Bar::kYBar) uncertainty_x = uncertainty_good; // mm
     if (uncertainty_x < 0) throw std::runtime_error("This shouldn't happen. Didn't find uncertainty");
     hit.SetRecoYUncertainty(uncertainty_y);
     hit.SetRecoXUncertainty(uncertainty_x);
