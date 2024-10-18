@@ -221,7 +221,7 @@ void TMS_Track::ApplyTrackSmoothing() {
   //double initial_track_smoothness = CalculateTrackSmoothnessY();
   // Ideally this would be done in reco somewhere but idk where
   setDefaultUncertainty();
-  std::string strategy = "simple";
+  std::string strategy = TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy();
   if (strategy == "simple") simpleTrackSmoothing();
   // The next level would be to do a minimization that minimizes curvature + chi2, 
   // where chi2 takes into account the uncertainty of each point. Basically almost kalman filter

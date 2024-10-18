@@ -83,6 +83,10 @@
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
     DirectionDistance = 10
 
+  [Recon.TrackSmoothing]
+    UseTrackSmoothing = true
+    TrackSmoothingStrategy = "simple"
+
   [Recon.AStar]
     #CostMetric = "Manhattan"
     CostMetric = "Euclidean"
