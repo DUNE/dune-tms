@@ -496,6 +496,7 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "momentum") return std::make_tuple("Momentum (GeV)", 50, 0, 5);
   if (axis_name == "energy_range") return std::make_tuple("Energy Range (GeV)", 50, 0, 5);
   if (axis_name == "energy_deposit") return std::make_tuple("Energy Deposit (MeV)", 50, 0, 3000);
+  if (axis_name == "yesno") return std::make_tuple("Yes or No", 2, -0.5, 1.5);
   
   // Allow for registered axis so we don't need to add them away from where they're used
   if (registeredAxes.find(axis_name) != registeredAxes.end()) return registeredAxes[axis_name];
@@ -515,6 +516,15 @@ std::tuple<bool, std::string, int, double*> GetComplexBinning(std::string axis_n
 void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::string zaxis = "") {
   if (xaxis == "pdg") {
     const char *pdg[] = {"e^{+/-}, #gamma", "#mu^{-}", "#mu^{+}", "#pi^{+}", "#pi^{-}", "K", "n", "p", "other", "unknown"};
+    const int npdg = sizeof(pdg) / sizeof(pdg[0]);
+    hist->SetNdivisions(npdg);
+    for (int ib = 0; ib < npdg; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
+    }
+  }
+
+  if (xaxis == "yesno") {
+    const char *pdg[] = {"yes", "no"};
     const int npdg = sizeof(pdg) / sizeof(pdg[0]);
     hist->SetNdivisions(npdg);
     for (int ib = 0; ib < npdg; ib++) {
@@ -889,6 +899,36 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                       TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
         }
       }
+
+      REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Energy in 30cm Shell (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Energy in 30cm Shell",
+              "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
+      REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Energy in 30cm Shell (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
+              "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
+
+      REGISTER_AXIS(LArTotalEnergy, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__LArTotalEnergy", "LAr Visible Energy",
+              "LArTotalEnergy")->Fill(truth.LArTotalEnergy);
+      REGISTER_AXIS(LArTotalEnergyFromVertex, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__LArTotalEnergyFromVertex", "LAr Visible Energy from Primary Vertex",
+              "LArTotalEnergyFromVertex")->Fill(truth.LArTotalEnergyFromVertex);
+
+      REGISTER_AXIS(TotalNonTMSEnergy, std::make_tuple("Total E Deposited Outside TMS (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__TotalNonTMSEnergy", "Total E Deposited Outside TMS",
+              "TotalNonTMSEnergy")->Fill(truth.TotalNonTMSEnergy);
+      REGISTER_AXIS(TotalNonTMSEnergyFromVertex, std::make_tuple("Total E Deposited from Outside TMS (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__TotalNonTMSEnergyFromVertex", "Total E Deposited from Primary Vertex Outside TMS",
+              "TotalNonTMSEnergyFromVertex")->Fill(truth.TotalNonTMSEnergyFromVertex);
+
+      GetHist("cut__lar_outer_shell__energy_in_shell", "LAr Visible Energy in 30cm Shell",
+              "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
+      GetHist("cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
+              "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
+      GetHist("cut__lar_outer_shell__passes_cut_e_total", "Passes Total E in ND-LAr Outer Shell < 30 MeV Cut",
+              "yesno")->Fill((truth.LArOuterShellEnergy < 30) ? 0 : 1);
+      GetHist("cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
+              "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
       
       REGISTER_AXIS(energy_resolution, std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {
