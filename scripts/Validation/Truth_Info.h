@@ -90,6 +90,12 @@ public :
    Float_t         Muon_Death[4];
    Float_t         Muon_TrueKE;
    Float_t         Muon_TrueTrackLength;
+   Float_t         LArOuterShellEnergy;
+   Float_t         LArOuterShellEnergyFromVertex;
+   Float_t         LArTotalEnergy;
+   Float_t         LArTotalEnergyFromVertex;
+   Float_t         TotalNonTMSEnergy;
+   Float_t         TotalNonTMSEnergyFromVertex;
    Int_t           VertexIdOfMostEnergyInEvent;
    Float_t         VisibleEnergyFromUVertexInSlice;
    Float_t         TotalVisibleEnergyFromVertex;
@@ -103,7 +109,7 @@ public :
    Int_t           RecoTrackPrimaryParticleTrueNHits[10]; //[RecoTrackN]
    Int_t           RecoTrackSecondaryParticleIndex[10];   //[RecoTrackN]
    Float_t         RecoTrackSecondaryParticleTrueVisibleEnergy[10];   //[RecoTrackN]
-   Int_t         RecoTrackSecondaryParticleTrueNHits[10];   //[RecoTrackN]
+   Int_t           RecoTrackSecondaryParticleTrueNHits[10];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumTrackStart[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTruePositionTrackStart[10][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumTrackEnd[10][4];   //[RecoTrackN]
@@ -206,12 +212,20 @@ public :
    TBranch        *b_Muon_Death;   //!
    TBranch        *b_Muon_TrueKE;   //!
    TBranch        *b_Muon_TrueTrackLength;   //!
+   TBranch        *b_LArOuterShellEnergy;   //!
+   TBranch        *b_LArOuterShellEnergyFromVertex;   //!
+   TBranch        *b_LArTotalEnergy;   //!
+   TBranch        *b_LArTotalEnergyFromVertex;   //!
+   TBranch        *b_TotalNonTMSEnergy;   //!
+   TBranch        *b_TotalNonTMSEnergyFromVertex;   //!
    TBranch        *b_VertexIdOfMostEnergyInEvent;   //!
-   TBranch        *b_VisibleEnergyFromUVertexInSlice;   //!
+   TBranch        *b_VisibleEnergyFromVertexInSlice;   //!
    TBranch        *b_TotalVisibleEnergyFromVertex;   //!
-   TBranch        *b_VisibleEnergyFromVVerticesInSlice;   //!
+   TBranch        *b_VisibleEnergyFromOtherVerticesInSlice;   //!
    TBranch        *b_VertexVisibleEnergyFractionInSlice;   //!
    TBranch        *b_PrimaryVertexVisibleEnergyFraction;   //!
+   TBranch        *b_VisibleEnergyFromUVertexInSlice;   //!
+   TBranch        *b_VisibleEnergyFromVVerticesInSlice;   //!
    TBranch        *b_RecoTrackN;   //!
    TBranch        *b_RecoTrackTrueVisibleEnergy;   //!
    TBranch        *b_RecoTrackPrimaryParticleIndex;   //!
@@ -395,6 +409,12 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("Muon_Death", Muon_Death, &b_Muon_Death);
    fChain->SetBranchAddress("Muon_TrueKE", &Muon_TrueKE, &b_Muon_TrueKE);
    fChain->SetBranchAddress("Muon_TrueTrackLength", &Muon_TrueTrackLength, &b_Muon_TrueTrackLength);
+   fChain->SetBranchAddress("LArOuterShellEnergy", &LArOuterShellEnergy, &b_LArOuterShellEnergy);
+   fChain->SetBranchAddress("LArOuterShellEnergyFromVertex", &LArOuterShellEnergyFromVertex, &b_LArOuterShellEnergyFromVertex);
+   fChain->SetBranchAddress("LArTotalEnergy", &LArTotalEnergy, &b_LArTotalEnergy);
+   fChain->SetBranchAddress("LArTotalEnergyFromVertex", &LArTotalEnergyFromVertex, &b_LArTotalEnergyFromVertex);
+   fChain->SetBranchAddress("TotalNonTMSEnergy", &TotalNonTMSEnergy, &b_TotalNonTMSEnergy);
+   fChain->SetBranchAddress("TotalNonTMSEnergyFromVertex", &TotalNonTMSEnergyFromVertex, &b_TotalNonTMSEnergyFromVertex);
    fChain->SetBranchAddress("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, &b_VertexIdOfMostEnergyInEvent);
    fChain->SetBranchAddress("VisibleEnergyFromUVertexInSlice", &VisibleEnergyFromUVertexInSlice, &b_VisibleEnergyFromUVertexInSlice);
    fChain->SetBranchAddress("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, &b_TotalVisibleEnergyFromVertex);
