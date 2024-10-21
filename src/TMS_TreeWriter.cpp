@@ -243,6 +243,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
+  Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/I");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
@@ -1222,6 +1223,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];

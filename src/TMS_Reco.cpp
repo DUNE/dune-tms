@@ -727,7 +727,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom;
+    double kalman_reco_mom, kalman_chi2;
     for (auto &trk : HoughTracks3D) {
       KalmanFilter = TMS_Kalman(trk.Hits);
       kalman_reco_mom = KalmanFilter.GetMomentum();
@@ -751,6 +751,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
       // Add tracklength with Kalman filter
       trk.Length = CalculateTrackLengthKalman(trk);
+      //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
+      kalman_chi2 = KalmanFilter.GetTrackChi2();
+      trk.SetChi2(kalman_chi2);
     }
   } else { // No Kalman filter enabled
     for (auto &trk : HoughTracks3D) {

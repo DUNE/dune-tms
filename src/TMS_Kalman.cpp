@@ -383,16 +383,17 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
 
   // Calculate chi^2
-  Node.rVec  = (Measurement - H*UpdateVec);
-  //Node.rVecT = (Measurement - H*UpdateVec); Node.rVecT.T(); // Transpose it
-  Node.RMatrix = (Node.NoiseMatrix - H*UpdatedCovarianceMatrix*H_T).Invert();
-  //TMatrixD RInvMatrix = (Node.RMatrix).Invert();
-  //Node.chi2 = Node.RMatrix*Node.rVec;
-  //Node.chi2 = Node.rVecT*Node.RMatrix*Node.rVec;
-  Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec);
-  //(Node.RMatrix*Node.rVec).Print();
-  //Node.chi2 *= Node.rVec;
-  std::cout << "chi2: " << Node.chi2 << std::endl;
+  Node.rVec[0] = (Measurement[0] - UpdateVec[0]);
+  Node.rVec[1] = (Measurement[1] - UpdateVec[1]);
+
+  // Probably a much nicer way to make (sub)matrix from a bigger one, but YOLO
+  Node.RMatrix(0,0) = (Node.NoiseMatrix(0,0) - UpdatedCovarianceMatrix(0,0));
+  Node.RMatrix(1,0) = (Node.NoiseMatrix(1,0) - UpdatedCovarianceMatrix(1,0));
+  Node.RMatrix(0,1) = (Node.NoiseMatrix(0,1) - UpdatedCovarianceMatrix(0,1));
+  Node.RMatrix(1,1) = (Node.NoiseMatrix(1,1) - UpdatedCovarianceMatrix(1,1));
+  Node.RMatrix.Invert(); // Matrix has to be inverted
+  Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec); // Calc chi^2
+  //std::cout << "chi2: " << Node.chi2 << std::endl;
 
 
 

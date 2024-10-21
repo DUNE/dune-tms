@@ -58,15 +58,15 @@ class TMS_KalmanNode {
     x(xvar), y(yvar), z(zvar), dz(dzvar),
     CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     PreviousState(x, y, z, -999.9, -999.9, -1./20.),
-    TransferMatrix(KALMAN_DIM,KALMAN_DIM),
-    TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
-    NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
-    CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
-    rVec(KALMAN_DIM),
-    rVecT(KALMAN_DIM),
-    RMatrix(KALMAN_DIM,KALMAN_DIM)
+    TransferMatrix(KALMAN_DIM, KALMAN_DIM),
+    TransferMatrixT(KALMAN_DIM, KALMAN_DIM),
+    NoiseMatrix(KALMAN_DIM, KALMAN_DIM),
+    CovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    UpdatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    MeasurementMatrix(KALMAN_DIM, KALMAN_DIM),
+    rVec(2),
+    rVecT(2),
+    RMatrix(2, 2)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -74,9 +74,9 @@ class TMS_KalmanNode {
     CovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     UpdatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     MeasurementMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
-    rVec.ResizeTo(KALMAN_DIM);
-    rVecT.ResizeTo(KALMAN_DIM);
-    RMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    rVec.ResizeTo(2);
+    rVecT.ResizeTo(2);
+    RMatrix.ResizeTo(2, 2);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
@@ -246,6 +246,16 @@ class TMS_Kalman {
     void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
+
+    double GetTrackChi2()
+    {
+      double tmp_chi2 = 0.0;
+      for (auto node : KalmanNodes)
+        tmp_chi2 += node.chi2;
+
+      return tmp_chi2;
+    }
+
 
     std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
 
