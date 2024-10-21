@@ -243,7 +243,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
-  Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/I");
+  Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
