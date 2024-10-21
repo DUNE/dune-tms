@@ -380,7 +380,23 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
-  //'CovarianceMatrix.Print();
+
+
+  // Calculate chi^2
+  Node.rVec  = (Measurement - H*UpdateVec);
+  //Node.rVecT = (Measurement - H*UpdateVec); Node.rVecT.T(); // Transpose it
+  Node.RMatrix = (Node.NoiseMatrix - H*UpdatedCovarianceMatrix*H_T).Invert();
+  //TMatrixD RInvMatrix = (Node.RMatrix).Invert();
+  //Node.chi2 = Node.RMatrix*Node.rVec;
+  //Node.chi2 = Node.rVecT*Node.RMatrix*Node.rVec;
+  Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec);
+  //(Node.RMatrix*Node.rVec).Print();
+  //Node.chi2 *= Node.rVec;
+  std::cout << "chi2: " << Node.chi2 << std::endl;
+
+
+
+  //CovarianceMatrix.Print();
   //GainMatrix.Print();
   //CurrentState.Print();
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region

@@ -63,7 +63,10 @@ class TMS_KalmanNode {
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
     CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
     UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM)
+    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
+    rVec(KALMAN_DIM),
+    rVecT(KALMAN_DIM),
+    RMatrix(KALMAN_DIM,KALMAN_DIM)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -71,11 +74,19 @@ class TMS_KalmanNode {
     CovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     UpdatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     MeasurementMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    rVec.ResizeTo(KALMAN_DIM);
+    rVecT.ResizeTo(KALMAN_DIM);
+    RMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
     TransferMatrix.Zero();
     TransferMatrixT.Zero(); // Transposed
+    rVec.Zero();
+    rVecT.Zero();
+    RMatrix.Zero();
+
+
     // Diagonal element
     for (int j = 0; j < KALMAN_DIM; ++j)
     {
@@ -119,9 +130,14 @@ class TMS_KalmanNode {
   TMatrixD NoiseMatrix;
   TMatrixD CovarianceMatrix;
   TMatrixD UpdatedCovarianceMatrix;
-
   // Measurement matrix
   TMatrixD MeasurementMatrix;
+  // For chi2 stuff
+  TVectorD rVec;
+  TVectorD rVecT;
+  TMatrixD RMatrix;
+  double chi2;
+
 
   void SetRecoXY(TMS_KalmanState& State)
   {
