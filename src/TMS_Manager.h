@@ -67,7 +67,14 @@ class TMS_Manager {
     bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
-    
+
+    bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
+    std::string Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy() { return _RECO_TRACKSMOOTHING_TrackSmoothingStrategy; };
+    double Get_Reco_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints() { return _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyGoodDirection() { return _RECO_TRACKSMOOTHING_UncertaintyGoodDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyBadDirection() { return _RECO_TRACKSMOOTHING_UncertaintyBadDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyForUVTransitionPoints() { return _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints; };
+
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
     bool Get_Reco_TIME_RunSimpleTimeSlicer() { return _RECO_TIME_RunSimpleTimeSlicer; };
     double Get_RECO_TIME_TimeSlicerThresholdStart() { return _RECO_TIME_TimeSlicerThresholdStart; };
@@ -142,6 +149,13 @@ class TMS_Manager {
     double _RECO_TRACKMATCH_TiltAngle;
     float _RECO_TRACKMATCH_YDifference;
     int _RECO_TRACKMATCH_DirectionDistance;
+
+    bool _RECO_TRACKSMOOTHING_UseTrackSmoothing;
+    std::string _RECO_TRACKSMOOTHING_TrackSmoothingStrategy;
+    double _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints;
+    double _RECO_TRACKSMOOTHING_UncertaintyGoodDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyBadDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints;
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;

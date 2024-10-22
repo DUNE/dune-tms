@@ -105,6 +105,12 @@ class TMS_Hit {
     double GetRecoX() const { return RecoX; };
     double GetRecoY() const { return RecoY; };
 
+    void SetRecoXUncertainty(double x_uncertainty) { RecoXUncertainty = x_uncertainty; };
+    void SetRecoYUncertainty(double y_uncertainty) { RecoYUncertainty = y_uncertainty; };
+
+    double GetRecoXUncertainty() const { return RecoXUncertainty; };
+    double GetRecoYUncertainty() const { return RecoYUncertainty; };
+
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
     
@@ -130,6 +136,7 @@ class TMS_Hit {
     double Time;
     // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
     double RecoX, RecoY; // Only to be filled after tracking performed
+    double RecoXUncertainty, RecoYUncertainty;
     
     int Slice;
     
