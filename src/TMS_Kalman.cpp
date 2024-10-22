@@ -381,7 +381,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dydz = FilteredVec[3];
 
 
-
   // Calculate chi^2
   Node.rVec[0] = (Measurement[0] - UpdateVec[0]);
   Node.rVec[1] = (Measurement[1] - UpdateVec[1]);
@@ -392,8 +391,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   Node.RMatrix(0,1) = (Node.NoiseMatrix(0,1) - UpdatedCovarianceMatrix(0,1));
   Node.RMatrix(1,1) = (Node.NoiseMatrix(1,1) - UpdatedCovarianceMatrix(1,1));
   Node.RMatrix.Invert(); // Matrix has to be inverted
+
   Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec); // Calc chi^2
-  //std::cout << "chi2: " << Node.chi2 << std::endl;
 
 
 
