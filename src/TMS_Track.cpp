@@ -10,9 +10,9 @@ void TMS_Track::SetStartDirection(double ax, double ay, double az)
 {
   double mag = ax*ax + ay*ay + az*az;
 
-  Start[0] = ax/mag;
-  Start[1] = ay/mag;
-  Start[2] = az/mag;
+  StartDirection[0] = ax/mag;
+  StartDirection[1] = ay/mag;
+  StartDirection[2] = az/mag;
 };
 
 // Set the end direction of the track object, normalised so magnitude == 1
@@ -20,7 +20,7 @@ void TMS_Track::SetEndDirection(double ax, double ay, double az)
 {
   double mag = ax*ax + ay*ay + az*az;
 
-  End[0] = ax/mag;
-  End[1] = ay/mag;
-  End[2] = az/mag;
+  EndDirection[0] = ax/mag;
+  EndDirection[1] = ay/mag;
+  EndDirection[2] = az/mag;
 };
