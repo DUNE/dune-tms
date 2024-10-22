@@ -126,7 +126,7 @@ void TMS_Kalman::RunKalman() {
   //std::cout << "filter end pos : " << KalmanNodes.at(1).CurrentState.x << ", " << KalmanNodes.at(1).CurrentState.y << ", "  << KalmanNodes.at(1).CurrentState.z << std::endl;
   SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
 
-  //std::cout << "filter start dir: " << KalmanNodes.back().CurrentState.dxdz << ", " << KalmanNodes.back().CurrentState.dydz << std::endl;
+  std::cout << "filter start dir: " << KalmanNodes.back().CurrentState.dxdz << ", " << KalmanNodes.back().CurrentState.dydz << std::endl;
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
   //std::cout << "filter end dir: " << KalmanNodes.at(1).CurrentState.dxdz << ", " << KalmanNodes.at(1).CurrentState.dydz << std::endl;
   SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);

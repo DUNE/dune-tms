@@ -81,7 +81,7 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 14
+    DirectionDistance = 10
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
