@@ -1676,7 +1676,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
             std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-#endif          
+#endif       
   
             returned.push_back(aTrack);
           }

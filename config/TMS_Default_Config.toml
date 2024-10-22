@@ -81,7 +81,7 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 10
+    DirectionDistance = 14
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -91,7 +91,7 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = true # Whether we run the Kalman filter or not
+    Run = true #false # Whether we run the Kalman filter or not
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
