@@ -18,6 +18,8 @@
 #include "TMS_Hit.h"
 #include "TMS_Bar.h"
 
+
+
 // Define the number of dimensions for a Kalman Node
 #ifndef KALMAN_DIM
 #define KALMAN_DIM 5
@@ -203,15 +205,14 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    TMS_Kalman(std::vector<TMS_Hit> &Candidates);
-
+    TMS_Kalman(std::vector<TMS_Hit> &Candidates); 
     double Start[3];
     double End[3];
     double StartDirection[3];
     double EndDirection[3];
 
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
-
+    void SetKalmanPDG(int PDG){KalmanPDG = PDG;}
     void SetMomentum(double mom) {momentum = mom;}
     // Set direction unit vectors from only x and y slope
     void SetStartDirection(double ax, double ay) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=sqrt(1 - ax*ax - ay*ay);};
@@ -222,10 +223,13 @@ class TMS_Kalman {
     void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
+    int GetKalmanPDG(){return KalmanPDG; }
 
     std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
+    
+    double CalculateChiSquare(TMS_KalmanNode &CurrentNode, int charge);
 
   private:
     // Energy-loss calculator
@@ -235,6 +239,8 @@ class TMS_Kalman {
     void Predict(TMS_KalmanNode &Node);
     void Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode);
     void RunKalman();
+    
+    
 
 
     // State vector
@@ -247,6 +253,9 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
+    
+    //new member to be output to the tmsreco file for further analysis
+    int KalmanPDG;
 
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
