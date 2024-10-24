@@ -14,6 +14,7 @@ class TMS_Bar {
   public:
 
     TMS_Bar(TG4HitSegment &edep_seg);
+    TMS_Bar(double x, double y, double z);
 
     // Enum for the x, y, U, V bar orientation
     enum BarType { kXBar, kYBar, kUBar, kVBar, kError };
