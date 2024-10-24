@@ -90,6 +90,9 @@ class TMS_TrueParticle {
     void SetPDG(int num) { PDG = num; };
 
     int GetPDG() const { return PDG; };
+    // Hadronic is anything that isn't electron, muon, tau, or photon
+    bool IsHadronic() { return (std::abs(PDG) != 11 && std::abs(PDG) != 13 && std::abs(PDG) != 16 && std::abs(PDG) != 22); };
+    bool IsLeptonic() { return !IsHadronic(); };
     int GetParent() const { return Parent; };
     bool IsPrimary() const { return Parent < 0; };
     int GetTrackId() const { return TrackId; };
