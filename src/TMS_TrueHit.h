@@ -99,6 +99,8 @@ class TMS_TrueHit {
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
     //void SetVertexId(int id) { VertexId = id; };
     size_t GetNTrueParticles() const { return EnergyShare.size(); };
+    double GetLeptonicEnergy() const;
+    double GetHadronicEnergy() const { return GetE() - GetLeptonicEnergy(); };
 
     void SetX(double pos) {x = pos;};
     void SetY(double pos) {y = pos;};
@@ -110,6 +112,7 @@ class TMS_TrueHit {
     void SetPEAfterFibers(double PE) {peAfterFibers = PE;};
     void SetPEAfterFibersLongPath(double PE) {peAfterFibersLongPath = PE;};
     void SetPEAfterFibersShortPath(double PE) {peAfterFibersShortPath = PE;};
+    void SetEnergyLeptonic(int index, bool value = true) { EnergyShareIsLeptonic[index] = value; };
 
     void Print() const;
     
@@ -131,6 +134,7 @@ class TMS_TrueHit {
     std::vector<int> PrimaryIds;
     std::vector<int> VertexIds;
     std::vector<double> EnergyShare;
+    std::vector<bool> EnergyShareIsLeptonic;
 };
 
 #endif

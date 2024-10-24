@@ -45,6 +45,7 @@ TMS_TrueHit::TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id) {
   PrimaryIds.push_back(edep_seg.GetPrimaryId());
   VertexIds.push_back(vertex_id);
   EnergyShare.push_back(GetE());
+  EnergyShareIsLeptonic.push_back(false);
 }
 
 void TMS_TrueHit::Print() const {
@@ -89,7 +90,16 @@ void TMS_TrueHit::MergeWith(TMS_TrueHit& hit) {
     PrimaryIds.push_back(hit.PrimaryIds[i]);
     VertexIds.push_back(hit.VertexIds[i]);
     EnergyShare.push_back(hit.EnergyShare[i]);
+    EnergyShareIsLeptonic.push_back(hit.EnergyShareIsLeptonic[i]);
   }
+}
+
+double TMS_TrueHit::GetLeptonicEnergy() const {
+  double out = 0;
+  for (size_t i = 0; i < EnergyShareIsLeptonic.size(); i++) {
+    if (EnergyShareIsLeptonic.at(i)) out += EnergyShare.at(i);
+  }
+  return out;
 }
 
 
