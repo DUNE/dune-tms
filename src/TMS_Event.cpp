@@ -253,8 +253,14 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       int track_id = traj.GetTrackId();
       mapping_track_to_vertex_id[track_id] = vertex_index;
     }
-  } 
-  
+  }
+
+  std::map<int, TMS_TrueParticle*> mapping_track_to_true_particle;
+  for (auto tp : TMS_TrueParticles) {
+    int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
+    mapping_track_to_true_particle[key] = &tp;
+  }
+
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
     // Only look at TMS hits
@@ -279,7 +285,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
       if (barnum >= 0) {
         TMS_Hits.push_back(std::move(hit));
-        
+
         // todo, maybe skip for michel electrons or late neutrons
         for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
           TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
@@ -289,7 +295,16 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       else {
         // Add all non-tms hits to another vector
         // We only need it for truth info so just save truth info
-        NonTMS_Hits.push_back(TMS_TrueHit(edep_hit, vertex_id));
+        TMS_TrueHit t(edep_hit, vertex_id);
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          int key = t.GetVertexIds(i) * 100000 + t.GetPrimaryIds(i);
+          if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
+            // Now set info
+            auto tp = mapping_track_to_true_particle[key];
+            if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
+          }
+        }
+        NonTMS_Hits.push_back(t);
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
