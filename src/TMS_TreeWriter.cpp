@@ -232,7 +232,13 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
   Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarView", RecoTrackKalmanPlaneBarView, "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
   Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
+  Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarViewTrue", RecoTrackKalmanFirstPlaneBarViewTrue, "RecoTrackKalmanFirstPlaneBarViewTrue[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarViewTrue", RecoTrackKalmanLastPlaneBarViewTrue, "RecoTrackKalmanLastPlaneBarViewTrue[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarViewTrue", RecoTrackKalmanPlaneBarViewTrue, "RecoTrackKalmanPlaneBarViewTrue[nTracks][200][3]/I");
   Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
   Reco_Tree->Branch("EndDirection",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
   Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
@@ -1256,7 +1262,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    //nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
@@ -1269,6 +1275,33 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
       RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
+    }
+    
+    if (RecoTrack->KalmanNodes.size() > 0) {
+      size_t last_index = RecoTrack->KalmanNodes.size() - 1;
+      TMS_Bar first_bar(RecoTrack->KalmanNodes[0].RecoX, RecoTrack->KalmanNodes[0].RecoY,
+                        RecoTrack->KalmanNodes[0].z);
+      TMS_Bar last_bar(RecoTrack->KalmanNodes[last_index].RecoX, RecoTrack->KalmanNodes[last_index].RecoY,
+                       RecoTrack->KalmanNodes[last_index].z);
+      RecoTrackKalmanFirstPlaneBarView[itTrack][0] = first_bar.GetPlaneNumber();
+      RecoTrackKalmanFirstPlaneBarView[itTrack][1] = first_bar.GetBarNumber();
+      RecoTrackKalmanFirstPlaneBarView[itTrack][2] = first_bar.GetBarTypeNumber();
+
+      RecoTrackKalmanLastPlaneBarView[itTrack][0] = last_bar.GetPlaneNumber();
+      RecoTrackKalmanLastPlaneBarView[itTrack][1] = last_bar.GetBarNumber();
+      RecoTrackKalmanLastPlaneBarView[itTrack][2] = last_bar.GetBarTypeNumber();
+
+      TMS_Bar first_bar_true(RecoTrack->KalmanNodes[0].TrueX, RecoTrack->KalmanNodes[0].TrueY,
+                             RecoTrack->KalmanNodes[0].z);
+      TMS_Bar last_bar_true(RecoTrack->KalmanNodes[last_index].TrueX, RecoTrack->KalmanNodes[last_index].TrueY,
+                            RecoTrack->KalmanNodes[last_index].z);
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][0] = first_bar_true.GetPlaneNumber();
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][1] = first_bar_true.GetBarNumber();
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][2] = first_bar_true.GetBarTypeNumber();
+
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][0] = last_bar_true.GetPlaneNumber();
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][1] = last_bar_true.GetBarNumber();
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
@@ -1288,6 +1321,18 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].CurrentState.x;
       //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].CurrentState.y;
       //RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].CurrentState.z;
+
+      TMS_Bar current_bar(RecoTrack->KalmanNodes[j].RecoX, RecoTrack->KalmanNodes[j].RecoY,
+                          RecoTrack->KalmanNodes[j].z);
+      RecoTrackKalmanPlaneBarView[itTrack][j][0] = current_bar.GetPlaneNumber();
+      RecoTrackKalmanPlaneBarView[itTrack][j][1] = current_bar.GetBarNumber();
+      RecoTrackKalmanPlaneBarView[itTrack][j][2] = current_bar.GetBarTypeNumber();
+
+      TMS_Bar current_bar_true(RecoTrack->KalmanNodes[j].TrueX, RecoTrack->KalmanNodes[j].TrueY,
+                               RecoTrack->KalmanNodes[j].z);
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][0] = current_bar_true.GetPlaneNumber();
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][1] = current_bar_true.GetBarNumber();
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][2] = current_bar_true.GetBarTypeNumber();
     }
 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
@@ -1690,6 +1735,15 @@ void TMS_TreeWriter::Clear() {
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
+
+    for (int k = 0; k < 3; k++) {
+      RecoTrackKalmanFirstPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanLastPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
+      for (int j = 0; j < __TMS_MAX_LINE_HITS__; j++) {
+        RecoTrackKalmanPlaneBarView[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPlaneBarViewTrue[i][j][k] = DEFAULT_CLEARING_FLOAT;
+      }
+    }
   }
 /*    Occupancy3D[i] = DEFAULT_CLEARING_FLOAT;
     TrackLength3D[i] = DEFAULT_CLEARING_FLOAT;
