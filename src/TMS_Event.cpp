@@ -284,6 +284,15 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
       if (barnum >= 0) {
+        auto t = hit.GetAdjustableTrueHit();
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          int key = t.GetVertexIds(i) * 100000 + t.GetPrimaryIds(i);
+          if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
+            // Now set info
+            auto tp = mapping_track_to_true_particle[key];
+            if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
+          }
+        }
         TMS_Hits.push_back(std::move(hit));
 
         // todo, maybe skip for michel electrons or late neutrons
