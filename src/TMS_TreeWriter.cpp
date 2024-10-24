@@ -1623,8 +1623,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   int index = 0;
   for (auto& hit : event.GetNonTMSHits()) {
     if (index >= __TMS_MAX_TRUE_NONTMS_HITS__) {
-      std::cout<<"Warning: Found nontms hits than __TMS_MAX_TRUE_NONTMS_HITS__. "
-                 "This this happens often, increase limit from "<<__TMS_MAX_TRUE_NONTMS_HITS__<<std::endl;
+      std::cout<<"Warning: Found more nontms hits than __TMS_MAX_TRUE_NONTMS_HITS__. "
+                 "If this happens often, increase limit from "<<__TMS_MAX_TRUE_NONTMS_HITS__<<std::endl;
       break;
     }
     TrueNonTMSHitPos[index][0] = hit.GetX();
