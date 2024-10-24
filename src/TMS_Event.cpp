@@ -293,27 +293,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
-}
-
-// Start the relatively tedious process of converting into TMS products!
-// Can also use FillEvent = false to get a simple meta data extractor
-TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
-  //std::cout<<"Making TMS event"<<std::endl;
   bool OnlyPrimaryOrVisibleEnergy = true;
-
-  // Save down the event number
-  EventNumber = EventCounter;
-  generator = std::default_random_engine(7890 + EventNumber); 
-  SliceNumber = 0;
-  SpillNumber = EventCounter;
-  NSlices = 1; // By default there's at least one
-  VertexIdOfMostEnergyInEvent = -999;
-  nVertices = 0;
-
-  // Check the integrity of the event
-  //CheckIntegrity();
-
-  ProcessTG4Event(event, FillEvent);
   
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
@@ -336,6 +316,26 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
     size_t end = TMS_TrueParticles.size();
     nTrueForgottenParticles = initial - end;
   }
+}
+
+// Start the relatively tedious process of converting into TMS products!
+// Can also use FillEvent = false to get a simple meta data extractor
+TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
+  //std::cout<<"Making TMS event"<<std::endl;
+
+  // Save down the event number
+  EventNumber = EventCounter;
+  generator = std::default_random_engine(7890 + EventNumber); 
+  SliceNumber = 0;
+  SpillNumber = EventCounter;
+  NSlices = 1; // By default there's at least one
+  VertexIdOfMostEnergyInEvent = -999;
+  nVertices = 0;
+
+  // Check the integrity of the event
+  //CheckIntegrity();
+
+  ProcessTG4Event(event, FillEvent);
   
   // Now apply optical and timing models
   //ApplyReconstructionEffects();
