@@ -26,6 +26,7 @@ class TMS_Bar {
     int GetGlobalBarNumber() const { return GlobalBarNumber; }; // Number of hit Scintillator Module (4 modules)
 
     BarType GetBarType() const { return BarOrient; };
+    int GetBarTypeNumber() const;
 
     double GetX() const { return x; };
     double GetY() const { return y; };

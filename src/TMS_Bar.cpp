@@ -34,6 +34,11 @@ TMS_Bar::TMS_Bar(double X, double Y, double Z) : PlaneNumber(-1), BarNumber(-1),
   FindModules(x, y, z);
 }
 
+int TMS_Bar::GetBarTypeNumber() const {
+  if (GetPlaneNumber() < 0) return -999999999;
+  return (int) BarOrient;
+}
+
 // Find which bar a given x,y,z position corresponds to
 // Maybe this function should be moved to the singleton instead
 bool TMS_Bar::FindModules(double xval, double yval, double zval) {
