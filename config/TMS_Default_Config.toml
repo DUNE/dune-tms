@@ -91,7 +91,8 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = true # Whether we run the Kalman filter or not
+    #Run = true # Whether we run the Kalman filter or not
+    Run = false # Whether we run the Kalman filter or not
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping

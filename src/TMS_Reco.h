@@ -54,7 +54,6 @@ class aNode {
     aNode(double xval, double yval) :
       x(xval), y(yval),
       HeuristicCost(__LARGE_COST__), NodeID(-999),
-      //Heuristic(kManhattan) { // what calculator
       Heuristic(HeuristicType::kEuclidean) { // what calculator
     };
 
@@ -198,9 +197,13 @@ class TMS_TrackFinder {
     const std::vector<TMS_Hit> & GetCandidatesU() { return CandidatesU; };
     const std::vector<TMS_Hit> & GetCandidatesV() { return CandidatesV; };
     const std::vector<TMS_Hit> & GetCandidatesX() { return CandidatesX; };
+    //YYYY
+    const std::vector<TMS_Hit> & GetCandidatesY() { return CandidatesY; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesU() { return TotalCandidatesU; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesV() { return TotalCandidatesV; };
     const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesX() { return TotalCandidatesX; };
+    //YYYY
+    const std::vector<std::vector<TMS_Hit> >& GetTotalCandidatesY() { return TotalCandidatesY; };
 
 
     const std::vector<TMS_Hit> &GetCleanedHits() { return CleanedHits; };
@@ -208,25 +211,36 @@ class TMS_TrackFinder {
     TF1* GetHoughLineU() { return HoughLineU; };
     TF1* GetHoughLineV() { return HoughLineV; };
     TF1* GetHoughLineX() { return HoughLineX; };
+    //YYYY
+    TF1* GetHoughLineY() { return HoughLineY; };
 
     std::vector<std::pair<bool, TF1*> > GetHoughLinesU() { return HoughLinesU; };
     std::vector<std::pair<bool, TF1*> > GetHoughLinesV() { return HoughLinesV; };
     std::vector<std::pair<bool, TF1*> > GetHoughLinesX() { return HoughLinesX; };
+    //YYYY
+    std::vector<std::pair<bool, TF1*> > GetHoughLinesY() { return HoughLinesY; };
     std::vector<std::pair<double,double> > GetHoughLinesU_Upstream() { return HoughLinesU_Upstream; };
     std::vector<std::pair<double,double> > GetHoughLinesU_Downstream() { return HoughLinesU_Downstream; };
     std::vector<std::pair<double,double> > GetHoughLinesV_Upstream() { return HoughLinesV_Upstream; };
     std::vector<std::pair<double,double> > GetHoughLinesV_Downstream() { return HoughLinesV_Downstream; };
     std::vector<std::pair<double,double> > GetHoughLinesX_Upstream() { return HoughLinesX_Upstream; };
     std::vector<std::pair<double,double> > GetHoughLinesX_Downstream() { return HoughLinesX_Downstream; };
+    //YYYY
+    std::vector<std::pair<double,double> > GetHoughLinesY_Upstream() { return HoughLinesY_Upstream; };
+    std::vector<std::pair<double,double> > GetHoughLinesY_Downstream() { return HoughLinesY_Downstream; };
 
     int **GetAccumulator() { return Accumulator; };
 
     std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesU() { return ClusterCandidatesU; };
     std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesV() { return ClusterCandidatesV; };
     std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesX() { return ClusterCandidatesX; };
+    //YYYY
+    std::vector<std::vector<TMS_Hit> > &GetClusterCandidatesY() { return ClusterCandidatesY; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesU() { return HoughCandidatesU; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesV() { return HoughCandidatesV; };
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesX() { return HoughCandidatesX; };
+    //YYYY
+    std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesY() { return HoughCandidatesY; };
 
     std::vector<TMS_Track> &GetHoughTracks3D() { return HoughTracks3D; };
 
@@ -243,6 +257,9 @@ class TMS_TrackFinder {
     void CalculateTrackEnergyV(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackLengthX(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyX(const std::vector<std::vector<TMS_Hit> > &Hits);
+    //YYYY
+    void CalculateTrackLengthY(const std::vector<std::vector<TMS_Hit> > &Hits);
+    void CalculateTrackEnergyY(const std::vector<std::vector<TMS_Hit> > &Hits);
 
     double CalculateTrackLength3D(const TMS_Track &Hits);
     double CalculateTrackEnergy3D(const TMS_Track &Hits);
@@ -280,6 +297,8 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> UHitGroup;
     std::vector<TMS_Hit> VHitGroup;
     std::vector<TMS_Hit> XHitGroup;
+    //YYYY
+    std::vector<TMS_Hit> YHitGroup;
 
     // Helper function to check if a hit is next to a gap
     bool NextToGap(double, double);
@@ -294,9 +313,13 @@ class TMS_TrackFinder {
     std::vector<double> &GetTrackLengthU() { return TrackLengthU; };
     std::vector<double> &GetTrackLengthV() { return TrackLengthV; };
     std::vector<double> &GetTrackLengthX() { return TrackLengthX; };
+    //YYYY
+    std::vector<double> &GetTrackLengthY() { return TrackLengthY; };
     std::vector<double> &GetTrackEnergyU() { return TrackEnergyU; };
     std::vector<double> &GetTrackEnergyV() { return TrackEnergyV; };
     std::vector<double> &GetTrackEnergyX() { return TrackEnergyX; };
+    //YYYY
+    std::vector<double> &GetTrackEnergyY() { return TrackEnergyY; };
 
     void GetHoughLine(const std::vector<TMS_Hit> &TMS_Hits, double &slope, double &intercept);
 
@@ -323,6 +346,8 @@ class TMS_TrackFinder {
     std::vector<TMS_Hit> CandidatesU;
     std::vector<TMS_Hit> CandidatesV;
     std::vector<TMS_Hit> CandidatesX;
+    //YYYY
+    std::vector<TMS_Hit> CandidatesY;
     std::vector<TMS_Hit> RawHits;
 
     std::vector<TMS_Track> TotalTracks;
@@ -330,21 +355,32 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > TotalCandidatesU;
     std::vector<std::vector<TMS_Hit> > TotalCandidatesV;
     std::vector<std::vector<TMS_Hit> > TotalCandidatesX;
+    //YYYY
+    std::vector<std::vector<TMS_Hit> > TotalCandidatesY;
     std::vector<std::pair<bool, TF1*> > HoughLinesU;
     std::vector<std::pair<bool, TF1*> > HoughLinesV;
     std::vector<std::pair<bool, TF1*> > HoughLinesX;
+    //YYYY
+    std::vector<std::pair<bool, TF1*> > HoughLinesY;
     std::vector<std::vector<TMS_Hit> > ClusterCandidatesU;
     std::vector<std::vector<TMS_Hit> > ClusterCandidatesV;
     std::vector<std::vector<TMS_Hit> > ClusterCandidatesX;
+    //YYYY
+    std::vector<std::vector<TMS_Hit> > ClusterCandidatesY;
     std::vector<std::vector<TMS_Hit> > HoughCandidatesU;
     std::vector<std::vector<TMS_Hit> > HoughCandidatesV;
     std::vector<std::vector<TMS_Hit> > HoughCandidatesX;
+    //YYYY
+    std::vector<std::vector<TMS_Hit> > HoughCandidatesY;
     std::vector<std::pair<double,double>> HoughLinesU_Upstream;
     std::vector<std::pair<double,double>> HoughLinesU_Downstream;
     std::vector<std::pair<double,double>> HoughLinesV_Upstream;
     std::vector<std::pair<double,double>> HoughLinesV_Downstream;
     std::vector<std::pair<double,double>> HoughLinesX_Upstream;
     std::vector<std::pair<double,double>> HoughLinesX_Downstream;
+    //YYYY
+    std::vector<std::pair<double,double>> HoughLinesY_Upstream;
+    std::vector<std::pair<double,double>> HoughLinesY_Downstream;
     std::vector<TMS_Track> HoughTracks3D;
 
     char hitgroup;
@@ -372,6 +408,8 @@ class TMS_TrackFinder {
     TF1 *HoughLineU;
     TF1 *HoughLineV;
     TF1 *HoughLineX;
+    //YYYY
+    TF1 *HoughLineY;
 
     unsigned int nMinHits;
     unsigned int nMaxMerges;
@@ -392,9 +430,13 @@ class TMS_TrackFinder {
     std::vector<double> TrackEnergyU;
     std::vector<double> TrackEnergyV;
     std::vector<double> TrackEnergyX;
+    //YYYY
+    std::vector<double> TrackEnergyY;
     std::vector<double> TrackLengthU;
     std::vector<double> TrackLengthV;
     std::vector<double> TrackLengthX;
+    //YYYY
+    std::vector<double> TrackLengthY;
 
     // xvalue is x-axis, y value is y-axis
     void Accumulate(double xhit, double zhit); 

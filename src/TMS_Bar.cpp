@@ -128,7 +128,9 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
     BarNumber = (GetX() - TMS_Const::TMS_Start_Exact[0]) / GetXw();
   } else if (BarOrient == kXBar) {
-    BarNumber = -2 * (GetY() - 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
+    //BarNumber = -2 * (GetY() - 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
+    ////TODO should find the Y_start at the bottom of scin, plug that number instead of 2510
+    BarNumber =  (GetY() + 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
     if (GlobalBarNumber % 2 == 1) {
       BarNumber += 1;
     }
@@ -190,13 +192,13 @@ std::string TMS_Bar::BarType_ToString(BarType bar) const {
 }
 
 void TMS_Bar::Print() const {
-  std::cout << "Printing TMS bar: " << std::endl;
-  std::cout << "(x, y, z) = " << "(" << x << ", " << y << ", " << z << ")" << std::endl;
-  std::cout << "(xw, yw, zw) = " << "(" << xw << ", " << yw << ", " << zw << ")" << std::endl;
-  std::cout << "BarOrient: " << BarType_ToString(BarOrient) << " (" << BarOrient << ")" << std::endl;
-  std::cout << "PlaneNumber: " << PlaneNumber << std::endl;
-  std::cout << "BarNumber: " << BarNumber << std::endl;
-  std::cout << "GlobalBarNumber: " << GlobalBarNumber << std::endl;
+//  std::cout << "Printing TMS bar: " << std::endl;
+//  std::cout << "(x, y, z) = " << "(" << x << ", " << y << ", " << z << ")" << std::endl;
+//  std::cout << "(xw, yw, zw) = " << "(" << xw << ", " << yw << ", " << zw << ")" << std::endl;
+//  std::cout << "BarOrient: " << BarType_ToString(BarOrient) << " (" << BarOrient << ")" << std::endl;
+//  std::cout << "PlaneNumber: " << PlaneNumber << std::endl;
+//  std::cout << "BarNumber: " << BarNumber << std::endl;
+//  std::cout << "GlobalBarNumber: " << GlobalBarNumber << std::endl;
 }
 
 double TMS_Bar::FindYbar(double yval) {
@@ -214,29 +216,37 @@ double TMS_Bar::FindYbar(double yval) {
 
 bool TMS_Bar::CheckBar() {
 
+//  std::cout << "Printing TMS bar: " << std::endl;
+//  std::cout << "(x, y, z) = " << "(" << x << ", " << y << ", " << z << ")" << std::endl;
+//  std::cout << "(xw, yw, zw) = " << "(" << xw << ", " << yw << ", " << zw << ")" << std::endl;
+//  std::cout << "BarOrient: " << BarType_ToString(BarOrient) << " (" << BarOrient << ")" << std::endl;
   // Sanity check the global bar number
-  //if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
-  if (BarNumber >= (TMS_Const::TMS_End_Exact[0]-TMS_Const::TMS_Start_Exact[0])/GetXw() || BarNumber < 0) {
-    std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    std::cout << "Bar number: " << BarNumber << std::endl;
-    throw;
-    return false;
-  }
+  //TODO ignore the X Bar for now
+    if(BarOrient == kYBar){
+        if (BarNumber >= (TMS_Const::TMS_End_Exact[0]-TMS_Const::TMS_Start_Exact[0])/GetXw() || BarNumber < 0) {
+            std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
+            std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+            std::cout << "Bar number: " << BarNumber << std::endl;
+            throw;
+            return false;
+        }
+    }
 
-  if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
-    std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    throw;
-    return false;
-  }
 
-  if (PlaneNumber >= TMS_Const::nPlanes || PlaneNumber < 0) {
-    std::cerr << "Plane number does not agree with expectation of between 0 to " << TMS_Const::nPlanes << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    throw;
-    return false;
-  }
 
-  return true;
+    if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
+        std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
+        std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+        throw;
+        return false;
+    }
+
+    if (PlaneNumber >= TMS_Const::nPlanes || PlaneNumber < 0) {
+        std::cerr << "Plane number does not agree with expectation of between 0 to " << TMS_Const::nPlanes << std::endl;
+        std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+        throw;
+        return false;
+    }
+
+    return true;
 }
