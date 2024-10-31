@@ -256,7 +256,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   }
 
   std::map<int, TMS_TrueParticle*> mapping_track_to_true_particle;
-  for (auto tp : TMS_TrueParticles) {
+  for (auto& tp : TMS_TrueParticles) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
@@ -307,9 +307,10 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         TMS_TrueHit t(edep_hit, vertex_id);
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
           int key = t.GetVertexIds(i) * 100000 + t.GetPrimaryIds(i);
-          if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
+          auto itp = mapping_track_to_true_particle.find(key);
+          if (itp != mapping_track_to_true_particle.end()) {
             // Now set info
-            auto tp = mapping_track_to_true_particle[key];
+            auto tp = itp->second;
             if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
           }
         }
@@ -1219,7 +1220,7 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid)
     if (vertexid < 0 || hit.GetVertexId() == vertexid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
-        out += hit.GetE();
+        out += hit.GetHadronicEnergy();
       }
     }
   }
@@ -1233,7 +1234,7 @@ double TMS_Event::CalculateEnergyInLAr(int vertexid) {
     if (vertexid < 0 || hit.GetVertexId() == vertexid) { 
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position))
-        out += hit.GetE();
+        out += hit.GetHadronicEnergy();
     }
   }
   return out;
@@ -1244,7 +1245,7 @@ double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
   double out = 0;
   for (const auto& hit : NonTMS_Hits) {
     if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
-    if (vertexid < 0 || hit.GetVertexId() == vertexid) out += hit.GetE();
+    if (vertexid < 0 || hit.GetVertexId() == vertexid) out += hit.GetHadronicEnergy();
   }
   return out;
 }
