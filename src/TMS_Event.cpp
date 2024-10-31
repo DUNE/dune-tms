@@ -260,6 +260,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
+  
+  std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
 
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
@@ -314,7 +316,18 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
           }
         }
-        NonTMS_Hits.push_back(t);
+        double divide = 10.0;
+        auto poskey = std::tuple((int) (t.GetX() / divide), (int) (t.GetY() / divide), (int) (t.GetZ() / divide), t.GetVertexIds(0));
+        if (map_pos_nontms_hits.find(poskey) != map_pos_nontms_hits.end()) {
+          // Already exists, merge with existing
+          auto& merge_with_me = NonTMS_Hits[map_pos_nontms_hits[poskey]];
+          merge_with_me.MergeWith(t);
+        }
+        else {
+          // Doesn't exist, add to list and map
+          NonTMS_Hits.push_back(t);
+          map_pos_nontms_hits[poskey] = NonTMS_Hits.size() - 1;
+        }
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
@@ -1217,7 +1230,7 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid)
   double out = 0;
   // Lar doesn't have good timing info, so we want all non tms hits, not just in this slice
   for (const auto& hit : NonTMS_Hits) {
-    if (vertexid < 0 || hit.GetVertexId() == vertexid) {
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
         out += hit.GetHadronicEnergy();
@@ -1230,8 +1243,8 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid)
 double TMS_Event::CalculateEnergyInLAr(int vertexid) {
   double out = 0;
   for (const auto& hit : NonTMS_Hits) {
-    if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
-    if (vertexid < 0 || hit.GetVertexId() == vertexid) { 
+    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) { 
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position))
         out += hit.GetHadronicEnergy();
@@ -1244,8 +1257,8 @@ double TMS_Event::CalculateEnergyInLAr(int vertexid) {
 double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
   double out = 0;
   for (const auto& hit : NonTMS_Hits) {
-    if (hit.GetVertexId() < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
-    if (vertexid < 0 || hit.GetVertexId() == vertexid) out += hit.GetHadronicEnergy();
+    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) out += hit.GetHadronicEnergy();
   }
   return out;
 }

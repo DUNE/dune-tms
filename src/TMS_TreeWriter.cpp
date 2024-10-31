@@ -1633,8 +1633,13 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     TrueNonTMSHitPos[index][3] = hit.GetT();
     TrueNonTMSHitEnergy[index] = hit.GetE();
     if (hit.GetNTrueParticles() > 1) {
-      std::cout<<"Fatal: found > 1 true hit GetNTrueParticles(). Expecting exactly one"<<hit.GetNTrueParticles()<<std::endl;
-      throw std::runtime_error("Fatal: found > 1 true hit GetNTrueParticles()");
+      int target_vertex_id = hit.GetVertexIds(0);
+      for (size_t v = 1; v < hit.GetNTrueParticles(); v++) {
+        if (target_vertex_id != hit.GetVertexIds(v)) {
+          std::cout<<"Fatal: found > 1 true hit GetNTrueParticles() with different vertex ids. Expecting exactly one"<<target_vertex_id<<" vs "<<hit.GetVertexIds(v)<<std::endl;
+          throw std::runtime_error("Fatal: found > 1 true hit GetNTrueParticles()");
+        }
+      }
     }
     if (hit.GetNTrueParticles() == 1) {
       TrueNonTMSHitVertexID[index] = hit.GetVertexIds(0);
