@@ -42,6 +42,7 @@ class TMS_TrueHit {
           PrimaryIds = other.PrimaryIds;
           VertexIds = other.VertexIds;
           EnergyShare = other.EnergyShare;
+          EnergyShareIsLeptonic = other.EnergyShareIsLeptonic;
           x = other.x;
           y = other.y;
           z = other.z;
@@ -62,6 +63,7 @@ class TMS_TrueHit {
           PrimaryIds = std::move(other.PrimaryIds);
           VertexIds = std::move(other.VertexIds);
           EnergyShare = std::move(other.EnergyShare);
+          EnergyShareIsLeptonic = std::move(other.EnergyShareIsLeptonic);
           x = other.x;
           y = other.y;
           z = other.z;
