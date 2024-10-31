@@ -20,7 +20,7 @@ class TMS_TrueHit {
     // Or else true particle information is lost 
     // Copy constructor
     TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare)
+      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
     {
         if (this != &other) {
           x = other.x;
