@@ -18,6 +18,11 @@
 // The general event class
 class TMS_Event {
   public:
+     // Static method to get the singleton instance of TMS_Event
+    static TMS_Event& GetInstance() {
+      static TMS_Event instance;  // Single instance of the class, created the first time it is called
+      return instance;
+    }
     TMS_Event(TG4Event event, bool FillEvent = true);
     TMS_Event(TMS_Event &event, int slice);
     TMS_Event();

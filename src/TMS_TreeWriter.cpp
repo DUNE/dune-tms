@@ -231,6 +231,8 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
+  //add a branch for KalmanPDG
+  Reco_Tree->Branch("KalmanPDG",      KalmanPDG,       "KalmanPDG[nTracks]/I");
   Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
   Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
@@ -1208,6 +1210,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // First get the tracks for this event:
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
 
+
   int itTrack= 0;
   std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
   nTracks = Reco_Tracks.size();
@@ -1222,6 +1225,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    //add KalmanPDG here
+    KalmanPDG[itTrack] = RecoTrack->KalmanPDG;
+    
+    
+
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1239,6 +1247,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
       RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
       RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+
 
       RecoTrackKalmanTruePos[itTrack][j][0] = RecoTrack->KalmanNodes[j].TrueX;
       RecoTrackKalmanTruePos[itTrack][j][1] = RecoTrack->KalmanNodes[j].TrueY;

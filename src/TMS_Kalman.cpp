@@ -116,6 +116,8 @@ void TMS_Kalman::RunKalman() {
   int PDG = -999;
   //this TrueLeptonPDG here is garbage, because i cannot access it from other files i just gave it a value as a placeholder.
   int TrueLeptonPDG = 13;
+  
+
   //EventNumber = TMS_Event::GetInstance().GetEventNumber();
   //SpillNumber = TMS_Event::GetInstance().GetSpillNumber();
   int nCand = KalmanNodes.size();
@@ -129,21 +131,23 @@ void TMS_Kalman::RunKalman() {
   //and compare the corresponding print out truex-recox values of the tracks.
   // after the calculation , a KalmanPDG number(+13 for muon and -13 for antimuon) will be output to the tmsreco file in the reco ttree
 
-  // Loop to calculate chi-square assuming positive charge (13)
+  //Loop to calculate chi-square assuming it is a muon (13)
   for (int i = 1; i < nCand; ++i) {
       Update(KalmanNodes[i-1], KalmanNodes[i]);
-      Predict(KalmanNodes[i]);  
-      double chiSquarePos = CalculateChiSquare(KalmanNodes[i], 13);
+      Predict(KalmanNodes[i], -1);  
+      double chiSquarePos = CalculateChiSquare(KalmanNodes[i]);
       chiSquarePositive += chiSquarePos;
-    }
+     }
+  
 
-  // Loop to calculate chi-square assuming negative charge (-13)
+  // Loop to calculate chi-square assuming it is an antimuon (-13)
   for (int i = 1; i < nCand; ++i) {
       Update(KalmanNodes[i-1], KalmanNodes[i]);
-      Predict(KalmanNodes[i]);  
-      double chiSquareNeg = CalculateChiSquare(KalmanNodes[i], -13);
+      Predict(KalmanNodes[i],1);  
+      double chiSquareNeg = CalculateChiSquare(KalmanNodes[i]);
       chiSquareNegative += chiSquareNeg;
   }
+  
 
   // Compare chi-square results to determine the charge
   if (chiSquarePositive < chiSquareNegative) {
@@ -185,7 +189,7 @@ void TMS_Kalman::Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNod
 // Here we use the previous state to predict the current state
 // We also calculate the updated noise matrix from multiple scattering and energy loss
 //jAccount for energy loss, multiple scattering, and bending due to the magnetic field
-void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
+void TMS_Kalman::Predict(TMS_KalmanNode &Node, int charge) {
 
   TMS_KalmanState &PreviousState = Node.PreviousState;
   TMS_KalmanState &CurrentState = Node.CurrentState;
@@ -199,6 +203,29 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     PreviousState.dxdz = TMS_Kalman::AverageXSlope;
   if (PreviousState.dydz ==  -999.9)
     PreviousState.dydz = TMS_Kalman::AverageYSlope;
+
+    // Modification begins here: introduce magnetic field and deflection based on regions
+  // Determine magnetic field based on x-position
+  double MagneticField;
+  const double RegionBoundaryX = 1750; // hard coded boundary for regions
+  if (fabs(PreviousState.x) <= RegionBoundaryX) {
+      MagneticField = -1.0; // Central region: Magnetic field downwards
+  } else if (PreviousState.x > RegionBoundaryX) {
+      MagneticField = 1.0; // Right side region: Magnetic field upwards
+  } else {
+      MagneticField = 1.0; // Left side region: Magnetic field upwards
+  }
+
+  // Calculate Lorentz force (deflection in x only)
+  double p = 1.0 / PreviousState.qp;  // Total momentum
+  //double px = p * PreviousState.dxdz; // Momentum in the x direction (proportional to slope dxdz)
+                      
+
+  // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
+  // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
+  double magnetic_deflection_px = 0.303*charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
+  //std::cout<<  (CurrentState.z -PreviousState.z) << std::endl;
+  // Modification ends here
   
 
   TVectorD PreviousVec(5);
@@ -207,10 +234,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[2] = PreviousState.dxdz ;
   PreviousVec[3] = PreviousState.dydz;
   PreviousVec[4] = PreviousState.qp;
-
-  
-  
-
 
   if ( (PreviousState.x < TMS_Const::TMS_Start[0]) || (PreviousState.x > TMS_Const::TMS_End[0]) ) { // point outside x region
     std::cerr << "Predicted x value outside TMS: " << PreviousState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
@@ -236,7 +259,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     //     UpdateVec[2] -= magnetic_deflection_px / p;  // Negative charge: subtract deflection
     // }
  
-  
+  UpdateVec[2] += magnetic_deflection_px/p;
   
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
   if (Talk) PreviousState.Print();
@@ -432,40 +455,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 }
 
 //new function
-double TMS_Kalman::CalculateChiSquare(TMS_KalmanNode &CurrentNode, int charge) {
+double TMS_Kalman::CalculateChiSquare(TMS_KalmanNode &CurrentNode) {
     double chiSquare = 0;
-    TMS_KalmanState &PreviousState = CurrentNode.PreviousState;
-    TMS_KalmanState &CurrentState = CurrentNode.CurrentState;
-
-    
-    // Determine magnetic field based on x-position
-    double MagneticField;
-    const double RegionBoundaryX = 1750; // hard coded boundary for regions
-    if (fabs(PreviousState.x) <= RegionBoundaryX) {
-        MagneticField = -1.0; // Central region: Magnetic field downwards
-    } else if (PreviousState.x > RegionBoundaryX) {
-        MagneticField = 1.0; // Right side region: Magnetic field upwards
-    } else {
-        MagneticField = 1.0; // Left side region: Magnetic field upwards
-    }
-
-    // Calculate Lorentz force (deflection in x only)
-    double p = 1.0 / PreviousState.qp;  // Total momentum
-    //double px = p * PreviousState.dxdz; // Momentum in the x direction (proportional to slope dxdz)
-                        
-
-    // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
-    // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
-    double magnetic_deflection_px = 0.303*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
-    //std::cout<<  (CurrentState.z -PreviousState.z) << std::endl;
-
-    
-    // Assume for the charge (13 or -13)
-    if (charge == 13) {
-        CurrentState.dxdz += magnetic_deflection_px / p;  // Positive charge: add deflection , i think this should be UpdateVec[2] += magnetic_deflection_px / p; but UpdateVec[2] is not declare in this scope and i am at a loss to deal with this right now.
-    } else if (charge == -13) {
-        CurrentState.dxdz -= magnetic_deflection_px / p;  // Negative charge: subtract deflection ; should be UpdateVec[2] += magnetic_deflection_px / p;
-    }
+   
     //  chi-square calculation in the x direction
     double predicted_x = CurrentNode.PreviousState.x;  // Predicted x value from the Kalman filter 
     double measured_x = CurrentNode.CurrentState.x;    // Measured x value

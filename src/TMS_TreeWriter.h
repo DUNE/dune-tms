@@ -9,6 +9,7 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
+#include "TMS_Kalman.h"
 
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
@@ -30,6 +31,7 @@ class TMS_TreeWriter {
     }
 
     void Fill(TMS_Event &event);
+    
     void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
 
     void Write() {
@@ -46,6 +48,7 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
+    int KalmanPDG[__TMS_MAX_TRACKS__];
     float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)

@@ -732,6 +732,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     for (auto &trk : HoughTracks3D) {
       KalmanFilter = TMS_Kalman(trk.Hits);
       kalman_reco_mom = KalmanFilter.GetMomentum();
+      trk.KalmanPDG = KalmanFilter.GetKalmanPDG();
 
       bool verbose_kalman = false;
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;

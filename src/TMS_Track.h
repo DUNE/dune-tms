@@ -1,10 +1,12 @@
 #ifndef _TMS_TRACK_H_SEEN_
+#define _TMS_TRACK_H_SEEN_
 
 #include "TMS_Hit.h"
 #include "TMS_Kalman.h"
 #include "TMS_TrueParticle.h"
 
-#define _TMS_TRACK_H_SEEN_
+
+
 
 // General 3D-Track class
 class TMS_Track {
@@ -17,6 +19,7 @@ class TMS_Track {
     void Print();
 
     int    Charge;
+    int KalmanPDG;
     double Start[3];     // Start point in x,y,z
     double End[3];       // End point in x,y,z
     double StartDirection[3]; // Unit vector in track direction at start
@@ -31,6 +34,7 @@ class TMS_Track {
     double GetEnergyDeposit() {return EnergyDeposit;};
     double GetEnergyRange()   {return EnergyRange;};
     double GetMomentum()      {return Momentum;};
+    
 
     TMS_TrueParticle GetTrueParticle() {return fTrueParticle;};
 
@@ -38,6 +42,7 @@ class TMS_Track {
     void SetEnergyDeposit (double val) {EnergyDeposit = val;};
     void SetEnergyRange   (double val) {EnergyRange   = val;};
     void SetMomentum      (double val) {Momentum      = val;};
+   
 
     // Set direction unit vectors from only x and y slope
     void SetStartDirection(double ax, double ay, double az) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
@@ -52,6 +57,7 @@ class TMS_Track {
 
     // Kalman filter track info
     int nKalmanNodes;
+   
     std::vector<TMS_KalmanNode> KalmanNodes;
 
     void Compare()

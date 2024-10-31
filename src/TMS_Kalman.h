@@ -17,6 +17,7 @@
 // Need to understand what a hit is
 #include "TMS_Hit.h"
 #include "TMS_Bar.h"
+#include "TMS_TrueParticle.h"
 
 
 
@@ -210,6 +211,7 @@ class TMS_Kalman {
     double End[3];
     double StartDirection[3];
     double EndDirection[3];
+   
 
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
     void SetKalmanPDG(int PDG){KalmanPDG = PDG;}
@@ -229,20 +231,17 @@ class TMS_Kalman {
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
     
-    double CalculateChiSquare(TMS_KalmanNode &CurrentNode, int charge);
+    double CalculateChiSquare(TMS_KalmanNode &CurrentNode);
 
   private:
     // Energy-loss calculator
     BetheBloch_Calculator Bethe;
     MultipleScatter_Calculator MSC;
 
-    void Predict(TMS_KalmanNode &Node);
+    void Predict(TMS_KalmanNode &Node, int charge);
     void Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode);
     void RunKalman();
     
-    
-
-
     // State vector
     // x, y, dx/dz, dy/dz, q/p
     std::vector<TMS_KalmanNode> KalmanNodes;
