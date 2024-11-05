@@ -975,11 +975,11 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
 
-      REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Energy in 30cm Shell (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Energy in 30cm Shell",
+      REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 51, 0, 10000));
+      GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Hadronic Energy in 30cm Shell",
               "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
-      REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Energy in 30cm Shell (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
+      REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 20, 0, 200));
+      GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Hadronic Energy from Primary Vertex in 30cm Shell",
               "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
 
       REGISTER_AXIS(LArTotalEnergy, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
@@ -1000,9 +1000,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
               "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
       GetHist("cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
               "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
-      GetHist("cut__lar_outer_shell__passes_cut_e_total", "Passes Total E in ND-LAr Outer Shell < 30 MeV Cut",
+      GetHist("cut__lar_outer_shell__passes_cut_e_total", "Passes Total Hadronic E in ND-LAr Outer Shell < 30 MeV Cut",
               "yesno")->Fill((truth.LArOuterShellEnergy < 30) ? 0 : 1);
-      GetHist("cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
+      GetHist("cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
               "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
       
       REGISTER_AXIS(energy_resolution, std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
