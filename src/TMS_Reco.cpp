@@ -1622,10 +1622,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             }
             // Sort track
             SpatialPrio(aTrack.Hits);
+
+            if (TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UseTrackSmoothing())
+              aTrack.ApplyTrackSmoothing();
             
             // Smoothing of start and end of track in case of too much 'flailing around' in the y direction
             // end
-            bool SameSign = true;
+            /*bool SameSign = true;
             if ((aTrack.End[1] > 0 && aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY() < 0) || (aTrack.End[1] < 0 && aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY() > 0)) SameSign = false;
             if ((SameSign &&std::abs(aTrack.End[1] - aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) >= 676.6) || (!SameSign && std::abs(aTrack.End[1]) + std::abs(aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) >= 674.6)) {
               aTrack.End[1] = (aTrack.End[1] + aTrack.Hits[aTrack.Hits.size() - 3].GetRecoY()) / 2;
@@ -1641,7 +1644,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               if (aTrack.Start[1] > 244.0) aTrack.Start[1] = 244.0;
               else if (aTrack.Start[1] < -2949.0) aTrack.Start[1] = -2949.0;
               aTrack.Hits[0].SetRecoY(aTrack.Start[1]);
-            }
+            }*/
 #ifdef DEBUG
             for (auto hits: aTrack.Hits) {
               std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << std::endl;
