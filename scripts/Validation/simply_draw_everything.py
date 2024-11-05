@@ -40,6 +40,9 @@ def draw_histograms(input_file):
             
         subdir, image_name = get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
+        
+        if "width" in name:
+            obj.Scale(1, "width")
             
         # Can add reco eff
         reco_eff = False
