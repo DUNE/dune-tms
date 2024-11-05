@@ -483,7 +483,9 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "SpillNo") return std::make_tuple("Spill Number", 100, 0, 300);
   if (axis_name == "X") return std::make_tuple("X (cm)", 100, -400, 400);
   if (axis_name == "Y") return std::make_tuple("Y (cm)", 100, -500, 100);
+  if (axis_name == "Y_full") return std::make_tuple("Y (cm)", 100, -500, 500);
   if (axis_name == "Z") return std::make_tuple("Z (cm)", 100, 1100, 1900);
+  if (axis_name == "Z_full") return std::make_tuple("Z (cm)", 100, 0, 2300);
   if (axis_name == "direction_xz") return std::make_tuple("XZ Direction", 31, -2, 2);
   if (axis_name == "dx") return std::make_tuple("dX (cm)", 100, -100, 100);
   if (axis_name == "dy") return std::make_tuple("dY (cm)", 100, -100, 100);
@@ -509,7 +511,7 @@ double muon_ke_bins[] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 
 int n_muon_ke_bins = sizeof(muon_ke_bins) / sizeof(double) - 1;
 
 std::tuple<bool, std::string, int, double*> GetComplexBinning(std::string axis_name) {
-  if (axis_name == "ke_tms_enter") return std::make_tuple(true, "Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
+  if (axis_name == "ke_tms_enter") return std::make_tuple(true, "Muon KE Entering TMS (GeV);N Muons / GeV", n_muon_ke_bins, muon_ke_bins); 
   return std::make_tuple(false, "", 0, (double*)NULL);
 }
 
@@ -545,11 +547,11 @@ void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::strin
 TH1* MakeHist(std::string directory_and_name, std::string title, std::string xaxis, std::string yaxis = "", std::string zaxis = "") {
   if (zaxis != "") {
     // 3d hist case
-    throw std::runtime_error("3d hists are not implmented yet");
+    throw std::runtime_error("3d hists are not implemented yet");
   }
   else if (yaxis != "") {
     // 2d hist case
-    throw std::runtime_error("2d hists are not implmented yet");
+    throw std::runtime_error("2d hists are not implemented yet");
   }
   else {
     // 1d hist case
@@ -975,36 +977,122 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
 
+      GetHist("basic__truth__LeptonX4_X", "Lepton X4 X", "X")->Fill(truth.LeptonX4[0]*CM);
+      GetHist("basic__truth__LeptonX4_Y", "Lepton X4 Y", "Y_full")->Fill(truth.LeptonX4[1]*CM);
+      GetHist("basic__truth__LeptonX4_Z", "Lepton X4 Z", "Z_full")->Fill(truth.LeptonX4[2]*CM);
+
       REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Hadronic Energy in 30cm Shell",
+      if (on_new_spill) GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Hadronic Energy in 30cm Shell",
               "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
       REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 20, 0, 200));
       GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Hadronic Energy from Primary Vertex in 30cm Shell",
               "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
 
       REGISTER_AXIS(LArTotalEnergy, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__LArTotalEnergy", "LAr Visible Energy",
+      if (on_new_spill) GetHist("basic__truth__LArTotalEnergy", "LAr Visible Energy",
               "LArTotalEnergy")->Fill(truth.LArTotalEnergy);
       REGISTER_AXIS(LArTotalEnergyFromVertex, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
       GetHist("basic__truth__LArTotalEnergyFromVertex", "LAr Visible Energy from Primary Vertex",
               "LArTotalEnergyFromVertex")->Fill(truth.LArTotalEnergyFromVertex);
 
       REGISTER_AXIS(TotalNonTMSEnergy, std::make_tuple("Total E Deposited Outside TMS (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__TotalNonTMSEnergy", "Total E Deposited Outside TMS",
+      if (on_new_spill) GetHist("basic__truth__TotalNonTMSEnergy", "Total E Deposited Outside TMS",
               "TotalNonTMSEnergy")->Fill(truth.TotalNonTMSEnergy);
       REGISTER_AXIS(TotalNonTMSEnergyFromVertex, std::make_tuple("Total E Deposited from Outside TMS (MeV)", 51, 0, 10000));
       GetHist("basic__truth__TotalNonTMSEnergyFromVertex", "Total E Deposited from Primary Vertex Outside TMS",
               "TotalNonTMSEnergyFromVertex")->Fill(truth.TotalNonTMSEnergyFromVertex);
 
-      GetHist("cut__lar_outer_shell__energy_in_shell", "LAr Visible Energy in 30cm Shell",
+      if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell", "LAr Visible Energy in 30cm Shell",
               "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
-      GetHist("cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
+      GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
               "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
-      GetHist("cut__lar_outer_shell__passes_cut_e_total", "Passes Total Hadronic E in ND-LAr Outer Shell < 30 MeV Cut",
+      if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_total", "Passes Total Hadronic E in ND-LAr Outer Shell < 30 MeV Cut",
               "yesno")->Fill((truth.LArOuterShellEnergy < 30) ? 0 : 1);
-      GetHist("cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
+      GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
               "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
+
+      bool passes_ndlar_outer_shell_cut = truth.LArTotalEnergyFromVertex < 30;
+      bool passes_ndlar_fiducial_cut = false;
       
+      REGISTER_AXIS(lar_x, std::make_tuple("X (cm)", 51, -400, 400));
+      REGISTER_AXIS(lar_y, std::make_tuple("Y (cm)", 51, -250, 150));
+      REGISTER_AXIS(lar_z, std::make_tuple("Z (cm)", 51, 300, 1000));
+      {
+        TVector3 birth_pos(truth.LeptonX4[0], truth.LeptonX4[1], truth.LeptonX4[2]);
+        passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+
+        GetHist("nd_physics_cut__lar_fiducial__X_nostack_1_nocut", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+        GetHist("nd_physics_cut__lar_fiducial__Y_nostack_1_nocut", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+        GetHist("nd_physics_cut__lar_fiducial__Z_nostack_1_nocut", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        if (passes_ndlar_fiducial_cut) {
+          GetHist("nd_physics_cut__lar_fiducial__X_nostack_2_withcut", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_fiducial__Y_nostack_2_withcut", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_fiducial__Z_nostack_2_withcut", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        }
+
+        GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+        GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+        GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        if (passes_ndlar_outer_shell_cut) {
+          GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        }
+        else {
+          GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        }
+        
+        if (passes_ndlar_fiducial_cut) {
+          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          if (passes_ndlar_outer_shell_cut) {
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          }
+          else {
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          }
+        }
+      }
+      
+      
+      // First find the max true reco'd muon starting ke
+      int index = -99999;
+      double max_muon_starting_ke = -999999;
+       for (int it = 0; it < reco.nTracks; it++) {
+        if (std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13) {
+          double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
+          if (muon_starting_ke > max_muon_starting_ke) {
+            max_muon_starting_ke = muon_starting_ke;
+            index = truth.RecoTrackPrimaryParticleIndex[it];
+          }
+        }
+      }
+      if (index >= 0) {
+        TVector3 birth_pos(truth.BirthPosition[index][0], truth.BirthPosition[index][1], truth.BirthPosition[index][2]);
+        passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+      }
+      // Now fill the plots if we found one
+      if (max_muon_starting_ke >= 0) {
+        GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_1_no_cut_width",
+                "Muon KE: No Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+        if (passes_ndlar_fiducial_cut)
+          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_2_fiducial_cut_width", 
+                  "Muon KE: ND LAr Fiducial Volume Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+        if (passes_ndlar_outer_shell_cut)
+          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_3_shell_cut_width", 
+                  "Muon KE: Outer Shell < 30 MeV Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+        if (passes_ndlar_outer_shell_cut && passes_ndlar_fiducial_cut)
+          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_4_shell_fiducial_cuts_width", 
+                  "Muon KE: Shell and Fiducial Cuts", "ke_tms_enter")->Fill(max_muon_starting_ke);
+      }
+
       REGISTER_AXIS(energy_resolution, std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {
         bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
