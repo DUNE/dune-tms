@@ -852,8 +852,11 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       }
       
       // Truth matching information
-      REGISTER_AXIS(completeness, std::make_tuple("Track Completeness (primary on track / primary)", 20, 0, 1));
-      REGISTER_AXIS(cleanliness, std::make_tuple("Track Cleanliness (primary on track / total on track)", 20, 0, 1));
+      REGISTER_AXIS(completeness, std::make_tuple("Track Completeness (primary on track / primary)", 20, 0, 2));
+      REGISTER_AXIS(cleanliness, std::make_tuple("Track Cleanliness (primary on track / total on track)", 20, 0, 2));
+      REGISTER_AXIS(nhits_in_track, std::make_tuple("N Hits in Track", 200, 0, 200));
+      REGISTER_AXIS(energy_in_track, std::make_tuple("Energy in Track (MeV)", 100, 0, 1000));
+      REGISTER_AXIS(n_hits_per_plane, std::make_tuple("N Hits per Plane", 5, 0.5, 5.5));
       for (int it = 0; it < reco.nTracks; it++) {
         GetHist("basic__reco_track__primary_pdg", 
                 "Reco Track Primary Particle PDG", "pdg")->Fill(PDGtoIndex(truth.RecoTrackPrimaryParticlePDG[it]));
@@ -878,6 +881,78 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                   "Reco Track Completeness, N Hits", "completeness")->Fill(completeness_nhits);
           GetHist("basic__reco_track__cleanliness_nhits", 
                   "Reco Track Cleanliness, N Hits", "cleanliness")->Fill(cleanliness_nhits);
+
+          GetHist("basic__reco_track__debugging__completeness_nostack_1_n_hits_in_track", 
+                  "N Hits in Track: Reco Track", "nhits_in_track")->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
+          GetHist("basic__reco_track__debugging__completeness_nostack_2_n_hits_in_slice", 
+                  "N Hits in Track: Slice", "nhits_in_track")->Fill(truth.TrueNHitsInSlice[particle_index]);
+          GetHist("basic__reco_track__debugging__completeness_nostack_3_n_hits_in_truth", 
+                  "N Hits in Track: Truth", "nhits_in_track")->Fill(truth.TrueNHits[particle_index]);
+
+          GetHist("basic__reco_track__debugging__completeness_energy_nostack_1_energy_in_track", 
+                  "Energy in Track: Reco Track", "energy_in_track")->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
+          GetHist("basic__reco_track__debugging__completeness_energy_nostack_2_energy_in_truth", 
+                  "Energy in Track: Truth", "energy_in_track")->Fill(truth.TrueVisibleEnergy[particle_index]);
+
+          bool ismuon = std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
+          if (ismuon) {
+            GetHist("basic__reco_track__debugging__muon_only_completeness_nostack_1_n_hits_in_track", 
+                    "N Hits in Track: Reco Track", "nhits_in_track")->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
+            GetHist("basic__reco_track__debugging__muon_only_completeness_nostack_2_n_hits_in_slice", 
+                    "N Hits in Track: Slice", "nhits_in_track")->Fill(truth.TrueNHitsInSlice[particle_index]);
+            GetHist("basic__reco_track__debugging__muon_only_completeness_nostack_3_n_hits_in_truth", 
+                    "N Hits in Track: Truth", "nhits_in_track")->Fill(truth.TrueNHits[particle_index]);
+
+            GetHist("basic__reco_track__debugging__muon_only_completeness_energy_nostack_1_energy_in_track", 
+                    "Energy in Track: Reco Track", "energy_in_track")->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
+            GetHist("basic__reco_track__debugging__muon_only_completeness_energy_nostack_2_energy_in_truth", 
+                    "Energy in Track: Truth", "energy_in_track")->Fill(truth.TrueVisibleEnergy[particle_index]);
+          }
+          
+          if (ismuon && reco.nTracks == 1) {
+            GetHist("basic__reco_track__debugging__single_muon_completeness_nostack_1_n_hits_in_track", 
+                    "N Hits in Track: Reco Track", "nhits_in_track")->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
+            GetHist("basic__reco_track__debugging__single_muon_completeness_nostack_2_n_hits_in_slice", 
+                    "N Hits in Track: Slice", "nhits_in_track")->Fill(truth.TrueNHitsInSlice[particle_index]);
+            GetHist("basic__reco_track__debugging__single_muon_completeness_nostack_3_n_hits_in_truth", 
+                    "N Hits in Track: Truth", "nhits_in_track")->Fill(truth.TrueNHits[particle_index]);
+            {
+                std::map<double, int> count;
+                for (int ih = 0; ih < lc.nHits; ih++)
+                  count[lc.RecoHitPos[ih][2]] += 1;
+                for (auto& plane : count) {
+                  GetHist("basic__reco_track__debugging__n_hits_in_plane", 
+                          "Hits per plane: All Reco Hits", "n_hits_per_plane")->Fill(plane.second);
+                  GetHist("basic__reco_track__debugging__n_hits_in_plane_both_nostack_1_all_hits", 
+                          "Hits per plane: All Reco Hits", "n_hits_per_plane")->Fill(plane.second);
+                }
+            }
+            {
+                std::map<double, int> count;
+                for (int ih = 0; ih < reco.nHits[0]; ih++)
+                  count[reco.TrackHitPos[0][ih][2]] += 1;
+                for (auto& plane : count) {
+                  GetHist("basic__reco_track__debugging__n_hits_in_plane_track", 
+                          "Hits per plane: In Track", "n_hits_per_plane")->Fill(plane.second);
+                  GetHist("basic__reco_track__debugging__n_hits_in_plane_both_nostack_2_track", 
+                          "Hits per plane: In Tracks", "n_hits_per_plane")->Fill(plane.second);
+                }
+            }
+          }
+                  
+          bool has_more_reco_energy = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] > truth.TrueVisibleEnergy[particle_index];
+          bool has_more_reco_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] > truth.TrueNHits[particle_index];
+          bool has_zero_true_nhits = truth.TrueNHits[particle_index] == 0;
+                  
+          if (has_zero_true_nhits)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/zero_true_nhits", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (has_more_reco_nhits)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/has_more_reco_nhits", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
+          if (has_more_reco_energy)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/has_more_reco_energy", 
+                      TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::handfull);
                   
           if (completeness_energy < 0.5)
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "completeness/under_50_percent", 
