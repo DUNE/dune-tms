@@ -171,19 +171,6 @@ inline bool operator<(aNode const &a, aNode const &b) {
   return a.HeuristicCost < b.HeuristicCost;
 }
 
-class TMS_TimeSlicer {
-  public:
-
-    static TMS_TimeSlicer& GetSlicer() {
-      static TMS_TimeSlicer Instance;
-      return Instance;
-    }
-
-    int RunTimeSlicer(TMS_Event &event);
-    int SimpleTimeSlicer(TMS_Event &event);
-    
-};
-
 // Maybe put this inside a separate namespace
 class TMS_TrackFinder {
 

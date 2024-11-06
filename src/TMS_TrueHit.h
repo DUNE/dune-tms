@@ -20,7 +20,7 @@ class TMS_TrueHit {
     // Or else true particle information is lost 
     // Copy constructor
     TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare)
+      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
     {
         if (this != &other) {
           x = other.x;
@@ -42,6 +42,7 @@ class TMS_TrueHit {
           PrimaryIds = other.PrimaryIds;
           VertexIds = other.VertexIds;
           EnergyShare = other.EnergyShare;
+          EnergyShareIsLeptonic = other.EnergyShareIsLeptonic;
           x = other.x;
           y = other.y;
           z = other.z;
@@ -62,6 +63,7 @@ class TMS_TrueHit {
           PrimaryIds = std::move(other.PrimaryIds);
           VertexIds = std::move(other.VertexIds);
           EnergyShare = std::move(other.EnergyShare);
+          EnergyShareIsLeptonic = std::move(other.EnergyShareIsLeptonic);
           x = other.x;
           y = other.y;
           z = other.z;
@@ -99,6 +101,8 @@ class TMS_TrueHit {
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
     //void SetVertexId(int id) { VertexId = id; };
     size_t GetNTrueParticles() const { return EnergyShare.size(); };
+    double GetLeptonicEnergy() const;
+    double GetHadronicEnergy() const { return GetE() - GetLeptonicEnergy(); };
 
     void SetX(double pos) {x = pos;};
     void SetY(double pos) {y = pos;};
@@ -110,6 +114,7 @@ class TMS_TrueHit {
     void SetPEAfterFibers(double PE) {peAfterFibers = PE;};
     void SetPEAfterFibersLongPath(double PE) {peAfterFibersLongPath = PE;};
     void SetPEAfterFibersShortPath(double PE) {peAfterFibersShortPath = PE;};
+    void SetEnergyLeptonic(int index, bool value = true) { EnergyShareIsLeptonic[index] = value; };
 
     void Print() const;
     
@@ -131,6 +136,7 @@ class TMS_TrueHit {
     std::vector<int> PrimaryIds;
     std::vector<int> VertexIds;
     std::vector<double> EnergyShare;
+    std::vector<bool> EnergyShareIsLeptonic;
 };
 
 #endif
