@@ -35,7 +35,7 @@ namespace TMS_Const {
   // Number of planes, check against geometry
   const int TMS_nThinPlanes = 50;
   const int TMS_nThickPlanes = 34;
-  const int TMS_nDoublePlanes = 8;
+  const int TMS_nDoublePlanes = 9;
 
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
   const double Dead_Region_Track_Length = 24.35;
