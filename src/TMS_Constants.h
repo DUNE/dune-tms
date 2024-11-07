@@ -34,7 +34,7 @@ namespace TMS_Const {
 
   // Number of planes, check against geometry
   const int TMS_nThinPlanes = 50;
-  const int TMS_nThickPlanes = 40;
+  const int TMS_nThickPlanes = 34;
   const int TMS_nDoublePlanes = 8;
 
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
@@ -47,11 +47,14 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11362;
+  const double TMS_Thin_Start = 11362; // TODO this changes
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 13500;
+  const double TMS_Thick_Start = 13500; // TODO this changes
   // Where does the thick region end
-  const double TMS_Thick_End = 18314;
+  const double TMS_Thick_End = 18314;   // TODO this changes
+  // Where does the double region end
+  const double TMS_Double_End = 19000   // TODO figure this out
+
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
   // in mm by default!
@@ -65,11 +68,11 @@ namespace TMS_Const {
   // More exact locations of bars
   // This seems to contain the steel as well
   const double TMS_Start_Exact[] = {-3520, -3864, TMS_Thin_Start};
-  const double TMS_End_Exact[] = {3520, 1159, TMS_Thick_End};
+  const double TMS_End_Exact[] = {3520, 1159, TMS_Double_End};
 
   // Plot TrueHitX,Y,Z and zoom in to see where the last hits are
   const double TMS_Start_Bars_Only[] = {-3350, -2950, TMS_Thin_Start};
-  const double TMS_End_Bars_Only[] = {3350, 240, TMS_Thick_End};
+  const double TMS_End_Bars_Only[] = {3350, 240, TMS_Double_End};
 
   // Gap for TMS region that is thin iron layer (mm)
   const double TMS_Thin_gap = 65;
@@ -81,8 +84,8 @@ namespace TMS_Const {
   // z
   // TMS scintillator width (10 mm)
   const double TMS_Scint_Width = 17;
-  // TMS aluminium enclosure width (1mm)
-  const double TMS_Enclosure_Width = 1;
+  // TMS aluminium enclosure width (1mm)  // This is not implemented currently
+  //const double TMS_Enclosure_Width = 1;
   // TMS steel width in thin region (15 mm);
   const double TMS_Thin_Steel_Width = 15;
   // TMS steel width in thick region (40 mm);
@@ -101,7 +104,7 @@ namespace TMS_Const {
   const double TMS_Dead_Bottom[] = {-1769, -1749};
 
   // Some distance after the end of the TMS
-  const double TMS_End_z = TMS_Thick_End+200;
+  const double TMS_End_z = TMS_Double_End+200;
 
   // Volume name of TMS related hits
   const std::string TMS_VolumeName = "TMS";
@@ -131,7 +134,7 @@ namespace TMS_Const {
 
   const int nModulesPerSubModule = 32;
   const int nModules = 12;
-  const int nPlanes = 102;
+  const int nPlanes = 93; // TODO this should be correct, but make sure
 
 }
 
