@@ -47,13 +47,13 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11362; // TODO this changes
+  const double TMS_Thin_Start = 11185;
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 13500; // TODO this changes
+  const double TMS_Thick_Start = 14435;
   // Where does the thick region end
-  const double TMS_Thick_End = 18314;   // TODO this changes
+  const double TMS_Double_Start = 17495;
   // Where does the double region end
-  const double TMS_Double_End = 19000   // TODO figure this out
+  const double TMS_Double_End = 18535;
 
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
