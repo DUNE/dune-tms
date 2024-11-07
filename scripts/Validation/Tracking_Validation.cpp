@@ -22,9 +22,9 @@ int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
   bool is999 = IS_WITHIN(x, -999, 1) || IS_WITHIN(x, -9999, 1) || IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) || IS_WITHIN(x, -999999, 1);
   bool crazy_small = x < -4000;
-  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11362.0);
-  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18314.0);
-  bool xlooksz = (isx) ? IS_WITHIN(x, 18314, 10) : false;
+  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11185.0);
+  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18535.0);
+  bool xlooksz = (isx) ? IS_WITHIN(x, 18535, 10) : false;
   int out = -99999;
   if (zero) out = 0;
   else if (is999) out = -2;
@@ -39,13 +39,15 @@ int GetHitLocationCodeSingle(float x, bool isx) {
 int isTMSContained(TVector3 position, bool thin_only = false) {
   int out = 0;
     // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11362;
+  const double TMS_Thin_Start = 11185;
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 13500;
-  // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Thick_Start = 14435;
+  // Where do we transition to the double region
+  const double TMS_Double_Start = 17495;
+  // Where does the double region end
+  const double TMS_Double_End = 18535;
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
-  const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
+  const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Double_End};
   if (position.X() < TMS_Start_Bars_Only[0]) out += 1 << 0;
   if (position.X() > TMS_End_Bars_Only[0]) out += 1 << 0;
   if (position.Y() > TMS_Start_Bars_Only[1]) out += 1 << 1;

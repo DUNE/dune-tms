@@ -1328,11 +1328,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, end_z), true);
         // Again from true start to particle's end
-        // Picking 10x TMS_Const::TMS_Thick_End breaks geometry
-        // Picking 2x TMS_Const::TMS_Thick_End causes infinite loop
+        // Picking 10x TMS_Const::TMS_Double_End breaks geometry
+        // Picking 2x TMS_Const::TMS_Double_End causes infinite loop
         // Or maybe crazy slowdown in sand?
         // So let's go slightly beyond end of TMS
-        const double LARGE_Z = TMS_Const::TMS_Thick_End + 1000;
+        const double LARGE_Z = TMS_Const::TMS_Double_End + 1000;
         const double SMALL_Z = TMS_Const::LAr_Start_Exact[2] - 1000;
         RecoTrackPrimaryParticleTrueTrackLengthRecoStart[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z));

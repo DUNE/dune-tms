@@ -12,7 +12,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
   // Max z for us to do Hough in, here choose transition layer
   zMinHough(TMS_Const::TMS_Thin_Start),
   //zMaxHough(TMS_Const::TMS_Thick_Start),
-  zMaxHough(TMS_Const::TMS_Thick_End),
+  zMaxHough(TMS_Const::TMS_Double_End),
   nMaxHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough()),
   nThinCont(10),
   nHits_Tol(TMS_Manager::GetInstance().Get_Reco_HOUGH_HitMult()),
@@ -2284,7 +2284,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Recalculate the min and max of slope and intercept for every event
     // Hits are ordered in z already
     double maxz = TMS_Const::TMS_Thin_Start;
-    double minz = TMS_Const::TMS_Thick_End;
+    double minz = TMS_Const::TMS_Double_End;
     double min_notz = TMS_Const::TMS_End_Exact[0];  //TODO adapt to X layers
     double max_notz =  TMS_Const::TMS_Start_Exact[0]; //TODO adapt to X layers
     bool print = true;
@@ -2337,7 +2337,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Most of the bending happens in xz, so fit only until the transition region. 
   // For the yz view, fit the entire region
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
-  //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
+  //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Double_End);
   
   TF1* HoughCopy = (TF1*)HoughLineU->Clone();
 
