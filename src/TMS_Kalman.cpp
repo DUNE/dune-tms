@@ -8,10 +8,11 @@ TMS_Kalman::TMS_Kalman() :
 }
 
 // Take a collection of hits, return collection of Kalman nodes
-TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) : 
+TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, int charge) : 
   Bethe(Material::kPolyStyrene), 
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
+  assumed_charge(charge),
   Talk(false)
 {
   TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
@@ -21,6 +22,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates) :
 
   // Save the number of initial candidates
   int nCand = Candidates.size();
+  
   // And muon mass
   mass = BetheBloch_Utils::Mm;
 
@@ -135,14 +137,15 @@ double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double st
 
 // Update to the next step
 void TMS_Kalman::RunKalman() {
-
+ 
   int nCand = KalmanNodes.size();
   for (int i = 1; i < nCand; ++i) {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
   }
-
+ 
+  
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
   // Set start pos/dir
@@ -202,6 +205,31 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
       PreviousState.dydz = TMS_Kalman::AverageYSlope;
     }
   }
+  
+
+   // Modification begins here: introduce magnetic field and deflection based on regions
+  // Determine magnetic field based on x-position
+  double MagneticField;
+  const double RegionBoundaryX = 1750; // hard coded boundary for regions
+  if (fabs(PreviousState.x) <= RegionBoundaryX) {
+      MagneticField = -1.0; // Central region: Magnetic field downwards
+  } else if (PreviousState.x > RegionBoundaryX) {
+      MagneticField = 1.0; // Right side region: Magnetic field upwards
+  } else {
+      MagneticField = 1.0; // Left side region: Magnetic field upwards
+  }
+
+  // Calculate Lorentz force (deflection in x only)
+  double p = 1.0 / PreviousState.qp;  // Total momentum
+  //double px = p * PreviousState.dxdz; // Momentum in the x direction (proportional to slope dxdz)
+                      
+
+  // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
+  // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
+  double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
+  //std::cout<<  (CurrentState.z -PreviousState.z) << std::endl;
+  // Modification ends here
+  
 
   TVectorD PreviousVec(5);
   PreviousVec[0] = PreviousState.x;
@@ -211,6 +239,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[4] = PreviousState.qp;
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
+  //add a magnetic deflection term
+  UpdateVec[2] += magnetic_deflection_px/p;
 
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
   if (Talk) PreviousState.Print();
