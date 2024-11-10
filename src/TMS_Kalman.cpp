@@ -8,7 +8,7 @@ TMS_Kalman::TMS_Kalman() :
 }
 
 // Take a collection of hits, return collection of Kalman nodes
-TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, int charge) : 
+TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) : 
   Bethe(Material::kPolyStyrene), 
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
@@ -209,7 +209,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
    // Modification begins here: introduce magnetic field and deflection based on regions
   // Determine magnetic field based on x-position
-  double MagneticField;
+  double MagneticField = 0;
   const double RegionBoundaryX = 1750; // hard coded boundary for regions
   if (fabs(PreviousState.x) <= RegionBoundaryX) {
       MagneticField = -1.0; // Central region: Magnetic field downwards

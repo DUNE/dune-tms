@@ -227,7 +227,7 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    TMS_Kalman(std::vector<TMS_Hit> &Candidates, int charge);
+    TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
     
     double Start[3];
     double End[3];
@@ -281,7 +281,7 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
-    int assumed_charge;
+    double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
     

@@ -728,11 +728,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
     double kalman_reco_mom, kalman_chi2;
-    double chi2positive = 0;
+    double chi2positive = 100000000;
     double chi2negative = 0;
     for (auto &trk : HoughTracks3D) {
-      KalmanFilter = TMS_Kalman(trk.Hits, 1);
-      KalmanFilter2 = TMS_Kalman(trk.Hits, -1);
+      //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
+      KalmanFilter = TMS_Kalman(trk.Hits, 0.1);
+      KalmanFilter2 = TMS_Kalman(trk.Hits, -0.1);
+     
       
       
       chi2positive = KalmanFilter.GetTrackChi2();
