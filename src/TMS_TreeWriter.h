@@ -300,6 +300,8 @@ class TMS_TreeWriter {
     int TrueNonTMSNHits;
     float TrueNonTMSHitPos[__TMS_MAX_TRUE_NONTMS_HITS__][4];
     float TrueNonTMSHitEnergy[__TMS_MAX_TRUE_NONTMS_HITS__];
+    float TrueNonTMSHitDx[__TMS_MAX_TRUE_NONTMS_HITS__];
+    float TrueNonTMSHitdEdx[__TMS_MAX_TRUE_NONTMS_HITS__];
     int TrueNonTMSHitVertexID[__TMS_MAX_TRUE_NONTMS_HITS__];
 
     // Flags for easy use

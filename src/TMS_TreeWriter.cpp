@@ -393,6 +393,8 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("TrueNonTMSNHits", &TrueNonTMSNHits, "TrueNonTMSNHits/I");
   truth->Branch("TrueNonTMSHitPos", TrueNonTMSHitPos, "TrueNonTMSHitPos[TrueNonTMSNHits][4]/F");
   truth->Branch("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, "TrueNonTMSHitEnergy[TrueNonTMSNHits]/F");
+  truth->Branch("TrueNonTMSHitDx", TrueNonTMSHitDx, "TrueNonTMSHitDx[TrueNonTMSNHits]/F");
+  truth->Branch("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, "TrueNonTMSHitdEdx[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, "TrueNonTMSHitVertexID[TrueNonTMSNHits]/I");
 
   truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
@@ -1632,6 +1634,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     TrueNonTMSHitPos[index][2] = hit.GetZ();
     TrueNonTMSHitPos[index][3] = hit.GetT();
     TrueNonTMSHitEnergy[index] = hit.GetE();
+    TrueNonTMSHitDx[index] = hit.GetdX();
+    TrueNonTMSHitdEdx[index] = hit.GetdEdx();
     if (hit.GetNTrueParticles() > 1) {
       int target_vertex_id = hit.GetVertexIds(0);
       for (size_t v = 1; v < hit.GetNTrueParticles(); v++) {
@@ -1930,6 +1934,8 @@ void TMS_TreeWriter::Clear() {
     LArFiducialEnd[i] = false;
     
     TrueNonTMSHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNonTMSHitDx[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNonTMSHitdEdx[i] = DEFAULT_CLEARING_FLOAT;
     TrueNonTMSHitVertexID[i] = -99999;
 
     for (int j = 0; j < 4; ++j) {

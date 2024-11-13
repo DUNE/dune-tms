@@ -84,6 +84,7 @@ class TMS_TrueHit {
     double GetT() const {return t;};
     double GetdX() const {return dx;};
     double GetE() const {return EnergyDeposit; };
+    double GetdEdx() const {return GetE()/GetdX(); };
     double GetPE() const {return pe; };
     double GetPEAfterFibers() const {return peAfterFibers; };
     double GetPEAfterFibersLongPath() const {return peAfterFibersLongPath; };
