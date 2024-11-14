@@ -238,8 +238,8 @@ class TMS_Kalman {
 
     void SetMomentum(double mom) {momentum = mom;}
     // Set direction unit vectors from only x and y slope
-    void SetStartDirection(double ax, double ay) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=sqrt(1 - ax*ax - ay*ay);};
-    void SetEndDirection  (double ax, double ay) {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=sqrt(1 - ax*ax - ay*ay);};
+    void SetStartDirection(double ax, double ay);// {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=sqrt(1 - ax*ax - ay*ay);};
+    void SetEndDirection  (double ax, double ay);// {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=sqrt(1 - ax*ax - ay*ay);};
 
     // Set position unit vectors
     void SetStartPosition(double ax, double ay, double az) {Start[0]=ax; Start[1]=ay; Start[2]=az;};
