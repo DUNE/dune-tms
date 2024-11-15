@@ -28,6 +28,14 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
   _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
 
+  _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
+  _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
+  _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints =
+        toml::find<double>(data, "Recon", "TrackSmoothing", "MaxYDistanceBetweenUVTransitionPoints");
+  _RECO_TRACKSMOOTHING_UncertaintyGoodDirection = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyGoodDirection");
+  _RECO_TRACKSMOOTHING_UncertaintyBadDirection = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyBadDirection");
+  _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyForUVTransitionPoints");
+
   _RECO_DBSCAN_MinPoints = toml::find<int>(data, "Recon", "DBSCAN", "MinPoints");
   _RECO_DBSCAN_Epsilon = toml::find<double>(data, "Recon", "DBSCAN", "Epsilon");
   _RECO_DBSCAN_PreDBNeighbours = toml::find<int>(data, "Recon", "DBSCAN", "PreDBNeighbours");

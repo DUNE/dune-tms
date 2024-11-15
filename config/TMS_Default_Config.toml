@@ -83,6 +83,22 @@
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
     DirectionDistance = 14
 
+  [Recon.TrackSmoothing]
+    UseTrackSmoothing = true
+    TrackSmoothingStrategy = "simple"
+    # This is the max y distance a track can travel in a UV detector
+    # before we expect to see another transition point
+    # Used to calculate the maximum slope you can hide in the UV Y position uncertainty
+    MaxYDistanceBetweenUVTransitionPoints = 300.0 # mm
+    # For a UV detector, this is the uncertainty in X
+    # Numbers from TMS det review 2024-10-18
+    UncertaintyGoodDirection = 18.0 # mm
+    # For a UV detector, this is the default uncertainty in Y
+    UncertaintyBadDirection = 340.0 # mm
+    # In UV detector, transition point has better uncertainty
+    # This is found using the FWHM of reco - true for transition points only
+    UncertaintyForUVTransitionPoints = 120.0 # mm
+
   [Recon.AStar]
     #CostMetric = "Manhattan"
     CostMetric = "Euclidean"
