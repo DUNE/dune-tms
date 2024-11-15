@@ -67,12 +67,12 @@ namespace TMS_Const {
 
   // More exact locations of bars
   // This seems to contain the steel as well
-  const double TMS_Start_Exact[] = {-3520, -3864, TMS_Thin_Start};
-  const double TMS_End_Exact[] = {3520, 1159, TMS_Double_End};
+  const double TMS_Start_Exact[] = {-3730, -3702.23, TMS_Thin_Start};
+  const double TMS_End_Exact[] = {3730, 997.77, TMS_Double_End};
 
   // Plot TrueHitX,Y,Z and zoom in to see where the last hits are
-  const double TMS_Start_Bars_Only[] = {-3350, -2950, TMS_Thin_Start};
-  const double TMS_End_Bars_Only[] = {3350, 240, TMS_Double_End};
+  const double TMS_Start_Bars_Only[] = {-3488, -3076.23, TMS_Thin_Start};  // this is the bottom with horizontal bars, stereo: -3002.23
+  const double TMS_End_Bars_Only[] = {3488, 371.77, TMS_Double_End};       // this is the top with horizontal bars, stereo: 297.77
 
   // Gap for TMS region that is thin iron layer (mm)
   const double TMS_Thin_gap = 65;
@@ -134,7 +134,7 @@ namespace TMS_Const {
 
   const int nModulesPerSubModule = 32;
   const int nModules = 12;
-  const int nPlanes = 93; // TODO this should be correct, but make sure
+  const int nPlanes = 93;
 
 }
 
