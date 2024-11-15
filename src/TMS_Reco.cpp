@@ -2247,7 +2247,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   }
 
   // Create the DBSCAN instance
-  DBSCAN.SetPoints(DB_Points); //TODO how to get this working with separation? Where is this referring to?
+  DBSCAN.SetPoints(DB_Points);
   DBSCAN.RunDBScan();
 
   //std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
@@ -2288,8 +2288,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Hits are ordered in z already
     double maxz = TMS_Const::TMS_Thin_Start;
     double minz = TMS_Const::TMS_Double_End;
-    double min_notz = TMS_Const::TMS_End_Exact[0];  //TODO adapt to X layers
-    double max_notz =  TMS_Const::TMS_Start_Exact[0]; //TODO adapt to X layers
+    double min_notz = TMS_Const::TMS_End_Exact[0];
+    double max_notz =  TMS_Const::TMS_Start_Exact[0];
     bool print = true;
     for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
       double z = (*it).GetZ();
