@@ -91,9 +91,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   
   bool NerscOverlay = false;
   TParameter<double>* spillPeriod_s = (TParameter<double>*)input->Get("spillPeriod_s");
-  if (spillPeriod_s != NULL) NerscOverlay = true;
   double SpillPeriod = 0;
-  if (NerscOverlay) {
+  if (spillPeriod_s != NULL) {
+    NerscOverlay = true;
     std::cout<<"Combining spills"<<std::endl;
     SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
     std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<"ns"<<std::endl;
