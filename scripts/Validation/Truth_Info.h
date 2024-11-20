@@ -143,6 +143,13 @@ public :
    Float_t         RecoTrackSecondaryParticleTrueMomentum[10][4];   //[RecoTrackN]
    Float_t         RecoTrackSecondaryParticleTruePositionStart[10][4];   //[RecoTrackN]
    Float_t         RecoTrackSecondaryParticleTruePositionEnd[10][4];   //[RecoTrackN]
+   Int_t TrueNonTMSNHits;
+   Float_t TrueNonTMSHitPos[100000][4]; //[TrueNonTMSNHits]
+   Float_t TrueNonTMSHitEnergy[100000]; //[TrueNonTMSNHits]
+   Float_t TrueNonTMSHitHadronicEnergy[100000]; //[TrueNonTMSNHits]
+   Float_t TrueNonTMSHitDx[100000]; //[TrueNonTMSNHits]
+   Float_t TrueNonTMSHitdEdx[100000]; //[TrueNonTMSNHits]
+   Int_t TrueNonTMSHitVertexID[100000]; //[TrueNonTMSNHits]
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -267,6 +274,13 @@ public :
    TBranch        *b_RecoTrackSecondaryParticleTrueMomentum;   //!
    TBranch        *b_RecoTrackSecondaryParticleTruePositionStart;   //!
    TBranch        *b_RecoTrackSecondaryParticleTruePositionEnd;   //!
+   TBranch        *b_TrueNonTMSNHits;   //!
+   TBranch        *b_TrueNonTMSHitPos;   //!
+   TBranch        *b_TrueNonTMSHitEnergy;   //!
+   TBranch        *b_TrueNonTMSHitHadronicEnergy;   //!
+   TBranch        *b_TrueNonTMSHitDx;   //!
+   TBranch        *b_TrueNonTMSHitdEdx;   //!
+   TBranch        *b_TrueNonTMSHitVertexID;   //!
 
    Truth_Info(TTree *tree=0);
    virtual ~Truth_Info();
@@ -462,6 +476,13 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("RecoTrackSecondaryParticleTrueMomentum", RecoTrackSecondaryParticleTrueMomentum, &b_RecoTrackSecondaryParticleTrueMomentum);
    fChain->SetBranchAddress("RecoTrackSecondaryParticleTruePositionStart", RecoTrackSecondaryParticleTruePositionStart, &b_RecoTrackSecondaryParticleTruePositionStart);
    fChain->SetBranchAddress("RecoTrackSecondaryParticleTruePositionEnd", RecoTrackSecondaryParticleTruePositionEnd, &b_RecoTrackSecondaryParticleTruePositionEnd);
+   fChain->SetBranchAddress("TrueNonTMSNHits", &TrueNonTMSNHits, &b_TrueNonTMSNHits);
+   fChain->SetBranchAddress("TrueNonTMSHitPos", TrueNonTMSHitPos, &b_TrueNonTMSHitPos);
+   fChain->SetBranchAddress("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, &b_TrueNonTMSHitEnergy);
+   fChain->SetBranchAddress("TrueNonTMSHitHadronicEnergy", TrueNonTMSHitHadronicEnergy, &b_TrueNonTMSHitHadronicEnergy);
+   fChain->SetBranchAddress("TrueNonTMSHitDx", TrueNonTMSHitDx, &b_TrueNonTMSHitDx);
+   fChain->SetBranchAddress("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, &b_TrueNonTMSHitdEdx);
+   fChain->SetBranchAddress("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, &b_TrueNonTMSHitVertexID);
    Notify();
 }
 
