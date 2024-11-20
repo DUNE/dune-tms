@@ -272,7 +272,6 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             if e < 1: a = 0.6
             if e < 0.5: a = 0.4
             if e < 0.1: a = 0.2
-            if h < 0.1: a = 0
             if vid in vertex_id_mapping:
                 marker = ROOT.TMarker(x, y, 21)
                 color = ROOT.kGray if vid not in vertex_id_mapping else vertex_id_mapping[vid]
