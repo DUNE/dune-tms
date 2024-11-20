@@ -46,6 +46,10 @@ class TMS_TrueParticle {
       TrueVisibleEnergy(-999),
       BirthMomentum(edep_part.GetMomentum().Vect()),
       BirthPosition(vtx.GetPosition()) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
+      }
     }
 
     // Construct directly from edep-sim
@@ -55,6 +59,10 @@ class TMS_TrueParticle {
       TrackId(TrackVal), 
       PDG(PDGVal), 
       TrueVisibleEnergy(-999) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal: Get a vertex id < 0");
+      }
     }
 
     // Print
@@ -81,13 +89,18 @@ class TMS_TrueParticle {
     void SetTrackId(int num) { TrackId = num; };
     void SetPDG(int num) { PDG = num; };
 
-    int GetPDG() { return PDG; };
-    int GetParent() { return Parent; };
-    bool IsPrimary() { return Parent < 0; };
-    int GetTrackId() { return TrackId; };
-    int GetVertexID() { return VertexID; };
-    double GetTrueVisibleEnergy() { return TrueVisibleEnergy; };
-    void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
+    int GetPDG() const { return PDG; };
+    // Hadronic is anything that isn't electron, muon, tau, or photon
+    bool IsHadronic() { return (std::abs(PDG) != 11 && std::abs(PDG) != 13 && std::abs(PDG) != 16 && std::abs(PDG) != 22); };
+    bool IsLeptonic() { return !IsHadronic(); };
+    int GetParent() const { return Parent; };
+    bool IsPrimary() const { return Parent < 0; };
+    int GetTrackId() const { return TrackId; };
+    int GetVertexID() const { return VertexID; };
+    double GetTrueVisibleEnergy(bool slice = false) const { if (slice) { return TrueVisibleEnergySlice; } else { return TrueVisibleEnergy; } };
+    void SetTrueVisibleEnergy(double energy, bool slice) { if (slice) { TrueVisibleEnergySlice = energy; } else { TrueVisibleEnergy = energy; } };
+    int GetNTrueHits(bool slice) const { if (slice) { return NTrueHitsSlice; } else { return NTrueHits; } };
+    void SetNTrueHits(int n, bool slice) { if (slice) { NTrueHitsSlice = n; } else { NTrueHits = n; } };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
@@ -169,6 +182,9 @@ class TMS_TrueParticle {
     int TrackId;
     int PDG;
     double TrueVisibleEnergy;
+    int NTrueHits;
+    double TrueVisibleEnergySlice;
+    int NTrueHitsSlice;
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;
