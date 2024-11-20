@@ -5,6 +5,8 @@ ROOT.gROOT.SetBatch(True)
 
 import sys
 
+import simply_draw_everything
+
 def draw_histograms(input_file1, input_file2):
     # The filename can include the key separated with comma, so check for that
     foo = input_file1.split(",")
@@ -25,24 +27,24 @@ def draw_histograms(input_file1, input_file2):
     output_dir = os.path.join(os.path.split(input_file1)[0], f"comparison_{key1}_{key2}_images")
     os.makedirs(output_dir, exist_ok=True)
     
-
+    canvas = ROOT.TCanvas("canvas", "canvas", 800, 600)
+    
     # Loop over all keys in the ROOT file
     for key in root_file.GetListOfKeys():
-        canvas = ROOT.TCanvas("canvas", "canvas", 800, 600)
         obj = key.ReadObj()
         output_subdir = output_dir
         name = obj.GetName()
+        name = obj.GetName()
+            
+        subdir, image_name = simply_draw_everything.get_subdir_and_name(name)
+        output_subdir = os.path.join(output_dir, subdir)
+        
         obj2 = root_file2.Get(name)
         if obj2 == None:
             print(f"Could not find {name} in {input_file2}. Skipping")
-            continue
+            continue 
         
-        # Create a uniq subdirectory if it's a complex name
-        split = name.split("_")
-        if len(split) > 2:
-            output_subdir = os.path.join(output_dir, split[0])
         os.makedirs(output_subdir, exist_ok=True)  
-        
         if isinstance(obj, ROOT.TH2):
             canvas.cd(0)
             canvas.Divide(2, 1)
@@ -56,7 +58,7 @@ def draw_histograms(input_file1, input_file2):
             obj2.GetYaxis().SetTitleOffset(1.4)
             obj2.GetZaxis().SetTitleOffset(0.5)
             obj2.Draw("colz")
-            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
+            canvas.Print(os.path.join(output_subdir, image_name + ".png"))
         elif isinstance(obj, ROOT.TH1):
             canvas.cd(0)
             # For 1D histograms, draw and save as png
@@ -64,8 +66,25 @@ def draw_histograms(input_file1, input_file2):
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.SetNColumns(2)
-            leg.AddEntry(obj, key1, "lep")
-            leg.AddEntry(obj2, key2, "lep")
+            
+            if "passes_cut" in image_name:
+                # Scale to 100% for easy viewing
+                leg.AddEntry(obj, key1 + " (%)", "lep")
+                leg.AddEntry(obj2, key2 + " (%)", "lep")
+            
+                if obj.Integral() > 0:
+                    scale = 100 / obj.Integral()
+                obj.Scale(scale)
+                if obj2.Integral() > 0:
+                    scale = 100 / obj2.Integral()
+                obj2.Scale(scale)
+            else:
+                leg.AddEntry(obj, key1, "lep")
+                leg.AddEntry(obj2, key2 + " (area norm.)", "lep")
+                scale = 0
+                if obj2.Integral() > 0:
+                    scale = obj.Integral() / obj2.Integral()
+                obj2.Scale(scale)
             
             top = max(obj.GetMaximum(), obj2.GetMaximum())*1.3
             obj.GetYaxis().SetRangeUser(0, top)
@@ -80,7 +99,7 @@ def draw_histograms(input_file1, input_file2):
             obj2.Draw("e same")
             leg.Draw()
             #print(f"{obj.GetName()} integral: {obj.Integral()}")
-            canvas.Print(os.path.join(output_subdir, obj.GetName() + ".png"))
+            canvas.Print(os.path.join(output_subdir, image_name + ".png"))
 
     # Close the input ROOT file
     root_file.Close()
