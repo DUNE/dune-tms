@@ -25,11 +25,16 @@ tan_87 = 19.08114
 tan_3 = 0.05241
 
 ### Widths of hits
-delta_x = 0.0177    # half a bar width
+delta_x = 0.018    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
-delta_z = 0.02      # space of scintilattor with air gap
+delta_z = 0.025      # space of scintilattor with air gap
 
 MUON_MASS = 105.7  # MeV/c^2
+
+tms_top_stereo = 0.29777
+tms_bottom_stereo = -3.00223
+tms_top_hybrid = 0.37177
+tms_bottom_hybrid = -3.07623
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
@@ -38,26 +43,26 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y            
         if x < r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -0.244: return -0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
 
 ### Function for lower limit of tilted bar 'hit'
@@ -67,26 +72,26 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
     elif orientation_bar == 'kUBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
 
 ### Function for hits to appear in size
@@ -97,12 +102,12 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x / 1000.0 + delta_x
             size_array[0, 1] = hit_x / 1000.0 - delta_x
-            if (hit_y / 1000.0 + delta_x) >= 0.244:
-                size_array[1, 0] = 0.244
+            if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
+                size_array[1, 0] = tms_top_hybrid
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y / 1000.0 - delta_x) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_x) <= tms_bottom_hybrid:
+                size_array[1, 1] = tms_bottom_hybrid
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
             return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
@@ -118,21 +123,21 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array[0, 1] = hit_x / 1000.0 - delta_z
         orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'kXBar':
-            if (hit_y / 1000.0 + delta_x) >= 0.244:
-                size_array[1, 0] = 0.244
+            if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
+                size_array[1, 0] = tms_top_hybrid
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y / 1000.0 - delta_x) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_x) <= tms_bottom_hybrid:
+                size_array[1, 1] = tms_bottom_hybrid
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
         else:
-            if (hit_y / 1000.0 + delta_y) >= 0.244:
-                size_array[1, 0] = 0.244
+            if (hit_y / 1000.0 + delta_y) >= tms_top_stereo:
+                size_array[1, 0] = tms_top_stereo
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_y
-            if (hit_y / 1000.0 - delta_y) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_y) <= tms_bottom_stereo:
+                size_array[1, 1] = tms_bottom_stereo
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_y
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]   
@@ -170,7 +175,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     DrawKalmanTrack = False
     if hasattr(r,"KalmanPos"):
         print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
-        DrawKalmanTrack = True
+        DrawKalmanTrack = False #True
     
     truth = ROOT.TChain("Truth_Info")
     truth.Add(input_filename)
@@ -232,9 +237,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
             z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
             x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-            x_y.text(3.6, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            z_y.text(18.4, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            x_z.text(18.4, -1, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
     
             ### Position plots efficient/nice in subplots
             x_z.axis('equal')
@@ -247,24 +252,26 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.axes.set_anchor('SW')
     
             ### Put in outlines of scintillator parts
-            x_z.hlines(-3.52, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(3.52, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(-1.75, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(1.75, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.vlines(11.362, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.vlines(18.294, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
     
-            z_y.hlines(-2.949, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.hlines(0.244, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(11.362, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(18.294, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
     
-            x_y.hlines(-2.949, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.hlines(0.244, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')    #-2.51->0.244 & -5.71->-2.949
-            x_y.vlines(-3.52, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-            x_y.vlines(3.52, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
-            x_y.vlines(-1.75, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
-            x_y.vlines(1.75, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
             
             #print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
@@ -429,40 +436,76 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11368
+first_z = 11185
 layer_dict = { "%s" % first_z : "kUBar" }
         
 def calculate_layers(Xlayers):
-    thin_layers = 39
-    thick_layers = 61
+    increment = 2
+    if Xlayers:
+        increment = 3
+    thin_layers = 50
+    thick_layers = 34
+    double_layers = 9
     # Calculate the z position for each layer for the thin section
     for i in range(thin_layers):
-        hit_z = first_z + i * 55
+        hit_z = first_z + i * 65
         # even layers
-        if (((hit_z - first_z) / 55) % 2) == 0:
+        if (((hit_z - first_z) / 65) % increment) == 0:
             layer_dict.update({ "%s" % hit_z : "kUBar" })
         # odd layers
-        elif (((hit_z - first_z) / 55) % 2) == 1:
+        elif (((hit_z - first_z) / 65) % increment) == 1:
             layer_dict.update({ "%s" % hit_z : "kVBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - first_z) / 55) % 3) == 0:
+            if (((hit_z - first_z) / 65) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "kXBar" })
-    # Calculate the z position for each layers the thick section
-    start_thick = first_z + thin_layers * 55
+            # even layers
+            if (((hit_z - first_z) / 65) % increment) == 1:
+                layer_dict.update({ "%s" % hit_z : "kUBar" })
+            # odd layers
+            elif (((hit_z - first_z) / 65) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "kVBar" })
+    # Calculate the z position for each layer for the thick section
+    start_thick = first_z + thin_layers * 65
     for i in range(thick_layers):
-        hit_z = start_thick + i * 80
+        hit_z = start_thick + i * 90
         # even layers
-        if (((hit_z - start_thick) / 80) % 2) == 0:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
-        # odd layers
-        elif (((hit_z - start_thick) / 80) % 2) == 1:
+        if (((hit_z - start_thick) / 90) % increment) == 0:
             layer_dict.update({ "%s" % hit_z : "kUBar" })
+        # odd layers
+        elif (((hit_z - start_thick) / 90) % increment) == 1:
+            layer_dict.update({ "%s" % hit_z : "kVBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - start_thick) / 80) % 3) == 0:
+            if (((hit_z - start_thick) / 90) % increment) == 0:
+                layer_dict.update({ "%s" % hit_z : "kVBar" })
+            # even layers
+            elif (((hit_z - start_thick) / 90) % increment) == 1:
                 layer_dict.update({ "%s" % hit_z : "kXBar" })
-
+            # odd layers
+            elif (((hit_z - start_thick) / 90) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "kUBar" })
+    # Calculate the z position for each layer for the double section
+    start_double = first_z + thin_layers * 65 + thick_layers * 90
+    for i in range(double_layers):
+        hit_z = start_double + i * 130
+        # even layers
+        if (((hit_z - start_double) / 130) % increment) == 0:
+            layer_dict.update({ "%s" % hit_z : "kUBar" })
+        # odd layers
+        elif (((hit_z - start_double) / 130) % increment) == 1:
+            layer_dict.update({ "%s" % hit_z : "kVBar" })
+        # x layers
+        if Xlayers:
+            if (((hit_z - start_double) / 130) % increment) == 0:
+                layer_dict.update({ "%s" % hit_z : "kXBar" })
+            # even layers
+            elif (((hit_z - start_double) / 130) % increment) == 1:
+                layer_dict.update({ "%s" % hit_z : "kUBar" })
+            # odd layers
+            elif (((hit_z - start_double) / 130) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "kVBar" })
+                
     return
 
 if __name__ == "__main__":
