@@ -283,6 +283,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             # nTrueHits = true_event.RecoTrackNHits
             # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
 
+            # Kalman stuff
+            nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
+            KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
+            KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
+
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
             #Direction = np.frombuffer(event.Direction, dtype = np.float32)
