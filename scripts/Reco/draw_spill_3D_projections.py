@@ -175,7 +175,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     DrawKalmanTrack = False
     if hasattr(r,"KalmanPos"):
         print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
-        DrawKalmanTrack = False #True
+        DrawKalmanTrack = True
     
     truth = ROOT.TChain("Truth_Info")
     truth.Add(input_filename)
