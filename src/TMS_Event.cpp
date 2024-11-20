@@ -261,12 +261,10 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
-  std::cout << "Step 3" << std::endl;
   std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
 
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
-    std::cout << "Step 3.1" << std::endl;
     // Only look at TMS hits
     std::string DetString = (*jt).first;
 
@@ -275,7 +273,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 
     TG4HitSegmentContainer tms_hits = (*jt).second;
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
-      std::cout << "Step 3.2" << std::endl;
       TG4HitSegment edep_hit = *kt;
       int track_id = edep_hit.GetPrimaryId();
       int vertex_id = -999;
@@ -288,7 +285,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       int barnum = hit.GetBarNumber();
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
-      std::cout << "Step 3.3" << std::endl;
       if (barnum >= 0) {
         auto t = hit.GetAdjustableTrueHit();
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
@@ -320,7 +316,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
           }
         }
-        std::cout << "Step 3.4" << std::endl;
         double divide = 10.0;
         auto poskey = std::tuple((int) (t.GetX() / divide), (int) (t.GetY() / divide), (int) (t.GetZ() / divide), t.GetVertexIds(0));
         if (map_pos_nontms_hits.find(poskey) != map_pos_nontms_hits.end()) {
@@ -329,17 +324,15 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           merge_with_me.MergeWith(t);
         }
         else {
-          std::cout << "Step 3.5" << std::endl;
           // Doesn't exist, add to list and map
           NonTMS_Hits.push_back(t);
           map_pos_nontms_hits[poskey] = NonTMS_Hits.size() - 1;
-          std::cout << "Step 3.6" << std::endl;
         }
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   bool OnlyPrimaryOrVisibleEnergy = true;
-  std::cout << "Step 4" << std::endl;
+
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
     double energy = 0;
