@@ -32,6 +32,7 @@ class TMS_TreeWriter {
 
     void Fill(TMS_Event &event);
     void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
+    void FillTruthInfo(TMS_Event &event);
 
     void Write() {
       Output->cd();
@@ -300,6 +301,7 @@ class TMS_TreeWriter {
     int TrueNonTMSNHits;
     float TrueNonTMSHitPos[__TMS_MAX_TRUE_NONTMS_HITS__][4];
     float TrueNonTMSHitEnergy[__TMS_MAX_TRUE_NONTMS_HITS__];
+    float TrueNonTMSHitHadronicEnergy[__TMS_MAX_TRUE_NONTMS_HITS__];
     float TrueNonTMSHitDx[__TMS_MAX_TRUE_NONTMS_HITS__];
     float TrueNonTMSHitdEdx[__TMS_MAX_TRUE_NONTMS_HITS__];
     int TrueNonTMSHitVertexID[__TMS_MAX_TRUE_NONTMS_HITS__];

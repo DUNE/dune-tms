@@ -393,6 +393,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("TrueNonTMSNHits", &TrueNonTMSNHits, "TrueNonTMSNHits/I");
   truth->Branch("TrueNonTMSHitPos", TrueNonTMSHitPos, "TrueNonTMSHitPos[TrueNonTMSNHits][4]/F");
   truth->Branch("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, "TrueNonTMSHitEnergy[TrueNonTMSNHits]/F");
+  truth->Branch("TrueNonTMSHitHadronicEnergy", TrueNonTMSHitHadronicEnergy, "TrueNonTMSHitHadronicEnergy[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitDx", TrueNonTMSHitDx, "TrueNonTMSHitDx[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, "TrueNonTMSHitdEdx[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, "TrueNonTMSHitVertexID[TrueNonTMSNHits]/I");
@@ -480,6 +481,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // See if track is exiting or not
   int nLastHits = TMS_Manager::GetInstance().Get_Reco_STOPPING_nLastHits();
   double EnergyCut = TMS_Manager::GetInstance().Get_Reco_STOPPING_EnergyCut();
+  
+  FillTruthInfo(event);
 
 
   // Fill the truth info
@@ -520,115 +523,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   //Muon_TrueTrackLength = -999.99;
   //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
-
-  // Get the truth info
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
-  nParticles = TrueParticles.size();
-  // Just trying to find the true muon here from the fundamental vertex
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-
-    // Only save muon info for now
-    if (abs((*it).GetPDG()) != 13) continue;
-    // Also make sure it's a fundamental muon
-    if ((*it).GetParent() != -1) continue;
-
-    MuonP4[0] = (*it).GetBirthMomentum().Px();
-    MuonP4[1] = (*it).GetBirthMomentum().Py();
-    MuonP4[2] = (*it).GetBirthMomentum().Pz();
-    MuonP4[3] = (*it).GetBirthEnergy();
-
-    Muon_Vertex[0] = (*it).GetBirthPosition().X();
-    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
-    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
-    Muon_Vertex[3] = (*it).GetBirthPosition().T();
-
-    Muon_Death[0] = (*it).GetDeathPosition().X();
-    Muon_Death[1] = (*it).GetDeathPosition().Y();
-    Muon_Death[2] = (*it).GetDeathPosition().Z();
-    Muon_Death[3] = (*it).GetDeathPosition().T();
-  }
-  
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
-  InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
-  InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
-  InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
-    
-  nTrueParticles = TrueParticles.size();
-  nTruePrimaryParticles = 0;
-  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
-  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-    int index = it - TrueParticles.begin();
-    
-    if (index >= __TMS_MAX_TRUE_PARTICLES__) {
-      std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
-      std::cerr<<"WARNING: In this case, the __TMS_MAX_TRUE_PARTICLES__ is "<<__TMS_MAX_TRUE_PARTICLES__<<" but need "<<TrueParticles.size()<<std::endl;
-      break;
-    }
-  
-    VertexID[index] = (*it).GetVertexID();
-    Parent[index] = (*it).GetParent();
-    TrackId[index] = (*it).GetTrackId();
-    PDG[index] = (*it).GetPDG();
-    IsPrimary[index] = (*it).IsPrimary();
-    if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
-    TrueNHits[index] = (*it).GetNTrueHits(false);
-    TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
-    TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
-
-    TVector3 location_birth = (*it).GetBirthPosition().Vect();
-    TVector3 location_death = (*it).GetDeathPosition().Vect();
-    TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
-    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
-    TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
-    
-    setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
-    setPosition(BirthPosition[index], (*it).GetBirthPosition());
-    
-    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
-    setPosition(DeathPosition[index], (*it).GetDeathPosition());
-
-    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
-    TruePathLengthIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
-    TruePathLengthInTMS[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
-    TruePathLengthInTMSIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
-
-    setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
-    setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
-    
-    setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
-    setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
-    
-    setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
-    setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
-    
-    setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
-    setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
-    
-    setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
-    setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
-    
-    setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
-    setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
-    
-    setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
-    setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
-    
-    setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
-    setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
-    
-    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
-    setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
-    
-  }
   
   // Fill LAr hit outer shell energy info
   // Case 1: All energy in outer shell, useful only for single event interactions
@@ -1358,6 +1252,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 //        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
 //      }
 //    }
+
+    auto TrueParticles = event.GetTrueParticles();
     
     // Now fill truth info
     if (itTrack >= __TMS_MAX_LINES__) {
@@ -1515,17 +1411,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   Truth_Info->Fill();
 }
 
-void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
-  // Clear old info
-  Clear();
-
+void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
+  // Common code between Fill (which fills Truth_Info) and FillSpill (which fills Truth_Spill)
+  
   // Fill the truth info
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
   Reaction = event.GetReaction();
-  TruthInfoIndex = truth_info_entry_number;
-  TruthInfoNSlices = truth_info_n_slices;
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
 
@@ -1545,8 +1438,49 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
   InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
-    
+  
+  // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  nParticles = TrueParticles.size();
+  // Just trying to find the true muon here from the fundamental vertex
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+
+    MuonP4[0] = (*it).GetBirthMomentum().Px();
+    MuonP4[1] = (*it).GetBirthMomentum().Py();
+    MuonP4[2] = (*it).GetBirthMomentum().Pz();
+    MuonP4[3] = (*it).GetBirthEnergy();
+
+    Muon_Vertex[0] = (*it).GetBirthPosition().X();
+    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
+    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
+    Muon_Vertex[3] = (*it).GetBirthPosition().T();
+
+    Muon_Death[0] = (*it).GetDeathPosition().X();
+    Muon_Death[1] = (*it).GetDeathPosition().Y();
+    Muon_Death[2] = (*it).GetDeathPosition().Z();
+    Muon_Death[3] = (*it).GetDeathPosition().T();
+  }
+    
+  nTrueParticles = TrueParticles.size();
+  nTruePrimaryParticles = 0;
+  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
+  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    int index = it - TrueParticles.begin();
+    
+    if (index >= __TMS_MAX_TRUE_PARTICLES__) {
+      std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
+      std::cerr<<"WARNING: In this case, the __TMS_MAX_TRUE_PARTICLES__ is "<<__TMS_MAX_TRUE_PARTICLES__<<" but need "<<TrueParticles.size()<<std::endl;
+      break;
+    }
+    
+  }
+    
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
   nTrueForgottenParticles = event.GetNTrueForgottenParticles();
@@ -1567,6 +1501,8 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
     TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
     TrueNHits[index] = (*it).GetNTrueHits(false);
+    TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
+    TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
     TVector3 location_death = (*it).GetDeathPosition().Vect();
@@ -1617,23 +1553,25 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     
     setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
-    
   }
   
   TrueNonTMSNHits = event.GetNonTMSHits().size();
   if (TrueNonTMSNHits > __TMS_MAX_TRUE_NONTMS_HITS__) TrueNonTMSNHits = __TMS_MAX_TRUE_NONTMS_HITS__;
   int index = 0;
+  int n_TrueNonTMSNHits_filled = 0;
   for (auto& hit : event.GetNonTMSHits()) {
     if (index >= __TMS_MAX_TRUE_NONTMS_HITS__) {
       std::cout<<"Warning: Found more nontms hits than __TMS_MAX_TRUE_NONTMS_HITS__. "
                  "If this happens often, increase limit from "<<__TMS_MAX_TRUE_NONTMS_HITS__<<std::endl;
       break;
     }
+    //if (hit.GetE() < 0.5) continue; // Don't fill below energy threshold
     TrueNonTMSHitPos[index][0] = hit.GetX();
     TrueNonTMSHitPos[index][1] = hit.GetY();
     TrueNonTMSHitPos[index][2] = hit.GetZ();
     TrueNonTMSHitPos[index][3] = hit.GetT();
     TrueNonTMSHitEnergy[index] = hit.GetE();
+    TrueNonTMSHitHadronicEnergy[index] = hit.GetHadronicEnergy();
     TrueNonTMSHitDx[index] = hit.GetdX();
     TrueNonTMSHitdEdx[index] = hit.GetdEdx();
     if (hit.GetNTrueParticles() > 1) {
@@ -1648,8 +1586,19 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     if (hit.GetNTrueParticles() == 1) {
       TrueNonTMSHitVertexID[index] = hit.GetVertexIds(0);
     }
+    n_TrueNonTMSNHits_filled += 1;
     index += 1;
   }
+  TrueNonTMSNHits = n_TrueNonTMSNHits_filled;
+}
+
+void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
+  // Clear old info
+  Clear();
+  TruthInfoIndex = truth_info_entry_number;
+  TruthInfoNSlices = truth_info_n_slices;
+  
+  FillTruthInfo(event);
 
   Truth_Spill->Fill();
 }
@@ -1934,6 +1883,7 @@ void TMS_TreeWriter::Clear() {
     LArFiducialEnd[i] = false;
     
     TrueNonTMSHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNonTMSHitHadronicEnergy[i] = DEFAULT_CLEARING_FLOAT;
     TrueNonTMSHitDx[i] = DEFAULT_CLEARING_FLOAT;
     TrueNonTMSHitdEdx[i] = DEFAULT_CLEARING_FLOAT;
     TrueNonTMSHitVertexID[i] = -99999;
