@@ -19,6 +19,8 @@
 #include "TMS_EventViewer.h"
 // Reconstructor
 #include "TMS_Reco.h"
+// Time slicer
+#include "TMS_TimeSlicer.h"
 // TTree writer
 #include "TMS_TreeWriter.h"
 // TTree writer for det sim
@@ -89,9 +91,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   
   bool NerscOverlay = false;
   TParameter<double>* spillPeriod_s = (TParameter<double>*)input->Get("spillPeriod_s");
-  if (spillPeriod_s != NULL) NerscOverlay = true;
   double SpillPeriod = 0;
-  if (NerscOverlay) {
+  if (spillPeriod_s != NULL) {
+    NerscOverlay = true;
     std::cout<<"Combining spills"<<std::endl;
     SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
     std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<"ns"<<std::endl;
@@ -152,7 +154,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       std::reverse(overlay_events.begin(), overlay_events.end());
       TMS_Event last_event = overlay_events.back();
       overlay_events.pop_back();
-      for (auto &event : overlay_events) last_event.AddEvent(event);
+      last_event.OverlayEvents(overlay_events);
       // Make sure to set the spill number correctly
       last_event.SetSpillNumber(current_spill_number);
       overlay_events.clear();
@@ -162,10 +164,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // ... and make this event the combined spill called "last_event"
       tms_event = last_event;
     }
-    
-    // Apply the det sim now, after overlaying events
-    // This doesn't work right now
-    tms_event.ApplyReconstructionEffects();
 
     // Dump information
     //tms_event.Print();
@@ -209,15 +207,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
         if (primary_vertex_id >= 0) {
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
-          
           if (map.find(primary_vertex_id) == map.end()) 
               std::cout<<"Warning: Didn't find primary_vertex_id "<<primary_vertex_id<<" inside map of size "<<map.size()<<std::endl;
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
-          
           gRoo->GetEntry(primary_vertex_id);
           tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-          tms_event_slice.SetLeptonInfoUsingVertexID(primary_vertex_id);
         }
       }
       
