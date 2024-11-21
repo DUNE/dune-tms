@@ -128,12 +128,12 @@
     
 [Fiducial]
   [Fiducial.TMS.Start]
-    X = -3300.0 # mm
-    Y = -2850.0 # mm
+    X = -3419.0 # mm  # TODO this is very preliminary
+    Y = -2976.23 # mm # TODO this is very preliminary
     Z = 11185.0 # mm
   [Fiducial.TMS.End]
-    X = 3300.0 # mm
-    Y = 160.0 # mm
+    X = 3419.0 # mm   # TODO this is very preliminary
+    Y = 291.77 # mm   # TODO this is very preliminary
     Z = 18535.0 # mm
   [Fiducial.LAr.Start]
     X = -3478.48 # mm
