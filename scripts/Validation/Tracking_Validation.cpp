@@ -543,6 +543,8 @@ int n_muon_ke_bins = sizeof(muon_ke_bins) / sizeof(double) - 1;
 
 std::tuple<bool, std::string, int, double*> GetComplexBinning(std::string axis_name) {
   if (axis_name == "ke_tms_enter") return std::make_tuple(true, "Muon KE Entering TMS (GeV);N Muons / GeV", n_muon_ke_bins, muon_ke_bins); 
+  if (axis_name == "ke_tms_enter_true") return std::make_tuple(true, "True Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
+  if (axis_name == "ke_tms_enter_reco") return std::make_tuple(true, "Reco Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
   return std::make_tuple(false, "", 0, (double*)NULL);
 }
 
@@ -768,6 +770,12 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
         GetHist("basic__raw__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
         
+        GetHist("basic__raw__StartPos_X", "StartPos X", "X")->Fill(reco.StartPos[it][0] * CM);
+        GetHist("basic__raw__StartPos_Y", "StartPos Y", "Y")->Fill(reco.StartPos[it][1] * CM);
+        GetHist("basic__raw__StartPos_Z", "StartPos Z", "Z")->Fill(reco.StartPos[it][2] * CM);
+        GetHist("basic__raw__EndPos_X", "EndPos X", "X")->Fill(reco.EndPos[it][0] * CM);
+        GetHist("basic__raw__EndPos_Y", "EndPos Y", "Y")->Fill(reco.EndPos[it][1] * CM);
+        GetHist("basic__raw__EndPos_Z", "EndPos Z", "Z")->Fill(reco.EndPos[it][2] * CM);
         
         GetHist("basic__raw__Charge", "Charge", "charge")->Fill(reco.Charge[it]);
         GetHist("basic__raw__Length", "Areal Density, AKA Length", "areal_density")->Fill(reco.Length[it]);
@@ -1426,6 +1434,8 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         //DrawSlice(TString::Format("final_%d", entry_number).Data(), "final", "test job", reco, lc, truth);
       }
       //if (entry_number > 700) exit(1); // TODO delete
+      
+      #include "EnergyResolution.cxx"
 
     } // End for loop over entries
     
