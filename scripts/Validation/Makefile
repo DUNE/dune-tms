@@ -24,6 +24,13 @@ $(EXEC): %: %.o
 
  %.o: %.cpp
 	$(CXX) $(ROOTCFLAGS) $(CXXFLAGS) -c $< -o $@
+	
+# Generate dependency files
+%.d: %.cpp
+	$(CXX) -MM -MP -MF $@ $<
+
+# Include dependency files
+-include $(SRCS:.cpp=.d)
 
 clean:
 	rm -f $(OBJS) $(EXEC)
