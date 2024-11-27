@@ -398,6 +398,7 @@ TVector3 calculatePositionAtZ(double z_new, TVector3 start, double xz_dir, doubl
 }
 
 int isTMSContained(TVector3 position, bool thin_only = false) {
+  // Returns 0 if contained. Otherwise returns code that says which cut was missed
   int out = 0;
     // Z positions of the first hits of the TMS
   const double TMS_Thin_Start = 11362;

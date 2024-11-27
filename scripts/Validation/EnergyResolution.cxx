@@ -5,6 +5,7 @@
 
   bool has_muon = false;
   bool has_good_muon = false;
+  bool has_contained_muon = false;
   double highest_true_muon_starting_ke = -9e-12;
   double highest_reco_starting_muon_ke = -9e-12;
 
@@ -25,11 +26,13 @@
       TVector3 end_pos(truth.RecoTrackPrimaryParticleTruePositionEnd[it][0],
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][1],
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][2]);
-      bool end_tms = isTMSContained(end_pos);
+      bool end_tms = isTMSContained(end_pos) == 0;
       if (!start_lar || !end_tms) { 
         passes_truth_cuts = false;
       }
       else has_good_muon = true;
+      
+      if (end_tms) has_contained_muon = true;
 
       // Now check reco cuts
       TVector3 birth_pos_reco(reco.StartPos[it][0], reco.StartPos[it][1], reco.StartPos[it][2]);
@@ -37,7 +40,7 @@
       TVector3 end_pos_reco(reco.EndPos[it][0],
                             reco.EndPos[it][1],
                             reco.EndPos[it][2]);
-      bool end_tms_reco = isTMSContained(end_pos_reco);
+      bool end_tms_reco = isTMSContained(end_pos_reco) == 0;
       if (!start_tms_reco || !end_tms_reco) { 
         passes_reco_cuts = false;
       }
@@ -70,6 +73,15 @@
   if (has_good_muon) GetHist("energy_resolution__resolution__muon_starting_ke_resolution_fid",
                               "Muon Resolution: All True Fiducial Muons", "ke_tms_enter_true",
                              "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
+                             
+                             
+  if (has_contained_muon) { 
+    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_contained",
+            "Muon Resolution: True Contained Muon", "ke_tms_enter_true",
+            "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
+    GetHist("energy_resolution__resolution__muon_starting_ke_fractional_resolution_contained",
+            "Muon Resolution: True Contained Muon", "energy_resolution")->Fill(fractional_resolution);
+  }
 
   if (passes_truth_cuts && passes_reco_cuts) {
     GetHist("energy_resolution__resolution__muon_starting_ke_resolution",
