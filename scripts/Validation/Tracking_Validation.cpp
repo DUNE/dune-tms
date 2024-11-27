@@ -29,6 +29,7 @@ std::string save_location = "";
 
 const double CM = 0.1; // cm per mm
 const double DEG = 360 / TAU;
+const double GEV = 1e-3; // GeV per MEV
 
 int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
@@ -45,6 +46,36 @@ int GetHitLocationCodeSingle(float x, bool isx) {
   else if (gtTMS) out = 1;
   else if (xlooksz) out = 3;
   else out = 2;
+  return out;
+}
+
+enum LArSubRegion {
+  LArFull,
+  LArFiducial,
+  LArUsingShellBuffer
+};
+
+bool IsInLAr(TVector3 position, LArSubRegion subregion) {
+  //LAr_detector_dims = {'x': (-350 , 350 ),'y': (-46.979-171.21, -46.979+171.21),'z': (667-251.24,667+251.24)} # Active
+  //Lar_fiducial_dimension = {'x': (-350+50 , 350-50 ),'y': (-46.979-171.21+50, -46.979+171.21-50),'z': (667-251.24+50,667+251.24-150)} # Fiducial
+  bool out = true;
+  double buffer_xy = 0;
+  double buffer_z  = 0;
+  if (subregion == LArFiducial) {
+    buffer_xy = 50;
+    buffer_z  = 150;
+  }
+  if (subregion == LArUsingShellBuffer) {
+    buffer_xy = 300;
+    buffer_z  = 30;
+  }
+  const double lar_y_start = -46.979-171.21;
+  const double lar_y_end   = -46.979+171.21;
+  const double lar_z_start = 667-251.24;
+  const double lar_z_end   = 667+251.24;
+  if (!(-350 + buffer_xy < position.X() && position.X() < 350 - buffer_xy)) out = false;
+  if (!(lar_y_start + buffer_xy < position.Y() && position.Y() < lar_y_end - buffer_xy)) out = false;
+  if (!(lar_z_start + buffer_z  < position.Z() && position.Z() < lar_z_end - buffer_z))  out = false;
   return out;
 }
 
@@ -551,7 +582,39 @@ TH1* MakeHist(std::string directory_and_name, std::string title, std::string xax
   }
   else if (yaxis != "") {
     // 2d hist case
-    throw std::runtime_error("2d hists are not implemented yet");
+    TH2D* out;
+    
+    std::string xaxis_title;
+    int xaxis_nbins;
+    double* xaxis_bins;
+    bool has_complex_binning_x;
+    std::tie(has_complex_binning_x, xaxis_title, xaxis_nbins, xaxis_bins) = GetComplexBinning(xaxis);
+    
+    std::string yaxis_title;
+    int yaxis_nbins;
+    double* yaxis_bins;
+    bool has_complex_binning_y;
+    std::tie(has_complex_binning_y, yaxis_title, yaxis_nbins, yaxis_bins) = GetComplexBinning(yaxis);
+    // Can't do one and not the other, but could manually create the binning if we wanted
+    if (has_complex_binning_y != has_complex_binning_x) throw std::runtime_error("2d hists have to use complex y and x bins simultaneously"); 
+    if (has_complex_binning_x) {
+      auto complete_title = title + ";" + xaxis_title + ";" + yaxis_title;
+      out = new TH2D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_bins, yaxis_nbins, yaxis_bins);
+    }
+    else {
+      double xaxis_start;
+      double xaxis_end;
+      std::tie(xaxis_title,  xaxis_nbins, xaxis_start, xaxis_end) = GetBinning(xaxis);
+      
+      double yaxis_start;
+      double yaxis_end;
+      std::tie(yaxis_title,  yaxis_nbins, yaxis_start, yaxis_end) = GetBinning(yaxis);
+      auto complete_title = title + ";" + xaxis_title + ";" + yaxis_title;
+      out = new TH2D(directory_and_name.c_str(), complete_title.c_str(), xaxis_nbins, xaxis_start, xaxis_end, yaxis_nbins, yaxis_start, yaxis_end);
+    }
+    // Add special naming here
+    AdjustAxis(out, xaxis, yaxis);
+    return out;
   }
   else {
     // 1d hist case
@@ -650,6 +713,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     int last_spill_seen = -1;
     
     auto time_start = std::chrono::high_resolution_clock::now();
+    std::map<int, double> manually_calculated_shell_hadronic_energy_per_vertex;
 
     Long64_t entry_number = 0;
     // Now loop over the ttree
@@ -814,10 +878,114 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
       }
       
+      REGISTER_AXIS(HitEnergy, std::make_tuple("Hit Energy (MeV)", 51, 0, 100));
+      REGISTER_AXIS(HitHadronicEnergy, std::make_tuple("Hit Hadronic Energy (MeV)", 51, 0, 100));
+      REGISTER_AXIS(HitEnergy_zoom, std::make_tuple("Hit Energy (MeV)", 20, 0, 1));
+      REGISTER_AXIS(Hitdedx, std::make_tuple("Hit dEdx (MeV / cm)", 51, 0, 100));
+      REGISTER_AXIS(TotalEnergy, std::make_tuple("Total Hit Energy (GeV)", 51, 0, 100));
+      REGISTER_AXIS(TotalHadEnergy, std::make_tuple("Total Hit Hadronic Energy (GeV)", 51, 0, 100));
+      REGISTER_AXIS(TotalRatio, std::make_tuple("Ratio E_{Had}/E", 51, 0, 1.0));
+      REGISTER_AXIS(TotalEnergyPerVertex, std::make_tuple("Total Hit Energy Per Vertex (GeV)", 51, 0, 20));
+      REGISTER_AXIS(TotalHadronicEnergyPerVertex, std::make_tuple("Total Hit Hadronic Energy Per Vertex (GeV)", 51, 0, 20));
+      REGISTER_AXIS(ShellHadronicEnergyPerVertex, std::make_tuple("Hit Hadronic Energy Per Vertex In Shell (GeV)", 51, 0, 20));
+      REGISTER_AXIS(ShellHadronicEnergyPerVertexZoom, std::make_tuple("Hit Hadronic Energy Per Vertex In Shell (MeV)", 20, 0, 200));
       if (on_new_spill) {
         GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500")->Fill(truth.nTrueParticles);
         GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles", "n0-500")->Fill(truth.nTruePrimaryParticles);
         GetHist("basic__truth__nTrueForgottenParticles", "nTrueForgottenParticles", "n0-120")->Fill(truth.nTrueForgottenParticles);
+        
+        std::map<int, bool> vertex_id_to_fiducial;
+        for (int ip = 0; ip < truth.nTrueParticles; ip++) {
+          int pdg = truth.PDG[ip];
+          if (std::abs(pdg) != 13) {
+            int vid = truth.VertexID[ip];
+            TVector3 position(truth.BirthPosition[ip][0] * CM, truth.BirthPosition[ip][1] * CM, truth.BirthPosition[ip][2] * CM);
+            bool result = IsInLAr(position, LArFiducial);
+            vertex_id_to_fiducial[vid] = result;
+          }
+        }
+        
+        float total_energy = 0;
+        float total_hadronic_energy = 0;
+        std::map<int, float> total_hadronic_energy_per_vertex;
+        std::map<int, float> total_energy_per_vertex;
+        std::map<int, float> total_hadronic_energy_per_vertex_in_shell;
+        
+        for (int ih = 0; ih < truth.TrueNonTMSNHits; ih++) {
+          // Only care about above 0.5 MeV
+          bool fiducial = false;
+          int vid = truth.TrueNonTMSHitVertexID[ih];
+          if (vertex_id_to_fiducial.find(vid) != vertex_id_to_fiducial.end()) fiducial = vertex_id_to_fiducial[vid];
+          if (truth.TrueNonTMSHitEnergy[ih] >= 0.5 && fiducial) {
+            GetHist("basic__truth__nontms_hits__hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+            GetHist("basic__truth__nontms_hits__hit_energy_zoom", "TrueNonTMSHitEnergy", "HitEnergy_zoom")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+            GetHist("basic__truth__nontms_hits__hit_hadronic_energy", "TrueNonTMSHitHadronicEnergy", 
+                    "HitHadronicEnergy")->Fill(truth.TrueNonTMSHitHadronicEnergy[ih]);
+            GetHist("basic__truth__nontms_hits__hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
+            GetHist("basic__truth__nontms_hits__hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+            GetHist("basic__truth__nontms_hits__hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+            GetHist("basic__truth__nontms_hits__hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+            
+            total_energy += truth.TrueNonTMSHitEnergy[ih];
+            total_hadronic_energy += truth.TrueNonTMSHitHadronicEnergy[ih];
+            total_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitEnergy[ih];
+            total_hadronic_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
+            // Get position in CM
+            TVector3 position(truth.TrueNonTMSHitPos[ih][0] * CM, truth.TrueNonTMSHitPos[ih][1] * CM, truth.TrueNonTMSHitPos[ih][2] * CM);
+            // Want to check if in shell, so check if inside lar but not inside the lar using the shell buffer size of 30 cm
+            bool hit_in_shell = IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer);
+            //std::cout<<"IsInLAr(position, LArFull): "<<IsInLAr(position, LArFull)<<", IsInLAr(position, LArUsingShellBuffer): "<<IsInLAr(position, LArUsingShellBuffer)<<", IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer): "<<(IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer))<<std::endl;
+            if (hit_in_shell) total_hadronic_energy_per_vertex_in_shell[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
+            
+            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) 
+              GetHist("basic__truth__nontms_hits__high_dedx_hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+            if (truth.TrueNonTMSHitEnergy[ih] >= 0.5)
+              GetHist("basic__truth__nontms_hits__high_e_hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
+            
+            double weight = truth.TrueNonTMSHitEnergy[ih];
+            GetHist("basic__truth__nontms_hits__energy_weighted_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM, weight);
+            GetHist("basic__truth__nontms_hits__energy_weighted_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM, weight);
+            GetHist("basic__truth__nontms_hits__energy_weighted_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM, weight);
+            
+            if (truth.TrueNonTMSHitEnergy[ih] >= 3) {
+              GetHist("basic__truth__nontms_hits__above_3MeV_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+              GetHist("basic__truth__nontms_hits__above_3MeV_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+              GetHist("basic__truth__nontms_hits__above_3MeV_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+            }
+            
+            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) {
+              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+            }
+          }
+        }
+        
+        GetHist("basic__truth__nontms_hits__total_energy", "Total LAr Hit Energy per Spill",
+                "TotalEnergy")->Fill(total_energy * GEV);
+        GetHist("basic__truth__nontms_hits__total_hadronic_energy", "Total LAr Hit Hadronic Energy per Spill",  
+                "TotalHadEnergy")->Fill(total_hadronic_energy * GEV);
+        GetHist("basic__truth__nontms_hits__total_ratio", "Ratio of Hadronic to Total LAr Hit Energy per Spill",
+                "TotalRatio")->Fill(total_hadronic_energy / total_energy);
+        for (auto it : total_energy_per_vertex) {
+          GetHist("basic__truth__nontms_hits__per_vertex_total_energy", "Total LAr Hit Energy per Vertex",
+                  "TotalEnergyPerVertex")->Fill(it.second * GEV);
+        }
+        for (auto it : total_hadronic_energy_per_vertex) {
+          GetHist("basic__truth__nontms_hits__per_vertex_total_hadronic_energy", "Total LAr Hit Hadronic Energy per Vertex",
+                  "TotalHadronicEnergyPerVertex")->Fill(it.second * GEV);
+        }
+        for (auto it : total_hadronic_energy_per_vertex_in_shell) {
+          GetHist("basic__truth__nontms_hits__per_vertex_shell_hadronic_energy", "Shell LAr Hit Hadronic Energy per Vertex",
+                  "ShellHadronicEnergyPerVertex")->Fill(it.second * GEV);
+          GetHist("basic__truth__nontms_hits__per_vertex_shell_hadronic_energy_zoom", "Shell LAr Hit Hadronic Energy per Vertex Zoomed",
+                  "ShellHadronicEnergyPerVertexZoom")->Fill(it.second);
+          manually_calculated_shell_hadronic_energy_per_vertex[it.first] = it.second;
+          GetHist("basic__truth__nontms_hits__per_vertex_shell_hadronic_energy_cut", "Shell LAr Hit Hadronic Energy per Vertex Cut Passes",
+                  "yesno")->Fill((it.second  < 30) ? 0 : 1);
+        }
+        
+        
         for (int ip = 0; ip < truth.nTrueParticles; ip++) {
           GetHist("basic__truth__PDG", "PDG", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
@@ -834,6 +1002,18 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
             GetHist("reco_eff__angle_tms_enter_denominator", "Reco Eff Muon Angle Entering TMS: Denominator", 
               "angle_tms_enter")->Fill(muon_starting_angle);
           }
+        }
+      }
+      
+      {
+        int vid = truth.VertexIdOfMostEnergyInEvent;
+        if (manually_calculated_shell_hadronic_energy_per_vertex.find(vid) != manually_calculated_shell_hadronic_energy_per_vertex.end()) {
+          double shell = truth.LArOuterShellEnergyFromVertex;
+          double shell_manual = manually_calculated_shell_hadronic_energy_per_vertex[vid];
+          GetHist("basic__truth__nontms_hits__comparison", 
+                  "Comparison of Shell Energies", "ShellHadronicEnergyPerVertex", "ShellHadronicEnergyPerVertex")->Fill(shell, shell_manual);
+          GetHist("basic__truth__nontms_hits__comparison_zoom", 
+                  "Comparison of Shell Energies", "ShellHadronicEnergyPerVertexZoom", "ShellHadronicEnergyPerVertexZoom")->Fill(shell, shell_manual);
         }
       }
       
@@ -1020,6 +1200,15 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       {
         TVector3 birth_pos(truth.LeptonX4[0], truth.LeptonX4[1], truth.LeptonX4[2]);
         passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+        
+        if (passes_ndlar_fiducial_cut)
+          GetHist("nd_physics_cut__lar_outer_shell__fiducial_passes_cut_e_from_vertex", 
+                "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut for Fiducial LAr Interactions",
+                "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
+        if (passes_ndlar_fiducial_cut)
+          GetHist("nd_physics_cut__lar_outer_shell__fiducial_energy_in_shell_from_vertex", 
+                "LAr Visible Energy from Primary Vertex in 30cm Shell for Fiducial LAr Interactions",
+                "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
 
         GetHist("nd_physics_cut__lar_fiducial__X_nostack_1_nocut", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
         GetHist("nd_physics_cut__lar_fiducial__Y_nostack_1_nocut", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
