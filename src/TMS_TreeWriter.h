@@ -48,6 +48,7 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
+    int KalmanErrorDetVol[__TMS_MAX_TRACKS__];
     float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];
@@ -56,7 +57,7 @@ class TMS_TreeWriter {
     int RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
+    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][4]; // (x,y,z,t) Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackHitEnergies[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
     float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
@@ -67,6 +68,7 @@ class TMS_TreeWriter {
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
 
   private:
