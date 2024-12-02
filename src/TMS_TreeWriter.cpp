@@ -231,6 +231,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanErrorDetVol",KalmanErrorDetVol,      "KalmanErrorDetVol[nTracks]/I");
   Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
@@ -1159,7 +1160,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
-//    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
+    KalmanErrorDetVol[itTrack]      =       RecoTrack->KalmanErrorDetVol;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;

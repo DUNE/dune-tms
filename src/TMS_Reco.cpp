@@ -562,6 +562,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       KalmanFilter = TMS_Kalman(trk.Hits);
       kalman_reco_mom = KalmanFilter.GetMomentum();
 
+      trk.KalmanErrorDetVol = KalmanFilter.ErrorDetVol;
+
       bool verbose_kalman = false;
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
