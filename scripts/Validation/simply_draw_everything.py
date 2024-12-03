@@ -5,6 +5,7 @@ import ROOT
 ROOT.gROOT.SetBatch(True)
 
 import dunestyle.root as dunestyle
+ROOT.gStyle.SetPaintTextFormat(".2f");
 
 import sys
 
@@ -58,7 +59,13 @@ def draw_histograms(input_file):
             # For 2D histograms, draw with "colz" option and save as png
             obj.GetYaxis().SetTitleOffset(1.4)
             obj.GetZaxis().SetTitleOffset(0.5)
-            obj.Draw("colz")
+            normalized = "normalized" in image_name
+            if normalized:
+                obj.SetMarkerColor(ROOT.kRed + 1)
+                obj.GetZaxis().SetRangeUser(0.001, obj.GetMaximum())
+                obj.Draw("colz text")
+            else:
+                obj.Draw("colz")
             dunestyle.Simulation()
             print(f"{obj.GetName()} integral: {obj.Integral()}")
             canvas.Print(os.path.join(output_subdir, image_name + ".png"))

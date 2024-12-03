@@ -644,6 +644,80 @@ TH1* MakeHist(std::string directory_and_name, std::string title, std::string xax
   }
 }
 
+void NormalizeColumns(TH2* hist) {
+  if (!hist) {
+    std::cerr << "Error: Null histogram passed to NormalizeColumns." << std::endl;
+    return;
+  }
+
+  int nBinsX = hist->GetNbinsX();
+  int nBinsY = hist->GetNbinsY();
+
+  // Iterate over each column (x-bin)
+  for (int binX = 1; binX <= nBinsX; ++binX) {
+    double columnSum = 0.0;
+
+    // Calculate the sum of the column
+    for (int binY = 1; binY <= nBinsY; ++binY) {
+      columnSum += hist->GetBinContent(binX, binY);
+    }
+
+    // Normalize the column if the sum is not zero
+    if (columnSum > 0) {
+      for (int binY = 1; binY <= nBinsY; ++binY) {
+        double value = hist->GetBinContent(binX, binY);
+        // Only set the value if nonzero
+        if (value > 0.001)
+          hist->SetBinContent(binX, binY, value / columnSum);
+      }
+    }
+  }
+}
+
+void NormalizeRows(TH2* hist) {
+  if (!hist) {
+    std::cerr << "Error: Null histogram passed to NormalizeColumns." << std::endl;
+    return;
+  }
+
+  int nBinsX = hist->GetNbinsX();
+  int nBinsY = hist->GetNbinsY();
+
+  // Iterate over each column (x-bin)
+  for (int binY = 1; binY <= nBinsY; ++binY) {
+    double columnSum = 0.0;
+
+    // Calculate the sum of the column
+    for (int binX = 1; binX <= nBinsX; ++binX) {
+      columnSum += hist->GetBinContent(binX, binY);
+    }
+
+    // Normalize the column if the sum is not zero
+    if (columnSum > 0) {
+      for (int binX = 1; binX <= nBinsX; ++binX) {
+        double value = hist->GetBinContent(binX, binY);
+        // Only set the value if nonzero
+        if (value > 0.001)
+          hist->SetBinContent(binX, binY, value / columnSum);
+      }
+    }
+  }
+}
+
+void NormalizeHists() {
+  // Could check here for certain hists and automatically make copies with column norm for example
+  for (auto& hist : mapForGetHist) {
+    if (hist.first.find("column_normalize") != std::string::npos) {
+      // This hist wants column normalization
+      NormalizeColumns((TH2*) hist.second);
+    }
+    if (hist.first.find("row_normalize") != std::string::npos) {
+      // This hist wants column normalization
+      NormalizeRows((TH2*) hist.second);
+    }
+  }
+}
+
 double total_lookup_time = 0;
 double total_no_make_time = 0;
 double total_make_time = 0;
@@ -1443,6 +1517,8 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start).count();
+    
+    NormalizeHists();
     
     // Now save the hists
     outputFile.Write();

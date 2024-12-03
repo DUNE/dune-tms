@@ -87,6 +87,12 @@
     GetHist("energy_resolution__resolution__muon_starting_ke_resolution",
             "Muon Resolution: ND Physics Sample", "ke_tms_enter_true",
             "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
+    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_column_normalized",
+            "Muon Resolution: Column Normalized", "ke_tms_enter_true",
+            "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
+    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_row_normalized",
+            "Muon Resolution: Row Normalized", "ke_tms_enter_true",
+            "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
     GetHist("energy_resolution__resolution__muon_starting_ke_fractional_resolution",
             "Muon Resolution: ND Physics Sample", "energy_resolution")->Fill(fractional_resolution);
   }
