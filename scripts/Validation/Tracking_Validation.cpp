@@ -672,6 +672,7 @@ TH1* GetHist(std::string directory_and_name, std::string title, std::string xaxi
       total_no_make_time += duration;
       n_no_makes += 1;
     }
+    #ifdef PRINT_STATS
     if (n_lookups % 1000000 == 0) {
       double avg_lookup_time = total_lookup_time / n_lookups;
       double avg_make_time = total_make_time / n_makes;
@@ -681,6 +682,7 @@ TH1* GetHist(std::string directory_and_name, std::string title, std::string xaxi
       std::cout<<"Avg make time: "<<avg_make_time<<" ("<<total_make_time<<"/"<<n_makes<<")"<<std::endl;
       std::cout<<"Avg no make time: "<<avg_no_make_time<<" ("<<total_no_make_time<<"/"<<n_no_makes<<")"<<std::endl;
     }
+    #endif // end ifdef PRINT_STATS
     return out;
 }
 
@@ -723,8 +725,6 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
     for ( ; entry_number < truth.GetEntriesFast() && entry_number < reco.GetEntriesFast()\
       && (numEvents < 0 || entry_number < numEvents); entry_number++) {
       if (entry_number % 10000 == 0) std::cout<<"On entry: "<<entry_number<<std::endl;
-      
-      if (entry_number > 10000) break;
       
       // Get the current entry
       // Currently reco and truth match
