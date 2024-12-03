@@ -59,13 +59,16 @@ def draw_histograms(input_file):
             obj.GetYaxis().SetTitleOffset(1.4)
             obj.GetZaxis().SetTitleOffset(0.5)
             obj.Draw("colz")
+            dunestyle.Simulation()
             print(f"{obj.GetName()} integral: {obj.Integral()}")
             canvas.Print(os.path.join(output_subdir, image_name + ".png"))
         elif isinstance(obj, ROOT.TH1):
             # For 1D histograms, draw and save as png
             top = obj.GetMaximum()*1.2
             obj.GetYaxis().SetRangeUser(0, top)
+            obj.SetLineColor(ROOT.kBlack)
             obj.Draw()
+            dunestyle.Simulation()
             #print(f"{obj.GetName()} integral: {obj.Integral()}")
             canvas.Print(os.path.join(output_subdir, image_name + ".png"))
         if reco_eff:
@@ -90,7 +93,7 @@ def draw_histograms(input_file):
         first_hist_name = None
         ymax = 0
         hist_stack = ROOT.THStack()
-        leg = ROOT.TLegend(0.2,0.75,0.8,0.90)
+        leg = ROOT.TLegend(0.2,0.67,0.8,0.82)
         leg.SetFillStyle(0)
         leg.SetBorderSize(0)
         leg.SetNColumns(2)
@@ -104,8 +107,8 @@ def draw_histograms(input_file):
         if "area_norm" in name:
             area_norm = True
         
-        headroom = 1.3
-        if log: headroom = 3
+        headroom = 1.4 # 1.3
+        if log: headroom =  5 # 3
         
         l = list(hist_and_name.items())
         l.sort()
@@ -144,6 +147,7 @@ def draw_histograms(input_file):
         # Now finally draw and save
         hist_stack.Draw("hist nostack" if "nostack" in first_hist.GetName() else "hist stack")
         leg.Draw()
+        dunestyle.Simulation()
         subdir, image_name = get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
         outfilename = os.path.join(output_subdir, image_name + ".png")
