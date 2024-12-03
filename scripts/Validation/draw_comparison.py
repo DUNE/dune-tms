@@ -5,6 +5,8 @@ ROOT.gROOT.SetBatch(True)
 
 import sys
 
+import dunestyle.root as dunestyle
+
 import simply_draw_everything
 
 def draw_histograms(input_file1, input_file2):

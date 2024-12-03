@@ -4,6 +4,8 @@ import collections
 import ROOT
 ROOT.gROOT.SetBatch(True)
 
+import dunestyle.root as dunestyle
+
 import sys
 
 def get_subdir_and_name(hist_name):
