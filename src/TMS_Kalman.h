@@ -102,6 +102,8 @@ class TMS_KalmanNode {
   double TrueY;
 
   TMS_Bar::BarType LayerOrientation;
+  double LayerBarWidth;
+  double LayerBarLength;
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState CurrentState;
