@@ -994,52 +994,54 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         std::map<int, float> total_energy_per_vertex;
         std::map<int, float> total_hadronic_energy_per_vertex_in_shell;
         
-        for (int ih = 0; ih < truth.TrueNonTMSNHits; ih++) {
-          // Only care about above 0.5 MeV
-          bool fiducial = false;
-          int vid = truth.TrueNonTMSHitVertexID[ih];
-          if (vertex_id_to_fiducial.find(vid) != vertex_id_to_fiducial.end()) fiducial = vertex_id_to_fiducial[vid];
-          if (truth.TrueNonTMSHitEnergy[ih] >= 0.5 && fiducial) {
-            GetHist("basic__truth__nontms_hits__hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_energy_zoom", "TrueNonTMSHitEnergy", "HitEnergy_zoom")->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_hadronic_energy", "TrueNonTMSHitHadronicEnergy", 
-                    "HitHadronicEnergy")->Fill(truth.TrueNonTMSHitHadronicEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
-            GetHist("basic__truth__nontms_hits__hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-            GetHist("basic__truth__nontms_hits__hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-            GetHist("basic__truth__nontms_hits__hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
-            
-            total_energy += truth.TrueNonTMSHitEnergy[ih];
-            total_hadronic_energy += truth.TrueNonTMSHitHadronicEnergy[ih];
-            total_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitEnergy[ih];
-            total_hadronic_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
-            // Get position in CM
-            TVector3 position(truth.TrueNonTMSHitPos[ih][0] * CM, truth.TrueNonTMSHitPos[ih][1] * CM, truth.TrueNonTMSHitPos[ih][2] * CM);
-            // Want to check if in shell, so check if inside lar but not inside the lar using the shell buffer size of 30 cm
-            bool hit_in_shell = IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer);
-            //std::cout<<"IsInLAr(position, LArFull): "<<IsInLAr(position, LArFull)<<", IsInLAr(position, LArUsingShellBuffer): "<<IsInLAr(position, LArUsingShellBuffer)<<", IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer): "<<(IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer))<<std::endl;
-            if (hit_in_shell) total_hadronic_energy_per_vertex_in_shell[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
-            
-            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) 
-              GetHist("basic__truth__nontms_hits__high_dedx_hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            if (truth.TrueNonTMSHitEnergy[ih] >= 0.5)
-              GetHist("basic__truth__nontms_hits__high_e_hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
-            
-            double weight = truth.TrueNonTMSHitEnergy[ih];
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM, weight);
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM, weight);
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM, weight);
-            
-            if (truth.TrueNonTMSHitEnergy[ih] >= 3) {
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
-            }
-            
-            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) {
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+        if (truth.HasBranch("TrueNonTMSNHits")) {
+          for (int ih = 0; ih < truth.TrueNonTMSNHits; ih++) {
+            // Only care about above 0.5 MeV
+            bool fiducial = false;
+            int vid = truth.TrueNonTMSHitVertexID[ih];
+            if (vertex_id_to_fiducial.find(vid) != vertex_id_to_fiducial.end()) fiducial = vertex_id_to_fiducial[vid];
+            if (truth.TrueNonTMSHitEnergy[ih] >= 0.5 && fiducial) {
+              GetHist("basic__truth__nontms_hits__hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+              GetHist("basic__truth__nontms_hits__hit_energy_zoom", "TrueNonTMSHitEnergy", "HitEnergy_zoom")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+              GetHist("basic__truth__nontms_hits__hit_hadronic_energy", "TrueNonTMSHitHadronicEnergy", 
+                      "HitHadronicEnergy")->Fill(truth.TrueNonTMSHitHadronicEnergy[ih]);
+              GetHist("basic__truth__nontms_hits__hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
+              GetHist("basic__truth__nontms_hits__hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+              GetHist("basic__truth__nontms_hits__hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+              GetHist("basic__truth__nontms_hits__hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+              
+              total_energy += truth.TrueNonTMSHitEnergy[ih];
+              total_hadronic_energy += truth.TrueNonTMSHitHadronicEnergy[ih];
+              total_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitEnergy[ih];
+              total_hadronic_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
+              // Get position in CM
+              TVector3 position(truth.TrueNonTMSHitPos[ih][0] * CM, truth.TrueNonTMSHitPos[ih][1] * CM, truth.TrueNonTMSHitPos[ih][2] * CM);
+              // Want to check if in shell, so check if inside lar but not inside the lar using the shell buffer size of 30 cm
+              bool hit_in_shell = IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer);
+              //std::cout<<"IsInLAr(position, LArFull): "<<IsInLAr(position, LArFull)<<", IsInLAr(position, LArUsingShellBuffer): "<<IsInLAr(position, LArUsingShellBuffer)<<", IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer): "<<(IsInLAr(position, LArFull) && !IsInLAr(position, LArUsingShellBuffer))<<std::endl;
+              if (hit_in_shell) total_hadronic_energy_per_vertex_in_shell[truth.TrueNonTMSHitVertexID[ih]] += truth.TrueNonTMSHitHadronicEnergy[ih];
+              
+              if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) 
+                GetHist("basic__truth__nontms_hits__high_dedx_hit_energy", "TrueNonTMSHitEnergy", "HitEnergy")->Fill(truth.TrueNonTMSHitEnergy[ih]);
+              if (truth.TrueNonTMSHitEnergy[ih] >= 0.5)
+                GetHist("basic__truth__nontms_hits__high_e_hit_dedx", "TrueNonTMSHitdEdx", "Hitdedx")->Fill(truth.TrueNonTMSHitdEdx[ih] / CM); // in MeV / mm natively
+              
+              double weight = truth.TrueNonTMSHitEnergy[ih];
+              GetHist("basic__truth__nontms_hits__energy_weighted_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM, weight);
+              GetHist("basic__truth__nontms_hits__energy_weighted_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM, weight);
+              GetHist("basic__truth__nontms_hits__energy_weighted_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM, weight);
+              
+              if (truth.TrueNonTMSHitEnergy[ih] >= 3) {
+                GetHist("basic__truth__nontms_hits__above_3MeV_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+                GetHist("basic__truth__nontms_hits__above_3MeV_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+                GetHist("basic__truth__nontms_hits__above_3MeV_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+              }
+              
+              if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) {
+                GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_x", "TrueNonTMSHitPosX", "X")->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
+                GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_y", "TrueNonTMSHitPosY", "Y_full")->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
+                GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_z", "TrueNonTMSHitPosZ", "Z_full")->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
+              }
             }
           }
         }
@@ -1117,8 +1119,8 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       }
       
       // Truth matching information
-      REGISTER_AXIS(completeness, std::make_tuple("Track Completeness (primary on track / primary)", 20, 0, 2));
-      REGISTER_AXIS(cleanliness, std::make_tuple("Track Cleanliness (primary on track / total on track)", 20, 0, 2));
+      REGISTER_AXIS(completeness, std::make_tuple("Track Completeness (primary on track / primary)", 20, 0, 1.01));
+      REGISTER_AXIS(cleanliness, std::make_tuple("Track Cleanliness (primary on track / total on track)", 20, 0, 1.01));
       REGISTER_AXIS(nhits_in_track, std::make_tuple("N Hits in Track", 200, 0, 200));
       REGISTER_AXIS(energy_in_track, std::make_tuple("Energy in Track (MeV)", 100, 0, 1000));
       REGISTER_AXIS(n_hits_per_plane, std::make_tuple("N Hits per Plane", 5, 0.5, 5.5));
@@ -1243,127 +1245,130 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       GetHist("basic__truth__LeptonX4_X", "Lepton X4 X", "X")->Fill(truth.LeptonX4[0]*CM);
       GetHist("basic__truth__LeptonX4_Y", "Lepton X4 Y", "Y_full")->Fill(truth.LeptonX4[1]*CM);
       GetHist("basic__truth__LeptonX4_Z", "Lepton X4 Z", "Z_full")->Fill(truth.LeptonX4[2]*CM);
-
-      REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 51, 0, 10000));
-      if (on_new_spill) GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Hadronic Energy in 30cm Shell",
-              "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
-      REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 20, 0, 200));
-      GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Hadronic Energy from Primary Vertex in 30cm Shell",
-              "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
-
-      REGISTER_AXIS(LArTotalEnergy, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
-      if (on_new_spill) GetHist("basic__truth__LArTotalEnergy", "LAr Visible Energy",
-              "LArTotalEnergy")->Fill(truth.LArTotalEnergy);
-      REGISTER_AXIS(LArTotalEnergyFromVertex, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__LArTotalEnergyFromVertex", "LAr Visible Energy from Primary Vertex",
-              "LArTotalEnergyFromVertex")->Fill(truth.LArTotalEnergyFromVertex);
-
-      REGISTER_AXIS(TotalNonTMSEnergy, std::make_tuple("Total E Deposited Outside TMS (MeV)", 51, 0, 10000));
-      if (on_new_spill) GetHist("basic__truth__TotalNonTMSEnergy", "Total E Deposited Outside TMS",
-              "TotalNonTMSEnergy")->Fill(truth.TotalNonTMSEnergy);
-      REGISTER_AXIS(TotalNonTMSEnergyFromVertex, std::make_tuple("Total E Deposited from Outside TMS (MeV)", 51, 0, 10000));
-      GetHist("basic__truth__TotalNonTMSEnergyFromVertex", "Total E Deposited from Primary Vertex Outside TMS",
-              "TotalNonTMSEnergyFromVertex")->Fill(truth.TotalNonTMSEnergyFromVertex);
-
-      if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell", "LAr Visible Energy in 30cm Shell",
-              "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
-      GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
-              "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
-      if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_total", "Passes Total Hadronic E in ND-LAr Outer Shell < 30 MeV Cut",
-              "yesno")->Fill((truth.LArOuterShellEnergy < 30) ? 0 : 1);
-      GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
-              "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
-
-      bool passes_ndlar_outer_shell_cut = truth.LArTotalEnergyFromVertex < 30;
-      bool passes_ndlar_fiducial_cut = false;
       
-      REGISTER_AXIS(lar_x, std::make_tuple("X (cm)", 51, -400, 400));
-      REGISTER_AXIS(lar_y, std::make_tuple("Y (cm)", 51, -250, 150));
-      REGISTER_AXIS(lar_z, std::make_tuple("Z (cm)", 51, 300, 1000));
-      {
-        TVector3 birth_pos(truth.LeptonX4[0], truth.LeptonX4[1], truth.LeptonX4[2]);
-        passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
-        
-        if (passes_ndlar_fiducial_cut)
-          GetHist("nd_physics_cut__lar_outer_shell__fiducial_passes_cut_e_from_vertex", 
-                "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut for Fiducial LAr Interactions",
-                "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
-        if (passes_ndlar_fiducial_cut)
-          GetHist("nd_physics_cut__lar_outer_shell__fiducial_energy_in_shell_from_vertex", 
-                "LAr Visible Energy from Primary Vertex in 30cm Shell for Fiducial LAr Interactions",
+      if (truth.HasBranch("LArOuterShellEnergy")) {
+
+        REGISTER_AXIS(LArOuterShellEnergy, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 51, 0, 10000));
+        if (on_new_spill) GetHist("basic__truth__LArOuterShellEnergy", "LAr Visible Hadronic Energy in 30cm Shell",
+                "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
+        REGISTER_AXIS(LArOuterShellEnergyFromVertex, std::make_tuple("LAr Visible Hadronic Energy in 30cm Shell (MeV)", 20, 0, 200));
+        GetHist("basic__truth__LArOuterShellEnergyFromVertex", "LAr Visible Hadronic Energy from Primary Vertex in 30cm Shell",
                 "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
 
-        GetHist("nd_physics_cut__lar_fiducial__X_nostack_1_nocut", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-        GetHist("nd_physics_cut__lar_fiducial__Y_nostack_1_nocut", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-        GetHist("nd_physics_cut__lar_fiducial__Z_nostack_1_nocut", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
-        if (passes_ndlar_fiducial_cut) {
-          GetHist("nd_physics_cut__lar_fiducial__X_nostack_2_withcut", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-          GetHist("nd_physics_cut__lar_fiducial__Y_nostack_2_withcut", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-          GetHist("nd_physics_cut__lar_fiducial__Z_nostack_2_withcut", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
-        }
+        REGISTER_AXIS(LArTotalEnergy, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
+        if (on_new_spill) GetHist("basic__truth__LArTotalEnergy", "LAr Visible Energy",
+                "LArTotalEnergy")->Fill(truth.LArTotalEnergy);
+        REGISTER_AXIS(LArTotalEnergyFromVertex, std::make_tuple("LAr Visible Energy (MeV)", 51, 0, 10000));
+        GetHist("basic__truth__LArTotalEnergyFromVertex", "LAr Visible Energy from Primary Vertex",
+                "LArTotalEnergyFromVertex")->Fill(truth.LArTotalEnergyFromVertex);
 
-        GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-        GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-        GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
-        if (passes_ndlar_outer_shell_cut) {
-          GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
-        }
-        else {
-          GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
-        }
+        REGISTER_AXIS(TotalNonTMSEnergy, std::make_tuple("Total E Deposited Outside TMS (MeV)", 51, 0, 10000));
+        if (on_new_spill) GetHist("basic__truth__TotalNonTMSEnergy", "Total E Deposited Outside TMS",
+                "TotalNonTMSEnergy")->Fill(truth.TotalNonTMSEnergy);
+        REGISTER_AXIS(TotalNonTMSEnergyFromVertex, std::make_tuple("Total E Deposited from Outside TMS (MeV)", 51, 0, 10000));
+        GetHist("basic__truth__TotalNonTMSEnergyFromVertex", "Total E Deposited from Primary Vertex Outside TMS",
+                "TotalNonTMSEnergyFromVertex")->Fill(truth.TotalNonTMSEnergyFromVertex);
+
+        if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell", "LAr Visible Energy in 30cm Shell",
+                "LArOuterShellEnergy")->Fill(truth.LArOuterShellEnergy);
+        GetHist("nd_physics_cut__lar_outer_shell__energy_in_shell_from_vertex", "LAr Visible Energy from Primary Vertex in 30cm Shell",
+                "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
+        if (on_new_spill) GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_total", "Passes Total Hadronic E in ND-LAr Outer Shell < 30 MeV Cut",
+                "yesno")->Fill((truth.LArOuterShellEnergy < 30) ? 0 : 1);
+        GetHist("nd_physics_cut__lar_outer_shell__passes_cut_e_from_vertex", "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut",
+                "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
+
+        bool passes_ndlar_outer_shell_cut = truth.LArTotalEnergyFromVertex < 30;
+        bool passes_ndlar_fiducial_cut = false;
         
-        if (passes_ndlar_fiducial_cut) {
-          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-          GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+        REGISTER_AXIS(lar_x, std::make_tuple("X (cm)", 51, -400, 400));
+        REGISTER_AXIS(lar_y, std::make_tuple("Y (cm)", 51, -250, 150));
+        REGISTER_AXIS(lar_z, std::make_tuple("Z (cm)", 51, 300, 1000));
+        {
+          TVector3 birth_pos(truth.LeptonX4[0], truth.LeptonX4[1], truth.LeptonX4[2]);
+          passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+          
+          if (passes_ndlar_fiducial_cut)
+            GetHist("nd_physics_cut__lar_outer_shell__fiducial_passes_cut_e_from_vertex", 
+                  "Passes Hadronic E from Vertex in ND-LAr Outer Shell < 30 MeV Cut for Fiducial LAr Interactions",
+                  "yesno")->Fill((truth.LArOuterShellEnergyFromVertex < 30) ? 0 : 1);
+          if (passes_ndlar_fiducial_cut)
+            GetHist("nd_physics_cut__lar_outer_shell__fiducial_energy_in_shell_from_vertex", 
+                  "LAr Visible Energy from Primary Vertex in 30cm Shell for Fiducial LAr Interactions",
+                  "LArOuterShellEnergyFromVertex")->Fill(truth.LArOuterShellEnergyFromVertex);
+
+          GetHist("nd_physics_cut__lar_fiducial__X_nostack_1_nocut", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_fiducial__Y_nostack_1_nocut", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_fiducial__Z_nostack_1_nocut", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          if (passes_ndlar_fiducial_cut) {
+            GetHist("nd_physics_cut__lar_fiducial__X_nostack_2_withcut", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_fiducial__Y_nostack_2_withcut", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_fiducial__Z_nostack_2_withcut", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          }
+
+          GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+          GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
           if (passes_ndlar_outer_shell_cut) {
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
           }
           else {
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
-            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+          }
+          
+          if (passes_ndlar_fiducial_cut) {
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_1_all", "X: All", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_1_all", "Y: All", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+            GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_1_all", "Z: All", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+            if (passes_ndlar_outer_shell_cut) {
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_2_passes", "X: Passes", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_2_passes", "Y: Passes", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_2_passes", "Z: Passes", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+            }
+            else {
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_X_nostack_3_fails", "X: Fails", "lar_x")->Fill(truth.LeptonX4[0]*CM);
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Y_nostack_3_fails", "Y: Fails", "lar_y")->Fill(truth.LeptonX4[1]*CM);
+              GetHist("nd_physics_cut__lar_outer_shell__fid_shell_Z_nostack_3_fails", "Z: Fails", "lar_z")->Fill(truth.LeptonX4[2]*CM);
+            }
           }
         }
-      }
-      
-      
-      // First find the max true reco'd muon starting ke
-      int index = -99999;
-      double max_muon_starting_ke = -999999;
-       for (int it = 0; it < reco.nTracks; it++) {
-        if (std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13) {
-          double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
-          if (muon_starting_ke > max_muon_starting_ke) {
-            max_muon_starting_ke = muon_starting_ke;
-            index = truth.RecoTrackPrimaryParticleIndex[it];
+        
+        // First find the max true reco'd muon starting ke
+        int index = -99999;
+        double max_muon_starting_ke = -999999;
+         for (int it = 0; it < reco.nTracks; it++) {
+          if (std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13) {
+            double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
+            if (muon_starting_ke > max_muon_starting_ke) {
+              max_muon_starting_ke = muon_starting_ke;
+              index = truth.RecoTrackPrimaryParticleIndex[it];
+            }
           }
         }
-      }
-      if (index >= 0) {
-        TVector3 birth_pos(truth.BirthPosition[index][0], truth.BirthPosition[index][1], truth.BirthPosition[index][2]);
-        passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
-      }
-      // Now fill the plots if we found one
-      if (max_muon_starting_ke >= 0) {
-        GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_1_no_cut_width",
-                "Muon KE: No Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
-        if (passes_ndlar_fiducial_cut)
-          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_2_fiducial_cut_width", 
-                  "Muon KE: ND LAr Fiducial Volume Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
-        if (passes_ndlar_outer_shell_cut)
-          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_3_shell_cut_width", 
-                  "Muon KE: Outer Shell < 30 MeV Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
-        if (passes_ndlar_outer_shell_cut && passes_ndlar_fiducial_cut)
-          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_4_shell_fiducial_cuts_width", 
-                  "Muon KE: Shell and Fiducial Cuts", "ke_tms_enter")->Fill(max_muon_starting_ke);
-      }
+        if (index >= 0) {
+          TVector3 birth_pos(truth.BirthPosition[index][0], truth.BirthPosition[index][1], truth.BirthPosition[index][2]);
+          passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+        }
+        // Now fill the plots if we found one
+        if (max_muon_starting_ke >= 0) {
+          GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_1_no_cut_width",
+                  "Muon KE: No Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+          if (passes_ndlar_fiducial_cut)
+            GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_2_fiducial_cut_width", 
+                    "Muon KE: ND LAr Fiducial Volume Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+          if (passes_ndlar_outer_shell_cut)
+            GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_3_shell_cut_width", 
+                    "Muon KE: Outer Shell < 30 MeV Cut", "ke_tms_enter")->Fill(max_muon_starting_ke);
+          if (passes_ndlar_outer_shell_cut && passes_ndlar_fiducial_cut)
+            GetHist("nd_physics_cut__lar_outer_shell__muon_ke_nostack_4_shell_fiducial_cuts_width", 
+                    "Muon KE: Shell and Fiducial Cuts", "ke_tms_enter")->Fill(max_muon_starting_ke);
+        }
+      
+      } // end if (truth.HasBranch("LArOuterShellEnergy")) {
 
       REGISTER_AXIS(energy_resolution, std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
       for (int it = 0; it < reco.nTracks; it++) {

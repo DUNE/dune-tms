@@ -292,6 +292,7 @@ public :
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual Long64_t GetEntriesFast() { return fChain->GetEntriesFast(); };
+   virtual bool HasBranch(const char* branch) { return fChain->GetBranch(branch) != NULL; };
 };
 
 #endif
