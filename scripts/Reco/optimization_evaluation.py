@@ -32,7 +32,7 @@ mp.rcParams['xtick.color'] = '#424242'
 mp.rcParams['ytick.color'] = '#424242'
 
 ### Actual function that loops through the spills
-def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge, plot_Angle):
+def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge, plot_Angle, Contained):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     
     # Make sure we read in the correct file and have the output directory
@@ -67,6 +67,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         Primary_True_End = np.ones((n_events, 5, 3), dtype = float) * -9999.
     if plot_Charge:
         Reco_Charge = np.ones((n_events, 5), dtype = float) * -9999.
+        True_Charge_stop = np.ones((n_events, 5), dtype = float) * -9999.
     if plot_Charge or plot_Angle:
         True_Charge = np.ones((n_events, 5), dtype = float) * -9999.
         True_KE = np.ones((n_events, 5), dtype = float) * -9999.
@@ -80,6 +81,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     correct_reco_hits = 0
     correct_true_hits = 0
     count_muons = 0
+    counter_leaving = 0
     
     # now fill the arrays
     for current_spill_number in range(max_n_spills):
@@ -121,7 +123,8 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
             LArFiducialTouch = true_event.RecoTrackPrimaryParticleLArFiducialStart
             Particle_PDG = true_event.LeptonPDG
             Muon_Start = np.frombuffer(true_event.Muon_Vertex, dtype = np.float32)
-            Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)            
+            Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
+            True_Momentum_Leaving = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueMomentumLeavingTMS, dtype = np.float32)
             # actual hits
             Reco_Hits = np.frombuffer(event.TrackHitPos, dtype = np.float32)
             True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype = np.float32)
@@ -140,7 +143,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                 if j > 4: break
 
                 # check if (anti-)muon as true primary particle and if origin in LAr
-                if np.abs(True_PDG[j]) == 13 and LArFiducialTouch[j]:
+                if True: #np.abs(True_PDG[j]) == 13 and LArFiducialTouch[j]:
                     # check if (anti-)muon travesers at least 4 planes in TMS
                     if (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) >= 440.:
                         # if so, then this is a true muon: 0 -> 1
@@ -164,34 +167,57 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                 
                 if True_Position_TMS_Start[j*4 + 0] > -8000. and not StartPos.size == 0:
                     # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
-                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 65.:
-                        # normalization of true direction
-                        if plot_Angle or plot_Charge:
-                            magnitude = MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 + 1]**2 + MomentumTrackStart[j*4 + 2]**2
-                            True_TrackDirection[i, j, 0] = dir_to_angle(MomentumTrackStart[j*4 + 0] / magnitude, MomentumTrackStart[j*4 + 2] / magnitude)
-                            True_TrackDirection[i, j, 1] = dir_to_angle(MomentumTrackStart[j*4 + 1] / magnitude, MomentumTrackStart[j*4 + 2] / magnitude)
-                            Reco_TrackDirection[i, j, 0] = dir_to_angle(Reco_Track_StartDirection[j*3 + 0], Reco_Track_StartDirection[j*3 + 2])
-                            Reco_TrackDirection[i, j, 1] = dir_to_angle(Reco_Track_StartDirection[j*3 + 1], Reco_Track_StartDirection[j*3 + 2])
-                            True_KE[i, j] = np.sqrt((MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 +1]**2 + MomentumTrackStart[j*4 + 2]**2 + 105.7**2) - 105.7)
-                            True_Charge[i, j] = True_PDG[j]                            
-                        if plot_Charge:
-                            Reco_Charge[i, j] = Reco_Track_Charge[j]
-                        if plot_Start:
-                            Reco_Start[i, j, 0] = StartPos[j*3 + 0]
-                            Reco_Start[i, j, 1] = StartPos[j*3 + 1]
-                            Reco_Start[i, j, 2] = StartPos[j*3 + 2]
-                            Primary_True_Start[i, j, 0] = True_Position_TMS_Start[j*4 + 0]
-                            Primary_True_Start[i, j, 1] = True_Position_TMS_Start[j*4 + 1]
-                            Primary_True_Start[i, j, 2] = True_Position_TMS_Start[j*4 + 2]
-                if plot_End:
+                    if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 4 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 4 * 65.:
+                            # normalization of true direction
+                            if plot_Angle or plot_Charge:
+                                magnitude = MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 + 1]**2 + MomentumTrackStart[j*4 + 2]**2
+                                True_TrackDirection[i, j, 0] = dir_to_angle(MomentumTrackStart[j*4 + 0] / magnitude, MomentumTrackStart[j*4 + 2] / magnitude)
+                                True_TrackDirection[i, j, 1] = dir_to_angle(MomentumTrackStart[j*4 + 1] / magnitude, MomentumTrackStart[j*4 + 2] / magnitude)
+                                Reco_TrackDirection[i, j, 0] = dir_to_angle(Reco_Track_StartDirection[j*3 + 0], Reco_Track_StartDirection[j*3 + 2])
+                                Reco_TrackDirection[i, j, 1] = dir_to_angle(Reco_Track_StartDirection[j*3 + 1], Reco_Track_StartDirection[j*3 + 2])
+                                True_KE[i, j] = np.sqrt((MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 +1]**2 + MomentumTrackStart[j*4 + 2]**2 + 105.7**2) - 105.7)
+                                True_Charge[i, j] = 13  #True_PDG[j]                            
+                            if plot_Charge:
+                                # Make sure that true muon stopped in TMS and is not leaving
+                                if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
+                                    Reco_Charge[i, j] = Reco_Track_Charge[j]
+                                    True_Charge_stop[i, j] = 13 #True_PDG[j]
+                            if plot_Start:
+                                if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) >= 1:
+                                    Reco_Start[i, j, 0] = StartPos[j*3 + 0]
+                                    Reco_Start[i, j, 1] = StartPos[j*3 + 1]
+                                    Reco_Start[i, j, 2] = StartPos[j*3 + 2]
+                                    Primary_True_Start[i, j, 0] = True_Position_TMS_Start[j*4 + 0]
+                                    Primary_True_Start[i, j, 1] = True_Position_TMS_Start[j*4 + 1]
+                                    Primary_True_Start[i, j, 2] = True_Position_TMS_Start[j*4 + 2]
+                if plot_End and Contained:
                     if True_Position_TMS_End[j*4 + 0] > -8000. and not EndPos.size == 0:
-                        if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 65.:            
+                        # Make sure that at least 4 potential hits in TMS
+                        if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 4 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 4 * 65.:
+                            # Make sure that true muon stopped in TMS and is not leaving
+                            if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
+                                Reco_End[i, j, 0] = EndPos[j*3 + 0]
+                                Reco_End[i, j, 1] = EndPos[j*3 + 1]
+                                Reco_End[i, j, 2] = EndPos[j*3 + 2]
+                                Primary_True_End[i, j, 0] = True_Position_TMS_End[j*4 + 0]
+                                Primary_True_End[i, j, 1] = True_Position_TMS_End[j*4 + 1]
+                                Primary_True_End[i, j, 2] = True_Position_TMS_End[j*4 + 2]
+                            else:
+                                counter_leaving += 1
+                if plot_End and not Contained:
+                    if True_Position_TMS_End[j*4 + 0] > -8000. and not EndPos.size == 0:
+                        # Make sure that at least 4 potential hits in TMS
+                        if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 4 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 4 * 65.:
+                            # Make sure that true muon stopped in TMS and is not leaving
+                            if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) > 1:
+                                counter_leaving += 1
                             Reco_End[i, j, 0] = EndPos[j*3 + 0]
                             Reco_End[i, j, 1] = EndPos[j*3 + 1]
                             Reco_End[i, j, 2] = EndPos[j*3 + 2]
                             Primary_True_End[i, j, 0] = True_Position_TMS_End[j*4 + 0]
                             Primary_True_End[i, j, 1] = True_Position_TMS_End[j*4 + 1]
                             Primary_True_End[i, j, 2] = True_Position_TMS_End[j*4 + 2]
+
     
     # filter out not filled indice
     if plot_Start:
@@ -207,6 +233,8 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     if plot_Charge:
         boolean_Reco_Charge = (Reco_Charge != -9999.)
         Reco_Charge = Reco_Charge[boolean_Reco_Charge]
+        boolean_True_Charge_stop = (True_Charge_stop != -9999.)
+        True_Charge_stop = True_Charge_stop[boolean_True_Charge_stop]
     if plot_Charge or plot_Angle:
         boolean_True_Charge = (True_Charge != -9999.)
         True_Charge = True_Charge[boolean_True_Charge]    
@@ -237,10 +265,11 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         True_TrackDirection_yz = True_TrackDirection[:, 1]
         Reco_TrackDirection_xz = Reco_TrackDirection[:, 0]
         Reco_TrackDirection_yz = Reco_TrackDirection[:, 1]
+
     
     # total number of events after filtering
     if plot_End:
-        print("#events reconstruction: ", len(Reco_End), "# events truth: ", len(Primary_True_End))
+        print("#events reconstruction: ", len(Reco_End), " + not stopped in TMS:", counter_leaving)
     print("true (anti-)muons: ", sum(True_Muon_Track), "  vs. reconstructed particles: ", sum(Reco_Muon_Track))
     print("correctly identified tracks: ", correct_tracks_reco)
     #print("  correct hits reco: ", correct_reco_hits, " vs. true hits: ", correct_true_hits, " -> ", correct_reco_hits / correct_true_hits * 100)
@@ -340,7 +369,10 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         mp.ylabel('#')
         mp.title('End x', fontsize = 'xx-large')
         mp.legend(loc = 'best', fontsize = 'xx-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
-        mp.savefig('%s/Difference_End_X_hist.png' % out_dir, bbox_inches = 'tight')
+        if Contained:
+            mp.savefig('%s/Difference_Contained_End_X_hist.png' % out_dir, bbox_inches = 'tight')
+        if not Contained:
+            mp.savefig('%s/Difference_End_X_hist.png' % out_dir, bbox_inches = 'tight')
         mp.close()
     
         mp.plot(Diff_End_y_histX, Diff_End_y_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
@@ -352,7 +384,10 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         mp.ylabel('#')
         mp.title('End y', fontsize = 'xx-large')
         mp.legend(loc = 'best', fontsize = 'xx-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
-        mp.savefig('%s/Difference_End_Y_hist.png' % out_dir, bbox_inches = 'tight')
+        if Contained:
+            mp.savefig('%s/Difference_Contained_End_Y_hist.png' % out_dir, bbox_inches = 'tight')
+        if not Contained:
+            mp.savefig('%s/Difference_End_Y_hist.png' % out_dir, bbox_inches = 'tight')
         mp.close()
     
         mp.plot(Diff_End_z_histX, Diff_End_z_histY, color = blue_cbf, linestyle = '--', linewidth = 2, label = 'Difference')
@@ -364,33 +399,28 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         mp.ylabel('#')
         mp.title('End z', fontsize = 'xx-large')
         mp.legend(loc = 'best', fontsize = 'xx-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
-        mp.savefig('%s/Difference_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
+        if Contained:
+            mp.savefig('%s/Difference_Contained_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
+        if not Contained:
+            mp.savefig('%s/Difference_End_Z_hist.png' % out_dir, bbox_inches = 'tight')
         mp.close()
-    
-    if plot_Charge or plot_Angle:
-        # Filter out all events without truth +/-13 as PDG    
-        boolean_true_muon = (np.abs(True_Charge) == 13)
-        True_KE = True_KE[boolean_true_muon]
-        True_TrackDirection_xz_KE = True_TrackDirection_xz[boolean_true_muon]
-        True_TrackDirection_yz_KE = True_TrackDirection_yz[boolean_true_muon]
-        Reco_TrackDirection_xz_KE = Reco_TrackDirection_xz[boolean_true_muon]
-        Reco_TrackDirection_yz_KE = Reco_TrackDirection_yz[boolean_true_muon]
+       
+    ### Charge ID
+    if plot_Charge:
+        # Filter out all events without truth +/-13 as PDG
+        boolean_true_muon_stop = (np.abs(True_Charge_stop) == 13)
+        True_Charge_stop = True_Charge_stop[boolean_true_muon_stop]
+        Reco_Charge = Reco_Charge[boolean_true_muon_stop]
+        boolean_issues = (Reco_Charge == -9.99999999e+08)
+        not_identified = Reco_Charge[boolean_issues]
         
         # Prepare the KE arrays
         Muons_KE = np.ones(len(True_KE), dtype = float) * -9999.
         AMuons_KE = np.ones(len(True_KE), dtype = float) * -9999.
-        
-    ### Charge ID
-    if plot_Charge:
-        # Filter out all events without truth +/-13 as PDG
-        True_Charge = True_Charge[boolean_true_muon]
-        Reco_Charge = Reco_Charge[boolean_true_muon]
-        boolean_issues = (Reco_Charge == -9.99999999e+08)
-        not_identified = Reco_Charge[boolean_issues] 
     
         # Counter for both positive, both negative, different reco/truth positive and negative
-        true_muons = len(True_Charge[True_Charge == 13])
-        true_antimuons = len(True_Charge[True_Charge == -13])
+        true_muons = len(True_Charge[True_Charge_ctop == 13])
+        true_antimuons = len(True_Charge[True_Charge_stop == -13])
         reco_muons = len(Reco_Charge[Reco_Charge == 13])
         reco_antimuons = len(Reco_Charge[Reco_Charge == -13])
         counter_true_positive = 0   #truth and reco agree on muon
@@ -398,11 +428,11 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         counter_false_positive = 0  #truth and reco disagree, reco -> muon
         counter_false_negative = 0  #truth and reco disagree, reco -> antimuon
     
-        True_Muons_KE = True_KE[True_Charge == 13]
-        True_Antimuons_KE = True_KE[True_Charge == -13]
+        True_Muons_KE = True_KE[True_Charge_stop == 13]
+        True_Antimuons_KE = True_KE[True_Charge_stop == -13]
     
         # Compare sign of truth and reco    
-        for i in range(len(True_Charge)):
+        for i in range(len(True_Charge_stop)):
             if True_Charge[i] == Reco_Charge[i]:
                 if True_Charge[i] > 0:
                     counter_true_positive += 1
@@ -416,9 +446,9 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                 else:
                     counter_false_negative += 1
         
-        if (counter_true_positive + counter_true_negative + counter_false_positive + counter_false_negative) != len(True_Charge):
+        if (counter_true_positive + counter_true_negative + counter_false_positive + counter_false_negative) != len(True_Charge_stop):
             print("Counters don't add up")
-            print("Length: ", len(True_Charge))
+            print("Length: ", len(True_Charge_stop))
         
         print("Charge ID numbers")
         print("  Not identified:  ", len(not_identified))
@@ -440,15 +470,13 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         accuracy_anti_muons = (counter_true_positive + counter_true_negative) / (counter_true_positive + counter_true_negative + counter_false_positive + (counter_false_negative - len(not_identified)))    
         print("  Accuracy (both): ", accuracy_anti_muons)
 
-    # Energy dependent
-    if plot_Charge or plot_Angle:       
+        # Energy dependent      
         Muons_KE = Muons_KE[Muons_KE != -9999.]
         AMuons_KE = AMuons_KE[AMuons_KE != -9999.]
         
         muons_ke_hist, muons_ke_bins = np.histogram(Muons_KE, bins = 50, range = (0, 5000))
         amuons_ke_hist, amuons_ke_bins = np.histogram(AMuons_KE, bins = muons_ke_bins)
     
-    if plot_Charge:
         true_muons_ke_hist, muons_ke_bins = np.histogram(True_Muons_KE, bins = muons_ke_bins)
         true_antimuons_ke_hist, amuons_ke_bins = np.histogram(True_Antimuons_KE, bins = amuons_ke_bins)
     
@@ -472,6 +500,14 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     
     ### Angular resolution
     if plot_Angle:
+        # Filter out all events without truth +/-13 as PDG    
+        boolean_true_muon = (np.abs(True_Charge) == 13)
+        True_KE = True_KE[boolean_true_muon]
+        True_TrackDirection_xz_KE = True_TrackDirection_xz[boolean_true_muon]
+        True_TrackDirection_yz_KE = True_TrackDirection_yz[boolean_true_muon]
+        Reco_TrackDirection_xz_KE = Reco_TrackDirection_xz[boolean_true_muon]
+        Reco_TrackDirection_yz_KE = Reco_TrackDirection_yz[boolean_true_muon]
+    
         # calculate differences in angles
         xz_difference = True_TrackDirection_xz - Reco_TrackDirection_xz
         yz_difference = True_TrackDirection_yz - Reco_TrackDirection_yz
@@ -521,13 +557,15 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         mp.close()
     
         # energy dependent
-        xz_mean_KE = np.zeros(len(muons_ke_bins), dtype = float)
-        yz_mean_KE = np.zeros(len(muons_ke_bins), dtype = float)
-        xz_std_KE = np.zeros(len(muons_ke_bins), dtype = float)
-        yz_std_KE = np.zeros(len(muons_ke_bins), dtype = float)
+        bins = np.histogram_bin_edges(True_KE, bins = 50, range = (0, 5000))
         
-        for i in range(len(muons_ke_bins) - 1):
-            boolean_KE = (True_KE >= muons_ke_bins[i]) & (True_KE < muons_ke_bins[i+1])
+        xz_mean_KE = np.zeros(len(bins), dtype = float)
+        yz_mean_KE = np.zeros(len(bins), dtype = float)
+        xz_std_KE = np.zeros(len(bins), dtype = float)
+        yz_std_KE = np.zeros(len(bins), dtype = float)
+        
+        for i in range(len(bins) - 1):
+            boolean_KE = (True_KE >= bins[i]) & (True_KE < bins[i+1])
             True_xz = True_TrackDirection_xz_KE[boolean_KE]
             True_yz = True_TrackDirection_yz_KE[boolean_KE]
             Reco_xz = Reco_TrackDirection_xz_KE[boolean_KE]
@@ -542,9 +580,9 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
             yz_std_KE[i] = np.std(yz_diff)
     
         # plot
-        mp.errorbar(muons_ke_bins, xz_mean_KE, yerr = xz_std_KE, linestyle = '--', linewidth = 1.5, color = red_cbf)
-        mp.scatter(muons_ke_bins, xz_mean_KE, marker = '.', color = red_cbf, label = 'mean')
-        mp.fill_between(muons_ke_bins, xz_mean_KE - xz_std_KE, xz_mean_KE + xz_std_KE, color = red_cbf, alpha = 0.1, label = '1 $\\sigma$')
+        mp.errorbar(bins, xz_mean_KE, yerr = xz_std_KE, linestyle = '--', linewidth = 1.5, color = red_cbf)
+        mp.scatter(bins, xz_mean_KE, marker = '.', color = red_cbf, label = 'mean')
+        mp.fill_between(bins, xz_mean_KE - xz_std_KE, xz_mean_KE + xz_std_KE, color = red_cbf, alpha = 0.1, label = '1 $\\sigma$')
         mp.hlines(0, 0, 5000, color = black_cbf, linewidth = 1)
         mp.xlabel('True Muon KE [MeV]')
         mp.ylabel('Difference truth - reco [°]')
@@ -554,9 +592,9 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         mp.savefig('%s/Difference_XZ_angle_True_KE.png' % out_dir, bbox_inches = 'tight')
         mp.close()
         
-        mp.errorbar(muons_ke_bins, yz_mean_KE, yerr = yz_std_KE, linestyle = '--', linewidth = 1.5, color = blue_cbf)
-        mp.scatter(muons_ke_bins, yz_mean_KE, marker = '.', color = blue_cbf, label = 'mean')
-        mp.fill_between(muons_ke_bins, yz_mean_KE - yz_std_KE, yz_mean_KE + yz_std_KE, color = blue_cbf, alpha = 0.1, label = '1 $\\sigma$')
+        mp.errorbar(bins, yz_mean_KE, yerr = yz_std_KE, linestyle = '--', linewidth = 1.5, color = blue_cbf)
+        mp.scatter(bins, yz_mean_KE, marker = '.', color = blue_cbf, label = 'mean')
+        mp.fill_between(bins, yz_mean_KE - yz_std_KE, yz_mean_KE + yz_std_KE, color = blue_cbf, alpha = 0.1, label = '1 $\\sigma$')
         mp.hlines(0, 0, 5000, color = black_cbf, linewidth = 1)
         mp.xlabel('True Muon KE [MeV]')
         mp.ylabel('Difference truth - reco [°]')
@@ -607,6 +645,7 @@ if __name__ == "__main__":
     parser.add_argument('--End', "-e", help = "Do you want to plot the End point resolution? Yes -> --End, No -> --no-End", action = argparse.BooleanOptionalAction)
     parser.add_argument('--Charge', "-c", help = "Do you want to plot the Charge identification efficiency plots? Yes -> --Charge, No -> --no-Charge", action = argparse.BooleanOptionalAction)
     parser.add_argument('--Angle', "-a", help = "Do you want to plot the Angular resolution? Yes -> --Angle, No -> --no-Angle", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--Contained', "-con", help = "Do you want to plot the end resolution only for contained muons or all? Yes -> --Contained, No -> --no-Contained", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
@@ -617,4 +656,5 @@ if __name__ == "__main__":
     plot_End = args.End
     plot_Charge = args.Charge
     plot_Angle = args.Angle
-    draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge, plot_Angle)
+    Contained = args.Contained
+    draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge, plot_Angle, Contained)
