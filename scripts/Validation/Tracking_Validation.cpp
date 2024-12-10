@@ -539,11 +539,11 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   throw std::runtime_error("Unable to understand axis name");
 }
 
-double muon_ke_bins[] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0, 5.1};
+double muon_ke_bins[] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0};
 int n_muon_ke_bins = sizeof(muon_ke_bins) / sizeof(double) - 1;
 
 std::tuple<bool, std::string, int, double*> GetComplexBinning(std::string axis_name) {
-  if (axis_name == "ke_tms_enter") return std::make_tuple(true, "Muon KE Entering TMS (GeV);N Muons / GeV", n_muon_ke_bins, muon_ke_bins); 
+  if (axis_name == "ke_tms_enter") return std::make_tuple(true, "True Muon KE Entering TMS (GeV);N Muons / GeV", n_muon_ke_bins, muon_ke_bins); 
   if (axis_name == "ke_tms_enter_true") return std::make_tuple(true, "True Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
   if (axis_name == "ke_tms_enter_reco") return std::make_tuple(true, "Reco Muon KE Entering TMS (GeV)", n_muon_ke_bins, muon_ke_bins); 
   return std::make_tuple(false, "", 0, (double*)NULL);
@@ -1081,10 +1081,10 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           if (ismuon) {
             double muon_starting_ke = truth.MomentumTMSStart[ip][3] * 1e-3;
             if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
-            GetHist("reco_eff__muon_ke_tms_enter_denominator", "Reco Eff Muon KE Entering TMS: Denominator", 
+            GetHist("reco_eff__muon_ke_tms_enter_denominator", "Reconstruction Efficiency: Denominator", 
               "ke_tms_enter")->Fill(muon_starting_ke);
             double muon_starting_angle = std::atan2(truth.MomentumTMSStart[ip][0], truth.MomentumTMSStart[ip][2]) * DEG;
-            GetHist("reco_eff__angle_tms_enter_denominator", "Reco Eff Muon Angle Entering TMS: Denominator", 
+            GetHist("reco_eff__angle_tms_enter_denominator", "Reconstruction Efficiency: Denominator", 
               "angle_tms_enter")->Fill(muon_starting_angle);
           }
         }
@@ -1109,11 +1109,11 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         if (ismuon) {
           double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
           if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
-          GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reco Eff Muon KE Entering TMS: Numerator", 
+          GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reconstruction Efficiency: Numerator", 
             "ke_tms_enter")->Fill(muon_starting_ke);
           double muon_starting_angle = std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][0],
                                                   truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2]) * DEG;
-          GetHist("reco_eff__angle_tms_enter_numerator", "Reco Eff Muon Angle Entering TMS: Numerator", 
+          GetHist("reco_eff__angle_tms_enter_numerator", "Reconstruction Efficiency: Numerator", 
             "angle_tms_enter")->Fill(muon_starting_angle);
         }
       }
