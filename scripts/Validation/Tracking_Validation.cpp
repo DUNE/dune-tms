@@ -31,6 +31,8 @@ const double CM = 0.1; // cm per mm
 const double DEG = 360 / TAU;
 const double GEV = 1e-3; // GeV per MEV
 
+const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
+
 int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
   bool is999 = IS_WITHIN(x, -999, 1) || IS_WITHIN(x, -9999, 1) || IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) || IS_WITHIN(x, -999999, 1);
@@ -644,7 +646,7 @@ TH1* MakeHist(std::string directory_and_name, std::string title, std::string xax
   }
 }
 
-void NormalizeColumns(TH2* hist) {
+void NormalizeColumns(TH2* hist, bool colMax = false) {
   if (!hist) {
     std::cerr << "Error: Null histogram passed to NormalizeColumns." << std::endl;
     return;
@@ -656,20 +658,22 @@ void NormalizeColumns(TH2* hist) {
   // Iterate over each column (x-bin)
   for (int binX = 1; binX <= nBinsX; ++binX) {
     double columnSum = 0.0;
+    double columnMax = 0.0;
 
     // Calculate the sum of the column
     for (int binY = 1; binY <= nBinsY; ++binY) {
       columnSum += hist->GetBinContent(binX, binY);
+      if (columnMax < hist->GetBinContent(binX, binY)) columnMax = hist->GetBinContent(binX, binY);
     }
-
-    // Normalize the column if the sum is not zero
-    if (columnSum > 0) {
-      for (int binY = 1; binY <= nBinsY; ++binY) {
-        double value = hist->GetBinContent(binX, binY);
-        // Only set the value if nonzero
-        if (value > 0.001)
-          hist->SetBinContent(binX, binY, value / columnSum);
-      }
+    
+    double weight = 1.0;
+    if (colMax && columnMax > 0)  weight = 1 / columnMax;
+    if (!colMax && columnSum > 0) weight = 1 / columnSum;
+    for (int binY = 1; binY <= nBinsY; ++binY) {
+      double value = hist->GetBinContent(binX, binY);
+      // Only set the value if nonzero
+      if (value > 0.001)
+        hist->SetBinContent(binX, binY, value * weight);
     }
   }
 }
@@ -710,6 +714,10 @@ void NormalizeHists() {
     if (hist.first.find("column_normalize") != std::string::npos) {
       // This hist wants column normalization
       NormalizeColumns((TH2*) hist.second);
+    }
+    if (hist.first.find("column_maximize") != std::string::npos) {
+      // This hist wants column normalization such that the max is one
+      NormalizeColumns((TH2*) hist.second, true);
     }
     if (hist.first.find("row_normalize") != std::string::npos) {
       // This hist wants column normalization

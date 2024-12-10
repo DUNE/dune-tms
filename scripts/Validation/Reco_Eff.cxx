@@ -1,6 +1,5 @@
 // Add scope to avoid cross talk with other scripts
 {
-  const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
   REGISTER_AXIS(ke_tms, std::make_tuple("True Muon KE (GeV)", 28, 0.0, 7.0));
   REGISTER_AXIS(pion_ke_tms_enter, std::make_tuple("True Pion KE Entering TMS (GeV)", 20, 0.0, 5.0));
   REGISTER_AXIS(muon_endpoint_z, std::make_tuple("True Muon Endpoint Z (cm)", 20, 1136.0, 1831.0));
@@ -99,8 +98,8 @@
           "muon_startpoint_z")->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[it][2] * CM);
       }
       if (ispion)
-        GetHist("reco_eff__all_pion_ke_tms_enter_numerator", "Reco Efficiency, All Pions: Numerator", 
-          "ke_tms_enter")->Fill(particle_starting_ke);
+        GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator", "Reco Efficiency, All Pions: Numerator", 
+          "pion_ke_tms_enter")->Fill(particle_starting_ke);
       if (ismuon && lar_start && tms_end) {
         GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reco Efficiency vs True TMS-Entering KE: Numerator", 
           "ke_tms_enter")->Fill(particle_starting_ke);
