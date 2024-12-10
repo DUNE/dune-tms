@@ -962,6 +962,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       }
       
       REGISTER_AXIS(HitEnergy, std::make_tuple("Hit Energy (MeV)", 51, 0, 100));
+      REGISTER_AXIS(TrueVisibleEnergy, std::make_tuple("Particle True Visible Energy (MeV)", 51, 0, 1000));
       REGISTER_AXIS(HitHadronicEnergy, std::make_tuple("Hit Hadronic Energy (MeV)", 51, 0, 100));
       REGISTER_AXIS(HitEnergy_zoom, std::make_tuple("Hit Energy (MeV)", 20, 0, 1));
       REGISTER_AXIS(Hitdedx, std::make_tuple("Hit dEdx (MeV / cm)", 51, 0, 100));
@@ -1075,18 +1076,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           GetHist("basic__truth__PDG", "PDG", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (!truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
-          
-          bool ismuon = abs(truth.PDG[ip]) == 13;
-          // TODO add truth cut that we started in LAr fiducial and ended in TMS
-          if (ismuon) {
-            double muon_starting_ke = truth.MomentumTMSStart[ip][3] * 1e-3;
-            if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
-            GetHist("reco_eff__muon_ke_tms_enter_denominator", "Reconstruction Efficiency: Denominator", 
-              "ke_tms_enter")->Fill(muon_starting_ke);
-            double muon_starting_angle = std::atan2(truth.MomentumTMSStart[ip][0], truth.MomentumTMSStart[ip][2]) * DEG;
-            GetHist("reco_eff__angle_tms_enter_denominator", "Reconstruction Efficiency: Denominator", 
-              "angle_tms_enter")->Fill(muon_starting_angle);
-          }
+          GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy", "TrueVisibleEnergy")->Fill(truth.TrueVisibleEnergy[ip]);
         }
       }
       
@@ -1099,22 +1089,6 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                   "Comparison of Shell Energies", "ShellHadronicEnergyPerVertex", "ShellHadronicEnergyPerVertex")->Fill(shell, shell_manual);
           GetHist("basic__truth__nontms_hits__comparison_zoom", 
                   "Comparison of Shell Energies", "ShellHadronicEnergyPerVertexZoom", "ShellHadronicEnergyPerVertexZoom")->Fill(shell, shell_manual);
-        }
-      }
-      
-      // Fill numerators of reco_eff plots here
-      for (int it = 0; it < reco.nTracks; it++) {
-        // TODO add cut that it starts in LAr and ends in TMS
-        bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
-        if (ismuon) {
-          double muon_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
-          if (muon_starting_ke > 5.1) muon_starting_ke = 5.05;
-          GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reconstruction Efficiency: Numerator", 
-            "ke_tms_enter")->Fill(muon_starting_ke);
-          double muon_starting_angle = std::atan2(truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][0],
-                                                  truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2]) * DEG;
-          GetHist("reco_eff__angle_tms_enter_numerator", "Reconstruction Efficiency: Numerator", 
-            "angle_tms_enter")->Fill(muon_starting_angle);
         }
       }
       
@@ -1516,6 +1490,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       //if (entry_number > 700) exit(1); // TODO delete
       
       #include "EnergyResolution.cxx"
+      #include "Reco_Eff.cxx"
 
     } // End for loop over entries
     
