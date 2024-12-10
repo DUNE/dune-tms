@@ -60,7 +60,7 @@ def draw_histograms(input_file):
             obj.GetYaxis().SetTitleOffset(1.4)
             obj.GetZaxis().SetTitleOffset(0.5)
             normalized = "normalized" in image_name
-            if normalized:
+            if normalized and obj.GetXaxis().GetNbins() < 20:
                 obj.SetMarkerColor(ROOT.kRed + 1)
                 obj.GetZaxis().SetRangeUser(0.001, obj.GetMaximum())
                 obj.Draw("colz text")
