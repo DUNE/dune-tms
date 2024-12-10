@@ -1085,6 +1085,27 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           if (truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           if (!truth.IsPrimary[ip]) GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg")->Fill(PDGtoIndex(truth.PDG[ip]));
           GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy", "TrueVisibleEnergy")->Fill(truth.TrueVisibleEnergy[ip]);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_X", "RecoTrackPrimaryParticleTruePositionStart X",
+            "X")->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][0] * CM);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Y", "RecoTrackPrimaryParticleTruePositionStart Y",
+            "Y_full")->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][1] * CM);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Z", "RecoTrackPrimaryParticleTruePositionStart Z",
+            "Z_full")->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][2] * CM);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_X", "RecoTrackPrimaryParticleTruePositionEnd X",
+            "X")->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][0] * CM);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Y", "RecoTrackPrimaryParticleTruePositionEnd Y",
+            "Y_full")->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][1] * CM);
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z", "RecoTrackPrimaryParticleTruePositionEnd Z",
+            "Z_full")->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
+            
+          GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z", "RecoTrackPrimaryParticleTruePositionEnd Z",
+            "yesno")->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
+            
+           GetHist("basic__truth__RecoTrackPrimaryParticleLArFiducialStart", "RecoTrackPrimaryParticleLArFiducialStart",
+            "yesno")->Fill(truth.RecoTrackPrimaryParticleLArFiducialStart[ip] ? 0 : 1);
+           GetHist("basic__truth__RecoTrackPrimaryParticleTMSFiducialEnd", "RecoTrackPrimaryParticleTMSFiducialEnd",
+            "yesno")->Fill(truth.RecoTrackPrimaryParticleTMSFiducialEnd[ip] ? 0 : 1);
+          
         }
       }
       

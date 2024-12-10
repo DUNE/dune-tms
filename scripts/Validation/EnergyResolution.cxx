@@ -67,12 +67,16 @@
       }
 
       // Now check if it started in LAr and ended in TMS
-      TVector3 birth_pos(truth.LeptonX4[0], truth.LeptonX4[1], truth.LeptonX4[2]);
+      /*TVector3 birth_pos(truth.RecoTrackPrimaryParticleTruePositionStart[it][0], 
+          truth.RecoTrackPrimaryParticleTruePositionStart[it][1], 
+          truth.RecoTrackPrimaryParticleTruePositionTrackStart[it][2]);
       bool start_lar = LArFiducialCut(birth_pos);
       TVector3 end_pos(truth.RecoTrackPrimaryParticleTruePositionEnd[it][0],
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][1],
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][2]);
-      bool end_tms = isTMSContained(end_pos) == 0;
+      bool end_tms = isTMSContained(end_pos) == 0;*/
+      bool start_lar = truth.RecoTrackPrimaryParticleLArFiducialStart[it];
+      bool end_tms = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
       if (!start_lar || !end_tms) { 
         passes_truth_cuts = false;
       }
@@ -90,6 +94,12 @@
       if (!start_tms_reco || !end_tms_reco) { 
         passes_reco_cuts = false;
       }
+      GetHist("energy_resolution__cut_validation__passes_reco_cuts", "passes_reco_cuts", "yesno")->Fill(passes_reco_cuts ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__passes_truth_cuts", "passes_truth_cuts", "yesno")->Fill(passes_truth_cuts ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__start_tms_reco", "start_tms_reco", "yesno")->Fill(start_tms_reco ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__end_tms_reco", "end_tms_reco", "yesno")->Fill(end_tms_reco ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__truth_start_lar", "start_lar", "yesno")->Fill(start_lar ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__truth_end_tms", "end_tms", "yesno")->Fill(end_tms ? 0 : 1);
       if (start_tms_reco && end_tms_reco) {
         GetHist("energy_resolution__cuts__reco_end_pos_z_passes", "Reco End Pos Z: Passes Reco Cuts", "Z")->Fill(end_pos_reco.Z() * CM);
         GetHist("energy_resolution__cuts__reco_start_pos_z_passes", "Reco Start Pos Z: Passes Reco Cuts", "Z")->Fill(birth_pos_reco.Z() * CM);
