@@ -184,14 +184,21 @@ def draw_histograms(input_file):
         numerator = recoeff_plots_numerators[name]
         denominator = recoeff_plots_denominators[name]
         newtitle = numerator.GetTitle()
-        newtitle = newtitle.replace("Numerator", "").strip()
+        newtitle = newtitle.replace(": Numerator", "").strip()
         numerator.SetTitle(newtitle)
         numerator.Divide(denominator)
         
         # Now make it look nice, and draw
-        numerator.GetYaxis().SetRangeUser(0, 1.0)
+        numerator.GetYaxis().SetRangeUser(0, 1.2)
         numerator.GetYaxis().SetTitle("Reconstruction Efficiency")
+        xmin = numerator.GetXaxis().GetXmin()
+        xmax = numerator.GetXaxis().GetXmax()
         numerator.Draw()
+        dunestyle.Simulation()
+        # Make dotted line
+        line = ROOT.TLine(xmin, 1, xmax, 1)
+        line.SetLineStyle(2)
+        line.Draw()
         
         # Get an output name and subdir, and save
         name = numerator.GetName()
