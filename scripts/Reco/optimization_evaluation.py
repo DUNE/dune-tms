@@ -140,7 +140,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                 if j > 4: break
 
                 # check if (anti-)muon as true primary particle and if origin in LAr
-                if True: #np.abs(True_PDG[j]) == 13 and LArFiducialTouch[j]:
+                if np.abs(True_PDG[j]) == 13 and LArFiducialTouch[j]:
                     # check if (anti-)muon travesers at least 4 planes in TMS
                     if (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) >= 440.:
                         # if so, then this is a true muon: 0 -> 1
@@ -173,7 +173,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                             Reco_TrackDirection[i, j, 0] = dir_to_angle(Reco_Track_StartDirection[j*3 + 0], Reco_Track_StartDirection[j*3 + 2])
                             Reco_TrackDirection[i, j, 1] = dir_to_angle(Reco_Track_StartDirection[j*3 + 1], Reco_Track_StartDirection[j*3 + 2])
                             True_KE[i, j] = np.sqrt((MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 +1]**2 + MomentumTrackStart[j*4 + 2]**2 + 105.7**2) - 105.7)
-                            True_Charge[i, j] = 13  #True_PDG[j]                            
+                            True_Charge[i, j] = True_PDG[j]                            
                         if plot_Charge:
                             Reco_Charge[i, j] = Reco_Track_Charge[j]
                         if plot_Start:
