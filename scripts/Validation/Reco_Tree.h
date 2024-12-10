@@ -20,28 +20,29 @@ public :
    Int_t           fCurrent; //!current Tree number in a TChain
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
+    #define __TMS_MAX_TRACKS__ 100 
 
    // Declaration of leaf types
    Int_t           EventNo;
    Int_t           SliceNo;
    Int_t           SpillNo;
    Int_t           nTracks;
-   Int_t           nHits[20];   //[nTracks]
-   Float_t         TrackHitPos[20][200][3];   //[nTracks]
-   Int_t           nKalmanNodes[20];   //[nTracks]
-   Float_t         KalmanPos[20][200][3];   //[nTracks]
-   Float_t         KalmanTruePos[20][200][3];   //[nTracks]
-   Float_t         StartDirection[10][3];   //[nTracks]
-   Float_t         Direction[20][3];   //[nTracks]
-   Float_t         EndDirection[10][3];   //[nTracks]
-   Float_t         StartPos[20][3];   //[nTracks]
-   Float_t         EndPos[20][3];   //[nTracks]
-   Float_t         EnergyRange[20];   //[nTracks]
-   Float_t         EnergyDeposit[20];   //[nTracks]
-   Float_t         Momentum[7];   //[nTracks]
-   Float_t         Length[20];   //[nTracks]
-   Int_t           Charge[20];   //[nTracks]
-   Float_t         TrackHitEnergies[20][200];
+   Int_t           nHits[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         TrackHitPos[__TMS_MAX_TRACKS__][200][3];   //[nTracks]
+   Int_t           nKalmanNodes[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         KalmanPos[__TMS_MAX_TRACKS__][200][3];   //[nTracks]
+   Float_t         KalmanTruePos[__TMS_MAX_TRACKS__][200][3];   //[nTracks]
+   Float_t         StartDirection[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Float_t         Direction[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Float_t         EndDirection[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Float_t         StartPos[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Float_t         EndPos[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Float_t         EnergyRange[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         EnergyDeposit[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         Momentum[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         Length[__TMS_MAX_TRACKS__];   //[nTracks]
+   Int_t           Charge[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         TrackHitEnergies[__TMS_MAX_TRACKS__][200];
 
    // List of branches
    TBranch        *b_EventNo;   //!
