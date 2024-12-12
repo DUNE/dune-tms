@@ -375,6 +375,38 @@ void TMS_TreeWriter::MakeBranches() {
                      
   Truth_Info->Branch("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, "TrueVisibleEnergyInSlice[nTrueParticles]/F");
   Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
+  
+  
+  Truth_Info->Branch("NTrueHits", &NTrueHits);
+  Truth_Info->Branch("TrueHitX", &TrueHitX, "TrueHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitY", &TrueHitY, "TrueHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitZ", &TrueHitZ, "TrueHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitT", &TrueHitT, "TrueHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitE", &TrueHitE, "TrueHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibers", &TrueHitPEAfterFibers, "TrueHitPEAfterFibers[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersLongPath", &TrueHitPEAfterFibersLongPath, "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueNTrueParticles", &TrueNTrueParticles, "TrueNTrueParticles[NTrueHits]/I");
+  Truth_Info->Branch("TrueLeptonicEnergy", &TrueLeptonicEnergy, "TrueLeptonicEnergy[NTrueHits]/F");
+  Truth_Info->Branch("TrueHadronicEnergy", &TrueHadronicEnergy, "TrueHadronicEnergy[NTrueHits]/F");
+  
+  
+  Truth_Info->Branch("TrueRecoHitX", &TrueRecoHitX, "TrueRecoHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitY", &TrueRecoHitY, "TrueRecoHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitZ", &TrueRecoHitZ, "TrueRecoHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackX", &TrueRecoHitTrackX, "TrueRecoHitTrackX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackY", &TrueRecoHitTrackY, "TrueRecoHitTrackY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackXUncertainty", &TrueRecoHitTrackXUncertainty, "TrueRecoHitTrackXUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackYUncertainty", &TrueRecoHitTrackYUncertainty, "TrueRecoHitTrackYUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitNotZ", &TrueRecoHitNotZ, "TrueRecoHitNotZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitT", &TrueRecoHitT, "TrueRecoHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitE", &TrueRecoHitE, "TrueRecoHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitPE", &TrueRecoHitPE, "TrueRecoHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitEVis", &TrueRecoHitEVis, "TrueRecoHitEVis[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitIsPedSupped", &TrueRecoHitIsPedSupped, "TrueRecoHitIsPedSupped[NTrueHits]/O");
+  Truth_Info->Branch("TrueHitBar", &TrueHitBar, "TrueHitBar[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitPlane", &TrueHitPlane, "TrueHitPlane[NTrueHits]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -1402,6 +1434,62 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
             }
           }
         }
+      }
+    }
+    
+  }
+  
+  
+  // Clear branches
+  NTrueHits = 0;
+  bool include_ped_sup = true;
+  int index = 0;
+  for (auto& hit : event.GetHitsRaw()) {
+    if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      std::cout<<"TMS_TreeWriter WARNING: Too many hits in event. Increase __MAX_TRUE_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
+      break;
+    }
+    if (index < __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      // In theory a reco hit should have many true hits based on how the merging worked
+      // Plus true hits should have noise hits which don't have any parent info
+      auto true_hit = hit.GetTrueHit();
+      
+      // Only save if more than 0.5 PE since reco hits are pedestal subtracted if < 3 PE currently
+      if (true_hit.GetPE() > 0.5) {
+      
+        // True info
+        NTrueHits += 1;
+        TrueHitX[index] = true_hit.GetX();
+        TrueHitY[index] = true_hit.GetY();
+        TrueHitZ[index] = true_hit.GetZ();
+        TrueHitT[index] = true_hit.GetT();
+        TrueHitE[index] = true_hit.GetE();
+        TrueHitPE[index] = true_hit.GetPE();
+        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
+        TrueHitBar[index] = hit.GetBarNumber();
+        TrueHitPlane[index] = hit.GetPlaneNumber();
+        TrueNTrueParticles[index] = true_hit.GetNTrueParticles();
+        TrueLeptonicEnergy[index] = true_hit.GetLeptonicEnergy();
+        TrueHadronicEnergy[index] = true_hit.GetHadronicEnergy();
+        
+        // Reco info
+        TrueRecoHitX[index] = hit.GetX();
+        TrueRecoHitY[index] = hit.GetY();
+        TrueRecoHitZ[index] = hit.GetZ();
+        TrueRecoHitNotZ[index] = hit.GetNotZ();
+        TrueRecoHitT[index] = hit.GetT();
+        TrueRecoHitE[index] = hit.GetE();
+        TrueRecoHitEVis[index] = hit.GetEVis();
+        TrueRecoHitPE[index] = hit.GetPE();
+        TrueRecoHitIsPedSupped[index] = hit.GetPedSup();
+        TrueRecoHitTrackX[index] = hit.GetRecoX();
+        TrueRecoHitTrackY[index] = hit.GetRecoY();
+        TrueRecoHitTrackXUncertainty[index] = hit.GetRecoXUncertainty();
+        TrueRecoHitTrackYUncertainty[index] = hit.GetRecoYUncertainty();
+        
+        index += 1;
       }
     }
     
