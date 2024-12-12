@@ -1004,7 +1004,9 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
 
 void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
   for (auto &event : overlay_events) AddEvent(event);
-    
+}
+
+void TMS_Event::FinalizeEvent() {
   // Apply the det sim now, after overlaying events
   // The timing and optical model were moved to the initial event creation
   ApplyReconstructionEffects();
