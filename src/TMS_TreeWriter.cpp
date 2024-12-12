@@ -1442,7 +1442,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   
   // Clear branches
   NTrueHits = 0;
-  bool include_ped_sup = true;
   int index = 0;
   for (auto& hit : event.GetHitsRaw()) {
     if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
