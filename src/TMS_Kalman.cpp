@@ -405,11 +405,10 @@ void TMS_Kalman::SetStartDirection(double ax, double ay)
   // Consider the dector (dx/dz, dy/dz, dz/dz), the z component is 1 by construction,
   // and thus we normalise this
   double mag  = sqrt(ax*ax + ay*ay + 1);
-  double mag2 = ax*ax + ay*ay + 1; // square of mag
 
   StartDirection[0]=ax/mag;
   StartDirection[1]=ay/mag;
-  StartDirection[2]=sqrt(1 - ax*ax/mag2 - ay*ay/mag2);
+  StartDirection[2]= 1/mag;
 }
 
 void TMS_Kalman::SetEndDirection(double ax, double ay)
@@ -419,9 +418,8 @@ void TMS_Kalman::SetEndDirection(double ax, double ay)
   // Consider the dector (dx/dz, dy/dz, dz/dz), the z component is 1 by construction,
   // and thus we normalise this
   double mag  = sqrt(ax*ax + ay*ay + 1);
-  double mag2 = ax*ax + ay*ay + 1; // square of mag
 
   StartDirection[0]=ax/mag;
   StartDirection[1]=ay/mag;
-  StartDirection[2]=sqrt(1 - ax*ax/mag2 - ay*ay/mag2);
+  StartDirection[2]= 1/mag;
 }
