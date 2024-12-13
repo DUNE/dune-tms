@@ -419,7 +419,7 @@ void TMS_Kalman::SetEndDirection(double ax, double ay)
   // and thus we normalise this
   double mag  = sqrt(ax*ax + ay*ay + 1);
 
-  StartDirection[0]=ax/mag;
-  StartDirection[1]=ay/mag;
-  StartDirection[2]= 1/mag;
+  EndDirection[0]=ax/mag;
+  EndDirection[1]=ay/mag;
+  EndDirection[2]= 1/mag;
 }
