@@ -411,6 +411,44 @@ class TMS_TreeWriter {
     
     int nPrimaryVertices;
     bool HasPileup;
+    
+    // Ideally I'd use std::vector<Float_t> but they don't fill with the right info
+    #define __MAX_TRUE_TREE_ARRAY_LENGTH__ 100000
+    #define MYVAR(x) float x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    #define INTMYVAR(x) int x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    
+    // True hit branches
+    int NTrueHits;
+    MYVAR(TrueHitX);
+    MYVAR(TrueHitY);
+    MYVAR(TrueHitZ);
+    MYVAR(TrueHitT);
+    MYVAR(TrueHitE);
+    MYVAR(TrueHitPE);
+    MYVAR(TrueHitPEAfterFibers);
+    MYVAR(TrueHitPEAfterFibersLongPath);
+    MYVAR(TrueHitPEAfterFibersShortPath);
+    INTMYVAR(TrueHitBar);
+    INTMYVAR(TrueHitPlane);
+    INTMYVAR(TrueNTrueParticles);
+    MYVAR(TrueLeptonicEnergy);
+    MYVAR(TrueHadronicEnergy);
+    
+    
+    // Reco info saved in truth tree to make comparisons easier
+    MYVAR(TrueRecoHitX);
+    MYVAR(TrueRecoHitY);
+    MYVAR(TrueRecoHitZ);
+    MYVAR(TrueRecoHitTrackX);
+    MYVAR(TrueRecoHitTrackY);
+    MYVAR(TrueRecoHitTrackXUncertainty);
+    MYVAR(TrueRecoHitTrackYUncertainty);
+    MYVAR(TrueRecoHitNotZ);
+    MYVAR(TrueRecoHitT);
+    MYVAR(TrueRecoHitE);
+    MYVAR(TrueRecoHitPE);
+    MYVAR(TrueRecoHitEVis);
+    bool TrueRecoHitIsPedSupped[__MAX_TRUE_TREE_ARRAY_LENGTH__];
 };
 
 
