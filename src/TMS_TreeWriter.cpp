@@ -220,6 +220,9 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
   Branch_Lines->Branch("RecoHitPos",    RecoHitPos,    "RecoHitPos[nHits][4]/F");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
+  Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
   // Track information
@@ -1142,6 +1145,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitPE[stdit] = (*it).GetPE();
+    RecoHitBar[stdit] = (*it).GetBarNumber();
+    RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
@@ -1747,6 +1753,10 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
     RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPE[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBar[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
