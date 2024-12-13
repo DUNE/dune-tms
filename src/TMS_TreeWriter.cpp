@@ -231,7 +231,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
-  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "KalmanPos[nTracks][200][3]/F");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanPlaneBarView", RecoTrackKalmanPlaneBarView, "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
@@ -248,7 +248,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
-  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
@@ -1794,6 +1794,7 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
