@@ -38,7 +38,7 @@ tms_bottom_hybrid = -3.07623
 
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and UBar then in negative
+    if orientation_bar == 'VBar':  # assumption VBar is tilted in positive way and UBar then in negative
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y            
         if x < r:
@@ -51,7 +51,7 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
             if return_value >= tms_top_stereo: return tms_top_stereo
             elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
-    elif orientation_bar == 'kUBar':
+    elif orientation_bar == 'UBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
@@ -67,7 +67,7 @@ def upper_limit(hit_x, hit_y, x, orientation_bar):
 
 ### Function for lower limit of tilted bar 'hit'
 def lower_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':
+    if orientation_bar == 'VBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
@@ -80,7 +80,7 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
             if return_value >= tms_top_stereo: return tms_top_stereo
             elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
-    elif orientation_bar == 'kUBar':
+    elif orientation_bar == 'UBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
@@ -98,7 +98,7 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
 def hit_size(hit_x, hit_y, orientation, hit_z):
     if orientation == 'xy':
         orientation_bar = check_orientation(int(hit_z))
-        if orientation_bar == 'kXBar':
+        if orientation_bar == 'XBar':
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x / 1000.0 + delta_x
             size_array[0, 1] = hit_x / 1000.0 - delta_x
@@ -122,7 +122,7 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
         orientation_bar = check_orientation(int(hit_z))
-        if orientation_bar == 'kXBar':
+        if orientation_bar == 'XBar':
             if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
                 size_array[1, 0] = tms_top_hybrid
             else:
@@ -240,6 +240,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            
+            ### Set TMS name
+            x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+            z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+            x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
     
             ### Position plots efficient/nice in subplots
             x_z.axis('equal')
@@ -331,12 +336,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 
                     #print("hit", hit_y, hit_z)
                     color_cbf = red_cbf
-                    if check_orientation(int(hit_z)) == 'kVBar':
+                    if check_orientation(int(hit_z)) == 'VBar':
                         color_cbf = blue_cbf
-                    elif check_orientation(int(hit_z)) == 'kXBar':
+                    elif check_orientation(int(hit_z)) == 'XBar':
                         color_cbf = black_cbf
                     
-                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
+                    if hit < 2:
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
+                    else:
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
@@ -359,11 +367,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         kal_true_x[node] = KalmanTruePos[i*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_true_y[node] = KalmanTruePos[i*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf)
+                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
                     z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
                     x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
 
-                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf)
+                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
                     z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
                     x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
 
@@ -375,7 +383,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
                     if not StartPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
+                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf, label = 'Start/End reco')
                         z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
                         x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
@@ -401,12 +409,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
                     if not StartPos[i*3 + 1] == 0.0 or EndPos[i*3 + 1] == 0.0:
-                        x_z.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_z.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
                         z_y.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
                         x_y.plot([StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
         
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
                 
                 z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
                 z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
@@ -430,6 +438,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
                         print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
 
+            # add a legend
+            fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
+            fig.tight_layout()
+            fig.subplots_adjust(right = 0.84)
+            # save plot
             output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
             mp.savefig(output_filename + ".png", bbox_inches = 'tight')
             mp.close()
@@ -442,7 +455,7 @@ def check_orientation(hit_z):
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
 first_z = 11185
-layer_dict = { "%s" % first_z : "kUBar" }
+layer_dict = { "%s" % first_z : "UBar" }
         
 def calculate_layers(Xlayers):
     increment = 2
@@ -456,60 +469,60 @@ def calculate_layers(Xlayers):
         hit_z = first_z + i * 65
         # even layers
         if (((hit_z - first_z) / 65) % increment) == 0:
-            layer_dict.update({ "%s" % hit_z : "kUBar" })
+            layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
         elif (((hit_z - first_z) / 65) % increment) == 1:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
+            layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
             if (((hit_z - first_z) / 65) % increment) == 0:
-                layer_dict.update({ "%s" % hit_z : "kXBar" })
+                layer_dict.update({ "%s" % hit_z : "XBar" })
             # even layers
             if (((hit_z - first_z) / 65) % increment) == 1:
-                layer_dict.update({ "%s" % hit_z : "kUBar" })
+                layer_dict.update({ "%s" % hit_z : "UBar" })
             # odd layers
             elif (((hit_z - first_z) / 65) % increment) == 2:
-                layer_dict.update({ "%s" % hit_z : "kVBar" })
+                layer_dict.update({ "%s" % hit_z : "VBar" })
     # Calculate the z position for each layer for the thick section
     start_thick = first_z + thin_layers * 65
     for i in range(thick_layers):
         hit_z = start_thick + i * 90
         # even layers
         if (((hit_z - start_thick) / 90) % increment) == 0:
-            layer_dict.update({ "%s" % hit_z : "kUBar" })
+            layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
         elif (((hit_z - start_thick) / 90) % increment) == 1:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
+            layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
             if (((hit_z - start_thick) / 90) % increment) == 0:
-                layer_dict.update({ "%s" % hit_z : "kVBar" })
+                layer_dict.update({ "%s" % hit_z : "VBar" })
             # even layers
             elif (((hit_z - start_thick) / 90) % increment) == 1:
-                layer_dict.update({ "%s" % hit_z : "kXBar" })
+                layer_dict.update({ "%s" % hit_z : "XBar" })
             # odd layers
             elif (((hit_z - start_thick) / 90) % increment) == 2:
-                layer_dict.update({ "%s" % hit_z : "kUBar" })
+                layer_dict.update({ "%s" % hit_z : "UBar" })
     # Calculate the z position for each layer for the double section
     start_double = first_z + thin_layers * 65 + thick_layers * 90
     for i in range(double_layers):
         hit_z = start_double + i * 130
         # even layers
         if (((hit_z - start_double) / 130) % increment) == 0:
-            layer_dict.update({ "%s" % hit_z : "kUBar" })
+            layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
         elif (((hit_z - start_double) / 130) % increment) == 1:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
+            layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
             if (((hit_z - start_double) / 130) % increment) == 0:
-                layer_dict.update({ "%s" % hit_z : "kXBar" })
+                layer_dict.update({ "%s" % hit_z : "XBar" })
             # even layers
             elif (((hit_z - start_double) / 130) % increment) == 1:
-                layer_dict.update({ "%s" % hit_z : "kUBar" })
+                layer_dict.update({ "%s" % hit_z : "UBar" })
             # odd layers
             elif (((hit_z - start_double) / 130) % increment) == 2:
-                layer_dict.update({ "%s" % hit_z : "kVBar" })
+                layer_dict.update({ "%s" % hit_z : "VBar" })
                 
     return
 

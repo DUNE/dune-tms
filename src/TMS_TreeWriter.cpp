@@ -1171,8 +1171,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
       RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
-    }
-    
+    } 
+
     if (RecoTrack->KalmanNodes.size() > 0) {
       size_t last_index = RecoTrack->KalmanNodes.size() - 1;
       TMS_Bar first_bar(RecoTrack->KalmanNodes[0].RecoX, RecoTrack->KalmanNodes[0].RecoY,
@@ -1404,7 +1404,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         }
       }
     }
-    
+
+    if (RecoTrackEndPos[itTrack][0] - RecoTrackPrimaryParticleTruePositionLeavingTMS[itTrack][0] > 200.){
+      std::cout << "Endpoint: " << RecoTrackEndPos[itTrack][0] << " " << RecoTrackEndPos[itTrack][1] << " " << RecoTrackEndPos[itTrack][2] << std::endl;
+      for (int Hits = 0; Hits != nHits; ++Hits) {
+        std::cout << "R: " << RecoHitPos[Hits][0] << " " << RecoHitPos[Hits][1] << " " << RecoHitPos[Hits][2] << "\t" << RecoTrack->Hits[Hits].GetPE() << std::endl;
+      }
+      for (int hits = 0; hits != RecoTrackNHits[itTrack]; ++hits) {
+        std::cout << "T: " << RecoTrackTrueHitPosition[itTrack][hits][0] << " " << RecoTrackTrueHitPosition[itTrack][hits][1] << " " << RecoTrackTrueHitPosition[itTrack][hits][2] << "\t" << RecoTrack->Hits[hits].GetTrueHit().GetPE() << std::endl;
+      }
+      std::cout << " " << std::endl;
+    }
   }
 
   Reco_Tree->Fill();
