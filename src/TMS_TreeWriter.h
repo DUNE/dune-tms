@@ -91,6 +91,7 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
+    int RunNo;
     int nLinesU;
     int nLinesV;
     int nLinesX;

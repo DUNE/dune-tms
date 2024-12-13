@@ -66,6 +66,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Branch_Lines->Branch("RunNo", &RunNo, "RunNo/I");
   Branch_Lines->Branch("nLinesU", &nLinesU, "nLinesU/I");
   Branch_Lines->Branch("nLinesV", &nLinesV, "nLinesV/I");
   Branch_Lines->Branch("nLinesX", &nLinesX, "nLinesX/I");
@@ -226,6 +227,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Reco_Tree->Branch("RunNo", &RunNo, "RunNo/I");
 
   Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
@@ -380,6 +382,8 @@ void TMS_TreeWriter::MakeBranches() {
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   // Truth information saved per spill only
   truth->Branch("EventNo", &EventNo, "EventNo/I");
+  truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  truth->Branch("RunNo", &RunNo, "RunNo/I");
   truth->Branch("IsCC", &IsCC, "IsCC/O");
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
@@ -489,6 +493,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -1418,6 +1423,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
