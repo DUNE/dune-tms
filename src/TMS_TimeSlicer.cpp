@@ -95,9 +95,12 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     // Add all hit energy to array
     auto hits = event.GetHitsRaw();
     for (auto hit : hits) {
-      int index = hit.GetT() * DT;
-      // Make sure we're within bounds, and add energy
-      if (index >= 0 && index < NUMBER_OF_SLICES) energy_slices[index] += hit.GetE();
+      // Only include hits that are not pedestal subtracted
+      if (!hit.GetPedSup()) {
+        int index = hit.GetT() * DT;
+        // Make sure we're within bounds, and add energy
+        if (index >= 0 && index < NUMBER_OF_SLICES) energy_slices[index] += hit.GetE();
+      }
     }
     
     // Now make a sliding window;
