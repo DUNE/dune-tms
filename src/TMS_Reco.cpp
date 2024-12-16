@@ -154,7 +154,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   int slice = event.GetSliceNumber();
   for (auto hit : RawHits) {
     if (hit.GetPedSup()) std::cout<<"Raw hits, found a ped supped hit in slice"<<std::endl;
-    if (hit.GetPE() < 4 || hit.GetTrueHit().GetPE()) 
+    if (hit.GetPE() < 4 || hit.GetTrueHit().GetPE() < 4) 
       std::cout<<"hit.GetPE(): "<<hit.GetPE()<<",\thit.GetTrueHit().GetPE(): "<<hit.GetTrueHit().GetPE()<<std::endl;
     if (hit.GetPedSup() || hit.GetPE() < TMS_Readout_Manager::GetInstance().Get_Sim_Readout_PedestalSubtractionThreshold()) {
       std::cout<<"Fatal: Found Ped Supped hit! Quitting!"<<std::endl;
