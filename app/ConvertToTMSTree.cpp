@@ -164,6 +164,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       // ... and make this event the combined spill called "last_event"
       tms_event = last_event;
     }
+    
+    // Apply detector effects and connect truth and reco info
+    tms_event.FinalizeEvent();
 
     // Dump information
     //tms_event.Print();

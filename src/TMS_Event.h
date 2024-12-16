@@ -27,6 +27,7 @@ class TMS_Event {
 
     void AddEvent(TMS_Event &);
     void OverlayEvents(std::vector<TMS_Event>& overlay_events);
+    void FinalizeEvent();
 
     // The getters once the class is completed
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
