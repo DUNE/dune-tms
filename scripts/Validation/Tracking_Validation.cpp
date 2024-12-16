@@ -1543,6 +1543,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       #include "EnergyResolution.cxx"
       #include "Reco_Eff.cxx"
       #include "TimeSlicing.cxx"
+      #include "HitInformation.cxx"
 
     } // End for loop over entries
     
