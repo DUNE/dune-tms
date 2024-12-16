@@ -150,6 +150,35 @@ public :
    Float_t TrueNonTMSHitDx[100000]; //[TrueNonTMSNHits]
    Float_t TrueNonTMSHitdEdx[100000]; //[TrueNonTMSNHits]
    Int_t TrueNonTMSHitVertexID[100000]; //[TrueNonTMSNHits]
+   
+   Int_t           NTrueHits;
+   Float_t         TrueHitX[100000];   //[NTrueHits]
+   Float_t         TrueHitY[100000];   //[NTrueHits]
+   Float_t         TrueHitZ[100000];   //[NTrueHits]
+   Float_t         TrueHitT[100000];   //[NTrueHits]
+   Float_t         TrueHitE[100000];   //[NTrueHits]
+   Float_t         TrueHitPE[100000];   //[NTrueHits]
+   Float_t         TrueHitPEAfterFibers[100000];   //[NTrueHits]
+   Float_t         TrueHitPEAfterFibersLongPath[100000];   //[NTrueHits]
+   Float_t         TrueHitPEAfterFibersShortPath[100000];   //[NTrueHits]
+   Int_t           TrueNTrueParticles[100000];   //[NTrueHits]
+   Float_t         TrueLeptonicEnergy[100000];   //[NTrueHits]
+   Float_t         TrueHadronicEnergy[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitX[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitY[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitZ[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitTrackX[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitTrackY[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitTrackXUncertainty[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitTrackYUncertainty[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitNotZ[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitT[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitE[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitPE[100000];   //[NTrueHits]
+   Float_t         TrueRecoHitEVis[100000];   //[NTrueHits]
+   Bool_t          TrueRecoHitIsPedSupped[100000];   //[NTrueHits]
+   Int_t           TrueHitBar[100000];   //[NTrueHits]
+   Int_t           TrueHitPlane[100000];   //[NTrueHits]
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -281,6 +310,34 @@ public :
    TBranch        *b_TrueNonTMSHitDx;   //!
    TBranch        *b_TrueNonTMSHitdEdx;   //!
    TBranch        *b_TrueNonTMSHitVertexID;   //!
+   TBranch        *b_NTrueHits;   //!
+   TBranch        *b_TrueHitX;   //!
+   TBranch        *b_TrueHitY;   //!
+   TBranch        *b_TrueHitZ;   //!
+   TBranch        *b_TrueHitT;   //!
+   TBranch        *b_TrueHitE;   //!
+   TBranch        *b_TrueHitPE;   //!
+   TBranch        *b_TrueHitPEAfterFibers;   //!
+   TBranch        *b_TrueHitPEAfterFibersLongPath;   //!
+   TBranch        *b_TrueHitPEAfterFibersShortPath;   //!
+   TBranch        *b_TrueNTrueParticles;   //!
+   TBranch        *b_TrueLeptonicEnergy;   //!
+   TBranch        *b_TrueHadronicEnergy;   //!
+   TBranch        *b_TrueRecoHitX;   //!
+   TBranch        *b_TrueRecoHitY;   //!
+   TBranch        *b_TrueRecoHitZ;   //!
+   TBranch        *b_TrueRecoHitTrackX;   //!
+   TBranch        *b_TrueRecoHitTrackY;   //!
+   TBranch        *b_TrueRecoHitTrackXUncertainty;   //!
+   TBranch        *b_TrueRecoHitTrackYUncertainty;   //!
+   TBranch        *b_TrueRecoHitNotZ;   //!
+   TBranch        *b_TrueRecoHitT;   //!
+   TBranch        *b_TrueRecoHitE;   //!
+   TBranch        *b_TrueRecoHitPE;   //!
+   TBranch        *b_TrueRecoHitEVis;   //!
+   TBranch        *b_TrueRecoHitIsPedSupped;   //!
+   TBranch        *b_TrueHitBar;   //!
+   TBranch        *b_TrueHitPlane;   //!
 
    Truth_Info(TTree *tree=0);
    virtual ~Truth_Info();
@@ -484,6 +541,34 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("TrueNonTMSHitDx", TrueNonTMSHitDx, &b_TrueNonTMSHitDx);
    fChain->SetBranchAddress("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, &b_TrueNonTMSHitdEdx);
    fChain->SetBranchAddress("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, &b_TrueNonTMSHitVertexID);
+   fChain->SetBranchAddress("NTrueHits", &NTrueHits, &b_NTrueHits);
+   fChain->SetBranchAddress("TrueHitX", TrueHitX, &b_TrueHitX);
+   fChain->SetBranchAddress("TrueHitY", TrueHitY, &b_TrueHitY);
+   fChain->SetBranchAddress("TrueHitZ", TrueHitZ, &b_TrueHitZ);
+   fChain->SetBranchAddress("TrueHitT", TrueHitT, &b_TrueHitT);
+   fChain->SetBranchAddress("TrueHitE", TrueHitE, &b_TrueHitE);
+   fChain->SetBranchAddress("TrueHitPE", TrueHitPE, &b_TrueHitPE);
+   fChain->SetBranchAddress("TrueHitPEAfterFibers", TrueHitPEAfterFibers, &b_TrueHitPEAfterFibers);
+   fChain->SetBranchAddress("TrueHitPEAfterFibersLongPath", TrueHitPEAfterFibersLongPath, &b_TrueHitPEAfterFibersLongPath);
+   fChain->SetBranchAddress("TrueHitPEAfterFibersShortPath", TrueHitPEAfterFibersShortPath, &b_TrueHitPEAfterFibersShortPath);
+   fChain->SetBranchAddress("TrueNTrueParticles", TrueNTrueParticles, &b_TrueNTrueParticles);
+   fChain->SetBranchAddress("TrueLeptonicEnergy", TrueLeptonicEnergy, &b_TrueLeptonicEnergy);
+   fChain->SetBranchAddress("TrueHadronicEnergy", TrueHadronicEnergy, &b_TrueHadronicEnergy);
+   fChain->SetBranchAddress("TrueRecoHitX", TrueRecoHitX, &b_TrueRecoHitX);
+   fChain->SetBranchAddress("TrueRecoHitY", TrueRecoHitY, &b_TrueRecoHitY);
+   fChain->SetBranchAddress("TrueRecoHitZ", TrueRecoHitZ, &b_TrueRecoHitZ);
+   fChain->SetBranchAddress("TrueRecoHitTrackX", TrueRecoHitTrackX, &b_TrueRecoHitTrackX);
+   fChain->SetBranchAddress("TrueRecoHitTrackY", TrueRecoHitTrackY, &b_TrueRecoHitTrackY);
+   fChain->SetBranchAddress("TrueRecoHitTrackXUncertainty", TrueRecoHitTrackXUncertainty, &b_TrueRecoHitTrackXUncertainty);
+   fChain->SetBranchAddress("TrueRecoHitTrackYUncertainty", TrueRecoHitTrackYUncertainty, &b_TrueRecoHitTrackYUncertainty);
+   fChain->SetBranchAddress("TrueRecoHitNotZ", TrueRecoHitNotZ, &b_TrueRecoHitNotZ);
+   fChain->SetBranchAddress("TrueRecoHitT", TrueRecoHitT, &b_TrueRecoHitT);
+   fChain->SetBranchAddress("TrueRecoHitE", TrueRecoHitE, &b_TrueRecoHitE);
+   fChain->SetBranchAddress("TrueRecoHitPE", TrueRecoHitPE, &b_TrueRecoHitPE);
+   fChain->SetBranchAddress("TrueRecoHitEVis", TrueRecoHitEVis, &b_TrueRecoHitEVis);
+   fChain->SetBranchAddress("TrueRecoHitIsPedSupped", TrueRecoHitIsPedSupped, &b_TrueRecoHitIsPedSupped);
+   fChain->SetBranchAddress("TrueHitBar", TrueHitBar, &b_TrueHitBar);
+   fChain->SetBranchAddress("TrueHitPlane", TrueHitPlane, &b_TrueHitPlane);
    Notify();
 }
 
