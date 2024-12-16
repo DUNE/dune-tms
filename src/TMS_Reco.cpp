@@ -1,4 +1,5 @@
 #include "TMS_Reco.h"
+#include "TMS_Readout_Manager.h"
 
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
@@ -155,6 +156,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     if (hit.GetPedSup()) std::cout<<"Raw hits, found a ped supped hit in slice"<<std::endl;
     if (hit.GetPE() < 4 || hit.GetTrueHit().GetPE()) 
       std::cout<<"hit.GetPE(): "<<hit.GetPE()<<",\thit.GetTrueHit().GetPE(): "<<hit.GetTrueHit().GetPE()<<std::endl;
+    if (hit.GetPedSup() || hit.GetPE() < TMS_Readout_Manager::GetInstance().Get_Sim_Readout_PedestalSubtractionThreshold()) {
+      std::cout<<"Fatal: Found Ped Supped hit! Quitting!"<<std::endl;
+      exit(1);
+    }
     min_time = std::min(min_time, hit.GetT());
     max_time = std::max(max_time, hit.GetT());
   }
