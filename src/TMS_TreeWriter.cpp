@@ -377,7 +377,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
   
   
-  Truth_Info->Branch("NTrueHits", &NTrueHits);
+  Truth_Info->Branch("NTrueHits", &NTrueHits, "NTrueHits/I");
   Truth_Info->Branch("TrueHitX", &TrueHitX, "TrueHitX[NTrueHits]/F");
   Truth_Info->Branch("TrueHitY", &TrueHitY, "TrueHitY[NTrueHits]/F");
   Truth_Info->Branch("TrueHitZ", &TrueHitZ, "TrueHitZ[NTrueHits]/F");
@@ -1436,17 +1436,21 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         }
       }
     }
-
-    if (RecoTrackEndPos[itTrack][0] - RecoTrackPrimaryParticleTruePositionLeavingTMS[itTrack][0] > 200.){
-      std::cout << "Endpoint: " << RecoTrackEndPos[itTrack][0] << " " << RecoTrackEndPos[itTrack][1] << " " << RecoTrackEndPos[itTrack][2] << std::endl;
-      for (int Hits = 0; Hits != nHits; ++Hits) {
-        std::cout << "R: " << RecoHitPos[Hits][0] << " " << RecoHitPos[Hits][1] << " " << RecoHitPos[Hits][2] << "\t" << RecoTrack->Hits[Hits].GetPE() << std::endl;
-      }
-      for (int hits = 0; hits != RecoTrackNHits[itTrack]; ++hits) {
-        std::cout << "T: " << RecoTrackTrueHitPosition[itTrack][hits][0] << " " << RecoTrackTrueHitPosition[itTrack][hits][1] << " " << RecoTrackTrueHitPosition[itTrack][hits][2] << "\t" << RecoTrack->Hits[hits].GetTrueHit().GetPE() << std::endl;
-      }
-      std::cout << " " << std::endl;
-    }
+    //bool output = false;
+    //if (RecoTrackEndPos[itTrack][0] - RecoTrackPrimaryParticleTruePositionLeavingTMS[itTrack][0] > 200.){
+    //  output = true;
+    //  std::cout << "Endpoint: " << RecoTrackEndPos[itTrack][0] << " " << RecoTrackEndPos[itTrack][1] << " " << RecoTrackEndPos[itTrack][2] << std::endl;
+    //  for (int Hits = 0; Hits != nHits; ++Hits) {
+    //    std::cout << "O: " << RecoHitPos[Hits][0] << " " << RecoHitPos[Hits][1] << " " << RecoHitPos[Hits][2] << "\t" << RecoTrack->Hits[Hits].GetPE() << std::endl;
+    //  }
+    //  for (int Hits = 0; Hits != nHitsIn3DTrack[itTrack]; ++Hits) {
+    //    std::cout << "R: " << RecoTrackHitPos[itTrack][Hits][0] << " " << RecoTrackHitPos[itTrack][Hits][1] << " " << RecoTrackHitPos[itTrack][Hits][2] << "\t" << RecoTrackHitEnergies[itTrack][Hits] << std::endl;
+    //  }
+    //  for (int hits = 0; hits != RecoTrackNHits[itTrack]; ++hits) {
+    //    std::cout << "T: " << RecoTrackTrueHitPosition[itTrack][hits][0] << " " << RecoTrackTrueHitPosition[itTrack][hits][1] << " " << RecoTrackTrueHitPosition[itTrack][hits][2] << "\t" << RecoTrack->Hits[hits].GetTrueHit().GetPE() << std::endl;
+    //  }
+    //  std::cout << " " << std::endl;
+    //}
   }
   
   
@@ -1501,8 +1505,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         index += 1;
       }
     }
-    
   }
+
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
