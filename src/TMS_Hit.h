@@ -76,10 +76,10 @@ class TMS_Hit {
     void SetT(double t) {Time = t;};
     
     void SetPedSup(bool isPedSup) { PedSuppressed = isPedSup;};
-    bool GetPedSup() { return PedSuppressed; };
+    bool GetPedSup() const { return PedSuppressed; };
     
     void SetPE(double pe) { PE = pe; };
-    double GetPE() { return PE; };
+    double GetPE() const { return PE; };
 
     double GetE() const {return EnergyDeposit;};
     double GetEVis() const {return EnergyDepositVisible;};
