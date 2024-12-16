@@ -1181,6 +1181,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitBar[stdit] = (*it).GetBarNumber();
     RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
+    if ((*it).GetPE() < 4 || (*it).GetTrueHit().GetPE() < 4) 
+      std::cout<<"(*it).GetPE(): "<<(*it).GetPE()<<",\t(*it).GetTrueHit().GetPE():"<<(*it).GetTrueHit().GetPE()<<std::endl;
   }
 
   // Fill up the info only if all above has passed
@@ -1273,9 +1275,16 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanPlaneBarViewTrue[itTrack][j][1] = current_bar_true.GetBarNumber();
       RecoTrackKalmanPlaneBarViewTrue[itTrack][j][2] = current_bar_true.GetBarTypeNumber();
     }
+    
+    for (unsigned int j = 0; j < nHits; ++j) {
+        std::cout<<"Overflow PE: "<<RecoTrack->Hits[j].GetPE()<<",\toverflow true PE: "<<RecoTrack->Hits[j].GetTrueHit().GetPE()<<std::endl;
+    }
 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
+      
+      if (RecoTrack->Hits[j].GetPE() < 4 || RecoTrack->Hits[j].GetTrueHit().GetPE() < 4) 
+        std::cout<<"Track PE: "<<RecoTrack->Hits[j].GetPE()<<",\tTrue PE: "<<RecoTrack->Hits[j].GetTrueHit().GetPE()<<std::endl;
 
       // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {

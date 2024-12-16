@@ -152,9 +152,9 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   double max_time = -1e9;
   int slice = event.GetSliceNumber();
   for (auto hit : RawHits) {
-#ifdef DEBUG
     if (hit.GetPedSup()) std::cout<<"Raw hits, found a ped supped hit in slice"<<std::endl;
-#endif
+    if (hit.GetPE() < 4 || hit.GetTrueHit().GetPE()) 
+      std::cout<<"hit.GetPE(): "<<hit.GetPE()<<",\thit.GetTrueHit().GetPE(): "<<hit.GetTrueHit().GetPE()<<std::endl;
     min_time = std::min(min_time, hit.GetT());
     max_time = std::max(max_time, hit.GetT());
   }
