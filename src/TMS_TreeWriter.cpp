@@ -66,6 +66,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Branch_Lines->Branch("RunNo", &RunNo, "RunNo/I");
   Branch_Lines->Branch("nLinesU", &nLinesU, "nLinesU/I");
   Branch_Lines->Branch("nLinesV", &nLinesV, "nLinesV/I");
   Branch_Lines->Branch("nLinesX", &nLinesX, "nLinesX/I");
@@ -219,6 +220,9 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
   Branch_Lines->Branch("RecoHitPos",    RecoHitPos,    "RecoHitPos[nHits][4]/F");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
+  Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
   // Track information
@@ -226,12 +230,13 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Reco_Tree->Branch("RunNo", &RunNo, "RunNo/I");
 
   Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
-  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "TrackHitPos[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "KalmanPos[nTracks][200][3]/F");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanPlaneBarView", RecoTrackKalmanPlaneBarView, "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
@@ -248,7 +253,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
-  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
@@ -412,6 +417,8 @@ void TMS_TreeWriter::MakeBranches() {
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   // Truth information saved per spill only
   truth->Branch("EventNo", &EventNo, "EventNo/I");
+  truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  truth->Branch("RunNo", &RunNo, "RunNo/I");
   truth->Branch("IsCC", &IsCC, "IsCC/O");
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
@@ -521,6 +528,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -1169,6 +1177,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitPE[stdit] = (*it).GetPE();
+    RecoHitBar[stdit] = (*it).GetBarNumber();
+    RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
@@ -1505,6 +1516,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
@@ -1828,6 +1840,10 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
     RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPE[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBar[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
@@ -1881,6 +1897,7 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;

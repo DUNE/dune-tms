@@ -54,6 +54,7 @@ class TMS_Event {
     
     int GetNHits() { return TMS_Hits.size(); };
 
+    int GetRunNumber() { return RunNumber; };
     int GetEventNumber() { return EventNumber; };
     //void SetEventNumber(int num) { EventNumber = num; };
     std::string GetReaction() { return Reaction; };
@@ -158,6 +159,7 @@ class TMS_Event {
     static int EventCounter;
 
     // Saves the event number for a constructed event
+    int RunNumber;
     int EventNumber;
     int SliceNumber;
     

@@ -42,6 +42,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nCharged = 0;
   int nHighMomentum = 0;
   int nChargedAndLowMomentum = 0;
+  RunNumber = event.RunId;
   int current_vertexid = event.EventId;
   // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
   // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
