@@ -520,10 +520,11 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "Y_full") return std::make_tuple("Y (cm)", 100, -500, 500);
   if (axis_name == "Z") return std::make_tuple("Z (cm)", 100, 1100, 1900);
   if (axis_name == "Z_full") return std::make_tuple("Z (cm)", 100, 0, 2300);
-  if (axis_name == "direction_xz") return std::make_tuple("XZ Direction", 31, -2, 2);
-  if (axis_name == "dx") return std::make_tuple("dX (cm)", 100, -100, 100);
-  if (axis_name == "dy") return std::make_tuple("dY (cm)", 100, -100, 100);
-  if (axis_name == "dz") return std::make_tuple("dZ (cm)", 100, -100, 100);
+  if (axis_name == "direction_xz") return std::make_tuple("XZ Direction (dx/dz)", 31, -2, 2);
+  if (axis_name == "direction_yz") return std::make_tuple("YZ Direction (dy/dz)", 31, -2, 2);
+  if (axis_name == "dx") return std::make_tuple("dX", 51, -2, 2);
+  if (axis_name == "dy") return std::make_tuple("dY", 51, -2, 2);
+  if (axis_name == "dz") return std::make_tuple("dZ", 51, -2, 2);
   if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
   if (axis_name == "angle_tms_enter") return std::make_tuple("Angle (deg)", 30, -60, 60);
   if (axis_name == "unusual_hit_locations") return std::make_tuple("Hit Location", 4, -0.5, 3.5);
@@ -844,14 +845,33 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           GetHist("basic__raw__KalmanTruePos_Y", "KalmanTruePos Y", "Y")->Fill(reco.KalmanTruePos[it][ih][1] * CM);
           GetHist("basic__raw__KalmanTruePos_Z", "KalmanTruePos Z", "Z")->Fill(reco.KalmanTruePos[it][ih][2] * CM);
         }
-        GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0] * CM);
-        GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1] * CM);
-        GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2] * CM);
-        GetHist("basic__raw__StartDirection_XZ", "StartDirection", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
-        GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0] * CM);
-        GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
-        GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
-        GetHist("basic__raw__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0]);
+        GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1]);
+        GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2]);
+        GetHist("basic__raw__StartDirection_XZ", "StartDirection X/Z", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
+        GetHist("basic__raw__StartDirection_YZ", "StartDirection Y/Z", "direction_yz")->Fill(reco.StartDirection[it][1] / reco.StartDirection[it][2]);
+        GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0]);
+        GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1]);
+        GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2]);
+        GetHist("basic__raw__EndDirection_XZ", "EndDirections X/Z", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        GetHist("basic__raw__EndDirection_YZ", "EndDirections Y/Z", "direction_yz")->Fill(reco.EndDirection[it][1] / reco.EndDirection[it][2]);
+        
+        REGISTER_AXIS(DirectionSanityCheck, std::make_tuple("Direction Mag", 51, 0, 10));
+        double start_direction_mag = std::sqrt(reco.StartDirection[it][0] * reco.StartDirection[it][0] +
+                                               reco.StartDirection[it][1] * reco.StartDirection[it][1] +
+                                               reco.StartDirection[it][2] * reco.StartDirection[it][2]);
+        double end_direction_mag = std::sqrt(reco.EndDirection[it][0] * reco.EndDirection[it][0] +
+                                             reco.EndDirection[it][1] * reco.EndDirection[it][1] +
+                                             reco.EndDirection[it][2] * reco.EndDirection[it][2]);
+        const double epsilon = 1e-6;
+        if (std::abs(start_direction_mag - 1) > epsilon)
+          std::cout<<"Warning: Found start_direction_mag outside of 1. "<<start_direction_mag<<std::endl;
+        if (std::abs(end_direction_mag - 1) > epsilon)
+          std::cout<<"Warning: Found end_direction_mag outside of 1. "<<end_direction_mag<<std::endl;
+        GetHist("basic__sanity__StartDirectionMag", "StartDirection Mag", "DirectionSanityCheck")->Fill(start_direction_mag);
+        GetHist("basic__sanity__EndDirectionMag", "EndDirection Mag", "DirectionSanityCheck")->Fill(end_direction_mag);
+        if (std::abs(reco.StartDirection[it][1]) > 1) 
+          std::cout<<"big y dir: "<<reco.StartDirection[it][0]<<","<<reco.StartDirection[it][1]<<","<<reco.StartDirection[it][2]<<"\t"<<start_direction_mag<<std::endl;
         
         GetHist("basic__raw__StartPos_X", "StartPos X", "X")->Fill(reco.StartPos[it][0] * CM);
         GetHist("basic__raw__StartPos_Y", "StartPos Y", "Y")->Fill(reco.StartPos[it][1] * CM);
@@ -931,14 +951,16 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           GetHist("basic__fixed__KalmanTruePos_Y", "KalmanTruePos Y", "Y")->Fill(reco.KalmanTruePos[it][ih][1] * CM);
           GetHist("basic__fixed__KalmanTruePos_Z", "KalmanTruePos Z", "Z")->Fill(reco.KalmanTruePos[it][ih][2] * CM);
         }
-        GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0] * CM);
-        GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1] * CM);
-        GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2] * CM);
-        GetHist("basic__fixed__StartDirection_XZ", "StartDirection", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
-        GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0] * CM);
-        GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1] * CM);
-        GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2] * CM);
-        GetHist("basic__fixed__EndDirection_XZ", "EndDirections", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0]);
+        GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1]);
+        GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2]);
+        GetHist("basic__fixed__StartDirection_XZ", "StartDirection X/Z", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
+        GetHist("basic__fixed__StartDirection_YZ", "StartDirection Y/Z", "direction_yz")->Fill(reco.StartDirection[it][1] / reco.StartDirection[it][2]);
+        GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0]);
+        GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1]);
+        GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2]);
+        GetHist("basic__fixed__EndDirection_XZ", "EndDirections X/Z", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
+        GetHist("basic__fixed__EndDirection_YZ", "EndDirections Y/Z", "direction_yz")->Fill(reco.EndDirection[it][1] / reco.EndDirection[it][2]);
         
         
         // Check for reco hits outside the TMS scint volume
