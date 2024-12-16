@@ -149,6 +149,9 @@ public :
    Float_t         RecoHitPos[2000][4];   //[nHits]
    Float_t         RecoHitEnergy[2000];   //[nHits]
    Int_t           RecoHitSlice[2000];   //[nHits] 
+   Float_t         RecoHitPE[2000];   //[nHits]
+   Int_t           RecoHitBar[2000];   //[nHits]
+   Int_t           RecoHitPlane[2000];   //[nHits]
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -277,6 +280,9 @@ public :
    TBranch        *b_nHits;   //!
    TBranch        *b_RecoHitPos;   //!
    TBranch        *b_RecoHitEnergy;   //!
+   TBranch        *b_RecoHitPE;   //!
+   TBranch        *b_RecoHitBar;   //!
+   TBranch        *b_RecoHitPlane;   //!
    TBranch        *b_RecoHitSlice;   //! 
 
    Line_Candidates(TTree *tree=0);
@@ -495,6 +501,9 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("nHits", &nHits, &b_nHits);
    fChain->SetBranchAddress("RecoHitPos", RecoHitPos, &b_RecoHitPos);
    fChain->SetBranchAddress("RecoHitEnergy", RecoHitEnergy, &b_RecoHitEnergy);
+   fChain->SetBranchAddress("RecoHitPE", RecoHitPE, &b_RecoHitPE);
+   fChain->SetBranchAddress("RecoHitBar", RecoHitBar, &b_RecoHitBar);
+   fChain->SetBranchAddress("RecoHitPlane", RecoHitPlane, &b_RecoHitPlane);
    fChain->SetBranchAddress("RecoHitSlice", RecoHitSlice, &b_RecoHitSlice); 
    Notify();
 }
