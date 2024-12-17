@@ -122,8 +122,8 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
             # classify if true muon actually enough distance in TMS and start in LAr
             LArFiducialTouch = true_event.RecoTrackPrimaryParticleLArFiducialStart
             Particle_PDG = true_event.LeptonPDG
-            Muon_Start = np.frombuffer(true_event.Muon_Vertex, dtype = np.float32)
-            Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
+            Muon_Start = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionStart, dtype = np.float32)
+            Muon_End = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionEnd, dtype = np.float32)
             True_Momentum_Leaving = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueMomentumLeavingTMS, dtype = np.float32)
             # actual hits
             Reco_Hits = np.frombuffer(event.TrackHitPos, dtype = np.float32)
@@ -235,6 +235,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         Reco_Charge = Reco_Charge[boolean_Reco_Charge]
         boolean_True_Charge_stop = (True_Charge_stop != -9999.)
         True_Charge_stop = True_Charge_stop[boolean_True_Charge_stop]
+        True_KE_stop = True_KE[boolean_True_Charge_stop & (True_KE != -9999.)]
     if plot_Charge or plot_Angle:
         boolean_True_Charge = (True_Charge != -9999.)
         True_Charge = True_Charge[boolean_True_Charge]    
@@ -410,13 +411,14 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         # Filter out all events without truth +/-13 as PDG
         boolean_true_muon_stop = (np.abs(True_Charge_stop) == 13)
         True_Charge_stop = True_Charge_stop[boolean_true_muon_stop]
+        True_KE_stop = True_KE_stop[boolean_true_muon_stop]
         Reco_Charge = Reco_Charge[boolean_true_muon_stop]
         boolean_issues = (Reco_Charge == -9.99999999e+08)
         not_identified = Reco_Charge[boolean_issues]
         
         # Prepare the KE arrays
-        Muons_KE = np.ones(len(True_KE), dtype = float) * -9999.
-        AMuons_KE = np.ones(len(True_KE), dtype = float) * -9999.
+        Muons_KE = np.ones(len(True_KE_stop), dtype = float) * -9999.
+        AMuons_KE = np.ones(len(True_KE_stop), dtype = float) * -9999.
     
         # Counter for both positive, both negative, different reco/truth positive and negative
         true_muons = len(True_Charge[True_Charge_ctop == 13])
@@ -428,18 +430,18 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
         counter_false_positive = 0  #truth and reco disagree, reco -> muon
         counter_false_negative = 0  #truth and reco disagree, reco -> antimuon
     
-        True_Muons_KE = True_KE[True_Charge_stop == 13]
-        True_Antimuons_KE = True_KE[True_Charge_stop == -13]
+        True_Muons_KE = True_KE_stop[True_Charge_stop == 13]
+        True_Antimuons_KE = True_KE_stop[True_Charge_stop == -13]
     
         # Compare sign of truth and reco    
         for i in range(len(True_Charge_stop)):
             if True_Charge[i] == Reco_Charge[i]:
                 if True_Charge[i] > 0:
                     counter_true_positive += 1
-                    Muons_KE[i] = True_KE[i]
+                    Muons_KE[i] = True_KE_stop[i]
                 else:
                     counter_true_negative += 1
-                    AMuons_KE[i] = True_KE[i]
+                    AMuons_KE[i] = True_KE_stop[i]
             else:
                 if Reco_Charge[i] > 0:
                     counter_false_positive += 1
