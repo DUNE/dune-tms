@@ -522,9 +522,9 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "Z_full") return std::make_tuple("Z (cm)", 100, 0, 2300);
   if (axis_name == "direction_xz") return std::make_tuple("XZ Direction (dx/dz)", 31, -2, 2);
   if (axis_name == "direction_yz") return std::make_tuple("YZ Direction (dy/dz)", 31, -2, 2);
-  if (axis_name == "dx") return std::make_tuple("dX", 51, -2, 2);
-  if (axis_name == "dy") return std::make_tuple("dY", 51, -2, 2);
-  if (axis_name == "dz") return std::make_tuple("dZ", 51, -2, 2);
+  if (axis_name == "dx") return std::make_tuple("dX", 51, -1, 1);
+  if (axis_name == "dy") return std::make_tuple("dY", 51, -1, 1);
+  if (axis_name == "dz") return std::make_tuple("dZ", 51, -1, 1);
   if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
   if (axis_name == "angle_tms_enter") return std::make_tuple("Angle (deg)", 30, -60, 60);
   if (axis_name == "unusual_hit_locations") return std::make_tuple("Hit Location", 4, -0.5, 3.5);
@@ -872,6 +872,16 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__sanity__EndDirectionMag", "EndDirection Mag", "DirectionSanityCheck")->Fill(end_direction_mag);
         if (std::abs(reco.StartDirection[it][1]) > 1) 
           std::cout<<"big y dir: "<<reco.StartDirection[it][0]<<","<<reco.StartDirection[it][1]<<","<<reco.StartDirection[it][2]<<"\t"<<start_direction_mag<<std::endl;
+          
+        const double big_epsilon = 1e-1;
+        bool has_y_start_direction_zero = (std::abs(reco.StartDirection[it][1]) < big_epsilon);
+        if (has_y_start_direction_zero)
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "y_start_direction_zero", 
+                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+        bool has_y_end_direction_zero = (std::abs(reco.EndDirection[it][1]) < big_epsilon);
+        if (has_y_end_direction_zero)
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "y_end_direction_zero", 
+                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
         
         GetHist("basic__raw__StartPos_X", "StartPos X", "X")->Fill(reco.StartPos[it][0] * CM);
         GetHist("basic__raw__StartPos_Y", "StartPos Y", "Y")->Fill(reco.StartPos[it][1] * CM);

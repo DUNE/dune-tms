@@ -43,6 +43,14 @@ public :
    Float_t         Length[__TMS_MAX_TRACKS__];   //[nTracks]
    Int_t           Charge[__TMS_MAX_TRACKS__];   //[nTracks]
    Float_t         TrackHitEnergies[__TMS_MAX_TRACKS__][200];
+   Float_t         TimeSliceStartTime;
+   Float_t         TimeSliceEndTime;
+   Int_t           RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Int_t           RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Int_t           RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][200][3];   //[nTracks]
+   Int_t           RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Int_t           RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];   //[nTracks]
+   Int_t           RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][200][3];   //[nTracks]
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -65,6 +73,14 @@ public :
    TBranch        *b_Length;   //!
    TBranch        *b_Charge;   //!
    TBranch        *b_RecoTrackHitEnergies;   //!
+   TBranch        *b_TimeSliceStartTime;   //!
+   TBranch        *b_TimeSliceEndTime;   //!
+   TBranch        *b_RecoTrackKalmanFirstPlaneBarView;   //!
+   TBranch        *b_RecoTrackKalmanLastPlaneBarView;   //!
+   TBranch        *b_RecoTrackKalmanPlaneBarView;   //!
+   TBranch        *b_RecoTrackKalmanFirstPlaneBarViewTrue;   //!
+   TBranch        *b_RecoTrackKalmanLastPlaneBarViewTrue;   //!
+   TBranch        *b_RecoTrackKalmanPlaneBarViewTrue;   //!
 
    Reco_Tree(TTree *tree=0);
    virtual ~Reco_Tree();
@@ -161,6 +177,14 @@ void Reco_Tree::Init(TTree *tree)
    fChain->SetBranchAddress("Length", Length, &b_Length);
    fChain->SetBranchAddress("Charge", Charge, &b_Charge);
    fChain->SetBranchAddress("TrackHitEnergies", TrackHitEnergies, &b_RecoTrackHitEnergies);
+   fChain->SetBranchAddress("TimeSliceStartTime", &TimeSliceStartTime, &b_TimeSliceStartTime);
+   fChain->SetBranchAddress("TimeSliceEndTime", &TimeSliceEndTime, &b_TimeSliceEndTime);
+   fChain->SetBranchAddress("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, &b_RecoTrackKalmanFirstPlaneBarView);
+   fChain->SetBranchAddress("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, &b_RecoTrackKalmanLastPlaneBarView);
+   fChain->SetBranchAddress("RecoTrackKalmanPlaneBarView", RecoTrackKalmanPlaneBarView, &b_RecoTrackKalmanPlaneBarView);
+   fChain->SetBranchAddress("RecoTrackKalmanFirstPlaneBarViewTrue", RecoTrackKalmanFirstPlaneBarViewTrue, &b_RecoTrackKalmanFirstPlaneBarViewTrue);
+   fChain->SetBranchAddress("RecoTrackKalmanLastPlaneBarViewTrue", RecoTrackKalmanLastPlaneBarViewTrue, &b_RecoTrackKalmanLastPlaneBarViewTrue);
+   fChain->SetBranchAddress("RecoTrackKalmanPlaneBarViewTrue", RecoTrackKalmanPlaneBarViewTrue, &b_RecoTrackKalmanPlaneBarViewTrue);
    Notify();
 }
 
