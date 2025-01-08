@@ -31,6 +31,10 @@ const double CM = 0.1; // cm per mm
 const double DEG = 360 / TAU;
 const double GEV = 1e-3; // GeV per MEV
 
+#define length_to_energy_clarence(l) (l*1.75 + 82)*1e-3
+#define default_length_to_energy(l) (l*1.75)*1e-3
+#define length_to_energy(l) (l*1.75*0.951 + 76.8)*1e-3
+
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
 
 int GetHitLocationCodeSingle(float x, bool isx) {
@@ -407,7 +411,7 @@ int isTMSContained(TVector3 position, bool thin_only = false) {
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;  
+  const double TMS_Thick_End = 18000 - 100;  
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
   const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
   if (position.X() < TMS_Start_Bars_Only[0]) out += 1 << 0;
@@ -936,7 +940,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         }
         reco.nKalmanNodes[itrack] = n_nonzero;
         
-        if (reco.nHits[itrack] > 0) {
+        /*if (reco.nHits[itrack] > 0) {
           const int LOOKBACK_WINDOW = 10;
           int n_nodes = n_nonzero > LOOKBACK_WINDOW ? LOOKBACK_WINDOW : n_nonzero;
           n_nodes -= 1;
@@ -948,7 +952,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           reco.EndDirection[itrack][0] = reco.KalmanPos[itrack][last_index][0] - reco.KalmanPos[itrack][last_index - n_nodes][0];
           reco.EndDirection[itrack][1] = reco.KalmanPos[itrack][last_index][1] - reco.KalmanPos[itrack][last_index - n_nodes][1];
           reco.EndDirection[itrack][2] = reco.KalmanPos[itrack][last_index][2] - reco.KalmanPos[itrack][last_index - n_nodes][2];
-        }
+        }*/
       }
       
       for (int it = 0; it < reco.nTracks; it++) {
