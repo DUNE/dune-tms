@@ -986,7 +986,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
           if (reco.KalmanPos[it][ih][2] < -990) hit_flag_z = 1;
           if (reco.KalmanPos[it][ih][2] < 11362) hit_flag_z = 2;
           if (reco.KalmanPos[it][ih][2] > 18313) hit_flag_z = 3;
-          if (hit_flag_z == 3) std::cout<<"reco.KalmanPos[it][ih][2]: "<<reco.KalmanPos[it][ih][2]<<std::endl;
+          //if (hit_flag_z == 3) std::cout<<"reco.KalmanPos[it][ih][2]: "<<reco.KalmanPos[it][ih][2]<<std::endl;
           if (reco.KalmanPos[it][ih][1] < -2950) hit_flag_y = 2;
           if (reco.KalmanPos[it][ih][1] > 240) hit_flag_y = 3;
           if (reco.KalmanPos[it][ih][0] < -3350) hit_flag_x = 2;
