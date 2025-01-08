@@ -17,6 +17,9 @@
   double reco_areal_density_of_highest = -9e-12;
   double highest_reco_starting_muon_ke_uncorrected = -9e-12;
   double highest_reco_starting_muon_ke_without_fit = -9e-12;
+  double true_muon_ke_lar = -9e-12;
+  double true_muon_areal_density_lar = -9e12; // starting from lar to end
+  double true_muon_areal_density_lar_only = -9e12; // only lar (and window) component
   
   if (on_new_spill) {
     
@@ -62,6 +65,17 @@
       if (highest_true_muon_starting_ke < true_muon_starting_ke) { 
         highest_true_muon_starting_ke = true_muon_starting_ke;
         true_areal_density_of_highest = truth.RecoTrackPrimaryParticleTrueTrackLengthInTMS[it];
+        
+        int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
+        if (particle_index >= 0 && particle_index < truth.nTrueParticles) {
+          true_muon_ke_lar = truth.BirthMomentum[particle_index][3] * 1e-3;
+        }
+        else {
+          std::cout<<"Warning: Didn't get a valid particle index: "<<particle_index<<std::endl;
+          true_muon_ke_lar = truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * 1e-3;
+        }
+        true_muon_areal_density_lar = truth.RecoTrackPrimaryParticleTrueTrackLength[it];
+        true_muon_areal_density_lar_only = true_muon_areal_density_lar - true_areal_density_of_highest;
       }
       double length_to_use = reco.Length[it];
       TVector3 direction(reco.EndDirection[it][0], 0, reco.EndDirection[it][2]);
@@ -145,6 +159,13 @@
   double fractional_resolution_without_fit = (highest_reco_starting_muon_ke_without_fit - highest_true_muon_starting_ke) / highest_true_muon_starting_ke;
   double residual_areal_density = reco_areal_density_of_highest - true_areal_density_of_highest;
   
+  //double lar_component_reco_ke_estimate = lar_length_to_energy(true_muon_areal_density_lar_only);
+  double lar_component_true = true_muon_ke_lar - highest_true_muon_starting_ke;
+  double lar_component_reco_ke_estimate = lar_component_true;
+  double lar_reco_ke = highest_reco_starting_muon_ke + lar_component_reco_ke_estimate;
+  double lar_fractional_resolution = (lar_reco_ke - true_muon_ke_lar) / true_muon_ke_lar;
+  double lar_component_fractional_resolution = (lar_component_reco_ke_estimate - lar_component_true) / lar_component_true;
+  
   // Plot some areal density info first, since it doesn't rely on our formula
   REGISTER_AXIS(true_areal_density, std::make_tuple("True Areal Density (g/cm^2)", 50, 0.0, 3000.0));
   REGISTER_AXIS(reco_areal_density, std::make_tuple("Reco Areal Density (g/cm^2)", 50, 0.0, 3000.0));
@@ -154,6 +175,8 @@
   REGISTER_AXIS(energy_resolution_slice, std::make_tuple("KE Resolution (reco - true) / true", 31, -0.4, 0.4));
   REGISTER_AXIS(basic_true_ke_enter, std::make_tuple("True TMS-Entering KE (GeV)", 50, 0.0, 5.0));
   REGISTER_AXIS(basic_reco_ke_enter, std::make_tuple("Reco TMS-Entering KE (GeV)", 50, 0.0, 5.0));
+  REGISTER_AXIS(basic_true_ke, std::make_tuple("True Muon KE (GeV)", 30, 0.0, 5.0));
+  REGISTER_AXIS(basic_reco_ke, std::make_tuple("Reco Muon KE (GeV)", 30, 0.0, 5.0));
   if (has_muon) {
     GetHist("energy_resolution__areal_density__all_areal_density_true",
             "Areal Density: True",
@@ -215,7 +238,6 @@
     if (target_e < highest_true_muon_starting_ke) {
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "areal_density_not_correlated_with_ke", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
-        std::cout<<"JDK: "<<target_e<<"\t"<<highest_true_muon_starting_ke<<std::endl;
       GetHist("energy_resolution__areal_density__vs_energy_comparison_drawn_slices",
               "True Areal Density Compared to Energy", "true_areal_density",
               "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
@@ -317,6 +339,27 @@
     }
             
             
+    GetHist("energy_resolution__lar_resolution__lar_muon_fractional_resolution",
+            "LAr-starting Muon Resolution", "energy_resolution")->Fill(lar_fractional_resolution);
+    GetHist("energy_resolution__lar_resolution__lar_muon_resolution_column_normalized",
+            "LAr-starting Muon Resolution, Column Normalized",
+            "basic_true_ke", "basic_reco_ke")->Fill(true_muon_ke_lar, lar_reco_ke);
+    GetHist("energy_resolution__lar_resolution__lar_muon_resolution",
+            "LAr-starting Muon Resolution",
+            "basic_true_ke", "basic_reco_ke")->Fill(true_muon_ke_lar, lar_reco_ke);
+  REGISTER_AXIS(basic_lar_component_ke_true, std::make_tuple("True Muon KE (GeV)", 30, 0.0, 5.0));
+  REGISTER_AXIS(basic_lar_component_ke_reco, std::make_tuple("Reco Muon KE (GeV)", 30, 0.0, 5.0));
+  REGISTER_AXIS(basic_lar_component_areal_density, std::make_tuple("True Muon Areal Density (g/cm^2)", 30, 0.0, 3000.0));
+    GetHist("energy_resolution__lar_resolution__lar_component_estimate_comparison",
+            "LAr-component Muon Resolution", "basic_lar_component_ke_true",
+            "basic_lar_component_ke_reco")->Fill(lar_component_true,
+            lar_component_reco_ke_estimate);
+    GetHist("energy_resolution__lar_resolution__lar_component_areal_density",
+            "LAr Muon True KE vs areal density", "basic_lar_component_ke_true",
+            "basic_lar_component_areal_density")->Fill(true_muon_ke_lar - highest_true_muon_starting_ke,
+            true_muon_areal_density_lar_only);
+    GetHist("energy_resolution__lar_resolution__lar_component_muon_fractional_resolution",
+            "LAr Component Muon Resolution", "energy_resolution")->Fill(lar_component_fractional_resolution);
             
     if (highest_reco_starting_muon_ke + 1 < highest_true_muon_starting_ke)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "poor_reco_starting_muon_ke", 
