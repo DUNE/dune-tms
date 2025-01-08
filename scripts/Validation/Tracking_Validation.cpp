@@ -183,6 +183,8 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       markersy.push_back(marker);
     }
   }
+  int track_colors[] = {kRed, kRed + 2, kRed - 2, kRed + 4, kRed - 5};
+  int n_track_colors = sizeof(track_colors) / sizeof(track_colors[0]);
   for (int it = 0; it < reco.nTracks; it++) {
     for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
       {
@@ -207,7 +209,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         float mx = reco.TrackHitPos[it][ih][2];
         float my = reco.TrackHitPos[it][ih][0];
         TMarker marker(mx, my, 20);
-        marker.SetMarkerColor(kRed);
+        marker.SetMarkerColor(track_colors[it % n_track_colors]);
         marker.SetMarkerSize(0.5);
         markers.push_back(marker);
       }
@@ -215,19 +217,29 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         float mx = reco.TrackHitPos[it][ih][2];
         float my = reco.TrackHitPos[it][ih][1];
         TMarker marker(mx, my, 20);
-        marker.SetMarkerColor(kRed);
+        marker.SetMarkerColor(track_colors[it % n_track_colors]);
         marker.SetMarkerSize(0.5);
         markersy.push_back(marker);
       }
     }
   }
-  if (false) {
-    int colors[] = {kGreen, kRed, kBlue, kOrange, kYellow, kMagenta, kGreen + 2};
+  if (true) {
+    int colors[] = {kGreen, kBlue, kOrange, kYellow, kMagenta, kGreen + 2};
     int ncolors = sizeof(colors)/sizeof(colors[0]);
     int n_offset = 0;
-    for (int it = 0; it < truth.nParticles; it++) {
-      // Only draw muons
-      if (std::abs(truth.PDG[it]) == 13) {
+    for (int ip = 0; ip < reco.nTracks; ip++) {
+      int it = truth.RecoTrackPrimaryParticleIndex[ip];
+      if (it < 0 || it > truth.nTrueParticles) continue; // Outside valid range
+      // Only draw charged particles
+      bool should_draw_true_particle = false;
+      if (std::abs(truth.PDG[it]) == 13) should_draw_true_particle = true;
+      // Pion
+      if (std::abs(truth.PDG[it]) == 211) should_draw_true_particle = true;
+      // Kaon
+      if (std::abs(truth.PDG[it]) == 321) should_draw_true_particle = true;
+      // Proton
+      if (std::abs(truth.PDG[it]) == 2212) should_draw_true_particle = true;
+      if (should_draw_true_particle) {
         {
           float mx = truth.BirthPosition[it][2];
           float my = truth.BirthPosition[it][0];
@@ -859,13 +871,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0]);
         GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1]);
         GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2]);
-        GetHist("basic__raw__StartDirection_XZ", "StartDirection X/Z", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
-        GetHist("basic__raw__StartDirection_YZ", "StartDirection Y/Z", "direction_yz")->Fill(reco.StartDirection[it][1] / reco.StartDirection[it][2]);
         GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0]);
         GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1]);
         GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2]);
-        GetHist("basic__raw__EndDirection_XZ", "EndDirections X/Z", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
-        GetHist("basic__raw__EndDirection_YZ", "EndDirections Y/Z", "direction_yz")->Fill(reco.EndDirection[it][1] / reco.EndDirection[it][2]);
         
         REGISTER_AXIS(DirectionSanityCheck, std::make_tuple("Direction Mag", 51, 0, 10));
         double start_direction_mag = std::sqrt(reco.StartDirection[it][0] * reco.StartDirection[it][0] +
@@ -975,13 +983,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx")->Fill(reco.StartDirection[it][0]);
         GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy")->Fill(reco.StartDirection[it][1]);
         GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz")->Fill(reco.StartDirection[it][2]);
-        GetHist("basic__fixed__StartDirection_XZ", "StartDirection X/Z", "direction_xz")->Fill(reco.StartDirection[it][0] / reco.StartDirection[it][2]);
-        GetHist("basic__fixed__StartDirection_YZ", "StartDirection Y/Z", "direction_yz")->Fill(reco.StartDirection[it][1] / reco.StartDirection[it][2]);
         GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx")->Fill(reco.EndDirection[it][0]);
         GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")->Fill(reco.EndDirection[it][1]);
         GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")->Fill(reco.EndDirection[it][2]);
-        GetHist("basic__fixed__EndDirection_XZ", "EndDirections X/Z", "direction_xz")->Fill(reco.EndDirection[it][0] / reco.EndDirection[it][2]);
-        GetHist("basic__fixed__EndDirection_YZ", "EndDirections Y/Z", "direction_yz")->Fill(reco.EndDirection[it][1] / reco.EndDirection[it][2]);
         
         
         // Check for reco hits outside the TMS scint volume
