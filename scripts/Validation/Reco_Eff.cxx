@@ -22,6 +22,10 @@
         if (ismuon && tms_touch) {
           GetHist("reco_eff__no_lar_tms_cuts__all_muon_ke_tms_enter_denominator", "Reconstruction Efficiency: Denominator",
             "ke_tms_enter")->Fill(particle_starting_ke);
+          GetHist("reco_eff__all_muon_ke_tms_enter_denominator", "Reco Efficiency vs True KE, All Muons: Denominator", 
+            "ke_tms")->Fill(particle_starting_ke);
+          GetHist("reco_eff__all_muon_ke_tms_enter_including_doubles_denominator", "Reco Efficiency w/2x vs True KE, All Muons: Denominator", 
+            "ke_tms")->Fill(particle_starting_ke);
           GetHist("reco_eff__all_muon_ke_denominator", "Reco Efficiency vs True KE, All Muons: Denominator", 
             "ke_tms")->Fill(particle_ke);
             
@@ -56,7 +60,7 @@
       } // end if (tms_touch)
     } 
   }
-      
+  
   // Fill numerators of reco_eff plots here
   for (int it = 0; it < reco.nTracks; it++) {
     // Only consider those that have enough visible energy in the TMS to count
@@ -64,6 +68,7 @@
     if (tms_touch) {
       bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
       bool ispion = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 211;
+      bool not_double_reco = true;
       bool lar_start = truth.RecoTrackPrimaryParticleLArFiducialStart[it];
       bool tms_end = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
       double particle_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
@@ -76,12 +81,39 @@
       }
       if (ip >= 0) {
         particle_ke = truth.BirthMomentum[ip][3] * GEV;
+        particle_indices_reconstructed[ip]++;
+        if (particle_indices_reconstructed[ip] > 1) {
+          // Found this particle already at least once
+          not_double_reco = false;
+          if (ismuon) std::cout<<"Warning: Found muon reconstructed multiple times in spill: "<<particle_starting_ke<<std::endl;
+          else std::cout<<"Warning: Found non-muon reconstructed multiple times in spill: "<<particle_starting_ke<<std::endl;
+          if (ismuon) { 
+            GetHist("reco_eff__multi_reco__muons", "Muons which were reconstructed more than once", 
+              "ke_tms_enter")->Fill(particle_starting_ke);
+            GetHist("reco_eff__multi_reco__probability_multi_reco_numerator", "Chance of Getting Reco'd more than Once", 
+              "ke_tms_enter")->Fill(particle_starting_ke);
+          }
+          else GetHist("reco_eff__multi_reco__nonmuon", "Non-muons which were reconstructed more than once", 
+            "ke_tms")->Fill(particle_starting_ke);
+          if (ismuon) 
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "multi_reco_muon", 
+                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+          else
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "multi_reco_nonmuon", 
+                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+        }
       }
       if (ismuon) {
+        GetHist("reco_eff__all_muon_ke_tms_enter_including_doubles_numerator", "Reco Efficiency w/2x vs True TMS-Entering KE, All Muons: Numerator", 
+          "ke_tms_enter")->Fill(particle_starting_ke);
+      }
+      if (ismuon && not_double_reco) {
         GetHist("reco_eff__all_muon_ke_tms_enter_numerator", "Reco Efficiency vs True TMS-Entering KE, All Muons: Numerator", 
           "ke_tms_enter")->Fill(particle_starting_ke);
         GetHist("reco_eff__all_muon_ke_numerator", "Reco Efficiency vs True KE, All Muons: Numerator", 
           "ke_tms")->Fill(particle_ke);
+        GetHist("reco_eff__multi_reco__probability_multi_reco_denominator", "Chance of Getting Reco'd more than Once", 
+          "ke_tms_enter")->Fill(particle_starting_ke);
             
         GetHist("reco_eff__endpoint__muon_endpoint_x_numerator", "Reconstruction Efficiency: Numerator",
           "muon_endpoint_x")->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][0] * CM);
@@ -97,10 +129,10 @@
         GetHist("reco_eff__startpoint__muon_startpoint_z_numerator", "Reconstruction Efficiency: Numerator",
           "muon_startpoint_z")->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[it][2] * CM);
       }
-      if (ispion)
+      if (ispion && not_double_reco)
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator", "Reco Efficiency, All Pions: Numerator", 
           "pion_ke_tms_enter")->Fill(particle_starting_ke);
-      if (ismuon && lar_start && tms_end) {
+      if (ismuon && lar_start && tms_end && not_double_reco) {
         GetHist("reco_eff__muon_ke_tms_enter_numerator", "Reco Efficiency vs True TMS-Entering KE: Numerator", 
           "ke_tms_enter")->Fill(particle_starting_ke);
         GetHist("reco_eff__muon_ke_numerator", "Reco Efficiency vs True KE, TMS ending: Numerator", 
