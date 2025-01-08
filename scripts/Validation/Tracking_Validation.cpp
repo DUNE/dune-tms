@@ -33,7 +33,10 @@ const double GEV = 1e-3; // GeV per MEV
 
 #define length_to_energy_clarence(l) (l*1.75 + 82)*1e-3
 #define default_length_to_energy(l) (l*1.75)*1e-3
-#define length_to_energy(l) (l*1.75*0.951 + 76.8)*1e-3
+//#define length_to_energy(l) (l*1.75*0.951 + 76.8)*1e-3 // Old geom
+//#define length_to_energy(l) default_length_to_energy(l)
+#define length_to_energy(l) (l*1.75*0.9428 + 18.73)*1e-3 // New geom
+#define lar_length_to_energy(l) (l)*1e-3
 
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
 
