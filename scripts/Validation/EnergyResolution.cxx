@@ -178,37 +178,22 @@
   REGISTER_AXIS(basic_true_ke, std::make_tuple("True Muon KE (GeV)", 30, 0.0, 5.0));
   REGISTER_AXIS(basic_reco_ke, std::make_tuple("Reco Muon KE (GeV)", 30, 0.0, 5.0));
   if (has_muon) {
-    GetHist("energy_resolution__areal_density__all_areal_density_true",
+    // All muons
+    GetHist("energy_resolution__areal_density__all_muons__all_areal_density_true",
             "Areal Density: True",
             "true_areal_density")->Fill(true_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__all_areal_density_reco",
+    GetHist("energy_resolution__areal_density__all_muons__all_areal_density_reco",
             "Areal Density: Reco",
             "reco_areal_density")->Fill(reco_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__all_areal_density_comparison",
+    GetHist("energy_resolution__areal_density__all_muons__all_areal_density_comparison",
             "Areal Density", "true_areal_density",
             "reco_areal_density")->Fill(true_areal_density_of_highest, reco_areal_density_of_highest);
-  }
-  if (has_contained_muon) {
-    GetHist("energy_resolution__areal_density__contained_areal_density_true",
-            "Areal Density: True",
-            "true_areal_density")->Fill(true_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__contained_areal_density_reco",
-            "Areal Density: Reco",
-            "reco_areal_density")->Fill(reco_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__contained_areal_density_comparison",
+    GetHist("energy_resolution__areal_density__all_muons__all_areal_density_comparison_column_normalize",
             "Areal Density", "true_areal_density",
             "reco_areal_density")->Fill(true_areal_density_of_highest, reco_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__contained_areal_density_comparison_column_normalize",
-            "Areal Density", "true_areal_density",
-            "reco_areal_density")->Fill(true_areal_density_of_highest, reco_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__contained_areal_density_residual",
-            "Residual Areal Density", "true_areal_density",
-            "residual_areal_density")->Fill(true_areal_density_of_highest, residual_areal_density);
-    GetHist("energy_resolution__areal_density__contained_areal_density_residual_column_maximize",
-            "Residual Areal Density, Column Peak-Normalized", "true_areal_density",
-            "residual_areal_density")->Fill(true_areal_density_of_highest, residual_areal_density);
   }
   if (passes_truth_cuts && passes_reco_cuts) {
+    // Selected sample
     GetHist("energy_resolution__areal_density__areal_density_true",
             "Areal Density: True",
             "true_areal_density")->Fill(true_areal_density_of_highest);
@@ -221,24 +206,21 @@
     GetHist("energy_resolution__areal_density__areal_density_comparison_column_normalize",
             "Areal Density", "true_areal_density",
             "reco_areal_density")->Fill(true_areal_density_of_highest, reco_areal_density_of_highest);
-    GetHist("energy_resolution__areal_density__vs_energy_comparison_true",
+            
+    // 
+    GetHist("energy_resolution__areal_density_and_energy__vs_energy_comparison_true",
             "True Areal Density Compared to Energy", "true_areal_density",
             "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
-    GetHist("energy_resolution__areal_density__vs_energy_comparison_column_normalize_true",
+    GetHist("energy_resolution__areal_density_and_energy__vs_energy_comparison_column_normalize_true",
             "True Areal Density Compared to Energy, Col Norm.", "true_areal_density",
             "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
-    GetHist("energy_resolution__areal_density__vs_energy_comparison_reco",
-            "Reco Areal Density Compared to Energy", "reco_areal_density",
-            "basic_reco_ke_enter")->Fill(reco_areal_density_of_highest, highest_reco_starting_muon_ke);
-    GetHist("energy_resolution__areal_density__vs_energy_comparison_column_normalize_reco",
-            "Reco Areal Density Compared to Energy, Col Norm.", "reco_areal_density",
-            "basic_reco_ke_enter")->Fill(reco_areal_density_of_highest, highest_reco_starting_muon_ke);
-            
+    
+    //    
     double target_e = (1.75*true_areal_density_of_highest)*1e-3 + 0.5;
     if (target_e < highest_true_muon_starting_ke) {
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "areal_density_not_correlated_with_ke", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
-      GetHist("energy_resolution__areal_density__vs_energy_comparison_drawn_slices",
+      GetHist("energy_resolution__areal_density_and_energy__vs_energy_comparison_drawn_slices",
               "True Areal Density Compared to Energy", "true_areal_density",
               "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
     }
@@ -247,11 +229,14 @@
 
   // Now plot some resolution information
   if (has_muon) {
-    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_raw",
+    
+    GetHist("energy_resolution__resolution__all_muons__muon_starting_ke_resolution_raw",
             "Muon Resolution: All muons", "ke_tms_enter_true",
             "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
-    GetHist("energy_resolution__resolution__muon_starting_ke_fractional_resolution_raw",
+    GetHist("energy_resolution__resolution__all_muons__muon_starting_ke_fractional_resolution_raw",
             "Muon Resolution: All muons", "energy_resolution")->Fill(fractional_resolution);
+            
+            
     GetHist("energy_resolution__resolution__all_muon_starting_ke_fractional_resolution_nostack_0_raw",
             "Muon Resolution: All muons", "energy_resolution")->Fill(fractional_resolution);
     GetHist("energy_resolution__resolution__only_two_muon_starting_ke_fractional_resolution_nostack_0_raw",
@@ -260,25 +245,12 @@
             "Muon Resolution: All muons", "energy_resolution")->Fill(fractional_resolution);
   }
   if (has_good_muon) { 
-    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_fid",
-                              "Muon Resolution: All True Fiducial Muons", "ke_tms_enter_true",
-                             "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
-                             
     GetHist("energy_resolution__resolution__all_muon_starting_ke_fractional_resolution_nostack_2_good",
             "Muon Resolution: Start LAr, End TMS", "energy_resolution")->Fill(fractional_resolution);
   }
                              
                              
   if (has_contained_muon) { 
-    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_contained",
-            "Muon Resolution: True Contained Muon", "ke_tms_enter_true",
-            "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
-    GetHist("energy_resolution__resolution__muon_starting_ke_resolution_residual_column_maximize_contained",
-            "Residual Muon KE, Column Peak-Normalized", "basic_true_ke_enter",
-            "residual_ke")->Fill(highest_true_muon_starting_ke, resolution);
-    GetHist("energy_resolution__resolution__muon_starting_ke_fractional_resolution_contained",
-            "Muon Resolution: True Contained Muon", "energy_resolution")->Fill(fractional_resolution);
-                             
     GetHist("energy_resolution__resolution__all_muon_starting_ke_fractional_resolution_nostack_1_contained",
             "Muon Resolution: End TMS", "energy_resolution")->Fill(fractional_resolution);
     GetHist("energy_resolution__resolution__uncontained_comparison_muon_starting_ke_fractional_resolution_nostack_1_contained",
