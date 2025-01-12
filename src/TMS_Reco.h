@@ -28,8 +28,7 @@
 
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
-#include "TMS_Kalman_chargeID_positive.h"
-#include "TMS_Kalman_chargeID_negative.h"
+
 
 #define __LARGE_COST__ 999999999
 
@@ -317,8 +316,8 @@ class TMS_TrackFinder {
     ~TMS_TrackFinder() {};
     
     TMS_Kalman KalmanFilter;
-    TMS_Kalman_plus KalmanFilter1;
-    TMS_Kalman_minus KalmanFilter2;
+    TMS_Kalman KalmanFilter1;
+    TMS_Kalman KalmanFilter2;
     TMS_DBScan DBSCAN;
     TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
 

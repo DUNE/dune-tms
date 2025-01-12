@@ -728,14 +728,13 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
     double kalman_reco_mom, kalman_chi2;
-    double chi2positive = 0;
-    double chi2negative = 0;
+    
     
    
     for (auto &trk : HoughTracks3D) {
       //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
       //KalmanFilter1 and KalmanFilter2 will only calculate the chi square assuming positive or negative charge and will do nothing else
-      KalmanFilter = TMS_Kalman(trk.Hits, 0);
+      KalmanFilter = TMS_Kalman(trk.Hits, 0.1);
       kalman_chi2 = KalmanFilter.GetTrackChi2();
       trk.SetChi2(kalman_chi2);
       // TMS_Track trk_copy1 = trk.DeepCopy();
@@ -743,13 +742,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       
     
    
-      KalmanFilter1 = TMS_Kalman_plus(trk.Hits, 0.1); //will make the muon chi square smaller
-      chi2positive = KalmanFilter1.GetTrackChi2();
-      trk.SetChi2positive(chi2positive);
-      
-      KalmanFilter2 = TMS_Kalman_minus(trk.Hits, -0.1);  //will make the antimuon chi square smaller
-      chi2negative = KalmanFilter2.GetTrackChi2();
-      trk.SetChi2negative(chi2negative);
 
       bool verbose_kalman = false;
       kalman_reco_mom = KalmanFilter.GetMomentum();
@@ -774,16 +766,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
       
     }
-    for (auto &trk : HoughTracks3D) {
-      if(trk.GetChi2positive() < trk.GetChi2negative()){
-          
-          trk.SetKalmanPDG(13);
-     }
-      else{
-          
-          trk.SetKalmanPDG(-13);
-      }
-    }
+    
     
   } else { // No Kalman filter enabled
     for (auto &trk : HoughTracks3D) {

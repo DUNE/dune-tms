@@ -15,14 +15,7 @@ class TMS_Track {
       // TODO: Take first and last hits and do the maffs
     };
     void Print();
-   // Deep copy method
-    TMS_Track DeepCopy() const {
-        TMS_Track copy = *this; // Start with a shallow copy of the current object
-
-        // Perform a deep copy of Hits
-        copy.Hits = std::vector<TMS_Hit>(this->Hits.begin(), this->Hits.end());
-        return copy;
-    }
+   
    
     int    Charge;
     double Start[3];     // Start point in x,y,z
