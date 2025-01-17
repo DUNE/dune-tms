@@ -79,7 +79,8 @@
       }
       double length_to_use = reco.Length[it];
       TVector3 direction(reco.EndDirection[it][0], 0, reco.EndDirection[it][2]);
-      direction.SetMag(1); // Normalize to 1
+      if (direction.Mag() == 0) direction.SetZ(1); // Normalize to 1 in z since we don't know direction
+      else direction.SetMag(1); // Normalize to 1
       // add half thickness of steel
       // plus the avg we're off because we're failing to reco the track end
       // note that length is in g/cm^2
@@ -233,6 +234,9 @@
     GetHist("energy_resolution__resolution__all_muons__muon_starting_ke_resolution_raw",
             "Muon Resolution: All muons", "ke_tms_enter_true",
             "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
+    GetHist("energy_resolution__resolution__all_muons__muon_starting_ke_resolution_raw_column_normalized",
+            "Muon Resolution: All muons", "ke_tms_enter_true",
+            "ke_tms_enter_reco")->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
     GetHist("energy_resolution__resolution__all_muons__muon_starting_ke_fractional_resolution_raw",
             "Muon Resolution: All muons", "energy_resolution")->Fill(fractional_resolution);
             
@@ -301,6 +305,8 @@
     GetHist("energy_resolution__resolution__fit_starting_ke_fractional_resolution_nostack_3_no_fit",
             "Muon Resolution: Without Fit", "energy_resolution")->Fill(fractional_resolution_without_fit);
             
+      GetHist("energy_resolution__resolution__contained_starting_ke_fractional_resolution_nostack_0_all",
+              "Muon Resolution: All Muons", "energy_resolution")->Fill(fractional_resolution);
     if (has_contained_muon) {
       GetHist("energy_resolution__resolution__contained_starting_ke_fractional_resolution_nostack_1_contained",
               "Muon Resolution: Contained", "energy_resolution")->Fill(fractional_resolution);

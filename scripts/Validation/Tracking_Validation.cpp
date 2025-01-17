@@ -33,9 +33,11 @@ const double GEV = 1e-3; // GeV per MEV
 
 #define length_to_energy_clarence(l) (l*1.75 + 82)*1e-3
 #define default_length_to_energy(l) (l*1.75)*1e-3
+#define length_to_energy(l) default_length_to_energy(l) // No fit
+#define GEOM_V3 // for old geom
 //#define length_to_energy(l) (l*1.75*0.951 + 76.8)*1e-3 // Old geom
-//#define length_to_energy(l) default_length_to_energy(l)
-#define length_to_energy(l) (l*1.75*0.9428 + 18.73)*1e-3 // New geom
+//#define length_to_energy(l) (l*1.75*0.9428 + 18.73)*1e-3 // New geom
+//#define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no kalman
 #define lar_length_to_energy(l) (l)*1e-3
 
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
@@ -319,7 +321,11 @@ enum TMSCutFlags {
 };
 
 const double TMS_START_Z = 11362;
+#ifdef GEOM_V3
 const double TMS_LAST_PLANE_Z = 17900; // mm // 18314.0 - 50; // End Z - 5cm
+#else
+const double TMS_LAST_PLANE_Z = 18400;
+#endif
 const double TMS_Y_TOP = 160.0; // Top of scintillator (I'm 99% sure starting from where U/V overlap)
 const double TMS_Y_BOTTOM = -2850.0; // Bottom of scinillator (also measured from U/V overlap)
 const double TMS_Y_MIDDLE = 0.5 * (TMS_Y_TOP + TMS_Y_BOTTOM);
@@ -1532,6 +1538,10 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       // Want to compare
       if (entry_number == 341 || entry_number == 118)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "special", 
+                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+      // Draw the first n for simple comparisons
+      if (entry_number < 100)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "first_n_events", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
       
       // Example of drawing for a reason
