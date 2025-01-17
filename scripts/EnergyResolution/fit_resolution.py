@@ -12,10 +12,19 @@ ROOT.gStyle.SetOptStat(1111)
 canvas = ROOT.TCanvas()
 canvas.UseCurrentStyle()
 
+# Helper function to create a text box
 def make_box(x1, y1, x2, y2, text_size=0.04, text_align=12):
+    """
+    Create a transparent text box on a ROOT canvas.
+    
+    Parameters:
+        x1, y1, x2, y2: Coordinates for the box (normalized to canvas size)
+        text_size: Size of the text
+        text_align: Text alignment (12 = left-center, etc.)
+    """
     text_box = ROOT.TPaveText(x1, y1, x2, y2, "NDC")
     text_box.SetFillColor(0)  # Transparent background
-    text_box.SetFillStyle(0)  # Transparent background
+    text_box.SetFillStyle(0)
     text_box.SetBorderSize(0)
     text_box.SetTextSize(text_size)
     text_box.SetTextAlign(text_align)
@@ -54,126 +63,126 @@ def add_text(x1, y1, x2, y2, lines, text_size=0.04):
     text_box_a.Draw("same")
     text_box_b.Draw("same")
     text_box_c.Draw("same")
-    return [text_box_a, text_box_b, text_box_c] 
+    return [text_box_a, text_box_b, text_box_c]
 
+# Set up input file and output directory
 filename = sys.argv[1]
-assert os.path.exists(filename)
+assert os.path.exists(filename), "Input file not found"
 tf = ROOT.TFile(filename)
 if not os.path.exists("output"):
     os.makedirs("output")
 n_start = 1
 n_end = 19
+
+# Define bin edges and centers
 bin_edges = [0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.25, 4.5, 4.75, 5.0]
 centers = [0.5*(bin_edges[i] + bin_edges[i+1]) for i in range(len(bin_edges) - 1)]
+
+# Define lists to store results
 means = []
 errors = []
+
+# Define fitting functions
 gauss = ROOT.TF1("gauss", "gaus", -0.4, 0.4)
 gauss.SetLineColor(ROOT.kRed)
 crystalball = ROOT.TF1("crystalball", "crystalball", -0.4, 0.4)
 
-
+# Perform multi-fit to minimize chi2
 def do_multi_fit(h, seeds):
-    print(f"Got {len(seeds)} seeds")
-    out_chi2 = 1e12
-    out_result = -1
-    out_ndf = 0
-    out_params = [0] * 5
-    out_err = [1e12] * 5
+    """
+    Perform a multi-fit using different seeds and return the best fit parameters.
+    
+    Parameters:
+        h: Histogram to fit
+        seeds: List of initial parameters to test
+    
+    Returns:
+        The best fit result
+    """
+    best_chi2 = 1e12
+    best_result = -1
+    best_ndf = 0
+    best_params = [0] * 5
+    best_err = [1e12] * 5
     for seed in seeds:
-        #print(f"Testing {seed}")
         crystalball.SetParameters(*seed)
         fit_result = h.Fit(crystalball, "RIESQ", "")
         chi2 = crystalball.GetChisquare()
-        #print(f"Got chi2 {chi2}. Need lower than {out_chi2}", int(fit_result), fit_result.IsValid(), fit_result.Prob(), fit_result.Status(), fit_result.Edm())
-        if fit_result.IsValid() and chi2 < out_chi2:
-            out_chi2 = chi2
-            out_result = fit_result
-            out_ndf = crystalball.GetNDF()
-            for i in range(len(out_params)):
-                out_params[i] = crystalball.GetParameter(i)
-                out_err[i] = crystalball.GetParError(i)
-    for i in range(len(out_params)):
-        crystalball.SetParameter(i, out_params[i])
-        crystalball.SetChisquare(out_chi2)
-        crystalball.SetNDF(out_ndf)
-    return out_result
-    
+        if fit_result.IsValid() and chi2 < best_chi2:
+            best_chi2 = chi2
+            best_result = fit_result
+            best_ndf = crystalball.GetNDF()
+            for i in range(len(best_params)):
+                best_params[i] = crystalball.GetParameter(i)
+                best_err[i] = crystalball.GetParError(i)
+    for i in range(len(best_params)):
+        crystalball.SetParameter(i, best_params[i])
+        crystalball.SetChisquare(best_chi2)
+        crystalball.SetNDF(best_ndf)
+
+    return best_result
+
+# Function to generate seeds for the fit
 def create_n_seeds(n, *seed_arrays):
+    """
+    Generate a set of unique random seeds from the provided arrays.
+    
+    Parameters:
+        n: Number of seeds to generate
+        seed_arrays: Arrays of seed values to sample from
+    
+    Returns:
+        A list of unique seeds
+    """
     out = set()
     n_iterations = 0
     while len(out) < n and n_iterations < n * 100:
-        foo = []
-        for seed_array in seed_arrays:
-            seed = random.choice(seed_array)
-            foo.append(seed)
-        foo = tuple(foo)
-        out.add(foo)
+        seed = tuple(random.choice(arr) for arr in seed_arrays)
+        out.add(seed)
         n_iterations += 1
     return list(out)
 
-    
+# Perform the fitting process for a histogram
 def do_fit(h, outfilename, i):
-    #h.SetStats(True)
+    """
+    Fit a histogram with a CrystalBall function and save the result to an output file.
+    
+    Parameters:
+        h: Histogram to fit
+        outfilename: Output filename for the plot
+        i: Index for the plot (used for labeling)
+    """
     mean = h.GetMean()
     stddev = h.GetStdDev()
-    simple_mean = mean
-    simple_stddev = stddev
     n_entries = h.Integral()
-    norm = h.Integral()
-    #h.Sumw2()
-    #h.Scale(1/h.Integral())
+    
+    # Set the maximum y-axis value to 120% of the histogram maximum
     max_with_headroom = 1.2 * h.GetMaximum()
     h.GetYaxis().SetRangeUser(0, max_with_headroom)
-    print(f"{i}\t{mean:0.4f}\t{stddev:0.4f}\t{norm:0.4f}")
     
-    #crystalball.SetParLimits(0, 0, 30) # N
+    # Set limits for the parameters
     crystalball.SetParLimits(1, -0.4, 0.4) # mean
     crystalball.SetParLimits(2, 0.0, 2) # stddev
     crystalball.SetParLimits(3, 0.0, 50) # alpha
     crystalball.SetParLimits(4, 0, 100) # n
     
-    if True:
-        n = 3
-        alpha = 0.1
-        sigma = 0.1
-        seeds = [(n, mean, sigma, alpha, norm)]
-        aN = [10, 100, 500, 1000]
-        aMean = [0, 0.1, -0.1, -0.2, 0.2]
-        aSigma = [0.05, 0.1, 0.2]
-        aAlpha = [0.05, 0.1, 0.2, 0.6, 1, 2, 5, 10, 20]
-        an = [1, 2, 3, 4, 10, 20, 40, 80]
-        additional_seeds = create_n_seeds(100, aN, aMean, aSigma, aAlpha, an)
-        seeds.extend(additional_seeds)
-        fit_result = do_multi_fit(h, seeds)
-    if False:
-        # Parameters: alpha, n, mean, sigma, norm
-        #crystalball.SetParameters(1.0, 3.0, mean, stddev, norm)
-        # params are n, mean, sigma, alpha, N
-        # power
-        n = 3
-        alpha = 0.1
-        sigma = 0.1
-        C = n/abs(alpha) * 1/(n-1) * math.exp(-0.5 * alpha**2)
-        D = math.sqrt(math.pi*0.5)*(1 + ROOT.TMath.Erf(alpha)/math.sqrt(2.0))
-        #norm = (sigma*(C+D))
-        norm = 1 # h.Integral() * h.Integral()
-        crystalball.SetParameters(n, mean, sigma, alpha, norm)
-        print(n, mean, sigma, alpha, norm)
-        #crystalball.FixParameter(0, 2.0)
-        #crystalball.FixParameter(1, 0.0) 
-        #crystalball.FixParameter(2, stddev)
-        #crystalball.FixParameter(3, 0.1) 
-        #crystalball.FixParameter(4, 1) # norm
-        crystalball.SetParLimits(0, 0, 30) # n
-        crystalball.SetParLimits(1, mean - 0.2, mean + 0.2) # mean
-        crystalball.SetParLimits(2, 0.05, 1) # stddev
-        crystalball.SetParLimits(3, 0.05, 3) # alpha
-        crystalball.SetParLimits(4, 0, 40) # norm
-        fit_result = h.Fit(crystalball, "RIES", "")
-        #crystalball.FixParameter(4, 1)
-        #crystalball.SetParLimits(4, 0, 10) # norm
-        #fit_result = h.Fit(crystalball, "RIES", "")
-        fit_result.Print("V")
+    # Create initial seeds for fitting
+    n = 3
+    alpha = 0.1
+    sigma = 0.1
+    seeds = [(n, mean, sigma, alpha, n_entries)]
+    aN = [10, 100, 500, 1000]
+    aMean = [0, 0.1, -0.1, -0.2, 0.2]
+    aSigma = [0.05, 0.1, 0.2]
+    aAlpha = [0.05, 0.1, 0.2, 0.6, 1, 2, 5, 10, 20]
+    an = [1, 2, 3, 4, 10, 20, 40, 80]
+    additional_seeds = create_n_seeds(100, aN, aMean, aSigma, aAlpha, an)
+    seeds.extend(additional_seeds)
+    
+    # Do the fit
+    fit_result = do_multi_fit(h, seeds)
+
+    # Get the results
     chi2 = crystalball.GetChisquare()
     ndf = crystalball.GetNDF()
     if ndf == 0: ndf = 1
@@ -181,10 +190,14 @@ def do_fit(h, outfilename, i):
     mean_error = crystalball.GetParError(1)
     stddev = crystalball.GetParameter(2)
     stddev_error = crystalball.GetParError(2)
+    
+    # Multiply out the result
     out_mean = mean * centers[i] + centers[i]
     out_error = stddev * centers[i]
+    
+    # Draw result
     h.Draw("hist fit")
-    stats = f"N Muons:\t{n_entries:0.0f}" # \nSimple mean:\t{simple_mean: 0.2f}\nSimple stddev:\t{simple_stddev: 0.2f}"
+    stats = f"N Muons:\t{n_entries:0.0f}" 
     stats += f"\n#chi^{{2}}/dof:\t{chi2:0.2f}/{ndf:0.0f}\n#bar{{x}}:\t{mean:0.4f}\n#sigma:\t{stddev: 0.4f}"
     stats += f"\nN:\t{crystalball.GetParameter(0):0.0f}\n#alpha:\t{crystalball.GetParameter(3):0.2f}\nn:\t{crystalball.GetParameter(4):0.2f}"
     textbox = add_text(0.575, 0.55, 0.83, 0.85, stats)
@@ -200,13 +213,13 @@ def do_fit(h, outfilename, i):
 selected_sample_hist = tf.Get("energy_resolution__resolution__muon_starting_ke_fractional_resolution")
 if selected_sample_hist != None:
     selected_sample_hist.SetLineColor(ROOT.kBlack)
-    do_fit(selected_sample_hist, "selected_sample_resolution.png", 1)
+    do_fit(selected_sample_hist, "output/selected_sample_resolution.png", 1)
 
 
 selected_sample_hist = tf.Get("energy_resolution__lar_resolution__lar_muon_fractional_resolution")
 if selected_sample_hist != None:
     selected_sample_hist.SetLineColor(ROOT.kBlack)
-    do_fit(selected_sample_hist, "selected_sample_full_muon_resolution.png", 1)
+    do_fit(selected_sample_hist, "output/selected_sample_full_muon_resolution.png", 1)
     
 for i in range(n_start, n_end + 1):
     histname = f"energy_resolution__resolution__slices__muon_{i}"
@@ -245,7 +258,7 @@ col.GetZaxis().SetRangeUser(0.001, col.GetMaximum()*1.0001)
 col.Draw("colz")
 dunestyle.Simulation()
 g.Draw("P same")
-canvas.Print("output.png")
+canvas.Print("output/fit_result.png")
 
 
 
