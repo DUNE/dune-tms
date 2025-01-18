@@ -18,6 +18,8 @@
 #include <TMarker.h>
 #include <TString.h>
 #include <TPaveText.h>
+#include <TLegend.h>
+#include <TLegendEntry.h>
 
 // dune specific
 #include <DUNEStyle.h>

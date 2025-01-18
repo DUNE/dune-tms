@@ -67,6 +67,13 @@ std::vector<std::string> split(const std::string& str, char delimiter) {
     return tokens;
 }
 
+void AddMarkerToLegend(TLegend& leg, int marker_style, int marker_size, int marker_color, TString text) {
+  auto reco_entry = leg.AddEntry("",text,"p");
+  reco_entry->SetMarkerStyle(marker_style);
+  reco_entry->SetMarkerSize(marker_size);
+  reco_entry->SetMarkerColor(marker_color);
+}
+
 void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, 
                 Line_Candidates& lc, Truth_Info& truth, DrawSliceN::max_prints max_n_prints = DrawSliceN::all) { 
   // Quit early if we already drew n copies of slices that have this reason
@@ -280,6 +287,14 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   auto textBoxE = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
   textBoxD.AddText("N reco tracks:"); textBoxE.AddText(TString::Format("%d", reco.nTracks));
   
+  TLegend leg(x1, 0.05, x2, 0.5);
+  AddMarkerToLegend(leg, 21, 1.5, kBlack, "Reco Hits");
+  AddMarkerToLegend(leg, 33, 1, kGreen+2, "True Hits");
+  AddMarkerToLegend(leg, 20, 1.5, kRed, "Reco Track Nodes");
+  AddMarkerToLegend(leg, 33, 1, kGreen+2, "True Hits on Track");
+  AddMarkerToLegend(leg, 22, 1, kBlack, "True Particle Start");
+  AddMarkerToLegend(leg, 23, 1, kBlack, "True Particle End");
+  
   // Now draw
   canvas->cd(1);
   hist.Draw("Axis");
@@ -295,6 +310,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   }
   textBoxD.Draw("same");
   textBoxE.Draw("same");
+  leg.Draw();
   
   canvas->Print((directoryPath + outfilename + ".png").c_str());
 }
