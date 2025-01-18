@@ -70,6 +70,33 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       markersy.push_back(marker);
     }
   }
+  
+  bool draw_true_hits = true;
+  if (draw_true_hits) {
+    for (int ih = 0; ih < truth.NTrueHits; ih++) {
+      if (truth.TrueRecoHitIsPedSupped[ih]) continue;
+      {
+        float mx = truth.TrueHitZ[ih];
+        float my = truth.TrueHitX[ih];
+        TMarker marker(mx, my, 21);
+        marker.SetMarkerColor(kGreen+2);
+        marker.SetMarkerStyle(33);
+        marker.SetMarkerSize(0.75);
+        markers.push_back(marker);
+      }
+      {
+        float mx = truth.TrueHitZ[ih];
+        float my = truth.TrueHitY[ih];
+        TMarker marker(mx, my, 21);
+        marker.SetMarkerColor(kGreen+2);
+        marker.SetMarkerStyle(33);
+        marker.SetMarkerSize(0.75);
+        markersy.push_back(marker);
+      }
+    }
+  }
+  
+  // This section draws reco tracks
   int track_colors[] = {kRed, kRed + 2, kRed - 2, kRed + 4, kRed - 5};
   int n_track_colors = sizeof(track_colors) / sizeof(track_colors[0]);
   for (int it = 0; it < reco.nTracks; it++) {
@@ -110,7 +137,9 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       }
     }
   }
-  if (true) {
+  // This section draws true particles
+  bool should_draw_true_particles = true;
+  if (should_draw_true_particles) {
     int colors[] = {kGreen, kBlue, kOrange, kYellow, kMagenta, kGreen + 2};
     int ncolors = sizeof(colors)/sizeof(colors[0]);
     int n_offset = 0;
