@@ -38,6 +38,35 @@ void ConfigureHist(TH1& hist) {
     hist.GetYaxis()->SetTitleOffset(titleOffset);
 }
 
+TPaveText MakeTextBox(double x1, double y1, double x2, double y2, double text_size=0.08, int text_align=12) {
+    /*
+    Create a transparent text box
+    
+    Parameters:
+        x1, y1, x2, y2: Coordinates for the box (normalized to canvas size)
+        text_size: Size of the text
+        text_align: Text alignment (12 = left-center, etc.)
+    */
+    TPaveText text_box(x1, y1, x2, y2, "NDC");
+    text_box.SetFillColor(0);
+    text_box.SetFillStyle(0);
+    text_box.SetBorderSize(0);
+    text_box.SetTextSize(text_size);
+    text_box.SetTextAlign(text_align);
+    return text_box;
+}
+
+// Function to split a string by a delimiter
+std::vector<std::string> split(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
 void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, 
                 Line_Candidates& lc, Truth_Info& truth, DrawSliceN::max_prints max_n_prints = DrawSliceN::all) { 
   // Quit early if we already drew n copies of slices that have this reason
@@ -56,8 +85,13 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     gStyle->SetOptStat(0);
     gROOT->SetBatch(kTRUE); 
     canvas = new TCanvas();
-    canvas->SetLeftMargin(0.12);
+    //canvas->SetLeftMargin(0.12);
     canvas->Divide(1, 2);
+    for (size_t i = 1; i <= 2; i++) {
+      auto pad = canvas->cd(i);
+      pad->SetLeftMargin(0.4);
+      pad->SetRightMargin(0.02);
+    }
   }
   
   float buffer = 0;
@@ -225,17 +259,42 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     }
   }
   
+  // Create text boxes for each alignment
+  double text_size = 0.08;
+  double x1 = 0.01;
+  double x2 = 0.28;
+  double y1 = 0.1;
+  double y2 = 0.9;
+  auto textBoxA = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
+  auto textBoxC = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
+  
+  textBoxA.AddText("Event Info:"); textBoxC.AddText("");
+  textBoxA.AddText(TString::Format("Entry: %d, Run: %d", reco.EventNo, truth.RunNo)); textBoxC.AddText("");
+  textBoxA.AddText(TString::Format("Spill: %d, Slice: %d", reco.SpillNo, reco.SliceNo)); textBoxC.AddText("");
+  for (auto foo : split(truth.Interaction->c_str(), ';')) {
+    textBoxA.AddText(foo.c_str()); textBoxC.AddText("");
+  }
+  
+  y1 = 0.5;
+  auto textBoxD = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
+  auto textBoxE = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
+  textBoxD.AddText("N reco tracks:"); textBoxE.AddText(TString::Format("%d", reco.nTracks));
+  
   // Now draw
   canvas->cd(1);
   hist.Draw("Axis");
   for (auto& marker : markers) {
     marker.Draw();
   }
+  textBoxA.Draw("same");
+  textBoxC.Draw("same");
   canvas->cd(2);
   histy.Draw("Axis");
   for (auto& marker : markersy) {
     marker.Draw();
   }
+  textBoxD.Draw("same");
+  textBoxE.Draw("same");
   
   canvas->Print((directoryPath + outfilename + ".png").c_str());
 }

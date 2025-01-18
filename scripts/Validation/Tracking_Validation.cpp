@@ -17,6 +17,7 @@
 #include <TStyle.h>
 #include <TMarker.h>
 #include <TString.h>
+#include <TPaveText.h>
 
 // dune specific
 #include <DUNEStyle.h>
