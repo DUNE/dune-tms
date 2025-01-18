@@ -24,6 +24,8 @@ public :
 
    // Declaration of leaf types
    Int_t           EventNo;
+   Int_t           SpillNo;
+   Int_t           RunNo;
    Bool_t          IsCC;
    std::string    *Interaction;
    Int_t           TruthInfoIndex;
@@ -182,6 +184,8 @@ public :
 
    // List of branches
    TBranch        *b_EventNo;   //!
+   TBranch        *b_SpillNo;   //!
+   TBranch        *b_RunNo;   //!
    TBranch        *b_IsCC;   //!
    TBranch        *b_Interaction;   //!
    TBranch        *b_TruthInfoIndex;   //!
@@ -415,6 +419,8 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetMakeClass(1);
 
    fChain->SetBranchAddress("EventNo", &EventNo, &b_EventNo);
+   fChain->SetBranchAddress("SpillNo", &SpillNo, &b_SpillNo);
+   fChain->SetBranchAddress("RunNo", &RunNo, &b_RunNo);
    fChain->SetBranchAddress("IsCC", &IsCC, &b_IsCC);
    fChain->SetBranchAddress("Interaction", &Interaction, &b_Interaction);
    fChain->SetBranchAddress("TruthInfoIndex", &TruthInfoIndex, &b_TruthInfoIndex);
