@@ -21,6 +21,23 @@ namespace DrawSliceN {
   }
 }
 
+void ConfigureHist(TH1& hist) {
+    double textSize = 0.07;
+    double titleOffset = 0.8;
+    double titleOffsetX = 1.1;
+    // Set axis title sizes
+    hist.GetXaxis()->SetTitleSize(textSize);
+    hist.GetYaxis()->SetTitleSize(textSize);
+
+    // Set axis label sizes
+    hist.GetXaxis()->SetLabelSize(textSize);
+    hist.GetYaxis()->SetLabelSize(textSize);
+
+    // Set axis title offsets
+    hist.GetXaxis()->SetTitleOffset(titleOffsetX);
+    hist.GetYaxis()->SetTitleOffset(titleOffset);
+}
+
 void DrawSlice(std::string outfilename, std::string reason, std::string message, Reco_Tree& reco, 
                 Line_Candidates& lc, Truth_Info& truth, DrawSliceN::max_prints max_n_prints = DrawSliceN::all) { 
   // Quit early if we already drew n copies of slices that have this reason
@@ -46,7 +63,10 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   float buffer = 0;
   TH2D hist("", "X vs Z View;Z (mm);X (mm);N Hits", 100, 11000 - buffer, 19000 + buffer, 100, -4000 - buffer, 4000 + buffer);
   TH2D histy("", "Y vs Z View;Z (mm);Y (mm);N Hits", 100, 11000 - buffer, 19000 + buffer, 100, -5000 - buffer, 1000 + buffer);
-  
+  ConfigureHist(hist);
+  ConfigureHist(histy);
+  const double titleh = 0.09;
+  gStyle->SetTitleH(titleh);
   
   std::vector<TMarker> markers;
   std::vector<TMarker> markersy;
