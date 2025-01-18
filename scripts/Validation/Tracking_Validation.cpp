@@ -18,6 +18,9 @@
 #include <TMarker.h>
 #include <TString.h>
 
+// dune specific
+#include <DUNEStyle.h>
+
 #include "Line_Candidates.h"
 #include "Truth_Info.h"
 #include "Reco_Tree.h"
