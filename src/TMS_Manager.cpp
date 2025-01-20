@@ -28,6 +28,14 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
   _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
 
+  _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
+  _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
+  _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints =
+        toml::find<double>(data, "Recon", "TrackSmoothing", "MaxYDistanceBetweenUVTransitionPoints");
+  _RECO_TRACKSMOOTHING_UncertaintyGoodDirection = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyGoodDirection");
+  _RECO_TRACKSMOOTHING_UncertaintyBadDirection = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyBadDirection");
+  _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints = toml::find<double>(data, "Recon", "TrackSmoothing", "UncertaintyForUVTransitionPoints");
+
   _RECO_DBSCAN_MinPoints = toml::find<int>(data, "Recon", "DBSCAN", "MinPoints");
   _RECO_DBSCAN_Epsilon = toml::find<double>(data, "Recon", "DBSCAN", "Epsilon");
   _RECO_DBSCAN_PreDBNeighbours = toml::find<int>(data, "Recon", "DBSCAN", "PreDBNeighbours");
@@ -81,12 +89,14 @@ TMS_Manager::TMS_Manager() {
   _FIDUCIAL_TMS_END_X = toml::find<double>(data, "Fiducial", "TMS", "End", "X");
   _FIDUCIAL_TMS_END_Y = toml::find<double>(data, "Fiducial", "TMS", "End", "Y");
   _FIDUCIAL_TMS_END_Z = toml::find<double>(data, "Fiducial", "TMS", "End", "Z");
-  _FIDUCIAL_LAR_START_X = toml::find<double>(data, "Fiducial", "LAr", "Start", "X");
-  _FIDUCIAL_LAR_START_Y = toml::find<double>(data, "Fiducial", "LAr", "Start", "Y");
-  _FIDUCIAL_LAR_START_Z = toml::find<double>(data, "Fiducial", "LAr", "Start", "Z");
-  _FIDUCIAL_LAR_END_X = toml::find<double>(data, "Fiducial", "LAr", "End", "X");
-  _FIDUCIAL_LAR_END_Y = toml::find<double>(data, "Fiducial", "LAr", "End", "Y");
-  _FIDUCIAL_LAR_END_Z = toml::find<double>(data, "Fiducial", "LAr", "End", "Z");
+  _ACTIVE_LAR_START_X = toml::find<double>(data, "Fiducial", "LAr", "Start", "X");
+  _ACTIVE_LAR_START_Y = toml::find<double>(data, "Fiducial", "LAr", "Start", "Y");
+  _ACTIVE_LAR_START_Z = toml::find<double>(data, "Fiducial", "LAr", "Start", "Z");
+  _ACTIVE_LAR_END_X = toml::find<double>(data, "Fiducial", "LAr", "End", "X");
+  _ACTIVE_LAR_END_Y = toml::find<double>(data, "Fiducial", "LAr", "End", "Y");
+  _ACTIVE_LAR_END_Z = toml::find<double>(data, "Fiducial", "LAr", "End", "Z");
+  
+  _LAR_OUTER_SHELL_THICKNESS = toml::find<double>(data, "Fiducial", "LAr", "OuterShellThickness");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 

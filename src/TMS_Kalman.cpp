@@ -475,3 +475,30 @@ TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
 
   return toy;
 }
+
+
+void TMS_Kalman::SetStartDirection(double ax, double ay)
+{
+  // Defining a vector by two slopes is a bit odd;
+  // it's not possible to define vectors in the x/y plane for example.
+  // Consider the dector (dx/dz, dy/dz, dz/dz), the z component is 1 by construction,
+  // and thus we normalise this
+  double mag  = sqrt(ax*ax + ay*ay + 1);
+
+  StartDirection[0]=ax/mag;
+  StartDirection[1]=ay/mag;
+  StartDirection[2]= 1/mag;
+}
+
+void TMS_Kalman::SetEndDirection(double ax, double ay)
+{
+  // Defining a vector by two slopes is a bit odd;
+  // it's not possible to define vectors in the x/y plane for example.
+  // Consider the dector (dx/dz, dy/dz, dz/dz), the z component is 1 by construction,
+  // and thus we normalise this
+  double mag  = sqrt(ax*ax + ay*ay + 1);
+
+  EndDirection[0]=ax/mag;
+  EndDirection[1]=ay/mag;
+  EndDirection[2]= 1/mag;
+}

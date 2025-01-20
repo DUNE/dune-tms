@@ -81,7 +81,23 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 10
+    DirectionDistance = 14
+
+  [Recon.TrackSmoothing]
+    UseTrackSmoothing = true
+    TrackSmoothingStrategy = "simple"
+    # This is the max y distance a track can travel in a UV detector
+    # before we expect to see another transition point
+    # Used to calculate the maximum slope you can hide in the UV Y position uncertainty
+    MaxYDistanceBetweenUVTransitionPoints = 300.0 # mm
+    # For a UV detector, this is the uncertainty in X
+    # Numbers from TMS det review 2024-10-18
+    UncertaintyGoodDirection = 18.0 # mm
+    # For a UV detector, this is the default uncertainty in Y
+    UncertaintyBadDirection = 340.0 # mm
+    # In UV detector, transition point has better uncertainty
+    # This is found using the FWHM of reco - true for transition points only
+    UncertaintyForUVTransitionPoints = 120.0 # mm
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -93,7 +109,6 @@
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
     Assumed_Charge = 0.1 # Assumed to be a muon
-
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
@@ -129,6 +144,8 @@
     X = 3478.48 # mm
     Y = 829.282 # mm
     Z = 9135.88 # mm
+  [Fiducial.LAr]
+    OuterShellThickness=300.0
 
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
