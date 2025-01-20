@@ -107,7 +107,8 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = true #false # Whether we run the Kalman filter or not
+    Run = true # Whether we run the Kalman filter or not
+    Assumed_Charge = 0.1 # Assumed to be a muon
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping

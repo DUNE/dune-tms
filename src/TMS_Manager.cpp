@@ -79,6 +79,7 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTERING    = toml::find<bool>  (data, "Recon", "Clustering");
 
   _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
+  _RECO_KALMAN_ASSUMED_CHARGE = toml::find<double>(data, "Recon", "Kalman", "Assumed_Charge");
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   
