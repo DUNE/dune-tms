@@ -180,6 +180,7 @@ public :
    Float_t         TrueRecoHitEVis[100000];   //[NTrueHits]
    Bool_t          TrueRecoHitIsPedSupped[100000];   //[NTrueHits]
    Int_t           TrueHitBar[100000];   //[NTrueHits]
+   Int_t           TrueHitView[100000];   //[NTrueHits]
    Int_t           TrueHitPlane[100000];   //[NTrueHits]
 
    // List of branches
@@ -341,6 +342,7 @@ public :
    TBranch        *b_TrueRecoHitEVis;   //!
    TBranch        *b_TrueRecoHitIsPedSupped;   //!
    TBranch        *b_TrueHitBar;   //!
+   TBranch        *b_TrueHitView;   //!
    TBranch        *b_TrueHitPlane;   //!
 
    Truth_Info(TTree *tree=0);
@@ -574,6 +576,7 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("TrueRecoHitEVis", TrueRecoHitEVis, &b_TrueRecoHitEVis);
    fChain->SetBranchAddress("TrueRecoHitIsPedSupped", TrueRecoHitIsPedSupped, &b_TrueRecoHitIsPedSupped);
    fChain->SetBranchAddress("TrueHitBar", TrueHitBar, &b_TrueHitBar);
+   fChain->SetBranchAddress("TrueHitView", TrueHitView, &b_TrueHitView);
    fChain->SetBranchAddress("TrueHitPlane", TrueHitPlane, &b_TrueHitPlane);
    Notify();
 }
