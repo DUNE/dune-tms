@@ -5,6 +5,7 @@ namespace DrawSliceN {
       handfull,
       few,
       many,
+      tons,
       all
   };
 
@@ -15,6 +16,7 @@ namespace DrawSliceN {
       case handfull: return 5;
       case few: return 20;
       case many: return 50;
+      case tons: return 500;
       case all: return -1;
       default: return 0;
     }

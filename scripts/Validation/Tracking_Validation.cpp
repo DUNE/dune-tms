@@ -1356,9 +1356,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "special", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
       // Draw the first n for simple comparisons
-      if (entry_number < 100)
+      if (entry_number < 1000)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "first_n_events", 
-                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+                  TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::tons);
       
       // Example of drawing for a reason
       if (reco.nTracks > 2) {
