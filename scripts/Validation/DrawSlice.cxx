@@ -113,26 +113,8 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   
   std::vector<TMarker> markers;
   std::vector<TMarker> markersy;
-  // Get approx time slice range
-  float hit_time_earliest = 1e9;
-  float hit_time_latest = -1e9;
-  for (int ih = 0; ih < lc.nHits; ih++) {
-    if (lc.RecoHitPos[ih][3] > hit_time_latest) hit_time_latest = lc.RecoHitPos[ih][3];
-    if (lc.RecoHitPos[ih][3] < hit_time_earliest) hit_time_earliest = lc.RecoHitPos[ih][3];
-    {
-      float mx = lc.RecoHitPos[ih][2];
-      float my = lc.RecoHitPos[ih][0];
-      TMarker marker(mx, my, 21);
-      marker.SetMarkerStyle(21);
-      markers.push_back(marker);
-    }
-    {
-      float mx = lc.RecoHitPos[ih][2];
-      float my = lc.RecoHitPos[ih][1];
-      TMarker marker(mx, my, 21);
-      markersy.push_back(marker);
-    }
-  }
+  std::vector<TLine> lines;
+  std::vector<TLine> linesy;
   
   bool draw_true_hits = true;
   if (draw_true_hits) {
@@ -159,51 +141,108 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     }
   }
   
-  // This section draws reco tracks
-  int track_colors[] = {kRed, kRed + 2, kRed - 2, kRed + 4, kRed - 5};
+  // Get approx time slice range
+  float hit_time_earliest = 1e9;
+  float hit_time_latest = -1e9;
+  for (int ih = 0; ih < lc.nHits; ih++) {
+    if (lc.RecoHitPos[ih][3] > hit_time_latest) hit_time_latest = lc.RecoHitPos[ih][3];
+    if (lc.RecoHitPos[ih][3] < hit_time_earliest) hit_time_earliest = lc.RecoHitPos[ih][3];
+    {
+      float mx = lc.RecoHitPos[ih][2];
+      float my = lc.RecoHitPos[ih][0];
+      TMarker marker(mx, my, 21);
+      marker.SetMarkerStyle(21);
+      markers.push_back(marker);
+    }
+    {
+      float mx = lc.RecoHitPos[ih][2];
+      float my = lc.RecoHitPos[ih][1];
+      TMarker marker(mx, my, 21);
+      markersy.push_back(marker);
+    }
+  }
+  
+  int track_colors[] = {kRed, kBlue, kOrange-3, kMagenta-6, kGray};
   int n_track_colors = sizeof(track_colors) / sizeof(track_colors[0]);
-  for (int it = 0; it < reco.nTracks; it++) {
-    for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
-      {
-        float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
-        float my = truth.RecoTrackTrueHitPosition[it][ih][0];
-        TMarker marker(mx, my, 21);
-        marker.SetMarkerColor(kGreen);
-        marker.SetMarkerStyle(33);
-        marker.SetMarkerSize(0.75);
-        markers.push_back(marker);
-      }
-      {
-        float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
-        float my = truth.RecoTrackTrueHitPosition[it][ih][1];
-        TMarker marker(mx, my, 21);
-        marker.SetMarkerColor(kGreen);
-        marker.SetMarkerStyle(33);
-        marker.SetMarkerSize(0.75);
-        markersy.push_back(marker);
-      }
-      {
-        float mx = reco.TrackHitPos[it][ih][2];
-        float my = reco.TrackHitPos[it][ih][0];
-        TMarker marker(mx, my, 20);
-        marker.SetMarkerColor(track_colors[it % n_track_colors]);
-        marker.SetMarkerSize(0.5);
-        markers.push_back(marker);
-      }
-      {
-        float mx = reco.TrackHitPos[it][ih][2];
-        float my = reco.TrackHitPos[it][ih][1];
-        TMarker marker(mx, my, 20);
-        marker.SetMarkerColor(track_colors[it % n_track_colors]);
-        marker.SetMarkerSize(0.5);
-        markersy.push_back(marker);
+  // This section draws reco tracks
+  // Not as clean as line-base system in the next chunk
+  bool draw_reco_track_nodes = false;
+  if (draw_reco_track_nodes) {
+    for (int it = 0; it < reco.nTracks; it++) {
+      for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
+        {
+          float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
+          float my = truth.RecoTrackTrueHitPosition[it][ih][0];
+          TMarker marker(mx, my, 21);
+          marker.SetMarkerColor(kGreen);
+          marker.SetMarkerStyle(33);
+          marker.SetMarkerSize(0.75);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
+          float my = truth.RecoTrackTrueHitPosition[it][ih][1];
+          TMarker marker(mx, my, 21);
+          marker.SetMarkerColor(kGreen);
+          marker.SetMarkerStyle(33);
+          marker.SetMarkerSize(0.75);
+          markersy.push_back(marker);
+        }
+        {
+          float mx = reco.TrackHitPos[it][ih][2];
+          float my = reco.TrackHitPos[it][ih][0];
+          TMarker marker(mx, my, 20);
+          marker.SetMarkerColor(track_colors[it % n_track_colors]);
+          marker.SetMarkerSize(0.5);
+          markers.push_back(marker);
+        }
+        {
+          float mx = reco.TrackHitPos[it][ih][2];
+          float my = reco.TrackHitPos[it][ih][1];
+          TMarker marker(mx, my, 20);
+          marker.SetMarkerColor(track_colors[it % n_track_colors]);
+          marker.SetMarkerSize(0.5);
+          markersy.push_back(marker);
+        }
       }
     }
   }
+  
+  // This section draws reco tracks as lines between two points
+  if (true) {
+    for (int it = 0; it < reco.nTracks; it++) {
+      auto color_to_use = track_colors[it % n_track_colors];
+      for (int ih = 0; ih < reco.nKalmanNodes[it] - 1; ih++) {
+        {
+          float mx = reco.TrackHitPos[it][ih][2];
+          float my = reco.TrackHitPos[it][ih][0];
+          float mx2 = reco.TrackHitPos[it][ih+1][2];
+          float my2 = reco.TrackHitPos[it][ih+1][0];
+          TLine line(mx, my, mx2, my2);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(2);
+          lines.push_back(line);
+        }
+        {
+          float mx = reco.TrackHitPos[it][ih][2];
+          float my = reco.TrackHitPos[it][ih][1];
+          float mx2 = reco.TrackHitPos[it][ih+1][2];
+          float my2 = reco.TrackHitPos[it][ih+1][1];
+          TLine line(mx, my, mx2, my2);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(2);
+          linesy.push_back(line);
+        }
+      }
+    }
+  }
+  int empty_up_triangle = 55;
+  int empty_down_triangle = 59;
+  double marker_size = 1.5;
   // This section draws true particles
   bool should_draw_true_particles = true;
   if (should_draw_true_particles) {
-    int colors[] = {kGreen, kBlue, kOrange, kYellow, kMagenta, kGreen + 2};
+    int colors[] = {kRed, kBlue, kOrange-3, kMagenta-6, kGray};
     int ncolors = sizeof(colors)/sizeof(colors[0]);
     int n_offset = 0;
     for (int ip = 0; ip < reco.nTracks; ip++) {
@@ -219,28 +258,25 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       // Proton
       if (std::abs(truth.PDG[it]) == 2212) should_draw_true_particle = true;
       if (should_draw_true_particle) {
+        int marker_to_use_start = 22;
+        if (!truth.TMSFiducialStart[it]) marker_to_use_start = empty_up_triangle;
         {
-          float mx = truth.BirthPosition[it][2];
-          float my = truth.BirthPosition[it][0];
-          if (mx < 11000) {
-            mx = truth.PositionZIsTMSStart[it][2];
-            my = truth.PositionZIsTMSStart[it][0];
-          }
-          TMarker marker(mx, my, 22);
+          float mx = truth.PositionZIsTMSStart[it][2];
+          float my = truth.PositionZIsTMSStart[it][0];
+          TMarker marker(mx, my, marker_to_use_start);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
           markers.push_back(marker);
         }
         {
-          float mx = truth.BirthPosition[it][2];
-          float my = truth.BirthPosition[it][1];
-          if (mx < 11000) {
-            mx = truth.PositionZIsTMSStart[it][2];
-            my = truth.PositionZIsTMSStart[it][1];
-          }
-          TMarker marker(mx, my, 22);
+          float mx = truth.PositionZIsTMSStart[it][2];
+          float my = truth.PositionZIsTMSStart[it][1];
+          TMarker marker(mx, my, marker_to_use_start);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
           markersy.push_back(marker);
         }
+        int marker_to_use_end = empty_down_triangle;
         {
           float mx = truth.DeathPosition[it][2];
           float my = truth.DeathPosition[it][0];
@@ -248,19 +284,38 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
             mx = truth.PositionZIsTMSEnd[it][2];
             my = truth.PositionZIsTMSEnd[it][0];
           }
-          TMarker marker(mx, my, 23);
+          TMarker marker(mx, my, marker_to_use_end);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.PositionTMSEnd[it][2];
+          float my = truth.PositionTMSEnd[it][1];
+          if (mx > 19000) {
+            mx = truth.PositionZIsTMSEnd[it][2];
+            my = truth.PositionZIsTMSEnd[it][1];
+          }
+          TMarker marker(mx, my, marker_to_use_end);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markersy.push_back(marker);
+        }
+        int marker_to_use_death = 23;
+        {
+          float mx = truth.DeathPosition[it][2];
+          float my = truth.DeathPosition[it][0];
+          TMarker marker(mx, my, marker_to_use_death);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
           markers.push_back(marker);
         }
         {
           float mx = truth.DeathPosition[it][2];
           float my = truth.DeathPosition[it][1];
-          if (mx > 19000) {
-            mx = truth.PositionZIsTMSEnd[it][2];
-            my = truth.PositionZIsTMSEnd[it][1];
-          }
-          TMarker marker(mx, my, 23);
+          TMarker marker(mx, my, marker_to_use_death);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
           markersy.push_back(marker);
         }
         n_offset += 1;
@@ -272,7 +327,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   double text_size = 0.08;
   double x1 = 0.01;
   double x2 = 0.28;
-  double y1 = 0.1;
+  double y1 = 0.02;
   double y2 = 0.9;
   auto textBoxA = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
   auto textBoxC = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
@@ -284,17 +339,33 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     textBoxA.AddText(foo.c_str()); textBoxC.AddText("");
   }
   
-  y1 = 0.5;
+  y1 = 0.6;
+  y2 = 1;
   auto textBoxD = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
   auto textBoxE = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
   textBoxD.AddText("N reco tracks:"); textBoxE.AddText(TString::Format("%d", reco.nTracks));
+  int time_slice_start_time = reco.TimeSliceStartTime;
+  int time_slice_end_time = reco.TimeSliceEndTime;
+  int slice_width = time_slice_end_time - time_slice_start_time;
+  textBoxD.AddText("Slice start:"); textBoxE.AddText(TString::Format("%dns", time_slice_start_time));
+  textBoxD.AddText("Slice width:"); textBoxE.AddText(TString::Format("%dns", slice_width));
+  // Add message but only if it's not the default message
+  if (message.find("n tracks =") == std::string::npos) {
+    textBoxD.AddText(message.c_str()); textBoxE.AddText("");
+  }
   
-  TLegend leg(x1, 0.05, x2, 0.5);
+  
+  TLegend leg(x1, 0, x2+0.1, y1);
   AddMarkerToLegend(leg, 21, 1.5, kBlack, "Reco Hits");
   AddMarkerToLegend(leg, 33, 1, kGreen+2, "True Hits");
-  AddMarkerToLegend(leg, 20, 1.5, kRed, "Reco Track Nodes");
-  AddMarkerToLegend(leg, 33, 1, kGreen+2, "True Hits on Track");
+  if (draw_reco_track_nodes) {
+    AddMarkerToLegend(leg, 20, 1.5, kRed, "Reco Track Nodes");
+    AddMarkerToLegend(leg, 33, 1, kGreen+2, "True Hits on Track");
+  }
+  auto reco_entry = leg.AddEntry("","Reco Track","l");
+  reco_entry->SetLineColor(kRed);
   AddMarkerToLegend(leg, 22, 1, kBlack, "True Particle Start");
+  AddMarkerToLegend(leg, 32, 1, kBlack, "True Part. Last TMS Pos");
   AddMarkerToLegend(leg, 23, 1, kBlack, "True Particle End");
   
   // Now draw
@@ -303,12 +374,18 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   for (auto& marker : markers) {
     marker.Draw();
   }
+  for (auto& line : lines) {
+    line.Draw();
+  }
   textBoxA.Draw("same");
   textBoxC.Draw("same");
   canvas->cd(2);
   histy.Draw("Axis");
   for (auto& marker : markersy) {
     marker.Draw();
+  }
+  for (auto& line : linesy) {
+    line.Draw();
   }
   textBoxD.Draw("same");
   textBoxE.Draw("same");
