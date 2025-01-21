@@ -16,6 +16,7 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TMarker.h>
+#include <TLine.h>
 #include <TString.h>
 #include <TPaveText.h>
 #include <TLegend.h>
@@ -705,10 +706,10 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
                                              reco.EndDirection[it][1] * reco.EndDirection[it][1] +
                                              reco.EndDirection[it][2] * reco.EndDirection[it][2]);
         const double epsilon = 1e-6;
-        if (std::abs(start_direction_mag - 1) > epsilon)
-          std::cout<<"Warning: Found start_direction_mag outside of 1. "<<start_direction_mag<<std::endl;
-        if (std::abs(end_direction_mag - 1) > epsilon)
-          std::cout<<"Warning: Found end_direction_mag outside of 1. "<<end_direction_mag<<std::endl;
+        //if (std::abs(start_direction_mag - 1) > epsilon)
+        //  std::cout<<"Warning: Found start_direction_mag outside of 1. "<<start_direction_mag<<std::endl;
+        //if (std::abs(end_direction_mag - 1) > epsilon)
+        //  std::cout<<"Warning: Found end_direction_mag outside of 1. "<<end_direction_mag<<std::endl;
         GetHist("basic__sanity__StartDirectionMag", "StartDirection Mag", "DirectionSanityCheck")->Fill(start_direction_mag);
         GetHist("basic__sanity__EndDirectionMag", "EndDirection Mag", "DirectionSanityCheck")->Fill(end_direction_mag);
         if (std::abs(reco.StartDirection[it][1]) > 1) 
