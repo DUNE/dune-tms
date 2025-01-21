@@ -64,6 +64,56 @@ void TMS_Hit::MergeWith(TMS_Hit& hit) {
   GetAdjustableTrueHit().MergeWith(hit.GetAdjustableTrueHit());
 }
 
+double TMS_Hit::GetTrueDistanceFromReadout() {
+  // Note that you want to do always do more positive - less positive, or else you get a sign error
+  if (GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    if (GetTrueHit().GetX() < 0) return GetTrueHit().GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation();
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation() - GetTrueHit().GetX();
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    return TMS_Geom::GetInstance().YBarReadoutLocation() - GetTrueHit().GetY();
+  }
+}
+
+double TMS_Hit::GetTrueLongDistanceFromReadout() {
+  double additional_length;
+  if (GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    additional_length = 2 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    additional_length = 2 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return additional_length - GetTrueDistanceFromReadout();
+}
+
+double TMS_Hit::GetTrueDistanceFromMiddle() {
+  // Subtract out half a bar length
+  double additional_length;
+  if (GetBar().GetBarType() == TMS_Bar::kXBar) {
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return GetTrueDistanceFromReadout() - additional_length;
+}
+
+double TMS_Hit::GetTrueLongDistanceFromMiddle() {
+  // Subtract out half a bar length
+  double additional_length;
+  if (GetBar().GetBarType() == TMS_Bar::kXBar) {
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return GetTrueLongDistanceFromReadout() - additional_length;
+}
+
 
 
 

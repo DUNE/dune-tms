@@ -566,6 +566,7 @@ void TMS_Event::SimulateOpticalModel() {
     if (should_simulate_fiber_lengths) {
     
       // Calculate the long and short path lengths
+      #ifdef USE_OLD_CODE
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
       if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -575,6 +576,10 @@ void TMS_Event::SimulateOpticalModel() {
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
+      #else
+      double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
+      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
+      #endif
       
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
@@ -804,6 +809,7 @@ void TMS_Event::SimulateTimingModel() {
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+    #ifdef USE_OLD_CODE
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
     if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -813,6 +819,10 @@ void TMS_Event::SimulateTimingModel() {
     // TODO manually found this center. Want a better way in case things change
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
+    #else
+    double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
+    double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+    #endif
     
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear

@@ -433,6 +433,7 @@ class TMS_TreeWriter {
     MYVAR(TrueHitPEAfterFibersLongPath);
     MYVAR(TrueHitPEAfterFibersShortPath);
     INTMYVAR(TrueHitBar);
+    INTMYVAR(TrueHitView);
     INTMYVAR(TrueHitPlane);
     INTMYVAR(TrueNTrueParticles);
     MYVAR(TrueLeptonicEnergy);
