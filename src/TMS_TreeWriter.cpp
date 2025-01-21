@@ -222,7 +222,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
   Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
   Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
-  Branch_Lines->Branch("RecoHitBarType", RecoHitBarType, "RecoHitBarType[nHits]/F");
+  Branch_Lines->Branch("RecoHitBarType", RecoHitBarType, "RecoHitBarType[nHits]/I");
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
