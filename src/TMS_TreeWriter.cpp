@@ -244,10 +244,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
-  Reco_Tree->Branch("Chi2positive",           Chi2positive,             "Chi2positive[nTracks]/F");
-  Reco_Tree->Branch("Chi2negative",           Chi2negative,             "Chi2negative[nTracks]/F");
-  Reco_Tree->Branch("KalmanPDG",           KalmanPDG,             "KalmanPDG[nTracks]/I");
-
+  
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
   
@@ -1227,10 +1224,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
     RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
-    //add KalmanPDG here
-    KalmanPDG[itTrack] = RecoTrack->KalmanPDG;
-    Chi2positive[itTrack]          =       RecoTrack->Chi2positive;
-    Chi2negative[itTrack]          =       RecoTrack->Chi2negative;
+    
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];

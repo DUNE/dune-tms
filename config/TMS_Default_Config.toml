@@ -92,7 +92,7 @@
 
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
-    Assumed_Charge = 0.1 # Assumed to be a muon
+    Assumed_Charge = 0 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0 is for no magnetic field.
 
 
   [Recon.Stopping]
