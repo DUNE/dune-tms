@@ -1288,7 +1288,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
-      RecoTrackHitPos[itTrack][j][3] = RecoTrack->Hits[j].GetT();
+      
     }
     // Can manually compute direction if it hasn't been set
 //    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
