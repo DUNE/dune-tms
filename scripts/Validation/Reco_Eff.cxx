@@ -97,10 +97,10 @@
             "ke_tms")->Fill(particle_starting_ke);
           if (ismuon) 
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "multi_reco_muon", 
-                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+                    TString::Format("Particle %d reco'd %dx", ip, particle_indices_reconstructed[ip]).Data(), reco, lc, truth, DrawSliceN::many);
           else
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "multi_reco_nonmuon", 
-                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
+                    TString::Format("Particle %d reco'd %dx", ip, particle_indices_reconstructed[ip]).Data(), reco, lc, truth, DrawSliceN::many);
         }
       }
       if (ismuon) {
