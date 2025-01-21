@@ -28,18 +28,14 @@ class TMS_Track {
     double Momentum;
     double Time;         // TODO: Fill this in a sensible way
     double Chi2;
-    int KalmanPDG;
-    double Chi2negative;
-    double Chi2positive;
+    
 
 
     double GetEnergyDeposit() {return EnergyDeposit;};
     double GetEnergyRange()   {return EnergyRange;};
     double GetMomentum()      {return Momentum;};
     double GetChi2()          {return Chi2;};
-    int GetKalmanPDG()          {return KalmanPDG;};
-    double GetChi2negative()         {return Chi2negative;};
-    double GetChi2positive()          {return Chi2positive;};
+    
     
     TMS_TrueParticle GetTrueParticle() {return fTrueParticle;};
 
@@ -48,10 +44,7 @@ class TMS_Track {
     void SetEnergyRange   (double val) {EnergyRange   = val;};
     void SetMomentum      (double val) {Momentum      = val;};
     void SetChi2          (double val) {Chi2          = val;};
-    void SetKalmanPDG          (double val) {KalmanPDG          = val;};
-    void SetChi2negative         (double val) {Chi2negative          = val;};
-    void SetChi2positive          (double val) {Chi2positive          = val;};
-
+   
 
     // Set direction unit vectors from only x and y slope
     void SetStartDirection(double ax, double ay, double az);// {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
