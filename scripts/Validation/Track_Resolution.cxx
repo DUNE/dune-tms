@@ -33,7 +33,8 @@
                  
         TVector3 direction(reco.EndDirection[it][0], 0, reco.EndDirection[it][2]);
         //TVector3 direction(0, 0, 1);
-        direction.SetMag(30);
+        if (direction.Mag() > 0) direction.SetMag(30);
+        else direction.SetZ(30);
         GetHist("reco_track__track_resolution__corrected_endpoint_z",
                  "Endpoint Resolution dz", "endpoint_dz")->Fill(endpoint_dz + direction.Z());
     }
