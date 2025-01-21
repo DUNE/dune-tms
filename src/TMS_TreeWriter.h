@@ -265,7 +265,7 @@ class TMS_TreeWriter {
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
     float RecoHitPE[__TMS_MAX_HITS__];
-    float RecoHitBarType[__TMS_MAX_HITS__];
+    int RecoHitBarType[__TMS_MAX_HITS__];
     int RecoHitBar[__TMS_MAX_HITS__];
     int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
