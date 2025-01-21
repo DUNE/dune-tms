@@ -25,6 +25,20 @@ TMS_Bar::TMS_Bar(TG4HitSegment &edep_seg) {
   FindModules(x, y, z);
 }
 
+// Construct a bar from x, y, z
+TMS_Bar::TMS_Bar(double X, double Y, double Z) : PlaneNumber(-1), BarNumber(-1), GlobalBarNumber(-1),
+    x(X), y(Y), z(Z), xw(-1), yw(-1), zw(-1)
+{
+  // Find the bar in the geometry
+  // Updates the x,y,z,xw,yw,zw
+  FindModules(x, y, z);
+}
+
+int TMS_Bar::GetBarTypeNumber() const {
+  if (GetPlaneNumber() < 0) return -999999999;
+  return (int) BarOrient;
+}
+
 // Find which bar a given x,y,z position corresponds to
 // Maybe this function should be moved to the singleton instead
 bool TMS_Bar::FindModules(double xval, double yval, double zval) {
@@ -33,7 +47,9 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
   // Find which node this position is equivalent too
-  std::string NodeName = std::string(TMS_Geom::GetInstance().FindNode(xval,yval,zval)->GetName());
+  auto node = TMS_Geom::GetInstance().FindNode(xval,yval,zval);
+  if (node == NULL) return false;
+  std::string NodeName = std::string(node->GetName());
 
   // cd up in the geometry to find the right name
   //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
@@ -75,16 +91,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       x = position[0];
       y = position[1];
       z = position[2];
-
-      // Do a sanity check (CHEATING!)
-      // Know the bars are 1cm in z and 3.542cm in x
-      if (zw != 10 || (xw != 35.42 && yw != 35.42)) {
-        std::cerr << "width of " << NodeName << " not as expected! (1cm deep, 1 3.542cm wide)" << std::endl;
-        std::cerr << "xwidth: " << xw << std::endl;
-        std::cerr << "ywidth: " << yw << std::endl;
-        std::cerr << "zwidth: " << zw << std::endl;
-        // throw; // Remove this for now, hard assumes bar geometry
-      }
 
     }
 

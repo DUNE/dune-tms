@@ -25,84 +25,89 @@ tan_87 = 19.08114
 tan_3 = 0.05241
 
 ### Widths of hits
-delta_x = 0.0177    # half a bar width
+delta_x = 0.018    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
-delta_z = 0.02      # space of scintilattor with air gap
+delta_z = 0.025      # space of scintilattor with air gap
 
 MUON_MASS = 105.7  # MeV/c^2
 
+tms_top_stereo = 0.29777
+tms_bottom_stereo = -3.00223
+tms_top_hybrid = 0.37177
+tms_bottom_hybrid = -3.07623
+
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':  # assumption VBar is tilted in positive way and UBar then in negative
+    if orientation_bar == 'VBar':  # assumption VBar is tilted in positive way and UBar then in negative
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y            
         if x < r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= -0.244: return -0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
-    elif orientation_bar == 'kUBar':
+    elif orientation_bar == 'UBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y + sin_3 * delta_x + cos_3 * delta_y
         if x < r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
 
 ### Function for lower limit of tilted bar 'hit'
 def lower_limit(hit_x, hit_y, x, orientation_bar):
-    if orientation_bar == 'kVBar':
+    if orientation_bar == 'VBar':
         r = hit_x - cos_3 * delta_x + sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_87 * x + tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = tan_3 * x - tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
-    elif orientation_bar == 'kUBar':
+    elif orientation_bar == 'UBar':
         r = hit_x + cos_3 * delta_x - sin_3 * delta_y
         s = hit_y - sin_3 * delta_x - cos_3 * delta_y
         if x < r:
             return_value = -tan_3 * x + tan_3 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
         elif x >= r:
             return_value = tan_87 * x - tan_87 * r + s
-            if return_value >= 0.244: return 0.244
-            elif return_value <= -2.949: return -2.949
+            if return_value >= tms_top_stereo: return tms_top_stereo
+            elif return_value <= tms_bottom_stereo: return tms_bottom_stereo
             else: return return_value
 
 ### Function for hits to appear in size
 def hit_size(hit_x, hit_y, orientation, hit_z):
     if orientation == 'xy':
         orientation_bar = check_orientation(int(hit_z))
-        if orientation_bar == 'kXBar':
+        if orientation_bar == 'XBar':
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x / 1000.0 + delta_x
             size_array[0, 1] = hit_x / 1000.0 - delta_x
-            if (hit_y / 1000.0 + delta_x) >= 0.244:
-                size_array[1, 0] = 0.244
+            if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
+                size_array[1, 0] = tms_top_hybrid
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y / 1000.0 - delta_x) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_x) <= tms_bottom_hybrid:
+                size_array[1, 1] = tms_bottom_hybrid
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
             return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]
@@ -117,22 +122,22 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
         orientation_bar = check_orientation(int(hit_z))
-        if orientation_bar == 'kXBar':
-            if (hit_y / 1000.0 + delta_x) >= 0.244:
-                size_array[1, 0] = 0.244
+        if orientation_bar == 'XBar':
+            if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
+                size_array[1, 0] = tms_top_hybrid
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_x
-            if (hit_y / 1000.0 - delta_x) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_x) <= tms_bottom_hybrid:
+                size_array[1, 1] = tms_bottom_hybrid
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_x
         else:
-            if (hit_y / 1000.0 + delta_y) >= 0.244:
-                size_array[1, 0] = 0.244
+            if (hit_y / 1000.0 + delta_y) >= tms_top_stereo:
+                size_array[1, 0] = tms_top_stereo
             else:
                 size_array[1, 0] = hit_y / 1000.0 + delta_y
-            if (hit_y / 1000.0 - delta_y) <= -2.949:
-                size_array[1, 1] = -2.949
+            if (hit_y / 1000.0 - delta_y) <= tms_bottom_stereo:
+                size_array[1, 1] = tms_bottom_stereo
             else:
                 size_array[1, 1] = hit_y / 1000.0 - delta_y
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]   
@@ -232,9 +237,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
             z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
             x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-            x_y.text(3.6, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            z_y.text(18.4, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            x_z.text(18.4, -1, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+            
+            ### Set TMS name
+            x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+            z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+            x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
     
             ### Position plots efficient/nice in subplots
             x_z.axis('equal')
@@ -247,24 +257,26 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             x_y.axes.set_anchor('SW')
     
             ### Put in outlines of scintillator parts
-            x_z.hlines(-3.52, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(3.52, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(-1.75, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.hlines(1.75, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.vlines(11.362, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_z.vlines(18.294, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
     
-            z_y.hlines(-2.949, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.hlines(0.244, 11.362, 18.294, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(11.362, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')
-            z_y.vlines(18.294, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
     
-            x_y.hlines(-2.949, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-            x_y.hlines(0.244, -3.52, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')    #-2.51->0.244 & -5.71->-2.949
-            x_y.vlines(-3.52, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
-            x_y.vlines(3.52, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')   #TODO this is simplified without tilt of modules
-            x_y.vlines(-1.75, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':') #TODO this is simplified without tilt of modules
-            x_y.vlines(1.75, 0.244, -2.949, color = orange_cbf, linewidth = 1, linestyle = ':')  #TODO this is simplified without tilt of modules
+            x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+            x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
             
             #print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
@@ -276,6 +288,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             # nTrueHits = true_event.RecoTrackNHits
             # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
 
+            # Kalman stuff
+            nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
+            KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
+            KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
+
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
             #Direction = np.frombuffer(event.Direction, dtype = np.float32)
@@ -283,7 +300,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             
-            for i in range(nTracks):
+            for j in range(nTracks):
 
                 # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
                 # # loop through those true hits in the TMS
@@ -305,11 +322,11 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 #     mp.close()
 
                 ### Hit positions of the hits in the track
-                for hit in range(nHits[i]):
+                for hit in range(nHits[j]):
 
-                    hit_x = TrackHitPos[i*600 + hit*3 + 0]
-                    hit_y = TrackHitPos[i*600 + hit*3 + 1]
-                    hit_z = TrackHitPos[i*600 + hit*3 + 2]
+                    hit_x = TrackHitPos[j*600 + hit*3 + 0]
+                    hit_y = TrackHitPos[j*600 + hit*3 + 1]
+                    hit_z = TrackHitPos[j*600 + hit*3 + 2]
                 
                     #print('(%s)' %check_orientation(int(hit_z)), hit_x, hit_y, hit_z)
                 
@@ -319,108 +336,116 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 
                     #print("hit", hit_y, hit_z)
                     color_cbf = red_cbf
-                    if check_orientation(int(hit_z)) == 'kVBar':
+                    if check_orientation(int(hit_z)) == 'VBar':
                         color_cbf = blue_cbf
-                    elif check_orientation(int(hit_z)) == 'kXBar':
+                    elif check_orientation(int(hit_z)) == 'XBar':
                         color_cbf = black_cbf
                     
-                    x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
+                    if hit < 3:
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
+                    else:
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 if DrawKalmanTrack:
-                    print("Track: ", i, "\t Hits: ", nHits[i], "\t Nodes: ", nKalmanNodes[i])
+                    print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
 
                     prev_kal_x = -1E100
                     prev_kal_y = -1E100
                     prev_kal_z = -1E100
-                    kal_x = np.zeros(nKalmanNodes[i])
-                    kal_y = np.zeros(nKalmanNodes[i])
-                    kal_z = np.zeros(nKalmanNodes[i])
-                    kal_true_x = np.zeros(nKalmanNodes[i])
-                    kal_true_y = np.zeros(nKalmanNodes[i])
+                    kal_x = np.zeros(nKalmanNodes[j])
+                    kal_y = np.zeros(nKalmanNodes[j])
+                    kal_z = np.zeros(nKalmanNodes[j])
+                    kal_true_x = np.zeros(nKalmanNodes[j])
+                    kal_true_y = np.zeros(nKalmanNodes[j])
 
-                    for node in range(nKalmanNodes[i]):
-                        kal_x[node] = KalmanPos[i*600 + node*3 + 0]/1000.0 # from mm to m
-                        kal_y[node] = KalmanPos[i*600 + node*3 + 1]/1000.0
-                        kal_z[node] = KalmanPos[i*600 + node*3 + 2]/1000.0
-                        kal_true_x[node] = KalmanTruePos[i*600 + node*3 + 0]/1000.0 # from mm to m
-                        kal_true_y[node] = KalmanTruePos[i*600 + node*3 + 1]/1000.0
+                    for node in range(nKalmanNodes[j]):
+                        kal_x[node] = KalmanPos[j*600 + node*3 + 0]/1000.0 # from mm to m
+                        kal_y[node] = KalmanPos[j*600 + node*3 + 1]/1000.0
+                        kal_z[node] = KalmanPos[j*600 + node*3 + 2]/1000.0
+                        kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
+                        kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf)
+                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
                     z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
                     x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
 
-                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf)
+                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
                     z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
                     x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
 
                 ### Track start
                 #print(StartPos)
                 #temporary fix
-                if not (StartPos[i*3 + 2] < 11000.):    #StartPos[i*3 + 1] > -2000.0 or 
+                if not (StartPos[j*3 + 2] < 11000.):    #StartPos[i*3 + 1] > -2000.0 or 
                     
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
-                    if not StartPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 0], 'xz', StartPos[i*3 + 2]), color = green_cbf)
-                        z_y.fill_between(*hit_size(StartPos[i*3 + 2], StartPos[i*3 + 1], 'zy', StartPos[i*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(StartPos[i*3 + 0], StartPos[i*3 + 1], 'xy', StartPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                    if not StartPos[j*3 + 1] == 0.0:
+                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', StartPos[j*3 + 2]), color = green_cbf, label = 'Start/End reco')
+                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', StartPos[j*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', StartPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
                 #print(EndPos)               
                 #temporary fix
-                if not (EndPos[i*3 + 2] < 11000.):  #EndPos[i*3 + 1] > -2000.0 or 
+                if not (EndPos[j*3 + 2] < 11000.):  #EndPos[i*3 + 1] > -2000.0 or 
                     #print(check_orientation(int(EndPos[i*3 + 2])))
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
-                    if not EndPos[i*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 0], 'xz', EndPos[i*3 + 2]), color = green_cbf)
-                        z_y.fill_between(*hit_size(EndPos[i*3 + 2], EndPos[i*3 + 1], 'zy', EndPos[i*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(EndPos[i*3 + 0], EndPos[i*3 + 1], 'xy', EndPos[i*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                    if not EndPos[j*3 + 1] == 0.0:
+                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', EndPos[j*3 + 2]), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', EndPos[j*3 + 2]), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', EndPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[i*3 + 2] < 11000. or EndPos[i*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                if not DrawKalmanTrack and not (StartPos[j*3 + 2] < 11000. or EndPos[j*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
 
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
-                    if not StartPos[i*3 + 1] == 0.0 or EndPos[i*3 + 1] == 0.0:
-                        x_z.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
-                        z_y.plot([StartPos[i*3 + 2] / 1000.0, EndPos[i*3 + 2] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
-                        x_y.plot([StartPos[i*3 + 0] / 1000.0, EndPos[i*3 + 0] / 1000.0], [StartPos[i*3 + 1] / 1000.0, EndPos[i*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                    if not StartPos[j*3 + 1] == 0.0 or EndPos[j*3 + 1] == 0.0:
+                        x_z.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
+                        z_y.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_y.plot([StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
         
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
+                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
                 
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
                 
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[i*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
 
 
-            # Write the True Muon KE to each spill plot.
-            if report_true_ke:
-                for idx, pdg in enumerate(true_event.PDG):
-                    if pdg != abs(13): continue
-
-                    muon_ke_lar = true_event.Muon_TrueKE / 1000.0
-                    p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
-                    muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
-                    muon_ke_tms_start /= 1000.0
-                    x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-                    x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-
-                    if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
-                        print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
-
-            output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}")
-            mp.savefig(output_filename + ".png", bbox_inches = 'tight')
-            mp.close()
+                # Write the True Muon KE to each spill plot.
+                if report_true_ke:
+                    for idx, pdg in enumerate(true_event.PDG):
+                        if pdg != abs(13): continue
+    
+                        muon_ke_lar = true_event.Muon_TrueKE / 1000.0
+                        p_tms_start = ROOT.TVector3(truth.MomentumTMSStart[4 * idx], truth.MomentumTMSStart[4 * idx + 1], truth.MomentumTMSStart[4 * idx + 2])
+                        muon_ke_tms_start = sqrt(p_tms_start.Mag2() + MUON_MASS ** 2) - MUON_MASS
+                        muon_ke_tms_start /= 1000.0
+                        x_z.text(11, 4, f'Muon KE at birth (LAr): {muon_ke_lar:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                        x_z.text(11, 5, f'Muon KE entering TMS: {muon_ke_tms_start:.2f} GeV', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+    
+                        if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
+                            print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
+    
+                # add a legend
+                fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
+                fig.tight_layout()
+                fig.subplots_adjust(right = 0.84)
+                # save plot
+                output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
+                mp.savefig(output_filename + ".png", bbox_inches = 'tight')
+                mp.close()
         
     return
 
@@ -429,40 +454,76 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11368
-layer_dict = { "%s" % first_z : "kUBar" }
+first_z = 11185
+layer_dict = { "%s" % first_z : "UBar" }
         
 def calculate_layers(Xlayers):
-    thin_layers = 39
-    thick_layers = 61
+    increment = 2
+    if Xlayers:
+        increment = 3
+    thin_layers = 50
+    thick_layers = 34
+    double_layers = 9
     # Calculate the z position for each layer for the thin section
     for i in range(thin_layers):
-        hit_z = first_z + i * 55
+        hit_z = first_z + i * 65
         # even layers
-        if (((hit_z - first_z) / 55) % 2) == 0:
-            layer_dict.update({ "%s" % hit_z : "kUBar" })
+        if (((hit_z - first_z) / 65) % increment) == 0:
+            layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
-        elif (((hit_z - first_z) / 55) % 2) == 1:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
+        elif (((hit_z - first_z) / 65) % increment) == 1:
+            layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - first_z) / 55) % 3) == 0:
-                layer_dict.update({ "%s" % hit_z : "kXBar" })
-    # Calculate the z position for each layers the thick section
-    start_thick = first_z + thin_layers * 55
+            if (((hit_z - first_z) / 65) % increment) == 0:
+                layer_dict.update({ "%s" % hit_z : "XBar" })
+            # even layers
+            if (((hit_z - first_z) / 65) % increment) == 1:
+                layer_dict.update({ "%s" % hit_z : "UBar" })
+            # odd layers
+            elif (((hit_z - first_z) / 65) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "VBar" })
+    # Calculate the z position for each layer for the thick section
+    start_thick = first_z + thin_layers * 65
     for i in range(thick_layers):
-        hit_z = start_thick + i * 80
+        hit_z = start_thick + i * 90
         # even layers
-        if (((hit_z - start_thick) / 80) % 2) == 0:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
+        if (((hit_z - start_thick) / 90) % increment) == 0:
+            layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
-        elif (((hit_z - start_thick) / 80) % 2) == 1:
-            layer_dict.update({ "%s" % hit_z : "kUBar" })
+        elif (((hit_z - start_thick) / 90) % increment) == 1:
+            layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - start_thick) / 80) % 3) == 0:
-                layer_dict.update({ "%s" % hit_z : "kXBar" })
-
+            if (((hit_z - start_thick) / 90) % increment) == 0:
+                layer_dict.update({ "%s" % hit_z : "VBar" })
+            # even layers
+            elif (((hit_z - start_thick) / 90) % increment) == 1:
+                layer_dict.update({ "%s" % hit_z : "XBar" })
+            # odd layers
+            elif (((hit_z - start_thick) / 90) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "UBar" })
+    # Calculate the z position for each layer for the double section
+    start_double = first_z + thin_layers * 65 + thick_layers * 90
+    for i in range(double_layers):
+        hit_z = start_double + i * 130
+        # even layers
+        if (((hit_z - start_double) / 130) % increment) == 0:
+            layer_dict.update({ "%s" % hit_z : "UBar" })
+        # odd layers
+        elif (((hit_z - start_double) / 130) % increment) == 1:
+            layer_dict.update({ "%s" % hit_z : "VBar" })
+        # x layers
+        if Xlayers:
+            if (((hit_z - start_double) / 130) % increment) == 0:
+                layer_dict.update({ "%s" % hit_z : "XBar" })
+            # even layers
+            elif (((hit_z - start_double) / 130) % increment) == 1:
+                layer_dict.update({ "%s" % hit_z : "UBar" })
+            # odd layers
+            elif (((hit_z - start_double) / 130) % increment) == 2:
+                layer_dict.update({ "%s" % hit_z : "VBar" })
+                
     return
 
 if __name__ == "__main__":
