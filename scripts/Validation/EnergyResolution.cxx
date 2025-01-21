@@ -94,7 +94,7 @@
         density_to_use = 5.57; // g/cm^2, 2/3rds steel, 1/3rd plastic
       }
       // On avg we're off by about this much in cm
-      direction.SetMag(30);
+      //direction.SetMag(30);
       //length_to_use += density_to_use * direction.Z();
       double reco_muon_starting_ke = length_to_energy(length_to_use);
       if (highest_reco_starting_muon_ke < reco_muon_starting_ke) {  
@@ -219,7 +219,7 @@
     //    
     double target_e = (1.75*true_areal_density_of_highest)*1e-3 + 0.5;
     if (target_e < highest_true_muon_starting_ke) {
-        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "areal_density_not_correlated_with_ke", 
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "true_areal_density_not_correlated_with_ke", 
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc, truth, DrawSliceN::many);
       GetHist("energy_resolution__areal_density_and_energy__vs_energy_comparison_drawn_slices",
               "True Areal Density Compared to Energy", "true_areal_density",
