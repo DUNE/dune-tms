@@ -67,8 +67,9 @@ class TMS_TreeWriter {
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
-
+    
   private:
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;

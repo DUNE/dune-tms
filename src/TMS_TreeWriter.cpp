@@ -253,6 +253,9 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
+  
+  Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
+  
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
@@ -1211,6 +1214,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
+    
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1247,11 +1252,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
-      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
-        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
-        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
-      //}
       RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
       RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
       RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
@@ -1282,13 +1282,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
       // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
+        RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX(); // GetNotZ?
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetRecoY();
       } else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         RecoTrackHitPos[itTrack][j][0] = RecoTrack->Hits[j].GetRecoX();
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
+      
     }
     // Can manually compute direction if it hasn't been set
 //    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
@@ -1901,6 +1902,7 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
+     
       RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
