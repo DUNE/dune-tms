@@ -97,6 +97,14 @@ bool IsInLAr(TVector3 position, LArSubRegion subregion) {
   return out;
 }
 
+bool IsInTMSFull(TVector3 position) {
+  bool out = true;
+  if (-4500 < position.X() && position.X() < 4500) out = false;
+  if (-4000 < position.Y() && position.Y() < 1000) out = false;
+  if (11000 < position.Z() && position.Z() < 19000) out = false;
+  return out;
+}
+
 std::string getExecutableName(const char* arg) {
     std::string executableName = arg; // Convert to std::string
     size_t lastSlash = executableName.find_last_of("/\\"); // Find last occurrence of '/' or '\'
@@ -376,6 +384,10 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "energy_range") return std::make_tuple("Energy Range (GeV)", 50, 0, 5);
   if (axis_name == "energy_deposit") return std::make_tuple("Energy Deposit (MeV)", 50, 0, 3000);
   if (axis_name == "yesno") return std::make_tuple("Yes or No", 2, -0.5, 1.5);
+  if (axis_name == "rock_muon_event_rate") return std::make_tuple("Rock Muon Event Rates", 4, -0.5, 3.5);
+  if (axis_name == "tms_event_rate") return std::make_tuple("TMS Event Rates", 4, -0.5, 3.5);
+  if (axis_name == "tms_event_rate_by_vertex") return std::make_tuple("TMS Event Rates", 3, -0.5, 2.5);
+  if (axis_name == "tms_muon_reco_rates") return std::make_tuple("TMS Muon Rates", 4, -0.5, 3.5);
   
   // Allow for registered axis so we don't need to add them away from where they're used
   if (registeredAxes.find(axis_name) != registeredAxes.end()) return registeredAxes[axis_name];
@@ -415,6 +427,42 @@ void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::strin
   
   if (xaxis == "unusual_hit_locations") {
     const char *labels[] = {"Hit at Zero", "Hit at -999", "Hit Below Fiducial", "Hit Above Fiducial"};
+    const int nlabels = sizeof(labels) / sizeof(labels[0]);
+    hist->SetNdivisions(nlabels);
+    for (int ib = 0; ib < nlabels; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, labels[ib]);
+    }
+  }
+  
+  if (xaxis == "rock_muon_event_rate") {
+    const char *labels[] = {"Rock Muons", "Ending in ND-LAr Active", "Ending in TMS Active", "Ending Other"};
+    const int nlabels = sizeof(labels) / sizeof(labels[0]);
+    hist->SetNdivisions(nlabels);
+    for (int ib = 0; ib < nlabels; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, labels[ib]);
+    }
+  }
+  
+  if (xaxis == "tms_event_rate") {
+    const char *labels[] = {"N Total", "Touch", "End", "Exit"};
+    const int nlabels = sizeof(labels) / sizeof(labels[0]);
+    hist->SetNdivisions(nlabels);
+    for (int ib = 0; ib < nlabels; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, labels[ib]);
+    }
+  }
+  
+  if (xaxis == "tms_event_rate_by_vertex") {
+    const char *labels[] = {"N Total", "Any Energy", "5+ MeV Particle(s)"};
+    const int nlabels = sizeof(labels) / sizeof(labels[0]);
+    hist->SetNdivisions(nlabels);
+    for (int ib = 0; ib < nlabels; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, labels[ib]);
+    }
+  }
+  
+  if (xaxis == "tms_muon_reco_rates") {
+    const char *labels[] = {"N Total", "Touch", "End", "Exit"};
     const int nlabels = sizeof(labels) / sizeof(labels[0]);
     hist->SetNdivisions(nlabels);
     for (int ib = 0; ib < nlabels; ib++) {
@@ -1397,6 +1445,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       #include "TimeSlicing.cxx"
       #include "HitInformation.cxx"
       #include "Track_Resolution.cxx"
+      #include "EventRates.cxx"
 
     } // End for loop over entries
     
