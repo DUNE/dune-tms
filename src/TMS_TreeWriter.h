@@ -70,7 +70,7 @@ class TMS_TreeWriter {
     float RecoTrackLength[__TMS_MAX_TRACKS__];
     float RecoTrackChi2[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
-
+    
   private:
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;
@@ -93,6 +93,7 @@ class TMS_TreeWriter {
 
     // The variables
     int EventNo;
+    int RunNo;
     int nLinesU;
     int nLinesV;
     int nLinesX;
@@ -264,6 +265,9 @@ class TMS_TreeWriter {
     int nHits; // How many hits in event
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
+    float RecoHitPE[__TMS_MAX_HITS__];
+    int RecoHitBar[__TMS_MAX_HITS__];
+    int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
 
     // Truth information
@@ -413,6 +417,45 @@ class TMS_TreeWriter {
     
     int nPrimaryVertices;
     bool HasPileup;
+    
+    // Ideally I'd use std::vector<Float_t> but they don't fill with the right info
+    #define __MAX_TRUE_TREE_ARRAY_LENGTH__ 100000
+    #define MYVAR(x) float x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    #define INTMYVAR(x) int x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    
+    // True hit branches
+    int NTrueHits;
+    MYVAR(TrueHitX);
+    MYVAR(TrueHitY);
+    MYVAR(TrueHitZ);
+    MYVAR(TrueHitT);
+    MYVAR(TrueHitE);
+    MYVAR(TrueHitPE);
+    MYVAR(TrueHitPEAfterFibers);
+    MYVAR(TrueHitPEAfterFibersLongPath);
+    MYVAR(TrueHitPEAfterFibersShortPath);
+    INTMYVAR(TrueHitBar);
+    INTMYVAR(TrueHitView);
+    INTMYVAR(TrueHitPlane);
+    INTMYVAR(TrueNTrueParticles);
+    MYVAR(TrueLeptonicEnergy);
+    MYVAR(TrueHadronicEnergy);
+    
+    
+    // Reco info saved in truth tree to make comparisons easier
+    MYVAR(TrueRecoHitX);
+    MYVAR(TrueRecoHitY);
+    MYVAR(TrueRecoHitZ);
+    MYVAR(TrueRecoHitTrackX);
+    MYVAR(TrueRecoHitTrackY);
+    MYVAR(TrueRecoHitTrackXUncertainty);
+    MYVAR(TrueRecoHitTrackYUncertainty);
+    MYVAR(TrueRecoHitNotZ);
+    MYVAR(TrueRecoHitT);
+    MYVAR(TrueRecoHitE);
+    MYVAR(TrueRecoHitPE);
+    MYVAR(TrueRecoHitEVis);
+    bool TrueRecoHitIsPedSupped[__MAX_TRUE_TREE_ARRAY_LENGTH__];
 };
 
 

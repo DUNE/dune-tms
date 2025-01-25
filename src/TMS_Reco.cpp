@@ -558,13 +558,18 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
     double kalman_reco_mom, kalman_chi2;
+    
+    double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
+
+    trk.KalmanErrorDetVol = KalmanFilter.ErrorDetVol;
+
     for (auto &trk : HoughTracks3D) {
-      KalmanFilter = TMS_Kalman(trk.Hits);
-      kalman_reco_mom = KalmanFilter.GetMomentum();
-
-      trk.KalmanErrorDetVol = KalmanFilter.ErrorDetVol;
-
+      //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
+      KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
+      
+      
       bool verbose_kalman = false;
+      kalman_reco_mom = KalmanFilter.GetMomentum();
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
 
@@ -586,6 +591,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
       kalman_chi2 = KalmanFilter.GetTrackChi2();
       trk.SetChi2(kalman_chi2);
+   
     }
   } else { // No Kalman filter enabled
     for (auto &trk : HoughTracks3D) {
@@ -1509,21 +1515,23 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
             std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
 #endif
-//            // Track Direction
-//            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
-//              aTrack.Direction[0] = aTrack.Start[0] - aTrack.End[0];
-//              aTrack.Direction[1] = aTrack.Start[1] - aTrack.End[1];
-//              aTrack.Direction[2] = aTrack.Start[2] - aTrack.End[2];
-//            } else {
-//              aTrack.Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
-//              aTrack.Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
-//              aTrack.Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();    
-//            }
+            // Track Direction
+            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+              double direction_x = aTrack.Start[0] - aTrack.End[0];
+              double direction_y = aTrack.Start[1] - aTrack.End[1];
+              double direction_z = aTrack.Start[2] - aTrack.End[2];
+              aTrack.SetStartDirection(direction_x, direction_y, direction_z);
+            } else {
+              double direction_x = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
+              double direction_y = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
+              double direction_z = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
+              aTrack.SetStartDirection(direction_x, direction_y, direction_z);
+            }
 #ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
-            std::cout << "Added Direction: " << aTrack.Direction[0] << " | " << aTrack.Direction[1] << " | " << aTrack.Direction[2] << std::endl;
-#endif          
+            std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
+#endif       
   
             returned.push_back(aTrack);
           }

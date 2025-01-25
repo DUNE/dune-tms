@@ -42,6 +42,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nCharged = 0;
   int nHighMomentum = 0;
   int nChargedAndLowMomentum = 0;
+  RunNumber = event.RunId;
   int current_vertexid = event.EventId;
   // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
   // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
@@ -388,7 +389,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)), NonTMS_Hits(event.NonTMS_Hits),
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
@@ -565,6 +566,7 @@ void TMS_Event::SimulateOpticalModel() {
     if (should_simulate_fiber_lengths) {
     
       // Calculate the long and short path lengths
+      #ifdef USE_OLD_CODE
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
       if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -574,6 +576,10 @@ void TMS_Event::SimulateOpticalModel() {
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
+      #else
+      double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
+      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
+      #endif
       
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
@@ -803,6 +809,7 @@ void TMS_Event::SimulateTimingModel() {
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+    #ifdef USE_OLD_CODE
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
     if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -812,6 +819,10 @@ void TMS_Event::SimulateTimingModel() {
     // TODO manually found this center. Want a better way in case things change
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
+    #else
+    double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
+    double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+    #endif
     
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
@@ -1004,7 +1015,9 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
 
 void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
   for (auto &event : overlay_events) AddEvent(event);
-    
+}
+
+void TMS_Event::FinalizeEvent() {
   // Apply the det sim now, after overlaying events
   // The timing and optical model were moved to the initial event creation
   ApplyReconstructionEffects();

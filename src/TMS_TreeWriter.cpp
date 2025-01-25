@@ -66,6 +66,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Branch_Lines->Branch("RunNo", &RunNo, "RunNo/I");
   Branch_Lines->Branch("nLinesU", &nLinesU, "nLinesU/I");
   Branch_Lines->Branch("nLinesV", &nLinesV, "nLinesV/I");
   Branch_Lines->Branch("nLinesX", &nLinesX, "nLinesX/I");
@@ -219,6 +220,9 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
   Branch_Lines->Branch("RecoHitPos",    RecoHitPos,    "RecoHitPos[nHits][4]/F");
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
+  Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
   // Track information
@@ -226,6 +230,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Reco_Tree->Branch("RunNo", &RunNo, "RunNo/I");
 
   Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
@@ -249,8 +254,9 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
-  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
+  
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
 
@@ -376,11 +382,46 @@ void TMS_TreeWriter::MakeBranches() {
                      
   Truth_Info->Branch("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, "TrueVisibleEnergyInSlice[nTrueParticles]/F");
   Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
+  
+  
+  Truth_Info->Branch("NTrueHits", &NTrueHits);
+  Truth_Info->Branch("TrueHitX", &TrueHitX, "TrueHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitY", &TrueHitY, "TrueHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitZ", &TrueHitZ, "TrueHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitT", &TrueHitT, "TrueHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitE", &TrueHitE, "TrueHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibers", &TrueHitPEAfterFibers, "TrueHitPEAfterFibers[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersLongPath", &TrueHitPEAfterFibersLongPath, "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueNTrueParticles", &TrueNTrueParticles, "TrueNTrueParticles[NTrueHits]/I");
+  Truth_Info->Branch("TrueLeptonicEnergy", &TrueLeptonicEnergy, "TrueLeptonicEnergy[NTrueHits]/F");
+  Truth_Info->Branch("TrueHadronicEnergy", &TrueHadronicEnergy, "TrueHadronicEnergy[NTrueHits]/F");
+  
+  
+  Truth_Info->Branch("TrueRecoHitX", &TrueRecoHitX, "TrueRecoHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitY", &TrueRecoHitY, "TrueRecoHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitZ", &TrueRecoHitZ, "TrueRecoHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackX", &TrueRecoHitTrackX, "TrueRecoHitTrackX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackY", &TrueRecoHitTrackY, "TrueRecoHitTrackY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackXUncertainty", &TrueRecoHitTrackXUncertainty, "TrueRecoHitTrackXUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackYUncertainty", &TrueRecoHitTrackYUncertainty, "TrueRecoHitTrackYUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitNotZ", &TrueRecoHitNotZ, "TrueRecoHitNotZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitT", &TrueRecoHitT, "TrueRecoHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitE", &TrueRecoHitE, "TrueRecoHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitPE", &TrueRecoHitPE, "TrueRecoHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitEVis", &TrueRecoHitEVis, "TrueRecoHitEVis[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitIsPedSupped", &TrueRecoHitIsPedSupped, "TrueRecoHitIsPedSupped[NTrueHits]/O");
+  Truth_Info->Branch("TrueHitBar", &TrueHitBar, "TrueHitBar[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitView", &TrueHitView, "TrueHitView[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitPlane", &TrueHitPlane, "TrueHitPlane[NTrueHits]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   // Truth information saved per spill only
   truth->Branch("EventNo", &EventNo, "EventNo/I");
+  truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  truth->Branch("RunNo", &RunNo, "RunNo/I");
   truth->Branch("IsCC", &IsCC, "IsCC/O");
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
@@ -391,6 +432,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
   
+  /*
   truth->Branch("TrueNonTMSNHits", &TrueNonTMSNHits, "TrueNonTMSNHits/I");
   truth->Branch("TrueNonTMSHitPos", TrueNonTMSHitPos, "TrueNonTMSHitPos[TrueNonTMSNHits][4]/F");
   truth->Branch("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, "TrueNonTMSHitEnergy[TrueNonTMSNHits]/F");
@@ -398,6 +440,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("TrueNonTMSHitDx", TrueNonTMSHitDx, "TrueNonTMSHitDx[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, "TrueNonTMSHitdEdx[TrueNonTMSNHits]/F");
   truth->Branch("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, "TrueNonTMSHitVertexID[TrueNonTMSNHits]/I");
+  */
 
   truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
   truth->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
@@ -490,6 +533,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -1138,6 +1182,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitPE[stdit] = (*it).GetPE();
+    RecoHitBar[stdit] = (*it).GetBarNumber();
+    RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
   }
 
@@ -1167,6 +1214,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
     RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
+    
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1240,7 +1288,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
-      RecoTrackHitPos[itTrack][j][3] = RecoTrack->Hits[j].GetT();
+      
     }
     // Can manually compute direction if it hasn't been set
 //    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
@@ -1404,6 +1452,62 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     
   }
+  
+  
+  // Clear branches
+  NTrueHits = 0;
+  int index = 0;
+  for (auto& hit : event.GetHitsRaw()) {
+    if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      std::cout<<"TMS_TreeWriter WARNING: Too many hits in event. Increase __MAX_TRUE_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
+      break;
+    }
+    if (index < __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      // In theory a reco hit should have many true hits based on how the merging worked
+      // Plus true hits should have noise hits which don't have any parent info
+      auto true_hit = hit.GetTrueHit();
+      
+      // Only save if more than 0.5 PE since reco hits are pedestal subtracted if < 3 PE currently
+      if (true_hit.GetPE() > 0.5) {
+      
+        // True info
+        NTrueHits += 1;
+        TrueHitX[index] = true_hit.GetX();
+        TrueHitY[index] = true_hit.GetY();
+        TrueHitZ[index] = true_hit.GetZ();
+        TrueHitT[index] = true_hit.GetT();
+        TrueHitE[index] = true_hit.GetE();
+        TrueHitPE[index] = true_hit.GetPE();
+        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
+        TrueHitBar[index] = hit.GetBarNumber();
+        TrueHitView[index] = hit.GetBar().GetBarTypeNumber();
+        TrueHitPlane[index] = hit.GetPlaneNumber();
+        TrueNTrueParticles[index] = true_hit.GetNTrueParticles();
+        TrueLeptonicEnergy[index] = true_hit.GetLeptonicEnergy();
+        TrueHadronicEnergy[index] = true_hit.GetHadronicEnergy();
+        
+        // Reco info
+        TrueRecoHitX[index] = hit.GetX();
+        TrueRecoHitY[index] = hit.GetY();
+        TrueRecoHitZ[index] = hit.GetZ();
+        TrueRecoHitNotZ[index] = hit.GetNotZ();
+        TrueRecoHitT[index] = hit.GetT();
+        TrueRecoHitE[index] = hit.GetE();
+        TrueRecoHitEVis[index] = hit.GetEVis();
+        TrueRecoHitPE[index] = hit.GetPE();
+        TrueRecoHitIsPedSupped[index] = hit.GetPedSup();
+        TrueRecoHitTrackX[index] = hit.GetRecoX();
+        TrueRecoHitTrackY[index] = hit.GetRecoY();
+        TrueRecoHitTrackXUncertainty[index] = hit.GetRecoXUncertainty();
+        TrueRecoHitTrackYUncertainty[index] = hit.GetRecoYUncertainty();
+        
+        index += 1;
+      }
+    }
+    
+  }
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
@@ -1416,6 +1520,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = event.GetRunNumber();
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
@@ -1739,6 +1844,10 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
     RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPE[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBar[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
@@ -1792,7 +1901,8 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
-      RecoTrackHitPos[i][k][3] = DEFAULT_CLEARING_FLOAT;
+     
+      RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;

@@ -232,15 +232,17 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    TMS_Kalman(std::vector<TMS_Hit> &Candidates);
+    //TMS_Kalman(std::vector<TMS_Hit> &Candidates);
+    TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
 
     bool ErrorDetVol = false;
 
+    
     double Start[3];
     double End[3];
     double StartDirection[3];
     double EndDirection[3];
-
+   
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
     void SetMomentum(double mom) {momentum = mom;}
@@ -288,10 +290,10 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
-
+    double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
-
+    
     bool Talk;
 };
 

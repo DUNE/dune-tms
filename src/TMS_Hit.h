@@ -76,10 +76,10 @@ class TMS_Hit {
     void SetT(double t) {Time = t;};
     
     void SetPedSup(bool isPedSup) { PedSuppressed = isPedSup;};
-    bool GetPedSup() { return PedSuppressed; };
+    bool GetPedSup() const { return PedSuppressed; };
     
     void SetPE(double pe) { PE = pe; };
-    double GetPE() { return PE; };
+    double GetPE() const { return PE; };
 
     double GetE() const {return EnergyDeposit;};
     double GetEVis() const {return EnergyDepositVisible;};
@@ -122,6 +122,11 @@ class TMS_Hit {
     #endif
     
     void MergeWith(TMS_Hit& hit);
+    
+    double GetTrueDistanceFromReadout();
+    double GetTrueLongDistanceFromReadout();
+    double GetTrueDistanceFromMiddle();
+    double GetTrueLongDistanceFromMiddle();
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars
