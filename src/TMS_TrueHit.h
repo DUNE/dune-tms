@@ -100,6 +100,7 @@ class TMS_TrueHit {
     int GetPrimaryIds(int index) const { return PrimaryIds.at(index); };
     int GetVertexIds(int index) const { return VertexIds.at(index); };
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
+    double GetEnergySharePortion(int index) const { return EnergyShare.at(index) / GetE(); };
     //void SetVertexId(int id) { VertexId = id; };
     size_t GetNTrueParticles() const { return EnergyShare.size(); };
     double GetLeptonicEnergy() const;
