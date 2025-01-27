@@ -79,6 +79,9 @@ class TMS_Geom {
     };
     bool IsInsideLAr(TVector3 position, double thickness = 0) const 
       { return IsInsideBox(position, GetStartOfLArActive(thickness), GetEndOfLArActive(thickness)); };
+    bool IsInsideLArShell(TVector3 position) const 
+      { double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS();
+        return IsInsideLAr(position) && !IsInsideLAr(position, thickness); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
