@@ -222,6 +222,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
   Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
   Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitBarType", RecoHitBarType, "RecoHitBarType[nHits]/I");
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
 
@@ -257,6 +258,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
   
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
+  Reco_Tree->Branch("TrackHitBarType", RecoTrackHitBarType,   "RecoTrackHitBarType[nTracks][200]/I");
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
@@ -1183,6 +1185,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitBarType[stdit] = (*it).GetBar().GetBarType();
     RecoHitPE[stdit] = (*it).GetPE();
     RecoHitBar[stdit] = (*it).GetBarNumber();
     RecoHitPlane[stdit] = (*it).GetPlaneNumber();
@@ -1279,6 +1282,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
+      RecoTrackHitBarType[itTrack][j] = RecoTrack->Hits[j].GetBar().GetBarType();
 
       // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
@@ -1845,6 +1849,7 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
     RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBarType[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitPE[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitBar[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
