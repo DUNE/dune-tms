@@ -15,6 +15,24 @@
 // The edep-sim event class
 #include "EDepSim/TG4Event.h"
 
+struct Vtx_Info {
+  TLorentzVector vtx;
+  TLorentzVector p4;
+  
+  int pdg;
+  int vtx_id;
+  std::string reaction;
+  double hardonic_energy_lar_shell;
+  double hardonic_energy_lar;
+  double hardonic_energy_tms;
+  double hardonic_energy_total;
+  double true_visible_energy_tms;
+  double true_visible_energy_lar;
+  double true_visible_energy_total;
+  
+  void AddEnergyFromHit(const TMS_TrueHit& hit, int index);
+};
+
 // The general event class
 class TMS_Event {
   public:
@@ -136,6 +154,8 @@ class TMS_Event {
     int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
     
     int GetPrimaryLeptonOfVertexID(int vertexid);
+    
+    void SaveKeyVertexInfo(const TMS_TrueHit& hit);
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
@@ -185,6 +205,8 @@ class TMS_Event {
     std::vector<std::pair<float, float>> DeadChannelTimes;
     std::vector<std::pair<float, float>> ReadChannelTimes;
     std::vector<std::pair<double, double>> TimeSliceBounds;
+    
+    std::map<int, Vtx_Info> info_about_vtx;
 
     std::default_random_engine generator;
     

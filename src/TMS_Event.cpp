@@ -67,6 +67,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       throw std::runtime_error("Fatal: Get a vertex id < 0");
     }
     Reactions[current_vertexid] = Reaction;
+      
+    Vtx_Info vtx_info;
+    vtx_info.reaction = Reaction;
+    vtx_info.vtx_id = current_vertexid;
+    // Had issues with lorentz vectors before so best make a copy
+    vtx_info.vtx = TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T());
+    info_about_vtx[current_vertexid] = vtx_info;
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -296,6 +303,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
           }
         }
+        SaveKeyVertexInfo(t);
         TMS_Hits.push_back(std::move(hit));
 
         // todo, maybe skip for michel electrons or late neutrons
@@ -317,6 +325,9 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
           }
         }
+        
+        SaveKeyVertexInfo(t);
+        
         double divide = 10.0;
         auto poskey = std::tuple((int) (t.GetX() / divide), (int) (t.GetY() / divide), (int) (t.GetZ() / divide), t.GetVertexIds(0));
         if (map_pos_nontms_hits.find(poskey) != map_pos_nontms_hits.end()) {
@@ -1007,6 +1018,7 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
   Reactions.merge(Other_Event.Reactions);
+  info_about_vtx.merge(Other_Event.info_about_vtx);
   // Reset this to recalculate on next call
   VertexIdOfMostEnergyInEvent = -9999;
 
@@ -1029,15 +1041,40 @@ void TMS_Event::FinalizeEvent() {
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], 
   double vtx[__EDEP_SIM_MAX_PART__][4]) {
+  // Momenta/Energy are in GeV
   TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
+  // Positions are in m
   TrueNeutrinoPosition.SetX(vtx[0][0]);
   TrueNeutrinoPosition.SetY(vtx[0][1]);
   TrueNeutrinoPosition.SetZ(vtx[0][2]);
   TrueNeutrinoPosition.SetT(vtx[0][3]);
+  
+  if (info_about_vtx.size() == 1) {
+    auto it = info_about_vtx.begin();
+    auto key = (*it).first;
+    auto second = (*it).second;
+    // Calculate the distance squared to make sure they're about the same vertex position
+    double mm = 1000.0; // convert from m
+    double dist2 = 0;
+    dist2 += pow(vtx[0][0]*mm - second.vtx.X(), 2);
+    dist2 += pow(vtx[0][1]*mm - second.vtx.Y(), 2);
+    dist2 += pow(vtx[0][2]*mm - second.vtx.Z(), 2);
+    double eps = 0.1; // should be about the same
+    if (dist2 < eps) {
+      info_about_vtx[key].pdg = pdg[0];
+      double MeV = 1/1000.0; // Convert from GeV
+      info_about_vtx[key].p4 = TLorentzVector(p4[0][0] * MeV, p4[0][1] * MeV, p4[0][2] * MeV, p4[0][3] * MeV);
+    }
+    else { 
+      std::cout<<"Found mismatch between groo vtx and info_about_vtx. Please investigate. Dist2="<<dist2<<std::endl;
+      std::cout<<vtx[0][0]<<", "<<vtx[0][1]<<", "<<vtx[0][2]<<std::endl;
+      std::cout<<second.vtx.X()<<", "<<second.vtx.Y()<<", "<<second.vtx.Z()<<std::endl;
+    }
+  }
 }
 
 void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid) {
@@ -1311,6 +1348,41 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
 }
 
 
+void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
+  for (size_t i = 0; i < hit.GetNTrueParticles(); i++) {
+    int vertex_id = hit.GetVertexIds(i);
+    if (info_about_vtx.find(vertex_id) != info_about_vtx.end()) {
+      info_about_vtx[vertex_id].AddEnergyFromHit(hit, i);
+    }
+    else std::cout<<"This should not happen but I didn't find a vertex for vertex id "<<vertex_id<<std::endl;
+  }
+}
+
+
+void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
+  double hadronic_energy = hit.GetHadronicEnergy() * hit.GetEnergySharePortion(index);
+  double energy = hit.GetE() * hit.GetEnergySharePortion(index);
+  TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+
+  // Total
+  hardonic_energy_total += hadronic_energy;
+  true_visible_energy_total += energy;
+
+  // Lar-specific
+  if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
+    hardonic_energy_lar += hadronic_energy;
+    true_visible_energy_lar += energy;
+  }
+  // Lar outer-shell for the hadron containment cut
+  if (TMS_Geom::GetInstance().IsInsideLArShell(position))
+    hardonic_energy_lar_shell += hadronic_energy;
+
+  // TMS-specific
+  if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
+    hardonic_energy_tms += hadronic_energy;
+    true_visible_energy_tms += energy;
+  }
+}
 
 
 
