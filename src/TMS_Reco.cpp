@@ -1515,15 +1515,17 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
             // Track Direction
             if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
-              double direction_x = aTrack.Start[0] - aTrack.End[0];
-              double direction_y = aTrack.Start[1] - aTrack.End[1];
-              double direction_z = aTrack.Start[2] - aTrack.End[2];
-              aTrack.SetStartDirection(direction_x, direction_y, direction_z);
+              double direction_x = aTrack.End[0] - aTrack.Start[0];
+              double direction_y = aTrack.End[1] - aTrack.Start[1];
+              double direction_z = aTrack.End[2] - aTrack.Start[2];
+							magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
+              aTrack.SetStartDirection(direction_x / magnitude, direction_y / magnitude, direction_z / magnitude);
             } else {
-              double direction_x = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
-              double direction_y = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
-              double direction_z = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
-              aTrack.SetStartDirection(direction_x, direction_y, direction_z);
+              double direction_x = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX() - aTrack.Start[0];
+              double direction_y = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY() - aTrack.Start[1];
+              double direction_z = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ() - aTrack.Start[2];
+							magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
+              aTrack.SetStartDirection(direction_x / magnitude, direction_y / magnitude, direction_z / magnitude);
             }
 #ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
