@@ -1518,13 +1518,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               double direction_x = aTrack.End[0] - aTrack.Start[0];
               double direction_y = aTrack.End[1] - aTrack.Start[1];
               double direction_z = aTrack.End[2] - aTrack.Start[2];
-							magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
+							double magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
               aTrack.SetStartDirection(direction_x / magnitude, direction_y / magnitude, direction_z / magnitude);
             } else {
               double direction_x = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX() - aTrack.Start[0];
               double direction_y = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY() - aTrack.Start[1];
               double direction_z = aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ() - aTrack.Start[2];
-							magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
+							double magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
               aTrack.SetStartDirection(direction_x / magnitude, direction_y / magnitude, direction_z / magnitude);
             }
 #ifdef DEBUG          
