@@ -44,6 +44,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nChargedAndLowMomentum = 0;
   RunNumber = event.RunId;
   int current_vertexid = event.EventId;
+  int MuonId = -999;
   // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
   // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
   // todo: Make both GetInteractionNumber when bug is fixed
@@ -78,6 +79,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
         TMS_TruePrimaryParticles.emplace_back(truepart);
+        if (abs(particle.GetPDGCode())==13) MuonId= particle.GetTrackId();
+
         
         if (current_vertexid != truepart.GetVertexID()) {
           std::cout<<"Fatal: TMS_TrueParticle's vertex id was set incorrectly in true primary particle list" \
@@ -261,6 +264,12 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
+
+
+  //For hadron containment
+  double collar_energy=0;
+
+
   
   std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
 
@@ -268,6 +277,24 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
     // Only look at TMS hits
     std::string DetString = (*jt).first;
+
+    //Only look at LAr
+    if (DetString == "TPCActive_shape") { // TPCActive_shape is LAr
+        for (const auto& hit : (*jt).second) {
+            //All hits except primary muon
+            if (hit.GetPrimaryId() != MuonId) {
+                // Collar boundary 30cm outmost from LAr active volume
+                if (hit.GetStart().X() < TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X()+300 || hit.GetStart().X() > TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X()-300 ||
+                        hit.GetStart().Y() < TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y()+300 || hit.GetStart().Y() > TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y()-300 ||
+                        hit.GetStart().Z() < TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z()+300 || hit.GetStart().Z() > TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z()-300 ) {
+                    collar_energy += hit.GetEnergyDeposit();
+                }
+            }
+        }
+    }
+    if (collar_energy<30)
+        Ishadron=true;
+    else Ishadron=false;
 
     // Skip hits outside of the TMS if running lightweight
     if (TMSOnly && DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
@@ -392,7 +419,7 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
-      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
+      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions), Ishadron(event.Ishadron),
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
       TrueLeptonPosition(event.TrueLeptonPosition), 

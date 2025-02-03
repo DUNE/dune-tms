@@ -137,7 +137,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
     BarNumber = (GetX() - TMS_Const::TMS_Start_Exact[0]) / GetXw();
   } else if (BarOrient == kXBar) {
-    BarNumber = -2 * (GetY() - 2510) / GetYw(); //TODO refer to TMS_Const::TMS_Start_Exact[1] if equal to -2510
+    BarNumber = (GetY() - TMS_Const::TMS_Start_Exact[1]) / GetYw();
     if (GlobalBarNumber % 2 == 1) {
       BarNumber += 1;
     }
@@ -225,12 +225,14 @@ bool TMS_Bar::CheckBar() {
 
   // Sanity check the global bar number
   //if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
-  if (BarNumber >= (TMS_Const::TMS_End_Exact[0]-TMS_Const::TMS_Start_Exact[0])/GetXw() || BarNumber < 0) {
-    std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    std::cout << "Bar number: " << BarNumber << std::endl;
-    throw;
-    return false;
+  if (BarOrient!=kXBar) {
+      if (BarNumber >= (TMS_Const::TMS_End_Exact[0]-TMS_Const::TMS_Start_Exact[0])/GetXw() || BarNumber < 0) {
+          std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
+          std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+          std::cout << "Bar number: " << BarNumber << std::endl;
+          throw;
+          return false;
+      }
   }
 
   if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {

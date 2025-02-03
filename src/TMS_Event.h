@@ -51,6 +51,9 @@ class TMS_Event {
     bool IsEmpty() { 
       return (TMS_Hits.size() == 0 ? true : false);
     }
+
+    bool Ishadroncontain() { return Ishadron;};
+
     
     int GetNHits() { return TMS_Hits.size(); };
 
@@ -153,8 +156,11 @@ class TMS_Event {
     int nVertices;
 
     std::string Reaction;
+
+
     std::map<int, std::string> Reactions;
  
+    bool Ishadron;
     // Counts how many times constructor has been called
     static int EventCounter;
 
