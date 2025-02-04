@@ -254,8 +254,11 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
+  Reco_Tree->Branch("Charge_Kalman",         RecoTrackCharge_Kalman,          "Charge_Kalman[nTracks]/I");
   
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
+  Reco_Tree->Branch("Chi2_plus",           RecoTrackChi2_plus,             "Chi2_plus[nTracks]/F");
+  Reco_Tree->Branch("Chi2_minus",           RecoTrackChi2_minus,             "Chi2_minus[nTracks]/F");
   
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType", RecoTrackHitBarType,   "RecoTrackHitBarType[nTracks][200]/I");
@@ -1217,7 +1220,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    RecoTrackCharge_Kalman[itTrack]        =       RecoTrack->Charge_Kalman;
     RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
+    RecoTrackChi2_plus[itTrack]          =       RecoTrack->Chi2_plus;
+    RecoTrackChi2_minus[itTrack]          =       RecoTrack->Chi2_minus;
     
 
     for (int j = 0; j < 3; j++) {
@@ -1914,6 +1920,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;

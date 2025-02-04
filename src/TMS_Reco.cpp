@@ -557,15 +557,32 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom, kalman_chi2;
+    double kalman_reco_mom, kalman_chi2, kalman_chi2_plus, kalman_chi2_minus;
     
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
 
     for (auto &trk : HoughTracks3D) {
+      TMS_Track trackCopy1 = trk;
+      TMS_Track trackCopy2 = trk;
+      
       //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
       KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
       
+      KalmanFilter1 = TMS_Kalman(trackCopy1.Hits, 0.1);
+      KalmanFilter2 = TMS_Kalman(trackCopy2.Hits, -0.1);
       
+      kalman_chi2_plus = KalmanFilter1.GetTrackChi2();
+      trk.SetChi2_plus(kalman_chi2_plus);
+      
+      kalman_chi2_minus = KalmanFilter2.GetTrackChi2();
+      trk.SetChi2_minus(kalman_chi2_minus);
+      
+      if (kalman_chi2_minus < kalman_chi2_plus)
+         {trk.Charge_Kalman = -13;} 
+      else{
+        trk.Charge_Kalman = 13;
+      }
+
       bool verbose_kalman = false;
       kalman_reco_mom = KalmanFilter.GetMomentum();
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;

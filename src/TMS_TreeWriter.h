@@ -70,6 +70,9 @@ class TMS_TreeWriter {
     float RecoTrackLength[__TMS_MAX_TRACKS__];
     float RecoTrackChi2[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
+    int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     
   private:
     TMS_TreeWriter();
