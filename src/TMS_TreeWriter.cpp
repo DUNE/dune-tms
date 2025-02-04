@@ -467,7 +467,6 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
   truth->Branch("RunNo", &RunNo, "RunNo/I");
   truth->Branch("IsCC", &IsCC, "IsCC/O");
-  truth->Branch("IsHadronContainment", &IsHadronContainment, "IsHadronContainment/O");
 
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
@@ -592,7 +591,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
-  IsHadronContainment = event.Ishadroncontain();
 
 
   // Lepton info
@@ -1758,7 +1756,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
-  IsHadronContainment = event.Ishadroncontain();
 
   TVector3 interaction_location = event.GetNeutrinoVtx().Vect()*1000.;//mm //GetNeutrinoVtx is in meter 
 //  std::cout<<"interaction:"<<interaction_location.X()<<std::endl;
@@ -1944,7 +1941,6 @@ void TMS_TreeWriter::Clear() {
   LArOuterShellEnergyFromVertex = LArTotalEnergyFromVertex = TotalNonTMSEnergyFromVertex = DEFAULT_CLEARING_FLOAT;
   Reaction = "";
   IsCC = false;
-  IsHadronContainment = false;
 
   for (int i = 0; i < 4; ++i) {
     MuonP4[i]=DEFAULT_CLEARING_FLOAT;

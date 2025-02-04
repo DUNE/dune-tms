@@ -326,8 +326,6 @@ class TMS_TreeWriter {
     float LeptonX4[4];
     float Muon_TrueTrackLength;
     bool IsCC;
-    bool IsHadronContainment;
-
     
     int nTrueParticles;
     int nTruePrimaryParticles;
