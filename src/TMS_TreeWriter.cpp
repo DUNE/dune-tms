@@ -467,7 +467,6 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
   truth->Branch("RunNo", &RunNo, "RunNo/I");
   truth->Branch("IsCC", &IsCC, "IsCC/O");
-
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
   truth->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
@@ -1758,7 +1757,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
   TVector3 interaction_location = event.GetNeutrinoVtx().Vect()*1000.;//mm //GetNeutrinoVtx is in meter 
-//  std::cout<<"interaction:"<<interaction_location.X()<<std::endl;
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
