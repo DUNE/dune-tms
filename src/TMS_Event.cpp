@@ -412,7 +412,7 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       TrueVisibleEnergyPerParticle(event.TrueVisibleEnergyPerParticle), 
       ChannelPositions(event.ChannelPositions), 
       DeadChannelTimes(event.DeadChannelTimes), ReadChannelTimes(event.ReadChannelTimes), 
-      TimeSliceBounds(event.TimeSliceBounds),
+      TimeSliceBounds(event.TimeSliceBounds), info_about_vtx(event.info_about_vtx),
       generator(event.generator) {
   // Create an event from a slice of another event
   SliceNumber = slice;

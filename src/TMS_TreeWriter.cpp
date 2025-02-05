@@ -496,7 +496,32 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
   truth->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
   truth->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
+  truth->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F");
+  
+  truth->Branch("TrueVtxN", &TrueVtxN, "TrueVtxN/I");
+  // Position
+  truth->Branch("TrueVtxX", TrueVtxX, "TrueVtxX[TrueVtxN]/F");
+  truth->Branch("TrueVtxY", TrueVtxY, "TrueVtxY[TrueVtxN]/F");
+  truth->Branch("TrueVtxZ", TrueVtxZ, "TrueVtxZ[TrueVtxN]/F");
+  truth->Branch("TrueVtxT", TrueVtxT, "TrueVtxT[TrueVtxN]/F");
+  // Vtx E
+  truth->Branch("TrueVtxPx", TrueVtxPx, "TrueVtxPx[TrueVtxN]/F");
+  truth->Branch("TrueVtxPy", TrueVtxPy, "TrueVtxPy[TrueVtxN]/F");
+  truth->Branch("TrueVtxPz", TrueVtxPz, "TrueVtxPz[TrueVtxN]/F");
+  truth->Branch("TrueVtxE", TrueVtxE, "TrueVtxE[TrueVtxN]/F");
+  // Other info
+  truth->Branch("TrueVtxPDG", TrueVtxPDG, "TrueVtxPDG[TrueVtxN]/I");
+  truth->Branch("TrueVtxID", TrueVtxID, "TrueVtxID[TrueVtxN]/I");
+  truth->Branch("TrueVtxReaction", &TrueVtxReaction);
+  // Hadronic E
+  truth->Branch("TrueVtxHadronicELarShell", TrueVtxHadronicELarShell, "TrueVtxHadronicELarShell[TrueVtxN]/F");
+  truth->Branch("TrueVtxHadronicELAr", TrueVtxHadronicELAr, "TrueVtxHadronicELAr[TrueVtxN]/F");
+  truth->Branch("TrueVtxHadronicETMS", TrueVtxHadronicETMS, "TrueVtxHadronicETMS[TrueVtxN]/F");
+  truth->Branch("TrueVtxHadronicE", TrueVtxHadronicE, "TrueVtxHadronicE[TrueVtxN]/F");
+  // Visible E
+  truth->Branch("TrueVtxVisibleETMS", TrueVtxVisibleETMS, "TrueVtxVisibleETMS[TrueVtxN]/F");
+  truth->Branch("TrueVtxVisibleELAr", TrueVtxVisibleELAr, "TrueVtxVisibleELAr[TrueVtxN]/F");
+  truth->Branch("TrueVtxVisibleE", TrueVtxVisibleE, "TrueVtxVisibleE[TrueVtxN]/F");
 }
 
 static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
@@ -1698,6 +1723,42 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     index += 1;
   }
   TrueNonTMSNHits = n_TrueNonTMSNHits_filled;
+
+  auto vtx_info = event.GetVertexInfo();
+  TrueVtxN = std::min((int)vtx_info.size(), __TMS_MAX_TRUE_VERTICES__);
+  int true_vtx_index = 0;
+  for (auto& itvtx : vtx_info) {
+    auto& vtx = itvtx.second;
+    if (true_vtx_index >= __TMS_MAX_TRUE_VERTICES__) {
+      std::cout<<"Stopping loop. Vtx index hit max of __TMS_MAX_TRUE_VERTICES__ = "<<__TMS_MAX_TRUE_VERTICES__<<", increase limit"<<std::endl;
+      break;
+    }
+    // Position
+    TrueVtxX[true_vtx_index] = vtx.vtx.X();
+    TrueVtxY[true_vtx_index] = vtx.vtx.Y();
+    TrueVtxZ[true_vtx_index] = vtx.vtx.Z();
+    TrueVtxT[true_vtx_index] = vtx.vtx.T();
+    // Momentum
+    TrueVtxPx[true_vtx_index] = vtx.p4.X();
+    TrueVtxPy[true_vtx_index] = vtx.p4.Y();
+    TrueVtxPz[true_vtx_index] = vtx.p4.Z();
+    TrueVtxE[true_vtx_index] = vtx.p4.E();
+    // Pdg
+    TrueVtxPDG[true_vtx_index] = vtx.pdg;
+    TrueVtxID[true_vtx_index] = vtx.vtx_id;
+    TrueVtxReaction.push_back(vtx.reaction);
+    // Hadronic E
+    TrueVtxHadronicELarShell[true_vtx_index] = vtx.hardonic_energy_lar_shell;
+    TrueVtxHadronicELAr[true_vtx_index] = vtx.hardonic_energy_lar;
+    TrueVtxHadronicETMS[true_vtx_index] = vtx.hardonic_energy_tms;
+    TrueVtxHadronicE[true_vtx_index] = vtx.hardonic_energy_total;
+    // Visible E
+    TrueVtxVisibleETMS[true_vtx_index] = vtx.true_visible_energy_tms;
+    TrueVtxVisibleELAr[true_vtx_index] = vtx.true_visible_energy_lar;
+    TrueVtxVisibleE[true_vtx_index] = vtx.true_visible_energy_total;
+    // Finally update index
+    true_vtx_index++;
+  }
 }
 
 void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {

@@ -135,6 +135,8 @@ class TMS_Event {
      double CalculateTotalNonTMSEnergy(int vertexid = -1);
      
      void ConnectTrueHitWithTrueParticle(bool slide);
+     
+     std::map<int, Vtx_Info> GetVertexInfo() { return info_about_vtx; };
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
