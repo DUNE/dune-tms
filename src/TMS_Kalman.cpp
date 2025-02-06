@@ -41,11 +41,13 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     TVector3 vecc = TVector3(x,y,z);
 
-    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
+    //if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact))) // TODO should use exact, uncomment when geometry is fixed-ish
+    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start, TMS_Const::TMS_End)))
     {
       std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
       std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
       //throw; // yeet it
+      ErrorDetVol = true;
     }
 
     int j;
