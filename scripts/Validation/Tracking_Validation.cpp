@@ -338,6 +338,18 @@ int PDGtoIndexReduced(int pdgCode) {
     }
 }
 
+int NuPDGtoIndex(int pdg) {
+  switch (pdg) {
+    case -12: return 1; // nue bar
+    case -14: return 2; // numu bar
+    case -16: return 3; // nutau bar
+    case 12: return 4; // nue bar
+    case 14: return 5; // numu bar
+    case 16: return 6; // nutau bar
+    default: return 0; // other
+  }
+}
+
 std::unordered_map<std::string, TH1*> mapForGetHist;
 
 std::unordered_map<std::string, std::tuple<std::string, int, double, double>> registeredAxes;
@@ -370,12 +382,14 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "Y_full") return std::make_tuple("Y (cm)", 100, -500, 500);
   if (axis_name == "Z") return std::make_tuple("Z (cm)", 100, 1100, 1900);
   if (axis_name == "Z_full") return std::make_tuple("Z (cm)", 100, 0, 2300);
+  if (axis_name == "T") return std::make_tuple("T (ns)", 100, 0, 10000);
   if (axis_name == "direction_xz") return std::make_tuple("XZ Direction (dx/dz)", 31, -2, 2);
   if (axis_name == "direction_yz") return std::make_tuple("YZ Direction (dy/dz)", 31, -2, 2);
   if (axis_name == "dx") return std::make_tuple("dX", 51, -1, 1);
   if (axis_name == "dy") return std::make_tuple("dY", 51, -1, 1);
   if (axis_name == "dz") return std::make_tuple("dZ", 51, -1, 1);
   if (axis_name == "pdg") return std::make_tuple("Particle", 10, -0.5, 9.5);
+  if (axis_name == "nu_pdg") return std::make_tuple("Neutrino", 7, -0.5, 6.5);
   if (axis_name == "angle_tms_enter") return std::make_tuple("Angle (deg)", 30, -60, 60);
   if (axis_name == "unusual_hit_locations") return std::make_tuple("Hit Location", 4, -0.5, 3.5);
   if (axis_name == "charge") return std::make_tuple("Charge", 50, -100, 100);
@@ -384,6 +398,7 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "energy_range") return std::make_tuple("Energy Range (GeV)", 50, 0, 5);
   if (axis_name == "energy_deposit") return std::make_tuple("Energy Deposit (MeV)", 50, 0, 3000);
   if (axis_name == "yesno") return std::make_tuple("Yes or No", 2, -0.5, 1.5);
+  if (axis_name == "falsetrue") return std::make_tuple("", 2, -0.5, 1.5);
   if (axis_name == "rock_muon_event_rate") return std::make_tuple("Rock Muon Event Rates", 4, -0.5, 3.5);
   if (axis_name == "tms_event_rate") return std::make_tuple("TMS Event Rates", 4, -0.5, 3.5);
   if (axis_name == "tms_event_rate_by_vertex") return std::make_tuple("TMS Event Rates", 3, -0.5, 2.5);
@@ -415,9 +430,26 @@ void AdjustAxis(TH1* hist, std::string xaxis, std::string yaxis = "", std::strin
       hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
     }
   }
+  if (xaxis == "nu_pdg") {
+    const char *pdg[] = {"other", "#bar{#nu_{e}}", "#bar{#nu_{#mu}}", "#bar{#nu_{#tau}}", "#nu_{e}", "#nu_{#mu}", "#nu_{#tau}"};
+    const int npdg = sizeof(pdg) / sizeof(pdg[0]);
+    hist->SetNdivisions(npdg);
+    for (int ib = 0; ib < npdg; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
+    }
+  }
 
   if (xaxis == "yesno") {
     const char *pdg[] = {"yes", "no"};
+    const int npdg = sizeof(pdg) / sizeof(pdg[0]);
+    hist->SetNdivisions(npdg);
+    for (int ib = 0; ib < npdg; ib++) {
+      hist->GetXaxis()->ChangeLabel(ib+1, -1, -1, -1, -1, -1, pdg[ib]);
+    }
+  }
+
+  if (xaxis == "falsetrue") {
+    const char *pdg[] = {"false", "true"};
     const int npdg = sizeof(pdg) / sizeof(pdg[0]);
     hist->SetNdivisions(npdg);
     for (int ib = 0; ib < npdg; ib++) {
@@ -1446,6 +1478,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, Line_Candidates& lc, in
       #include "HitInformation.cxx"
       #include "Track_Resolution.cxx"
       #include "EventRates.cxx"
+      #include "TruthVtx.cxx"
 
     } // End for loop over entries
     
