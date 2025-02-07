@@ -72,7 +72,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     vtx_info.reaction = Reaction;
     vtx_info.vtx_id = current_vertexid;
     // Had issues with lorentz vectors before so best make a copy
-    vtx_info.vtx = TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T());
+    vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
+    
     info_about_vtx[current_vertexid] = vtx_info;
 
     if (FillEvent) {
@@ -312,8 +313,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetVertexIds(i) * 100000 + hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
         }
       }
-      else {
-        // Add all non-tms hits to another vector
+      else if (DetString.find(TMS_Const::LAr_ActiveName) != std::string::npos) {
+        // Only care about LAr active volume
         // We only need it for truth info so just save truth info
         TMS_TrueHit t(edep_hit, vertex_id);
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
@@ -1066,7 +1067,7 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
     double eps = 0.1; // should be about the same
     if (dist2 < eps) {
       info_about_vtx[key].pdg = pdg[0];
-      double MeV = 1/1000.0; // Convert from GeV
+      double MeV = 1000.0; // Convert from GeV
       info_about_vtx[key].p4 = TLorentzVector(p4[0][0] * MeV, p4[0][1] * MeV, p4[0][2] * MeV, p4[0][3] * MeV);
     }
     else { 
@@ -1365,21 +1366,23 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
   TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
 
   // Total
-  hardonic_energy_total += hadronic_energy;
+  hadronic_energy_total += hadronic_energy;
   true_visible_energy_total += energy;
 
   // Lar-specific
   if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
-    hardonic_energy_lar += hadronic_energy;
+    hadronic_energy_lar += hadronic_energy;
     true_visible_energy_lar += energy;
   }
   // Lar outer-shell for the hadron containment cut
-  if (TMS_Geom::GetInstance().IsInsideLArShell(position))
-    hardonic_energy_lar_shell += hadronic_energy;
+  if (TMS_Geom::GetInstance().IsInsideLArShell(position) && 0 < hadronic_energy) {
+    hadronic_energy_lar_shell += hadronic_energy;
+    UpdateShellEnergyCut();
+  }
 
   // TMS-specific
   if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
-    hardonic_energy_tms += hadronic_energy;
+    hadronic_energy_tms += hadronic_energy;
     true_visible_energy_tms += energy;
   }
 }

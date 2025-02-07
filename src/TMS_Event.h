@@ -19,18 +19,35 @@ struct Vtx_Info {
   TLorentzVector vtx;
   TLorentzVector p4;
   
-  int pdg;
-  int vtx_id;
+  int pdg { -999 };
+  int vtx_id { -999 };
   std::string reaction;
-  double hardonic_energy_lar_shell;
-  double hardonic_energy_lar;
-  double hardonic_energy_tms;
-  double hardonic_energy_total;
-  double true_visible_energy_tms;
-  double true_visible_energy_lar;
-  double true_visible_energy_total;
+  double hadronic_energy_lar_shell {};
+  double hadronic_energy_lar {};
+  double hadronic_energy_tms {};
+  double hadronic_energy_total {};
+  double true_visible_energy_tms {};
+  double true_visible_energy_lar {};
+  double true_visible_energy_total {};
+  
+  bool fiducial_cut {};
+  // Default to true since hadronic_energy_lar_shell defaults to zero
+  bool shell_energy_cut { true };
+  bool nd_physics_cut {};
   
   void AddEnergyFromHit(const TMS_TrueHit& hit, int index);
+  void UpdateShellEnergyCut() {
+    shell_energy_cut = hadronic_energy_lar_shell <= TMS_Manager::GetInstance().Get_ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY();
+    UpdateNDPhysicsCut(); // Update dirty cut
+  };
+  void UpdateNDPhysicsCut() {
+    nd_physics_cut = fiducial_cut && shell_energy_cut;
+  };
+  void SetVtx(TLorentzVector pos) {
+    vtx = pos;
+    fiducial_cut = TMS_Geom::GetInstance().IsInsideLarFiducial(vtx.Vect());
+    UpdateNDPhysicsCut(); // Update dirty cut
+  };
 };
 
 // The general event class
