@@ -478,6 +478,9 @@ class TMS_TreeWriter {
     float TrueVtxVisibleELAr[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxVisibleE[__TMS_MAX_TRUE_VERTICES__];
     std::vector<std::string> TrueVtxReaction;
+    bool TrueVtxFiducialCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxShellEnergyCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxNDPhysicsCut[__TMS_MAX_TRUE_VERTICES__];
 };
 
 

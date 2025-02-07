@@ -522,6 +522,10 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("TrueVtxVisibleETMS", TrueVtxVisibleETMS, "TrueVtxVisibleETMS[TrueVtxN]/F");
   truth->Branch("TrueVtxVisibleELAr", TrueVtxVisibleELAr, "TrueVtxVisibleELAr[TrueVtxN]/F");
   truth->Branch("TrueVtxVisibleE", TrueVtxVisibleE, "TrueVtxVisibleE[TrueVtxN]/F");
+  // Truth cuts
+  truth->Branch("TrueVtxFiducialCut", TrueVtxFiducialCut, "TrueVtxFiducialCut[TrueVtxN]/O");
+  truth->Branch("TrueVtxShellEnergyCut", TrueVtxShellEnergyCut, "TrueVtxShellEnergyCut[TrueVtxN]/O");
+  truth->Branch("TrueVtxNDPhysicsCut", TrueVtxNDPhysicsCut, "TrueVtxNDPhysicsCut[TrueVtxN]/O");
 }
 
 static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
@@ -1748,14 +1752,18 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TrueVtxID[true_vtx_index] = vtx.vtx_id;
     TrueVtxReaction.push_back(vtx.reaction);
     // Hadronic E
-    TrueVtxHadronicELarShell[true_vtx_index] = vtx.hardonic_energy_lar_shell;
-    TrueVtxHadronicELAr[true_vtx_index] = vtx.hardonic_energy_lar;
-    TrueVtxHadronicETMS[true_vtx_index] = vtx.hardonic_energy_tms;
-    TrueVtxHadronicE[true_vtx_index] = vtx.hardonic_energy_total;
+    TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
+    TrueVtxHadronicELAr[true_vtx_index] = vtx.hadronic_energy_lar;
+    TrueVtxHadronicETMS[true_vtx_index] = vtx.hadronic_energy_tms;
+    TrueVtxHadronicE[true_vtx_index] = vtx.hadronic_energy_total;
     // Visible E
     TrueVtxVisibleETMS[true_vtx_index] = vtx.true_visible_energy_tms;
     TrueVtxVisibleELAr[true_vtx_index] = vtx.true_visible_energy_lar;
     TrueVtxVisibleE[true_vtx_index] = vtx.true_visible_energy_total;
+    // Truth cuts
+    TrueVtxFiducialCut[true_vtx_index] = vtx.fiducial_cut;
+    TrueVtxShellEnergyCut[true_vtx_index] = vtx.shell_energy_cut;
+    TrueVtxNDPhysicsCut[true_vtx_index] = vtx.nd_physics_cut;
     // Finally update index
     true_vtx_index++;
   }
