@@ -100,7 +100,10 @@ class TMS_Manager {
     double Get_ACTIVE_LAR_END_Y() { return _ACTIVE_LAR_END_Y; };
     double Get_ACTIVE_LAR_END_Z() { return _ACTIVE_LAR_END_Z; };
 
+    double Get_LAR_FIDUCIAL_Z_CUT() { return _LAR_FIDUCIAL_Z_CUT; };
+    double Get_LAR_FIDUCIAL_XY_CUT() { return _LAR_FIDUCIAL_XY_CUT; };
     double Get_LAR_OUTER_SHELL_THICKNESS() { return _LAR_OUTER_SHELL_THICKNESS; };
+    double Get_ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY() { return _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
@@ -201,7 +204,10 @@ class TMS_Manager {
     double _ACTIVE_LAR_END_Y;
     double _ACTIVE_LAR_END_Z;
     
+    double _LAR_FIDUCIAL_Z_CUT;
+    double _LAR_FIDUCIAL_XY_CUT;
     double _LAR_OUTER_SHELL_THICKNESS;
+    double _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
