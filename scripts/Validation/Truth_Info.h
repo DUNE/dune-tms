@@ -182,6 +182,29 @@ public :
    Int_t           TrueHitBar[100000];   //[NTrueHits]
    Int_t           TrueHitView[100000];   //[NTrueHits]
    Int_t           TrueHitPlane[100000];   //[NTrueHits]
+   
+   Int_t           TrueVtxN;
+   Float_t         TrueVtxX[1000];   //[TrueVtxN]
+   Float_t         TrueVtxY[1000];   //[TrueVtxN]
+   Float_t         TrueVtxZ[1000];   //[TrueVtxN]
+   Float_t         TrueVtxT[1000];   //[TrueVtxN]
+   Float_t         TrueVtxPx[1000];   //[TrueVtxN]
+   Float_t         TrueVtxPy[1000];   //[TrueVtxN]
+   Float_t         TrueVtxPz[1000];   //[TrueVtxN]
+   Float_t         TrueVtxE[1000];   //[TrueVtxN]
+   Int_t           TrueVtxPDG[1000];   //[TrueVtxN]
+   Int_t           TrueVtxID[1000];   //[TrueVtxN]
+   std::vector<std::string>  *TrueVtxReaction;
+   Float_t         TrueVtxHadronicELarShell[1000];   //[TrueVtxN]
+   Float_t         TrueVtxHadronicELAr[1000];   //[TrueVtxN]
+   Float_t         TrueVtxHadronicETMS[1000];   //[TrueVtxN]
+   Float_t         TrueVtxHadronicE[1000];   //[TrueVtxN]
+   Float_t         TrueVtxVisibleETMS[1000];   //[TrueVtxN]
+   Float_t         TrueVtxVisibleELAr[1000];   //[TrueVtxN]
+   Float_t         TrueVtxVisibleE[1000];   //[TrueVtxN];
+   Bool_t          TrueVtxFiducialCut[1000];   //[TrueVtxN]
+   Bool_t          TrueVtxShellEnergyCut[1000];   //[TrueVtxN]
+   Bool_t          TrueVtxNDPhysicsCut[1000];   //[TrueVtxN];
 
    // List of branches
    TBranch        *b_EventNo;   //!
@@ -344,6 +367,29 @@ public :
    TBranch        *b_TrueHitBar;   //!
    TBranch        *b_TrueHitView;   //!
    TBranch        *b_TrueHitPlane;   //!
+   
+   TBranch        *b_TrueVtxN;   //!
+   TBranch        *b_TrueVtxX;   //!
+   TBranch        *b_TrueVtxY;   //!
+   TBranch        *b_TrueVtxZ;   //!
+   TBranch        *b_TrueVtxT;   //!
+   TBranch        *b_TrueVtxPx;   //!
+   TBranch        *b_TrueVtxPy;   //!
+   TBranch        *b_TrueVtxPz;   //!
+   TBranch        *b_TrueVtxE;   //!
+   TBranch        *b_TrueVtxPDG;   //!
+   TBranch        *b_TrueVtxID;   //!
+   TBranch        *b_TrueVtxReaction;   //!
+   TBranch        *b_TrueVtxHadronicELarShell;   //!
+   TBranch        *b_TrueVtxHadronicELAr;   //!
+   TBranch        *b_TrueVtxHadronicETMS;   //!
+   TBranch        *b_TrueVtxHadronicE;   //!
+   TBranch        *b_TrueVtxVisibleETMS;   //!
+   TBranch        *b_TrueVtxVisibleELAr;   //!
+   TBranch        *b_TrueVtxVisibleE;   //!
+   TBranch        *b_TrueVtxFiducialCut;   //!
+   TBranch        *b_TrueVtxShellEnergyCut;   //!
+   TBranch        *b_TrueVtxNDPhysicsCut;   //!
 
    Truth_Info(TTree *tree=0);
    virtual ~Truth_Info();
@@ -578,6 +624,30 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("TrueHitBar", TrueHitBar, &b_TrueHitBar);
    fChain->SetBranchAddress("TrueHitView", TrueHitView, &b_TrueHitView);
    fChain->SetBranchAddress("TrueHitPlane", TrueHitPlane, &b_TrueHitPlane);
+   
+   fChain->SetBranchAddress("TrueVtxN", &TrueVtxN, &b_TrueVtxN);
+   fChain->SetBranchAddress("TrueVtxX", TrueVtxX, &b_TrueVtxX);
+   fChain->SetBranchAddress("TrueVtxY", TrueVtxY, &b_TrueVtxY);
+   fChain->SetBranchAddress("TrueVtxZ", TrueVtxZ, &b_TrueVtxZ);
+   fChain->SetBranchAddress("TrueVtxT", TrueVtxT, &b_TrueVtxT);
+   fChain->SetBranchAddress("TrueVtxPx", TrueVtxPx, &b_TrueVtxPx);
+   fChain->SetBranchAddress("TrueVtxPy", TrueVtxPy, &b_TrueVtxPy);
+   fChain->SetBranchAddress("TrueVtxPz", TrueVtxPz, &b_TrueVtxPz);
+   fChain->SetBranchAddress("TrueVtxE", TrueVtxE, &b_TrueVtxE);
+   fChain->SetBranchAddress("TrueVtxPDG", TrueVtxPDG, &b_TrueVtxPDG);
+   fChain->SetBranchAddress("TrueVtxID", TrueVtxID, &b_TrueVtxID);
+   fChain->SetBranchAddress("TrueVtxReaction", &TrueVtxReaction, &b_TrueVtxReaction);
+   fChain->SetBranchAddress("TrueVtxHadronicELarShell", TrueVtxHadronicELarShell, &b_TrueVtxHadronicELarShell);
+   fChain->SetBranchAddress("TrueVtxHadronicELAr", TrueVtxHadronicELAr, &b_TrueVtxHadronicELAr);
+   fChain->SetBranchAddress("TrueVtxHadronicETMS", TrueVtxHadronicETMS, &b_TrueVtxHadronicETMS);
+   fChain->SetBranchAddress("TrueVtxHadronicE", TrueVtxHadronicE, &b_TrueVtxHadronicE);
+   fChain->SetBranchAddress("TrueVtxVisibleETMS", TrueVtxVisibleETMS, &b_TrueVtxVisibleETMS);
+   fChain->SetBranchAddress("TrueVtxVisibleELAr", TrueVtxVisibleELAr, &b_TrueVtxVisibleELAr);
+   fChain->SetBranchAddress("TrueVtxVisibleE", TrueVtxVisibleE, &b_TrueVtxVisibleE);
+   fChain->SetBranchAddress("TrueVtxFiducialCut", TrueVtxFiducialCut, &b_TrueVtxFiducialCut);
+   fChain->SetBranchAddress("TrueVtxShellEnergyCut", TrueVtxShellEnergyCut, &b_TrueVtxShellEnergyCut);
+   fChain->SetBranchAddress("TrueVtxNDPhysicsCut", TrueVtxNDPhysicsCut, &b_TrueVtxNDPhysicsCut);
+
    Notify();
 }
 
