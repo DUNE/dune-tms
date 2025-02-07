@@ -69,13 +69,12 @@ class TMS_Geom {
         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - thickness); };
     inline TVector3 GetStartOfLArFiducial() const {
         double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
-        double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_Z_CUT();
         return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + dxy, 
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + dxy,
-                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + dz); };
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + dxy); };
     inline TVector3 GetEndOfLArFiducial() const {
         double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
-        double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_Z_CUT();
+        double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT();
         return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };

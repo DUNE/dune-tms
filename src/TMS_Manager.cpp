@@ -97,7 +97,7 @@ TMS_Manager::TMS_Manager() {
   _ACTIVE_LAR_END_Y = toml::find<double>(data, "Active", "LAr", "End", "Y");
   _ACTIVE_LAR_END_Z = toml::find<double>(data, "Active", "LAr", "End", "Z");
   
-  _LAR_FIDUCIAL_Z_CUT = toml::find<double>(data, "Fiducial", "LAr", "ZCut");
+  _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT = toml::find<double>(data, "Fiducial", "LAr", "DownstreamZCut");
   _LAR_FIDUCIAL_XY_CUT = toml::find<double>(data, "Fiducial", "LAr", "XYCut");
   _LAR_OUTER_SHELL_THICKNESS = toml::find<double>(data, "Fiducial", "LAr", "OuterShellThickness");
   _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY = toml::find<double>(data, "Fiducial", "LAr", "CutEnergy");

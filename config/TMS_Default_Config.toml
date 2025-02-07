@@ -150,7 +150,7 @@
     Y = 829.282 # mm
     Z = 9135.88 # mm
   [Fiducial.LAr]
-    ZCut = 1500.0 #mm
+    DownstreamZCut = 1500.0 #mm
     XYCut = 500.0 # mm
     OuterShellThickness=300.0 # mm
     CutEnergy = 30.0 # MeV
