@@ -373,6 +373,15 @@ void TMS_TreeWriter::MakeBranches() {
     "RecoTrackPrimaryParticleLArFiducialTouch[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleLArFiducialEnd", RecoTrackPrimaryParticleLArFiducialEnd,
     "RecoTrackPrimaryParticleLArFiducialEnd[RecoTrackN]/O");
+
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxId", RecoTrackPrimaryParticleVtxId,
+                     "RecoTrackPrimaryParticleVtxId[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxFiducialCut", RecoTrackPrimaryParticleVtxFiducialCut,
+    "RecoTrackPrimaryParticleVtxFiducialCut[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxShellEnergyCut", RecoTrackPrimaryParticleVtxShellEnergyCut,
+    "RecoTrackPrimaryParticleVtxShellEnergyCut[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxNDPhysicsCut", RecoTrackPrimaryParticleVtxNDPhysicsCut,
+    "RecoTrackPrimaryParticleVtxNDPhysicsCut[RecoTrackN]/O");
                      
   Truth_Info->Branch("RecoTrackSecondaryParticlePDG", &RecoTrackSecondaryParticlePDG, "RecoTrackSecondaryParticlePDG[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleIsPrimary", &RecoTrackSecondaryParticleIsPrimary, "RecoTrackSecondaryParticleIsPrimary[RecoTrackN]/O");
@@ -1434,6 +1443,20 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
         RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
         RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+        
+        auto* vtx_info = event.GetVertexInfo(tp.GetVertexID());
+        if (vtx_info != NULL) {
+          RecoTrackPrimaryParticleVtxId[itTrack] = vtx_info->vtx_id;
+          RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = vtx_info->fiducial_cut;
+          RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = vtx_info->shell_energy_cut;
+          RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = vtx_info->nd_physics_cut;
+        }
+        else {
+          RecoTrackPrimaryParticleVtxId[itTrack] = -999999999.0;
+          RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = false;
+          RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = false;
+          RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = false;
+        }
       }
     }
     
@@ -2015,6 +2038,11 @@ void TMS_TreeWriter::Clear() {
     RecoTrackPrimaryParticleLArFiducialStart[i] = false;
     RecoTrackPrimaryParticleLArFiducialTouch[i] = false;
     RecoTrackPrimaryParticleLArFiducialEnd[i] = false;
+
+    RecoTrackPrimaryParticleVtxId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleVtxFiducialCut[i] = false;
+    RecoTrackPrimaryParticleVtxShellEnergyCut[i] = false;
+    RecoTrackPrimaryParticleVtxNDPhysicsCut[i] = false;
 
     for (int j = 0; j < 4; ++j) {
       RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = DEFAULT_CLEARING_FLOAT;

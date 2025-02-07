@@ -394,6 +394,11 @@ class TMS_TreeWriter {
     bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
+
+    int RecoTrackPrimaryParticleVtxId[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxFiducialCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxShellEnergyCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxNDPhysicsCut[__TMS_MAX_LINES__];
     
     // Save truth info about secondary particle
     int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];

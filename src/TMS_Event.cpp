@@ -1359,6 +1359,13 @@ void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
   }
 }
 
+Vtx_Info* TMS_Event::GetVertexInfo(int vertex_id) {
+  Vtx_Info* out = NULL;
+  if (info_about_vtx.find(vertex_id) != info_about_vtx.end())
+    out = &info_about_vtx.at(vertex_id);
+  return out;
+}
+
 
 void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
   double hadronic_energy = hit.GetHadronicEnergy() * hit.GetEnergySharePortion(index);

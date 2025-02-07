@@ -154,6 +154,7 @@ class TMS_Event {
      void ConnectTrueHitWithTrueParticle(bool slide);
      
      std::map<int, Vtx_Info> GetVertexInfo() { return info_about_vtx; };
+     Vtx_Info* GetVertexInfo(int vertex_id);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
