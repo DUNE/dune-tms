@@ -48,6 +48,8 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
+    int nKalmanNodes_plus[__TMS_MAX_TRACKS__];
+    int nKalmanNodes_minus[__TMS_MAX_TRACKS__];
     float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];

@@ -137,7 +137,12 @@ TMS_Track(const TMS_Track& other) {
 
     // Kalman filter track info
     int nKalmanNodes;
+    int nKalmanNodes_plus;
+    int nKalmanNodes_minus;
+
     std::vector<TMS_KalmanNode> KalmanNodes;
+    std::vector<TMS_KalmanNode> KalmanNodes_plus;
+    std::vector<TMS_KalmanNode> KalmanNodes_minus;
 
     void Compare()
     {

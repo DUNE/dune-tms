@@ -568,8 +568,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
       KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
       
-      KalmanFilter1 = TMS_Kalman(trackCopy1.Hits, 0.1);
-      KalmanFilter2 = TMS_Kalman(trackCopy2.Hits, -0.1);
+      KalmanFilter1 = TMS_Kalman(trackCopy1.Hits, 0.0);
+      KalmanFilter2 = TMS_Kalman(trackCopy2.Hits, -0.0);
       
       kalman_chi2_plus = KalmanFilter1.GetTrackChi2();
       trk.SetChi2_plus(kalman_chi2_plus);
@@ -600,6 +600,10 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
       if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter.EndDirection[0] << ", " << KalmanFilter.EndDirection[1] << ", "  << KalmanFilter.EndDirection[2] << std::endl;
       trk.SetEndDirection(KalmanFilter.EndDirection[0], KalmanFilter.EndDirection[1], KalmanFilter.EndDirection[2]); // Fill the momentum of the TMS_Track obj
       trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
+      trk.KalmanNodes_plus = KalmanFilter1.GetKalmanNodes();
+      trk.nKalmanNodes_plus = trk.KalmanNodes_plus.size();
+      trk.KalmanNodes_minus = KalmanFilter2.GetKalmanNodes();
+      trk.nKalmanNodes_minus = trk.KalmanNodes_minus.size();
 
       // Add tracklength with Kalman filter
       trk.Length = CalculateTrackLengthKalman(trk);
