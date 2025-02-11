@@ -80,6 +80,9 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       zw = 2*box->GetDZ();
       TMS_Geom::GetInstance().Scale(xw, yw, zw);
 
+      BarWidth  = (xw>yw) ? yw : xw; // Set smaller value as width
+      BarLength = (xw>yw) ? xw : yw; // Set larger value as length :)
+
       Double_t position[3];
       const Double_t local[3] = {0, 0, 0};
       geom->GetCurrentMatrix()->LocalToMaster(local, position);

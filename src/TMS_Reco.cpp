@@ -556,14 +556,18 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //EvaluateTrackFinding(event);
 
   // Run Kalman filter if requested
-  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run())
-  {
-    double kalman_reco_mom;
-    for (auto &trk : HoughTracks3D) {
-      KalmanFilter = TMS_Kalman(trk.Hits);
-      kalman_reco_mom = KalmanFilter.GetMomentum();
+  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
+    double kalman_reco_mom, kalman_chi2;
+    
+    double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
 
+    for (auto &trk : HoughTracks3D) {
+      //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
+      KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
+      
+      
       bool verbose_kalman = false;
+      kalman_reco_mom = KalmanFilter.GetMomentum();
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
 
@@ -582,6 +586,22 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
       // Add tracklength with Kalman filter
       trk.Length = CalculateTrackLengthKalman(trk);
+      //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
+      kalman_chi2 = KalmanFilter.GetTrackChi2();
+      trk.SetChi2(kalman_chi2);
+   
+    }
+  } else { // No Kalman filter enabled
+    for (auto &trk : HoughTracks3D) {
+    // Track Direction
+//    if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+      trk.SetStartDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
+      trk.SetEndDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
+//    } else {
+//      .Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
+//      .Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
+//      .Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
+//    }
     }
   }
 
@@ -1515,7 +1535,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
             std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
+<<<<<<< HEAD
 #endif          
+=======
+#endif       
+>>>>>>> main
   
             returned.push_back(aTrack);
           }

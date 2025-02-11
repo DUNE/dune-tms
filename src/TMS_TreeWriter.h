@@ -58,6 +58,7 @@ class TMS_TreeWriter {
     int RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackHitEnergies[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
+    int RecoTrackHitBarType[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__];
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
     float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
@@ -67,8 +68,9 @@ class TMS_TreeWriter {
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
-
+    
   private:
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;
@@ -264,6 +266,7 @@ class TMS_TreeWriter {
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
     float RecoHitPE[__TMS_MAX_HITS__];
+    int RecoHitBarType[__TMS_MAX_HITS__];
     int RecoHitBar[__TMS_MAX_HITS__];
     int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
@@ -433,6 +436,7 @@ class TMS_TreeWriter {
     MYVAR(TrueHitPEAfterFibersLongPath);
     MYVAR(TrueHitPEAfterFibersShortPath);
     INTMYVAR(TrueHitBar);
+    INTMYVAR(TrueHitView);
     INTMYVAR(TrueHitPlane);
     INTMYVAR(TrueNTrueParticles);
     MYVAR(TrueLeptonicEnergy);

@@ -58,12 +58,15 @@ class TMS_KalmanNode {
     x(xvar), y(yvar), z(zvar), dz(dzvar),
     CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     PreviousState(x, y, z, -999.9, -999.9, -1./20.),
-    TransferMatrix(KALMAN_DIM,KALMAN_DIM),
-    TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
-    NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
-    CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM)
+    TransferMatrix(KALMAN_DIM, KALMAN_DIM),
+    TransferMatrixT(KALMAN_DIM, KALMAN_DIM),
+    NoiseMatrix(KALMAN_DIM, KALMAN_DIM),
+    CovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    UpdatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    MeasurementMatrix(KALMAN_DIM, KALMAN_DIM),
+    rVec(2),
+    rVecT(2),
+    RMatrix(2, 2)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -71,11 +74,19 @@ class TMS_KalmanNode {
     CovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     UpdatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     MeasurementMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    rVec.ResizeTo(2);
+    rVecT.ResizeTo(2);
+    RMatrix.ResizeTo(2, 2);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
     TransferMatrix.Zero();
     TransferMatrixT.Zero(); // Transposed
+    rVec.Zero();
+    rVecT.Zero();
+    RMatrix.Zero();
+
+
     // Diagonal element
     for (int j = 0; j < KALMAN_DIM; ++j)
     {
@@ -119,9 +130,14 @@ class TMS_KalmanNode {
   TMatrixD NoiseMatrix;
   TMatrixD CovarianceMatrix;
   TMatrixD UpdatedCovarianceMatrix;
-
   // Measurement matrix
   TMatrixD MeasurementMatrix;
+  // For chi2 stuff
+  TVectorD rVec;
+  TVectorD rVecT;
+  TMatrixD RMatrix;
+  double chi2;
+
 
   void SetRecoXY(TMS_KalmanState& State)
   {
@@ -144,23 +160,35 @@ class TMS_KalmanNode {
   void FillNoiseMatrix()
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
+<<<<<<< HEAD
     double A = LayerBarWidth;
     double B = LayerBarLength;
+=======
+    double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
+    double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
+>>>>>>> main
 
     int sign;
-    if (LayerOrientation == TMS_Bar::kUBar) {
+    if (       LayerOrientation == TMS_Bar::kUBar) {
       sign = -1;
     } else if (LayerOrientation == TMS_Bar::kVBar) {
       sign =  1;
+<<<<<<< HEAD
     } else if (LayerOrientation == TMS_Bar::kXBar) {
+=======
+    } else if (LayerOrientation == TMS_Bar::kXBar) { // this should just work right?
+>>>>>>> main
       NoiseMatrix(0,0) = B*B;
       NoiseMatrix(1,1) = A*A;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
+<<<<<<< HEAD
     } else if (LayerOrientation == TMS_Bar::kYBar) {
       NoiseMatrix(0,0) = A*A;
       NoiseMatrix(1,1) = B*B;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
+=======
+>>>>>>> main
     } else {
       throw; // xd haha TODO tho
     }
@@ -215,13 +243,13 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    TMS_Kalman(std::vector<TMS_Hit> &Candidates);
-
+    TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
+    
     double Start[3];
     double End[3];
     double StartDirection[3];
     double EndDirection[3];
-
+   
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
     void SetMomentum(double mom) {momentum = mom;}
@@ -234,6 +262,16 @@ class TMS_Kalman {
     void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
+
+    double GetTrackChi2()
+    {
+      double tmp_chi2 = 0.0;
+      for (auto node : KalmanNodes)
+        tmp_chi2 += node.chi2;
+
+      return tmp_chi2;
+    }
+
 
     std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
 
@@ -259,10 +297,10 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
-
+    double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
-
+    
     bool Talk;
 };
 
