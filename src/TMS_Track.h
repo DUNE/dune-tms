@@ -42,6 +42,8 @@ TMS_Track(const TMS_Track& other) {
     // Copy STL containers (which perform deep copy if their elements are copyable)
     Hits        = other.Hits;
     KalmanNodes = other.KalmanNodes;
+    KalmanNodes_plus = other.KalmanNodes_plus;
+    KalmanNodes_minus = other.KalmanNodes_minus;
 
     // Copy custom type; ensure that TMS_TrueParticle supports copying.
     fTrueParticle = other.fTrueParticle;
@@ -76,6 +78,9 @@ TMS_Track(const TMS_Track& other) {
         // Copy STL containers (vector<TMS_Hit> and vector<TMS_KalmanNode>)
         Hits        = other.Hits;
         KalmanNodes = other.KalmanNodes;
+        KalmanNodes_plus = other.KalmanNodes_plus;
+        KalmanNodes_minus = other.KalmanNodes_minus;
+
 
         // Copy the private member fTrueParticle
         fTrueParticle = other.fTrueParticle;

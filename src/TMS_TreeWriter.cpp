@@ -1216,10 +1216,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         =  RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           =  RecoTrack->KalmanNodes.size();
-    nKalmanNodes_plus[itTrack]           =  RecoTrack->nKalmanNodes_plus;
-    std::cout << "Kalman filter KalmanNodes_plus =  " <<  RecoTrack->nKalmanNodes_plus << std::endl;
-    std::cout << "Kalman filter KalmanNodes      =  " <<  RecoTrack->KalmanNodes.size() << std::endl;
-    nKalmanNodes_minus[itTrack]           =  RecoTrack->nKalmanNodes_minus;
+    nKalmanNodes_plus[itTrack]           =  RecoTrack->KalmanNodes_plus.size();
+    nKalmanNodes_minus[itTrack]           =  RecoTrack->KalmanNodes_minus.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
     RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps

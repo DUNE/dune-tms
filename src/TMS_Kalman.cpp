@@ -153,8 +153,8 @@ void TMS_Kalman::RunKalman() {
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
   // Set end pos/dir
   if (KalmanNodes.size() > 1) {
-    SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
-    SetEndDirection(KalmanNodes.at(0).CurrentState.dxdz, KalmanNodes.at(0).CurrentState.dydz);
+    SetEndPosition(KalmanNodes.at(0).CurrentState.x, KalmanNodes.at(0).CurrentState.y, KalmanNodes.at(0).CurrentState.z);
+    SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
   } else { // Kalman output is rubbish in this case, but we don't crash :)
     SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
     SetEndDirection(KalmanNodes.front().CurrentState.dxdz, KalmanNodes.front().CurrentState.dydz);
@@ -227,6 +227,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
   // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
   double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
+  double magnetic_deflection_x = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
   //std::cout<<  (CurrentState.z -PreviousState.z) << std::endl;
   // Modification ends here
   
@@ -240,6 +241,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
   //add a magnetic deflection term
+  //  if (p > 100){
+  //      UpdateVec[0] += (magnetic_deflection_px/p)*(CurrentState.z -PreviousState.z);}
+
   if (p > 200){
        UpdateVec[2] += magnetic_deflection_px/p;}
 
