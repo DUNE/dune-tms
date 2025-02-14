@@ -153,8 +153,6 @@ class TMS_Event {
     int nVertices;
 
     std::string Reaction;
-
-
     std::map<int, std::string> Reactions;
  
     // Counts how many times constructor has been called
