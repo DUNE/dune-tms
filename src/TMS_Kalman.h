@@ -173,6 +173,11 @@ class TMS_KalmanNode {
       NoiseMatrix(1,1) = A*A;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
+    } else if (LayerOrientation == TMS_Bar::kYBar) {
+      NoiseMatrix(0,0) = A*A;
+      NoiseMatrix(1,1) = B*B;
+      NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
+      return;
     } else {
       throw; // xd haha TODO tho
     }
