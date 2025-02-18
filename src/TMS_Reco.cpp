@@ -739,17 +739,73 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << std::endl;//" | X: " << HoughCandidatesX.size() << std::endl;
 #endif
 
+  // This is a sorting algorithm to look at the tracks with decreasing number of hits
+  if (HoughCandidatesU.size() > 1) {
+    // creating size array
+    std::vector<int> size_array;
+    for (auto tracks: HoughCandidatesU) {
+      size_array.push_back(int(tracks.size()));
+    }
+    // loop
+    while (HoughCandidatesU.size() > SortedHoughCandidatesU.size()) {
+      // get biggest value in size_array
+      auto step = std::max(size_array.front(), size_array.back());
+      // find this biggest value in HoughCandidatesU
+      for (std::vector<std::vector<TMS_Hit> >::iterator tracks = HoughCandidatesU.begin(); tracks != HoughCandidatesU.end(); ++tracks) {
+        if (((*tracks).size() - step) <= 0) {
+          // and push this track into SortedHoughCandidatesU
+          SortedHoughCandidatesU.push_back(*tracks);
+          break;
+        }
+      }
+      // find this biggest value in size_array
+      for (std::vector<int>::iterator sizes = size_array.begin(); sizes != size_array.end(); ++sizes) {
+        if ((*sizes - step) <= 0) {
+          // and set the element of this to 0
+          *sizes = 0;
+          break;
+        }
+      }
+    }
+  }
+  if (HoughCandidatesV.size() > 1) {
+    std::vector<int> size_array;
+    for (auto tracks: HoughCandidatesV) { size_array.push_back(int(tracks.size())); }
+    while (HoughCandidatesV.size() > SortedHoughCandidatesV.size()) {
+      auto step = std::max(size_array.front(), size_array.back());
+      for (std::vector<std::vector<TMS_Hit> >::iterator tracks = HoughCandidatesV.begin(); tracks != HoughCandidatesV.end(); ++tracks) {
+        if (((*tracks).size() - step) <= 0) { SortedHoughCandidatesV.push_back(*tracks); break; }
+      }
+      for (std::vector<int>::iterator sizes = size_array.begin(); sizes != size_array.end(); ++sizes) {
+        if ((*sizes - step) <= 0) { *sizes = 0; break; }
+      }
+    }
+  }
+  if (HoughCandidatesX.size() > 1) {
+    std::vector<int> size_array;
+    for (auto tracks: HoughCandidatesX) { size_array.push_back(int(tracks.size())); }
+    while (HoughCandidatesX.size() > SortedHoughCandidatesX.size()) {
+      auto step = std::max(size_array.front(), size_array.back());
+      for (std::vector<std::vector<TMS_Hit> >::iterator tracks = HoughCandidatesX.begin(); tracks != HoughCandidatesX.end(); ++tracks) {
+        if (((*tracks).size() - step) <= 0) { SortedHoughCandidatesX.push_back(*tracks); break; }
+      }
+      for (std::vector<int>::iterator sizes = size_array.begin(); sizes != size_array.end(); ++sizes) {
+        if ((*sizes - step) <= 0) { *sizes = 0; break; }
+      }
+    }
+  }
+
   std::vector<TMS_Track> returned;
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
   // 3D matching of tracks
-  for (auto UTracks: HoughCandidatesU) {
-    for (auto VTracks: HoughCandidatesV) {
+  for (auto UTracks: SortedHoughCandidatesU) {
+    for (auto VTracks: SortedHoughCandidatesV) {
       // Run with matching of X tracks, if X tracks exist. Otherwise match without
       bool Xrun = true;
       std::vector<std::vector<TMS_Hit> >::iterator helper;     
-      if (Xrun) helper = HoughCandidatesX.begin();
+      if (Xrun) helper = SortedHoughCandidatesX.begin();
 #ifdef DEBUG
       std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
 #endif
@@ -1535,7 +1591,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           }
         }
         if (Xrun) {// && Xback_match && Xfront_match) {
-          if (helper != HoughCandidatesX.end()-1) ++helper;
+          if (helper != SortedHoughCandidatesX.end()-1) ++helper;
           else Xrun = false;
         }
       }
