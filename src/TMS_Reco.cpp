@@ -1176,8 +1176,22 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
                       if (itX > 0) --itX;
                     }
 
-                    (aTrack.Hits).push_back(UTracks[itU]);
-                    (aTrack.Hits).push_back(VTracks[itV]);
+                    // See if hit already added to vector. If not add it, otherwise skip U and V hit (itX > 0 && itU&itV == 0)
+                    std::vector<TMS_Hit>::reverse_iterator searchU;
+                      // see if the hit is in the track already
+                    searchU = std::find((aTrack.Hits).rend(), (aTrack.Hits).rbegin(), UTracks[itU]);
+                    std::vector<TMS_Hit>::reverse_iterator searchV;
+                      // if the hit is in the track already
+                    searchV = std::find((aTrack.Hits).rend(), (aTrack.Hits).rbegin(), VTracks[itV]);
+                    if (searchU == (aTrack.Hits).rbegin()) {
+                      // if not in track -> add
+                      (aTrack.Hits).push_back(UTracks[itU]);
+                    }
+                    if (searchV == (aTrack.Hits).rbegin()) {
+                      // if not in track -> add
+                      (aTrack.Hits).push_back(VTracks[itV]);
+                    }
+                      // In every case the X hit is supposed to be added
                     (aTrack.Hits).push_back(XTracks[itX]);
 #ifdef DEBUG
                     std::cout << "same in all" << std::endl;
