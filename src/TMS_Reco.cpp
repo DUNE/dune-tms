@@ -801,7 +801,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
   // 3D matching of tracks
   for (auto UTracks: SortedHoughCandidatesU) {
-    for (auto VTracks: SortedHoughCandidatesV) {
+    // looping through SortedHoughCandidatesV
+    std::vector<std::vector<TMS_Hit> >::iterator Vhelper = SortedHoughCandidatesV.begin();
+    while (Vhelper != SortedHoughCandidatesV.end()) {
+      std::vector<TMS_Hit> VTracks = *Vhelper;
       // Run with matching of X tracks, if X tracks exist. Otherwise match without
       bool Xrun = true;
       std::vector<std::vector<TMS_Hit> >::iterator helper;     
@@ -1588,6 +1591,21 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif       
   
             returned.push_back(aTrack);
+
+            // If match was made, remove the candidate (simple) track from candidate list
+            if (SortedHoughCandidatesV.size() > 1) {
+              // Figure out which track was matched from candidates
+              std::vector<std::vector<TMS_Hit> >::iterator matchedV;
+              matchedV = std::find(SortedHoughCandidatesV.begin(), SortedHoughCandidatesV.end(), VTracks);
+              // Now erase matched (simple) track from candidate list
+              if (matchedV != SortedHoughCandidatesV.end()) SortedHoughCandidatesV.erase(matchedV);
+            }
+            // Repeat for X tracks. Not necessary for U tracks, as only iterated through once as first loop
+            if (Xrun && SortedHoughCandidatesX.size() > 1) {
+              std::vector<std::vector<TMS_Hit> >::iterator matchedX;
+              matchedX = std::find(SortedHoughCandidatesX.begin(), SortedHoughCandidatesX.end(), XTracks);
+              if (matchedX != SortedHoughCandidatesX.end()) SortedHoughCandidatesX.erase(matchedX);
+            }
           }
         }
         if (Xrun) {// && Xback_match && Xfront_match) {
@@ -1595,6 +1613,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           else Xrun = false;
         }
       }
+      ++Vhelper;
     }
   }  
   return returned;
