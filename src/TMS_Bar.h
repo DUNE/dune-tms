@@ -22,8 +22,6 @@ class TMS_Bar {
 
     // Getter functions
     int GetBarNumber() const { return BarNumber; }; // Number of bar (start counting from -3520mm onwards)
-    int GetBarWidth() const { return BarWidth; }; // Get Bar width in mm
-    int GetBarLength() const { return BarLength; }; // Get Bar length in mm
     int GetPlaneNumber() const { return PlaneNumber; }; // Plane or layer number through the detector starting at smallest z
     int GetGlobalBarNumber() const { return GlobalBarNumber; }; // Number of hit Scintillator Module (4 modules)
 
@@ -99,9 +97,6 @@ class TMS_Bar {
     int PlaneNumber;
     // The bar number in this plane
     int BarNumber;
-    // Bar Width and Length in mm, Length is always the long dimension
-    int BarWidth;
-    int BarLength;
     // The global bar number (0-100) 
     int GlobalBarNumber;
     // All in mm units!
