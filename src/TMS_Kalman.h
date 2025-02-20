@@ -160,19 +160,35 @@ class TMS_KalmanNode {
   void FillNoiseMatrix()
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
+<<<<<<< HEAD
+    double A = LayerBarWidth;
+    double B = LayerBarLength;
+=======
     double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
     double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
+>>>>>>> main
 
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {
       sign = -1;
     } else if (LayerOrientation == TMS_Bar::kVBar) {
       sign =  1;
+<<<<<<< HEAD
+    } else if (LayerOrientation == TMS_Bar::kXBar) {
+=======
     } else if (LayerOrientation == TMS_Bar::kXBar) { // this should just work right?
+>>>>>>> main
       NoiseMatrix(0,0) = B*B;
       NoiseMatrix(1,1) = A*A;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
+<<<<<<< HEAD
+    } else if (LayerOrientation == TMS_Bar::kYBar) {
+      NoiseMatrix(0,0) = A*A;
+      NoiseMatrix(1,1) = B*B;
+      NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
+=======
+>>>>>>> main
     } else {
       throw; // xd haha TODO tho
     }
