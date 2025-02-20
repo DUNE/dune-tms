@@ -1014,8 +1014,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
                     std::cout << "UTrack ends after VTrack and XTrack" << std::endl;
 #endif
-                    UTracks.front().SetRecoX(0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ()));
-                    UTracks.front().SetRecoY(CompareY(UTracks.front(), VTracks.front(), XTracks.front()));
                     (aTrack.Hits).push_back(UTracks.front());
                   } else if (UTracks.front().GetZ() < XTracks.front().GetZ()) {
                     XTracks.front().SetRecoX(0.5 * (UTracks.front().GetNotZ() + VTracks.front().GetNotZ()));
@@ -1059,8 +1057,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
                     std::cout << "VTracks ends after UTrack and XTrack" << std::endl;
 #endif
-                    VTracks.front().SetRecoX(0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ()));
-                    VTracks.front().SetRecoY(CompareY(UTracks.front(), VTracks.front(), XTracks.front()));
                     (aTrack.Hits).push_back(VTracks.front());
                   } else if (VTracks.front().GetZ() < XTracks.front().GetZ()) {
                     XTracks.front().SetRecoX(0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ()));
@@ -1108,8 +1104,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
                     std::cout << "VTrack starts before UTrack and XTrack" << std::endl;
 #endif
-                    VTracks.back().SetRecoX(0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ()));
-                    VTracks.back().SetRecoY(CompareY(UTracks.back(), VTracks.back(), XTracks.back()));
                     (aTrack.Hits).push_back(VTracks.back());
                   } else if (VTracks.back().GetZ() > XTracks.back().GetZ()) {
                     XTracks.back().SetRecoX(0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ()));
@@ -1153,8 +1147,6 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
                     std::cout << "UTrack starts before VTrack and XTrack" << std::endl;
 #endif
-                    UTracks.back().SetRecoX(0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ()));
-                    UTracks.back().SetRecoY(CompareY(UTracks.back(), VTracks.back(), XTracks.back()));
                     (aTrack.Hits).push_back(UTracks.back());
                   } else if (UTracks.back().GetZ() > XTracks.back().GetZ()) {
                     XTracks.back().SetRecoX(0.5 * (UTracks.back().GetNotZ() + VTracks.back().GetNotZ()));
