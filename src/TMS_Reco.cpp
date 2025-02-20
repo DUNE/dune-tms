@@ -739,7 +739,22 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << std::endl;//" | X: " << HoughCandidatesX.size() << std::endl;
 #endif
 
-  // This is a sorting algorithm to look at the tracks with decreasing number of hits
+  // This is an attempt of doing the sorting with the proper sort function, but 'bad alloc' issue at some point during execution
+  // TODO make this work!!!
+  //if (HoughCandidatesU.size() > 1) {
+  //  std::sort(HoughCandidatesU.begin(), HoughCandidatesU.end(), SortByHitNumber);
+  //  SortedHoughCandidatesU = HoughCandidatesU;
+  //}
+  //if (HoughCandidatesV.size() > 1) {
+  //  std::sort(HoughCandidatesV.begin(), HoughCandidatesV.end(), SortByHitNumber);
+  //  SortedHoughCandidatesV = HoughCandidatesV;
+  //}
+  //if (HoughCandidatesX.size() > 1) {
+  //  std::sort(HoughCandidatesX.begin(), HoughCandidatesX.end(), SortByHitNumber);
+  //  SortedHoughCandidatesX = HoughCandidatesX;
+  //}
+
+  // This is a sorting algorithm to look at the tracks with decreasing number of hits (self-written -> most likely slower than proper sort function)
   if (HoughCandidatesU.size() > 1) {
     // creating size array
     std::vector<int> size_array;
