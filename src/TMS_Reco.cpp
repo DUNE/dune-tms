@@ -12,7 +12,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
   // Max z for us to do Hough in, here choose transition layer
   zMinHough(TMS_Const::TMS_Thin_Start),
   //zMaxHough(TMS_Const::TMS_Thick_Start),
-  zMaxHough(TMS_Const::TMS_Thick_End),
+  zMaxHough(TMS_Const::TMS_Double_End),
   nMaxHough(TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough()),
   nThinCont(10),
   nHits_Tol(TMS_Manager::GetInstance().Get_Reco_HOUGH_HitMult()),
@@ -556,18 +556,14 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //EvaluateTrackFinding(event);
 
   // Run Kalman filter if requested
-  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom, kalman_chi2;
-    
-    double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
-
+  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run())
+  {
+    double kalman_reco_mom;
     for (auto &trk : HoughTracks3D) {
-      //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
-      KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
-      
-      
-      bool verbose_kalman = false;
+      KalmanFilter = TMS_Kalman(trk.Hits);
       kalman_reco_mom = KalmanFilter.GetMomentum();
+
+      bool verbose_kalman = false;
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
 
@@ -586,22 +582,6 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
       // Add tracklength with Kalman filter
       trk.Length = CalculateTrackLengthKalman(trk);
-      //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
-      kalman_chi2 = KalmanFilter.GetTrackChi2();
-      trk.SetChi2(kalman_chi2);
-   
-    }
-  } else { // No Kalman filter enabled
-    for (auto &trk : HoughTracks3D) {
-    // Track Direction
-//    if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
-      trk.SetStartDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
-      trk.SetEndDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
-//    } else {
-//      .Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
-//      .Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
-//      .Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
-//    }
     }
   }
 
@@ -1103,11 +1083,15 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
                 // Check if a neighbouring hit is from a X layer
-                if ((UTracks[itU].GetPlaneNumber() < 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 120))
-                    || (VTracks[itV].GetPlaneNumber() < 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 120))) {
+                if ((UTracks[itU].GetPlaneNumber() < TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Thin_gap * 2 + 10))
+                    || (VTracks[itV].GetPlaneNumber() < TMS_Const::TMS_nThinPlanes / 2 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Thin_gap * 2 + 10))) {
                   stereo_view = false;
-                } else if ((UTracks[itU].GetPlaneNumber() >= 20 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < 170))
-                    || (VTracks[itV].GetPlaneNumber() >= 20 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < 170))) {
+                } else if ((UTracks[itU].GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Thick_gap * 2 + 10))
+                    || (VTracks[itV].GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Thick_gap * 2 + 10))) {
+                  stereo_view = false;
+                } 
+                if ((UTracks[itU].GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 + TMS_Const::TMS_nThickPlanes / 2 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Double_gap * 2 + 10))
+                    || (VTracks[itV].GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 + TMS_Const::TMS_nThickPlanes / 2 && std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Double_gap * 2 + 10))) {
                   stereo_view = false;
                 }
                 if (itX > 0 && itU == 0 && itV == 0) stereo_view = false;
@@ -1459,8 +1443,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (UTracks.front().GetPlaneNumber() == VTracks.front().GetPlaneNumber()) {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
-                if (UTracks.front().GetPlaneNumber() < 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 230)) stereo_view = false;
-                else if (UTracks.front().GetPlaneNumber() >= 20 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < 330)) stereo_view = false;
+                if (UTracks.front().GetPlaneNumber() < TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < TMS_Const::TMS_Thin_gap * 4 +10)) stereo_view = false;
+                else if (UTracks.front().GetPlaneNumber() >= TMS_Const::TMS_nThickPlanes / 2 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < TMS_Const::TMS_Thick_gap * 4 + 10)) stereo_view = false;
+                if (UTracks.front().GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 + TMS_Const::TMS_nThickPlanes / 2 && std::abs(UTracks.front().GetZ() - XTracks.front().GetZ() < TMS_Const::TMS_Double_gap * 4 + 10)) stereo_view = false;
               }
               if (stereo_view) {
                 CalculateRecoY(VTracks.front(), UTracks.front(), VTracks.front());
@@ -1489,8 +1474,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (UTracks.back().GetPlaneNumber() == VTracks.back().GetPlaneNumber()) {
               bool stereo_view = true;
               if (Xrun && Xback_match && Xfront_match) {
-                if (UTracks.back().GetPlaneNumber() < 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 230)) stereo_view = false;
-                else if (UTracks.back().GetPlaneNumber() >= 20 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < 330)) stereo_view = false;
+                if (UTracks.back().GetPlaneNumber() < TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < TMS_Const::TMS_Thin_gap * 4 + 10)) stereo_view = false;
+                else if (UTracks.back().GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks.back().GetZ() - XTracks.back().GetZ() < TMS_Const::TMS_Thick_gap * 4 + 10)) stereo_view = false;
+                if (UTracks.back().GetPlaneNumber() >= TMS_Const::TMS_nThinPlanes / 2 + TMS_Const::TMS_nThickPlanes / 2 && std::abs(UTracks.back().GetZ() < TMS_Const::TMS_Double_gap * 4 + 10)) stereo_view = false;
               }
               if (stereo_view) {
                 CalculateRecoY(UTracks.back(), UTracks.back(), VTracks.back());
@@ -1575,7 +1561,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
             std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-#endif       
+#endif          
   
             returned.push_back(aTrack);
           }
@@ -2139,7 +2125,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
   }
 
   // Create the DBSCAN instance
-  DBSCAN.SetPoints(DB_Points); //TODO how to get this working with separation? Where is this referring to?
+  DBSCAN.SetPoints(DB_Points);
   DBSCAN.RunDBScan();
 
   //std::vector<TMS_DBScan_Point> NoisePoints = DBSCAN.GetNoise();
@@ -2179,9 +2165,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Recalculate the min and max of slope and intercept for every event
     // Hits are ordered in z already
     double maxz = TMS_Const::TMS_Thin_Start;
-    double minz = TMS_Const::TMS_Thick_End;
-    double min_notz = TMS_Const::TMS_End_Exact[0];  //TODO adapt to X layers
-    double max_notz =  TMS_Const::TMS_Start_Exact[0]; //TODO adapt to X layers
+    double minz = TMS_Const::TMS_Double_End;
+    double min_notz = TMS_Const::TMS_End_Exact[0];
+    double max_notz =  TMS_Const::TMS_Start_Exact[0];
     bool print = true;
     for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
       double z = (*it).GetZ();
@@ -2232,7 +2218,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Most of the bending happens in xz, so fit only until the transition region. 
   // For the yz view, fit the entire region
   //if (IsXZ) HoughLine->SetRange(zMinHough, zMaxHough);
-  //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Thick_End);
+  //else HoughLine->SetRange(TMS_Const::TMS_Thin_Start, TMS_Const::TMS_Double_End);
   
   TF1* HoughCopy = (TF1*)HoughLineU->Clone();
 

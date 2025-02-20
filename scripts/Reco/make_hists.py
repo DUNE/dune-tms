@@ -53,9 +53,9 @@ def run(c, truth, outfilename, nmax=-1):
     hist_occupancyV = ROOT.TH1D("hist_occupancy_V", "Occupancy;Occupancy of longest track;N Events", 110, 0, 1.1)
     # Track start and stop positions
     hist_track_start_xU = ROOT.TH1D("hist_track_start_x_U", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_start_zU = ROOT.TH1D("hist_track_start_z_U", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_start_zU = ROOT.TH1D("hist_track_start_z_U", "Track Start Position Z;X (mm);N Events", 100, 11000, 19000)
     hist_track_end_xU = ROOT.TH1D("hist_track_end_x_U", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_end_zU = ROOT.TH1D("hist_track_end_z_U", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_end_zU = ROOT.TH1D("hist_track_end_z_U", "Track End Position Z;X (mm);N Events", 100, 11000, 19000)
     hist_track_startU = ROOT.TH2D("hist_track_start_U", 
       "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
     hist_track_endU = ROOT.TH2D("hist_track_end_U", 
@@ -63,13 +63,13 @@ def run(c, truth, outfilename, nmax=-1):
     hist_track_angleU = ROOT.TH1D("hist_track_angle_U", "Track Angle;Angle (deg);N Events", 50, -180, 180)
   
     hist_track_start_xV = ROOT.TH1D("hist_track_start_x_V", "Track Start Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_start_zV = ROOT.TH1D("hist_track_start_z_V", "Track Start Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_start_zV = ROOT.TH1D("hist_track_start_z_V", "Track Start Position Z;X (mm);N Events", 100, 11000, 19000)
     hist_track_end_xV = ROOT.TH1D("hist_track_end_x_V", "Track End Position X;X (mm);N Events", 100, -4000, 4000)
-    hist_track_end_zV = ROOT.TH1D("hist_track_end_z_V", "Track End Position Z;X (mm);N Events", 100, 11000, 18000)
+    hist_track_end_zV = ROOT.TH1D("hist_track_end_z_V", "Track End Position Z;X (mm);N Events", 100, 11000, 19000)
     hist_track_startV = ROOT.TH2D("hist_track_start_V",
-      "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
+      "Track Start Position;Track Start Position X (mm);Track Start Position Z (mm)", 100, 11000, 19000, 100, -4000, 4000)
     hist_track_endV = ROOT.TH2D("hist_track_end_V",
-      "Track End Position;Track End Position X (mm); Track End Position Z (mm)", 100, 11000, 18000, 100, -4000, 4000)
+      "Track End Position;Track End Position X (mm); Track End Position Z (mm)", 100, 11000, 19000, 100, -4000, 4000)
     hist_track_angleV = ROOT.TH1D("hist_track_angle_V", "Track Angle;Angle (deg);N Events", 50, -180, 180)
   
     # Now make histograms that rely on truth information as well
@@ -353,9 +353,9 @@ def run(c, truth, outfilename, nmax=-1):
                 track_start_x = event.FirstHoughHitU[2*longtrackU+1]
                 track_end_x = event.LastHoughHitU[2*longtrackU+1]
                 # Check if the muon starts within the correct z range
-                if alldet and track_start_z < 11362+55*2: best_muon_candidateU = -1
-                if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateU = -1 
-                if track_end_z > 18294-80*2: best_muon_candidateU = -1
+                if alldet and track_start_z < 11185+55*2: best_muon_candidateU = -1
+                if not alldet and (track_start_z < 11185+55*2 or track_start_z > 14435): best_muon_candidateU = -1  # Changed here to the new TMS_Thick_Start
+                if track_end_z > 18535-80*2: best_muon_candidateU = -1
                 # Check if the muon is in the right x position
                 if abs(track_start_x) > 3520-200: best_muon_candidateU = -1
                 if abs(track_end_x) > 3520-200: best_muon_candidateU = -1
@@ -372,9 +372,9 @@ def run(c, truth, outfilename, nmax=-1):
                 track_start_x = event.FirstHoughHitV[2*longtrackV+1]
                 track_end_x = event.LastHoughHitV[2*longtrackV+1]
                 # Check if the muon starts within the correct z range
-                if alldet and track_start_z < 11362+55*2: best_muon_candidateV = -1
-                if not alldet and (track_start_z < 11362+55*2 or track_start_z > 13600): best_muon_candidateV = -1
-                if track_end_z > 18294-80*2: best_muon_candidateV = -1
+                if alldet and track_start_z < 11185+55*2: best_muon_candidateV = -1
+                if not alldet and (track_start_z < 11185+55*2 or track_start_z > 14435): best_muon_candidateV = -1  # Changed here to the new TMS_Thick_Start
+                if track_end_z > 18535-80*2: best_muon_candidateV = -1
                 # Check if the muon is in the right x position
                 if abs(track_start_x) > 3520-200: best_muon_candidateV = -1
                 if abs(track_end_x) > 3520-200: best_muon_candidateV = -1
