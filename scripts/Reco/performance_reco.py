@@ -122,7 +122,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
             Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
             
             if (abs(Particle_PDG) == 13):
-                if 4179.24 < Muon_Start[2] < 9135.88 and 11185 < Muon_End[2] < 18535:    #12462
+                if 4179.24 < Muon_Start[2] < 9135.88 and 11582 < Muon_End[2] < 18314:    #12462
                     if 1159 > Muon_End[1] > -3864 and abs(Muon_End[0]) < 3520:
                         count_muons += 1
             
@@ -337,15 +337,13 @@ def draw_performance(out_dir, input_filename, Xlayers):
     mp.close()
         
     # create histograms for all directions for truth and reconstruction 
-    z_bins = np.zeros(93, dtype = float)
-    z_bins[0] = 11185
-    for i in range(1, 93):
-        if i < 50:
-            z_bins[i] = z_bins[0] + i * 65.
-        if i >= 50:
-            z_bins[i] = 14435. + (i - 50) * 90.
-        if i >= 84:
-            z_bins[i] = 17495. + (i - 84) * 130.
+    z_bins = np.zeros(102, dtype = float)
+    z_bins[0] = 11362
+    for i in range(1, 102):
+        if i < 40:
+            z_bins[i] = z_bins[0] + i * 55.
+        if i >= 40:
+            z_bins[i] = 13507. + (i - 40) * 80.
     
     Reco_Start_x_hist, Reco_Start_x_bins = np.histogram(Reco_Start_x, bins = 48, range = (-3520., 3520.))
     Reco_Start_y_hist, Reco_Start_y_bins = np.histogram(Reco_Start_y, bins = 20, range = (-2949., 244.)) 
@@ -674,11 +672,11 @@ def draw_performance(out_dir, input_filename, Xlayers):
         reco_stopping = False
         
         # check if line crosses detector volume in yz
-        if (true_slope * 18535 + true_intercept) < -2949 and Primary_True_End[i, 1] <= (-2939):# + 338.3):
+        if (true_slope * 18294 + true_intercept) < -2949 and Primary_True_End[i, 1] <= (-2939):# + 338.3):
             truth_exiting = True
         elif Primary_True_End[i, 2] < 17750:
             truth_stopping = True
-        if (reco_slope * 18535 + reco_intercept) < -2949 and Reco_End[i, 1] < (-2949 + 338.3):
+        if (reco_slope * 18294 + reco_intercept) < -2949 and Reco_End[i, 1] < (-2949 + 338.3):
             reco_exiting = True
         elif Reco_End[i, 2] < 17750:
             reco_stopping = True
@@ -951,78 +949,56 @@ def histogram_arr_handle(bins, edges):#(u bins,v edges)
 def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
-first_z = 11185
+first_z = 11368
 layer_dict = { "%s" % first_z : "kUBar" }
         
 def calculate_layers(Xlayers):
     increment = 2
     if Xlayers:
         increment = 3
-    thin_layers = 49
-    thick_layers = 34
-    double_layers = 9
+    thin_layers = 39
+    thick_layers = 61
     # Calculate the z position for each layer for the thin section
     for i in range(thin_layers):
-        hit_z = first_z + i * 65
+        hit_z = first_z + i * 55
         # even layers
         if not Xlayers:
-            if (((hit_z - first_z) / 65) % increment) == 0:
+            if (((hit_z - first_z) / 55) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "kUBar" })
             # odd layers
-            elif (((hit_z - first_z) / 65) % increment) == 1:
+            elif (((hit_z - first_z) / 55) % increment) == 1:
                 layer_dict.update({ "%s" % hit_z : "kVBar" })
         # x layers
         if Xlayers:
             # even layers
-            if (((hit_z - first_z) / 65) % 2) == 0:
+            if (((hit_z - first_z) / 55) % 2) == 0:
                 layer_dict.update({ "%s" % hit_z : "kUBar" })
             # odd layers
-            elif (((hit_z - first_z) / 65) % 2) == 1:
+            elif (((hit_z - first_z) / 55) % 2) == 1:
                 layer_dict.update({ "%s" % hit_z : "kVBar" })
-            if (((hit_z - first_z) / 65) % increment) == 0:
+            if (((hit_z - first_z) / 55) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "kXBar" })
     # Calculate the z position for each layers the thick section
-    start_thick = first_z + thin_layers * 65
+    start_thick = first_z + thin_layers * 55
     for i in range(thick_layers):
-        hit_z = start_thick + i * 90
+        hit_z = start_thick + i * 80
         if not Xlayers:
             # even layers
-            if (((hit_z - start_thick) / 90) % increment) == 0:
+            if (((hit_z - start_thick) / 80) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "kVBar" })
             # odd layers
-            elif (((hit_z - start_thick) / 90) % increment) == 1:
+            elif (((hit_z - start_thick) / 80) % increment) == 1:
                 layer_dict.update({ "%s" % hit_z : "kUBar" })
         # x layers
         if Xlayers:
             # even layers
-            if (((hit_z - start_thick) / 90) % 2) == 0:
+            if (((hit_z - start_thick) / 80) % 2) == 0:
                 layer_dict.update({ "%s" % hit_z : "kVBar" })
             # odd layers
-            elif (((hit_z - start_thick) / 90) % 2) == 1:
+            elif (((hit_z - start_thick) / 80) % 2) == 1:
                 layer_dict.update({ "%s" % hit_z : "kUBar" })
-            if (((hit_z - start_thick) / 90) % increment) == 0:
+            if (((hit_z - start_thick) / 80) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "kXBar" })
-    # Calculate the z position for each layers the double section
-    start_double = first_z + thin_layers * 65 + thick_layers * 90
-    for i in range(double_layers):
-        hit_z = start_double + i * 130
-        if not Xlayers:
-            # even layers
-            if (((hit_z - start_double) / 130) % increment) == 0:
-                layer_dict.update({ "%s" % hit_z : "kUBar" })
-            # odd layers
-            elif (((hit_z - start_thick) / 90) % increment) == 1:
-                layer_dict.update({ "%s" % hit_z : "kVBar" })
-        # x layers
-        if Xlayers:
-            # even layers
-            if (((hit_z - start_double) / 130) % 2) == 0:
-                layer_dict.update({ "%s" % hit_z : "kUBar" })
-            # odd layers
-        elif (((hit_z - start_double) / 130) % 2) == 1:
-            layer_dict.update({ "%s" % hit_z : "kVBar" })
-        if ((( hit_z - start_double) / 130) % increment) == 0:
-            layer_dict.update({ "%s" % hit_z : "kXBar" })
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Draws spills.")
