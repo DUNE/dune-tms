@@ -263,7 +263,7 @@ class TMS_TrackFinder {
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
-    std::vector<TMS_Track> TrackMatching3D_XY();
+    std::vector<TMS_Track> TrackMatching3D_XY(); //This function needs to be merged into TrackMatching3D() later.
     void FindPseudoXTrack();
     void CalculateRecoY(TMS_Hit &XHit, TMS_Hit &UHit, TMS_Hit &VHit); //XHit is here a placeholder for the hit that gets the RecoY set. This is then to be chosen as either UHit or VHit
     void CalculateRecoX(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit);
