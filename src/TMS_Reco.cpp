@@ -121,6 +121,9 @@ void TMS_TrackFinder::ClearClass() {
   HoughCandidatesU.clear();
   HoughCandidatesV.clear();
   HoughCandidatesX.clear();
+  SortedHoughCandidatesU.clear();
+  SortedHoughCandidatesV.clear();
+  SortedHoughCandidatesX.clear();
   ClusterCandidatesU.clear();
   ClusterCandidatesV.clear();
   ClusterCandidatesX.clear();
