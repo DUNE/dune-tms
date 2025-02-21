@@ -737,10 +737,10 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 }
 
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
-#ifdef DEBUG
+//#ifdef DEBUG
   std::cout << "3D matching" << std::endl;
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << std::endl;//" | X: " << HoughCandidatesX.size() << std::endl;
-#endif
+//#endif
 
   // This is an attempt of doing the sorting with the proper sort function, but 'bad alloc' issue at some point during execution
   // TODO make this work!!!
@@ -818,10 +818,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
   // 3D matching of tracks
-  for (auto UTracks: SortedHoughCandidatesU) {
+  std::vector<std::vector<TMS_Hit> >::iterator Uhelper = SortedHoughCandidatesU.begin();
+  while (Uhelper != SortedHoughCandidatesU.end()) {
+    std::vector<TMS_Hit> UTracks = *Uhelper;
+  //for (auto UTracks: SortedHoughCandidatesU) {
     // looping through SortedHoughCandidatesV
     std::vector<std::vector<TMS_Hit> >::iterator Vhelper = SortedHoughCandidatesV.begin();
-    while (Vhelper != SortedHoughCandidatesV.end()) {
+    while (Vhelper != SortedHoughCandidatesV.end() && Uhelper != SortedHoughCandidatesU.end()) {
       std::vector<TMS_Hit> VTracks = *Vhelper;
       // Run with matching of X tracks, if X tracks exist. Otherwise match without
       bool Xrun = true;
@@ -839,13 +842,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         SpatialPrio(UTracks);
         SpatialPrio(VTracks);
         if (Xrun) SpatialPrio(XTracks);
-#ifdef DEBUG
+//#ifdef DEBUG
+        std::cout << "U track: " << UTracks.size() << std::endl;
         std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
-
+        std::cout << "V track: " << VTracks.size() << std::endl;
         std::cout << "VTrack back: " << VTracks.front().GetPlaneNumber() << " | " << VTracks.front().GetBarNumber() << " | " << VTracks.front().GetT() << " front: " << VTracks.back().GetPlaneNumber() << " | " << VTracks.back().GetBarNumber() << " | " << VTracks.back().GetT() << std::endl;
 
         if (Xrun) std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
-#endif
+//#endif
  
         // Conditions for close enough tracks: within +/-3 plane numbers, +/-12 bar numbers and in same time slice within 30ns (Asa note: changed to 15 ns for now and just one of time and plane number condition needs to be met)
         bool back_match = false;
@@ -1602,11 +1606,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               double direction_z = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
               aTrack.SetStartDirection(direction_x, direction_y, direction_z);
             }
-#ifdef DEBUG          
+//#ifdef DEBUG          
             std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
             std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
             std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-#endif       
+//#endif       
   
             returned.push_back(aTrack);
 
@@ -1616,7 +1620,18 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               std::vector<std::vector<TMS_Hit> >::iterator matchedV;
               matchedV = std::find(SortedHoughCandidatesV.begin(), SortedHoughCandidatesV.end(), VTracks);
               // Now erase matched (simple) track from candidate list
-              if (matchedV != SortedHoughCandidatesV.end()) SortedHoughCandidatesV.erase(matchedV);
+              if (matchedV != SortedHoughCandidatesV.end()) {
+                std::cout << "matched V: " << (*matchedV).back().GetPlaneNumber() << " | " << (*matchedV).back().GetBarNumber() << " | " << (*matchedV).back().GetT() << std::endl;
+                SortedHoughCandidatesV.erase(matchedV);
+              }
+
+              std::cout << "V size: " << SortedHoughCandidatesV.size() << std::endl;
+            }
+            if (SortedHoughCandidatesU.size() > 1) {
+              std::vector<std::vector<TMS_Hit> >::iterator matchedU;
+              matchedU = std::find(SortedHoughCandidatesU.begin(), SortedHoughCandidatesU.end(), UTracks);
+              if (matchedU != SortedHoughCandidatesU.end()) SortedHoughCandidatesU.erase(matchedU);
+              std::cout << "U size: " << SortedHoughCandidatesU.size() << std::endl;
             }
             // Repeat for X tracks. Not necessary for U tracks, as only iterated through once as first loop
             if (Xrun && SortedHoughCandidatesX.size() > 1) {
@@ -1633,6 +1648,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       }
       ++Vhelper;
     }
+    if (SortedHoughCandidatesV.empty()) break;
+    ++Uhelper;
   }  
   return returned;
 }
