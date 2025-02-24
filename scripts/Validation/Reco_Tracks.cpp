@@ -20,9 +20,9 @@ int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
   bool is999 = IS_WITHIN(x, -999, 1) || IS_WITHIN(x, -9999, 1) || IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) || IS_WITHIN(x, -999999, 1);
   bool crazy_small = x < -4000;
-  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11185.0);
-  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18535.0);
-  bool xlooksz = (isx) ? IS_WITHIN(x, 18535, 10) : false;
+  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11362.0);
+  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18314.0);
+  bool xlooksz = (isx) ? IS_WITHIN(x, 18314, 10) : false;
   int out = -99999;
   if (zero) out = 0;
   else if (is999) out = -2;
@@ -37,15 +37,13 @@ int GetHitLocationCodeSingle(float x, bool isx) {
 bool isTMSContained(TVector3 position, bool thin_only = false) {
   bool out = true;
     // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11185;
+  const double TMS_Thin_Start = 11362;
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 14435;
-  // Where do we transition to the double region
-  const double TMS_Double_Start = 17495;
+  const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Double_End = 18535;
+  const double TMS_Thick_End = 18294;
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
-  const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Double_End};
+  const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
   if (position.X() < TMS_Start_Bars_Only[0]) out = false;
   if (position.X() > TMS_End_Bars_Only[0]) out = false;
   if (position.Y() > TMS_Start_Bars_Only[1]) out = false;
@@ -62,7 +60,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
     // Make sure to save them too
     int n_zbins = 50;
     double z_start = 11000;
-    double z_end = 19000;
+    double z_end = 18500;
     
     bool has_kalman = reco.HasBranch("KalmanPos");
     std::cout<<"has_kalman status: "<<has_kalman<<std::endl;
@@ -104,9 +102,9 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
     TH1D hist_track_hit_z("track_hit_z", "Track Hit z;Hit z (mm);N Hits", 
       51, -10, 19000 );
     TH2D hist_track_hit_xz("track_hit_xz", "Track Hit x vs z;Hit z (mm);Hit x (mm);N Hits", 
-      101, 11000, 19000, 501, -4000, 4000);
+      101, 11000, 18500, 501, -4000, 4000);
     TH2D hist_track_hit_yz("track_hit_yz", "Track Hit y vs z;Hit z (mm);Hit y (mm);N Hits", 
-      101, 11000, 19000, 501, -3600, 400);
+      101, 11000, 18500, 501, -3600, 400);
       
       
     TH2D hist_all_hit_xz_relative_start("all_hit_xz_relative_start", "All Hit x vs z, Relative to Track Start;Hit z (mm);Hit x (mm);N Hits", 
@@ -148,13 +146,13 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
       n_zbins, z_start, z_end);
     double dz = 400;
     TH1D hist_true_track_z_very_front("true_track_z_very_front", "True Track Z_{Start};Z (mm);N Tracks", 
-      n_zbins, 11185 - dz, 11185 + dz);
+      n_zbins, 11362 - dz, 11362 + dz);
     TH1D hist_true_track_z_very_back("true_track_z_very_back", "True Track Z_{Start};Z (mm);N Tracks", 
-      n_zbins, 18535 - dz, 18535 + dz);  // I don't know why these values were different. Set them now to the same TODO
+      n_zbins, 18294 - dz, 18400 + dz);
     TH1D hist_true_track_z_end("true_track_z_end", "True Track Z_{End};Z (mm);N Tracks", 
       n_zbins, z_start, z_end);
     TH1D hist_true_track_z_end_very_back("true_track_z_end_very_back", "True Track Z_{End};Z (mm);N Tracks", 
-      n_zbins, 18535 - dz, 18535 + dz); // Same here TODO
+      n_zbins, 18294 - dz, 18400 + dz);
     TH1D hist_diff_track_z("diff_track_z", "Reco - True Track Z_{Start};dZ (mm);N Tracks", 
       n_zbins, -300, 300);
     int n_xbins = 50;
@@ -332,7 +330,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         bool startLAr = truth.RecoTrackPrimaryParticleLArFiducialStart[itrack];
         //bool endTMS = truth.RecoTrackPrimaryParticleTMSFiducialEnd[itrack];
         
-        if (startpoint.Z() < 11185.0) std::cout<<"Found case outside bounds: "<<startpoint.Z()<<std::endl;
+        if (startpoint.Z() < 11362.0) std::cout<<"Found case outside bounds: "<<startpoint.Z()<<std::endl;
         
         bool is_muon = std::abs(pdg) == 13;
         if (is_muon && startLAr) {
