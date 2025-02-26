@@ -56,6 +56,7 @@ class TMS_KalmanNode {
   // x,y,z, delta_z = distance from previous hit to current in z
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar),
+    RecoX(xvar), RecoY(yvar),
     CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     PreviousState(x, y, z, -999.9, -999.9, -1./20.),
     TransferMatrix(KALMAN_DIM, KALMAN_DIM),
