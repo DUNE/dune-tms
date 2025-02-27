@@ -59,7 +59,6 @@ class TMS_Track {
 
     // Kalman filter track info
     int nKalmanNodes;
-    int KalmanErrorDetVol = 0;
     std::vector<TMS_KalmanNode> KalmanNodes;
 
     void Compare()
