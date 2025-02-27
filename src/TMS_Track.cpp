@@ -7,7 +7,6 @@ void TMS_Track::Print()
   //0x90; // TODO: add a function here
 };
 
-
 // Set the start direction of the track object, normalised so magnitude == 1
 void TMS_Track::SetStartDirection(double ax, double ay, double az) {
   double mag = sqrt(ax*ax + ay*ay + az*az);
@@ -253,5 +252,3 @@ void TMS_Track::ApplyTrackSmoothing() {
   std::cout<<",\ttrack smoothness final: "<<final_track_smoothness;
   std::cout<<",\tn hits: "<<Hits.size()<<std::endl;*/
 }
-
-

@@ -564,6 +564,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
 
+    trk.KalmanErrorDetVol = KalmanFilter.ErrorDetVol;
+
     for (auto &trk : HoughTracks3D) {
       //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
       KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
@@ -899,6 +901,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       std::cout << "VTrack FRONT: " << VTracks.back().GetPlaneNumber() << " BACK: " << VTracks.front().GetPlaneNumber() << std::endl;
       if (Xrun) std::cout << "XTrack FRONT: " << XTracks.back().GetPlaneNumber() << " Back: " << XTracks.front().GetPlaneNumber() << std::endl;
 #endif          
+
       // If same plane number for start but different for end (U/V)
       if (UTracks.front().GetPlaneNumber() != VTracks.front().GetPlaneNumber()) {
         // If UTrack ends after VTrack
