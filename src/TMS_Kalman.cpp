@@ -70,7 +70,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
 //      TMS_KalmanNode Node(x, y, z, DeltaZ);
-      TMS_KalmanNode Node(x_true, y_true, z_true, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
+      TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
 
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType();
