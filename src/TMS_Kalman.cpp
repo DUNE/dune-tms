@@ -58,11 +58,20 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
     double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
     double DeltaZ = future_z-z;
 
+    double future_x = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoX();
+    double DeltaX = future_x-x;
+
+    double future_y = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoY();
+    double DeltaY = future_y-y;
+
+
     // This also initialises the state vectors in each of the nodes
     if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
-      TMS_KalmanNode Node(x, y, z, DeltaZ);
+//      TMS_KalmanNode Node(x, y, z, DeltaZ);
+      TMS_KalmanNode Node(x_true, y_true, z_true, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
+
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType();
       Node.LayerBarWidth    = hit.GetBar().GetBarWidth();
@@ -396,14 +405,20 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   Measurement[0] = CurrentState.x ;//+ NoiseVec[0];
   Measurement[1] = CurrentState.y ;//+ NoiseVec[1];
-  Measurement[2] = UpdateVec[2];//0.0;//NoiseVec[2];//CurrentState.dxdz;
-  Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
+  Measurement[2] = CurrentState.dxdz;//0.0;//NoiseVec[2];//CurrentState.dxdz;
+  Measurement[3] = CurrentState.dydz;//0.0;//NoiseVec[3];//CurrentState.dydz;
   Measurement[4] = 0.0; //CurrentState.qp;
 
   if (Talk) std::cout << "Gain" << std::flush;
   if (Talk) GainMatrix.Print();
 
   FilteredVec = UpdateVec + GainMatrix*( Measurement - UpdateVec );
+
+  TMatrixD IdentityMatrix(5,5);
+  IdentityMatrix.UnitMatrix();
+//TODO editted:the final Covariance=(1-K)C~ from arXiv:2404.08614
+  CovarianceMatrix = (IdentityMatrix-GainMatrix)*CovarianceMatrix;
+
 
   CurrentState.x    = FilteredVec[0];
   CurrentState.y    = FilteredVec[1];
