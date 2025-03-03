@@ -667,7 +667,7 @@ for (auto Lines: HoughCandidatesY) {
 
   // Run Kalman filter if requested
 if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom, kalman_chi2_plus, kalman_chi2_minus;
+    double kalman_reco_mom, kalman_chi2, kalman_chi2_plus, kalman_chi2_minus;
     
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
 
