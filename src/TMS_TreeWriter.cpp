@@ -1756,7 +1756,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect()*1000.;//mm //GetNeutrinoVtx is in meter 
+  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
