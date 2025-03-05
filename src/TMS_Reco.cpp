@@ -671,8 +671,6 @@ for (auto Lines: HoughCandidatesY) {
     
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
 
-    trk.KalmanErrorDetVol = KalmanFilter.ErrorDetVol;
-
     for (auto &trk : HoughTracks3D) {
       //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
       KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
