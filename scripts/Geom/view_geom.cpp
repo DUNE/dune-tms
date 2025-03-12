@@ -41,7 +41,9 @@ void view_geom(std::string filename) {
   // Some of the TMS volumes, useful for geometry inspection
   //geom->GetVolume("scinBoxlvTMS")->Draw("ogl");
   //geom->GetVolume("ModuleBoxvol")->Draw("ogl");
-  //geom->GetVolume("modulelayervol")->Draw("ogl");
+  //geom->GetVolume("modulelayervol1")->Draw("ogl");
+  //geom->GetVolume("modulelayervol2")->Draw("ogl");
+  //geom->GetVolume("modulelayervol3")->Draw("ogl");
   //geom->GetVolume("thickvol2TMS")->Draw("ogl");
   //geom->GetVolume("thickvolTMS")->Draw("ogl");
   //geom->GetVolume("thicklayervol")->Draw("ogl");
@@ -57,30 +59,30 @@ void view_geom(std::string filename) {
 
   RecursiveTransparency(geom->GetVolume("volWorld"), 10);
   RecursiveTransparency(geom->GetVolume("volTMS"), 80);
-  RecursiveTransparency(geom->GetVolume("volArgonCubeDetector_0"), 80);
-  geom->GetVolume("volDetEnclosure")->SetTransparency(80);
+  //RecursiveTransparency(geom->GetVolume("volArgonCubeDetector_0"), 80);
+  //geom->GetVolume("volDetEnclosure")->SetTransparency(80);
 
   // These will only exist in SAND geometries
-  RecursiveTransparency(geom->GetVolume("KLOEYokeBarrel_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeBarrel_volume"), trans);
 
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapAL_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapAR_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapBL_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapBR_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapCL_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapCR_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapDL_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapDR_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapAL_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapAR_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapBL_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapBR_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapCL_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapCR_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapDL_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOEYokeEndcapDR_volume"), trans);
 
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatEndcapL_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatEndcapR_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatInnerWall_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatOuterWall_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCoilShell_volume"), trans);
-  RecursiveTransparency(geom->GetVolume("KLOESolenoidCoil_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatEndcapL_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatEndcapR_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatInnerWall_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCryostatOuterWall_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCoilShell_volume"), trans);
+  //RecursiveTransparency(geom->GetVolume("KLOESolenoidCoil_volume"), trans);
 
   // Loop over the passive slabs
-  TGeoVolume *ecalvol = geom->GetVolume("volECALPassiveSlab_0");
+  /*TGeoVolume *ecalvol = geom->GetVolume("volECALPassiveSlab_0");
   int volno = 1;
   while (ecalvol != NULL) {
     TString temp = Form("volECALPassiveSlab_%i", volno);
@@ -97,7 +99,7 @@ void view_geom(std::string filename) {
     ecalvol = geom->GetVolume(temp.Data());
     if (ecalvol != NULL) ecalvol->SetTransparency(trans);
     volno++;
-  }
+  }*/
 
 
   //geom->GetVolume("ECAL_lv")->SetLineColor(kRed);
@@ -112,7 +114,7 @@ void view_geom(std::string filename) {
   geom->GetVolume("volWorld")->Draw("ogl");
 
   // The support structure vlumes
-  geom->GetVolume("elevatorBlock_lv")->SetLineColor(kBlack);
+  /*geom->GetVolume("elevatorBlock_lv")->SetLineColor(kBlack);
   geom->GetVolume("elevatorBlock_lv")->SetTransparency(trans);
   geom->GetVolume("craneRail1_lv")->SetLineColor(kBlack);
   geom->GetVolume("craneRail2_lv")->SetLineColor(kBlack);
@@ -121,7 +123,7 @@ void view_geom(std::string filename) {
   geom->GetVolume("cryoTube2_lv")->SetLineColor(kBlack);
   geom->GetVolume("cryoTube3_lv")->SetLineColor(kBlack);
   geom->GetVolume("cryoTube4_lv")->SetLineColor(kBlack);
-  geom->GetVolume("cryoTube5_lv")->SetLineColor(kBlack);
+  geom->GetVolume("cryoTube5_lv")->SetLineColor(kBlack);*/
 
   // Example to not draw the support volume structures
   /*
@@ -139,14 +141,14 @@ void view_geom(std::string filename) {
 
   //geom->GetVolume("sideplate_lv")->SetTransparency(90);
   //geom->GetVolume("endplate_lv")->SetTransparency(90);
-  geom->GetVolume("sideplate_lv")->SetLineColor(kBlack);
+  /*geom->GetVolume("sideplate_lv")->SetLineColor(kBlack);
   geom->GetVolume("endplate_lv")->SetLineColor(kBlack);
   geom->GetVolume("volTopInsulationR")->SetLineColor(kBlack);
   geom->GetVolume("volTopInsulationL")->SetLineColor(kBlack);
   geom->GetVolume("sideplate_lv")->SetTransparency(90);
   geom->GetVolume("endplate_lv")->SetTransparency(90);
   geom->GetVolume("volTopInsulationR")->SetTransparency(90);
-  geom->GetVolume("volTopInsulationL")->SetTransparency(90);
+  geom->GetVolume("volTopInsulationL")->SetTransparency(90);*/
 
   //geom->GetVolume("volDetEnclosure")->Draw("ogl");
 
@@ -156,17 +158,23 @@ void view_geom(std::string filename) {
 
   // The steel volumes
   // outer thick
-  //geom->GetVolume("thickvolTMS")->SetLineColor(kGreen);
+  geom->GetVolume("thickvolTMS")->SetLineColor(kGreen);
   // middle thick
-  //geom->GetVolume("thickvol2TMS")->SetLineColor(kBlue);
+  geom->GetVolume("thickvol2TMS")->SetLineColor(kBlue);
   // outer thin
-  //geom->GetVolume("thinvolTMS")->SetLineColor(kYellow);
+  geom->GetVolume("thinvolTMS")->SetLineColor(kYellow);
   // midle thin
-  //geom->GetVolume("thinvol2TMS")->SetLineColor(kMagenta);
+  geom->GetVolume("thinvol2TMS")->SetLineColor(kMagenta);
+  // outer double thick
+  geom->GetVolume("doublevolTMS")->SetLineColor(kBlack);
+  // middle double thick
+  geom->GetVolume("doubelvol2TMS")->SetLineColor(kBlack);
   // The scintillator bar volume
-  //geom->GetVolume("scinBoxlvTMS")->SetLineColor(kRed);
+  geom->GetVolume("scinBoxlvTMS")->SetLineColor(kRed);
 
-  //geom->GetVolume("modulelayervol")->SetLineColor(kGreen);
+  geom->GetVolume("modulelayervol1")->SetLineColor(kGreen);
+  geom->GetVolume("modulelayervol2")->SetLineColor(kRed);
+  geom->GetVolume("modulelayervol3")->SetLineColor(KBlue);
   //geom->GetVolume("thicklayervol")->SetLineColor(kRed);
   //geom->GetVolume("thinlayervol")->SetLineColor(kBlue);
 
