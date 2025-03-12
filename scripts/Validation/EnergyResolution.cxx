@@ -215,6 +215,44 @@
     GetHist("energy_resolution__areal_density_and_energy__vs_energy_comparison_column_normalize_true",
             "True Areal Density Compared to Energy, Col Norm.", "true_areal_density",
             "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
+            
+            
+    REGISTER_AXIS(true_areal_density_zoom, std::make_tuple("True Areal Density (g/cm^2)", 105, 0.0, 2100.0));
+    REGISTER_AXIS(fractional_error_ke_over_density, std::make_tuple("True Areal Density / True KE (g/cm^2 / MeV)", 50, 0.3, 0.8));
+    std::vector<double> de_to_try = {0.5, 0.25, 0.1, 0.01, 0.001, 0.0001};
+    int de_index = 0;
+    for (auto de : de_to_try) {
+      std::vector<double> energy_slices = {0.5, 1, 1.5, 2, 2.5, 3};
+      std::vector<double> energy_slices_high;
+      std::vector<double> energy_slices_low;
+      for (auto slice_e : energy_slices) {
+        energy_slices_high.push_back(slice_e + de);
+        energy_slices_low.push_back(slice_e - de);
+      }
+      for (size_t ie = 0; ie < energy_slices_low.size(); ie++) {
+        double e_low = energy_slices_low.at(ie);
+        double e_high = energy_slices_high.at(ie);
+        if (e_low < highest_true_muon_starting_ke && highest_true_muon_starting_ke <= e_high) {
+          int precision = 5;
+          if (de >= 0.0001) precision = 4;
+          if (de >= 0.001) precision = 3;
+          if (de >= 0.01) precision = 2;
+          if (de >= 0.1) precision = 1;
+          if (de == 0.25) precision = 2;
+          if (de >= 1) precision = 0;
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__slices_dev%d_normalize_to_one_nostack_%ld", de_index, ie).Data(),
+                  TString::Format("True Areal Density in Slices of TMS-Entering KE: %.*lf < E / GeV <= %.*lf",
+                  precision, e_low, precision, e_high).Data(),
+                  "true_areal_density_zoom", "Normalized Frequency")->Fill(true_areal_density_of_highest);
+          double fractional_ke_over_density = true_areal_density_of_highest / (highest_true_muon_starting_ke * 1000);
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__fractional_ke_over_density_slices_dev%d_normalize_to_probability_nostack_%ld", de_index, ie).Data(),
+                  TString::Format("True Areal Density / KE in Slices of TMS-Entering KE: %.*lf < E / GeV <= %.*lf",
+                  precision, e_low, precision, e_high).Data(),
+                  "fractional_error_ke_over_density", "Probability")->Fill(fractional_ke_over_density);
+        }
+      }
+      de_index += 1;
+    }
     
     //    
     double target_e = (1.75*true_areal_density_of_highest)*1e-3 + 0.5;
