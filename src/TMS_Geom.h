@@ -101,16 +101,6 @@ class TMS_Geom {
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
-    // Readout on the +x side of the detector
-    double XBarPosReadoutLocation() { return GetXEndOfTMS(); };
-    // Readout on the -x side of the detector
-    double XBarNegReadoutLocation() { return GetXStartOfTMS(); };
-    // Readout on the top of the detector
-    double YBarReadoutLocation() { return GetYEndOfTMS(); };
-    // Bar goes from edge of x to x = 0
-    double XBarLength() { return GetXEndOfTMS(); };
-    // Bar spans entire Y
-    double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
     
     
     std::string GetNameOfDetector(const TVector3 &point) {
