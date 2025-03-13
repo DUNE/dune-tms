@@ -17,7 +17,7 @@
 bool isTMSContained(TVector3 position, bool thin_only = false) {
   bool out = true;
     // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11185;
+  const double TMS_Thin_Start = 11134;
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 14435;
   // Where do we transition to the double region

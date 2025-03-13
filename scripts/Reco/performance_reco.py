@@ -122,7 +122,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
             Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
             
             if (abs(Particle_PDG) == 13):
-                if 4179.24 < Muon_Start[2] < 9135.88 and 11185 < Muon_End[2] < 18535:    #12462
+                if 4179.24 < Muon_Start[2] < 9135.88 and 11134 < Muon_End[2] < 18535:    #12462
                     if 1159 > Muon_End[1] > -3864 and abs(Muon_End[0]) < 3520:
                         count_muons += 1
             
@@ -338,7 +338,7 @@ def draw_performance(out_dir, input_filename, Xlayers):
         
     # create histograms for all directions for truth and reconstruction 
     z_bins = np.zeros(93, dtype = float)
-    z_bins[0] = 11185
+    z_bins[0] = 11134
     for i in range(1, 93):
         if i < 50:
             z_bins[i] = z_bins[0] + i * 65.
@@ -951,7 +951,7 @@ def histogram_arr_handle(bins, edges):#(u bins,v edges)
 def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
-first_z = 11185
+first_z = 11134
 layer_dict = { "%s" % first_z : "kUBar" }
         
 def calculate_layers(Xlayers):

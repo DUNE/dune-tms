@@ -454,7 +454,7 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11185
+first_z = 11134
 layer_dict = { "%s" % first_z : "UBar" }
         
 def calculate_layers(Xlayers):

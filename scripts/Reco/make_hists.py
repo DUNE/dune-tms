@@ -353,8 +353,8 @@ def run(c, truth, outfilename, nmax=-1):
                 track_start_x = event.FirstHoughHitU[2*longtrackU+1]
                 track_end_x = event.LastHoughHitU[2*longtrackU+1]
                 # Check if the muon starts within the correct z range
-                if alldet and track_start_z < 11185+55*2: best_muon_candidateU = -1
-                if not alldet and (track_start_z < 11185+55*2 or track_start_z > 14435): best_muon_candidateU = -1  # Changed here to the new TMS_Thick_Start
+                if alldet and track_start_z < 11134+55*2: best_muon_candidateU = -1
+                if not alldet and (track_start_z < 11134+55*2 or track_start_z > 14435): best_muon_candidateU = -1  # Changed here to the new TMS_Thick_Start
                 if track_end_z > 18535-80*2: best_muon_candidateU = -1
                 # Check if the muon is in the right x position
                 if abs(track_start_x) > 3520-200: best_muon_candidateU = -1
@@ -372,8 +372,8 @@ def run(c, truth, outfilename, nmax=-1):
                 track_start_x = event.FirstHoughHitV[2*longtrackV+1]
                 track_end_x = event.LastHoughHitV[2*longtrackV+1]
                 # Check if the muon starts within the correct z range
-                if alldet and track_start_z < 11185+55*2: best_muon_candidateV = -1
-                if not alldet and (track_start_z < 11185+55*2 or track_start_z > 14435): best_muon_candidateV = -1  # Changed here to the new TMS_Thick_Start
+                if alldet and track_start_z < 11134+55*2: best_muon_candidateV = -1
+                if not alldet and (track_start_z < 11134+55*2 or track_start_z > 14435): best_muon_candidateV = -1  # Changed here to the new TMS_Thick_Start
                 if track_end_z > 18535-80*2: best_muon_candidateV = -1
                 # Check if the muon is in the right x position
                 if abs(track_start_x) > 3520-200: best_muon_candidateV = -1

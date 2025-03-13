@@ -234,9 +234,9 @@ void muonke_weights_of(std::string filename,
 
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
-      if (FirstHoughHit[longtrack][0] < 11185+55*2) continue;
+      if (FirstHoughHit[longtrack][0] < 11134+55*2) continue;
     } else {
-      if (FirstHoughHit[longtrack][0] < 11185+55*2 || FirstHoughHit[longtrack][0] > 14435) continue;  // Changed here to the new TMS_Thick_Start
+      if (FirstHoughHit[longtrack][0] < 11134+55*2 || FirstHoughHit[longtrack][0] > 14435) continue;  // Changed here to the new TMS_Thick_Start
     }
 
     // Look for exiting tracks now

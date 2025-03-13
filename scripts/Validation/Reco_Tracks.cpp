@@ -20,7 +20,7 @@ int GetHitLocationCodeSingle(float x, bool isx) {
   bool zero = IS_WITHIN(x, 0, 1);
   bool is999 = IS_WITHIN(x, -999, 1) || IS_WITHIN(x, -9999, 1) || IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) || IS_WITHIN(x, -999999, 1);
   bool crazy_small = x < -4000;
-  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11185.0);
+  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11134.0);
   bool gtTMS = (isx) ? (x > 3300.0) : (x > 18535.0);
   bool xlooksz = (isx) ? IS_WITHIN(x, 18535, 10) : false;
   int out = -99999;
@@ -37,7 +37,7 @@ int GetHitLocationCodeSingle(float x, bool isx) {
 bool isTMSContained(TVector3 position, bool thin_only = false) {
   bool out = true;
     // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11185;
+  const double TMS_Thin_Start = 11134;
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 14435;
   // Where do we transition to the double region
@@ -148,7 +148,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
       n_zbins, z_start, z_end);
     double dz = 400;
     TH1D hist_true_track_z_very_front("true_track_z_very_front", "True Track Z_{Start};Z (mm);N Tracks", 
-      n_zbins, 11185 - dz, 11185 + dz);
+      n_zbins, 11134 - dz, 11134 + dz);
     TH1D hist_true_track_z_very_back("true_track_z_very_back", "True Track Z_{Start};Z (mm);N Tracks", 
       n_zbins, 18535 - dz, 18535 + dz);  // I don't know why these values were different. Set them now to the same TODO
     TH1D hist_true_track_z_end("true_track_z_end", "True Track Z_{End};Z (mm);N Tracks", 

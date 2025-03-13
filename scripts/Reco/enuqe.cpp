@@ -170,9 +170,9 @@ void enuqe(std::string filename) {
 
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
-      if (FirstHoughHit[longtrack][0] < 11185+55*2) continue;
+      if (FirstHoughHit[longtrack][0] < 11134+55*2) continue;
     } else {
-      if (FirstHoughHit[longtrack][0] < 11185+55*2 || FirstHoughHit[longtrack][0] > 14435) continue;  // Changed to TMS_Thick_Start for second number
+      if (FirstHoughHit[longtrack][0] < 11134+55*2 || FirstHoughHit[longtrack][0] > 14435) continue;  // Changed to TMS_Thick_Start for second number
     }
     if (LastHoughHit[longtrack][0] > 18535-80*2) continue;
     //if (LastHoughHit[longtrack][0] > 14435) continue; // Same here

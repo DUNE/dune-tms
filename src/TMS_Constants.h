@@ -33,7 +33,7 @@ namespace TMS_KinConst {
 namespace TMS_Const {
 
   // Number of planes, check against geometry
-  const int TMS_nThinPlanes = 50;
+  const int TMS_nThinPlanes = 51;
   const int TMS_nThickPlanes = 34;
   const int TMS_nDoublePlanes = 9;
 
@@ -47,7 +47,7 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11185;
+  const double TMS_Thin_Start = 11134;
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 14435;
   // Where does the thick region end
@@ -134,7 +134,7 @@ namespace TMS_Const {
 
   const int nModulesPerSubModule = 32;
   const int nModules = 12;
-  const int nPlanes = 93;
+  const int nPlanes = 94;
 
 }
 
