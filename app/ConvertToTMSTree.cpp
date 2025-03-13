@@ -33,7 +33,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   // The input file
   TFile *input = new TFile(filename.c_str(), "open");
-
   // The EDepSim events
   TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
   // The generator pass-through information

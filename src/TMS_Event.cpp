@@ -233,7 +233,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       } // End loop over the trajectories
       nVertices++;
     } // End if (FillEvent)
-
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
   
   
@@ -262,6 +261,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
+  
   std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
 
   // Loop over each hit
@@ -333,7 +333,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   bool OnlyPrimaryOrVisibleEnergy = true;
-
+  
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
     double energy = 0;
