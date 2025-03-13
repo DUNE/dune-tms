@@ -40,8 +40,8 @@ class TMS_Track {
     void SetMomentum      (double val) {Momentum      = val;};
 
     // Set direction unit vectors from only x and y slope
-    void SetStartDirection(double ax, double ay, double az); //{StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
-    void SetEndDirection  (double ax, double ay, double az); //{EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=az;};
+    void SetStartDirection(double ax, double ay, double az) {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
+    void SetEndDirection  (double ax, double ay, double az) {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=az;};
 
     // Set position unit vectors
     void SetStartPosition(double ax, double ay, double az) {Start[0]=ax; Start[1]=ay; Start[2]=az;};
