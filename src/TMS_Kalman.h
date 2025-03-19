@@ -54,8 +54,8 @@ class TMS_KalmanNode {
   TMS_KalmanNode() = delete;
 
   // x,y,z, delta_z = distance from previous hit to current in z
-  TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
-    x(xvar), y(yvar), z(zvar), dz(dzvar),
+  TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar) :
+    x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     CurrentState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     PreviousState(x, y, z, -999.9, -999.9, -1./20.),
     TransferMatrix(KALMAN_DIM, KALMAN_DIM),
@@ -66,7 +66,9 @@ class TMS_KalmanNode {
     MeasurementMatrix(KALMAN_DIM, KALMAN_DIM),
     rVec(2),
     rVecT(2),
-    RMatrix(2, 2)
+    RMatrix(2, 2),
+    UpdatedVec(5),
+    MeasurementVec(5)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -77,6 +79,8 @@ class TMS_KalmanNode {
     rVec.ResizeTo(2);
     rVecT.ResizeTo(2);
     RMatrix.ResizeTo(2, 2);
+    UpdatedVec.ResizeTo(5);
+    MeasurementVec.ResizeTo(5);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
@@ -85,6 +89,8 @@ class TMS_KalmanNode {
     rVec.Zero();
     rVecT.Zero();
     RMatrix.Zero();
+    UpdatedVec.Zero();
+    MeasurementVec.Zero();
 
 
     // Diagonal element
@@ -105,6 +111,9 @@ class TMS_KalmanNode {
   double y;
   double z;
   double dz;
+  double dxdz;
+  double dydz;
+
 
   double RecoX; // Reco X and Reco Y get updated with Kalman prediction info
   double RecoY;
@@ -136,6 +145,8 @@ class TMS_KalmanNode {
   TVectorD rVec;
   TVectorD rVecT;
   TMatrixD RMatrix;
+  TVectorD UpdatedVec;
+  TVectorD MeasurementVec;
   double chi2;
 
 
@@ -161,8 +172,9 @@ class TMS_KalmanNode {
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
     double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
-    double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
-
+//    double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
+    double B = 300.0;//4000.0; //4000.0 mm bar length based uncert
+//    double B = 1.0;//4000.0; //4000.0 mm bar length based uncert
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {
       sign = -1;
@@ -186,6 +198,7 @@ class TMS_KalmanNode {
     NoiseMatrix(0,0) = A*A;
     NoiseMatrix(1,1) = B*B;
     NoiseMatrix(1,0) = NoiseMatrix(0,1) = H*A*B;
+//    NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0;
   }
 
   void FillUpdatedCovarianceMatrix(double pathLength, double dxdz, double dydz, double qp, double ms, bool ForwardFitting=false)
@@ -291,6 +304,7 @@ class TMS_Kalman {
     double AverageYSlope; // Seeding initial Y slope in Kalman
     
     bool Talk;
+    bool Test;
 };
 
 #endif

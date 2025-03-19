@@ -13,7 +13,8 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
   assumed_charge(charge),
-  Talk(false)
+  Talk(false),
+  Test(false)
 {
   TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
 
@@ -30,44 +31,77 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
   // Make a new Kalman state for each hit
   //KalmanNodes.reserve(nCand);
-  for (int i = 0; i < nCand; ++i) {
+  for (int i = 0; i < nCand; i++) {
 
     TMS_Hit hit = Candidates[i];
     double x_true = hit.GetTrueHit().GetX();
     double y_true = hit.GetTrueHit().GetY();
+    double z_true = hit.GetTrueHit().GetZ();
     double x = hit.GetRecoX();
     double y = hit.GetRecoY();
     double z = hit.GetZ();
-
+   // std::cout<<"data Number :"<<i<<", Reco X: "<<x<<", Reco Y: "<<y<<", Reco Z :"<<z<<std::endl;
+//
     TVector3 vecc = TVector3(x,y,z);
 
-    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
-    {
-      std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
-      std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
-      //throw; // yeet it
-    }
+//    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
+//    {
+//      std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
+//      std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
+//      //throw; // yeet it
+//    }
 
+    
     int j;
     for (j=i; j<nCand; j++)
       if (abs(Candidates[j].GetZ() - z) > 1E-3)
       {
         break;
       }
+    //True
+//    int j;
+//    for (j=i; j<nCand; j++)
+//      if (abs(Candidates[j].GetTrueHit().GetZ() - z_true) > 1E-3)
+//      {
+//        break;
+//      }
 
     double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
     double DeltaZ = future_z-z;
+//    std::cout<<"total:"<< nCand<<", Number :"<<i<<"future z"<<future_z<<"Previous z:"<<z<<std::endl;
 
+    double future_x = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoX();
+    double DeltaX = future_x-x;
+
+    double future_y = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoY();
+    double DeltaY = future_y-y;
+
+    //True
+//    double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetTrueHit().GetZ();
+//    double DeltaZ = future_z-z_true;
+//
+//    double future_x = (i+1 == nCand ) ? z : Candidates[i+1].GetTrueHit().GetX();
+//    double DeltaX = future_x-x_true;
+//
+//    double future_y = (i+1 == nCand ) ? z : Candidates[i+1].GetTrueHit().GetY();
+//    double DeltaY = future_y-y_true;
+//
     // This also initialises the state vectors in each of the nodes
-    if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
+    if (abs(DeltaZ) > 1E-3||i+1==nCand) // TODO: Only add one hit per z for now, noise breaks
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
-      TMS_KalmanNode Node(x, y, z, DeltaZ);
+//      TMS_KalmanNode Node(x, y, z, DeltaZ);
+      TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
+//      std::cout<<"Node Number :"<<i<<", Reco X: "<<x<<", Reco Y: "<<y<<", Reco Z :"<<z<<std::endl;
+//      True
+    //  TMS_KalmanNode Node(x_true, y_true, z_true, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
+//      std::cout<<"True X: "<<x_true<<", True Y: "<<y_true<<", True Z :"<<z_true<<std::endl;
+
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType();
       Node.LayerBarWidth    = hit.GetBar().GetBarWidth();
       Node.LayerBarLength   = hit.GetBar().GetBarLength();
-
+//
       KalmanNodes.emplace_back(std::move(Node));
 //    } else { // TODO: Handle layers with more than one hit, waiting on Asa to confirm potential structures
 //      //std::cout << "more than one hit per layer? Kalman unhappy " << i << "\t " << j-i << std::endl;
@@ -141,20 +175,27 @@ void TMS_Kalman::RunKalman() {
   int nCand = KalmanNodes.size();
   for (int i = 1; i < nCand; ++i) {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
+    // TODO: This one didn't count the very end z hits
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
   }
+//  std::cout<<"In the Kalman Current First Node:"<<"X ;"<<KalmanNodes[0].CurrentState.x<<"Y ;"<<KalmanNodes[0].CurrentState.y<<"Z ;"<<KalmanNodes[0].CurrentState.z<<std::endl;
+//  std::cout<<"In the Kalman Previous First Node:"<<"X ;"<<KalmanNodes[0].PreviousState.x<<"Y ;"<<KalmanNodes[0].PreviousState.y<<"Z ;"<<KalmanNodes[0].PreviousState.z<<std::endl;
  
   
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
   // Set start pos/dir
   SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
+  //std::cout<<"SetStartpos the Kalman Node:"<<"X ;"<<KalmanNodes.back().CurrentState.x<<"Y ;"<<KalmanNodes.back().CurrentState.y<<"Z ;"<<KalmanNodes.back().CurrentState.z<<std::endl;
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
   // Set end pos/dir
   if (KalmanNodes.size() > 1) {
-    SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
-    SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
+    //SetEndPosition(KalmanNodes.at(0).CurrentState.x, KalmanNodes.at(0).CurrentState.y, KalmanNodes.at(0).CurrentState.z);
+    SetEndPosition(KalmanNodes.at(0).PreviousState.x, KalmanNodes.at(0).PreviousState.y, KalmanNodes.at(0).PreviousState.z);
+   // std::cout<<"SetEndpos0 the Kalman Node:"<<"X ;"<<KalmanNodes.at(0).PreviousState.x<<"Y ;"<<KalmanNodes.at(0).PreviousState.y<<"Z ;"<<KalmanNodes.at(0).PreviousState.z<<std::endl;
+   // std::cout<<"SetEndpos1 the Kalman Node:"<<"X ;"<<KalmanNodes.at(1).CurrentState.x<<"Y ;"<<KalmanNodes.at(1).CurrentState.y<<"Z ;"<<KalmanNodes.at(1).CurrentState.z<<std::endl;
+    SetEndDirection(KalmanNodes.at(0).CurrentState.dxdz, KalmanNodes.at(0).CurrentState.dydz);
   } else { // Kalman output is rubbish in this case, but we don't crash :)
     SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
     SetEndDirection(KalmanNodes.front().CurrentState.dxdz, KalmanNodes.front().CurrentState.dydz);
@@ -245,6 +286,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
   if (Talk) PreviousState.Print();
 
+//  if (Test) std::cout << "\nPrevious vector: " << std::endl;
+//  if (Test) PreviousState.Print();
+
   // ENERGY LOSS PART
   // Update the energy
   double mom = 1./PreviousState.qp;
@@ -254,14 +298,18 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // The energy we'll be changing
   double en = en_initial;
 
+  //
   // Read the position between current point and extrapolated into next bar
   double xval = PreviousState.x;
   double yval = PreviousState.y;
+  //double yval = 0;
   double zval = PreviousState.z;
 
   double xval2 = CurrentState.x;
   double yval2 = CurrentState.y;
+  //double yval2 = 0;
   double zval2 = PreviousState.z + Transfer(0,2); // Probably a nicer way to do this (:
+//  double zval2 = CurrentState.z;// + Transfer(0,2); // Probably a nicer way to do this (:
 
   // Make TVector3s of the two points
   TVector3 start(xval,yval,zval); // Start
@@ -270,6 +318,11 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (Talk) {
     std::cout << "Going from " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
     std::cout << "To " << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
+  }
+
+  if (Test) {
+    std::cout << "Going from (Previous)" << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
+    std::cout << "To (Current before update)" << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
   }
 
   // Get the materials between the two points
@@ -308,11 +361,24 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     catch (std::invalid_argument const& ex) {
       std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
     }
+   // std::cout<<"BetheBloch_Utils::RelativisticBeta(BetheBloch_Utils::Mm, en)*BetheBloch_Utils::RelativisticGamma(BetheBloch_Utils::Mm, en):"<<BetheBloch_Utils::RelativisticBeta(BetheBloch_Utils::Mm, en)*BetheBloch_Utils::RelativisticGamma(BetheBloch_Utils::Mm, en)<<std::endl;
+   // std::cout<<"en:"<<en<<std::endl;
+
+    if (BetheBloch_Utils::RelativisticBeta(BetheBloch_Utils::Mm, en)*BetheBloch_Utils::RelativisticGamma(BetheBloch_Utils::Mm, en)>0.1)//initial is already >0.1 due to initial mom =20 MeV
+    {
+        if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
+        else                en += Bethe.Calc_dEdx(en)*density*thickness;
+    }
+    else
+    {
+        //very first deposit give 100 en
+        en+=100*density*thickness;
+    }
 
     // Subtract off the energy loss for this material
-    if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
-    else                en += Bethe.Calc_dEdx(en)*density*thickness;
-
+//    if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
+//    else                en += Bethe.Calc_dEdx(en)*density*thickness;
+//
 
     // Variance assuming Gaussian straggling
     double en_var = Bethe.Calc_dEdx_Straggling(en)*density*thickness;
@@ -338,6 +404,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     //p_up = 1;
     p_up = sqrt(en*en);
   }
+//  else {
+//  std::cout<<"non relativistic"<<std::endl;
+////    std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
+//    //p_up = 1;
+//    //p_up = sqrt(2*BetheBloch_Utils::Mm*en);
+//    p_up = sqrt(2*BetheBloch_Utils::Mm*(en-BetheBloch_Utils::Mm));
+//  }
+
 
   // Update the state's q/p
   if (Talk) std::cout << "setting current p = " << p_up << std::endl;
@@ -375,7 +449,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
 
   Node.FillNoiseMatrix(); // Full the matrix for multiple scattering
-
+  //if (Test) std::cout<<"Noise:"<<std::endl;
+  //if (Test) NoiseMatrix.Print();
+//
   CovarianceMatrix = Transfer*CovarianceMatrix*TransferT;
 
   CovarianceMatrix += UpdatedCovarianceMatrix;
@@ -387,9 +463,12 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   GainMatrix = GainMatrix.Invert();
 
   GainMatrix = CovarianceMatrix*GainMatrix;
-
+//
   if (Talk) std::cout << "Final cov\n" << std::flush;
   if (Talk) CovarianceMatrix.Print();
+
+//  if (Test) std::cout << "Final cov\n" << std::flush;
+//  if (Test) CovarianceMatrix.Print();
 
   TVectorD FilteredVec = TVectorD(5);
   TVectorD Measurement = TVectorD(5);
@@ -398,22 +477,53 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   Measurement[1] = CurrentState.y ;//+ NoiseVec[1];
   Measurement[2] = UpdateVec[2];//0.0;//NoiseVec[2];//CurrentState.dxdz;
   Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
+  
+//  Measurement[2] = CurrentState.dxdz;
+//  Measurement[3] = CurrentState.dydz;
   Measurement[4] = 0.0; //CurrentState.qp;
+  Node.MeasurementVec[0]=Measurement[0];
+  Node.MeasurementVec[1]=Measurement[1];
+  Node.MeasurementVec[2]=Measurement[2];
+  Node.MeasurementVec[3]=Measurement[3];
+  Node.MeasurementVec[4]=Measurement[4];
+  Node.UpdatedVec[0]=UpdateVec[0];
+  Node.UpdatedVec[1]=UpdateVec[1];
+  Node.UpdatedVec[2]=UpdateVec[2];
+  Node.UpdatedVec[3]=UpdateVec[3];
+  Node.UpdatedVec[4]=UpdateVec[4];
 
   if (Talk) std::cout << "Gain" << std::flush;
   if (Talk) GainMatrix.Print();
-
+//
+//  if (Test) std::cout << "Gain" << std::flush;
+//  if (Test) GainMatrix.Print();
+//
+//  if (Test) std::cout << "Measurement-Update" << std::flush;
+//  if (Test) (Measurement-UpdateVec).Print();
+//
+//  if (Test) std::cout << "Update" << std::flush;
+//  if (Test) UpdateVec.Print();
   FilteredVec = UpdateVec + GainMatrix*( Measurement - UpdateVec );
+
+  TMatrixD IdentityMatrix(5,5);
+  IdentityMatrix.UnitMatrix();
+  //NVM it doesn't work well
+//TODO editted:the final Covariance=(1-K)C~ from arXiv:2404.08614
+//  CovarianceMatrix = (IdentityMatrix-GainMatrix)*CovarianceMatrix;
+
 
   CurrentState.x    = FilteredVec[0];
   CurrentState.y    = FilteredVec[1];
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
+//  if (Test) std::cout << "CurrentState" << std::flush;
+//  if (Test) CurrentState.Print();
 
   // Calculate chi^2
   Node.rVec[0] = (Measurement[0] - UpdateVec[0]);
   Node.rVec[1] = (Measurement[1] - UpdateVec[1]);
+
 
   // Probably a much nicer way to make (sub)matrix from a bigger one, but YOLO
   Node.RMatrix(0,0) = (Node.NoiseMatrix(0,0) - UpdatedCovarianceMatrix(0,0));
@@ -442,8 +552,10 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
   {
     std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-    if (Talk)
+    if (Test)
     {
+      std::cout << "Gain" << std::flush;
+      GainMatrix.Print();
       Node.PrintTrueReco();
       PreviousState.Print();
       CurrentState.Print();
