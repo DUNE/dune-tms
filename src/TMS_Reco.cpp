@@ -690,7 +690,7 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     std::cout << "X hits added to Pseudo X track" << std::endl;
 #endif
     // Push pseudo X track into HoughCandidatesX
-    HoughCandidatesX.push_back(CheckedXHits);
+    if (CheckedXHits.size() > 0) HoughCandidatesX.push_back(CheckedXHits);
   }
   return;
 }
