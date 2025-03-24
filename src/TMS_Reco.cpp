@@ -211,8 +211,8 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
     else {
       hit.GetBar().Print();
     }
-  }
- 
+  } 
+
   if ( (UHitGroup.size() + VHitGroup.size() + XHitGroup.size()) != CleanedHits.size() ) {
     std::cout << "Not all hits in separated hit groups!" << std::endl;
     return;
@@ -670,7 +670,7 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     std::cout << "X hits added to Pseudo X track" << std::endl;
 #endif
     // Push pseudo X track into HoughCandidatesX
-    HoughCandidatesX.push_back(CheckedXHits);
+    if (CheckedXHits.size() > 0) HoughCandidatesX.push_back(CheckedXHits);
   }
   return;
 }
@@ -719,7 +719,7 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
   std::cout << "3D matching" << std::endl;
-  std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << std::endl;//" | X: " << HoughCandidatesX.size() << std::endl;
+  std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
 #endif
 
   // Sorting the candidate tracks descending by their hit number
@@ -769,6 +769,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     if (SortedHoughCandidatesX.empty()) Xrun = false;
     std::vector<TMS_Hit> XTracks;
     if (Xrun) XTracks = *helper;
+    if (Xrun && XTracks.empty()) Xrun = false;
         
     // Run spatial prio just because one last time
     SpatialPrio(UTracks);
@@ -1746,7 +1747,7 @@ double TMS_TrackFinder::CalculateTrackKEByRange(const TMS_Track &Track3D) {
 // Calculate the track length for each track
 double TMS_TrackFinder::CalculateTrackLength(const std::vector<TMS_Hit> &Candidate) {
   // Look at the reconstructed track
-  if (Candidate.size() == 0) return 999.;
+  if (Candidate.size() == 0) return -999.;
 
   double final_total = 0;
   int max_n_nodes_used = 0;
