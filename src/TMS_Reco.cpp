@@ -1716,15 +1716,34 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << std::endl;//" | X: " << HoughCandidatesX.size() << std::endl;
 #endif
 
+  // Sorting the candidate tracks descending by their hit numbers
+  if (HoughCandidatesY.size() > 1) {
+    std::sort(HoughCandidatesY.begin(), HoughCandidatesY.end(), SortByHitNumber);
+    SortedHoughCandidatesY = HoughCandidatesY;
+  } else SortedHoughCandidatesY = HoughCandidatesY;
+  if (HoughCandidatesX.size() > 1) {
+    std::sort(HoughCandidatesX.begin(), HoughCandidatesX.end(), SortByHitNumber);
+    SortedHoughCandidatesX = HoughCandidatesX;
+  } else SortedHoughCandidatesX = HoughCandidatesX;
+
   std::vector<TMS_Track> returned;
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
   // 3D matching of tracks
-  for (auto XTracks: HoughCandidatesX) {
-    for (auto YTracks: HoughCandidatesY) {
-        SpatialPrio(XTracks);
-        SpatialPrio(YTracks);
+  std::vector<std::vector<TMS_Hit> >::iterator Yhelper = SortedHoughCandidatesY.begin();
+  std::vector<std::vector<TMS_Hit> >::iterator Xhelper = SortedHoughCandidatesX.begin();
+
+  while (Xhelper != SortedHoughCandidatesX.end()) {
+    if (SortedHoughCandidatesY.empty()) {
+      std::cout << "Not enough Y tracks" << std::endl;
+      break;
+    }
+    std::vector<TMS_Hit> YTracks = *Yhelper;
+    std::vector<TMS_Hit> XTracks = *Xhelper;
+        
+    SpatialPrio(XTracks);
+    SpatialPrio(YTracks);
 #ifdef DEBUG
         std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
         std::cout << "YTrack back: " << YTracks.front().GetPlaneNumber() << " | " << YTracks.front().GetBarNumber() << " | " << YTracks.front().GetT() << " front: " << YTracks.back().GetPlaneNumber() << " | " << YTracks.back().GetBarNumber() << " | " << YTracks.back().GetT() << std::endl;
@@ -1749,8 +1768,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 //          bool bar_back = (std::abs(XTracks.back().GetBarNumber() - YTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit());
           bool slice_front = (XTracks.front().GetSlice() == YTracks.front().GetSlice());
           bool slice_back = (XTracks.back().GetSlice() == YTracks.back().GetSlice());
-          bool time_front = (std::abs(XTracks.front().GetT() - YTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
-          bool time_back = (std::abs(XTracks.back().GetT() - YTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
+          //ignore time matching for XY for now.
+//          bool time_front = (std::abs(XTracks.front().GetT() - YTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
+//          bool time_back = (std::abs(XTracks.back().GetT() - YTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
+          bool time_front = true;
+          bool time_back = true;
           bool plane_front = (std::abs(XTracks.front().GetPlaneNumber() - YTracks.front().GetPlaneNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
           bool plane_back = (std::abs(XTracks.back().GetPlaneNumber() - YTracks.back().GetPlaneNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
           if (strike == 0) {
@@ -1772,9 +1794,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
           front_match = (std::abs(XTracks.back().GetPlaneNumber() - YTracks.back().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
         } 
 
-        if (back_match) { 
-          // end condition THIS IS ACTUALLY THE START CONDITION
-          if (front_match) {
+        if (back_match&&front_match) { 
             TMS_Track aTrack;
 
             // Make sure that the hits are in the correct order
@@ -2064,10 +2084,23 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 #endif          
 
             returned.push_back(aTrack);
-          }
-        }
-    }
-  }  
+
+            if (HoughCandidatesX.size() == 1) break;
+            if (HoughCandidatesY.size() == 1) break;
+
+            // If match was made, remove the candidate (simple) track from candidate list
+            SortedHoughCandidatesY.erase(Yhelper);
+            if (SortedHoughCandidatesY.size() > 1) Yhelper = SortedHoughCandidatesY.begin();
+            // Set iterator for X tracks to next track
+            ++Xhelper;
+        } else {
+            if (Yhelper == SortedHoughCandidatesY.end()-1) {
+                ++Xhelper;
+                Yhelper = SortedHoughCandidatesY.begin();
+            } else ++Yhelper;
+            if (SortedHoughCandidatesY.size() < 2) break;
+        }   
+  }
   return returned;
 }
 
