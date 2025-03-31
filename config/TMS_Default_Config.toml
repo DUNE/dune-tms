@@ -107,8 +107,8 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = false #true #false # Whether we run the Kalman filter or not
-    Assumed_Charge = 0.0 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
+    Run = true #true #false # Whether we run the Kalman filter or not
+    Assumed_Charge = 0.5 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping

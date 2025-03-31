@@ -559,48 +559,86 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   //EvaluateTrackFinding(event);
 
   // Run Kalman filter if requested
-  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run())
-  {
-    double kalman_reco_mom;
-    for (auto &trk : HoughTracks3D) {
-      KalmanFilter = TMS_Kalman(trk.Hits);
-      kalman_reco_mom = KalmanFilter.GetMomentum();
+  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) { 
+    double kalman_reco_mom_minus, kalman_reco_mom_plus, kalman_chi2, kalman_chi2_plus, kalman_chi2_minus;                                                                                                                                  
+    double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();                                                                                                                                                   
+    for (auto &trk : HoughTracks3D) {                                                                                                                                                                                                      
+//      TMS_Track trk_plus = trk;
+//      TMS_Track trk_minus = trk; 
 
-      bool verbose_kalman = false;
-      if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
-      trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
+      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
+      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);  
+      kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
+      trk.SetChi2_plus(kalman_chi2_plus);
+      kalman_chi2_minus = KalmanFilter_minus.GetTrackChi2();
+      trk.SetChi2_minus(kalman_chi2_minus);
+//      trk.Charge_Kalman_test=KalmanFilter_plus.GetCharge_test();
+      if (kalman_chi2_minus < kalman_chi2_plus)
+      {trk.Charge_Kalman = -13;}
+      else{
+          trk.Charge_Kalman = 13;
+      } 
+      bool verbose_kalman = false; 
+      kalman_reco_mom_minus = KalmanFilter_plus.GetMomentum();
+      kalman_reco_mom_plus = KalmanFilter_minus.GetMomentum();
+      if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom_minus << " MeV" << std::endl;
+      trk.SetMomentum_minus(kalman_reco_mom_minus); // Fill the momentum of the TMS_Track obj
+      trk.SetMomentum_plus(kalman_reco_mom_plus); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter start pos : " << KalmanFilter.Start[0] << ", " << KalmanFilter.Start[1] << ", "  << KalmanFilter.Start[2] << std::endl;
-      trk.SetStartPosition(KalmanFilter.Start[0], KalmanFilter.Start[1], KalmanFilter.Start[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter start pos : " << KalmanFilter_plus.Start[0] << ", " << KalmanFilter_plus.Start[1] << ", "  << KalmanFilter_plus.Start[2] << std::endl;                                               
+      trk.SetStartPosition(KalmanFilter_plus.Start[0], KalmanFilter_plus.Start[1], KalmanFilter_plus.Start[2]); // Fill the momentum of the TMS_Track obj                                                                                 
 
-      if (verbose_kalman) std::cout << "Kalman filter end pos : " << KalmanFilter.End[0] << ", " << KalmanFilter.End[1] << ", "  << KalmanFilter.End[2] << std::endl;
-      trk.SetEndPosition(KalmanFilter.End[0], KalmanFilter.End[1], KalmanFilter.End[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter end pos : " << KalmanFilter_plus.End[0] << ", " << KalmanFilter_plus.End[1] << ", "  << KalmanFilter_plus.End[2] << std::endl; 
+      trk.SetEndPosition(KalmanFilter_plus.End[0], KalmanFilter_plus.End[1], KalmanFilter_plus.End[2]); // Fill the momentum of the TMS_Track obj 
 
-      if (verbose_kalman) std::cout << "Kalman filter start dir : " << KalmanFilter.StartDirection[0] << ", " << KalmanFilter.StartDirection[1] << ", "  << KalmanFilter.StartDirection[2] << std::endl;
-      trk.SetStartDirection(KalmanFilter.StartDirection[0], KalmanFilter.StartDirection[1], KalmanFilter.StartDirection[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter start dir : " << KalmanFilter.StartDirection[0] << ", " << KalmanFilter.StartDirection[1] << ", "  << KalmanFilter.StartDirection[2] << std::endl;                                   
+      trk.SetStartDirection(KalmanFilter_plus.StartDirection[0], KalmanFilter_plus.StartDirection[1], KalmanFilter_plus.StartDirection[2]); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter.EndDirection[0] << ", " << KalmanFilter.EndDirection[1] << ", "  << KalmanFilter.EndDirection[2] << std::endl;
-      trk.SetEndDirection(KalmanFilter.EndDirection[0], KalmanFilter.EndDirection[1], KalmanFilter.EndDirection[2]); // Fill the momentum of the TMS_Track obj
-      trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
+      if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter_plus.EndDirection[0] << ", " << KalmanFilter_plus.EndDirection[1] << ", "  << KalmanFilter_plus.EndDirection[2] << std::endl;  
+      trk.SetEndDirection(KalmanFilter_plus.EndDirection[0], KalmanFilter_plus.EndDirection[1], KalmanFilter_plus.EndDirection[2]); // Fill the momentum of the TMS_Track obj        
 
+      //Temporary best is divide KalmanNodes into two, plus $ minus but it require to edit all varialbes in TreeWriter
+      if (trk.Charge_Kalman==13) trk.KalmanNodes = KalmanFilter_minus.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track                                                                           
+      if (trk.Charge_Kalman==-13) trk.KalmanNodes = KalmanFilter_plus.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track                                                                           
+      trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
+      trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
       // Add tracklength with Kalman filter
-      trk.Length = CalculateTrackLengthKalman(trk);
-    }
+      trk.Length_plus = CalculateTrackLengthKalman(trk,true); 
+      trk.Length_minus = CalculateTrackLengthKalman(trk,false);
+      kalman_chi2 = KalmanFilter_plus.GetTrackChi2(); 
+      trk.SetChi2(kalman_chi2);
+    }                      
+  } else { // No Kalman filter enabled
+      for (auto &trk : HoughTracks3D) {
+          // Track Direction
+          //    if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+          trk.SetStartDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
+          trk.SetEndDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
+          //    } else {
+          //      .Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
+          //      .Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
+          //      .Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
+          //    }
+      }
   }
-
   return;
 }
 
-double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D) {
+double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D,bool charge) {
   // Look at the reconstructed tracks
-  if (Track3D.nKalmanNodes == 0) return -999999999.;
+    const auto& nodes = charge ? Track3D.KalmanNodes_plus : Track3D.KalmanNodes_minus;
+
+    // Check if the selected vector is empty.
+    if (nodes.empty()) {
+        return -999999999.;
+    }
 
   double final_total = 0;
   int max_n_nodes_used = 0;
   double total = 0;
   int n_nodes = 0;
   // Loop over each Kalman Node and find the track length
-  for (auto it = (Track3D.KalmanNodes).rbegin(); it != (Track3D.KalmanNodes).rend() && (it+1) != (Track3D.KalmanNodes).rend(); ++it) { // turn direction around
+  for (auto it = (nodes).rbegin(); it != (nodes).rend() && (it+1) != (nodes).rend(); ++it) { // turn direction around
     auto nextnode = *(it+1); //+
     // Use the geometry to calculate the track length between hits
     TVector3 point1((*it).RecoX, (*it).RecoY, (*it).z);

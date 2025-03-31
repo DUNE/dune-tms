@@ -235,7 +235,7 @@ class TMS_TrackFinder {
     double CalculateTrackEnergy3D(const TMS_Track &Hits);
     double CalculateTrackKEByRange(const TMS_Track &Hits);
 
-    double CalculateTrackLengthKalman(const TMS_Track &Hits);
+    double CalculateTrackLengthKalman(const TMS_Track &Hits, bool assumcharge);
 
     std::vector<std::vector<TMS_Hit> > FindClusters(const std::vector<TMS_Hit> &TMS_Hits);
 
@@ -303,6 +303,8 @@ class TMS_TrackFinder {
     ~TMS_TrackFinder() {};
 
     TMS_Kalman KalmanFilter;
+    TMS_Kalman KalmanFilter_plus;
+    TMS_Kalman KalmanFilter_minus;
     TMS_DBScan DBSCAN;
     TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
 
