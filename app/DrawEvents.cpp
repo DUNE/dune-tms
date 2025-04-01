@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
   // Full view from inspecting all hits
   TBox *xz_box_Full = new TBox(TMS_Const::TMS_Thin_Start/1E3,
       -3485/1E3,
-      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Double_End/1E3,
       3485/1E3);
   xz_box_Full->SetLineColor(kMagenta+2);
   xz_box_Full->SetFillStyle(0);
@@ -115,15 +115,15 @@ int main(int argc, char** argv) {
   // Include the dead region boxes
   TBox *xz_dead_top = new TBox(TMS_Const::TMS_Thin_Start/1E3,
       TMS_Const::TMS_Dead_Top[0]/1E3,
-      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Double_End/1E3,
       TMS_Const::TMS_Dead_Top[1]/1E3);
   TBox *xz_dead_center = new TBox(TMS_Const::TMS_Thin_Start/1E3,
       TMS_Const::TMS_Dead_Center[0]/1E3,
-      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Double_End/1E3,
       TMS_Const::TMS_Dead_Center[0]/1E3);
   TBox *xz_dead_bottom = new TBox(TMS_Const::TMS_Thin_Start/1E3,
       TMS_Const::TMS_Dead_Bottom[0]/1E3,
-      TMS_Const::TMS_Thick_End/1E3,
+      TMS_Const::TMS_Double_End/1E3,
       TMS_Const::TMS_Dead_Bottom[1]/1E3);
   xz_dead_top->SetFillStyle(3003);
   xz_dead_center->SetFillStyle(3003);

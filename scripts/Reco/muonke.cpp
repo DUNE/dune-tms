@@ -252,15 +252,15 @@ void muonke(std::string filename) {
 
     // Check that the longest track stops in the detector, and starts in the detector FV
     if (AllDet) {
-      if (FirstHoughHitU[longtrackU][0] < 11362+55*2) continue;
-      if (FirstHoughHitV[longtrackV][0] < 11362+55*2) continue;
+      if (FirstHoughHitU[longtrackU][0] < 11134+55*2) continue;
+      if (FirstHoughHitV[longtrackV][0] < 11134+55*2) continue;
     } else {
-      if (FirstHoughHitU[longtrackU][0] < 11362+55*2 || FirstHoughHitU[longtrackU][0] > 13600) continue;
-      if (FirstHoughHitV[longtrackV][0] < 11362+55*2 || FirstHoughHitV[longtrackV][0] > 13600) continue;
+      if (FirstHoughHitU[longtrackU][0] < 11134+55*2 || FirstHoughHitU[longtrackU][0] > 14435) continue;  // Changed here to the new TMS_Thick_Start
+      if (FirstHoughHitV[longtrackV][0] < 11134+55*2 || FirstHoughHitV[longtrackV][0] > 14435) continue;  // Same here
     }
-    if (LastHoughHitU[longtrackU][0] > 18294-80*2) continue;
-    if (LastHoughHitV[longtrackV][0] > 18294-80*2) continue;
-    //if (LastHoughHit[longtrack][0] > 13600) continue;
+    if (LastHoughHitU[longtrackU][0] > 18535-80*2) continue;
+    if (LastHoughHitV[longtrackV][0] > 18535-80*2) continue;
+    //if (LastHoughHit[longtrack][0] > 14435) continue; // Same here
 
     std::cout << "Longest track stops in detector" << std::endl;
 
@@ -330,7 +330,7 @@ void muonke(std::string filename) {
   /*for (int i = 0; i < KE->GetXaxis()->GetNbins(); ++i) {
     double center = KE->GetXaxis()->GetBinCenter(i);
     TH1D *proj = KE->ProjectionY(Form("KE %.2f", center), i, i);
-    double mean = proj->GetMean();
+    double mean = proj->GetMean() // Same here;
     double mode = proj->GetBinCenter(proj->GetMaximumBin());
     double rms = proj->GetRMS();
     arith->SetBinContent(i+1, mode);
