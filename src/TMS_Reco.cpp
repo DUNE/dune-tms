@@ -690,7 +690,7 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     std::cout << "X hits added to Pseudo X track" << std::endl;
 #endif
     // Push pseudo X track into HoughCandidatesX
-    HoughCandidatesX.push_back(CheckedXHits);
+    if (CheckedXHits.size() > 0) HoughCandidatesX.push_back(CheckedXHits);
   }
   return;
 }
@@ -780,9 +780,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
 #endif
     //  while (Xrun) {
-    if (HoughCandidatesX.empty()) Xrun = false;
-    std::vector<TMS_Hit> XTracks;
-    if (Xrun) XTracks = *helper;
+    if (SortedHoughCandidatesX.empty()) Xrun = false;
+    std::vector<TMS_Hit> XTracks = *Uhelper;
+    if (Xrun) {
+      XTracks = *helper;
+      if (XTracks.empty()) Xrun = false;
+    }
         
         // Run spatial prio just because one last time
     SpatialPrio(UTracks);
@@ -1587,7 +1590,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       if (HoughCandidatesU.size() == 1) break;
       if (HoughCandidatesV.size() == 1) break;
 
-      if (!XTracks.empty()) {
+      if (Xrun && !XTracks.empty()) {
         // If match was made, remove the candidate tracks from candidate lists
         SortedHoughCandidatesV.erase(Vhelper);
         SortedHoughCandidatesX.erase(helper);
@@ -1603,7 +1606,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         ++Uhelper;
       } 
     } else {
-      if (!XTracks.empty()) {
+      if (Xrun && !XTracks.empty()) {
         if (helper == SortedHoughCandidatesX.end()-1) {
           helper = SortedHoughCandidatesX.begin();
           if (Vhelper == SortedHoughCandidatesV.end()-1) {
