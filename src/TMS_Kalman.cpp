@@ -115,6 +115,9 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   }
 
   RunKalman();
+  runRTSSmoother();
+  BetheBloch();
+  SignSelection();
 }
 
 // Used for seeding the starting KE for the Kalman filter from the start and end point of a track
@@ -408,6 +411,13 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
   Measurement[4] = 0.0; //CurrentState.qp;
 
+  Node.MeasurementVec[0]=Measurement[0];
+  Node.MeasurementVec[1]=Measurement[1];
+  Node.MeasurementVec[2]=Measurement[2];
+  Node.MeasurementVec[3]=Measurement[3];
+  Node.MeasurementVec[4]=Measurement[4];
+
+
   if (Talk) std::cout << "Gain" << std::flush;
   if (Talk) GainMatrix.Print();
 
@@ -515,4 +525,272 @@ void TMS_Kalman::SetEndDirection(double ax, double ay)
   EndDirection[0]=ax/mag;
   EndDirection[1]=ay/mag;
   EndDirection[2]= 1/mag;
+}
+
+void TMS_Kalman::runRTSSmoother() {
+  int nCand = KalmanNodes.size();
+  for (int t = nCand-1; t >=0; --t) {
+      if (t==nCand-1) {
+          KalmanNodes[t].SmoothState=KalmanNodes[t].CurrentState;
+          KalmanNodes[t].SmoothCovarianceMatrix=KalmanNodes[t].CovarianceMatrix;
+          continue;
+      }
+      // Retrieve filtered covariance and predicted covariance
+      TMatrixD V_t = KalmanNodes[t].CovarianceMatrix;
+      TMatrixD P_t = KalmanNodes[t+1].EstimatedCovarianceMatrix;
+      if (t==0) {
+          P_t = KalmanNodes[2].EstimatedCovarianceMatrix;
+      }
+      TMatrixD SmoothCov_t_1 = KalmanNodes[t+1].SmoothCovarianceMatrix;
+      TMatrixD &F = KalmanNodes[t].TransferMatrix;
+
+      // Ensure the covariance matrix is invertible
+      if (P_t.Determinant() == 0) {
+          std::cerr << "Warning: Singular covariance matrix at step " << t << std::endl;
+          continue;
+      }
+
+      // Compute smoothing gain J_t
+      TMatrixD C_t = V_t * (F.T()) * P_t.Invert();
+
+      // Convert PreviousState and CurrentState to TVectorD
+      TVectorD u_t(5);
+      u_t[0] = KalmanNodes[t].CurrentState.x;
+      u_t[1] = KalmanNodes[t].CurrentState.y;
+      u_t[2] = KalmanNodes[t].CurrentState.dxdz;
+      u_t[3] = KalmanNodes[t].CurrentState.dydz;
+      u_t[4] = KalmanNodes[t].CurrentState.qp;
+      TVectorD u_hat_t_1(5);
+      u_hat_t_1[0] = KalmanNodes[t + 1].SmoothState.x;
+      u_hat_t_1[1] = KalmanNodes[t + 1].SmoothState.y;
+      u_hat_t_1[2] = KalmanNodes[t + 1].SmoothState.dxdz;
+      u_hat_t_1[3] = KalmanNodes[t + 1].SmoothState.dydz;
+      u_hat_t_1[4] = KalmanNodes[t + 1].SmoothState.qp;
+      if (t==0) { //for the very end of kalman filter, there is no dxdz,dydz value. Now, just use previous values. TODO: plug in the very last dxdz,dydz in the node.
+          u_t[2] = KalmanNodes[1].CurrentState.dxdz;
+          u_t[3] = KalmanNodes[1].CurrentState.dydz;
+      }
+      // Compute smoothed state update
+
+      // Apply RTS smoothing equation to update the state
+      // This one can not be contaminated purely from Kalman filter result.
+      TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() againg to get just F
+      TMatrixD Cov_smooth = V_t + C_t * (SmoothCov_t_1-P_t) * C_t.T();
+
+      KalmanNodes[t].SmoothCovarianceMatrix = Cov_smooth;
+
+
+
+      KalmanNodes[t].SmoothState.x    = smoothed_state[0];
+      KalmanNodes[t].SmoothState.y    = smoothed_state[1];
+      KalmanNodes[t].SmoothState.dxdz = smoothed_state[2];
+      KalmanNodes[t].SmoothState.dydz = smoothed_state[3];
+      KalmanNodes[t].SmoothState.qp= KalmanNodes[t].CurrentState.qp;
+      KalmanNodes[t].SetRecoXY(KalmanNodes[t].SmoothState);
+  }
+}
+
+void TMS_Kalman::BetheBloch() {
+    int nCand = KalmanNodes.size();
+    for (int i = 1; i < nCand; ++i) {
+        TMS_KalmanState &PreviousState = KalmanNodes[i-1].SmoothState;
+        TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
+        TMatrixD &Transfer = KalmanNodes[i].TransferMatrix;
+        TMatrixD &TransferT = KalmanNodes[i].TransferMatrixT;
+        //Get the gradient from second previous state
+        TVectorD takegradient(5);
+        TVector3 previousmeasure(KalmanNodes[i-1].x,KalmanNodes[i-1].y,KalmanNodes[i-1].z); // Start
+        TVector3 currentmeasure(KalmanNodes[i].x,KalmanNodes[i].y,KalmanNodes[i].z); // Stop
+
+        takegradient[0] = KalmanNodes[i-1].SmoothState.x;
+        takegradient[1] = KalmanNodes[i-1].SmoothState.y;
+        takegradient[2] = KalmanNodes[i+1].SmoothState.dxdz;
+        takegradient[3] = KalmanNodes[i-1].SmoothState.dydz;
+        takegradient[4] = KalmanNodes[i-1].SmoothState.qp;
+
+
+        double MagneticField = 0;
+        const double RegionBoundaryX = 1750; // hard coded boundary for regions
+        if (fabs(PreviousState.x) <= RegionBoundaryX) {
+            MagneticField = -1.0; // Central region: Magnetic field downwards
+        } else if (PreviousState.x > RegionBoundaryX) {
+            MagneticField = 1.0; // Right side region: Magnetic field upwards
+        } else {
+            MagneticField = 1.0; // Left side region: Magnetic field upwards
+        }
+
+        // Modification ends here
+
+
+        TVectorD PreviousVec(5);
+        PreviousVec[0] = PreviousState.x;
+        PreviousVec[1] = PreviousState.y;
+        PreviousVec[2] = PreviousState.dxdz;
+        PreviousVec[3] = PreviousState.dydz;
+        PreviousVec[4] = PreviousState.qp;
+
+        TVectorD CurrentVec(5);
+        CurrentVec[0] = CurrentState.x;
+        CurrentVec[1] = CurrentState.y;
+        CurrentVec[2] = CurrentState.dxdz;
+        CurrentVec[3] = CurrentState.dydz;
+        CurrentVec[4] = CurrentState.qp;
+
+
+        double mom = 1./PreviousState.qp;
+        double en_initial = sqrt(mom*mom+mass*mass);
+        double en = en_initial;
+
+        //
+        // Read the position between current point and extrapolated into next bar
+        double xval = PreviousState.x;
+        double yval = PreviousState.y;
+        double zval = PreviousState.z;
+
+        double xval2 = CurrentState.x;
+        double yval2 = CurrentState.y;
+        double zval2 = CurrentState.z; // Probably a nicer way to do this (:
+
+        // Make TVector3s of the two points
+        TVector3 start(xval,yval,zval); // Start
+        TVector3 stop(xval2,yval2,zval2); // Stop
+
+        // Calculate Lorentz force (deflection in x only)
+
+        TVector3 smoothstart(KalmanNodes[i-1].SmoothState.x,KalmanNodes[i-1].SmoothState.y,KalmanNodes[i-1].z); // Start
+        TVector3 smoothstop(KalmanNodes[i].SmoothState.x,KalmanNodes[i].SmoothState.y,KalmanNodes[i].z); // Stop
+
+        // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
+        // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
+//        double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*abs(CurrentState.z -PreviousState.z)*0.5;
+        double magnetic_deflection_px = 0.3*assumed_charge*MagneticField*(smoothstop-smoothstart).Mag();
+        TVectorD noUpdateVec = Transfer*(takegradient);
+        takegradient[2]+=magnetic_deflection_px/mom;
+
+        TVectorD UpdateVec = Transfer*(takegradient);
+        KalmanNodes[i].UpdatedVec[0]=UpdateVec[0];
+        KalmanNodes[i].UpdatedVec[1]=UpdateVec[1];
+        KalmanNodes[i].UpdatedVec[2]=UpdateVec[2];
+        KalmanNodes[i].UpdatedVec[3]=UpdateVec[3];
+        KalmanNodes[i].UpdatedVec[4]=UpdateVec[4];
+
+        UpdateVec[0] += magnetic_deflection_px;
+
+        // Get the materials between the two points
+        std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop);
+
+        double TotalPathLength = 0;
+        double TotalLength = 0;
+
+        // Loop over the materials between the two projection points
+        int counter = 0;
+        double total_en_var = 0;
+        for (auto material : Materials) {
+
+            // Read these directly from a TGeoManager
+            // If the geometry is in mm (CLHEP units), then want to scale density to g/cm3 and thickness to cm
+            // Otherwise, assume it's like that and then fix it with geometry scaling functions
+            double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); 
+            double thickness = material.second/10.; 
+            // Potentially need to scale from g/cm3 to g/mm3, so find the scale factor and scale by 1/that^3.
+            double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
+            density /= std::pow(scale_factor, 3);
+            thickness = TMS_Geom::GetInstance().Scale(thickness);
+
+            TotalPathLength += density*thickness;
+            TotalLength += thickness;
+
+            // Update the Bethe Bloch calculator to use this material
+            try {
+                Material matter(density);
+                Bethe.fMaterial = matter;
+                // Set the material for the multiple scattering
+                MSC.fMaterial = matter;
+            }
+            catch (std::invalid_argument const& ex) {
+                std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
+            }
+
+            if (BetheBloch_Utils::RelativisticBeta(BetheBloch_Utils::Mm, en)*BetheBloch_Utils::RelativisticGamma(BetheBloch_Utils::Mm, en)>0.1)//initial is already >0.1 due to initial mom =20 MeV
+            {
+                if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
+                else                en += Bethe.Calc_dEdx(en)*density*thickness;
+            }
+            else
+            {
+                //very first deposit give 100 en
+                en+=100*density*thickness;
+            }
+
+            // Variance assuming Gaussian straggling
+            double en_var = Bethe.Calc_dEdx_Straggling(en)*density*thickness;
+            total_en_var += en_var*en_var;
+
+            // Calculate this before or after the energy subtraction/addition?
+            MSC.Calc_MS(en, thickness*density);
+
+            counter++;
+        }
+
+        // Updated momentum^2
+        double p_2_up = en*en-BetheBloch_Utils::Mm*BetheBloch_Utils::Mm;
+        double p_up;
+        if (p_2_up > 0) p_up = sqrt(p_2_up);
+        else {
+            std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
+            //p_up = 1;
+            p_up = sqrt(en*en);
+        }
+
+
+        CurrentState.qp = 1./p_up;
+
+        //KalmanNodes[i].rVec[0] = (UpdateVec[0]-CurrentState.x);
+        KalmanNodes[i].rVec[0] = (CurrentState.x-UpdateVec[0]);
+        KalmanNodes[i].rVec[1] = (CurrentState.y-UpdateVec[1]);
+        //
+        KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0) - KalmanNodes[i].SmoothCovarianceMatrix(0,0));
+        KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0) - KalmanNodes[i].SmoothCovarianceMatrix(1,0));
+        KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1) - KalmanNodes[i].SmoothCovarianceMatrix(0,1));
+        KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
+        KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
+
+        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
+
+    }
+    SetMomentum(1./KalmanNodes.back().SmoothState.qp);
+}
+void TMS_Kalman::SignSelection() {
+    int nCand = KalmanNodes.size();
+    double sum_signals=0.0;
+    for (int i = 1; i < nCand; ++i) {
+        TMS_KalmanState &PreviousState = KalmanNodes[i-1].SmoothState;
+        TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
+
+
+        TVector3 B;
+        const double RegionBoundaryX = 1750; // mm
+        if (std::abs(0.5 * (PreviousState.x + CurrentState.x)) <= RegionBoundaryX)
+            B = TVector3(0.0, 1.0, 0.0); // Central region
+        else
+            B = TVector3(0.0, -1.0, 0.0); // Central region
+
+        TVector3 p1 = TVector3(PreviousState.dxdz,PreviousState.dydz,1);
+        TVector3 p2 = TVector3(CurrentState.dxdz,CurrentState.dydz,1);
+        p1=p1.Unit();
+        p2=p2.Unit();
+        p1=p1*(1/PreviousState.qp);
+        p2=p2*(1/CurrentState.qp);
+        TVector3 dp = p2 - p1;//It supposed to be p1-p2 but backword and keep the B-field, So p2-p1 is right, 
+        TVector3 p_avg = 0.5 * (p1 + p2);
+        TVector3 v_cross_B = p_avg.Cross(B);
+
+        double signal = v_cross_B.Dot(dp);
+        //std::cout << "p_avg: (" << p_avg.X() << ", " << p_avg.Y() << ", " << p_avg.Z() << ")"
+        //  << ", v_cross_B: (" << v_cross_B.X() << ", " << v_cross_B.Y() << ", " << v_cross_B.Z() << ")"
+        //  << ", dp: (" << dp.X() << ", " << dp.Y() << ", " << dp.Z() << ")"
+        //  << std::endl;
+        sum_signals += signal;
+    }
+    SetCharge_test(sum_signals);
 }
