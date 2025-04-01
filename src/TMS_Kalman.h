@@ -54,22 +54,6 @@ class TMS_KalmanNode {
   TMS_KalmanNode() = delete;
 
   // x,y,z, delta_z = distance from previous hit to current in z
-<<<<<<< HEAD
-  TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar) :
-    x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
-    RecoX(xvar), RecoY(yvar),
-    PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
-    CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors
-    TransferMatrix(KALMAN_DIM, KALMAN_DIM),
-    TransferMatrixT(KALMAN_DIM, KALMAN_DIM),
-    NoiseMatrix(KALMAN_DIM, KALMAN_DIM),
-    CovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
-    UpdatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM, KALMAN_DIM),
-    rVec(2),
-    rVecT(2),
-    RMatrix(2, 2)
-=======
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar),
     RecoX(xvar), RecoY(yvar),
@@ -81,7 +65,6 @@ class TMS_KalmanNode {
     CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
     UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
     MeasurementMatrix(KALMAN_DIM,KALMAN_DIM)
->>>>>>> double_addybar
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -191,14 +174,11 @@ class TMS_KalmanNode {
       NoiseMatrix(1,1) = A*A;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
-<<<<<<< HEAD
-=======
     } else if (LayerOrientation == TMS_Bar::kYBar) { // this should just work right?
       NoiseMatrix(0,0) = A*A;
       NoiseMatrix(1,1) = B*B;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
->>>>>>> double_addybar
     } else {
       throw; // xd haha TODO tho
     }
