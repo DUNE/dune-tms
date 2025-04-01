@@ -1441,6 +1441,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
 
     RecoTrackLength_3D[itTrack]        =    RecoTrack->Length; 
+    RecoTrackLength_minus[itTrack]        =    RecoTrack->Length_minus; 
+    RecoTrackLength_plus[itTrack]        =    RecoTrack->Length_plus; 
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackMomentum_minus[itTrack]      =       RecoTrack->Momentum_minus;
