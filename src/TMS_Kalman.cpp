@@ -190,7 +190,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &Transfer = Node.TransferMatrix;
   TMatrixD &TransferT = Node.TransferMatrixT;
   //TODO in case the reco hit is too far
-  if ( PreviousState.dxdz > 4.0 )
+  if ( abs(PreviousState.dxdz) > 4.0 )
       PreviousState.dxdz = TMS_Kalman::AverageXSlope;
 
   // Initialise to something sane(-ish)
