@@ -689,6 +689,7 @@ for (auto Lines: HoughCandidatesY) {
       else{
           trk.Charge_Kalman = 13;
       } 
+      trk.Charge_Kalman_test=KalmanFilter_plus.GetCharge_test();
       bool verbose_kalman = false; 
       kalman_reco_mom_minus = KalmanFilter_plus.GetMomentum();
       kalman_reco_mom_plus = KalmanFilter_minus.GetMomentum();

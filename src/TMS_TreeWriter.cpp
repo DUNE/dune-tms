@@ -299,10 +299,12 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum_plus",       RecoTrackMomentum_plus,        "Momentum_plus[nTracks]/F");
   Reco_Tree->Branch("Momentum_minus",       RecoTrackMomentum_minus,        "Momentum_minus[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
+  Reco_Tree->Branch("Length_3D",         RecoTrackLength_3D,          "Length_3D[nTracks]/F");
   Reco_Tree->Branch("Length_plus",         RecoTrackLength_plus,          "Length_plus[nTracks]/F");
   Reco_Tree->Branch("Length_minus",         RecoTrackLength_minus,          "Length_minus[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman",         RecoTrackCharge_Kalman,          "Charge_Kalman[nTracks]/I");
+  Reco_Tree->Branch("Charge_Kalman_test",         RecoTrackCharge_Kalman_test,          "Charge_Kalman_test[nTracks]/I");
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,             "Chi2[nTracks]/F");
   Reco_Tree->Branch("Chi2_minus",           RecoTrackChi2_minus,             "Chi2_minus[nTracks]/F");
   Reco_Tree->Branch("Chi2_plus",           RecoTrackChi2_plus,             "Chi2_plus[nTracks]/F");
@@ -1445,6 +1447,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackMomentum_plus[itTrack]      =       RecoTrack->Momentum_plus;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
     RecoTrackCharge_Kalman[itTrack]        =       RecoTrack->Charge_Kalman;
+    RecoTrackCharge_Kalman_test[itTrack]        =       RecoTrack->Charge_Kalman_test;
     RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
     RecoTrackChi2_minus[itTrack]          =       RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]          =       RecoTrack->Chi2_plus;
@@ -2180,10 +2183,12 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength_plus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge_Kalman_test[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;

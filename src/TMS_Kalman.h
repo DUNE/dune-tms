@@ -59,22 +59,29 @@ class TMS_KalmanNode {
     RecoX(xvar), RecoY(yvar),
     PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
     CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
+    SmoothState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
     TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
     CovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
     UpdatedCovarianceMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM)
+    EstimatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    SmoothCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
+    MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
+    MeasurementVec(5)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     NoiseMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     CovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     UpdatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    EstimatedCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
+    SmoothCovarianceMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     MeasurementMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     rVec.ResizeTo(2);
     rVecT.ResizeTo(2);
     RMatrix.ResizeTo(2, 2);
+    MeasurementVec.ResizeTo(5);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
@@ -83,6 +90,7 @@ class TMS_KalmanNode {
     rVec.Zero();
     rVecT.Zero();
     RMatrix.Zero();
+    MeasurementVec.Zero();
 
 
     // Diagonal element
@@ -117,8 +125,9 @@ class TMS_KalmanNode {
   double LayerBarLength;
 
   // The state vectors carry information about the covariance matrices etc
-  TMS_KalmanState CurrentState;
   TMS_KalmanState PreviousState;
+  TMS_KalmanState CurrentState;
+  TMS_KalmanState SmoothState;
 
   // Propagator matrix
   // Takes us from detector k-1 to detector k
@@ -130,12 +139,17 @@ class TMS_KalmanNode {
   TMatrixD NoiseMatrix;
   TMatrixD CovarianceMatrix;
   TMatrixD UpdatedCovarianceMatrix;
+  TMatrixD EstimatedCovarianceMatrix;
+  TMatrixD SmoothCovarianceMatrix;
+
+
   // Measurement matrix
   TMatrixD MeasurementMatrix;
   // For chi2 stuff
   TVectorD rVec;
   TVectorD rVecT;
   TMatrixD RMatrix;
+  TVectorD MeasurementVec;
   double chi2;
 
 
@@ -243,6 +257,11 @@ class TMS_Kalman {
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
     void SetMomentum(double mom) {momentum = mom;}
+    void SetCharge_test(double charge) {
+        if (charge > 0) charge_test= +1;
+        else charge_test= -1;
+    }
+
     // Set direction unit vectors from only x and y slope
     void SetStartDirection(double ax, double ay);// {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=sqrt(1 - ax*ax - ay*ay);};
     void SetEndDirection  (double ax, double ay);// {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=sqrt(1 - ax*ax - ay*ay);};
@@ -252,6 +271,7 @@ class TMS_Kalman {
     void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
+    double GetCharge_test() {return charge_test;}
 
     double GetTrackChi2()
     {
@@ -275,6 +295,10 @@ class TMS_Kalman {
     void Predict(TMS_KalmanNode &Node);
     void Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode);
     void RunKalman();
+    void runRTSSmoother();
+    void BetheBloch();
+    void SignSelection();
+
 
 
     // State vector
@@ -287,6 +311,7 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
+    double charge_test;
     double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
