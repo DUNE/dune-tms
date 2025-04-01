@@ -149,7 +149,7 @@ class TMS_KalmanNode {
   TVectorD rVec;
   TVectorD rVecT;
   TMatrixD RMatrix;
-  TVectorD MeasurementVec;
+  TVectorD MeasurementVec
   double chi2;
 
 

@@ -555,12 +555,12 @@ void TMS_Kalman::runRTSSmoother() {
           std::cerr << "Warning: Singular covariance matrix at step " << t << std::endl;
           continue;
       }
+
       // Compute smoothing gain J_t
       TMatrixD C_t = V_t * (F.T()) * P_t.Invert();
 
       // Convert PreviousState and CurrentState to TVectorD
       TVectorD u_t(5);
-
       u_t[0] = KalmanNodes[t].CurrentState.x;
       u_t[1] = KalmanNodes[t].CurrentState.y;
       u_t[2] = KalmanNodes[t].CurrentState.dxdz;
@@ -581,6 +581,7 @@ void TMS_Kalman::runRTSSmoother() {
       // Apply RTS smoothing equation to update the state
       // This one can not be contaminated purely from Kalman filter result.
       TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() again to get just F
+      TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() againg to get just F
       TMatrixD Cov_smooth = V_t + C_t * (SmoothCov_t_1-P_t) * C_t.T();
 
       KalmanNodes[t].SmoothCovarianceMatrix = Cov_smooth;
@@ -602,7 +603,6 @@ void TMS_Kalman::BetheBloch() {
         TMS_KalmanState &PreviousState = KalmanNodes[i-1].SmoothState;
         TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
         TMatrixD &Transfer = KalmanNodes[i].TransferMatrix;
-        //TMatrixD &TransferT = KalmanNodes[i].TransferMatrixT;
         //Get the gradient from second previous state
         TVectorD takegradient(5);
         TVector3 previousmeasure(KalmanNodes[i-1].x,KalmanNodes[i-1].y,KalmanNodes[i-1].z); // Start
@@ -744,12 +744,6 @@ void TMS_Kalman::BetheBloch() {
         CurrentState.qp = 1./p_up;
 
         //KalmanNodes[i].rVec[0] = (UpdateVec[0]-CurrentState.x);
-        //KalmanNodes[i].rVec[0] = (CurrentState.x-UpdateVec[0]);
-        //KalmanNodes[i].rVec[1] = (CurrentState.y-UpdateVec[1]);
-        //KalmanNodes[i].rVec[0] = (KalmanNodes[i].MeasurementVec[0]-UpdateVec[0]);
-        //KalmanNodes[i].rVec[1] = (KalmanNodes[i].MeasurementVec[1]-UpdateVec[1]);
-        //KalmanNodes[i].rVec[0] = (KalmanNodes[i].MeasurementVec[0]-CurrentState.x);
-        //KalmanNodes[i].rVec[1] = (KalmanNodes[i].MeasurementVec[1]-CurrentState.y);
         KalmanNodes[i].rVec[0] = (CurrentState.x-UpdateVec[0]);
         KalmanNodes[i].rVec[1] = (CurrentState.y-UpdateVec[1]);
         //
