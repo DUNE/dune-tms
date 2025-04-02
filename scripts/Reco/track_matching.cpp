@@ -23,6 +23,22 @@ bool isTMSContained(float xpos, float ypos, float zpos){
 	return out;
 }
 
+bool isLArContained(float xpos, float ypos, float zpos){
+	bool out = true;
+
+	if(xpos > 3700 || xpos < -4500){
+		out = false;
+	}
+	if(ypos > 1000 || ypos < -3200){
+		out = false;
+	}
+	if(zpos > 9200 || zpos < 4100){
+		out = false;
+	}
+
+	return out;
+}
+
 bool isMuon(int PDG){
 	bool out = false;
 
@@ -61,7 +77,7 @@ int main(std::string filepath){
 			isMuon(truth->GetLeaf("PDG")->GetValue(itrack));
 			isTMSContained(XTrackEndpoint, YTrackEndpoint, ZTrackEndpoint);		
 			
-			if(isMuon && isTMSContained){
+			if(isMuon && isTMSContained && isLArContained){
 
 			}
 		}
