@@ -47,5 +47,25 @@ int main(std::string filepath){
 
 	int nentries = truth->GetEntries();
 
+	for(int i = 0; i <= nentries; i++){
+		truth->GetEntry(i);
+		reco->GetEntry(i);
+		
+		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
+		
+		for(int itrack = 0; itrack <= nTracksTrue; itrack++){
+			float XTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack);
+			float YTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack+1);
+			float ZTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack+2); 
+			
+			isMuon(truth->GetLeaf("PDG")->GetValue(itrack));
+			isTMSContained(XTrackEndpoint, YTrackEndpoint, ZTrackEndpoint);		
+			
+			if(isMuon && isTMSContained){
+
+			}
+		}
+	}
+
 	return 0;
 }
