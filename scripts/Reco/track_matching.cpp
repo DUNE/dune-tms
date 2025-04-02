@@ -49,6 +49,16 @@ bool isMuon(int PDG){
 	return out;
 }
 
+bool hasMinHits(int nHits){
+	bool out = false;
+
+	if(nHits >= 5){
+		out = true;
+	}
+
+	return out;
+}
+
 int main(std::string filepath){
 
 	std::unique_ptr<TFile> myFile(TFile::Open(filepath.c_str()));
@@ -70,14 +80,23 @@ int main(std::string filepath){
 		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
 		
 		for(int itrack = 0; itrack <= nTracksTrue; itrack++){
-			float XTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack);
-			float YTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack+1);
-			float ZTrackEndpoint = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionTrackEnd")->GetValue(itrack+2); 
+			auto end_array = truth.RecoTrackPrimaryParticleTruePositionTrackEnd[itrack];
+			auto start_array = truth.RecoTrackPrimaryParticleTruePositionTrackStart[itrack];			
+
+			float XTrackEndpoint = end_array[0];
+			float YTrackEndpoint = end_array[1];
+			float ZTrackEndpoint = end_array[2]; 
 			
-			isMuon(truth->GetLeaf("PDG")->GetValue(itrack));
-			isTMSContained(XTrackEndpoint, YTrackEndpoint, ZTrackEndpoint);		
-			
-			if(isMuon && isTMSContained && isLArContained){
+			float XTrackStartpoint = start_array[0];
+			float YTrackStartPoint = start_array[1];
+			float ZTrackStartPoint = start_array[2];		
+	
+			bool is_muon = isMuon(truth->GetLeaf("PDG")->GetValue(itrack));
+			bool is_TMS_contained = isTMSContained(XTrackEndpoint, YTrackEndpoint, ZTrackEndpoint);		
+			bool is_LAr_contained = isLArContained(XTrackStartpoint, YTrackStartpoint, ZTrackStartpoint);
+			bool has_min_hits = hasMinHits(reco->GetLeaf("nHits")->GetValue(itrack));	
+
+			if(is_muon && is_TMS_contained && is_LAr_contained){
 
 			}
 		}
