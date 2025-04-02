@@ -1,7 +1,12 @@
 #include<DUNEStyle.h>
+#include<TFile.h>
+#include<TH1D.h>
+
 #include<iostream>
 #include<string>
 #include<cstdlib>
+#include<stdio.h>
+#include<math.h>
 
 using namespace std;
 
@@ -59,17 +64,58 @@ bool hasMinHits(int nHits){
 	return out;
 }
 
-int main(std::string filepath){
+float delta_1d(float startpos, float endpos, float dir, float zdir, float trackdir){
+	float offset, extrapolation, delta;	
+	
+	offset = (dir / zdir) * ZGap * trackdir;
+	extrapolation = offset + startpos; 
 
-	std::unique_ptr<TFile> myFile(TFile::Open(filepath.c_str()));
+	delta = extrapolation - endpos; 
+
+	return delta;
+}
+
+float delta_theta(float xdir1, float ydir1, float zdir1, float xdir2, float ydir2, float zdir2){
+	float direction_dot, abs_vec1, abs_vec2, delta_theta;
+	
+	direction_dot = (xdir1 * xdir2) + (ydir1 * ydir2) + (zdir1 * zdir2);
+	abs_vec1 = sqrt((xdir1 * xdir1) + (ydir1 * ydir1) + (zdir1 * zdir1));
+	abs_vec2 = sqrt((xdir2 * xdir2) + (ydir2 * ydir2) + (zdir2 * zdir2));
+
+	delta_theta = acos(direction_dot / (abs_vec1 * abs_vec2)) * (180/3.14);
+	
+	return delta_theta;
+}
+
+int main(std::string inputFilename){
+
+	std::unique_ptr<TFile> myFile(TFile::Open(inputFilename.c_str()));
 	
 	if(!myFile || myFile->IsZombie()){
 		std::cerr << "Error opening file" << endl;
 		exit(-1);
 	}
 
+	std::string directoryPath ="/exp/dune/data/users/"+ std::string(getenv("USER")) + "/dune-tms/Reco/Track_Matching_Plots/";
+
+   	if(createDirectory(directoryPath)) {
+       		std::cout << "Directory created: " << directoryPath << std::endl;
+    	}
+	else{
+        	std::cerr << "Failed to create directory" << std::endl;
+    	}
+
+	// Create output filename
+	std::string outputFilename = directoryPath + getOutputFilename(inputFilename);
+		
+	// Create TFile with the output filename
+	TFile outputFile(outputFilename.c_str(), "RECREATE");	
+		
 	TTree *truth = myFile->Get<TTree>("Truth_Info");
 	TTree *reco = myFile->Get<TTree>("Reco_Tree");
+
+	// List histos
+	
 
 	int nentries = truth->GetEntries();
 
@@ -78,7 +124,7 @@ int main(std::string filepath){
 		reco->GetEntry(i);
 		
 		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
-		
+			
 		for(int itrack = 0; itrack <= nTracksTrue; itrack++){
 			auto end_array = truth.RecoTrackPrimaryParticleTruePositionTrackEnd[itrack];
 			auto start_array = truth.RecoTrackPrimaryParticleTruePositionTrackStart[itrack];			
@@ -96,11 +142,12 @@ int main(std::string filepath){
 			bool is_LAr_contained = isLArContained(XTrackStartpoint, YTrackStartpoint, ZTrackStartpoint);
 			bool has_min_hits = hasMinHits(reco->GetLeaf("nHits")->GetValue(itrack));	
 
-			if(is_muon && is_TMS_contained && is_LAr_contained){
-
+			if(is_muon && is_TMS_contained && is_LAr_contained && has_min_hits){
+			
 			}
 		}
 	}
-
+	
+	outputFile.Close();
 	return 0;
 }
