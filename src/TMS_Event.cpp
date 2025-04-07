@@ -821,6 +821,7 @@ void TMS_Event::SimulateTimingModel() {
 #else
     double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
     double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+#endif
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
     distance_from_middle *= wsf_length_multiplier;
