@@ -581,7 +581,6 @@ void TMS_Kalman::runRTSSmoother() {
       // Apply RTS smoothing equation to update the state
       // This one can not be contaminated purely from Kalman filter result.
       TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() again to get just F
-      TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() againg to get just F
       TMatrixD Cov_smooth = V_t + C_t * (SmoothCov_t_1-P_t) * C_t.T();
 
       KalmanNodes[t].SmoothCovarianceMatrix = Cov_smooth;
