@@ -122,6 +122,11 @@ class TMS_Hit {
     #endif
     
     void MergeWith(TMS_Hit& hit);
+    
+    double GetTrueDistanceFromReadout();
+    double GetTrueLongDistanceFromReadout();
+    double GetTrueDistanceFromMiddle();
+    double GetTrueLongDistanceFromMiddle(); 
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars

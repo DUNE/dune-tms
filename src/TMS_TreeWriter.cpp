@@ -470,6 +470,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueRecoHitIsPedSupped", &TrueRecoHitIsPedSupped, "TrueRecoHitIsPedSupped[NTrueHits]/O");
   Truth_Info->Branch("TrueHitBar", &TrueHitBar, "TrueHitBar[NTrueHits]/I");
   Truth_Info->Branch("TrueHitPlane", &TrueHitPlane, "TrueHitPlane[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitView", &TrueHitView, "TrueHitView[NTrueHits]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -1730,6 +1731,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
         TrueHitBar[index] = hit.GetBarNumber();
         TrueHitPlane[index] = hit.GetPlaneNumber();
+        TrueHitView[index] = hit.GetBar().GetBarTypeNumber();
         TrueNTrueParticles[index] = true_hit.GetNTrueParticles();
         TrueLeptonicEnergy[index] = true_hit.GetLeptonicEnergy();
         TrueHadronicEnergy[index] = true_hit.GetHadronicEnergy();
