@@ -320,7 +320,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
                 z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
                 x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-        
+
                 ### Position plots efficient/nice in subplots
                 x_z.axis('equal')
                 x_z.axes.set_box_aspect(1)
@@ -330,7 +330,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.axis('equal')
                 x_y.axes.set_box_aspect(0.5)
                 x_y.axes.set_anchor('SW')
-        
+
                 ### Put in outlines of scintillator parts
                 x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -339,12 +339,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-        
+
                 z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-        
+
                 x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -352,6 +352,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+
 
                 # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
                 # # loop through those true hits in the TMS

@@ -578,7 +578,7 @@ void TMS_Event::SimulateOpticalModel() {
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
 #else
       double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
-      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3;  // m
+      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
 #endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
