@@ -1,6 +1,7 @@
 import os
 
 import ROOT
+
 ROOT.gROOT.SetBatch(True)
 
 import sys
@@ -9,44 +10,47 @@ import dunestyle.root as dunestyle
 
 import simply_draw_everything
 
+
 def draw_histograms(input_file1, input_file2):
     # The filename can include the key separated with comma, so check for that
     foo = input_file1.split(",")
     print(input_file1)
-    if len(foo) > 1: 
+    if len(foo) > 1:
         input_file1 = foo[0]
         key1 = foo[1]
     foo = input_file2.split(",")
-    if len(foo) > 1: 
+    if len(foo) > 1:
         input_file2 = foo[0]
         key2 = foo[1]
-        
+
     # Open the input ROOT files
     root_file = ROOT.TFile.Open(input_file1)
     root_file2 = ROOT.TFile.Open(input_file2)
 
     # Create a directory to save images
-    output_dir = os.path.join(os.path.split(input_file1)[0], f"comparison_{key1}_{key2}_images")
+    output_dir = os.path.join(
+        os.path.split(input_file1)[0], f"comparison_{key1}_{key2}_images"
+    )
     os.makedirs(output_dir, exist_ok=True)
-    
+
     canvas = ROOT.TCanvas("canvas", "canvas", 800, 600)
-    
+
     # Loop over all keys in the ROOT file
     for key in root_file.GetListOfKeys():
         obj = key.ReadObj()
         output_subdir = output_dir
         name = obj.GetName()
         name = obj.GetName()
-            
+
         subdir, image_name = simply_draw_everything.get_subdir_and_name(name)
         output_subdir = os.path.join(output_dir, subdir)
-        
+
         obj2 = root_file2.Get(name)
         if obj2 == None:
             print(f"Could not find {name} in {input_file2}. Skipping")
-            continue 
-        
-        os.makedirs(output_subdir, exist_ok=True)  
+            continue
+
+        os.makedirs(output_subdir, exist_ok=True)
         if isinstance(obj, ROOT.TH2):
             canvas.cd(0)
             canvas.Divide(2, 1)
@@ -64,16 +68,16 @@ def draw_histograms(input_file1, input_file2):
         elif isinstance(obj, ROOT.TH1):
             canvas.cd(0)
             # For 1D histograms, draw and save as png
-            leg = ROOT.TLegend(0.2,0.8,0.8,0.9)
+            leg = ROOT.TLegend(0.2, 0.8, 0.8, 0.9)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.SetNColumns(2)
-            
+
             if "passes_cut" in image_name:
                 # Scale to 100% for easy viewing
                 leg.AddEntry(obj, key1 + " (%)", "lep")
                 leg.AddEntry(obj2, key2 + " (%)", "lep")
-            
+
                 if obj.Integral() > 0:
                     scale = 100 / obj.Integral()
                 obj.Scale(scale)
@@ -87,8 +91,8 @@ def draw_histograms(input_file1, input_file2):
                 if obj2.Integral() > 0:
                     scale = obj.Integral() / obj2.Integral()
                 obj2.Scale(scale)
-            
-            top = max(obj.GetMaximum(), obj2.GetMaximum())*1.3
+
+            top = max(obj.GetMaximum(), obj2.GetMaximum()) * 1.3
             obj.GetYaxis().SetRangeUser(0, top)
             color1 = ROOT.kBlack
             obj.SetLineColor(color1)
@@ -100,18 +104,19 @@ def draw_histograms(input_file1, input_file2):
             obj2.SetLineStyle(2)
             obj2.Draw("e same")
             leg.Draw()
-            #print(f"{obj.GetName()} integral: {obj.Integral()}")
+            # print(f"{obj.GetName()} integral: {obj.Integral()}")
             canvas.Print(os.path.join(output_subdir, image_name + ".png"))
 
     # Close the input ROOT file
     root_file.Close()
 
 
-
 if __name__ == "__main__":
     # Check if input file is provided as argument
     if len(sys.argv) != 3:
-        print("Usage: python script.py <input_root_file>,<name (optional)> <input_root_file>,<name (optional)>")
+        print(
+            "Usage: python script.py <input_root_file>,<name (optional)> <input_root_file>,<name (optional)>"
+        )
         sys.exit(1)
 
     input_file1 = sys.argv[1]
