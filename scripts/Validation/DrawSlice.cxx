@@ -20,7 +20,7 @@ int GetMaxDrawSlicePrints(max_prints n) {
     out = 50;
     break;
   case tons:
-    out = 1000;
+    out = 500;
     break;
   case all:
     out = -1;
@@ -375,23 +375,39 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   }
 
   y1 = 0.6;
-  y2 = 1;
+  y2 = 1.0;
   auto textBoxD = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
   auto textBoxE = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
-  textBoxD.AddText("N reco tracks:");
-  textBoxE.AddText(TString::Format("%d", reco.nTracks));
+  // Add message but only if it's not the default message
+  if (message.find("n tracks =") == std::string::npos) {
+    textBoxD.AddText("Display info:");
+    textBoxE.AddText("");
+    int n_lines = 0;
+    for (auto foo : split(message.c_str(), ';')) {
+      textBoxD.AddText(foo.c_str());
+      textBoxE.AddText("");
+      n_lines += 1;
+    }
+    // Fill out to make it a bit higher
+    while (n_lines < 3) {
+      textBoxD.AddText("");
+      textBoxE.AddText("");
+      n_lines += 1;
+    }
+  }
+  else {
+    textBoxD.AddText("");
+    textBoxE.AddText("");
+  }
+  textBoxA.AddText("N reco tracks:");
+  textBoxC.AddText(TString::Format("%d", reco.nTracks));
   int time_slice_start_time = reco.TimeSliceStartTime;
   int time_slice_end_time = reco.TimeSliceEndTime;
   int slice_width = time_slice_end_time - time_slice_start_time;
-  textBoxD.AddText("Slice start:");
-  textBoxE.AddText(TString::Format("%dns", time_slice_start_time));
-  textBoxD.AddText("Slice width:");
-  textBoxE.AddText(TString::Format("%dns", slice_width));
-  // Add message but only if it's not the default message
-  if (message.find("n tracks =") == std::string::npos) {
-    textBoxD.AddText(message.c_str());
-    textBoxE.AddText("");
-  }
+  textBoxA.AddText("Slice start:");
+  textBoxC.AddText(TString::Format("%dns", time_slice_start_time));
+  textBoxA.AddText("Slice width:");
+  textBoxC.AddText(TString::Format("%dns", slice_width));
 
   TLegend leg(x1, 0, x2 + 0.1, y1);
   leg.SetFillStyle(0);
