@@ -144,14 +144,14 @@
                 ->Fill(particle_starting_ke);
           if (ismuon)
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "multi_reco_muon",
+                      "reco_eff/multi_reco_muon",
                       TString::Format("Particle %d reco'd %dx", ip,
                                       particle_indices_reconstructed[ip])
                           .Data(),
                       reco, lc, truth, DrawSliceN::many);
           else
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "multi_reco_nonmuon",
+                      "reco_eff/multi_reco_nonmuon",
                       TString::Format("Particle %d reco'd %dx", ip,
                                       particle_indices_reconstructed[ip])
                           .Data(),
@@ -196,11 +196,33 @@
         GetHist("reco_eff__startpoint__muon_startpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_z")
             ->Fill(truth.PositionTMSStart[ip][2] * CM);
+            
+        if (particle_starting_ke < 1)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                      "reco_eff/reco_low_e_muon",
+                      TString::Format("Low E muon: %.1f GeV",
+                                      particle_starting_ke)
+                          .Data(),
+                      reco, lc, truth, DrawSliceN::few);
+        if (particle_starting_ke < 0.25)
+            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                      "reco_eff/reco_very_low_e_muon",
+                      TString::Format("Low E muon: %.2f GeV",
+                                      particle_starting_ke)
+                          .Data(),
+                      reco, lc, truth, DrawSliceN::few);
       }
-      if (ispion && not_double_reco)
+      if (ispion && not_double_reco) {
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator",
                 "Reco Efficiency, All Pions: Numerator", "pion_ke_tms_enter")
             ->Fill(particle_starting_ke);
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "reco_eff/reco_pion",
+                  TString::Format("Pion with %.1f GeV",
+                                  particle_starting_ke)
+                      .Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      }
       if (ismuon && lar_start && tms_end && not_double_reco) {
         GetHist("reco_eff__muon_ke_tms_enter_numerator",
                 "Reco Efficiency vs True TMS-Entering KE: Numerator",

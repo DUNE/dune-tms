@@ -48,7 +48,8 @@
       //                  truth.DeathPosition[ip][1],
       //                  truth.DeathPosition[ip][2]);
       bool start_lar = truth.LArFiducialStart[ip];
-      bool end_tms = true; // isTMSContained(end_pos) == 0;
+      //bool end_tms = true; // isTMSContained(end_pos) == 0;
+      bool end_tms = truth.TMSFiducialEnd[ip];
       if (start_lar && end_tms &&
           abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 13) {
         double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
@@ -457,14 +458,14 @@
     double target_e = (1.75 * true_areal_density_of_highest) * 1e-3 + 0.5;
     if (target_e < highest_true_muon_starting_ke) {
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "true_areal_density_not_correlated_with_ke",
+                "energy_resolution/true_areal_density_not_correlated_with_ke",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
-      GetHist("energy_resolution__areal_density_and_energy__vs_energy_"
+      /*GetHist("energy_resolution__areal_density_and_energy__vs_energy_"
               "comparison_drawn_slices",
               "True Areal Density Compared to Energy", "true_areal_density",
               "basic_true_ke_enter")
-          ->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
+          ->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);*/
     }
   }
 
@@ -638,7 +639,7 @@
 
     if (highest_reco_starting_muon_ke + 1 < highest_true_muon_starting_ke)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "poor_reco_starting_muon_ke",
+                "energy_resolution/poor_reco_starting_muon_ke",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
 

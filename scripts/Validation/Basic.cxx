@@ -86,14 +86,14 @@
         (std::abs(reco.StartDirection[it][1]) < big_epsilon);
     if (has_y_start_direction_zero)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "y_start_direction_zero",
+                "issues/y_start_direction_zero",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
     bool has_y_end_direction_zero =
         (std::abs(reco.EndDirection[it][1]) < big_epsilon);
     if (has_y_end_direction_zero)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "y_end_direction_zero",
+                "issues/y_end_direction_zero",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
 
@@ -318,6 +318,7 @@
       GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy",
               "TrueVisibleEnergy", "#N Particles")
           ->Fill(truth.TrueVisibleEnergy[ip]);
+      // TODO these are looping outside n reco tracks, right?
       GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_X",
               "RecoTrackPrimaryParticleTruePositionStart X", "X",
               "#N Particles")

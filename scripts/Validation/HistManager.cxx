@@ -100,6 +100,7 @@ int NuPDGtoIndex(int pdg) {
 }
 
 std::unordered_map<std::string, TH1 *> mapForGetHist;
+std::unordered_map<std::string, std::string> specialHists;
 
 std::unordered_map<std::string, std::tuple<std::string, int, double, double>>
     registeredAxes;
@@ -459,7 +460,7 @@ void NormalizeRows(TH2 *hist) {
   }
 }
 
-void NormalizeHists() {
+void FinalizeHists() {
   // Could check here for certain hists and automatically make copies with
   // column norm for example
   for (auto &hist : mapForGetHist) {
@@ -487,6 +488,14 @@ void NormalizeHists() {
       // Normalize max to 1
       hist.second->Scale(1 / hist.second->GetMaximum());
     }
+  }
+  
+  // Now save copies of all the special hists
+  for (auto& is : specialHists) {
+    auto special_name = is.first;
+    auto regular_name = is.second;
+    // Save a copy under the new special name
+    mapForGetHist[special_name] = dynamic_cast<TH1*>(mapForGetHist[regular_name]->Clone(special_name.c_str()));
   }
 }
 
@@ -540,5 +549,15 @@ TH1 *GetHist(std::string directory_and_name, std::string title,
               << total_no_make_time << "/" << n_no_makes << ")" << std::endl;
   }
 #endif // end ifdef PRINT_STATS
+  return out;
+}
+
+TH1 *GetSpecialHist(std::string special_dir_and_name,
+             std::string directory_and_name, std::string title,
+             std::string xaxis, std::string yaxis = "",
+             std::string zaxis = "") {
+  TH1* out = GetHist(directory_and_name, title, xaxis, yaxis, zaxis);
+  // Save a copy
+  specialHists[special_dir_and_name] = directory_and_name;
   return out;
 }

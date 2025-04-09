@@ -350,6 +350,16 @@ bool LArFiducialCut(TVector3 position, double distance = 500,
   return out;
 }
 
+bool NDPhysicsMuon(Truth_Info &truth, Reco_Tree &reco, int track) {
+  bool out = true;
+  if (!truth.RecoTrackPrimaryParticleLArFiducialStart[track]) out = false;
+  if (!truth.RecoTrackPrimaryParticleTMSFiducialEnd[track]) out = false;
+  // Hadonic E in LAr shell > 30 MeV
+  if (truth.LArOuterShellEnergyFromVertex > 30) out = false;
+  (void)reco;
+  return out;
+}
+
 Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                      int numEvents, TFile &outputFile) {
   // List all the hists here
@@ -585,19 +595,19 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 
         if (has_zero_true_nhits)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/zero_true_nhits",
+                    "completeness_cleanliness/completeness/zero_true_nhits",
                     TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (has_more_reco_nhits)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/has_more_reco_nhits",
+                    "completeness_cleanliness/completeness/has_more_reco_nhits",
                     TString::Format("Track has more reco N hits;N hits reco: %d;N hits true: %d", 
                     truth.RecoTrackPrimaryParticleTrueNHits[it], 
                     truth.TrueNHits[particle_index]).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (has_more_reco_energy)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/has_more_reco_energy",
+                    "completeness_cleanliness/completeness/has_more_reco_energy",
                     TString::Format("Track has more reco E;E Reco: %.1f MeV;E True: %.1f MeV", 
                     truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it], 
                     truth.TrueVisibleEnergy[particle_index]).Data(), reco,
@@ -605,38 +615,38 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 
         if (completeness_energy < 0.5)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/under_50_percent",
-                    TString::Format("Completeness by E;is under 50%;Completeness = %.2f",
+                    "completeness_cleanliness/completeness/under_50_percent",
+                    TString::Format("Completeness by E;is under 50%%;Completeness = %.2f",
                     completeness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (completeness_energy >= 0.67 && completeness_energy <= 0.73)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/around_70_percent",
-                    TString::Format("Completeness by E;is around 70%;Completeness = %.2f",
+                    "completeness_cleanliness/completeness/around_70_percent",
+                    TString::Format("Completeness by E;is around 70%%;Completeness = %.2f",
                     completeness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (completeness_energy >= 0.98)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "completeness/above_98_percent",
-                    TString::Format("Completeness by E;is above 98%;Completeness = %.2f",
+                    "completeness_cleanliness/completeness/above_98_percent",
+                    TString::Format("Completeness by E;is above 98%%;Completeness = %.2f",
                     completeness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (cleanliness_energy < 0.5)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "cleanliness/under_50_percent",
-                    TString::Format("Cleanliness by E;is under 50%;Cleanliness = %.2f",
+                    "completeness_cleanliness/cleanliness/under_50_percent",
+                    TString::Format("Cleanliness by E;is under 50%%;Cleanliness = %.2f",
                     cleanliness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (cleanliness_energy >= 0.67 && cleanliness_energy <= 0.73)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "cleanliness/around_70_percent",
-                    TString::Format("Cleanliness by E;is around 70%;Cleanliness = %.2f",
+                    "completeness_cleanliness/cleanliness/around_70_percent",
+                    TString::Format("Cleanliness by E;is around 70%%;Cleanliness = %.2f",
                     cleanliness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
         if (cleanliness_energy >= 0.98)
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "cleanliness/above_98_percent",
-                    TString::Format("Cleanliness by E;is above 98%;Cleanliness = %.2f",
+                    "completeness_cleanliness/cleanliness/above_98_percent",
+                    TString::Format("Cleanliness by E;is above 98%%;Cleanliness = %.2f",
                     cleanliness_energy).Data(), reco,
                     lc, truth, DrawSliceN::handfull);
       }
@@ -964,14 +974,14 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
             ->Fill(dy * CM);
         if (dy * CM > 30 && !draw_slice) {
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "poor_hit_y_resolution",
+                    "resolution/poor_hit_y_resolution",
                     TString::Format("Found poor dy;dy = %.1f cm", dy * CM).Data(), reco,
                     lc, truth, DrawSliceN::many);
           draw_slice = true;
         }
         if (dy * CM > 60 && !draw_slice_large) {
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "poor_hit_y_resolution_large_deviation",
+                    "resolution/poor_hit_y_resolution_large_deviation",
                     TString::Format("Found poor dy;dy = %.1f cm", dy * CM).Data(), reco,
                     lc, truth, DrawSliceN::many);
           draw_slice_large = true;
@@ -1002,14 +1012,14 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 
       if (std::abs(slope_start_reco - slope_start_true) > 30)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "slope/start_resolution_above_30",
+                  "resolution/slope/start_resolution_above_30",
                   TString::Format("resolution = %f",
                                   slope_start_reco - slope_start_true)
                       .Data(),
                   reco, lc, truth, DrawSliceN::handfull);
       if (std::abs(slope_end_reco - slope_end_true) > 30)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "slope/end_resolution_above_30",
+                  "resolution/slope/end_resolution_above_30",
                   TString::Format("resolution = %f",
                                   slope_start_reco - slope_start_true)
                       .Data(),
@@ -1025,26 +1035,26 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     // Example of drawing for a reason
     if (reco.nTracks > 2) {
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "high_reco_track_multiplicity",
+                "track_multiplicity/high_reco_track_multiplicity",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::few);
     }
 
     if (reco.nTracks == 1) {
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "single_track",
+                "track_multiplicity/single_track/all",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::tons);
 
       bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[0]) == 13;
       if (ismuon) {
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "single_muon",
+                  "single_muon/all",
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
                   lc, truth, DrawSliceN::tons);
         if (truth.RecoTrackPrimaryParticleTMSFiducialEnd[0])
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "single_muon_tms_end",
+                    "single_muon/tms_end",
                     TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
                     lc, truth, DrawSliceN::tons);
 
@@ -1055,20 +1065,20 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
             DEG;
         if (std::abs(muon_starting_angle) > 20) {
           DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                    "single_track_high_angle",
+                    "track_multiplicity/single_track/high_angle",
                     TString::Format("Track angle = %.1f deg", muon_starting_angle).Data(), reco,
                     lc, truth, DrawSliceN::few);
         }
       }
     }
     if (reco.nTracks == 2) {
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "two_track",
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(), "track_multiplicity/two_track",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
     }
     if (reco.nTracks > 2) {
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "3_or_more_track",
+                "track_multiplicity/3_or_more_track",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
     }
@@ -1091,6 +1101,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 #include "TimeSlicing.cxx"
 #include "Track_Resolution.cxx"
 #include "TruthVtx.cxx"
+#include "Charge.cxx"
 
   } // End for loop over entries
 
@@ -1099,7 +1110,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                       time_stop - time_start)
                       .count();
 
-  NormalizeHists();
+  FinalizeHists();
 
   // Now save the hists
   outputFile.Write();
