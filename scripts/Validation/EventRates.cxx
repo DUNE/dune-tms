@@ -10,7 +10,7 @@
     for (int ip = 0; ip < truth.nTrueParticles; ip++) {
       bool tms_energy = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
       bool ismuon = abs(truth.PDG[ip]) == 13;
-      bool ispion = abs(truth.PDG[ip]) == 211;
+      //bool ispion = abs(truth.PDG[ip]) == 211;
       bool lar_end = truth.LArFiducialEnd[ip];
       bool lar_start = truth.LArFiducialStart[ip];
       TVector3 birth_position(truth.BirthPosition[ip][0] * CM,
@@ -153,10 +153,11 @@
     if (on_new_spill) {
       REGISTER_AXIS(true_vertex_energy,
                     std::make_tuple("True Visible E (GeV)", 51, 0, 2));
-      for (auto &vi : vertices_seen) {
+      for (auto& vi : vertices_seen) {
         GetHist("event_rates__tms__tms_event_rates_by_vertex",
                 "TMS Event Rates by Vertex", "tms_event_rate_by_vertex")
             ->Fill(0);
+        (void)vi; // unused
       }
       for (auto &vi : vertices_with_visible_e) {
         GetHist("event_rates__tms__validation__true_vertex_energy",

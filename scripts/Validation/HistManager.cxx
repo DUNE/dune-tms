@@ -221,6 +221,8 @@ GetComplexBinning(std::string axis_name) {
 
 void AdjustAxis(TH1 *hist, std::string xaxis, std::string yaxis = "",
                 std::string zaxis = "") {
+  (void)zaxis;
+  (void)yaxis;
   if (xaxis == "pdg") {
     const char *pdg[] = {"e^{+/-}, #gamma", "#mu^{-}", "#mu^{+}", "#pi^{+}",
                          "#pi^{-}",         "K",       "n",       "p",

@@ -96,6 +96,7 @@
         direction.SetZ(1); // Normalize to 1 in z since we don't know direction
       else
         direction.SetMag(1); // Normalize to 1
+      #ifdef add_half_steel
       // add half thickness of steel
       // plus the avg we're off because we're failing to reco the track end
       // note that length is in g/cm^2
@@ -109,7 +110,8 @@
       }
       // On avg we're off by about this much in cm
       // direction.SetMag(30);
-      // length_to_use += density_to_use * direction.Z();
+      length_to_use += density_to_use * direction.Z();
+      #endif // ifdef add_half_steel
       double reco_muon_starting_ke = length_to_energy(length_to_use);
       if (highest_reco_starting_muon_ke < reco_muon_starting_ke) {
         highest_reco_starting_muon_ke = reco_muon_starting_ke;
@@ -209,8 +211,6 @@
       (highest_reco_starting_muon_ke_without_fit -
        highest_true_muon_starting_ke) /
       highest_true_muon_starting_ke;
-  double residual_areal_density =
-      reco_areal_density_of_highest - true_areal_density_of_highest;
 
   // double lar_component_reco_ke_estimate =
   // lar_length_to_energy(true_muon_areal_density_lar_only);
@@ -231,9 +231,6 @@
   REGISTER_AXIS(
       reco_areal_density,
       std::make_tuple("Reco Areal Density (g/cm^2)", 50, 0.0, 3000.0));
-  REGISTER_AXIS(residual_areal_density,
-                std::make_tuple("Residual Areal Density (reco - true) (g/cm^2)",
-                                40, -200.0, 200.0));
   REGISTER_AXIS(residual_ke,
                 std::make_tuple("Residual TMS-Entering KE (reco - true) (GeV)",
                                 40, -1.0, 1.0));

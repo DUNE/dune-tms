@@ -471,7 +471,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
           std::sqrt(reco.EndDirection[it][0] * reco.EndDirection[it][0] +
                     reco.EndDirection[it][1] * reco.EndDirection[it][1] +
                     reco.EndDirection[it][2] * reco.EndDirection[it][2]);
-      const double epsilon = 1e-6;
+      //const double epsilon = 1e-6;
       // if (std::abs(start_direction_mag - 1) > epsilon)
       //   std::cout<<"Warning: Found start_direction_mag outside of 1.
       //   "<<start_direction_mag<<std::endl;
