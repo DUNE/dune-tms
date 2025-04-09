@@ -417,108 +417,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 
 #include "Basic.cxx"
 
-    REGISTER_AXIS(HitEnergy, std::make_tuple("Hit Energy (MeV)", 51, 0, 100));
-    REGISTER_AXIS(
-        TrueVisibleEnergy,
-        std::make_tuple("Particle True Visible Energy (MeV)", 51, 0, 1000));
-    REGISTER_AXIS(HitHadronicEnergy,
-                  std::make_tuple("Hit Hadronic Energy (MeV)", 51, 0, 100));
-    REGISTER_AXIS(HitEnergy_zoom,
-                  std::make_tuple("Hit Energy (MeV)", 20, 0, 1));
-    REGISTER_AXIS(Hitdedx, std::make_tuple("Hit dEdx (MeV / cm)", 51, 0, 100));
-    REGISTER_AXIS(TotalEnergy,
-                  std::make_tuple("Total Hit Energy (GeV)", 51, 0, 100));
-    REGISTER_AXIS(
-        TotalHadEnergy,
-        std::make_tuple("Total Hit Hadronic Energy (GeV)", 51, 0, 100));
-    REGISTER_AXIS(TotalRatio, std::make_tuple("Ratio E_{Had}/E", 51, 0, 1.0));
-    REGISTER_AXIS(
-        TotalEnergyPerVertex,
-        std::make_tuple("Total Hit Energy Per Vertex (GeV)", 51, 0, 20));
-    REGISTER_AXIS(TotalHadronicEnergyPerVertex,
-                  std::make_tuple("Total Hit Hadronic Energy Per Vertex (GeV)",
-                                  51, 0, 20));
-    REGISTER_AXIS(
-        ShellHadronicEnergyPerVertex,
-        std::make_tuple("Hit Hadronic Energy Per Vertex In Shell (GeV)", 51, 0,
-                        20));
-    REGISTER_AXIS(
-        ShellHadronicEnergyPerVertexZoom,
-        std::make_tuple("Hit Hadronic Energy Per Vertex In Shell (MeV)", 20, 0,
-                        200));
-    if (on_new_spill) {
-      GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500", "#N Spills")
-          ->Fill(truth.nTrueParticles);
-      GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles",
-              "n0-500", "#N Spills")
-          ->Fill(truth.nTruePrimaryParticles);
-      GetHist("basic__truth__nTrueForgottenParticles",
-              "nTrueForgottenParticles", "n0-120", "#N Spills")
-          ->Fill(truth.nTrueForgottenParticles);
-
-      std::map<int, bool> vertex_id_to_fiducial;
-      for (int ip = 0; ip < truth.nTrueParticles; ip++) {
-        int pdg = truth.PDG[ip];
-        if (std::abs(pdg) != 13) {
-          int vid = truth.VertexID[ip];
-          TVector3 position(truth.BirthPosition[ip][0] * CM,
-                            truth.BirthPosition[ip][1] * CM,
-                            truth.BirthPosition[ip][2] * CM);
-          bool result = IsInLAr(position, LArFiducial);
-          vertex_id_to_fiducial[vid] = result;
-        }
-      }
-
-      for (int ip = 0; ip < truth.nTrueParticles; ip++) {
-        GetHist("basic__truth__PDG", "PDG", "pdg", "#N Particles")
-            ->Fill(PDGtoIndex(truth.PDG[ip]));
-        if (truth.IsPrimary[ip])
-          GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg", "#N Particles")
-              ->Fill(PDGtoIndex(truth.PDG[ip]));
-        if (!truth.IsPrimary[ip])
-          GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles",
-                  "pdg", "#N Particles")
-              ->Fill(PDGtoIndex(truth.PDG[ip]));
-        GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy",
-                "TrueVisibleEnergy", "#N Particles")
-            ->Fill(truth.TrueVisibleEnergy[ip]);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_X",
-                "RecoTrackPrimaryParticleTruePositionStart X", "X", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][0] * CM);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Y",
-                "RecoTrackPrimaryParticleTruePositionStart Y", "Y_full", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][1] * CM);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Z",
-                "RecoTrackPrimaryParticleTruePositionStart Z", "Z_full", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][2] * CM);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_X",
-                "RecoTrackPrimaryParticleTruePositionEnd X", "X", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][0] * CM);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Y",
-                "RecoTrackPrimaryParticleTruePositionEnd Y", "Y_full", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][1] * CM);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z",
-                "RecoTrackPrimaryParticleTruePositionEnd Z", "Z_full", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
-
-        GetHist("basic__truth__RecoTrackPrimaryParticleLArFiducialStart",
-                "RecoTrackPrimaryParticleLArFiducialStart", "yesno", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleLArFiducialStart[ip] ? 0 : 1);
-        GetHist("basic__truth__RecoTrackPrimaryParticleTMSFiducialEnd",
-                "RecoTrackPrimaryParticleTMSFiducialEnd", "yesno", "#N Particles")
-            ->Fill(truth.RecoTrackPrimaryParticleTMSFiducialEnd[ip] ? 0 : 1);
-      }
-    }
-
     // Truth matching information
-    REGISTER_AXIS(
-        completeness,
-        std::make_tuple("Primary on Track / in Slice", 20,
-                        0, 1.01));
-    REGISTER_AXIS(
-        cleanliness,
-        std::make_tuple("Track Primary / Total",
-                        20, 0, 1.01));
+    REGISTER_AXIS(completeness,
+                  std::make_tuple("Primary on Track / in Slice", 20, 0, 1.01));
+    REGISTER_AXIS(cleanliness,
+                  std::make_tuple("Track Primary / Total", 20, 0, 1.01));
     REGISTER_AXIS(nhits_in_track,
                   std::make_tuple("N Hits in Track", 200, 0, 200));
     REGISTER_AXIS(energy_in_track,
@@ -526,11 +429,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     REGISTER_AXIS(n_hits_per_plane,
                   std::make_tuple("N Hits per Plane", 5, 0.5, 5.5));
     for (int it = 0; it < reco.nTracks; it++) {
-      GetHist("reco_track__primary_pdg",
-              "Reco Track Primary Particle PDG", "pdg", "#N Tracks")
+      GetHist("reco_track__primary_pdg", "Reco Track Primary Particle PDG",
+              "pdg", "#N Tracks")
           ->Fill(PDGtoIndex(truth.RecoTrackPrimaryParticlePDG[it]));
-      GetHist("reco_track__secondary_pdg",
-              "Reco Track Secondary Particle PDG", "pdg", "#N Tracks")
+      GetHist("reco_track__secondary_pdg", "Reco Track Secondary Particle PDG",
+              "pdg", "#N Tracks")
           ->Fill(PDGtoIndex(truth.RecoTrackSecondaryParticlePDG[it]));
       int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
       if (particle_index < 0 || particle_index >= truth.nTrueParticles) {
@@ -554,10 +457,12 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         double cleanliness_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] /
                                    (double)truth.RecoTrackNHits[it];
         GetHist("reco_track__completeness_energy",
-                "Reco Track Completeness, Visible Energy", "completeness", "#N Tracks")
+                "Reco Track Completeness, Visible Energy", "completeness",
+                "#N Tracks")
             ->Fill(completeness_energy);
         GetHist("reco_track__cleanliness_energy",
-                "Reco Track Cleanliness, Visible Energy", "cleanliness", "#N Tracks")
+                "Reco Track Cleanliness, Visible Energy", "cleanliness",
+                "#N Tracks")
             ->Fill(cleanliness_energy);
         GetHist("reco_track__completeness_nhits",
                 "Reco Track Completeness, N Hits", "completeness", "#N Tracks")
@@ -630,18 +535,21 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
             std::map<double, int> count;
             for (int ih = 0; ih < lc.nHits; ih++) {
               count[lc.RecoHitPos[ih][2]] += 1;
-              if (count[lc.RecoHitPos[ih][2]] == 2) 
-                GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_planes",
-                      "Z Pos with Two or More Hits in Plane", "Z", "#Count")
-                  ->Fill(lc.RecoHitPos[ih][2] * CM);
+              if (count[lc.RecoHitPos[ih][2]] == 2)
+                GetHist(
+                    "reco_track__debugging__z_pos_with_two_or_more_hit_planes",
+                    "Z Pos with Two or More Hits in Plane", "Z", "#Count")
+                    ->Fill(lc.RecoHitPos[ih][2] * CM);
             }
             for (auto &plane : count) {
               GetHist("reco_track__debugging__n_hits_in_plane",
-                      "Hits per plane: All Reco Hits", "n_hits_per_plane", "#Count")
+                      "Hits per plane: All Reco Hits", "n_hits_per_plane",
+                      "#Count")
                   ->Fill(plane.second);
               GetHist("reco_track__debugging__n_hits_in_plane_both_"
                       "nostack_1_all_hits",
-                      "Hits per plane: All Reco Hits", "n_hits_per_plane", "#Count")
+                      "Hits per plane: All Reco Hits", "n_hits_per_plane",
+                      "#Count")
                   ->Fill(plane.second);
             }
           }
@@ -649,10 +557,12 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
             std::map<double, int> count;
             for (int ih = 0; ih < reco.nHits[0]; ih++) {
               count[reco.TrackHitPos[0][ih][2]] += 1;
-              if (count[reco.TrackHitPos[0][ih][2]] == 2) 
-                GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_planes_in_track",
-                      "Z Pos with Two or More Hits in Plane in Track", "Z", "#Count")
-                  ->Fill(reco.TrackHitPos[0][ih][2] * CM);
+              if (count[reco.TrackHitPos[0][ih][2]] == 2)
+                GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_"
+                        "planes_in_track",
+                        "Z Pos with Two or More Hits in Plane in Track", "Z",
+                        "#Count")
+                    ->Fill(reco.TrackHitPos[0][ih][2] * CM);
             }
             for (auto &plane : count) {
               GetHist("reco_track__debugging__n_hits_in_plane_track",
