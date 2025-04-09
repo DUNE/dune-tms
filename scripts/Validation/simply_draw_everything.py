@@ -91,7 +91,7 @@ def draw_histograms(input_file):
     
     # Draw the stacks
     # First define some unique colors and line styles
-    colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kBlack, ROOT.kCyan]
+    colors = [ROOT.kBlue, ROOT.kRed, ROOT.kGreen, ROOT.kMagenta, ROOT.kOrange, ROOT.kBlack]
     line_styles = [1, 2, 7, 9]
     # Loop over each stack
     for name, hist_and_name in stack_plots.items():
@@ -114,7 +114,7 @@ def draw_histograms(input_file):
         if "area_norm" in name:
             area_norm = True
         
-        headroom = 1.4 # 1.3
+        headroom = 1.3 # 1.3
         if log: headroom =  5 # 3
         
         l = list(hist_and_name.items())
@@ -140,10 +140,12 @@ def draw_histograms(input_file):
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
         hist_stack.Draw("hist nostack" if "nostack" in first_hist.GetName() else "hist stack")
+        hist_stack.GetXaxis().SetTitle("Example title")
+        ytitle = first_hist.GetYaxis().GetTitle()
         if first_hist != None:
-            hist_stack.SetTitle(first_hist.GetTitle().replace(f": {first_hist_name}", "").split(":")[0])
+            hist_stack.SetTitle(first_hist.GetTitle().split(":")[0])
             hist_stack.GetXaxis().SetTitle(first_hist.GetXaxis().GetTitle())
-            hist_stack.GetYaxis().SetTitle(first_hist.GetYaxis().GetTitle())
+            hist_stack.GetYaxis().SetTitle(ytitle)
         
         # Canvas gets mad if min is set to zero because log(0) is issue
         ymin = 0

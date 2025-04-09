@@ -10,16 +10,22 @@ namespace DrawSliceN {
   };
 
 
+  static int max_slices = -1;
+
   int GetMaxDrawSlicePrints(max_prints n) {
+    int out = 0;
     switch (n) {
-      case disabled: return 0;
-      case handfull: return 5;
-      case few: return 20;
-      case many: return 50;
-      case tons: return 500;
-      case all: return -1;
-      default: return 0;
+      case disabled: out = 0; break;
+      case handfull: out = 5; break;
+      case few: out = 20; break;
+      case many: out = 50; break;
+      case tons: out = 1000; break;
+      case all: out = -1; break;
+      default: out = 0; break;
     }
+    // User can optionally limit the number of slices
+    if (max_slices != -1 && (out > max_slices || out < 0)) out = max_slices;
+    return out;
   }
 }
 

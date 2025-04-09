@@ -217,8 +217,9 @@
             "basic_true_ke_enter")->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);
             
             
-    REGISTER_AXIS(true_areal_density_zoom, std::make_tuple("True Areal Density (g/cm^2)", 105, 0.0, 2100.0));
-    REGISTER_AXIS(fractional_error_ke_over_density, std::make_tuple("True Areal Density / True KE (g/cm^2 / MeV)", 50, 0.3, 0.8));
+    REGISTER_AXIS(true_areal_density_zoom, std::make_tuple("True Areal Density (g/cm^2)", 70, 0.0, 2100.0));
+    REGISTER_AXIS(fractional_error_ke_over_density, std::make_tuple("True KE / Areal Density (MeV / g/cm^2)", 30, 1.4, 2.4));
+    REGISTER_AXIS(fractional_error_density_over_ke, std::make_tuple("True Areal Density / True KE (g/cm^2 / MeV)", 30, 0.3, 0.8));
     std::vector<double> de_to_try = {0.5, 0.25, 0.1, 0.01, 0.001, 0.0001};
     int de_index = 0;
     for (auto de : de_to_try) {
@@ -240,18 +241,66 @@
           if (de >= 0.1) precision = 1;
           if (de == 0.25) precision = 2;
           if (de >= 1) precision = 0;
-          GetHist(TString::Format("energy_resolution__areal_density_and_energy__slices_dev%d_normalize_to_one_nostack_%ld", de_index, ie).Data(),
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__energy_slices__energy_slices_dev%d_normalize_to_one_nostack_%ld", de_index, ie).Data(),
                   TString::Format("True Areal Density in Slices of TMS-Entering KE: %.*lf < E / GeV <= %.*lf",
                   precision, e_low, precision, e_high).Data(),
                   "true_areal_density_zoom", "Normalized Frequency")->Fill(true_areal_density_of_highest);
           double fractional_ke_over_density = true_areal_density_of_highest / (highest_true_muon_starting_ke * 1000);
-          GetHist(TString::Format("energy_resolution__areal_density_and_energy__fractional_ke_over_density_slices_dev%d_normalize_to_probability_nostack_%ld", de_index, ie).Data(),
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__energy_slices__energy_fractional_ke_over_density_slices_dev%d_normalize_to_probability_nostack_%ld", de_index, ie).Data(),
                   TString::Format("True Areal Density / KE in Slices of TMS-Entering KE: %.*lf < E / GeV <= %.*lf",
                   precision, e_low, precision, e_high).Data(),
-                  "fractional_error_ke_over_density", "Probability")->Fill(fractional_ke_over_density);
+                  "fractional_error_density_over_ke", "Probability")->Fill(fractional_ke_over_density);
         }
       }
       de_index += 1;
+    }
+            
+            
+    REGISTER_AXIS(true_kinetic_energy_zoom, std::make_tuple("True TMS-Entering KE (GeV)", 60, 0.0, 4.5));
+    int da_index = 0;
+    std::vector<double> density_slices;
+    double density_change = 2400 / 6;
+    for (int id = 0; id < 6; id++) {
+      double density = (id + 0.5) * density_change;
+      density_slices.push_back(density);
+    }
+    std::vector<double> da_to_try = {density_change, density_change * 0.05, 50, 20, 10};
+    for (auto dd : da_to_try) {
+      std::vector<double> density_slices_high;
+      std::vector<double> density_slices_low;
+      for (auto slice_d : density_slices) {
+        double offset_to_use = 0;
+        if (da_index == 0) offset_to_use = -0.5 * density_change;
+        if (da_index == 1) offset_to_use = 0;
+        if (da_index == 2) offset_to_use = 0;
+        if (da_index == 3) offset_to_use = 0;
+        if (da_index == 4) offset_to_use = 0;
+        density_slices_high.push_back(slice_d + dd + offset_to_use);
+        density_slices_low.push_back(slice_d + offset_to_use);
+      }
+      for (size_t id = 0; id < density_slices_low.size(); id++) {
+        double d_low = density_slices_low.at(id);
+        double d_high = density_slices_high.at(id);
+        if (d_low < true_areal_density_of_highest && true_areal_density_of_highest <= d_high) {
+          int precision = 0;
+          if (dd >= 1) precision = 0;
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__density_slices__density_slices_dev%d_normalize_to_one_nostack_%ld", da_index, id).Data(),
+                  TString::Format("True TMS-Entering KE in Slices of True Areal Density: %.*lf < #rho / g/cm^2 <= %.*lf",
+                  precision, d_low, precision, d_high).Data(),
+                  "true_kinetic_energy_zoom", "Normalized Frequency")->Fill(highest_true_muon_starting_ke);
+          double fractional_density_over_ke = true_areal_density_of_highest / (highest_true_muon_starting_ke * 1000);
+          double fractional_ke_over_density = highest_true_muon_starting_ke * 1000 / true_areal_density_of_highest;
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__density_slices__density_fractional_ke_over_density_slices_dev%d_normalize_to_probability_nostack_%ld", da_index, id).Data(),
+                  TString::Format("True KE / Areal Density in Slices of True Areal Density: %.*lf < #rho / g/cm^2 <= %.*lf",
+                  precision, d_low, precision, d_high).Data(),
+                  "fractional_error_ke_over_density", "Probability")->Fill(fractional_ke_over_density);
+          GetHist(TString::Format("energy_resolution__areal_density_and_energy__density_slices__density_fractional_density_over_ke_slices_dev%d_normalize_to_probability_nostack_%ld", da_index, id).Data(),
+                  TString::Format("True Areal Density / KE in Slices of True Areal Density: %.*lf < #rho / g/cm^2 <= %.*lf",
+                  precision, d_low, precision, d_high).Data(),
+                  "fractional_error_density_over_ke", "Probability")->Fill(fractional_density_over_ke);
+        }
+      }
+      da_index += 1;
     }
     
     //    

@@ -11,8 +11,10 @@ if len(sys.argv) < 2:
 filename = sys.argv[1]
 tf = ROOT.TFile(filename)
 assert not tf.IsZombie(), f"Had issue opening file {filename}"
-hists = ["event_rates__tms__tms_event_rates", "event_rates__tms__tms_event_rates_lar_active", "event_rates__tms__tms_event_rates_by_vertex",
-         "event_rates__tms__tms_muon_reco_rates", "event_rates__tms__tms_muon_reco_rates_lar_active_region",
+hists = ["event_rates__tms__tms_event_rates_with_shell_cut", "event_rates__tms__tms_event_rates",
+         "event_rates__tms__tms_event_rates_lar_active", "event_rates__tms__tms_event_rates_by_vertex",
+         "event_rates__tms__tms_muon_reco_rates_with_shell_cut", "event_rates__tms__tms_muon_reco_rates",
+         "event_rates__tms__tms_muon_reco_rates_lar_active_region", "event_rates__reco_pdg__pdg_with_shell_cut",
          "event_rates__reco_pdg__pdg", "event_rates__reco_pdg__pdg_lar_active_region"]
 for name in hists:
     h = tf.Get(name)
