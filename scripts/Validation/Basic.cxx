@@ -1,4 +1,5 @@
 {
+  // raw variables
   // Fill some basic "raw" variables from the reco tree
   GetHist("basic__raw__EventNo", "EventNo", "EventNo", "#N Slices")
       ->Fill(reco.EventNo);
@@ -168,6 +169,7 @@
     }*/
   }
 
+  // "Fixed" variables
   for (int it = 0; it < reco.nTracks; it++) {
     GetHist("basic__fixed__nKalmanNodes", "nKalmanNodes", "n0-120", "#N Tracks")
         ->Fill(reco.nKalmanNodes[it]);
@@ -251,6 +253,8 @@
             ->Fill(hit_flag_y);
     }
   }
+  
+  // Truth variables
   REGISTER_AXIS(HitEnergy, std::make_tuple("Hit Energy (MeV)", 51, 0, 100));
   REGISTER_AXIS(
       TrueVisibleEnergy,
