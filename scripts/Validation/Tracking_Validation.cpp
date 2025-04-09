@@ -352,8 +352,12 @@ bool LArFiducialCut(TVector3 position, double distance = 500,
 
 bool NDPhysicsMuon(Truth_Info &truth, Reco_Tree &reco, int track) {
   bool out = true;
+  // Must start in the LAr fiducial volume
   if (!truth.RecoTrackPrimaryParticleLArFiducialStart[track]) out = false;
+  // Must end in the TMS
   if (!truth.RecoTrackPrimaryParticleTMSFiducialEnd[track]) out = false;
+  // Must be muon
+  if (std::abs(truth.RecoTrackPrimaryParticlePDG[track]) != 13) out = false;
   // Hadonic E in LAr shell > 30 MeV
   if (truth.LArOuterShellEnergyFromVertex > 30) out = false;
   (void)reco;
