@@ -416,49 +416,49 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     }
 
     // Fill some basic "raw" variables from the reco tree
-    GetHist("basic__raw__EventNo", "EventNo", "EventNo")->Fill(reco.EventNo);
-    GetHist("basic__raw__SliceNo", "SliceNo", "SliceNo")->Fill(reco.SliceNo);
-    GetHist("basic__raw__SpillNo", "SpillNo", "SpillNo")->Fill(reco.SpillNo);
+    GetHist("basic__raw__EventNo", "EventNo", "EventNo", "#N Slices")->Fill(reco.EventNo);
+    GetHist("basic__raw__SliceNo", "SliceNo", "SliceNo", "#N Slices")->Fill(reco.SliceNo);
+    GetHist("basic__raw__SpillNo", "SpillNo", "SpillNo", "#N Slices")->Fill(reco.SpillNo);
 
-    GetHist("basic__raw__ntracks", "N Reco Tracks", "ntracks")
+    GetHist("basic__raw__ntracks", "N Reco Tracks", "ntracks", "#N Slices")
         ->Fill(reco.nTracks);
     for (int it = 0; it < reco.nTracks; it++) {
       GetHist("basic__raw__nHits", "nHits", "n0-120")->Fill(reco.nHits[it]);
       GetHist("basic__raw__nKalmanNodes", "nKalmanNodes", "n0-120")
           ->Fill(reco.nKalmanNodes[it]);
       for (int ih = 0; ih < reco.nHits[it]; ih++) {
-        GetHist("basic__raw__TrackHitPos_X", "TrackHitPos X", "X")
+        GetHist("basic__raw__TrackHitPos_X", "TrackHitPos X", "X", "#N Hits")
             ->Fill(reco.TrackHitPos[it][ih][0] * CM);
-        GetHist("basic__raw__TrackHitPos_Y", "TrackHitPos Y", "Y")
+        GetHist("basic__raw__TrackHitPos_Y", "TrackHitPos Y", "Y", "#N Hits")
             ->Fill(reco.TrackHitPos[it][ih][1] * CM);
-        GetHist("basic__raw__TrackHitPos_Z", "TrackHitPos Z", "Z")
+        GetHist("basic__raw__TrackHitPos_Z", "TrackHitPos Z", "Z", "#N Hits")
             ->Fill(reco.TrackHitPos[it][ih][2] * CM);
       }
       for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
-        GetHist("basic__raw__KalmanPos_X", "KalmanPos X", "X")
+        GetHist("basic__raw__KalmanPos_X", "KalmanPos X", "X", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][0] * CM);
-        GetHist("basic__raw__KalmanPos_Y", "KalmanPos Y", "Y")
+        GetHist("basic__raw__KalmanPos_Y", "KalmanPos Y", "Y", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][1] * CM);
-        GetHist("basic__raw__KalmanPos_Z", "KalmanPos Z", "Z")
+        GetHist("basic__raw__KalmanPos_Z", "KalmanPos Z", "Z", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][2] * CM);
-        GetHist("basic__raw__KalmanTruePos_X", "KalmanTruePos X", "X")
+        GetHist("basic__raw__KalmanTruePos_X", "KalmanTruePos X", "X", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][0] * CM);
-        GetHist("basic__raw__KalmanTruePos_Y", "KalmanTruePos Y", "Y")
+        GetHist("basic__raw__KalmanTruePos_Y", "KalmanTruePos Y", "Y", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][1] * CM);
-        GetHist("basic__raw__KalmanTruePos_Z", "KalmanTruePos Z", "Z")
+        GetHist("basic__raw__KalmanTruePos_Z", "KalmanTruePos Z", "Z", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][2] * CM);
       }
-      GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx")
+      GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx", "#N Tracks")
           ->Fill(reco.StartDirection[it][0]);
-      GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy")
+      GetHist("basic__raw__StartDirection_Y", "StartDirection Y", "dy", "#N Tracks")
           ->Fill(reco.StartDirection[it][1]);
-      GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz")
+      GetHist("basic__raw__StartDirection_Z", "StartDirection Z", "dz", "#N Tracks")
           ->Fill(reco.StartDirection[it][2]);
-      GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx")
+      GetHist("basic__raw__EndDirection_X", "EndDirection X", "dx", "#N Tracks")
           ->Fill(reco.EndDirection[it][0]);
-      GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy")
+      GetHist("basic__raw__EndDirection_Y", "EndDirection Y", "dy", "#N Tracks")
           ->Fill(reco.EndDirection[it][1]);
-      GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz")
+      GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz", "#N Tracks")
           ->Fill(reco.EndDirection[it][2]);
 
       REGISTER_AXIS(DirectionSanityCheck,
@@ -479,10 +479,10 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
       //   std::cout<<"Warning: Found end_direction_mag outside of 1.
       //   "<<end_direction_mag<<std::endl;
       GetHist("basic__sanity__StartDirectionMag", "StartDirection Mag",
-              "DirectionSanityCheck")
+              "DirectionSanityCheck", "#N Tracks")
           ->Fill(start_direction_mag);
       GetHist("basic__sanity__EndDirectionMag", "EndDirection Mag",
-              "DirectionSanityCheck")
+              "DirectionSanityCheck", "#N Tracks")
           ->Fill(end_direction_mag);
       if (std::abs(reco.StartDirection[it][1]) > 1)
         std::cout << "big y dir: " << reco.StartDirection[it][0] << ","
@@ -506,28 +506,28 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                   TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
                   lc, truth, DrawSliceN::many);
 
-      GetHist("basic__raw__StartPos_X", "StartPos X", "X")
+      GetHist("basic__raw__StartPos_X", "StartPos X", "X", "#N Tracks")
           ->Fill(reco.StartPos[it][0] * CM);
-      GetHist("basic__raw__StartPos_Y", "StartPos Y", "Y")
+      GetHist("basic__raw__StartPos_Y", "StartPos Y", "Y", "#N Tracks")
           ->Fill(reco.StartPos[it][1] * CM);
-      GetHist("basic__raw__StartPos_Z", "StartPos Z", "Z")
+      GetHist("basic__raw__StartPos_Z", "StartPos Z", "Z", "#N Tracks")
           ->Fill(reco.StartPos[it][2] * CM);
-      GetHist("basic__raw__EndPos_X", "EndPos X", "X")
+      GetHist("basic__raw__EndPos_X", "EndPos X", "X", "#N Tracks")
           ->Fill(reco.EndPos[it][0] * CM);
-      GetHist("basic__raw__EndPos_Y", "EndPos Y", "Y")
+      GetHist("basic__raw__EndPos_Y", "EndPos Y", "Y", "#N Tracks")
           ->Fill(reco.EndPos[it][1] * CM);
-      GetHist("basic__raw__EndPos_Z", "EndPos Z", "Z")
+      GetHist("basic__raw__EndPos_Z", "EndPos Z", "Z", "#N Tracks")
           ->Fill(reco.EndPos[it][2] * CM);
 
-      GetHist("basic__raw__Charge", "Charge", "charge")->Fill(reco.Charge[it]);
+      GetHist("basic__raw__Charge", "Charge", "charge", "#N Tracks")->Fill(reco.Charge[it]);
       GetHist("basic__raw__Length", "Areal Density, AKA Length",
-              "areal_density")
+              "areal_density", "#N Tracks")
           ->Fill(reco.Length[it]);
-      GetHist("basic__raw__Momentum", "Momentum", "momentum")
+      GetHist("basic__raw__Momentum", "Momentum", "momentum", "#N Tracks")
           ->Fill(reco.Momentum[it]);
-      GetHist("basic__raw__EnergyRange", "EnergyRange", "energy_range")
+      GetHist("basic__raw__EnergyRange", "EnergyRange", "energy_range", "#N Tracks")
           ->Fill(reco.EnergyRange[it]);
-      GetHist("basic__raw__EnergyDeposit", "EnergyDeposit", "energy_deposit")
+      GetHist("basic__raw__EnergyDeposit", "EnergyDeposit", "energy_deposit", "#N Tracks")
           ->Fill(reco.EnergyDeposit[it]);
     }
     // TODO finish adding these vars
@@ -596,33 +596,33 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     }
 
     for (int it = 0; it < reco.nTracks; it++) {
-      GetHist("basic__fixed__nKalmanNodes", "nKalmanNodes", "n0-120")
+      GetHist("basic__fixed__nKalmanNodes", "nKalmanNodes", "n0-120", "#N Tracks")
           ->Fill(reco.nKalmanNodes[it]);
       for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
-        GetHist("basic__fixed__KalmanPos_X", "KalmanPos X", "X")
+        GetHist("basic__fixed__KalmanPos_X", "KalmanPos X", "X", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][0] * CM);
-        GetHist("basic__fixed__KalmanPos_Y", "KalmanPos Y", "Y")
+        GetHist("basic__fixed__KalmanPos_Y", "KalmanPos Y", "Y", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][1] * CM);
-        GetHist("basic__fixed__KalmanPos_Z", "KalmanPos Z", "Z")
+        GetHist("basic__fixed__KalmanPos_Z", "KalmanPos Z", "Z", "#N Nodes")
             ->Fill(reco.KalmanPos[it][ih][2] * CM);
-        GetHist("basic__fixed__KalmanTruePos_X", "KalmanTruePos X", "X")
+        GetHist("basic__fixed__KalmanTruePos_X", "KalmanTruePos X", "X", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][0] * CM);
-        GetHist("basic__fixed__KalmanTruePos_Y", "KalmanTruePos Y", "Y")
+        GetHist("basic__fixed__KalmanTruePos_Y", "KalmanTruePos Y", "Y", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][1] * CM);
-        GetHist("basic__fixed__KalmanTruePos_Z", "KalmanTruePos Z", "Z")
+        GetHist("basic__fixed__KalmanTruePos_Z", "KalmanTruePos Z", "Z", "#N Nodes")
             ->Fill(reco.KalmanTruePos[it][ih][2] * CM);
       }
-      GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx")
+      GetHist("basic__fixed__StartDirection_X", "StartDirection X", "dx", "#N Tracks")
           ->Fill(reco.StartDirection[it][0]);
-      GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy")
+      GetHist("basic__fixed__StartDirection_Y", "StartDirection Y", "dy", "#N Tracks")
           ->Fill(reco.StartDirection[it][1]);
-      GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz")
+      GetHist("basic__fixed__StartDirection_Z", "StartDirection Z", "dz", "#N Tracks")
           ->Fill(reco.StartDirection[it][2]);
-      GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx")
+      GetHist("basic__fixed__EndDirection_X", "EndDirection X", "dx", "#N Tracks")
           ->Fill(reco.EndDirection[it][0]);
-      GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy")
+      GetHist("basic__fixed__EndDirection_Y", "EndDirection Y", "dy", "#N Tracks")
           ->Fill(reco.EndDirection[it][1]);
-      GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz")
+      GetHist("basic__fixed__EndDirection_Z", "EndDirection Z", "dz", "#N Tracks")
           ->Fill(reco.EndDirection[it][2]);
 
       // Check for reco hits outside the TMS scint volume
@@ -657,15 +657,15 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         }
         if (hit_flag_z != -1)
           GetHist("basic__sanity__Unusual_Reco_Hit_Locations_Z",
-                  "Unusual Reco Hit Locations Z", "unusual_hit_locations")
+                  "Unusual Reco Hit Locations Z", "unusual_hit_locations", "#N Nodes")
               ->Fill(hit_flag_z);
         if (hit_flag_x != -1)
           GetHist("basic__sanity__Unusual_Reco_Hit_Locations_X",
-                  "Unusual Reco Hit Locations X", "unusual_hit_locations")
+                  "Unusual Reco Hit Locations X", "unusual_hit_locations", "#N Nodes")
               ->Fill(hit_flag_x);
         if (hit_flag_y != -1)
           GetHist("basic__sanity__Unusual_Reco_Hit_Locations_Y",
-                  "Unusual Reco Hit Locations Y", "unusual_hit_locations")
+                  "Unusual Reco Hit Locations Y", "unusual_hit_locations", "#N Nodes")
               ->Fill(hit_flag_y);
       }
     }
@@ -700,13 +700,13 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         std::make_tuple("Hit Hadronic Energy Per Vertex In Shell (MeV)", 20, 0,
                         200));
     if (on_new_spill) {
-      GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500")
+      GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500", "#N Spills")
           ->Fill(truth.nTrueParticles);
       GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles",
-              "n0-500")
+              "n0-500", "#N Spills")
           ->Fill(truth.nTruePrimaryParticles);
       GetHist("basic__truth__nTrueForgottenParticles",
-              "nTrueForgottenParticles", "n0-120")
+              "nTrueForgottenParticles", "n0-120", "#N Spills")
           ->Fill(truth.nTrueForgottenParticles);
 
       std::map<int, bool> vertex_id_to_fiducial;
@@ -722,227 +722,55 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         }
       }
 
-      float total_energy = 0;
-      float total_hadronic_energy = 0;
-      std::map<int, float> total_hadronic_energy_per_vertex;
-      std::map<int, float> total_energy_per_vertex;
-      std::map<int, float> total_hadronic_energy_per_vertex_in_shell;
-
-      if (truth.HasBranch("TrueNonTMSNHits")) {
-        for (int ih = 0; ih < truth.TrueNonTMSNHits; ih++) {
-          // Only care about above 0.5 MeV
-          bool fiducial = false;
-          int vid = truth.TrueNonTMSHitVertexID[ih];
-          if (vertex_id_to_fiducial.find(vid) != vertex_id_to_fiducial.end())
-            fiducial = vertex_id_to_fiducial[vid];
-          if (truth.TrueNonTMSHitEnergy[ih] >= 0.5 && fiducial) {
-            GetHist("basic__truth__nontms_hits__hit_energy",
-                    "TrueNonTMSHitEnergy", "HitEnergy")
-                ->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_energy_zoom",
-                    "TrueNonTMSHitEnergy", "HitEnergy_zoom")
-                ->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_hadronic_energy",
-                    "TrueNonTMSHitHadronicEnergy", "HitHadronicEnergy")
-                ->Fill(truth.TrueNonTMSHitHadronicEnergy[ih]);
-            GetHist("basic__truth__nontms_hits__hit_dedx", "TrueNonTMSHitdEdx",
-                    "Hitdedx")
-                ->Fill(truth.TrueNonTMSHitdEdx[ih] /
-                       CM); // in MeV / mm natively
-            GetHist("basic__truth__nontms_hits__hit_x", "TrueNonTMSHitPosX",
-                    "X")
-                ->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-            GetHist("basic__truth__nontms_hits__hit_y", "TrueNonTMSHitPosY",
-                    "Y_full")
-                ->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-            GetHist("basic__truth__nontms_hits__hit_z", "TrueNonTMSHitPosZ",
-                    "Z_full")
-                ->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
-
-            total_energy += truth.TrueNonTMSHitEnergy[ih];
-            total_hadronic_energy += truth.TrueNonTMSHitHadronicEnergy[ih];
-            total_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] +=
-                truth.TrueNonTMSHitEnergy[ih];
-            total_hadronic_energy_per_vertex[truth.TrueNonTMSHitVertexID[ih]] +=
-                truth.TrueNonTMSHitHadronicEnergy[ih];
-            // Get position in CM
-            TVector3 position(truth.TrueNonTMSHitPos[ih][0] * CM,
-                              truth.TrueNonTMSHitPos[ih][1] * CM,
-                              truth.TrueNonTMSHitPos[ih][2] * CM);
-            // Want to check if in shell, so check if inside lar but not inside
-            // the lar using the shell buffer size of 30 cm
-            bool hit_in_shell = IsInLAr(position, LArFull) &&
-                                !IsInLAr(position, LArUsingShellBuffer);
-            // std::cout<<"IsInLAr(position, LArFull): "<<IsInLAr(position,
-            // LArFull)<<", IsInLAr(position, LArUsingShellBuffer):
-            // "<<IsInLAr(position, LArUsingShellBuffer)<<", IsInLAr(position,
-            // LArFull) && !IsInLAr(position, LArUsingShellBuffer):
-            // "<<(IsInLAr(position, LArFull) && !IsInLAr(position,
-            // LArUsingShellBuffer))<<std::endl;
-            if (hit_in_shell)
-              total_hadronic_energy_per_vertex_in_shell
-                  [truth.TrueNonTMSHitVertexID[ih]] +=
-                  truth.TrueNonTMSHitHadronicEnergy[ih];
-
-            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5)
-              GetHist("basic__truth__nontms_hits__high_dedx_hit_energy",
-                      "TrueNonTMSHitEnergy", "HitEnergy")
-                  ->Fill(truth.TrueNonTMSHitEnergy[ih]);
-            if (truth.TrueNonTMSHitEnergy[ih] >= 0.5)
-              GetHist("basic__truth__nontms_hits__high_e_hit_dedx",
-                      "TrueNonTMSHitdEdx", "Hitdedx")
-                  ->Fill(truth.TrueNonTMSHitdEdx[ih] /
-                         CM); // in MeV / mm natively
-
-            double weight = truth.TrueNonTMSHitEnergy[ih];
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_x",
-                    "TrueNonTMSHitPosX", "X")
-                ->Fill(truth.TrueNonTMSHitPos[ih][0] * CM, weight);
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_y",
-                    "TrueNonTMSHitPosY", "Y_full")
-                ->Fill(truth.TrueNonTMSHitPos[ih][1] * CM, weight);
-            GetHist("basic__truth__nontms_hits__energy_weighted_hit_z",
-                    "TrueNonTMSHitPosZ", "Z_full")
-                ->Fill(truth.TrueNonTMSHitPos[ih][2] * CM, weight);
-
-            if (truth.TrueNonTMSHitEnergy[ih] >= 3) {
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_x",
-                      "TrueNonTMSHitPosX", "X")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_y",
-                      "TrueNonTMSHitPosY", "Y_full")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-              GetHist("basic__truth__nontms_hits__above_3MeV_hit_z",
-                      "TrueNonTMSHitPosZ", "Z_full")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
-            }
-
-            if (truth.TrueNonTMSHitdEdx[ih] / CM >= 5) {
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_x",
-                      "TrueNonTMSHitPosX", "X")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][0] * CM);
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_y",
-                      "TrueNonTMSHitPosY", "Y_full")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][1] * CM);
-              GetHist("basic__truth__nontms_hits__dedx_above_5MeVpcm_hit_z",
-                      "TrueNonTMSHitPosZ", "Z_full")
-                  ->Fill(truth.TrueNonTMSHitPos[ih][2] * CM);
-            }
-          }
-        }
-      }
-
-      GetHist("basic__truth__nontms_hits__total_energy",
-              "Total LAr Hit Energy per Spill", "TotalEnergy")
-          ->Fill(total_energy * GEV);
-      GetHist("basic__truth__nontms_hits__total_hadronic_energy",
-              "Total LAr Hit Hadronic Energy per Spill", "TotalHadEnergy")
-          ->Fill(total_hadronic_energy * GEV);
-      GetHist("basic__truth__nontms_hits__total_ratio",
-              "Ratio of Hadronic to Total LAr Hit Energy per Spill",
-              "TotalRatio")
-          ->Fill(total_hadronic_energy / total_energy);
-      for (auto it : total_energy_per_vertex) {
-        GetHist("basic__truth__nontms_hits__per_vertex_total_energy",
-                "Total LAr Hit Energy per Vertex", "TotalEnergyPerVertex")
-            ->Fill(it.second * GEV);
-      }
-      for (auto it : total_hadronic_energy_per_vertex) {
-        GetHist("basic__truth__nontms_hits__per_vertex_total_hadronic_energy",
-                "Total LAr Hit Hadronic Energy per Vertex",
-                "TotalHadronicEnergyPerVertex")
-            ->Fill(it.second * GEV);
-      }
-      for (auto it : total_hadronic_energy_per_vertex_in_shell) {
-        GetHist("basic__truth__nontms_hits__per_vertex_shell_hadronic_energy",
-                "Shell LAr Hit Hadronic Energy per Vertex",
-                "ShellHadronicEnergyPerVertex")
-            ->Fill(it.second * GEV);
-        GetHist(
-            "basic__truth__nontms_hits__per_vertex_shell_hadronic_energy_zoom",
-            "Shell LAr Hit Hadronic Energy per Vertex Zoomed",
-            "ShellHadronicEnergyPerVertexZoom")
-            ->Fill(it.second);
-        manually_calculated_shell_hadronic_energy_per_vertex[it.first] =
-            it.second;
-        GetHist(
-            "basic__truth__nontms_hits__per_vertex_shell_hadronic_energy_cut",
-            "Shell LAr Hit Hadronic Energy per Vertex Cut Passes", "yesno")
-            ->Fill((it.second < 30) ? 0 : 1);
-      }
-
       for (int ip = 0; ip < truth.nTrueParticles; ip++) {
-        GetHist("basic__truth__PDG", "PDG", "pdg")
+        GetHist("basic__truth__PDG", "PDG", "pdg", "#N Particles")
             ->Fill(PDGtoIndex(truth.PDG[ip]));
         if (truth.IsPrimary[ip])
-          GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg")
+          GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg", "#N Particles")
               ->Fill(PDGtoIndex(truth.PDG[ip]));
         if (!truth.IsPrimary[ip])
           GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles",
-                  "pdg")
+                  "pdg", "#N Particles")
               ->Fill(PDGtoIndex(truth.PDG[ip]));
         GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy",
-                "TrueVisibleEnergy")
+                "TrueVisibleEnergy", "#N Particles")
             ->Fill(truth.TrueVisibleEnergy[ip]);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_X",
-                "RecoTrackPrimaryParticleTruePositionStart X", "X")
+                "RecoTrackPrimaryParticleTruePositionStart X", "X", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][0] * CM);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Y",
-                "RecoTrackPrimaryParticleTruePositionStart Y", "Y_full")
+                "RecoTrackPrimaryParticleTruePositionStart Y", "Y_full", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][1] * CM);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Z",
-                "RecoTrackPrimaryParticleTruePositionStart Z", "Z_full")
+                "RecoTrackPrimaryParticleTruePositionStart Z", "Z_full", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][2] * CM);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_X",
-                "RecoTrackPrimaryParticleTruePositionEnd X", "X")
+                "RecoTrackPrimaryParticleTruePositionEnd X", "X", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][0] * CM);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Y",
-                "RecoTrackPrimaryParticleTruePositionEnd Y", "Y_full")
+                "RecoTrackPrimaryParticleTruePositionEnd Y", "Y_full", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][1] * CM);
         GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z",
-                "RecoTrackPrimaryParticleTruePositionEnd Z", "Z_full")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
-
-        GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z",
-                "RecoTrackPrimaryParticleTruePositionEnd Z", "yesno")
+                "RecoTrackPrimaryParticleTruePositionEnd Z", "Z_full", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
 
         GetHist("basic__truth__RecoTrackPrimaryParticleLArFiducialStart",
-                "RecoTrackPrimaryParticleLArFiducialStart", "yesno")
+                "RecoTrackPrimaryParticleLArFiducialStart", "yesno", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleLArFiducialStart[ip] ? 0 : 1);
         GetHist("basic__truth__RecoTrackPrimaryParticleTMSFiducialEnd",
-                "RecoTrackPrimaryParticleTMSFiducialEnd", "yesno")
+                "RecoTrackPrimaryParticleTMSFiducialEnd", "yesno", "#N Particles")
             ->Fill(truth.RecoTrackPrimaryParticleTMSFiducialEnd[ip] ? 0 : 1);
-      }
-    }
-
-    {
-      int vid = truth.VertexIdOfMostEnergyInEvent;
-      if (manually_calculated_shell_hadronic_energy_per_vertex.find(vid) !=
-          manually_calculated_shell_hadronic_energy_per_vertex.end()) {
-        double shell = truth.LArOuterShellEnergyFromVertex;
-        double shell_manual =
-            manually_calculated_shell_hadronic_energy_per_vertex[vid];
-        GetHist("basic__truth__nontms_hits__comparison",
-                "Comparison of Shell Energies", "ShellHadronicEnergyPerVertex",
-                "ShellHadronicEnergyPerVertex")
-            ->Fill(shell, shell_manual);
-        GetHist("basic__truth__nontms_hits__comparison_zoom",
-                "Comparison of Shell Energies",
-                "ShellHadronicEnergyPerVertexZoom",
-                "ShellHadronicEnergyPerVertexZoom")
-            ->Fill(shell, shell_manual);
       }
     }
 
     // Truth matching information
     REGISTER_AXIS(
         completeness,
-        std::make_tuple("Track Completeness (primary on track / primary)", 20,
+        std::make_tuple("Primary on Track / in Slice", 20,
                         0, 1.01));
     REGISTER_AXIS(
         cleanliness,
-        std::make_tuple("Track Cleanliness (primary on track / total on track)",
+        std::make_tuple("Track Primary / Total",
                         20, 0, 1.01));
     REGISTER_AXIS(nhits_in_track,
                   std::make_tuple("N Hits in Track", 200, 0, 200));
@@ -951,11 +779,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     REGISTER_AXIS(n_hits_per_plane,
                   std::make_tuple("N Hits per Plane", 5, 0.5, 5.5));
     for (int it = 0; it < reco.nTracks; it++) {
-      GetHist("basic__reco_track__primary_pdg",
-              "Reco Track Primary Particle PDG", "pdg")
+      GetHist("reco_track__primary_pdg",
+              "Reco Track Primary Particle PDG", "pdg", "#N Tracks")
           ->Fill(PDGtoIndex(truth.RecoTrackPrimaryParticlePDG[it]));
-      GetHist("basic__reco_track__secondary_pdg",
-              "Reco Track Secondary Particle PDG", "pdg")
+      GetHist("reco_track__secondary_pdg",
+              "Reco Track Secondary Particle PDG", "pdg", "#N Tracks")
           ->Fill(PDGtoIndex(truth.RecoTrackSecondaryParticlePDG[it]));
       int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
       if (particle_index < 0 || particle_index >= truth.nTrueParticles) {
@@ -978,104 +806,114 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                 truth.TrueNHits[particle_index]; // Also can do TrueNHitsInSlice
         double cleanliness_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] /
                                    (double)truth.RecoTrackNHits[it];
-        GetHist("basic__reco_track__completeness_energy",
-                "Reco Track Completeness, Visible Energy", "completeness")
+        GetHist("reco_track__completeness_energy",
+                "Reco Track Completeness, Visible Energy", "completeness", "#N Tracks")
             ->Fill(completeness_energy);
-        GetHist("basic__reco_track__cleanliness_energy",
-                "Reco Track Cleanliness, Visible Energy", "cleanliness")
+        GetHist("reco_track__cleanliness_energy",
+                "Reco Track Cleanliness, Visible Energy", "cleanliness", "#N Tracks")
             ->Fill(cleanliness_energy);
-        GetHist("basic__reco_track__completeness_nhits",
-                "Reco Track Completeness, N Hits", "completeness")
+        GetHist("reco_track__completeness_nhits",
+                "Reco Track Completeness, N Hits", "completeness", "#N Tracks")
             ->Fill(completeness_nhits);
-        GetHist("basic__reco_track__cleanliness_nhits",
-                "Reco Track Cleanliness, N Hits", "cleanliness")
+        GetHist("reco_track__cleanliness_nhits",
+                "Reco Track Cleanliness, N Hits", "cleanliness", "#N Tracks")
             ->Fill(cleanliness_nhits);
 
-        GetHist("basic__reco_track__debugging__completeness_nostack_1_n_hits_"
+        GetHist("reco_track__debugging__completeness_nostack_1_n_hits_"
                 "in_track",
-                "N Hits in Track: Reco Track", "nhits_in_track")
+                "N Hits in Track: Reco Track", "nhits_in_track", "#N Tracks")
             ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-        GetHist("basic__reco_track__debugging__completeness_nostack_2_n_hits_"
+        GetHist("reco_track__debugging__completeness_nostack_2_n_hits_"
                 "in_slice",
-                "N Hits in Track: Slice", "nhits_in_track")
+                "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
             ->Fill(truth.TrueNHitsInSlice[particle_index]);
-        GetHist("basic__reco_track__debugging__completeness_nostack_3_n_hits_"
+        GetHist("reco_track__debugging__completeness_nostack_3_n_hits_"
                 "in_truth",
-                "N Hits in Track: Truth", "nhits_in_track")
+                "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
             ->Fill(truth.TrueNHits[particle_index]);
 
-        GetHist("basic__reco_track__debugging__completeness_energy_nostack_1_"
+        GetHist("reco_track__debugging__completeness_energy_nostack_1_"
                 "energy_in_track",
-                "Energy in Track: Reco Track", "energy_in_track")
+                "Energy in Track: Reco Track", "energy_in_track", "#N Tracks")
             ->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
-        GetHist("basic__reco_track__debugging__completeness_energy_nostack_2_"
+        GetHist("reco_track__debugging__completeness_energy_nostack_2_"
                 "energy_in_truth",
-                "Energy in Track: Truth", "energy_in_track")
+                "Energy in Track: Truth", "energy_in_track", "#N Tracks")
             ->Fill(truth.TrueVisibleEnergy[particle_index]);
 
         bool ismuon = std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
         if (ismuon) {
-          GetHist("basic__reco_track__debugging__muon_only_completeness_"
+          GetHist("reco_track__debugging__muon_only_completeness_"
                   "nostack_1_n_hits_in_track",
-                  "N Hits in Track: Reco Track", "nhits_in_track")
+                  "N Hits in Track: Reco Track", "nhits_in_track", "#N Tracks")
               ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-          GetHist("basic__reco_track__debugging__muon_only_completeness_"
+          GetHist("reco_track__debugging__muon_only_completeness_"
                   "nostack_2_n_hits_in_slice",
-                  "N Hits in Track: Slice", "nhits_in_track")
+                  "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
               ->Fill(truth.TrueNHitsInSlice[particle_index]);
-          GetHist("basic__reco_track__debugging__muon_only_completeness_"
+          GetHist("reco_track__debugging__muon_only_completeness_"
                   "nostack_3_n_hits_in_truth",
-                  "N Hits in Track: Truth", "nhits_in_track")
+                  "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
               ->Fill(truth.TrueNHits[particle_index]);
 
-          GetHist("basic__reco_track__debugging__muon_only_completeness_energy_"
+          GetHist("reco_track__debugging__muon_only_completeness_energy_"
                   "nostack_1_energy_in_track",
-                  "Energy in Track: Reco Track", "energy_in_track")
+                  "Energy in Track: Reco Track", "energy_in_track", "#N Tracks")
               ->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
-          GetHist("basic__reco_track__debugging__muon_only_completeness_energy_"
+          GetHist("reco_track__debugging__muon_only_completeness_energy_"
                   "nostack_2_energy_in_truth",
-                  "Energy in Track: Truth", "energy_in_track")
+                  "Energy in Track: Truth", "energy_in_track", "#N Tracks")
               ->Fill(truth.TrueVisibleEnergy[particle_index]);
         }
 
         if (ismuon && reco.nTracks == 1) {
-          GetHist("basic__reco_track__debugging__single_muon_completeness_"
+          GetHist("reco_track__debugging__single_muon_completeness_"
                   "nostack_1_n_hits_in_track",
-                  "N Hits in Track: Reco Track", "nhits_in_track")
+                  "N Hits in Track: Reco Track", "nhits_in_track", "#N Tracks")
               ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-          GetHist("basic__reco_track__debugging__single_muon_completeness_"
+          GetHist("reco_track__debugging__single_muon_completeness_"
                   "nostack_2_n_hits_in_slice",
-                  "N Hits in Track: Slice", "nhits_in_track")
+                  "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
               ->Fill(truth.TrueNHitsInSlice[particle_index]);
-          GetHist("basic__reco_track__debugging__single_muon_completeness_"
+          GetHist("reco_track__debugging__single_muon_completeness_"
                   "nostack_3_n_hits_in_truth",
-                  "N Hits in Track: Truth", "nhits_in_track")
+                  "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
               ->Fill(truth.TrueNHits[particle_index]);
           {
             std::map<double, int> count;
-            for (int ih = 0; ih < lc.nHits; ih++)
+            for (int ih = 0; ih < lc.nHits; ih++) {
               count[lc.RecoHitPos[ih][2]] += 1;
+              if (count[lc.RecoHitPos[ih][2]] == 2) 
+                GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_planes",
+                      "Z Pos with Two or More Hits in Plane", "Z", "#Count")
+                  ->Fill(lc.RecoHitPos[ih][2] * CM);
+            }
             for (auto &plane : count) {
-              GetHist("basic__reco_track__debugging__n_hits_in_plane",
-                      "Hits per plane: All Reco Hits", "n_hits_per_plane")
+              GetHist("reco_track__debugging__n_hits_in_plane",
+                      "Hits per plane: All Reco Hits", "n_hits_per_plane", "#Count")
                   ->Fill(plane.second);
-              GetHist("basic__reco_track__debugging__n_hits_in_plane_both_"
+              GetHist("reco_track__debugging__n_hits_in_plane_both_"
                       "nostack_1_all_hits",
-                      "Hits per plane: All Reco Hits", "n_hits_per_plane")
+                      "Hits per plane: All Reco Hits", "n_hits_per_plane", "#Count")
                   ->Fill(plane.second);
             }
           }
           {
             std::map<double, int> count;
-            for (int ih = 0; ih < reco.nHits[0]; ih++)
+            for (int ih = 0; ih < reco.nHits[0]; ih++) {
               count[reco.TrackHitPos[0][ih][2]] += 1;
+              if (count[reco.TrackHitPos[0][ih][2]] == 2) 
+                GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_planes_in_track",
+                      "Z Pos with Two or More Hits in Plane in Track", "Z", "#Count")
+                  ->Fill(reco.TrackHitPos[0][ih][2] * CM);
+            }
             for (auto &plane : count) {
-              GetHist("basic__reco_track__debugging__n_hits_in_plane_track",
-                      "Hits per plane: In Track", "n_hits_per_plane")
+              GetHist("reco_track__debugging__n_hits_in_plane_track",
+                      "Hits per plane: In Track", "n_hits_per_plane", "#Count")
                   ->Fill(plane.second);
-              GetHist("basic__reco_track__debugging__n_hits_in_plane_both_"
+              GetHist("reco_track__debugging__n_hits_in_plane_both_"
                       "nostack_2_track",
-                      "Hits per plane: In Tracks", "n_hits_per_plane")
+                      "Hits per plane: In Tracks", "n_hits_per_plane", "#Count")
                   ->Fill(plane.second);
             }
           }
@@ -1373,54 +1211,6 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
       }
 
     } // end if (truth.HasBranch("LArOuterShellEnergy")) {
-
-    REGISTER_AXIS(energy_resolution,
-                  std::make_tuple("Energy Resolution (Reco - True) / True", 21,
-                                  -0.4, 0.4));
-    for (int it = 0; it < reco.nTracks; it++) {
-      bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
-      if (ismuon) {
-        double muon_starting_ke =
-            truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
-        double estimated_reco_ke = (82 + 1.75 * reco.Length[it]) * 1e-3;
-        double resolution = estimated_reco_ke - muon_starting_ke;
-        double fractional_resolution = resolution / muon_starting_ke;
-
-        GetHist("resolution__muon_ke", "Muon KE Resolution",
-                "energy_resolution")
-            ->Fill(fractional_resolution);
-        if (muon_starting_ke <= 0.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_1_le05",
-                  "Muon KE Resolution: True P_{#mu}/GeV<0.5",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-        if (0.5 < muon_starting_ke && muon_starting_ke <= 1.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_2_gt05_le15",
-                  "Muon KE Resolution: 0.5<True P_{#mu}/GeV<1.5",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-        if (1.5 < muon_starting_ke && muon_starting_ke <= 2.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_3_gt15_le25",
-                  "Muon KE Resolution: 1.5<True P_{#mu}/GeV<2.5",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-        if (2.5 < muon_starting_ke && muon_starting_ke <= 3.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_4_gt25_le35",
-                  "Muon KE Resolution: 2.5<True P_{#mu}/GeV<3.5",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-        if (3.5 < muon_starting_ke && muon_starting_ke <= 4.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_5_gt35_le45",
-                  "Muon KE Resolutionn: 3.5<True P_{#mu}/GeV<4.5",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-        if (muon_starting_ke > 4.5)
-          GetHist("resolution__muon_ke_binned_area_norm_nostack_6_gt45",
-                  "Muon KE Resolution: 4.5<True P_{#mu}/GeV",
-                  "energy_resolution")
-              ->Fill(fractional_resolution);
-      }
-    }
 
     REGISTER_AXIS(
         hit_position_resolution_x,

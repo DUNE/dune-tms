@@ -124,11 +124,11 @@
           if (ismuon)
             std::cout
                 << "Warning: Found muon reconstructed multiple times in spill: "
-                << particle_starting_ke << std::endl;
+                << particle_starting_ke << " GeV" << std::endl;
           else
             std::cout << "Warning: Found non-muon reconstructed multiple times "
                          "in spill: "
-                      << particle_starting_ke << std::endl;
+                      << particle_starting_ke << " GeV" << std::endl;
           if (ismuon) {
             GetHist("reco_eff__multi_reco__muons",
                     "Muons which were reconstructed more than once",
