@@ -1,5 +1,8 @@
 // Add scope to avoid cross talk with other scripts
 {
+  REGISTER_AXIS(energy_resolution,
+                std::make_tuple("Energy Resolution (Reco - True) / True", 21,
+                                -0.4, 0.4));
   // True muon that starts in LAr and ends in TMS
   bool passes_truth_cuts = true;
   // Reco starts in front of TMS, and end is inside containment zone far from
