@@ -12,7 +12,7 @@
                                                  20, -330.0, 330.0));
   REGISTER_AXIS(
       muon_startpoint_z,
-      std::make_tuple("True Muon Startpoint Z (cm)", 20, 1136.0, 1831.0));
+      std::make_tuple("True Muon Startpoint Z (cm)", 20, 1036.0, 1831.0));
   REGISTER_AXIS(
       muon_startpoint_y,
       std::make_tuple("True Muon Startpoint Y (cm)", 20, -216.0, 16.0));
@@ -37,12 +37,12 @@
               ->Fill(particle_starting_ke);
           GetHist("reco_eff__all_muon_ke_tms_enter_denominator",
                   "Reco Efficiency vs True KE, All Muons: Denominator",
-                  "ke_tms")
+                  "ke_tms_enter")
               ->Fill(particle_starting_ke);
           GetHist(
               "reco_eff__all_muon_ke_tms_enter_including_doubles_denominator",
               "Reco Efficiency w/2x vs True KE, All Muons: Denominator",
-              "ke_tms")
+              "ke_tms_enter")
               ->Fill(particle_starting_ke);
           GetHist("reco_eff__all_muon_ke_denominator",
                   "Reco Efficiency vs True KE, All Muons: Denominator",
@@ -179,23 +179,23 @@
 
         GetHist("reco_eff__endpoint__muon_endpoint_x_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_x")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][0] * CM);
+            ->Fill(truth.PositionTMSEnd[ip][0] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_y_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_y")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][1] * CM);
+            ->Fill(truth.PositionTMSEnd[ip][1] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_z")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][2] * CM);
+            ->Fill(truth.PositionTMSEnd[ip][2] * CM);
 
         GetHist("reco_eff__startpoint__muon_startpoint_x_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_x")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[it][0] * CM);
+            ->Fill(truth.PositionTMSStart[ip][0] * CM);
         GetHist("reco_eff__startpoint__muon_startpoint_y_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_y")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[it][1] * CM);
+            ->Fill(truth.PositionTMSStart[ip][1] * CM);
         GetHist("reco_eff__startpoint__muon_startpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_z")
-            ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[it][2] * CM);
+            ->Fill(truth.PositionTMSStart[ip][2] * CM);
       }
       if (ispion && not_double_reco)
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator",

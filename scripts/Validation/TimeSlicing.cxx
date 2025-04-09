@@ -13,16 +13,16 @@
   GetHist("time_slicing__slice_completeness",
           "Slice Cleanliness, ie. How much of E_{Vis} in Slice is from Primary "
           "Int?",
-          "slice_cleanliness")
+          "slice_cleanliness", "#Number of Slices")
       ->Fill(bound_within_1(truth.PrimaryVertexVisibleEnergyFraction));
   GetHist(
       "time_slicing__slice_cleanliness",
       "Slice Completeness, ie. How much of Primary Int.'s E_{Vis} is in Slice?",
-      "slice_completeness")
+      "slice_completeness", "#Number of Slices")
       ->Fill(bound_within_1(truth.VertexVisibleEnergyFractionInSlice));
   GetHist("time_slicing__slice_cleanliness_times_completeness",
           "Slice Completeness Times Completeness",
-          "slice_cleanliness_times_completeness")
+          "slice_cleanliness_times_completeness", "#Number of Slices")
       ->Fill(bound_within_1(truth.VertexVisibleEnergyFractionInSlice *
                             truth.PrimaryVertexVisibleEnergyFraction));
 }

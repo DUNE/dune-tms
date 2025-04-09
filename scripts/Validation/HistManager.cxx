@@ -315,8 +315,7 @@ TH1 *MakeHist(std::string directory_and_name, std::string title,
     // 3d hist case
     throw std::runtime_error("3d hists are not implemented yet");
   } else if (yaxis != "" && yaxis != "Probability" &&
-             yaxis != "Normalized Frequency") { // Figure out solution for y
-                                                // axis label vs 2d hists
+             yaxis != "Normalized Frequency" && yaxis.find("#") != 0) {
     // 2d hist case
     TH2D *out;
 
@@ -385,6 +384,7 @@ TH1 *MakeHist(std::string directory_and_name, std::string title,
     }
     // Add special naming here
     AdjustAxis(out, xaxis);
+    if (yaxis.find("#") == 0) yaxis = yaxis.substr(1, yaxis.size()-1);
     out->GetYaxis()->SetTitle(yaxis.c_str());
     return out;
   }
