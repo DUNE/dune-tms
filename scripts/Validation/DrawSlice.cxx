@@ -116,16 +116,16 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     canvas->Divide(1, 2);
     for (size_t i = 1; i <= 2; i++) {
       auto pad = canvas->cd(i);
-      pad->SetLeftMargin(0.4);
+      pad->SetLeftMargin(0.42);
       pad->SetRightMargin(0.02);
     }
   }
 
   float buffer = 0;
-  TH2D hist("", "X vs Z View;Z (mm);X (mm);N Hits", 100, 11000 - buffer,
-            19000 + buffer, 100, -4000 - buffer, 4000 + buffer);
-  TH2D histy("", "Y vs Z View;Z (mm);Y (mm);N Hits", 100, 11000 - buffer,
-             19000 + buffer, 100, -5000 - buffer, 1000 + buffer);
+  TH2D hist("", "X vs Z View;Z (cm);X (cm);N Hits", 100, 1100 - buffer,
+            1900 + buffer, 100, -400 - buffer, 400 + buffer);
+  TH2D histy("", "Y vs Z View;Z (cm);Y (cm);N Hits", 100, 1100 - buffer,
+             1900 + buffer, 100, -500 - buffer, 100 + buffer);
   ConfigureHist(hist);
   ConfigureHist(histy);
   const double titleh = 0.09;
@@ -144,7 +144,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       {
         float mx = truth.TrueHitZ[ih];
         float my = truth.TrueHitX[ih];
-        TMarker marker(mx, my, 21);
+        TMarker marker(mx * CM, my * CM, 21);
         marker.SetMarkerColor(kGreen + 2);
         marker.SetMarkerStyle(33);
         marker.SetMarkerSize(0.75);
@@ -153,7 +153,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       {
         float mx = truth.TrueHitZ[ih];
         float my = truth.TrueHitY[ih];
-        TMarker marker(mx, my, 21);
+        TMarker marker(mx * CM, my * CM, 21);
         marker.SetMarkerColor(kGreen + 2);
         marker.SetMarkerStyle(33);
         marker.SetMarkerSize(0.75);
@@ -173,14 +173,14 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     {
       float mx = lc.RecoHitPos[ih][2];
       float my = lc.RecoHitPos[ih][0];
-      TMarker marker(mx, my, 21);
+      TMarker marker(mx * CM, my * CM, 21);
       marker.SetMarkerStyle(21);
       markers.push_back(marker);
     }
     {
       float mx = lc.RecoHitPos[ih][2];
       float my = lc.RecoHitPos[ih][1];
-      TMarker marker(mx, my, 21);
+      TMarker marker(mx * CM, my * CM, 21);
       markersy.push_back(marker);
     }
   }
@@ -196,7 +196,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
           float my = truth.RecoTrackTrueHitPosition[it][ih][0];
-          TMarker marker(mx, my, 21);
+          TMarker marker(mx * CM, my * CM, 21);
           marker.SetMarkerColor(kGreen);
           marker.SetMarkerStyle(33);
           marker.SetMarkerSize(0.75);
@@ -205,7 +205,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.RecoTrackTrueHitPosition[it][ih][2];
           float my = truth.RecoTrackTrueHitPosition[it][ih][1];
-          TMarker marker(mx, my, 21);
+          TMarker marker(mx * CM, my * CM, 21);
           marker.SetMarkerColor(kGreen);
           marker.SetMarkerStyle(33);
           marker.SetMarkerSize(0.75);
@@ -214,7 +214,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = reco.TrackHitPos[it][ih][2];
           float my = reco.TrackHitPos[it][ih][0];
-          TMarker marker(mx, my, 20);
+          TMarker marker(mx * CM, my * CM, 20);
           marker.SetMarkerColor(track_colors[it % n_track_colors]);
           marker.SetMarkerSize(0.5);
           markers.push_back(marker);
@@ -222,7 +222,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = reco.TrackHitPos[it][ih][2];
           float my = reco.TrackHitPos[it][ih][1];
-          TMarker marker(mx, my, 20);
+          TMarker marker(mx * CM, my * CM, 20);
           marker.SetMarkerColor(track_colors[it % n_track_colors]);
           marker.SetMarkerSize(0.5);
           markersy.push_back(marker);
@@ -241,7 +241,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
           float my = reco.TrackHitPos[it][ih][0];
           float mx2 = reco.TrackHitPos[it][ih + 1][2];
           float my2 = reco.TrackHitPos[it][ih + 1][0];
-          TLine line(mx, my, mx2, my2);
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
           line.SetLineColor(color_to_use);
           line.SetLineWidth(2);
           lines.push_back(line);
@@ -251,7 +251,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
           float my = reco.TrackHitPos[it][ih][1];
           float mx2 = reco.TrackHitPos[it][ih + 1][2];
           float my2 = reco.TrackHitPos[it][ih + 1][1];
-          TLine line(mx, my, mx2, my2);
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
           line.SetLineColor(color_to_use);
           line.SetLineWidth(2);
           linesy.push_back(line);
@@ -292,7 +292,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.PositionZIsTMSStart[it][2];
           float my = truth.PositionZIsTMSStart[it][0];
-          TMarker marker(mx, my, marker_to_use_start);
+          TMarker marker(mx * CM, my * CM, marker_to_use_start);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markers.push_back(marker);
@@ -300,7 +300,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.PositionZIsTMSStart[it][2];
           float my = truth.PositionZIsTMSStart[it][1];
-          TMarker marker(mx, my, marker_to_use_start);
+          TMarker marker(mx * CM, my * CM, marker_to_use_start);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markersy.push_back(marker);
@@ -313,7 +313,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
             mx = truth.PositionZIsTMSEnd[it][2];
             my = truth.PositionZIsTMSEnd[it][0];
           }
-          TMarker marker(mx, my, marker_to_use_end);
+          TMarker marker(mx * CM, my * CM, marker_to_use_end);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markers.push_back(marker);
@@ -325,7 +325,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
             mx = truth.PositionZIsTMSEnd[it][2];
             my = truth.PositionZIsTMSEnd[it][1];
           }
-          TMarker marker(mx, my, marker_to_use_end);
+          TMarker marker(mx * CM, my * CM, marker_to_use_end);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markersy.push_back(marker);
@@ -334,7 +334,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.DeathPosition[it][2];
           float my = truth.DeathPosition[it][0];
-          TMarker marker(mx, my, marker_to_use_death);
+          TMarker marker(mx * CM, my * CM, marker_to_use_death);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markers.push_back(marker);
@@ -342,7 +342,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         {
           float mx = truth.DeathPosition[it][2];
           float my = truth.DeathPosition[it][1];
-          TMarker marker(mx, my, marker_to_use_death);
+          TMarker marker(mx * CM, my * CM, marker_to_use_death);
           marker.SetMarkerColor(colors[n_offset % ncolors]);
           marker.SetMarkerSize(marker_size);
           markersy.push_back(marker);
@@ -394,6 +394,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   }
 
   TLegend leg(x1, 0, x2 + 0.1, y1);
+  leg.SetFillStyle(0);
   AddMarkerToLegend(leg, 21, 1.5, kBlack, "Reco Hits");
   AddMarkerToLegend(leg, 33, 1, kGreen + 2, "True Hits");
   if (draw_reco_track_nodes) {
