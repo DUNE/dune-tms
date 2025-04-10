@@ -42,7 +42,7 @@ const double GEV = 1e-3; // GeV per MEV
 #define length_to_energy_clarence(l) (l * 1.75 + 82) * 1e-3
 #define default_length_to_energy(l) (l * 1.75) * 1e-3
 // #define length_to_energy(l) default_length_to_energy(l) // No fit
-#define GEOM_V3 // for old geom
+//#define GEOM_V3 // for old geom
 #ifdef GEOM_V3
 #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 #else
