@@ -75,11 +75,11 @@
     GetHist("basic__sanity__EndDirectionMag", "EndDirection Mag",
             "DirectionSanityCheck", "#N Tracks")
         ->Fill(end_direction_mag);
-    if (std::abs(reco.StartDirection[it][1]) > 1)
+    /*if (std::abs(reco.StartDirection[it][1]) > 1)
       std::cout << "big y dir: " << reco.StartDirection[it][0] << ","
                 << reco.StartDirection[it][1] << ","
                 << reco.StartDirection[it][2] << "\t" << start_direction_mag
-                << std::endl;
+                << std::endl;*/
 
     const double big_epsilon = 1e-1;
     bool has_y_start_direction_zero =

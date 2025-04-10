@@ -42,7 +42,7 @@ const double GEV = 1e-3; // GeV per MEV
 #define length_to_energy_clarence(l) (l * 1.75 + 82) * 1e-3
 #define default_length_to_energy(l) (l * 1.75) * 1e-3
 // #define length_to_energy(l) default_length_to_energy(l) // No fit
-//#define GEOM_V3 // for old geom
+#define GEOM_V3 // for old geom
 #ifdef GEOM_V3
 #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 #else
@@ -1080,6 +1080,12 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                 "first_n_events",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::tons);
+                
+    if (lc.nLinesX > 0) 
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "track_multiplicity/has_nonzero_nLinesX",
+                TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
+                truth, DrawSliceN::many);
 
     // Example of drawing for a reason
     if (reco.nTracks > 2) {

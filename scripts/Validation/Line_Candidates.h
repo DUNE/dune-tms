@@ -441,7 +441,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("FirstHoughPlaneX", &FirstHoughPlaneX, &b_FirstHoughPlaneX);
    fChain->SetBranchAddress("LastHoughPlaneU", LastHoughPlaneU, &b_LastHoughPlaneU);
    fChain->SetBranchAddress("LastHoughPlaneV", LastHoughPlaneV, &b_LastHoughPlaneV);
-   fChain->SetBranchAddress("LastHoughPlaneX", &LastHoughPlaneX, &b_LastHoughPlaneX); 
+   fChain->SetBranchAddress("LastHoughPlaneX", &LastHoughPlaneX, &b_LastHoughPlaneX);*/
    fChain->SetBranchAddress("TMSStart", &TMSStart, &b_TMSStart);
    fChain->SetBranchAddress("TMSStartTime", &TMSStartTime, &b_TMSStartTime);
    fChain->SetBranchAddress("OccupancyU", OccupancyU, &b_OccupancyU);
@@ -468,7 +468,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("TrackHitTimeU", TrackHitTimeU, &b_TrackHitTimeU);
    fChain->SetBranchAddress("TrackHitTimeV", TrackHitTimeV, &b_TrackHitTimeV);
    fChain->SetBranchAddress("TrackHitTimeX", TrackHitTimeX, &b_TrackHitTimeX);
-   fChain->SetBranchAddress("nClustersU", &nClustersU, &b_nClustersU);
+   /*fChain->SetBranchAddress("nClustersU", &nClustersU, &b_nClustersU);
    fChain->SetBranchAddress("nClustersV", &nClustersV, &b_nClustersV);
    fChain->SetBranchAddress("nClusterX", &nClusterX, &b_nClustersX);
    fChain->SetBranchAddress("ClusterEnergyU", ClusterEnergyU, &b_ClusterEnergyU);

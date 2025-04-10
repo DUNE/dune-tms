@@ -165,6 +165,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   // Get approx time slice range
   float hit_time_earliest = 1e9;
   float hit_time_latest = -1e9;
+  // Draw reco hits
   for (int ih = 0; ih < lc.nHits; ih++) {
     if (lc.RecoHitPos[ih][3] > hit_time_latest)
       hit_time_latest = lc.RecoHitPos[ih][3];
@@ -230,6 +231,92 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       }
     }
   }
+  
+  bool draw_2d_tracks_u = true;
+  bool draw_2d_tracks_v = true;
+  bool draw_2d_tracks_x = true;
+  int color_adjustment = -2;
+  std::cout<<"lc.nLinesU: "<<lc.nLinesU<<", lc.nLinesV: "<<lc.nLinesV<<", lc.nLinesX: "<<lc.nLinesX<<", reco.nTracks: "<<reco.nTracks<<std::endl;
+  if (draw_2d_tracks_u) {
+    for (int it = 0; it < lc.nLinesU; it++) {
+      auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
+      for (int ih = 0; ih < lc.nHitsInTrackU[it]; ih++) {
+        float mx = lc.TrackHitPosU[it][ih][0];
+        float my = lc.TrackHitPosU[it][ih][1];
+        TMarker marker(mx * CM, my * CM, 21);
+        marker.SetMarkerStyle(21);
+        marker.SetMarkerColor(color_to_use);
+        markers.push_back(marker);
+      }
+      /*for (int ih = 0; ih < lc.nHitsInTrackU[it] - 1; ih++) {
+        {
+          float mx = lc.TrackHitPosU[it][ih][0];
+          float my = lc.TrackHitPosU[it][ih][1];
+          float mx2 = lc.TrackHitPosU[it][ih + 1][0];
+          float my2 = lc.TrackHitPosU[it][ih + 1][1];
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(1);
+          lines.push_back(line);
+        }
+      }*/
+    }
+  }
+  if (draw_2d_tracks_v) {
+    for (int it = 0; it < lc.nLinesV; it++) {
+      std::cout<<it<<" lc.nHitsInTrackV[it]: "<<lc.nHitsInTrackV[it]<<std::endl;
+      auto color_to_use = track_colors[it % n_track_colors] - color_adjustment;
+      for (int ih = 0; ih < lc.nHitsInTrackV[it]; ih++) {
+        float mx = lc.TrackHitPosV[it][ih][0];
+        float my = lc.TrackHitPosV[it][ih][1];
+        std::cout<<mx<<","<<my<<std::endl;
+        TMarker marker(mx * CM, my * CM, 21);
+        marker.SetMarkerStyle(21);
+        marker.SetMarkerColor(color_to_use);
+        markers.push_back(marker);
+      }
+      /*for (int ih = 0; ih < lc.nHitsInTrackV[it] - 1; ih++) {
+        {
+          float mx = lc.TrackHitPosV[it][ih][0];
+          float my = lc.TrackHitPosV[it][ih][1];
+          float mx2 = lc.TrackHitPosV[it][ih + 1][0];
+          float my2 = lc.TrackHitPosV[it][ih + 1][1];
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(1);
+          lines.push_back(line);
+        }
+      }*/
+    }
+  }
+  if (draw_2d_tracks_x) {
+    for (int it = 0; it < lc.nLinesX; it++) {
+      //std::cout<<"lc.nHitsInTrackX[it]: "<<lc.nHitsInTrackX[it]<<std::endl;
+      auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
+      for (int ih = 0; ih < lc.nHitsInTrackX[it]; ih++) {
+        float mx = lc.TrackHitPosX[it][ih][0];
+        float my = lc.TrackHitPosX[it][ih][1];
+        TMarker marker(mx * CM, my * CM, 21);
+        marker.SetMarkerStyle(21);
+        marker.SetMarkerColor(color_to_use);
+        markersy.push_back(marker);
+      }
+      /*for (int ih = 0; ih < lc.nHitsInTrackX[it] - 1; ih++) {
+        {
+          float mx = lc.TrackHitPosX[it][ih][0];
+          float my = lc.TrackHitPosX[it][ih][1];
+          float mx2 = lc.TrackHitPosX[it][ih + 1][0];
+          float my2 = lc.TrackHitPosX[it][ih + 1][1];
+          //std::cout<<mx<<","<<my<<","<<mx2<<","<<my2<<std::endl;
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(1);
+          linesy.push_back(line);
+        }
+      }*/
+    }
+  }
+
 
   // This section draws reco tracks as lines between two points
   if (true) {
@@ -259,6 +346,8 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       }
     }
   }
+  
+  
   int empty_up_triangle = 55;
   int empty_down_triangle = 59;
   double marker_size = 1.5;
