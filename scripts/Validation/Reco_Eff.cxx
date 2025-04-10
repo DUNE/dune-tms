@@ -75,7 +75,8 @@
               "Reconstruction Efficiency: Denominator", "pion_ke_tms_enter")
               ->Fill(particle_starting_ke);
         if (ismuon && lar_start && tms_end) {
-          GetHist("reco_eff__muon_ke_tms_enter_denominator",
+          GetSpecialHist("special__reco_eff_muon_ke_tms_enter_denominator", 
+                  "reco_eff__muon_ke_tms_enter_denominator",
                   "Reconstruction Efficiency: Denominator", "ke_tms_enter")
               ->Fill(particle_starting_ke);
           GetHist("reco_eff__muon_ke_denominator",
@@ -121,14 +122,14 @@
         if (particle_indices_reconstructed[ip] > 1) {
           // Found this particle already at least once
           not_double_reco = false;
-          if (ismuon)
+          /*if (ismuon)
             std::cout
                 << "Warning: Found muon reconstructed multiple times in spill: "
                 << particle_starting_ke << " GeV" << std::endl;
           else
             std::cout << "Warning: Found non-muon reconstructed multiple times "
                          "in spill: "
-                      << particle_starting_ke << " GeV" << std::endl;
+                      << particle_starting_ke << " GeV" << std::endl;*/
           if (ismuon) {
             GetHist("reco_eff__multi_reco__muons",
                     "Muons which were reconstructed more than once",
@@ -224,7 +225,8 @@
                   reco, lc, truth, DrawSliceN::few);
       }
       if (ismuon && lar_start && tms_end && not_double_reco) {
-        GetHist("reco_eff__muon_ke_tms_enter_numerator",
+        GetSpecialHist("special__reco_eff_muon_ke_tms_enter_numerator",
+                "reco_eff__muon_ke_tms_enter_numerator",
                 "Reco Efficiency vs True TMS-Entering KE: Numerator",
                 "ke_tms_enter")
             ->Fill(particle_starting_ke);

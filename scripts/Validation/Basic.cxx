@@ -8,10 +8,10 @@
   GetHist("basic__raw__SpillNo", "SpillNo", "SpillNo", "#N Slices")
       ->Fill(reco.SpillNo);
 
-  GetHist("basic__raw__ntracks", "N Reco Tracks", "ntracks", "#N Slices")
+  GetSpecialHist("special__track_n", "basic__raw__ntracks", "N Reco Tracks", "ntracks", "#N Slices")
       ->Fill(reco.nTracks);
   for (int it = 0; it < reco.nTracks; it++) {
-    GetHist("basic__raw__nHits", "nHits", "n0-120")->Fill(reco.nHits[it]);
+    GetSpecialHist("special__track_nhits", "basic__raw__nHits", "N Hits per Track", "n0-120", "#N Tracks")->Fill(reco.nHits[it]);
     GetHist("basic__raw__nKalmanNodes", "nKalmanNodes", "n0-120")
         ->Fill(reco.nKalmanNodes[it]);
     for (int ih = 0; ih < reco.nHits[it]; ih++) {

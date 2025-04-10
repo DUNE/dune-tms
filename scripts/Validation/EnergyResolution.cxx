@@ -579,13 +579,15 @@
             "resolution_nostack_3_uncorrected",
             "Muon Resolution: Uncorrected", "energy_resolution")
         ->Fill(fractional_resolution_uncorrected);
-    GetHist("energy_resolution__resolution__fit_starting_ke_fractional_"
+    GetSpecialHist("special__energy_resolution_nostack_1_with_fit",
+            "energy_resolution__resolution__fit_starting_ke_fractional_"
             "resolution_nostack_1_with_fit",
-            "Muon Resolution: With Fit", "energy_resolution")
+            "Muon KE Resolution: With Fit", "energy_resolution", "#N Muons")
         ->Fill(fractional_resolution);
-    GetHist("energy_resolution__resolution__fit_starting_ke_fractional_"
+    GetSpecialHist("special__energy_resolution_nostack_3_no_fit",
+            "energy_resolution__resolution__fit_starting_ke_fractional_"
             "resolution_nostack_3_no_fit",
-            "Muon Resolution: Without Fit", "energy_resolution")
+            "Muon KE Resolution: Without Fit", "energy_resolution", "#N Muons")
         ->Fill(fractional_resolution_without_fit);
 
     GetHist("energy_resolution__resolution__contained_starting_ke_fractional_"

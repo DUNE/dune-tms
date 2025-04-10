@@ -14,22 +14,22 @@
     if (ismuon || isantimuon) {
       // incorrect charge id
       if (nd_physics_muon && ismuon && correct_charge_id)
-        GetSpecialHist("nd_physics_sample__charge_id_muon_numerator", "charge_id__true_muon_numerator",
+        GetSpecialHist("special__charge_id_muon_numerator", "charge_id__true_muon_numerator",
                 "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
                 "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && isantimuon && correct_charge_id)
-        GetSpecialHist("nd_physics_sample__charge_id_antimuon_numerator", "charge_id__true_antimuon_numerator",
+        GetSpecialHist("special__charge_id_antimuon_numerator", "charge_id__true_antimuon_numerator",
                 "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
                 "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && ismuon)
-        GetSpecialHist("nd_physics_sample__charge_id_muon_denominator", "charge_id__true_muon_denominator",
+        GetSpecialHist("special__charge_id_muon_denominator", "charge_id__true_muon_denominator",
                 "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
                 "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && isantimuon)
-        GetSpecialHist("nd_physics_sample__charge_id_antimuon_denominator", "charge_id__true_antimuon_denominator",
+        GetSpecialHist("special__charge_id_antimuon_denominator", "charge_id__true_antimuon_denominator",
                 "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
                 "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);

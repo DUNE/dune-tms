@@ -31,14 +31,14 @@
       double endpoint_dx = (reco_endpoint_x - true_endpoint_x) * CM;
       double endpoint_dxz =
           std::sqrt(endpoint_dz * endpoint_dz + endpoint_dx * endpoint_dx);
-      GetHist("reco_track__track_resolution__endpoint_z",
-              "Endpoint Resolution dz", "endpoint_dz")
+      GetSpecialHist("special__track_resolution_endpoint_z", "reco_track__track_resolution__endpoint_z",
+              "Endpoint Resolution dz", "endpoint_dz", "#N Tracks")
           ->Fill(endpoint_dz);
-      GetHist("reco_track__track_resolution__endpoint_x",
-              "Endpoint Resolution dx", "endpoint_dx")
+      GetSpecialHist("special__track_resolution_endpoint_x", "reco_track__track_resolution__endpoint_x",
+              "Endpoint Resolution dx", "endpoint_dx", "#N Tracks")
           ->Fill(endpoint_dx);
-      GetHist("reco_track__track_resolution__endpoint_y",
-              "Endpoint Resolution dy", "endpoint_dy")
+      GetSpecialHist("special__track_resolution_endpoint_y", "reco_track__track_resolution__endpoint_y",
+              "Endpoint Resolution dy", "endpoint_dy", "#N Tracks")
           ->Fill(endpoint_dy);
       GetHist("reco_track__track_resolution__endpoint_xz",
               "Endpoint Resolution 2d", "endpoint_dboth")
