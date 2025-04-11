@@ -117,7 +117,6 @@ class AutoregisterAxis {
 public:
   AutoregisterAxis(const std::string &name,
                    std::tuple<std::string, int, double, double> axis_tuple) {
-    std::cout << "Registering axis " << name << std::endl;
     RegisterAxis(name, axis_tuple);
   }
 };
