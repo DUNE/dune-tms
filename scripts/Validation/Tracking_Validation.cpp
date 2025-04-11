@@ -42,7 +42,7 @@ const double GEV = 1e-3; // GeV per MEV
 #define length_to_energy_clarence(l) (l * 1.75 + 82) * 1e-3
 #define default_length_to_energy(l) (l * 1.75) * 1e-3
 // #define length_to_energy(l) default_length_to_energy(l) // No fit
-#define GEOM_V3 // for old geom
+//#define GEOM_V3 // for old geom
 #ifdef GEOM_V3
 #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 #else
@@ -942,7 +942,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                         4));
     REGISTER_AXIS(
         hit_position_resolution_y,
-        std::make_tuple("Hit Position Resolution Y (Reco - True) (cm)", 21, -40,
+        std::make_tuple("Hit Position Resolution Y (Reco - True) (cm)", 81, -40,
                         40));
     REGISTER_AXIS(
         slope_yz_resolution_track_start,
@@ -953,6 +953,58 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         std::make_tuple("Ending YZ Slope Resolution (Reco - True) (deg)", 21,
                         -40, 40));
     if (reco.nTracks == 1) {
+      if (lc.nLinesX == 1) {
+        // mm max distance in z
+        const double z_eps = 50;
+        double post_line_z = -1e9;
+        double pre_line_z = 1e9;
+        std::map<int, int> mapOfXLineIndices;
+        for (int iH = 0; iH < reco.nHits[0]; iH++) {
+          double true_z = truth.RecoTrackTrueHitPosition[0][iH][2];
+          mapOfXLineIndices[iH] = -1;
+          for (int ih = 0; ih < lc.nHitsInTrackX[0]; ih++) {
+            double reco_z = lc.TrackHitPosX[0][ih][0];
+            if (reco_z < pre_line_z) pre_line_z = reco_z;
+            if (reco_z > post_line_z) post_line_z = reco_z;
+            double dz = std::abs(reco_z - true_z);
+            if (dz < z_eps) { mapOfXLineIndices[iH] = ih; break; }
+          }
+        }
+        
+        
+        for (int iH = 0; iH < reco.nHits[0]; iH++) {
+          int ih = mapOfXLineIndices[iH];
+          double true_y = truth.RecoTrackTrueHitPosition[0][iH][1];
+          if (ih >= 0) {
+            double reco_y = lc.TrackHitPosX[0][ih][1];
+            double dy = reco_y - true_y;
+            GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y",
+                    "Reco Track Hit Resolution Y", "hit_position_resolution_y", "#N Hits")
+                ->Fill(dy * CM);
+            GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_1_has_x",
+                    "Reco Track Hit Resolution Y: Has X info", "hit_position_resolution_y", "#N Hits")
+                ->Fill(dy * CM);
+          }
+          else {
+            double reco_z = reco.TrackHitPos[0][iH][2];
+            double dy = reco.TrackHitPos[0][iH][1] - true_y;
+            
+            if (reco_z < pre_line_z)
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_3_pre_line",
+                      "Reco Track Hit Resolution Y: Before X Line", "hit_position_resolution_y", "#N Hits")
+                  ->Fill(dy * CM);
+            else if (reco_z > post_line_z)
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_4_post_line",
+                      "Reco Track Hit Resolution Y: After X Line", "hit_position_resolution_y", "#N Hits")
+                  ->Fill(dy * CM);
+            else
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_2_missing_x",
+                      "Reco Track Hit Resolution Y: Missing X info", "hit_position_resolution_y", "#N Hits")
+                  ->Fill(dy * CM);
+          }
+        }
+      }
+      
       double avg_offset = 0;
       for (int ih = 0; ih < reco.nHits[0]; ih++) {
         double dx = reco.TrackHitPos[0][ih][0] -
