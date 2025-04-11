@@ -91,6 +91,29 @@ void AddMarkerToLegend(TLegend &leg, int marker_style, int marker_size,
   reco_entry->SetMarkerColor(marker_color);
 }
 
+const double BOUNDS_X_START = -400;
+const double BOUNDS_X_END = 400;
+const double BOUNDS_Y_START = -500;
+const double BOUNDS_Y_END = 100;
+const double BOUNDS_Z_START = 1100;
+const double BOUNDS_Z_END = 1900;
+
+void ConstrainMarkerX(float& mx, float& my) {
+  double buffer = 5;
+  if (mx > BOUNDS_Z_END - buffer)   mx = BOUNDS_Z_END - buffer;
+  if (mx < BOUNDS_Z_START + buffer) mx = BOUNDS_Z_START + buffer;
+  if (my > BOUNDS_X_END - buffer)   my = BOUNDS_X_END - buffer;
+  if (my < BOUNDS_X_START + buffer) my = BOUNDS_X_START + buffer;
+}
+
+void ConstrainMarkerY(float& mx, float& my) {
+  double buffer = 5;
+  if (mx > BOUNDS_Z_END - buffer)   mx = BOUNDS_Z_END - buffer;
+  if (mx < BOUNDS_Z_START + buffer) mx = BOUNDS_Z_START + buffer;
+  if (my > BOUNDS_Y_END - buffer)   my = BOUNDS_Y_END - buffer;
+  if (my < BOUNDS_Y_START + buffer) my = BOUNDS_Y_START + buffer;
+}
+
 void DrawSlice(std::string outfilename, std::string reason, std::string message,
                Reco_Tree &reco, Line_Candidates &lc, Truth_Info &truth,
                DrawSliceN::max_prints max_n_prints = DrawSliceN::all) {
@@ -241,9 +264,10 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     for (int it = 0; it < lc.nLinesU; it++) {
       auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
       for (int ih = 0; ih < lc.nHitsInTrackU[it]; ih++) {
-        float mx = lc.TrackHitPosU[it][ih][0];
-        float my = lc.TrackHitPosU[it][ih][1];
-        TMarker marker(mx * CM, my * CM, 21);
+        float mx = lc.TrackHitPosU[it][ih][0] * CM;
+        float my = lc.TrackHitPosU[it][ih][1] * CM;
+        ConstrainMarkerX(mx, my);
+        TMarker marker(mx, my, 21);
         marker.SetMarkerStyle(21);
         marker.SetMarkerColor(color_to_use);
         markers.push_back(marker);
@@ -267,10 +291,10 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       std::cout<<it<<" lc.nHitsInTrackV[it]: "<<lc.nHitsInTrackV[it]<<std::endl;
       auto color_to_use = track_colors[it % n_track_colors] - color_adjustment;
       for (int ih = 0; ih < lc.nHitsInTrackV[it]; ih++) {
-        float mx = lc.TrackHitPosV[it][ih][0];
-        float my = lc.TrackHitPosV[it][ih][1];
-        std::cout<<mx<<","<<my<<std::endl;
-        TMarker marker(mx * CM, my * CM, 21);
+        float mx = lc.TrackHitPosV[it][ih][0] * CM;
+        float my = lc.TrackHitPosV[it][ih][1] * CM;
+        ConstrainMarkerX(mx, my);
+        TMarker marker(mx, my, 21);
         marker.SetMarkerStyle(21);
         marker.SetMarkerColor(color_to_use);
         markers.push_back(marker);
@@ -294,9 +318,10 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       //std::cout<<"lc.nHitsInTrackX[it]: "<<lc.nHitsInTrackX[it]<<std::endl;
       auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
       for (int ih = 0; ih < lc.nHitsInTrackX[it]; ih++) {
-        float mx = lc.TrackHitPosX[it][ih][0];
-        float my = lc.TrackHitPosX[it][ih][1];
-        TMarker marker(mx * CM, my * CM, 21);
+        float mx = lc.TrackHitPosX[it][ih][0] * CM;
+        float my = lc.TrackHitPosX[it][ih][1] * CM;
+        ConstrainMarkerY(mx, my);
+        TMarker marker(mx, my, 21);
         marker.SetMarkerStyle(21);
         marker.SetMarkerColor(color_to_use);
         markersy.push_back(marker);
