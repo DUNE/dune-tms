@@ -47,9 +47,6 @@ class TMS_Track {
     void SetEnergyDeposit (double val) {EnergyDeposit = val;};
     void SetEnergyRange   (double val) {EnergyRange   = val;};
     void SetMomentum      (double val) {Momentum      = val;};
-    void SetMomentum_minus      (double val) {Momentum_minus      = val;};
-    void SetMomentum_plus      (double val) {Momentum_plus      = val;};
-    void SetChi2          (double val) {Chi2          = val;};
     void SetChi2_minus          (double val) {Chi2_minus          = val;};
     void SetChi2_plus          (double val) {Chi2_plus          = val;};
    
