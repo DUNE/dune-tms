@@ -270,8 +270,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double zval2 = PreviousState.z + Transfer(0,2); // Probably a nicer way to do this (:
 
   //TODO: When it is blowed up, temporary
-  if (abs(xval)>TMS_Const::TMS_END_Exact[0]) xval=0;
-  if (abs(xval2)>TMS_Const::TMS_END_Exact[0]) xval2=0;
+  if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+  if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
   if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
   if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
 
@@ -623,8 +623,8 @@ void TMS_Kalman::BetheBloch() {
         double zval2 = CurrentState.z; // Probably a nicer way to do this (:
 
         //TODO: When it is blowed up, temporary
-        if (abs(xval)>TMS_Const::TMS_END_Exact[0]) xval=0;
-        if (abs(xval2)>TMS_Const::TMS_END_Exact[0]) xval2=0;
+        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
         if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
         if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
 
@@ -741,8 +741,8 @@ void TMS_Kalman::Runchi2() {
         double zval2 = CurrentState.z; // Probably a nicer way to do this (:
 
         //TODO: When it is blowed up, temporary
-        if (abs(xval)>TMS_Const::TMS_END_Exact[0]) xval=0;
-        if (abs(xval2)>TMS_Const::TMS_END_Exact[0]) xval2=0;
+        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
         if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
         if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
 
