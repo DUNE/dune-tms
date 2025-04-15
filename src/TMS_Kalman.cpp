@@ -15,7 +15,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   assumed_charge(charge),
   Talk(false)
 {
-  TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
+//  TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
 
   // Empty the KalmanStates
   KalmanNodes.clear();
@@ -113,6 +113,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   RunKalman();
   runRTSSmoother();
   BetheBloch();
+  Runchi2();
   SignSelection();
 }
 
@@ -189,10 +190,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // Matrices to propagate the current state
   TMatrixD &Transfer = Node.TransferMatrix;
   TMatrixD &TransferT = Node.TransferMatrixT;
-  //TODO in case the reco hit is too far
-  if ( abs(PreviousState.dxdz) > 4.0 )
-      PreviousState.dxdz = TMS_Kalman::AverageXSlope;
-
   // Initialise to something sane(-ish)
   if (PreviousState.dxdz ==  -999.9) // Only on initialisation?
   {
@@ -220,7 +217,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
    // Modification begins here: introduce magnetic field and deflection based on regions
   // Determine magnetic field based on x-position
   double MagneticField = 0;
-  const double RegionBoundaryX = 1750; // hard coded boundary for regions
+  const double RegionBoundaryX = 1860; // hard coded boundary for regions
   if (fabs(PreviousState.x) <= RegionBoundaryX) {
       MagneticField = -1.0; // Central region: Magnetic field downwards
   } else if (PreviousState.x > RegionBoundaryX) {
@@ -272,10 +269,18 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double yval2 = CurrentState.y;
   double zval2 = PreviousState.z + Transfer(0,2); // Probably a nicer way to do this (:
 
+  //TODO: When it is blowed up, temporary
+  if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+  if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
+  if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
+  if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
+
   // Make TVector3s of the two points
   TVector3 start(xval,yval,zval); // Start
   TVector3 stop(xval2,yval2,zval2); // Stop
 
+  //std::cout << "Going from " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
+  //std::cout << "To " << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
   if (Talk) {
     std::cout << "Going from " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
     std::cout << "To " << stop.X() << " " << stop.Y() << " " << stop.Z() << std::endl;
@@ -361,7 +366,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &NoiseMatrix = Node.NoiseMatrix;
   TMatrixD &CovarianceMatrix = Node.CovarianceMatrix;
   TMatrixD &UpdatedCovarianceMatrix = Node.UpdatedCovarianceMatrix;
-  TMatrixD &EstimatedCovarianceMatrix = Node.EstimatedCovarianceMatrix;
+  TMatrixD &EstimatedCovarianceMatrix = Node.EstimatedCovarianceMatrix;//For smooth
 
 
   // 'measurement' matrices
@@ -413,12 +418,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
   Measurement[4] = 0.0; //CurrentState.qp;
 
-  Node.MeasurementVec[0]=Measurement[0];
-  Node.MeasurementVec[1]=Measurement[1];
-  Node.MeasurementVec[2]=Measurement[2];
-  Node.MeasurementVec[3]=Measurement[3];
-  Node.MeasurementVec[4]=Measurement[4];
-
 
   if (Talk) std::cout << "Gain" << std::flush;
   if (Talk) GainMatrix.Print();
@@ -427,8 +426,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   TMatrixD IdentityMatrix(5,5);
   IdentityMatrix.UnitMatrix();
-  //NVM it doesn't work well
-//TODO editted:the final Covariance=(1-K)C~ from arXiv:2404.08614
+//editted:the final Covariance=(1-K)C~ from arXiv:2404.08614
   CovarianceMatrix = (IdentityMatrix-GainMatrix)*CovarianceMatrix;
 
   CurrentState.x    = FilteredVec[0];
@@ -436,25 +434,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
-
-  // Calculate chi^2
-  Node.rVec[0] = (Measurement[0] - UpdateVec[0]);
-  Node.rVec[1] = (Measurement[1] - UpdateVec[1]);
-
-  // Probably a much nicer way to make (sub)matrix from a bigger one, but YOLO
-  Node.RMatrix(0,0) = (Node.NoiseMatrix(0,0) - UpdatedCovarianceMatrix(0,0));
-  Node.RMatrix(1,0) = (Node.NoiseMatrix(1,0) - UpdatedCovarianceMatrix(1,0));
-  Node.RMatrix(0,1) = (Node.NoiseMatrix(0,1) - UpdatedCovarianceMatrix(0,1));
-  Node.RMatrix(1,1) = (Node.NoiseMatrix(1,1) - UpdatedCovarianceMatrix(1,1));
-  Node.RMatrix.Invert(); // Matrix has to be inverted
-
-  Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec); // Calc chi^2
-
-
-
-  //CovarianceMatrix.Print();
-  //GainMatrix.Print();
-  //CurrentState.Print();
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
     std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
@@ -572,7 +551,7 @@ void TMS_Kalman::runRTSSmoother() {
       u_hat_t_1[2] = KalmanNodes[t + 1].SmoothState.dxdz;
       u_hat_t_1[3] = KalmanNodes[t + 1].SmoothState.dydz;
       u_hat_t_1[4] = KalmanNodes[t + 1].SmoothState.qp;
-      if (t==0) { //for the very end of kalman filter, there is no dxdz,dydz value. Now, just use previous values. TODO: plug in the very last dxdz,dydz in the node.
+      if (t==0) { //for the very end of kalman filter, there is no dxdz,dydz value. Now, just use previous values.
           u_t[2] = KalmanNodes[1].CurrentState.dxdz;
           u_t[3] = KalmanNodes[1].CurrentState.dydz;
       }
@@ -601,21 +580,10 @@ void TMS_Kalman::BetheBloch() {
     for (int i = 1; i < nCand; ++i) {
         TMS_KalmanState &PreviousState = KalmanNodes[i-1].SmoothState;
         TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
-        TMatrixD &Transfer = KalmanNodes[i].TransferMatrix;
-        //Get the gradient from second previous state
-        TVectorD takegradient(5);
-        TVector3 previousmeasure(KalmanNodes[i-1].x,KalmanNodes[i-1].y,KalmanNodes[i-1].z); // Start
-        TVector3 currentmeasure(KalmanNodes[i].x,KalmanNodes[i].y,KalmanNodes[i].z); // Stop
-
-        takegradient[0] = KalmanNodes[i-1].SmoothState.x;
-        takegradient[1] = KalmanNodes[i-1].SmoothState.y;
-        takegradient[2] = KalmanNodes[i+1].SmoothState.dxdz;
-        takegradient[3] = KalmanNodes[i-1].SmoothState.dydz;
-        takegradient[4] = KalmanNodes[i-1].SmoothState.qp;
 
 
         double MagneticField = 0;
-        const double RegionBoundaryX = 1750; // hard coded boundary for regions
+        const double RegionBoundaryX = 1860; // hard coded boundary for regions
         if (fabs(PreviousState.x) <= RegionBoundaryX) {
             MagneticField = -1.0; // Central region: Magnetic field downwards
         } else if (PreviousState.x > RegionBoundaryX) {
@@ -623,8 +591,6 @@ void TMS_Kalman::BetheBloch() {
         } else {
             MagneticField = 1.0; // Left side region: Magnetic field upwards
         }
-
-        // Modification ends here
 
 
         TVectorD PreviousVec(5);
@@ -656,22 +622,14 @@ void TMS_Kalman::BetheBloch() {
         double yval2 = CurrentState.y;
         double zval2 = CurrentState.z; // Probably a nicer way to do this (:
 
-        // Make TVector3s of the two points
+        //TODO: When it is blowed up, temporary
+        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
+        if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
+        if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
+
         TVector3 start(xval,yval,zval); // Start
         TVector3 stop(xval2,yval2,zval2); // Stop
-
-        // Calculate Lorentz force (deflection in x only)
-
-        // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
-        // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
-//        double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*abs(CurrentState.z -PreviousState.z)*0.5;
-        double magnetic_deflection_px = 0.3*assumed_charge*MagneticField*(start-stop).Mag();
-        TVectorD noUpdateVec = Transfer*(takegradient);
-        takegradient[2]+=magnetic_deflection_px/mom;
-
-        TVectorD UpdateVec = Transfer*(takegradient);
-
-        UpdateVec[0] += magnetic_deflection_px;
 
         // Get the materials between the two points
         std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(start, stop);
@@ -708,16 +666,8 @@ void TMS_Kalman::BetheBloch() {
                 std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
             }
 
-            if (BetheBloch_Utils::RelativisticBeta(BetheBloch_Utils::Mm, en)*BetheBloch_Utils::RelativisticGamma(BetheBloch_Utils::Mm, en)>0.1)//initial is already >0.1 due to initial mom =20 MeV
-            {
-                if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
-                else                en += Bethe.Calc_dEdx(en)*density*thickness;
-            }
-            else
-            {
-                //very first deposit give 100 en
-                en+=100*density*thickness;
-            }
+            if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
+            else                en += Bethe.Calc_dEdx(en)*density*thickness;
 
             // Variance assuming Gaussian straggling
             double en_var = Bethe.Calc_dEdx_Straggling(en)*density*thickness;
@@ -735,27 +685,105 @@ void TMS_Kalman::BetheBloch() {
         if (p_2_up > 0) p_up = sqrt(p_2_up);
         else {
             std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
-            //p_up = 1;
             p_up = sqrt(en*en);
         }
 
 
         CurrentState.qp = 1./p_up;
 
-        //KalmanNodes[i].rVec[0] = (UpdateVec[0]-CurrentState.x);
-        KalmanNodes[i].rVec[0] = (CurrentState.x-UpdateVec[0]);
-        KalmanNodes[i].rVec[1] = (CurrentState.y-UpdateVec[1]);
-        //
-        KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0) - KalmanNodes[i].SmoothCovarianceMatrix(0,0));
-        KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0) - KalmanNodes[i].SmoothCovarianceMatrix(1,0));
-        KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1) - KalmanNodes[i].SmoothCovarianceMatrix(0,1));
-        KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
-        KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
-
-        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
-
     }
     SetMomentum(1./KalmanNodes.back().SmoothState.qp);
+}
+void TMS_Kalman::Runchi2() {
+    int nCand = KalmanNodes.size();
+    //From the front to third last hits  cuz it is too sensitive at the end.
+    for (int i = nCand-1; i >=2; --i) {
+        TMS_KalmanState &FutureState = KalmanNodes[i-1].SmoothState;
+        TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
+        TMatrixD &F = KalmanNodes[i].TransferMatrix;
+        //Forward direction
+        F(0,2)=-F(0,2);
+        F(1,3)=-F(1,3);
+
+        TVectorD tempvec(5);
+        if (i==nCand-1){
+            tempvec[0] = CurrentState.x;
+            tempvec[1] = CurrentState.y;
+            tempvec[2] = CurrentState.dxdz; //Take dxdz from the i+1 which is not yet magnetic effected
+            tempvec[3] = CurrentState.dydz;
+            tempvec[4] = CurrentState.qp;
+        } else {
+            tempvec[0] = KalmanNodes[i+1].MeasurementVec[0];
+            tempvec[1] = KalmanNodes[i+1].MeasurementVec[1];
+            tempvec[2] = KalmanNodes[i+1].MeasurementVec[2];
+            tempvec[3] = KalmanNodes[i+1].SmoothState.dydz;//except y
+            tempvec[4] = KalmanNodes[i+1].MeasurementVec[4];
+        }
+
+
+        double MagneticField = 0;
+        const double RegionBoundaryX = 1860; // hard coded boundary for regions
+        if (fabs(CurrentState.x) <= RegionBoundaryX) {
+            MagneticField = -1.0; // Central region: Magnetic field downwards
+        } else if (CurrentState.x > RegionBoundaryX) {
+            MagneticField = 1.0; // Right side region: Magnetic field upwards
+        } else {
+            MagneticField = 1.0; // Left side region: Magnetic field upwards
+        }
+
+        // Read the position between current point and extrapolated into next bar
+        double xval = FutureState.x;
+        double yval = FutureState.y;
+        double zval = FutureState.z;
+
+        double xval2 = CurrentState.x;
+        double yval2 = CurrentState.y;
+        double zval2 = CurrentState.z; // Probably a nicer way to do this (:
+
+        //TODO: When it is blowed up, temporary
+        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
+        if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
+        if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
+
+        TVector3 start(xval,yval,zval); // Start
+        TVector3 stop(xval2,yval2,zval2); // Stop
+
+        double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(start-stop).Mag()*0.5;
+        //
+
+        double mom = 1./CurrentState.qp;
+        tempvec[2]-=magnetic_deflection_px/mom;
+        TVectorD UpdateVec = F*(tempvec);
+
+        KalmanNodes[i].MeasurementVec[0]=UpdateVec[0];
+        KalmanNodes[i].MeasurementVec[1]=UpdateVec[1];
+        KalmanNodes[i].MeasurementVec[2]=UpdateVec[2];
+        KalmanNodes[i].MeasurementVec[3]=UpdateVec[3];
+        KalmanNodes[i].MeasurementVec[4]=UpdateVec[4];
+
+
+
+
+
+        KalmanNodes[i].rVec[0] = (FutureState.x-UpdateVec[0]);
+        KalmanNodes[i].rVec[1] = (FutureState.y-UpdateVec[1]);
+        //just use NoiseMatrix cuz sometime RMatrix is negative value or we can just ignore it
+        //KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0));
+        //KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0));
+        //KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1));
+        //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1));
+        //KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0) - KalmanNodes[i].SmoothCovarianceMatrix(0,0));
+        //KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0) - KalmanNodes[i].SmoothCovarianceMatrix(1,0));
+        //KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1) - KalmanNodes[i].SmoothCovarianceMatrix(0,1));
+        //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
+        //KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
+
+        //Just ignore the noise.
+        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*KalmanNodes[i].rVec; // Calc chi^2
+        //KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
+
+    }
 }
 void TMS_Kalman::SignSelection() {
     int nCand = KalmanNodes.size();
@@ -766,7 +794,7 @@ void TMS_Kalman::SignSelection() {
 
 
         TVector3 B;
-        const double RegionBoundaryX = 1750; // mm
+        const double RegionBoundaryX = 1860; // mm
         if (std::abs(0.5 * (PreviousState.x + CurrentState.x)) <= RegionBoundaryX)
             B = TVector3(0.0, 1.0, 0.0); // Central region
         else
@@ -789,5 +817,5 @@ void TMS_Kalman::SignSelection() {
         //  << std::endl;
         sum_signals += signal;
     }
-    SetCharge_test(sum_signals);
+    SetCharge_curvature(sum_signals);
 }

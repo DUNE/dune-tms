@@ -48,11 +48,9 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
-    int nKalmanNodes_plus[__TMS_MAX_TRACKS__];
-    int nKalmanNodes_minus[__TMS_MAX_TRACKS__];
     float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    float RecoTrackKalmanPos_plus[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    float RecoTrackKalmanPos_minus[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackKalmanPos_plus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackKalmanPos_minus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
@@ -70,19 +68,14 @@ class TMS_TreeWriter {
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];
-    float RecoTrackMomentum_plus[__TMS_MAX_TRACKS__];
-    float RecoTrackMomentum_minus[__TMS_MAX_TRACKS__];
     float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
     float RecoTrackLength_3D[__TMS_MAX_TRACKS__];
-    float RecoTrackLength_plus[__TMS_MAX_TRACKS__];
-    float RecoTrackLength_minus[__TMS_MAX_TRACKS__];
-    float RecoTrackChi2[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
-    int RecoTrackCharge_Kalman_test[__TMS_MAX_TRACKS__];
+    int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
 
   private:
     TMS_TreeWriter();
@@ -319,6 +312,7 @@ class TMS_TreeWriter {
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
     float RecoHitPE[__TMS_MAX_HITS__];
     int RecoHitBar[__TMS_MAX_HITS__];
+    int RecoHitBarType[__TMS_MAX_HITS__];
     int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
 

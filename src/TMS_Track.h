@@ -18,22 +18,17 @@ class TMS_Track {
 
     int    Charge;
     int    Charge_Kalman;
-    int    Charge_Kalman_test;
+    int    Charge_Kalman_curvature;
     double Start[3];     // Start point in x,y,z
     double End[3];       // End point in x,y,z
     double StartDirection[3]; // Unit vector in track direction at start
     double EndDirection[3]; // Unit vector in track direction at end
     double Length;
-    double Length_plus;
-    double Length_minus;
     double Occupancy;
     double EnergyDeposit;
     double EnergyRange;
     double Momentum;
-    double Momentum_minus;
-    double Momentum_plus;
     double Time;         // TODO: Fill this in a sensible way
-    double Chi2;
     double Chi2_minus;
     double Chi2_plus;
     
@@ -42,7 +37,6 @@ class TMS_Track {
     double GetEnergyDeposit() {return EnergyDeposit;};
     double GetEnergyRange()   {return EnergyRange;};
     double GetMomentum()      {return Momentum;};
-    double GetChi2()          {return Chi2;};
     double GetChi2_minus()          {return Chi2_minus;};
     double GetChi2_plus()          {return Chi2_plus;};
     
@@ -53,9 +47,6 @@ class TMS_Track {
     void SetEnergyDeposit (double val) {EnergyDeposit = val;};
     void SetEnergyRange   (double val) {EnergyRange   = val;};
     void SetMomentum      (double val) {Momentum      = val;};
-    void SetMomentum_minus      (double val) {Momentum_minus      = val;};
-    void SetMomentum_plus      (double val) {Momentum_plus      = val;};
-    void SetChi2          (double val) {Chi2          = val;};
     void SetChi2_minus          (double val) {Chi2_minus          = val;};
     void SetChi2_plus          (double val) {Chi2_plus          = val;};
    

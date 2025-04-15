@@ -69,6 +69,7 @@ class TMS_KalmanNode {
     SmoothCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
     MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
     MeasurementVec(5)
+//    DeflectedVec(5)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -82,6 +83,7 @@ class TMS_KalmanNode {
     rVecT.ResizeTo(2);
     RMatrix.ResizeTo(2, 2);
     MeasurementVec.ResizeTo(5);
+//    DeflectedVec.ResizeTo(5);
 
     // Make the transfer matrix for each of the states
     // Initialise to zero
@@ -91,6 +93,7 @@ class TMS_KalmanNode {
     rVecT.Zero();
     RMatrix.Zero();
     MeasurementVec.Zero();
+//    DeflectedVec.Zero();
 
 
     // Diagonal element
@@ -150,6 +153,7 @@ class TMS_KalmanNode {
   TVectorD rVecT;
   TMatrixD RMatrix;
   TVectorD MeasurementVec;
+//  TVectorD DeflectedVec;
   double chi2;
 
 
@@ -257,9 +261,9 @@ class TMS_Kalman {
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
 
     void SetMomentum(double mom) {momentum = mom;}
-    void SetCharge_test(double charge) {
-        if (charge > 0) charge_test= +1;
-        else charge_test= -1;
+    void SetCharge_curvature(double charge) {
+        if (charge > 0) charge_curvature= +1;
+        else charge_curvature= -1;
     }
 
     // Set direction unit vectors from only x and y slope
@@ -271,7 +275,7 @@ class TMS_Kalman {
     void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     double GetMomentum() {return momentum;}
-    double GetCharge_test() {return charge_test;}
+    double GetCharge_curvature() {return charge_curvature;}
 
     double GetTrackChi2()
     {
@@ -298,6 +302,7 @@ class TMS_Kalman {
     void runRTSSmoother();
     void BetheBloch();
     void SignSelection();
+    void Runchi2();
 
 
 
@@ -311,7 +316,7 @@ class TMS_Kalman {
     double total_en;
     double mass;
     double momentum;
-    double charge_test;
+    double charge_curvature;
     double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
