@@ -64,8 +64,6 @@ class TMS_Track {
 
     // Kalman filter track info
     int nKalmanNodes;
-    int nKalmanNodes_minus;
-    int nKalmanNodes_plus;
     std::vector<TMS_KalmanNode> KalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;
     std::vector<TMS_KalmanNode> KalmanNodes_plus;

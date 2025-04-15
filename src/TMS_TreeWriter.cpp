@@ -1477,11 +1477,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
-      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
-      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
-        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
-        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
-      //}
+
       RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
       RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
       RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
@@ -1594,8 +1590,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, end_z), true);
         // Again from true start to particle's end
-        // Picking 10x TMS_Const::TMS_Double_End breaks geometry
-        // Picking 2x TMS_Const::TMS_Double_End causes infinite loop
+        // Picking 10x TMS_Const::TMS_Thick_End breaks geometry
+        // Picking 2x TMS_Const::TMS_Thick_End causes infinite loop
         // Or maybe crazy slowdown in sand?
         // So let's go slightly beyond end of TMS
         const double LARGE_Z = TMS_Const::TMS_Thick_End + 1000;
@@ -1771,7 +1767,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect()*1000.; 
+  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
