@@ -712,7 +712,7 @@ for (auto Lines: HoughCandidatesY) {
       trk.KalmanNodes = KalmanFilter_plus.GetKalmanNodes();
       //for chi2 tracking
       trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
-      trk.KalmanNodes_minus = KalmanFilter_plus.GetKalmanNodes();
+      trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
       trk.Length = CalculateTrackLengthKalman(trk);
     }
   } else { // No Kalman filter enabled
