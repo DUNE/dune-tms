@@ -671,39 +671,49 @@ for (auto Lines: HoughCandidatesY) {
 
   // Run Kalman filter if requested
   if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom, kalman_chi2;
-    
+    double kalman_reco_mom, kalman_chi2_plus, kalman_chi2_minus;
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
-
     for (auto &trk : HoughTracks3D) {
-      //assumed_charge = 0.1 works well, can set to 0.05 or 0.01 or 0.5. right now it serve as a scale factor
-      KalmanFilter = TMS_Kalman(trk.Hits, assumed_charge); //will make the muon chi square smaller
-      
-      
+
+      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
+      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
+
+      kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
+      trk.SetChi2_plus(kalman_chi2_plus);
+      kalman_chi2_minus = KalmanFilter_minus.GetTrackChi2();
+      trk.SetChi2_minus(kalman_chi2_minus);
+
+      if (kalman_chi2_minus < kalman_chi2_plus) {
+          trk.Charge_Kalman = -13;}
+      else{
+          trk.Charge_Kalman = 13;
+      }
+
+      trk.Charge_Kalman_curvature=KalmanFilter_plus.GetCharge_curvature();
+      kalman_reco_mom = KalmanFilter_plus.GetMomentum();
+
       bool verbose_kalman = false;
-      kalman_reco_mom = KalmanFilter.GetMomentum();
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter start pos : " << KalmanFilter.Start[0] << ", " << KalmanFilter.Start[1] << ", "  << KalmanFilter.Start[2] << std::endl;
-      trk.SetStartPosition(KalmanFilter.Start[0], KalmanFilter.Start[1], KalmanFilter.Start[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter start pos : " << KalmanFilter_plus.Start[0] << ", " << KalmanFilter_plus.Start[1] << ", "  << KalmanFilter_plus.Start[2] << std::endl;
+      trk.SetStartPosition(KalmanFilter_plus.Start[0], KalmanFilter_plus.Start[1], KalmanFilter_plus.Start[2]); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter end pos : " << KalmanFilter.End[0] << ", " << KalmanFilter.End[1] << ", "  << KalmanFilter.End[2] << std::endl;
-      trk.SetEndPosition(KalmanFilter.End[0], KalmanFilter.End[1], KalmanFilter.End[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter end pos : " << KalmanFilter_plus.End[0] << ", " << KalmanFilter_plus.End[1] << ", "  << KalmanFilter_plus.End[2] << std::endl;
+      trk.SetEndPosition(KalmanFilter_plus.End[0], KalmanFilter_plus.End[1], KalmanFilter_plus.End[2]); // Fill the momentum of the TMS_Track obj
 
       if (verbose_kalman) std::cout << "Kalman filter start dir : " << KalmanFilter.StartDirection[0] << ", " << KalmanFilter.StartDirection[1] << ", "  << KalmanFilter.StartDirection[2] << std::endl;
-      trk.SetStartDirection(KalmanFilter.StartDirection[0], KalmanFilter.StartDirection[1], KalmanFilter.StartDirection[2]); // Fill the momentum of the TMS_Track obj
+      trk.SetStartDirection(KalmanFilter_plus.StartDirection[0], KalmanFilter_plus.StartDirection[1], KalmanFilter_plus.StartDirection[2]); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter.EndDirection[0] << ", " << KalmanFilter.EndDirection[1] << ", "  << KalmanFilter.EndDirection[2] << std::endl;
-      trk.SetEndDirection(KalmanFilter.EndDirection[0], KalmanFilter.EndDirection[1], KalmanFilter.EndDirection[2]); // Fill the momentum of the TMS_Track obj
-      trk.KalmanNodes = KalmanFilter.GetKalmanNodes(); // Fill the KalmanNodes of the TMS_Track
+      if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter_plus.EndDirection[0] << ", " << KalmanFilter_plus.EndDirection[1] << ", "  << KalmanFilter_plus.EndDirection[2] << std::endl;
+      trk.SetEndDirection(KalmanFilter_plus.EndDirection[0], KalmanFilter_plus.EndDirection[1], KalmanFilter_plus.EndDirection[2]); // Fill the momentum of the TMS_Track obj
 
-      // Add tracklength with Kalman filter
+      //When Kalman fitting the charge is not involved, so any assumed charge is okay
+      trk.KalmanNodes = KalmanFilter_plus.GetKalmanNodes();
+      //for chi2 tracking
+      trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
+      trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
       trk.Length = CalculateTrackLengthKalman(trk);
-      //std::cout << "chi2 : " << KalmanFilter.GetTrackChi2() << std::endl;
-      kalman_chi2 = KalmanFilter.GetTrackChi2();
-      trk.SetChi2(kalman_chi2);
-   
     }
   } else { // No Kalman filter enabled
     for (auto &trk : HoughTracks3D) {
