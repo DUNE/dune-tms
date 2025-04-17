@@ -2063,6 +2063,9 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Now loop over the remaining hits
       // Need to keep a conventional iterator to remove the HoughLine vector entries
       int lineit_2 = 0;
+      
+      int tracknumber = 0;
+      
       for (std::vector<std::vector<TMS_Hit> >::iterator jt = LineCandidates.begin(); jt != LineCandidates.end(); ++jt, ++lineit_2) {
         
         // Make sure that we don't try to merge a track with itself
@@ -2144,6 +2147,30 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         last_hit_z = lasthit.GetPlaneNumber();
         last_hit_notz = lasthit.GetBarNumber();
         // TODO recalculate slope and intercept of merged track?
+        
+        // Need to sort each line in z
+        //SpatialPrio(*it);
+        std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
+        unsigned int ncleaned = CleanedHough.size();
+
+        // Now replace the old hits with this cleaned version
+        // Can remove Hough hits if not big enough
+        // Also remember to remove the line
+        if (ncleaned < 1) {
+          it = LineCandidates.erase(it);
+  	      if (hitgroup == 'U') {
+            HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
+	        } else if (hitgroup == 'V') {
+	          HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
+          } else if (hitgroup == 'X') {
+            HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
+          }
+        } else {
+          //*it = CleanedHough;
+          //it++;
+          tracknumber++;
+        }
+
       }
     }
   }
@@ -2169,33 +2196,33 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // Now finally connect the start and end points of each Hough line with Astar to get the most efficient path along the hough hits
   // This helps remove biases in the greedy hough adjacent hit merging
   // For A* after Hough, better to run with Euclidean metric, over-riding the previous
-  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
-    int tracknumber = 0;
-    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
-      // Need to sort each line in z
-      SpatialPrio(*it);
-      std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
-      unsigned int ncleaned = CleanedHough.size();
+//  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
+//    int tracknumber = 0;
+//    for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
+//      // Need to sort each line in z
+//      SpatialPrio(*it);
+//      std::vector<TMS_Hit> CleanedHough = RunAstar(*it);
+//      unsigned int ncleaned = CleanedHough.size();
 
       // Now replace the old hits with this cleaned version
       // Can remove Hough hits if not big enough
       // Also remember to remove the line
-      if (ncleaned < 1) {
-        it = LineCandidates.erase(it);
-	      if (hitgroup == 'U') {
-          HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
-	      } else if (hitgroup == 'V') {
-	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
-        } else if (hitgroup == 'X') {
-          HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
-        }
-      } else {
-        *it = CleanedHough;
-        it++;
-        tracknumber++;
-      }
-    }
-  }
+//      if (ncleaned < 1) {
+//        it = LineCandidates.erase(it);
+//	      if (hitgroup == 'U') {
+//          HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
+//	      } else if (hitgroup == 'V') {
+//	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
+//        } else if (hitgroup == 'X') {
+//          HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
+//        }
+//      } else {
+//        *it = CleanedHough;
+//        it++;
+//        tracknumber++;
+//      }
+//    }
+//  }
 
   return LineCandidates;
 };
@@ -2582,6 +2609,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Finally run A* to find the shortest path from start to end
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar()) {
     SpatialPrio(returned);
+
     std::vector<TMS_Hit> vec = RunAstar(returned);
 
     // Only overwrite when necessary
@@ -2615,7 +2643,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     std::vector<TMS_Hit> emptyvec;
     return emptyvec;
   }
-
+  
   // Now check that the Hough candidates are long enough
   double xend = (returned).back().GetBarNumber();     //GetNotZ();
   double zend = (returned).back().GetPlaneNumber();   //GetZ();
@@ -2625,6 +2653,18 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double zdist = zstart - zend;
   double dist = sqrt(xdist * xdist + zdist * zdist);
   unsigned int nhits = (returned).size();
+#ifdef DEBUG
+  if (returned.back().GetBar().GetBarType() == TMS_Bar::kXBar) {
+    std::cout << "xend: " << xend << " | zend: " << zend << std::endl;
+    std::cout << "xstart: " << xstart << " | zstart: " << zstart << std::endl;
+    std::cout << "(xend: " << returned.back().GetNotZ() << " | zend: " << returned.back().GetZ() << ")" << std::endl;
+    std::cout << "(xstart: " << returned.front().GetNotZ() << " | zstart: " << returned.front().GetZ() << ")" << std::endl;
+    std::cout << "xdist: " << xdist << " | zdist: " << zdist << std::endl;
+    std::cout << "(xdist: " << returned.front().GetNotZ() - returned.back().GetNotZ() << " | zdist: " << returned.front().GetZ() - returned.back().GetZ() << ")" << std::endl;
+    std::cout << "dist: " << dist << " | (" << sqrt((returned.front().GetNotZ() - returned.back().GetNotZ()) * (returned.front().GetNotZ() - returned.back().GetNotZ()) + (returned.front().GetZ() - returned.back().GetZ()) * (returned.front().GetZ() - returned.back().GetZ())) << std::endl;
+    std::cout << "MinDistHough for dist " << MinDistHough << std::endl;
+  }
+#endif
   // Calculate the minimum distance in planes and bars instead of physical distance
   if (dist < MinDistHough || nhits < nMinHits) {
     std::vector<TMS_Hit> emptyvec;
@@ -2758,7 +2798,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       }
     }
 #ifdef DEBUG
-    std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+    std::cout << "Hits added at end(1). Size now: " << returned.size() << std::endl;
 #endif
     // Now order the hits in the existing track
     SpatialPrio(returned);
@@ -2782,7 +2822,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         returned.push_back((*hit));
       }
 #ifdef DEBUG
-      std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+      std::cout << "Hits added at end(2). Size now: " << returned.size() << std::endl;
 #endif
 
       // Now order the hits in the existing track
@@ -2853,7 +2893,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           returned.push_back((*hit));
         }
 #ifdef DEBUG
-        std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+        std::cout << "Hits added at front(1). Size now: " << returned.size() << std::endl;
 #endif
 
         // Now order the hits in the existing track
@@ -2878,7 +2918,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           returned.push_back((*hit));
         } 
 #ifdef DEBUG
-        std::cout << "Hits added. Size now: " << returned.size() << std::endl;
+        std::cout << "Hits added at front(2). Size now: " << returned.size() << std::endl;
 #endif
 
         // Now order the hits in the existing track
@@ -2960,7 +3000,7 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
     //std::cout << "xz = " << TMS_xz.size() << " before a = " << a << std::endl;
     //std::vector<TMS_Hit> AStarHits_yz;
     std::vector<TMS_Hit> AStarHits_xz;
-
+    
     // Run on x-z first since that's where the gaps occur, leading to broken tracks
     // We can save where this happens in z and make the yz reconstruction aware of the gap
     if (TMS_xz.size() > 0) AStarHits_xz = RunAstar(TMS_xz);
@@ -3161,8 +3201,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       // to make calculation much faster
       // This important can't be 1 though, because that would not connect split hits
       if (!ConnectAll) {
-        if (abs((*jt).x - (*it).x) > 3 || 
-            abs((*jt).y - (*it).y) > 3) continue; // (*jt).y - (*jt).y doesn't really make sense...
+        if (IsX) {
+          if (abs((*jt).x - (*it).x) > 3 ||
+              abs((*jt).y - (*it).y) > 6) continue;
+        } else if (IsXZ) {
+          if (abs((*jt).x - (*it).x) > 3 || 
+              abs((*jt).y - (*it).y) > 3) continue; // (*jt).y - (*jt).y doesn't really make sense...
+        }
       }
       double GroundCost = (*it).CalculateGroundCost(*jt);
 
@@ -3295,7 +3340,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
   while (NodeID != 0) {
     returned.push_back(TMS_xz[NodeID]);
     //std::cout << "Node: " << NodeID << std::endl;
-    //Nodes[NodeID].Print();
+    Nodes[NodeID].Print();
     //std::cout << "Came from: " << std::endl;
     NodeID = came_from[NodeID];
     //Nodes[NodeID].Print();
