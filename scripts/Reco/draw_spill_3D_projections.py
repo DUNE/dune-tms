@@ -312,14 +312,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
                 z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
                 x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-                x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
                 ### Set TMS name
-                x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_y.text(-3.69, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
                 z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-                x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_z.text(11.2, 3.79, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
         
                 ### Position plots efficient/nice in subplots
                 x_z.axis('equal')
@@ -332,23 +332,23 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.axes.set_anchor('SW')
         
                 ### Put in outlines of scintillator parts
-                x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(11.124, -3.73, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(18.544, -3.73, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
         
-                z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.hlines(tms_bottom_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.hlines(tms_top_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(11.124, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
         
-                x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_bottom_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(-3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -399,32 +399,32 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
-                if DrawKalmanTrack:
-                    print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
-
-                    prev_kal_x = -1E100
-                    prev_kal_y = -1E100
-                    prev_kal_z = -1E100
-                    kal_x = np.zeros(nKalmanNodes[j])
-                    kal_y = np.zeros(nKalmanNodes[j])
-                    kal_z = np.zeros(nKalmanNodes[j])
-                    kal_true_x = np.zeros(nKalmanNodes[j])
-                    kal_true_y = np.zeros(nKalmanNodes[j])
-
-                    for node in range(nKalmanNodes[j]):
-                        kal_x[node] = KalmanPos[j*600 + node*3 + 0]/1000.0 # from mm to m
-                        kal_y[node] = KalmanPos[j*600 + node*3 + 1]/1000.0
-                        kal_z[node] = KalmanPos[j*600 + node*3 + 2]/1000.0
-                        kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
-                        kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
-
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
-                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
-                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
-
-                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
-                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
-                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
+#                if DrawKalmanTrack:
+#                    print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
+#
+#                    prev_kal_x = -1E100
+#                    prev_kal_y = -1E100
+#                    prev_kal_z = -1E100
+#                    kal_x = np.zeros(nKalmanNodes[j])
+#                    kal_y = np.zeros(nKalmanNodes[j])
+#                    kal_z = np.zeros(nKalmanNodes[j])
+#                    kal_true_x = np.zeros(nKalmanNodes[j])
+#                    kal_true_y = np.zeros(nKalmanNodes[j])
+#
+#                    for node in range(nKalmanNodes[j]):
+#                        kal_x[node] = KalmanPos[j*600 + node*3 + 0]/1000.0 # from mm to m
+#                        kal_y[node] = KalmanPos[j*600 + node*3 + 1]/1000.0
+#                        kal_z[node] = KalmanPos[j*600 + node*3 + 2]/1000.0
+#                        kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
+#                        kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
+#
+#                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
+#                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+#                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+#
+#                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
+#                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
+#                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
 
                 ### Track start
                 #print(StartPos)
@@ -455,7 +455,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 #print(Direction)              
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[j*3 + 2] < 11000. or EndPos[j*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                #if not DrawKalmanTrack and not
+                if not (StartPos[j*3 + 2] < 11000. or EndPos[j*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
 
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
@@ -505,8 +506,9 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11134
-layer_dict = { "%s" % first_z : "UBar" }
+first_z = 11185
+layer_dict = { "%s" % 11133 : "VBar" }
+layer_dict.update({ "%s" % first_z : "XBar"})
         
 def calculate_layers(Xlayers):
     increment = 2
