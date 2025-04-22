@@ -172,10 +172,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
 
-    #DrawKalmanTrack = False
-    #if hasattr(r,"KalmanPos"):
-    #    print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
-    #    DrawKalmanTrack = True
+    DrawKalmanTrack = False
+    if hasattr(r,"KalmanPos"):
+        print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
+        DrawKalmanTrack = True
     
     truth = ROOT.TChain("Truth_Info")
     truth.Add(input_filename)
@@ -312,14 +312,14 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
                 z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
                 x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-                x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
                 ### Set TMS name
-                x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_y.text(-3.69, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
                 z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-                x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_z.text(11.2, 3.79, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
 
                 ### Position plots efficient/nice in subplots
                 x_z.axis('equal')
@@ -332,23 +332,23 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.axes.set_anchor('SW')
 
                 ### Put in outlines of scintillator parts
-                x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(11.124, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(18.544, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
 
-                z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.hlines(tms_bottom_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.hlines(tms_top_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(11.124, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
 
-                x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_bottom_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(-3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -506,8 +506,9 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11134
-layer_dict = { "%s" % first_z : "UBar" }
+first_z = 11185
+layer_dict = { "%s" % 11133 : "VBar" }
+layer_dict.update({ "%s" % first_z : "XBar" })
         
 def calculate_layers(Xlayers):
     increment = 2

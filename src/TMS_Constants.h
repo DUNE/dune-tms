@@ -47,7 +47,7 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11134;
+  const double TMS_Thin_Start = 11133;  //11134 should be, but Kalman filter is freaking out
   // Where do we transition to the thick region (first layer of scintillator before the change)
   const double TMS_Thick_Start = 14435;
   // Where does the thick region end
