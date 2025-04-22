@@ -7,7 +7,7 @@ import cppyy.ll
 import math # filter out nans
 
 import csv
-import matplotlib.pyplot as mp
+#import matplotlib.pyplot as mp
 
 ### Actual function that loops through the spills
 def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge, plot_Angle, Contained, output_name):
@@ -68,10 +68,10 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     # energy resolution
     True_Muon_Energy = np.ones((n_events, 5), dtype = float) * -9999.
     Reco_Muon_Energy = np.ones((n_events, 5), dtype = float) * -9999.
+    True_Muon_Energy_sameZ = np.ones((n_events, 5), dtype = float) * -9999.
+    Reco_Muon_Energy_sameZ = np.ones((n_events, 5), dtype = float) * -9999.
 
     # some simple counters for efficiency evaluation
-    correct_tracks_reco = 0
-    count_muons = 0
     counter_leaving = 0
     
     # now fill the arrays
@@ -133,31 +133,16 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
             True_PDG = true_event.RecoTrackPrimaryParticlePDG
             # classify if true muon actually enough distance in TMS and start in LAr
             LArFiducialTouch = true_event.RecoTrackPrimaryParticleLArFiducialStart
-            Particle_PDG = true_event.LeptonPDG
-            Muon_Start = np.frombuffer(true_event.Muon_Vertex, dtype = np.float32)
-            Muon_End = np.frombuffer(true_event.Muon_Death, dtype = np.float32)
             True_Momentum_Leaving = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueMomentumLeavingTMS, dtype = np.float32)
-            # actual hits
-            Reco_Hits = np.frombuffer(event.TrackHitPos, dtype = np.float32)
-            True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype = np.float32)
-            sum_reco_hits = event.nHits
-            sum_true_hits = true_event.RecoTrackNHits 
 
             # reco efficiency and energy resolution
             MomentumEnteringTMS = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueMomentumEnteringTMS, dtype = np.float32)
             length_to_use = event.Length
-            RecoEndDirection = np.frombuffer(event.EndDirection, dtype = np.float32)
             TrueFiducialEnd = true_event.RecoTrackPrimaryParticleTMSFiducialEnd
-            RecoVisibleEnergy = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueVisibleEnergy, dtype = np.float32)
-            
-            if (abs(Particle_PDG) == 13):
-                if 4179.24 < Muon_Start[2] < 9135.88 and 11185 < Muon_End[2] < 18535:
-                    if 371.77 > Muon_End[1] > -3076.23 and abs(Muon_End[0]) < 3491:
-                        count_muons += 1
+            #RecoVisibleEnergy = np.frombuffer(true_event.RecoTrackPrimaryParticleTrueVisibleEnergy, dtype = np.float32)
 
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
-            nTrueHits = true_event.RecoTrackNHits
 
             if nTracks <= 0: continue
             #if nTracks > 4: print("Too many tracks in event. Limit to first 5")
@@ -185,6 +170,20 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     
                                     reco_muon_starting_ke = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
                                     Reco_Muon_Energy[i, j] = reco_muon_starting_ke
+                                    
+                                    # roughly same end z for reco and truth
+                                    if (True_Position_TMS_End[j*4 + 2] <= 14435):
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 65:
+                                            True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
+                                            Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
+                                    elif (True_Position_TMS_End[j*4 + 2] >= 14525 and True_Position_TMS_End[j*4 + 2] <= 18535):
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 90:
+                                            True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
+                                            Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
+                                    elif (True_Position_TMS_End[j*4 + 2] > 18535):
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 130:
+                                            True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
+                                            Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18-73) * 1e-3
 
                             # normalization of true direction
                             if plot_Angle or plot_Charge:
@@ -197,41 +196,12 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                                 True_ZDirection[i, j] = MomentumTrackStart[j*4 + 2] / magnitude
                                 Reco_ZDirection[i, j] = Reco_Track_StartDirection[j*3 + 2] / magnitude_r
                                 True_KE[i, j] = np.sqrt((MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 +1]**2 + MomentumTrackStart[j*4 + 2]**2 + 105.7**2) - 105.7)
-                                True_Charge[i, j] = True_PDG[j]  #13                          
+                                True_Charge[i, j] = True_PDG[j]                         
                             if plot_Charge:
                                 # Make sure that true muon stopped in TMS and is not leaving
-                                if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
+                                if TrueFiducialEnd[j]:  #np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
                                     Reco_Charge[i, j] = Reco_Track_Charge[j]
-                                    True_Charge_stop[i, j] = True_PDG[j]    #13
-                                    #if Reco_Track_Charge[j] != True_PDG[j]:
-                                    #   if True_PDG[j] == 13:
-                                    #        TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
-                                    #        TrueHits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype = np.float32)
-                                    #        mp.hlines(-3.73, 11.176, 18.544, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.hlines(3.73, 11.176, 18.544, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.hlines(-1.86, 11.176, 18.544, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.hlines(0, 11.176, 18.544, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.hlines(1.86, 11.176, 18.544, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.vlines(11.176, -3.73, 3.73, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.vlines(18.544, -3.73, 3.73, color = 'blue', linewidth = 1, linestyle = ':')
-                                    #        mp.axis('equal')
-                                    #        for hit in range(nHits[j]):
-                                    #            hit_x = TrackHitPos[j*600 + hit*3 + 0]
-                                    #            hit_z = TrackHitPos[j*600 + hit*3 + 2]
-                                    #            mp.scatter(hit_z / 1000, hit_x / 1000, marker = 'd', c = 'black', alpha = 0.5)
-                                    #        for hit in range(nTrueHits[j]):
-                                    #            thit_x = TrueHits[j*600 + hit*4 + 0]
-                                    #            thit_z = TrueHits[j*600 + hit*4 + 2]
-                                    #            if thit_z < 11000.: continue
-                                    #            mp.scatter(thit_z / 1000, thit_x / 1000, marker = '+', c = 'yellow')
-                                    #        mp.xlabel('z [m]')
-                                    #        mp.ylabel('x [m]')
-                                    #        mp.scatter(True_Position_TMS_End[j*4 + 2] / 1000, True_Position_TMS_End[j*4 + 0] / 1000, c = 'red', marker = '2')
-                                    #        mp.scatter(True_Position_TMS_Start[j*4 + 2] / 1000, True_Position_TMS_Start[j*4 + 0] / 1000, c = 'red', marker = '1')
-                                    #        mp.scatter(EndPos[j*3 + 2] / 1000, EndPos[j*3 + 0] / 1000, c = 'green', marker = '3')
-                                    #        mp.scatter(StartPos[j*3 + 2] / 1000, StartPos[j*3 + 0] / 1000, c = 'green', marker = '4')
-                                    #        mp.savefig('muon_events/event_%03d_%03d_%02d.png' % (current_spill_number, i, j), bbox_inches = 'tight')
-                                    #        mp.close()
+                                    True_Charge_stop[i, j] = True_PDG[j]
 
                             if plot_Start:
                                 Reco_Start[i, j, 0] = StartPos[j*3 + 0]
@@ -245,7 +215,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                         # Make sure that at least 4 potential hits in TMS
                         if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 14 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 14 * 65.:
                             # Make sure that true muon stopped in TMS and is not leaving
-                            if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
+                            if TrueFiducialEnd[j]:  #np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
                                 Reco_End[i, j, 0] = EndPos[j*3 + 0]
                                 Reco_End[i, j, 1] = EndPos[j*3 + 1]
                                 Reco_End[i, j, 2] = EndPos[j*3 + 2]
@@ -260,7 +230,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                         # Make sure that at least 4 potential hits in TMS
                         if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 14 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 14 * 65.:
                             # Make sure that true muon stopped in TMS and is not leaving
-                            if np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) >= 1:
+                            if not TrueFiducialEnd[j]:  #np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) >= 1:
                                 counter_leaving += 1
                             Reco_End[i, j, 0] = EndPos[j*3 + 0]
                             Reco_End[i, j, 1] = EndPos[j*3 + 1]
@@ -314,6 +284,9 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     boolean_energy = (True_Muon_Energy != -9999.)
     True_Muon_Energy = True_Muon_Energy[boolean_energy]
     Reco_Muon_Energy = Reco_Muon_Energy[boolean_energy]
+    boolean_energy_sameZ = (True_Muon_Energy_sameZ != -9999.)
+    True_Muon_Energy_sameZ = True_Muon_Energy_sameZ[boolean_energy_sameZ]
+    Reco_Muon_Energy_sameZ = Reco_Muon_Energy_sameZ[boolean_energy_sameZ]
     
     # flatten arrays
     if plot_Start:
@@ -390,6 +363,10 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     output.write(str([True_Muon_Energy[i] for i in range(len(True_Muon_Energy))]))
     output.write('\n')
     output.write(str([Reco_Muon_Energy[i] for i in range(len(Reco_Muon_Energy))]))
+    output.write('\n')
+    output.write(str([True_Muon_Energy_sameZ[i] for i in range(len(True_Muon_Energy_sameZ))]))
+    output.write('\n')
+    output.write(str([Reco_Muon_Energy_sameZ[i] for i in range(len(Reco_Muon_Energy_sameZ))]))
     output.close()
         
     return
@@ -408,9 +385,8 @@ if __name__ == "__main__":
     parser.add_argument('--Contained', "-con", help = "Do you want to plot the end resolution only for contained muons or all? Yes -> --Contained, No -> --no-Contained", action = argparse.BooleanOptionalAction)
     parser.add_argument('--output', type = str, help = "The output file name.")
     
-    args = parser.parse_args()
-    
-    #print(layer_dict)
+    args = parser.parse_args() 
+
     out_dir = args.outdir
     input_filename = args.input_filename
     plot_Start = args.Start
