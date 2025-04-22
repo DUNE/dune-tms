@@ -66,7 +66,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
 
     // This also initialises the state vectors in each of the nodes
-    if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
+    if (abs(DeltaZ) > 1E-3 || i==nCand-1) //include start point from reco// TODO: Only add one hit per z for now, noise breaks
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
       TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
