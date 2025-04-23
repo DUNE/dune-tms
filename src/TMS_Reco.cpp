@@ -1734,8 +1734,18 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       // Sort track
       SpatialPrio(aTrack.Hits);
 
-      if (TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UseTrackSmoothing())
+      std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
+      std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
+      
+      if (TMS_Manager::GetInstance().Get_Reco_TRACKSMOOTHING_UseTrackSmoothing()) {
         aTrack.ApplyTrackSmoothing();
+        aTrack.Start[0] = aTrack.Hits.front().GetRecoX();
+        aTrack.Start[1] = aTrack.Hits.front().GetRecoY();
+        aTrack.Start[2] = aTrack.Hits.front().GetZ();
+        aTrack.End[0] = aTrack.Hits.back().GetRecoX();
+        aTrack.End[1] = aTrack.Hits.back().GetRecoY();
+        aTrack.End[2] = aTrack.Hits.back().GetZ();
+      }
 
       // Smoothing of start and end of track in case of too much 'flailing around' in the y direction
       // end
@@ -1786,11 +1796,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         double direction_z = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
         aTrack.SetStartDirection(direction_x, direction_y, direction_z);
       }
-#ifdef DEBUG          
+//#ifdef DEBUG          
       std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
       std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
       std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-#endif       
+//#endif       
   
       returned.push_back(aTrack);
 

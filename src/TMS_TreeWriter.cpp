@@ -257,12 +257,12 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("ClusterHitSliceY",  ClusterHitSliceY,  "ClusterHitSliceY[25][200]/I");
 
   // Hit information
-  Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
-  Branch_Lines->Branch("RecoHitPos",    RecoHitPos,    "RecoHitPos[nHits][4]/F");
-  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
-  Branch_Lines->Branch("RecoHitPE", RecoHitPE, "RecoHitPE[nHits]/F");
-  Branch_Lines->Branch("RecoHitBar",  RecoHitBar,  "RecoHitBar[nHits]/I");
-  Branch_Lines->Branch("RecoHitBarType",  RecoHitBarType,  "RecoHitBarType[nHits]/I");
+  Branch_Lines->Branch("nHits",           &nHits,         "nHits/I");
+  Branch_Lines->Branch("RecoHitPos",      RecoHitPos,     "RecoHitPos[nHits][4]/F");
+  Branch_Lines->Branch("RecoHitEnergy",   RecoHitEnergy,  "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitPE",       RecoHitPE,      "RecoHitPE[nHits]/F");
+  Branch_Lines->Branch("RecoHitBar",      RecoHitBar,     "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitBarType",  RecoHitBarType, "RecoHitBarType[nHits]/I");
 
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
@@ -272,22 +272,22 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
-  Reco_Tree->Branch("RunNo", &RunNo, "RunNo/I");
+  Reco_Tree->Branch("RunNo",   &RunNo,   "RunNo/I");
 
   Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
   Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][3]/F");
   Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
   Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "KalmanPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("KalmanPos_plus_chi2",      RecoTrackKalmanPos_plus_chi2,       "KalmanPos_plus_chi2[nTracks][200][3]/F");
-  Reco_Tree->Branch("KalmanPos_minus_chi2",      RecoTrackKalmanPos_minus_chi2,       "KalmanPos_minus_chi2[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanPos_plus_chi2",  RecoTrackKalmanPos_plus_chi2,   "KalmanPos_plus_chi2[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanPos_minus_chi2", RecoTrackKalmanPos_minus_chi2,  "KalmanPos_minus_chi2[nTracks][200][3]/F");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
-  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView", RecoTrackKalmanLastPlaneBarView, "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
-  Reco_Tree->Branch("RecoTrackKalmanPlaneBarView", RecoTrackKalmanPlaneBarView, "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView",  RecoTrackKalmanLastPlaneBarView,  "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarView",      RecoTrackKalmanPlaneBarView,      "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
   Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarViewTrue", RecoTrackKalmanFirstPlaneBarViewTrue, "RecoTrackKalmanFirstPlaneBarViewTrue[nTracks][3]/I");
-  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarViewTrue", RecoTrackKalmanLastPlaneBarViewTrue, "RecoTrackKalmanLastPlaneBarViewTrue[nTracks][3]/I");
-  Reco_Tree->Branch("RecoTrackKalmanPlaneBarViewTrue", RecoTrackKalmanPlaneBarViewTrue, "RecoTrackKalmanPlaneBarViewTrue[nTracks][200][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarViewTrue",  RecoTrackKalmanLastPlaneBarViewTrue,  "RecoTrackKalmanLastPlaneBarViewTrue[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarViewTrue",      RecoTrackKalmanPlaneBarViewTrue,      "RecoTrackKalmanPlaneBarViewTrue[nTracks][200][3]/I");
   Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
   Reco_Tree->Branch("EndDirection",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
   Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][3]/F");
@@ -296,15 +296,15 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
-  Reco_Tree->Branch("Length_3D",         RecoTrackLength_3D,          "Length_3D[nTracks]/F");
+  Reco_Tree->Branch("Length_3D",      RecoTrackLength_3D,       "Length_3D[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
-  Reco_Tree->Branch("Charge_Kalman",         RecoTrackCharge_Kalman,          "Charge_Kalman[nTracks]/I");
-  Reco_Tree->Branch("Charge_Kalman_curvature",         RecoTrackCharge_Kalman_curvature,          "Charge_Kalman_curvature[nTracks]/I");
-  Reco_Tree->Branch("Chi2_minus",           RecoTrackChi2_minus,             "Chi2_minus[nTracks]/F");
-  Reco_Tree->Branch("Chi2_plus",           RecoTrackChi2_plus,             "Chi2_plus[nTracks]/F");
+  Reco_Tree->Branch("Charge_Kalman",  RecoTrackCharge_Kalman,   "Charge_Kalman[nTracks]/I");
+  Reco_Tree->Branch("Charge_Kalman_curvature",  RecoTrackCharge_Kalman_curvature, "Charge_Kalman_curvature[nTracks]/I");
+  Reco_Tree->Branch("Chi2_minus",     RecoTrackChi2_minus,      "Chi2_minus[nTracks]/F");
+  Reco_Tree->Branch("Chi2_plus",      RecoTrackChi2_plus,       "Chi2_plus[nTracks]/F");
 
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
-  Reco_Tree->Branch("TrackHitBarType", RecoTrackHitBarType,   "RecoTrackHitBarType[nTracks][200]/I");
+  Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
 
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
@@ -314,29 +314,29 @@ void TMS_TreeWriter::MakeBranches() {
   MakeTruthBranches(Truth_Spill);
   
   // Truth information
-  Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
-  Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
-  Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
-  Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
-  Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
-  Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
-  Truth_Info->Branch("Muon_Death", Muon_Death, "Muon_Death[4]/F");
+  Truth_Info->Branch("nParticles",  &nParticles,  "nParticles/I");
+  Truth_Info->Branch("LeptonPDG",   &LeptonPDG,   "LeptonPDG/I");
+  Truth_Info->Branch("LeptonP4",    LeptonP4,     "LeptonP4[4]/F");
+  Truth_Info->Branch("LeptonX4",    LeptonX4,     "LeptonX4[4]/F");
+  Truth_Info->Branch("MuonP4",      MuonP4,       "MuonP4[4]/F");
+  Truth_Info->Branch("Muon_Vertex", Muon_Vertex,  "Muon_Vertex[4]/F");
+  Truth_Info->Branch("Muon_Death",  Muon_Death,   "Muon_Death[4]/F");
   Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
   
-  Truth_Info->Branch("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexIdOfMostEnergyInEvent",    &VertexIdOfMostEnergyInEvent,    "VertexIdOfMostEnergyInEvent/I");
   Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
-  Truth_Info->Branch("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, "TotalVisibleEnergyFromVertex/F");
+  Truth_Info->Branch("TotalVisibleEnergyFromVertex",   &TotalVisibleEnergyFromVertex,   "TotalVisibleEnergyFromVertex/F");
   Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
-  Truth_Info->Branch("VertexVisibleEnergyFractionInSlice", &VertexVisibleEnergyFractionInSlice, "VertexVisibleEnergyFractionInSlice/F");
-  Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction", &PrimaryVertexVisibleEnergyFraction, "PrimaryVertexVisibleEnergyFraction/F");
+  Truth_Info->Branch("VertexVisibleEnergyFractionInSlice",    &VertexVisibleEnergyFractionInSlice,    "VertexVisibleEnergyFractionInSlice/F");
+  Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction",    &PrimaryVertexVisibleEnergyFraction,    "PrimaryVertexVisibleEnergyFraction/F");
 
   Truth_Info->Branch("LArOuterShellEnergy", &LArOuterShellEnergy, "LArOuterShellEnergy/F");
+  Truth_Info->Branch("LArTotalEnergy",      &LArTotalEnergy,      "LArTotalEnergy/F");
+  Truth_Info->Branch("TotalNonTMSEnergy",   &TotalNonTMSEnergy,   "TotalNonTMSEnergy/F");
   Truth_Info->Branch("LArOuterShellEnergyFromVertex", &LArOuterShellEnergyFromVertex, "LArOuterShellEnergyFromVertex/F");
-  Truth_Info->Branch("LArTotalEnergy", &LArTotalEnergy, "LArTotalEnergy/F");
-  Truth_Info->Branch("LArTotalEnergyFromVertex", &LArTotalEnergyFromVertex, "LArTotalEnergyFromVertex/F");
-  Truth_Info->Branch("TotalNonTMSEnergy", &TotalNonTMSEnergy, "TotalNonTMSEnergy/F");
-  Truth_Info->Branch("TotalNonTMSEnergyFromVertex", &TotalNonTMSEnergyFromVertex, "TotalNonTMSEnergyFromVertex/F");
+  Truth_Info->Branch("LArTotalEnergyFromVertex",      &LArTotalEnergyFromVertex,      "LArTotalEnergyFromVertex/F");
+  Truth_Info->Branch("TotalNonTMSEnergyFromVertex",   &TotalNonTMSEnergyFromVertex,   "TotalNonTMSEnergyFromVertex/F");
   
   Truth_Info->Branch("RecoTrackN", &RecoTrackN, "RecoTrackN/I");
   Truth_Info->Branch("RecoTrackTrueVisibleEnergy", RecoTrackTrueVisibleEnergy,
@@ -435,14 +435,14 @@ void TMS_TreeWriter::MakeBranches() {
   
   
   Truth_Info->Branch("NTrueHits", &NTrueHits, "NTrueHits/I");
-  Truth_Info->Branch("TrueHitX", &TrueHitX, "TrueHitX[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitY", &TrueHitY, "TrueHitY[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitZ", &TrueHitZ, "TrueHitZ[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitT", &TrueHitT, "TrueHitT[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitE", &TrueHitE, "TrueHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitX",  &TrueHitX,  "TrueHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitY",  &TrueHitY,  "TrueHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitZ",  &TrueHitZ,  "TrueHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitT",  &TrueHitT,  "TrueHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitE",  &TrueHitE,  "TrueHitE[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitPEAfterFibers", &TrueHitPEAfterFibers, "TrueHitPEAfterFibers[NTrueHits]/F");
-  Truth_Info->Branch("TrueHitPEAfterFibersLongPath", &TrueHitPEAfterFibersLongPath, "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibers",          &TrueHitPEAfterFibers,          "TrueHitPEAfterFibers[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersLongPath",  &TrueHitPEAfterFibersLongPath,  "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
   Truth_Info->Branch("TrueNTrueParticles", &TrueNTrueParticles, "TrueNTrueParticles[NTrueHits]/I");
   Truth_Info->Branch("TrueLeptonicEnergy", &TrueLeptonicEnergy, "TrueLeptonicEnergy[NTrueHits]/F");
@@ -457,14 +457,14 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueRecoHitTrackXUncertainty", &TrueRecoHitTrackXUncertainty, "TrueRecoHitTrackXUncertainty[NTrueHits]/F");
   Truth_Info->Branch("TrueRecoHitTrackYUncertainty", &TrueRecoHitTrackYUncertainty, "TrueRecoHitTrackYUncertainty[NTrueHits]/F");
   Truth_Info->Branch("TrueRecoHitNotZ", &TrueRecoHitNotZ, "TrueRecoHitNotZ[NTrueHits]/F");
-  Truth_Info->Branch("TrueRecoHitT", &TrueRecoHitT, "TrueRecoHitT[NTrueHits]/F");
-  Truth_Info->Branch("TrueRecoHitE", &TrueRecoHitE, "TrueRecoHitE[NTrueHits]/F");
-  Truth_Info->Branch("TrueRecoHitPE", &TrueRecoHitPE, "TrueRecoHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitT",    &TrueRecoHitT,    "TrueRecoHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitE",    &TrueRecoHitE,    "TrueRecoHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitPE",   &TrueRecoHitPE,   "TrueRecoHitPE[NTrueHits]/F");
   Truth_Info->Branch("TrueRecoHitEVis", &TrueRecoHitEVis, "TrueRecoHitEVis[NTrueHits]/F");
   Truth_Info->Branch("TrueRecoHitIsPedSupped", &TrueRecoHitIsPedSupped, "TrueRecoHitIsPedSupped[NTrueHits]/O");
-  Truth_Info->Branch("TrueHitBar", &TrueHitBar, "TrueHitBar[NTrueHits]/I");
-  Truth_Info->Branch("TrueHitPlane", &TrueHitPlane, "TrueHitPlane[NTrueHits]/I");
-  Truth_Info->Branch("TrueHitView", &TrueHitView, "TrueHitView[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitBar",    &TrueHitBar,    "TrueHitBar[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitPlane",  &TrueHitPlane,  "TrueHitPlane[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitView",   &TrueHitView,   "TrueHitView[NTrueHits]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -472,12 +472,12 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("EventNo", &EventNo, "EventNo/I");
   truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
   truth->Branch("RunNo", &RunNo, "RunNo/I");
-  truth->Branch("IsCC", &IsCC, "IsCC/O");
+  truth->Branch("IsCC",  &IsCC,  "IsCC/O");
   truth->Branch("Interaction", &Reaction);
-  truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
+  truth->Branch("TruthInfoIndex",   &TruthInfoIndex,   "TruthInfoIndex/I");
   truth->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
   truth->Branch("nPrimaryVertices", &nPrimaryVertices, "nPrimaryVertices/I");
-  truth->Branch("HasPileup", &HasPileup, "HasPileup/O");
+  truth->Branch("HasPileup",   &HasPileup,   "HasPileup/O");
   truth->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
@@ -1425,25 +1425,26 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
-    RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
+    RecoTrackEnergyRange[itTrack]   = RecoTrack->EnergyRange;
     if (nLinesU<=0){
-        RecoTrackLength[itTrack]        =       0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     }
     else {
-        RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     }
 
-    RecoTrackLength_3D[itTrack]        =    RecoTrack->Length; 
-    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
-    RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
-    RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
-    RecoTrackCharge_Kalman[itTrack]        =       RecoTrack->Charge_Kalman;
-    RecoTrackCharge_Kalman_curvature[itTrack]        =       RecoTrack->Charge_Kalman_curvature;
-    RecoTrackChi2_minus[itTrack]          =       RecoTrack->Chi2_minus;
-    RecoTrackChi2_plus[itTrack]          =       RecoTrack->Chi2_plus;
+    RecoTrackLength_3D[itTrack]     = RecoTrack->Length; 
+    RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
+    RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
+    RecoTrackCharge[itTrack]        = RecoTrack->Charge;
+    RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
+    RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
+    RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
+    RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
+      std::cout << "Start " << j << ": " << RecoTrack->Start[j] << std::endl;
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
       RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];

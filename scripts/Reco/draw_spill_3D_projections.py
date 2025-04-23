@@ -419,9 +419,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
-                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
-                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+                        x_z.scatter(kal_z[node], kal_x[node], color = black_cbf, marker = '|')
+                        z_y.scatter(kal_z[node], kal_y[node], color = black_cbf, marker = '|')
+                        x_y.scatter(kal_x[node], kal_y[node], color = black_cbf, marker = '|')
+
+                    #x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
+                    #z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+                    #x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
 
                     x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
                     z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
