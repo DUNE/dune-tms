@@ -334,9 +334,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 ### Put in outlines of scintillator parts
                 x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(-1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(1.75, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(11.124, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(18.544, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
 
@@ -349,9 +349,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(-3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(-1.87, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(1.87, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
 
 
                 # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits

@@ -1444,7 +1444,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
     for (int j = 0; j < 3; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
-      std::cout << "Start " << j << ": " << RecoTrack->Start[j] << std::endl;
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
       RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
       RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
