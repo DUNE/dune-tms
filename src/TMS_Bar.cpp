@@ -69,7 +69,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
     }
 
     // This is the furthest down hit we have: scintillator bar
-    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos) {
+    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerParallelName) != std::string::npos) {
       BarNumber = geom->GetCurrentNode()->GetNumber();
 
       // Get the width
@@ -79,6 +79,9 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
       yw = 2*box->GetDY();
       zw = 2*box->GetDZ();
       TMS_Geom::GetInstance().Scale(xw, yw, zw);
+
+      BarWidth  = (xw>yw) ? yw : xw; // Set smaller value as width
+      BarLength = (xw>yw) ? xw : yw; // Set larger value as length :)
 
       Double_t position[3];
       const Double_t local[3] = {0, 0, 0};
