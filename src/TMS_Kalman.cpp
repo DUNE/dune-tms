@@ -43,8 +43,8 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
     {
-      std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
-      std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
+      //std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
+      //std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
       //throw; // yeet it
     }
 
@@ -169,7 +169,7 @@ void TMS_Kalman::RunKalman() {
   }
 
   if (std::isnan(momentum) || std::isinf(momentum)){
-    std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
+    //std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
   }
 }
 
@@ -196,7 +196,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     //PreviousState.dxdz = TMS_Kalman::AverageXSlope;
     if ( abs(TMS_Kalman::AverageXSlope) > 2.0 )
     {
-      std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
+      //std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dxdz = 0.0;
     } else {
       PreviousState.dxdz = TMS_Kalman::AverageXSlope;
@@ -206,7 +206,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   {
     if ( abs(TMS_Kalman::AverageYSlope) > 1.5 )
     {
-      std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
+      //std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dydz = 0.0;
     } else {
       PreviousState.dydz = TMS_Kalman::AverageYSlope;
@@ -348,7 +348,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double p_up;
   if (p_2_up > 0) p_up = sqrt(p_2_up);
   else {
-    std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
     //p_up = 1;
     p_up = sqrt(en*en);
   }
@@ -436,7 +436,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
-    std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -446,7 +446,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
   if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
   {
-    std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -531,7 +531,7 @@ void TMS_Kalman::runRTSSmoother() {
 
       // Ensure the covariance matrix is invertible
       if (P_t.Determinant() == 0) {
-          std::cerr << "Warning: Singular covariance matrix at step " << t << std::endl;
+          //std::cerr << "Warning: Singular covariance matrix at step " << t << std::endl;
           continue;
       }
 
@@ -684,7 +684,7 @@ void TMS_Kalman::BetheBloch() {
         double p_up;
         if (p_2_up > 0) p_up = sqrt(p_2_up);
         else {
-            std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
+            //std::cerr << "[TMS_Kalman.cpp] negative momentum squared, setting momentum to 1 MeV" << std::endl;
             p_up = sqrt(en*en);
         }
 

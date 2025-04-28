@@ -95,9 +95,8 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
             else: return return_value
 
 ### Function for hits to appear in size
-def hit_size(hit_x, hit_y, orientation, hit_z):
+def hit_size(hit_x, hit_y, orientation, hit_z, orientation_bar):
     if orientation == 'xy':
-        orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'XBar':
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x / 1000.0 + delta_x
@@ -121,7 +120,6 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
-        orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'XBar':
             if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
                 size_array[1, 0] = tms_top_hybrid
@@ -225,59 +223,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             ### Check if a track exists in the event/spill, otherwise skip it
             nTracks = event.nTracks
             if nTracks <= 0: continue
-    
-            ### Create subplots
-            #fig = mp.figure(constrained_layout = False)
-            #gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
-            #x_y = fig.add_subplot(gs[0, 0])
-            #z_y = fig.add_subplot(gs[1, 0])
-            #x_z = fig.add_subplot(gs[0:, 1:])
-    
-            #### Set labels and ticks
-            #x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
-            #z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
-            #x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-            #x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            #z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            #x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-            
-            #### Set TMS name
-            #x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-            #z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-            #x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-    
-            #### Position plots efficient/nice in subplots
-            #x_z.axis('equal')
-            #x_z.axes.set_box_aspect(1)
-            #z_y.axis('equal')
-            #z_y.axes.set_box_aspect(0.5)
-            #z_y.axes.set_anchor('NW')
-            #x_y.axis('equal')
-            #x_y.axes.set_box_aspect(0.5)
-            #x_y.axes.set_anchor('SW')
-    
-            #### Put in outlines of scintillator parts
-            #x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-    
-            #z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-    
-            #x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            #x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            
+                
             #print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
@@ -309,7 +255,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_z = fig.add_subplot(gs[0:, 1:])
     
                 ### Set labels and ticks
-                x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
+                x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
                 z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
                 x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
                 x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
@@ -317,8 +263,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
                 ### Set TMS name
-                x_y.text(-3.69, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-                z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_y.text(-3.73, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
+                z_y.text(11.2, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
                 x_z.text(11.2, 3.79, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
 
                 ### Position plots efficient/nice in subplots
@@ -332,18 +278,22 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.axes.set_anchor('SW')
 
                 ### Put in outlines of scintillator parts
-                x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(-1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')   # outer steel plate
+                x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # outer steel plate
+                x_z.hlines(-1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')   # inner steel plate
+                x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')       # middle of steel
+                x_z.hlines(1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # inner steel plate
                 x_z.vlines(11.124, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(18.544, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(14.460, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to thick steel
+                x_z.vlines(17.520, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to double thick steel
 
                 z_y.hlines(tms_bottom_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.hlines(tms_top_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(11.124, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(14.460, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to thick steel
+                z_y.vlines(17.520, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to double thick steel
 
                 x_y.hlines(tms_bottom_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -375,7 +325,6 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
 
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[j]):
-
                     hit_x = TrackHitPos[j*600 + hit*3 + 0]
                     hit_y = TrackHitPos[j*600 + hit*3 + 1]
                     hit_z = TrackHitPos[j*600 + hit*3 + 2]
@@ -386,19 +335,35 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     if hit_z < 11000.: continue #hit_y > -2000.0 or 
                     if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
                 
-                    #print("hit", hit_y, hit_z)
+                    
+                    orientation_bar = check_orientation(int(hit_z))
                     color_cbf = red_cbf
-                    if check_orientation(int(hit_z)) == 'VBar':
+                    if orientation_bar == 'VBar':
                         color_cbf = blue_cbf
-                    elif check_orientation(int(hit_z)) == 'XBar':
+                    elif orientation_bar == 'XBar':
                         color_cbf = black_cbf
                     
+                    if orientation_bar == 'VBar':
+                        if hit + 2 < nHits[j]:
+                            if check_orientation(int(TrackHitPos[j*600 + (hit + 2)*3 + 2])) == 'XBar':
+                                orientation_bar = 'XBar'
+                        else:
+                            if check_orientation(int(TrackHitPos[j*600 + (hit - 1)*3 + 2])) == 'XBar':
+                                orientation_bar = 'XBar'
+                    if orientation_bar == 'UBar':
+                        if hit + 1 < nHits[j]:
+                            if check_orientation(int(TrackHitPos[j*600 + (hit + 1)*3 + 2])) == 'XBar':
+                                orientation_bar = 'XBar'
+                        else:
+                            if check_orientation(int(TrackHitPos[j*600 + (hit - 2)*3 + 2])) == 'XBar':
+                                orientation_bar = 'XBar'
+
                     if hit < 3:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z, orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
                     else:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
-                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
-                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z, orientation_bar), color = color_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z, orientation_bar), color = color_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z, orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 if DrawKalmanTrack:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
@@ -419,13 +384,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color = green_cbf, label = 'Kalman reco')
-                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color = green_cbf)
-                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color = green_cbf)
+                    x_z.plot(kal_z[1:], kal_x[1:], ls=':', lw = 1.3, color = green_cbf, label = 'Kalman reco')
+                    z_y.plot(kal_z[1:], kal_y[1:], ls=':', lw = 1.3, color = green_cbf)
+                    x_y.plot(kal_x[1:], kal_y[1:], ls=':', lw = 1.3, color = green_cbf)
 
-                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color = magenta_cbf, label = 'Kalman true')
-                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color = magenta_cbf)
-                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color = magenta_cbf)
+                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw = 1.3, color = magenta_cbf, label = 'Kalman true')
+                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw = 1.3, color = magenta_cbf)
+                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw = 1.3, color = magenta_cbf)
 
                 ### Track start
                 #print(StartPos)
@@ -435,9 +400,20 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
                     if not StartPos[j*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', StartPos[j*3 + 2]), color = green_cbf, label = 'Start/End reco')
-                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', StartPos[j*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', StartPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        orientation_bar = check_orientation(int(StartPos[j*3 + 2]))
+                        print(orientation_bar)
+                        if not orientation_bar == 'XBar':
+                            if orientation_bar == 'VBar':
+                                if check_orientation(int(TrackHitPos[j*600 + (nHits[j] - 1 - 1)*3 + 2])) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'UBar':
+                                if check_orientation(int(TrackHitPos[j*600 + (nHits[j] - 1 - 2)*3 + 2])) == 'XBar':
+                                    orientation_bar = 'XBar'
+                        print(orientation_bar)
+                        print()
+                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', StartPos[j*3 + 2], orientation_bar), color = green_cbf, label = 'Start/End reco')
+                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', StartPos[j*3 + 2], orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', StartPos[j*3 + 2], orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
@@ -448,9 +424,21 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
                     if not EndPos[j*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', EndPos[j*3 + 2]), color = green_cbf)
-                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', EndPos[j*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', EndPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        print(EndPos[j*3 + 2])
+                        orientation_bar = check_orientation(int(EndPos[j*3 + 2]))
+                        print(orientation_bar)
+                        if not orientation_bar == 'XBar':
+                            if orientation_bar == 'VBar':
+                                if check_orientation(int(TrackHitPos[j*600 + 2 * 3 + 2])) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'UBar':
+                                print(TrackHitPos[j*600 + 1 * 3 + 2])
+                                if check_orientation(int(TrackHitPos[j*600 + 1 * 3 + 2])) == 'XBar':
+                                    orientation_bar = 'XBar'
+                        print(orientation_bar)
+                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', EndPos[j*3 + 2], orientation_bar), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', EndPos[j*3 + 2], orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', EndPos[j*3 + 2], orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
