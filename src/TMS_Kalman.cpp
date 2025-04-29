@@ -161,7 +161,7 @@ void TMS_Kalman::RunKalman() {
   SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
   // Set end pos/dir
   if (KalmanNodes.size() > 1) {
-    SetEndPosition(KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
+    SetEndPosition(KalmanNodes.at(0).PreviousState.x, KalmanNodes.at(0).PreviousState.y, KalmanNodes.at(0).PreviousState.z);//KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
     SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
   } else { // Kalman output is rubbish in this case, but we don't crash :)
     SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
