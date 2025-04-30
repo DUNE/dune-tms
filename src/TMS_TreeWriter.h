@@ -48,20 +48,20 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
-    float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];
-    int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];
-    int RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    int RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
-    int RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
+    float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; //TODO?
+    int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];  //TODO?
+    int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3]; //TODO?
+    int RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];  //TODO?
+    float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; //TODO?
+    int RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];  //TODO?
+    int RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3]; //TODO?
     int RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
-    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
+    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][4]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackHitEnergies[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     int RecoTrackHitBarType[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__];
-    float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackStartPos[__TMS_MAX_TRACKS__][4];
     float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
-    float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndPos[__TMS_MAX_TRACKS__][4];
     float RecoTrackEndDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
