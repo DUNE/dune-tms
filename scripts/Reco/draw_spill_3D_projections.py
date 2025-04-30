@@ -149,15 +149,15 @@ def hit_size(hit_x, hit_y, orientation, orientation_bar):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke = False, histograms, 2Dlines):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
     #if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
     if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
     
     # Make sure we read in the correct file and have the output directory
-    use_readout = True
-    if readout_filename == "": use_readout = False
+    #use_readout = True
+    #if readout_filename == "": use_readout = False
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     if not os.path.exists(out_dir):
@@ -169,6 +169,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
     print("N entries:", r.GetEntries())
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
+
+    if 2Dlines:
+        b = ROOT.TChain("Branch_Lines")
+        b.Add(input_filename)
+        if not b.GetEntries() > 0:
+            print("Didn't get any entries in Branch_Lines, are you sure the input_filename is right?\n", input_filename)
 
     DrawKalmanTrack = False
     if hasattr(r,"KalmanPos"):
@@ -207,6 +213,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                 spill_number = spill_number_cache[i]
                 event = None
                 true_event = None
+                if 2Dlines:
+                    branch = None
             except KeyError:
                 r.GetEntry(i)
                 event = r
@@ -214,13 +222,18 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                 true_event = truth
                 spill_number = event.SpillNo
                 spill_number_cache[i] = spill_number
+                if 2Dlines:
+                    branch = b
             if spill_number < current_spill_number: continue
             if spill_number > current_spill_number: break
             if event == None:
                 r.GetEntry(i)
                 event = r
+            if 2Dlines and branch == None:
+                b.GetEntry(i)
+                branch = b
             # Sync up the readout info if it's there. Note that it has one entry per spill, not timeslice
-            if readout != None: readout.GetEntry(current_spill_number)
+            #if readout != None: readout.GetEntry(current_spill_number)
             if true_event == None:
                 truth.GetEntry(i)
                 true_event = truth
@@ -235,10 +248,30 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
             #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
             TrackHitBarType = np.frombuffer(event.TrackHitBarType, dtype = np.uint8)
+            if histograms:
+                TrackHitEnergies = np.frombuffer(event.TrackHitEnergy, dtype = np.float32)
             
             # I want the number of true hits.
             # nTrueHits = true_event.RecoTrackNHits
             # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
+
+            if 2Dlines:
+                nLinesU = branch.nLinesU
+                nLinesV = branch.nLinesV
+                nLinesX = branch.nLinesX
+                nLinesY = branch.nLinesY
+                nHitsU = np.frombuffer(branch.nHitsInTrackU, dtype = np.uint8)
+                nHitsU = np.array([nHitsU[i] for i in range(0, nLinesU * 4, 4)])
+                nHitsV = np.frombuffer(branch.nHitsInTrackV, dtype = np.uint8)
+                nHitsV = np.array([nHitsV[i] for i in range(0, nLinesV * 4, 4)])
+                nHitsX = np.frombuffer(branch.nHitsInTrackX, dtype = np.uint8)
+                nHitsX = np.array([nHitsX[i] for i in range(0, nLinesX * 4, 4)])
+                nHitsY = np.frombuffer(branch.nHitsInTrackY, dtype = np.uint8)
+                nHitsY = np.array([nHitsY[i] for i in range(0, nLinesY * 4, 4)])
+                TrackHitPosU = np.frombuffer(branch.TrackHitPosU, dtype = np.float32)
+                TrackHitPosV = np.frombuffer(branch.TrackHitPosV, dtype = np.float32)
+                TrackHitPosX = np.frombuffer(branch.TrackHitPosX, dtype = np.float32)
+                TrackHitPosY = np.frombuffer(branch.TrackHitPosY, dtype = np.float32)
 
             # Kalman stuff
             nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
@@ -255,10 +288,18 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
             for j in range(nTracks):
                 ### Create subplots
                 fig = mp.figure(constrained_layout = False)
-                gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
-                x_y = fig.add_subplot(gs[0, 0])
-                z_y = fig.add_subplot(gs[1, 0])
-                x_z = fig.add_subplot(gs[0:, 1:])
+                if histograms:
+                    gs = fig.add_gridspec(2, 3, hspace = 0.25, wspace = 0.15)
+                    x_y = fig.add_subplot(gs[0, 0])
+                    z_y = fig.add_subplot(gs[1, 0])
+                    x_z = fig.add_subplot(gs[0:2, 1:])
+                    time = fig.add_subplot(gs[2, 0])
+                    energy = fig.add_subplot(gs[2, 1:])
+                else:
+                    gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
+                    x_y = fig.add_subplot(gs[0, 0])
+                    z_y = fig.add_subplot(gs[1, 0])
+                    x_z = fig.add_subplot(gs[0:, 1:])
     
                 ### Set labels and ticks
                 x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
@@ -267,6 +308,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                 x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                if histograms:
+                    time.set(xlabel = 'Time [ns]', ylabel = 'Total Hit E [MeV]')
+                    energy.set(xlabel = 'Hit E [MeV]', ylabel = 'N Hits')
             
                 ### Set TMS name
                 x_y.text(-3.73, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
@@ -328,12 +372,18 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                 #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
                 #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
                 #     mp.close()
-
+                
+                if histograms:
+                    times = np.zeros(nHits[j], dtype = float)
+                    energies = np.zeros(nHits[j], dtype = float)
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[j]):
-                    hit_x = TrackHitPos[j*600 + hit*3 + 0]
-                    hit_y = TrackHitPos[j*600 + hit*3 + 1]
-                    hit_z = TrackHitPos[j*600 + hit*3 + 2]
+                    hit_x = TrackHitPos[j*800 + hit*4 + 0]
+                    hit_y = TrackHitPos[j*800 + hit*4 + 1]
+                    hit_z = TrackHitPos[j*800 + hit*4 + 2]
+                    if histograms:
+                        times[hit] = TrackHitPos[j*800 + hit*4 + 3]
+                        energies[hit] = TrackHitEnergies[j*800 + hit*4]
                 
                     #print('(%s)' %check_orientation(int(hit_z)), hit_x, hit_y, hit_z)
                 
@@ -353,7 +403,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                     
                     # check if gap with two hits successively have the same BarType
                     helper = 0
-                    if TrackHitPos[j*600 + (hit + 1)*3 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
+                    if TrackHitPos[j*800 + (hit + 1)*4 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
                     # check for close by X hit for V hits
                     if orientation_bar == 'VBar':
                         if hit + helper + 2 < nHits[j]:
@@ -384,6 +434,35 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                         x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf)
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
+        
+                if 2Dlines:
+                    Uhits_x = np.zeros(nHitsU[j])
+                    Uhits_z = np.zeros(nHitsU[j])
+                    for hit in range(nHitsU[j]):
+                        Uhits_x[hit] = TrackHitPosU[j*400 + hit*2 + 0] / 1000.0
+                        Uhits_z[hit] = TrackHitPosU[j*400 + hit*2 + 1] / 1000.0
+                    x_z.plot(Uhits_z, Uhits_x, ls = '--', lw = 1.3, color = red_cbf, label = '2D U')
+
+                    Vhits_x = np.zeros(nHitsV[j])
+                    Vhits_z = np.zeros(nHitsV[j])
+                    for hit in range(nHitsV[j]):
+                        Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 0] / 1000.0
+                        Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 1] / 1000.0
+                    x_z.plot(Vhits_z, Vhits_x, ls = '--', lw = 1.3, color = blue_cbf, label = '2D V')
+
+                    Xhits_y = np.zeros(nHitsX[j])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
+                    Xhits_z = np.zeros(nHitsX[j])
+                    for hit in range(nHitsX[j]):
+                        Xhits_y[hit] = TrackHitPosX[j*400 + hit*2 + 0] / 1000.0
+                        Xhits_z[hit] = TrackHitPosX[j*400 + hit*2 + 1] / 1000.0
+                    z_y.plot(Xhits_z, Xhits_y, ls = '--', lw = 1.3, color = black_cbf, label = '2D X')
+
+                    Yhits_x = np.zeros(nHitsY[j])
+                    Yhits_z = np.zeros(nHitsY[j])
+                    for hit in range(nHitsY[j]):
+                        Yhits_x[hit] = TrackHitPosY[j*400 + hit*2 + 0] / 1000.0
+                        Yhits_z[hit] = TrackHitPosY[j*400 + hit*2 + 1] / 1000.0
+                    x_z.plot(Yhits_z, Yhits_x, ls = '--', lw = 1.3, color = blue_cbf, label = '2D Y')
                 
                 if DrawKalmanTrack:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
@@ -412,14 +491,20 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                     z_y.plot(kal_z[0:], kal_true_y[0:], ls='--', lw = 1.3, color = magenta_cbf)
                     x_y.plot(kal_true_x[0:], kal_true_y[0:], ls='--', lw = 1.3, color = magenta_cbf)
 
+                if histograms:
+                    # create hit times histogram and plot
+                    time.hist(times, color = black_cbf, align = 'mid')#???
+                    # create hit energies histogram and plot
+                    energy.hist(energies, color = black_cbf, align = 'mid')
+
                 ### Track start
                 #print(StartPos)
                 #temporary fix
-                if not (StartPos[j*3 + 2] < 11000.):    #StartPos[i*3 + 1] > -2000.0 or 
+                if not (StartPos[j*4 + 2] < 11000.):    #StartPos[i*3 + 1] > -2000.0 or 
                     
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
-                    if not StartPos[j*3 + 1] == 0.0:
+                    if not StartPos[j*4 + 1] == 0.0:
                         orientation_bar = check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1)*4])
                         if not orientation_bar == 'XBar':
                             if orientation_bar == 'VBar':
@@ -428,19 +513,19 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                             if orientation_bar == 'UBar':
                                 if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2])*4) == 'XBar':
                                     orientation_bar = 'XBar'
-                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
-                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', orientation_bar), color = green_cbf)
-                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
+                        z_y.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[j*4 + 0], StartPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
                 #print(EndPos)               
                 #temporary fix
-                if not (EndPos[j*3 + 2] < 11000.):  #EndPos[i*3 + 1] > -2000.0 or 
+                if not (EndPos[j*4 + 2] < 11000.):  #EndPos[i*3 + 1] > -2000.0 or 
                     #print(check_orientation(int(EndPos[i*3 + 2])))
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
-                    if not EndPos[j*3 + 1] == 0.0:
+                    if not EndPos[j*4 + 1] == 0.0:
                         orientation_bar = check_orientation(TrackHitBarType[j*800 + 0])
                         if not orientation_bar == 'XBar':
                             if orientation_bar == 'VBar':
@@ -449,22 +534,22 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_t
                             if orientation_bar == 'UBar':
                                 if check_orientation(TrackHitBarType[j*800 + 1*4]) == 'XBar':
                                     orientation_bar = 'XBar'
-                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', orientation_bar), color = green_cbf)
-                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', orientation_bar), color = green_cbf)
-                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[j*4 + 0], EndPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[j*3 + 2] < 11000. or EndPos[j*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
 
                     #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
 
-                    if not StartPos[j*3 + 1] == 0.0 or EndPos[j*3 + 1] == 0.0:
-                        x_z.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
-                        z_y.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
-                        x_y.plot([StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                    if not StartPos[j*4 + 1] == 0.0 or EndPos[j*4 + 1] == 0.0:
+                        x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
+                        z_y.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_y.plot([StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
                 
                 if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] > 11000.: 
                     x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
@@ -599,6 +684,8 @@ if __name__ == "__main__":
     #parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
     parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
     #parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--hists', "-H", help = "Plot hit times and energies histogram. Yes -> --hists", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--2dLines', "-2D", help = "Plot low level 2D lines for single orientations (debugging). Yes -> --2dLines", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
@@ -613,6 +700,8 @@ if __name__ == "__main__":
     #print(Xlayers)
     #calculate_layers(Xlayers)
     #print(layer_dict)
+    histograms = args.hists
+    2Dlines = args.2dLines
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke, histograms, 2DLines)
 
