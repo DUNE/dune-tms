@@ -1776,11 +1776,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         else if (aTrack.Start[1] < -2949.0) aTrack.Start[1] = -2949.0;
         aTrack.Hits[0].SetRecoY(aTrack.Start[1]);
       }*/
-//#ifdef DEBUG
+#ifdef DEBUG
       for (auto hits: aTrack.Hits) {
         std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << " / " << hits.GetBar().GetBarType()<< std::endl;
       }
-//#endif
+#endif
       // Charge ID
       aTrack.Charge = ChargeID.ID_Track_Charge(aTrack.Hits);
 
