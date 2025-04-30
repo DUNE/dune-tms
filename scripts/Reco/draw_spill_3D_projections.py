@@ -27,7 +27,7 @@ tan_3 = 0.05241
 ### Widths of hits
 delta_x = 0.018    # half a bar width
 delta_y = 0.3383    # uncertainty from +/-3 degree tilted bars
-delta_z = 0.025      # space of scintilattor with air gap
+delta_z = 0.025      # space of scintilator with air gap
 
 MUON_MASS = 105.7  # MeV/c^2
 
@@ -95,7 +95,7 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
             else: return return_value
 
 ### Function for hits to appear in size
-def hit_size(hit_x, hit_y, orientation, hit_z, orientation_bar):
+def hit_size(hit_x, hit_y, orientation, orientation_bar):
     if orientation == 'xy':
         if orientation_bar == 'XBar':
             size_array = np.zeros((2,2))
@@ -149,9 +149,9 @@ def hit_size(hit_x, hit_y, orientation, hit_z, orientation_bar):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
-    if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
+    #if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
     if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
     
@@ -180,23 +180,28 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     if not truth.GetEntries() > 0:
         print("Didn't get any entries in Truth_Info, are you sure the input_filename is right?\n", input_filename)
     
-    # Not used yet
-    readout = None
-    if use_readout:
-        readout = ROOT.TChain("TMS")
-        readout.Add(readout_filename)
-        if not readout.GetEntries() > 0:
-            print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
+    ## Not used yet
+    #readout = None
+    #if use_readout:
+    #    readout = ROOT.TChain("TMS")
+    #    readout.Add(readout_filename)
+    #    if not readout.GetEntries() > 0:
+    #        print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
             
     max_n_spills = 10000 # TODO (old) add some meta info to output file with n spill info for file
     
+    start_spill = 0
+    if spill_number != 0:
+        start_spill = spill_number
+        max_n_spills = spill_number + 1
+
     simplify_tracks = False
     
     spill_number_cache = dict()
     n_events = r.GetEntries()
     
     # First loop through all the slices and draw one overall spill
-    for current_spill_number in range(max_n_spills):
+    for current_spill_number in range(start_spill, max_n_spills):
         for i in range(n_events):
             try:
                 spill_number = spill_number_cache[i]
@@ -229,6 +234,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
             #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
+            TrackHitBarType = np.frombuffer(event.TrackHitBarType, dtype = np.uint8)
             
             # I want the number of true hits.
             # nTrueHits = true_event.RecoTrackNHits
@@ -322,7 +328,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
                 #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
                 #     mp.close()
-                print(i)
+
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[j]):
                     hit_x = TrackHitPos[j*600 + hit*3 + 0]
@@ -333,47 +339,51 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 
                     #temporary fix
                     if hit_z < 11000.: continue #hit_y > -2000.0 or 
-                    if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
-                
+                    if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue 
                     
-                    orientation_bar = check_orientation(int(hit_z))
+                    orientation_bar = check_orientation(TrackHitBarType[j*800 + hit*4])
                     color_cbf = red_cbf
                     if orientation_bar == 'VBar':
                         color_cbf = blue_cbf
                     elif orientation_bar == 'XBar':
                         color_cbf = black_cbf
-                    print(hit_x, hit_y, hit_z, orientation_bar)
+                    elif orientation_bar == 'YBar':
+                        color_cbf = blue_cbf
+                        orientation_bar = 'XBar'
                     
+                    # check if gap with two hits successively have the same BarType
                     helper = 0
-                    if TrackHitPos[j*600 + (hit + 1)*3 + 2] == hit_z: helper = 1
+                    if TrackHitPos[j*600 + (hit + 1)*3 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
+                    # check for close by X hit for V hits
                     if orientation_bar == 'VBar':
                         if hit + helper + 2 < nHits[j]:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit + helper + 2)*3 + 2])) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
+                                # if close by X hit, set BarType for plotting (not color) to X type
                                 orientation_bar = 'XBar'
                         elif hit + helper + 1 < nHits[j]:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit + helper + 1)*3 + 2])) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
                                 orientation_bar = 'XBar'
                         else:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit - helper - 1)*3 + 2])) == 'XBar' or check_orientation(int(TrackHitPos[j*600 + (hit - helper - 2)*3 + 2])) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar':
                                 orientation_bar = 'XBar'
-
+                    # check fro close by X hit for U hits
                     if orientation_bar == 'UBar':
-                        if hit + 1 < nHits[j]:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit + 1)*3 + 2])) == 'XBar':
+                        if hit + helper + 1 < nHits[j]:
+                            if check_orientation(TrackHitBarType[hit + helper + 1]) == 'XBar':
                                 orientation_bar = 'XBar'
-                        elif hit + 2 < nHits[j]:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit + 2)*3 + 2])) == 'XBar':
+                        elif hit + helper + 2 < nHits[j]:
+                            if check_orientation(TrackHitBarType[hit + helper + 2]) == 'XBar':
                                 orientation_bar = 'XBar'
                         else:
-                            if check_orientation(int(TrackHitPos[j*600 + (hit - 2)*3 + 2])) == 'XBar' or check_orientation(int(TrackHitPos[j*600 + (hit - 1)*3 + 2])) == 'XBar':
+                            if check_orientation(TrackHitBarType[hit - helper - 2]) == 'XBar' or check_orientation(TrackHitBarType[hit - helper - 1]) == 'XBar':
                                 orientation_bar = 'XBar'
 
                     if hit + 3 >= nHits[j]:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z, orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(TrackHitBarType[hit]))
                     else:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z, orientation_bar), color = color_cbf)
-                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z, orientation_bar), color = color_cbf)
-                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z, orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 if DrawKalmanTrack:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
@@ -410,17 +420,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
                 
                     if not StartPos[j*3 + 1] == 0.0:
-                        orientation_bar = check_orientation(int(StartPos[j*3 + 2]))
+                        orientation_bar = check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1)*4])
                         if not orientation_bar == 'XBar':
                             if orientation_bar == 'VBar':
-                                if check_orientation(int(TrackHitPos[j*600 + (nHits[j] - 1 - 1)*3 + 2])) == 'XBar':
+                                if check_orientation(TrackHitBarType[j*800 * (nHits[j] - 1 - 1])*4) == 'XBar':
                                     orientation_bar = 'XBar'
                             if orientation_bar == 'UBar':
-                                if check_orientation(int(TrackHitPos[j*600 + (nHits[j] - 1 - 2)*3 + 2])) == 'XBar':
+                                if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2])*4) == 'XBar':
                                     orientation_bar = 'XBar'
-                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', StartPos[j*3 + 2], orientation_bar), color = green_cbf, label = 'Start/End reco')
-                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', StartPos[j*3 + 2], orientation_bar), color = green_cbf)
-                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', StartPos[j*3 + 2], orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
+                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
                 ### Track end
@@ -431,17 +441,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
     
                     if not EndPos[j*3 + 1] == 0.0:
-                        orientation_bar = check_orientation(int(EndPos[j*3 + 2]))
+                        orientation_bar = check_orientation(TrackHitBarType[j*800 + 0])
                         if not orientation_bar == 'XBar':
                             if orientation_bar == 'VBar':
-                                if check_orientation(int(TrackHitPos[j*600 + 2 * 3 + 2])) == 'XBar':
+                                if check_orientation(TrackHitBarType[j*800 + 2*4]) == 'XBar':
                                     orientation_bar = 'XBar'
                             if orientation_bar == 'UBar':
-                                if check_orientation(int(TrackHitPos[j*600 + 1 * 3 + 2])) == 'XBar':
+                                if check_orientation(TrackHitBarType[j*800 + 1*4]) == 'XBar':
                                     orientation_bar = 'XBar'
-                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', EndPos[j*3 + 2], orientation_bar), color = green_cbf)
-                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', EndPos[j*3 + 2], orientation_bar), color = green_cbf)
-                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', EndPos[j*3 + 2], orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', orientation_bar), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 ### Track direction
                 #print(Direction)              
@@ -493,9 +503,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
         
     return
 
-### This is for cplotting the hits according to their different orientations
-def check_orientation(hit_z):
-    return layer_dict["%s" % hit_z]
+### This is for plotting the hits according to their different orientations
+def check_orientation(BarType):#hit_z):
+    if BarType == 0:
+        return 'XBar'
+    elif BarType == 2:
+        return 'UBar'
+    elif BarType == 3:
+        return 'VBar'
+    elif BarType == 1:
+        return 'YBar'
+#    return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
 first_z = 11185
@@ -578,9 +596,9 @@ if __name__ == "__main__":
     parser.add_argument('--input_filename', "-f", type = str, help = "The file with the events to draw.")
     parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
-    parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
+    #parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
     parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
+    #parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
@@ -589,12 +607,12 @@ if __name__ == "__main__":
     input_filename = args.input_filename
     spill_number = args.spillnum
     time_slice = args.timeslice
-    readout_filename =  args.readout_filename
+    #readout_filename =  args.readout_filename
     report_true_ke = args.report_true_ke
-    Xlayers = args.Xlayers
-    print(Xlayers)
-    calculate_layers(Xlayers)
-    print(layer_dict)
+    #Xlayers = args.Xlayers
+    #print(Xlayers)
+    #calculate_layers(Xlayers)
+    #print(layer_dict)
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, report_true_ke)
 

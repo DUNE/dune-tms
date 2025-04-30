@@ -1514,6 +1514,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
       RecoTrackHitBarType[itTrack][j] = RecoTrack->Hits[j].GetBar().GetBarType();
+      std::cout << "TreeWriter: " << RecoTrack->Hits[j].GetZ() << " / " << RecoTrack->Hits[j].GetBar().GetBarType() << std::endl;
 
 
       // Here we check for bar orientation
