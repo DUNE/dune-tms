@@ -58,8 +58,8 @@ class TMS_KalmanNode {
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     RecoX(xvar), RecoY(yvar),
     PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
-    CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
-    SmoothState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
+    CurrentState(x, y, z, dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
+    SmoothState(x, y, z, -999.9, -999.9, -1./20.), // Initialise the state vectors
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
     TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
