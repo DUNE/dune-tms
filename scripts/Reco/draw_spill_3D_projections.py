@@ -154,7 +154,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
     #if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
     if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
-    print(report_true_ke) 
+ 
     # Make sure we read in the correct file and have the output directory
     #use_readout = True
     #if readout_filename == "": use_readout = False
@@ -171,8 +171,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
 
     if lines2D:
-        b = ROOT.TChain("Branch_Lines")
+        b = ROOT.TChain("Line_Candidates")
         b.Add(input_filename)
+        print("Line_Candidates: ", b.GetEntries())
         if not b.GetEntries() > 0:
             print("Didn't get any entries in Branch_Lines, are you sure the input_filename is right?\n", input_filename)
 
@@ -208,9 +209,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
     
     # First loop through all the slices and draw one overall spill
     for current_spill_number in range(start_spill, max_n_spills):
-        print(current_spill_number)
         for i in range(n_events):
-            print(" ", i)
             try:
                 spill_number = spill_number_cache[i]
                 event = None
@@ -225,6 +224,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 spill_number = event.SpillNo
                 spill_number_cache[i] = spill_number
                 if lines2D:
+                    b.GetEntry(i)
                     branch = b
             if spill_number < current_spill_number: continue
             if spill_number > current_spill_number: break
@@ -248,8 +248,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
             TrackHitBarType = np.frombuffer(event.TrackHitBarType, dtype = np.uint8)
+
             if histograms:
-                TrackHitEnergies = np.frombuffer(event.TrackHitEnergy, dtype = np.float32)
+                TrackHitEnergies = np.frombuffer(event.TrackHitEnergies, dtype = np.float32)
             
             # I want the number of true hits.
             # nTrueHits = true_event.RecoTrackNHits
@@ -286,11 +287,10 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
             
             for j in range(nTracks):
-                print("     ", j)
                 ### Create subplots
                 fig = mp.figure(constrained_layout = False)
                 if histograms:
-                    gs = fig.add_gridspec(2, 3, hspace = 0.25, wspace = 0.15)
+                    gs = fig.add_gridspec(ncols=2, nrows=3, hspace = 0.3, wspace = 0.0)
                     x_y = fig.add_subplot(gs[0, 0])
                     z_y = fig.add_subplot(gs[1, 0])
                     x_z = fig.add_subplot(gs[0:2, 1:])
@@ -321,12 +321,18 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 ### Position plots efficient/nice in subplots
                 x_z.axis('equal')
                 x_z.axes.set_box_aspect(1)
+                x_z.axes.set_anchor('W')
                 z_y.axis('equal')
                 z_y.axes.set_box_aspect(0.5)
                 z_y.axes.set_anchor('NW')
                 x_y.axis('equal')
                 x_y.axes.set_box_aspect(0.5)
                 x_y.axes.set_anchor('SW')
+                if histograms:
+                    time.axes.set_box_aspect(0.5)
+                    time.axes.set_anchor('W')
+                    energy.axes.set_box_aspect(0.5)
+                    energy.axes.set_anchor('C')
 
                 ### Put in outlines of scintillator parts
                 x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')   # outer steel plate
@@ -384,7 +390,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     hit_z = TrackHitPos[j*800 + hit*4 + 2]
                     if histograms:
                         times[hit] = TrackHitPos[j*800 + hit*4 + 3]
-                        energies[hit] = TrackHitEnergies[j*800 + hit*4]
+                        energies[hit] = TrackHitEnergies[j*200 + hit]
                 
                     #print('(%s)' %check_orientation(int(hit_z)), hit_x, hit_y, hit_z)
                 
@@ -393,14 +399,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue 
                     
                     orientation_bar = check_orientation(TrackHitBarType[j*800 + hit*4])
-                    color_cbf = red_cbf
-                    if orientation_bar == 'VBar':
-                        color_cbf = blue_cbf
-                    elif orientation_bar == 'XBar':
+                    if not lines2D:
+                        color_cbf = red_cbf
+                        if orientation_bar == 'VBar':
+                            color_cbf = blue_cbf
+                        elif orientation_bar == 'XBar':
+                            color_cbf = black_cbf
+                        elif orientation_bar == 'YBar':
+                            color_cbf = blue_cbf
+                            orientation_bar = 'XBar'
+                    else:
                         color_cbf = black_cbf
-                    elif orientation_bar == 'YBar':
-                        color_cbf = blue_cbf
-                        orientation_bar = 'XBar'
                     
                     # check if gap with two hits successively have the same BarType
                     helper = 0
@@ -430,41 +439,12 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                                 orientation_bar = 'XBar'
 
                     if hit + 3 >= nHits[j]:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(TrackHitBarType[hit]))
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(TrackHitBarType[j*800 + hit*4]))
                     else:
                         x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf)
                     z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
                     x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
         
-                if lines2D:
-                    Uhits_x = np.zeros(nHitsU[j])
-                    Uhits_z = np.zeros(nHitsU[j])
-                    for hit in range(nHitsU[j]):
-                        Uhits_x[hit] = TrackHitPosU[j*400 + hit*2 + 0] / 1000.0
-                        Uhits_z[hit] = TrackHitPosU[j*400 + hit*2 + 1] / 1000.0
-                    x_z.plot(Uhits_z, Uhits_x, ls = '--', lw = 1.3, color = red_cbf, label = '2D U')
-
-                    Vhits_x = np.zeros(nHitsV[j])
-                    Vhits_z = np.zeros(nHitsV[j])
-                    for hit in range(nHitsV[j]):
-                        Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 0] / 1000.0
-                        Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 1] / 1000.0
-                    x_z.plot(Vhits_z, Vhits_x, ls = '--', lw = 1.3, color = blue_cbf, label = '2D V')
-
-                    Xhits_y = np.zeros(nHitsX[j])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
-                    Xhits_z = np.zeros(nHitsX[j])
-                    for hit in range(nHitsX[j]):
-                        Xhits_y[hit] = TrackHitPosX[j*400 + hit*2 + 0] / 1000.0
-                        Xhits_z[hit] = TrackHitPosX[j*400 + hit*2 + 1] / 1000.0
-                    z_y.plot(Xhits_z, Xhits_y, ls = '--', lw = 1.3, color = black_cbf, label = '2D X')
-
-                    Yhits_x = np.zeros(nHitsY[j])
-                    Yhits_z = np.zeros(nHitsY[j])
-                    for hit in range(nHitsY[j]):
-                        Yhits_x[hit] = TrackHitPosY[j*400 + hit*2 + 0] / 1000.0
-                        Yhits_z[hit] = TrackHitPosY[j*400 + hit*2 + 1] / 1000.0
-                    x_z.plot(Yhits_z, Yhits_x, ls = '--', lw = 1.3, color = blue_cbf, label = '2D Y')
-                
                 if DrawKalmanTrack:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
 
@@ -494,9 +474,44 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
                 if histograms:
                     # create hit times histogram and plot
-                    time.hist(times % 1.2e9, color = black_cbf, align = 'mid', weights = energies)  # weighted with hit energy as done by Jeffrey at https://github.com/DUNE/dune-tms/blob/kleykamp_validation/scripts/Reco/draw_spill.py#L188
+                    # weighted with hit energy as done by Jeffrey at https://github.com/DUNE/dune-tms/blob/kleykamp_validation/scripts/Reco/draw_spill.py#L188
+                    time.hist(times % 1.2e9, bins = int(max(times % 1.2e9) - min(times % 1.2e9)),color = black_cbf, align = 'mid', weights = energies)  
                     # create hit energies histogram and plot
-                    energy.hist(energies, color = black_cbf, align = 'mid')
+                    energy.hist(energies, bins = int(max(energies) * 3),color = black_cbf, align = 'mid')
+                
+                if lines2D:
+                    if nLinesU != 0:
+                        Uhits_x = np.zeros(nHitsU[j])
+                        Uhits_z = np.zeros(nHitsU[j])
+                        for hit in range(nHitsU[j]):
+                            Uhits_z[hit] = TrackHitPosU[j*400 + hit*2 + 0] / 1000.0
+                            Uhits_x[hit] = TrackHitPosU[j*400 + hit*2 + 1] / 1000.0
+                            #print(Uhits_x[hit], Uhits_z[hit])
+                        x_z.plot(Uhits_z, Uhits_x, ls = '-', lw = 1.3, color = red_cbf, label = '2D U')
+
+                    if nLinesV != 0:
+                        Vhits_x = np.zeros(nHitsV[j])
+                        Vhits_z = np.zeros(nHitsV[j])
+                        for hit in range(nHitsV[j]):
+                            Vhits_z[hit] = TrackHitPosV[j*400 + hit*2 + 0] / 1000.0
+                            Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 1] / 1000.0
+                        x_z.plot(Vhits_z, Vhits_x, ls = '-', lw = 1.3, color = green_cbf, label = '2D V')
+
+                    if nLinesX != 0:
+                        Xhits_y = np.zeros(nHitsX[j])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
+                        Xhits_z = np.zeros(nHitsX[j])
+                        for hit in range(nHitsX[j]):
+                            Xhits_z[hit] = TrackHitPosX[j*400 + hit*2 + 0] / 1000.0
+                            Xhits_y[hit] = TrackHitPosX[j*400 + hit*2 + 1] / 1000.0
+                        z_y.plot(Xhits_z, Xhits_y, ls = '-', lw = 1.3, color = blue_cbf, label = '2D X')
+
+                    if nLinesY != 0:
+                        Yhits_x = np.zeros(nHitsY[j])
+                        Yhits_z = np.zeros(nHitsY[j])
+                        for hit in range(nHitsY[j]):
+                            Yhits_z[hit] = TrackHitPosY[j*400 + hit*2 + 0] / 1000.0
+                            Yhits_x[hit] = TrackHitPosY[j*400 + hit*2 + 1] / 1000.0
+                        x_z.plot(Yhits_z, Yhits_x, ls = '-', lw = 1.3, color = red_cbf, label = '2D Y')
 
                 ### Track start
                 #temporary fix
@@ -506,7 +521,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                         orientation_bar = check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1)*4])
                         if not orientation_bar == 'XBar':
                             if orientation_bar == 'VBar':
-                                if check_orientation(TrackHitBarType[j*800 * (nHits[j] - 1 - 1)*4]) == 'XBar':
+                                if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 1)*4]) == 'XBar':
                                     orientation_bar = 'XBar'
                             if orientation_bar == 'UBar':
                                 if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2)*4]) == 'XBar':
