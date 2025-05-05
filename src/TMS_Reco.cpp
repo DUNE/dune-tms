@@ -1865,7 +1865,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                   aTrack.End[0] = YTracks.front().GetNotZ();
                   aTrack.End[1] = XTracks.front().GetNotZ();
                   aTrack.End[2] = YTracks.front().GetZ();
-                  aTrack.End[2] = YTracks.front().GetT();
+                  aTrack.End[3] = YTracks.front().GetT();
                   (aTrack.Hits).push_back(YTracks.front());
                 } 
               }
