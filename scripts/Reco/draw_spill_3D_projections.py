@@ -526,6 +526,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                             if orientation_bar == 'UBar':
                                 if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2)*4]) == 'XBar':
                                     orientation_bar = 'XBar'
+                            if orientation_bar == 'YBar': orientation_bar = 'XBar'
                         x_z.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
                         z_y.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
                         x_y.fill_between(*hit_size(StartPos[j*4 + 0], StartPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
@@ -544,6 +545,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                             if orientation_bar == 'UBar':
                                 if check_orientation(TrackHitBarType[j*800 + 1*4]) == 'XBar':
                                     orientation_bar = 'XBar'
+                            if orientation_bar == 'YBar': orientation_bar = 'XBar'
                         x_z.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf)
                         z_y.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
                         x_y.fill_between(*hit_size(EndPos[j*4 + 0], EndPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
