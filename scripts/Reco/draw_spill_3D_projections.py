@@ -1,4 +1,4 @@
-import ROOT
+    import ROOT
 import numpy as np
 import matplotlib.pyplot as mp
 import os
@@ -95,9 +95,8 @@ def lower_limit(hit_x, hit_y, x, orientation_bar):
             else: return return_value
 
 ### Function for hits to appear in size
-def hit_size(hit_x, hit_y, orientation, hit_z):
+def hit_size(hit_x, hit_y, orientation, orientation_bar):
     if orientation == 'xy':
-        orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'XBar':
             size_array = np.zeros((2,2))
             size_array[0, 0] = hit_x / 1000.0 + delta_x
@@ -121,7 +120,6 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         size_array = np.zeros((2,2))
         size_array[0, 0] = hit_x / 1000.0 + delta_z
         size_array[0, 1] = hit_x / 1000.0 - delta_z
-        orientation_bar = check_orientation(int(hit_z))
         if orientation_bar == 'XBar':
             if (hit_y / 1000.0 + delta_x) >= tms_top_hybrid:
                 size_array[1, 0] = tms_top_hybrid
@@ -151,15 +149,15 @@ def hit_size(hit_x, hit_y, orientation, hit_z):
         return np.array(size_array[0]), size_array[1, 0], size_array[1, 1]        
 
 ### Actual function that loops through the spills
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histograms = False, lines2D = False, report_true_ke = False):
     if not os.path.exists(input_filename): raise ValueError(f"Cannor find input_filename {input_filename}")
-    if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
+    #if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
     if time_slice < -1: raise ValueError(f"Got time_slice = {time_slice}")
     
     # Make sure we read in the correct file and have the output directory
-    use_readout = True
-    if readout_filename == "": use_readout = False
+    #use_readout = True
+    #if readout_filename == "": use_readout = False
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     if not os.path.exists(out_dir):
@@ -172,6 +170,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
     if not r.GetEntries() > 0:
         print("Didn't get any entries, are you sure the input_filename is right?\n", input_filename)
 
+    if lines2D:
+        b = ROOT.TChain("Line_Candidates")
+        b.Add(input_filename)
+        print("Line_Candidates: ", b.GetEntries())
+        if not b.GetEntries() > 0:
+            print("Didn't get any entries in Branch_Lines, are you sure the input_filename is right?\n", input_filename)
+
     DrawKalmanTrack = False
     #if hasattr(r,"KalmanPos"):
     #    print("Kalman Filter info present in input file, will draw Kalman tracks.\n")
@@ -183,14 +188,19 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
         print("Didn't get any entries in Truth_Info, are you sure the input_filename is right?\n", input_filename)
     
     # Not used yet
-    readout = None
-    if use_readout:
-        readout = ROOT.TChain("TMS")
-        readout.Add(readout_filename)
-        if not readout.GetEntries() > 0:
-            print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
+    #readout = None
+    #if use_readout:
+    #    readout = ROOT.TChain("TMS")
+    #    readout.Add(readout_filename)
+    #    if not readout.GetEntries() > 0:
+    #        print("Didnt't get any entries in TMS, are you sure the readout_filename is right?\n", readout_filename)
             
     max_n_spills = 10000 # TODO (old) add some meta info to output file with n spill info for file
+
+    start_spill = 0
+    if spill_number != 0:
+        start_spill = spill_number
+        max_n_spills = spill_number + 1
     
     simplify_tracks = False
     
@@ -204,6 +214,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 spill_number = spill_number_cache[i]
                 event = None
                 true_event = None
+                if lines2D:
+                    branch = None
             except KeyError:
                 r.GetEntry(i)
                 event = r
@@ -211,13 +223,19 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 true_event = truth
                 spill_number = event.SpillNo
                 spill_number_cache[i] = spill_number
+                if lines2D:
+                    b.GetEntry(i)
+                    branch = b
             if spill_number < current_spill_number: continue
             if spill_number > current_spill_number: break
             if event == None:
                 r.GetEntry(i)
                 event = r
+            if lines2D and branch == None:
+                b.GetEntry(i)
+                branch = b
             # Sync up the readout info if it's there. Note that it has one entry per spill, not timeslice
-            if readout != None: readout.GetEntry(current_spill_number)
+            #if readout != None: readout.GetEntry(current_spill_number)
             if true_event == None:
                 truth.GetEntry(i)
                 true_event = truth
@@ -225,69 +243,37 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             ### Check if a track exists in the event/spill, otherwise skip it
             nTracks = event.nTracks
             if nTracks <= 0: continue
-    
-#            ### Create subplots
-#            fig = mp.figure(constrained_layout = False)
-#            gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
-#            x_y = fig.add_subplot(gs[0, 0])
-#            z_y = fig.add_subplot(gs[1, 0])
-#            x_z = fig.add_subplot(gs[0:, 1:])
-    
-#            ### Set labels and ticks
-#            x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
-#            z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
-#            x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-#            x_y.text(3.55, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-#            z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-#            x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
             
-#            ### Set TMS name
-#            x_y.text(-3.45, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-#            z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-#            x_z.text(11.2, 3.55, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-    
-#            ### Position plots efficient/nice in subplots
-#            x_z.axis('equal')
-#            x_z.axes.set_box_aspect(1)
-#            z_y.axis('equal')
-#            z_y.axes.set_box_aspect(0.5)
-#            z_y.axes.set_anchor('NW')
-#            x_y.axis('equal')
-#            x_y.axes.set_box_aspect(0.5)
-#            x_y.axes.set_anchor('SW')
-    
-#            ### Put in outlines of scintillator parts
-#            x_z.hlines(-3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.hlines(3.49, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.hlines(-1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.hlines(1.75, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.vlines(11.176, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_z.vlines(18.544, -3.49, 3.52, color = orange_cbf, linewidth = 1, linestyle = ':')
-    
-#            z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-    
-#            x_y.hlines(tms_bottom_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.hlines(tms_top_hybrid, -3.49, 3.49, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.vlines(-3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.vlines(3.49, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.vlines(-1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-#            x_y.vlines(1.75, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-            
-            #print("number of tracks: ", nTracks)
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
-            #print("number of hits: ", nHits)
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
+            TrackHitBarType = np.frombuffer(event.TrackHitBarType, dtype = np.uint8)
+
+            if histograms:
+                TrackHitEnergies = np.frombuffer(event.TrackHitEnergies, dtype = np.float32)
             
             # I want the number of true hits.
             # nTrueHits = true_event.RecoTrackNHits
             # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
-
+            
+            if lines2D:
+                nLinesU = branch.nLinesU
+                nLinesV = branch.nLinesV
+                nLinesX = branch.nLinesX
+                nLinesY = branch.nLinesY
+                nHitsU = np.frombuffer(branch.nHitsInTrackU, dtype = np.uint8)
+                nHitsU = np.array([nHitsU[i] for i in range(0, nLinesU * 4, 4)])
+                nHitsV = np.frombuffer(branch.nHitsInTrackV, dtype = np.uint8)
+                nHitsV = np.array([nHitsV[i] for i in range(0, nLinesV * 4, 4)])
+                nHitsX = np.frombuffer(branch.nHitsInTrackX, dtype = np.uint8)
+                nHitsX = np.array([nHitsX[i] for i in range(0, nLinesX * 4, 4)])
+                nHitsY = np.frombuffer(branch.nHitsInTrackY, dtype = np.uint8)
+                nHitsY = np.array([nHitsY[i] for i in range(0, nLinesY * 4, 4)])
+                TrackHitPosU = np.frombuffer(branch.TrackHitPosU, dtype = np.float32)
+                TrackHitPosV = np.frombuffer(branch.TrackHitPosV, dtype = np.float32)
+                TrackHitPosX = np.frombuffer(branch.TrackHitPosX, dtype = np.float32)
+                TrackHitPosY = np.frombuffer(branch.TrackHitPosY, dtype = np.float32)
+            
             # Kalman stuff
             nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
             KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
@@ -303,22 +289,33 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             for j in range(nTracks):
                 ### Create subplots
                 fig = mp.figure(constrained_layout = False)
-                gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
-                x_y = fig.add_subplot(gs[0, 0])
-                z_y = fig.add_subplot(gs[1, 0])
-                x_z = fig.add_subplot(gs[0:, 1:])
+                if histograms:
+                    gs = fig.add_gridspec(ncols=2, nrows=3, hspace = 0.3, wspace = 0.0)
+                    x_y = fig.add_subplot(gs[0, 0])
+                    z_y = fig.add_subplot(gs[1, 0])
+                    x_z = fig.add_subplot(gs[0:2, 1:])
+                    time = fig.add_subplot(gs[2, 0])
+                    energy = fig.add_subplot(gs[2, 1:])
+                else:
+                    gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
+                    x_y = fig.add_subplot(gs[0, 0])
+                    z_y = fig.add_subplot(gs[1, 0])
+                    x_z = fig.add_subplot(gs[0:, 1:])
     
                 ### Set labels and ticks
-                x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [4, 3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
+                x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
                 z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
                 x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
                 x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                if histograms:
+                    time.set(xlabel = 'Time [ns]', ylabel = 'Total Hit E [MeV]')
+                    energy.set(xlabel = 'Hit E [MeV]', ylabel = 'N Hits')
             
                 ### Set TMS name
-                x_y.text(-3.69, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
-                z_y.text(11.22, 0.1, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_y.text(-3.73, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                z_y.text(11.2, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
                 x_z.text(11.2, 3.79, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
     
                 ### Position plots efficient/nice in subplots
@@ -330,20 +327,30 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 x_y.axis('equal')
                 x_y.axes.set_box_aspect(0.5)
                 x_y.axes.set_anchor('SW')
+                if histograms:
+                    time.axes.set_box_aspect(0.5)
+                    time.axes.set_anchor('W')
+                    energy.axes.set_box_aspect(0.5)
+                    energy.axes.set_anchor('C')
     
                 ### Put in outlines of scintillator parts
-                x_z.hlines(-3.73, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(3.73, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(-1.87, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.hlines(1.87, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.hlines(-3.73, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # outer steel plate
+                x_z.hlines(3.73, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')     # outer steel plate
+                x_z.hlines(-1.87, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # inner steel plate
+                x_z.hlines(0, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')        # middle of steel
+                x_z.hlines(1.87, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')     # inner steel plate
                 x_z.vlines(11.176, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_z.vlines(18.544, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(14.460, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to thick steel
+                x_z.vlines(17.520, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to double thick steel
     
                 z_y.hlines(tms_bottom_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.hlines(tms_top_hybrid, 11.176, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(11.176, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(14.460, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to thick steel
+                z_y.vlines(17.520, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to double thick steel
+
     
                 x_y.hlines(tms_bottom_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
@@ -372,13 +379,18 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
                 #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
                 #     mp.close()
-
+                
+                if histograms:
+                    times = np.zeros(nHits[j], dtype = float)
+                    energies = np.zeros(nHits[j], dtype = float)
                 ### Hit positions of the hits in the track
                 for hit in range(nHits[j]):
-
-                    hit_x = TrackHitPos[j*600 + hit*3 + 0]
-                    hit_y = TrackHitPos[j*600 + hit*3 + 1]
-                    hit_z = TrackHitPos[j*600 + hit*3 + 2]
+                    hit_x = TrackHitPos[j*800 + hit*4 + 0]
+                    hit_y = TrackHitPos[j*800 + hit*4 + 1]
+                    hit_z = TrackHitPos[j*800 + hit*4 + 2]
+                    if histograms:
+                        times[hit] = TrackHitPos[j*800 + hit*4 + 3]
+                        energies[hit] = TrackHitEnergies[j*200 + hit]
                 
                     #print('(%s)' %check_orientation(int(hit_z)), hit_x, hit_y, hit_z)
                 
@@ -386,19 +398,52 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     if hit_z < 11000.: continue #hit_y > -2000.0 or 
                     if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue
                 
-                    #print("hit", hit_y, hit_z)
-                    color_cbf = red_cbf
-                    if check_orientation(int(hit_z)) == 'VBar':
-                        color_cbf = blue_cbf
-                    elif check_orientation(int(hit_z)) == 'XBar':
+                    orientation_bar = check_orientation(TrackHitBarType[j*800 + hit*4])
+                    if not lines2D:
+                        color_cbf = red_cbf
+                        if orientation_bar == 'VBar':
+                            color_cbf = blue_cbf
+                        elif orientation_bar == 'XBar':
+                            color_cbf = black_cbf
+                        elif orientation_bar == 'YBar':
+                            color_cbf = blue_cbf
+                            orientation_bar = 'XBar'
+                    else:
                         color_cbf = black_cbf
                     
-                    if hit < 3:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf, label = 'hit area %s' % check_orientation(int(hit_z)))
+                    # check if gap with two hits successively have the same BarType
+                    helper = 0
+                    if TrackHitPos[j*800 + (hit + 1)*4 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
+                    # check for close by X hit for V hits
+                    if orientation_bar == 'VBar':
+                        if hit + helper + 2 < nHits[j]:
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
+                                # if close by X hit, set BarType for plotting (not color) to X type
+                                orientation_bar = 'XBar'
+                        elif hit + helper + 1 < nHits[j]:
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
+                                orientation_bar = 'XBar'
+                        else:
+                            if check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar':
+                                orientation_bar = 'XBar'
+                    # check fro close by X hit for U hits
+                    if orientation_bar == 'UBar':
+                        if hit + helper + 1 < nHits[j]:
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
+                                orientation_bar = 'XBar'
+                        elif hit + helper + 2 < nHits[j]:
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
+                                orientation_bar = 'XBar'
+                        else:
+                            if check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar':
+                                orientation_bar = 'XBar'
+
+                    if hit + 3 >= nHits[j]:
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(TrackHitBarType[j*800 + hit*4]))
                     else:
-                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', hit_z), color = color_cbf)
-                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', hit_z), color = color_cbf)
-                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', hit_z), color = color_cbf, alpha = 0.5, linewidth = 0.5)
+                        x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf)
+                    z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
+                    x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
                 
                 if DrawKalmanTrack:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
@@ -419,60 +464,111 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                         kal_true_x[node] = KalmanTruePos[j*600 + node*3 + 0]/1000.0 # from mm to m
                         kal_true_y[node] = KalmanTruePos[j*600 + node*3 + 1]/1000.0
 
-                    x_z.plot(kal_z[1:], kal_x[1:], ls='-', lw=2, color=black_cbf, label = 'Kalman reco')
-                    z_y.plot(kal_z[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
-                    x_y.plot(kal_x[1:], kal_y[1:], ls='-', lw=2, color=black_cbf)
+                    x_z.plot(kal_z[0:], kal_x[0:], ls=':', lw = 1.3, color = green_cbf, label = 'Kalman reco')
+                    z_y.plot(kal_z[0:], kal_y[0:], ls=':', lw = 1.3, color = green_cbf)
+                    x_y.plot(kal_x[0:], kal_y[0:], ls=':', lw = 1.3, color = green_cbf)
 
-                    x_z.plot(kal_z[1:], kal_true_x[1:], ls='--', lw=2, color=green_cbf, label = 'Kalman true')
-                    z_y.plot(kal_z[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
-                    x_y.plot(kal_true_x[1:], kal_true_y[1:], ls='--', lw=2, color=green_cbf)
+                    x_z.plot(kal_z[0:], kal_true_x[0:], ls='--', lw = 1.3, color = magenta_cbf, label = 'Kalman true')
+                    z_y.plot(kal_z[0:], kal_true_y[0:], ls='--', lw = 1.3, color = magenta_cbf)
+                    x_y.plot(kal_true_x[0:], kal_true_y[0:], ls='--', lw = 1.3, color = magenta_cbf)
 
-                ### Track start
-                #print(StartPos)
-                #temporary fix
-                if not (StartPos[j*3 + 2] < 11000.):    #StartPos[i*3 + 1] > -2000.0 or 
-                    
-                    #print("Start", StartPos[i*3 + 0], StartPos[i*3 + 1], StartPos[i*3 + 2])
+                if histograms:
+                    # create hit times histogram and plot
+                    # weighted with hit energy as done by Jeffrey at https://github.com/DUNE/dune-tms/blob/kleykamp_validation/scripts/Reco/draw_spill.py#L188
+                    time.hist(times % 1.2e9, bins = int(max(times % 1.2e9) - min(times % 1.2e9)),color = black_cbf, align = 'mid', weights = energies)  
+                    # create hit energies histogram and plot
+                    energy.hist(energies, bins = int(max(energies) * 3),color = black_cbf, align = 'mid')
                 
-                    if not StartPos[j*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 0], 'xz', StartPos[j*3 + 2]), color = green_cbf, label = 'Start/End reco')
-                        z_y.fill_between(*hit_size(StartPos[j*3 + 2], StartPos[j*3 + 1], 'zy', StartPos[j*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(StartPos[j*3 + 0], StartPos[j*3 + 1], 'xy', StartPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                if lines2D:
+                    if nLinesU != 0:
+                        Uhits_x = np.zeros(nHitsU[j])
+                        Uhits_z = np.zeros(nHitsU[j])
+                        for hit in range(nHitsU[j]):
+                            Uhits_z[hit] = TrackHitPosU[j*400 + hit*2 + 0] / 1000.0
+                            Uhits_x[hit] = TrackHitPosU[j*400 + hit*2 + 1] / 1000.0
+                            #print(Uhits_x[hit], Uhits_z[hit])
+                        x_z.plot(Uhits_z, Uhits_x, ls = '-', lw = 1.3, color = red_cbf, label = '2D U')
+
+                    if nLinesV != 0:
+                        Vhits_x = np.zeros(nHitsV[j])
+                        Vhits_z = np.zeros(nHitsV[j])
+                        for hit in range(nHitsV[j]):
+                            Vhits_z[hit] = TrackHitPosV[j*400 + hit*2 + 0] / 1000.0
+                            Vhits_x[hit] = TrackHitPosV[j*400 + hit*2 + 1] / 1000.0
+                        x_z.plot(Vhits_z, Vhits_x, ls = '-', lw = 1.3, color = green_cbf, label = '2D V')
+
+                    if nLinesX != 0:
+                        Xhits_y = np.zeros(nHitsX[j])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
+                        Xhits_z = np.zeros(nHitsX[j])
+                        for hit in range(nHitsX[j]):
+                            Xhits_z[hit] = TrackHitPosX[j*400 + hit*2 + 0] / 1000.0
+                            Xhits_y[hit] = TrackHitPosX[j*400 + hit*2 + 1] / 1000.0
+                        z_y.plot(Xhits_z, Xhits_y, ls = '-', lw = 1.3, color = blue_cbf, label = '2D X')
+
+                    if nLinesY != 0:
+                        Yhits_x = np.zeros(nHitsY[j])
+                        Yhits_z = np.zeros(nHitsY[j])
+                        for hit in range(nHitsY[j]):
+                            Yhits_z[hit] = TrackHitPosY[j*400 + hit*2 + 0] / 1000.0
+                            Yhits_x[hit] = TrackHitPosY[j*400 + hit*2 + 1] / 1000.0
+                        x_z.plot(Yhits_z, Yhits_x, ls = '-', lw = 1.3, color = red_cbf, label = '2D Y')              
+                
+                ### Track start
+                #temporary fix
+                if not (StartPos[j*4 + 2] < 11000.):
+                    
+                    if not StartPos[j*4 + 1] == 0.0:
+                        orientation_bar = check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1)*4])
+                        if not orientation_bar == 'XBar':
+                            if orientation_bar == 'VBar':
+                                if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 1)*4]) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'UBar':
+                                if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2)*4]) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'YBar': orientation_bar = 'XBar'
+                        x_z.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
+                        z_y.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(StartPos[j*4 + 0], StartPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
             
-                ### Track end
-                #print(EndPos)               
+                ### Track end              
                 #temporary fix
-                if not (EndPos[j*3 + 2] < 11000.):  #EndPos[i*3 + 1] > -2000.0 or 
-                    #print(check_orientation(int(EndPos[i*3 + 2])))
-                    #print("End", EndPos[i*3 + 0], EndPos[i*3 + 1], EndPos[i*3 + 2])
+                if not (EndPos[j*4 + 2] < 11000.):  
     
-                    if not EndPos[j*3 + 1] == 0.0:
-                        x_z.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 0], 'xz', EndPos[j*3 + 2]), color = green_cbf)
-                        z_y.fill_between(*hit_size(EndPos[j*3 + 2], EndPos[j*3 + 1], 'zy', EndPos[j*3 + 2]), color = green_cbf)
-                        x_y.fill_between(*hit_size(EndPos[j*3 + 0], EndPos[j*3 + 1], 'xy', EndPos[j*3 + 2]), color = green_cbf, alpha = 0.5, linewidth = 0.5)
+                    if not EndPos[j*4 + 1] == 0.0:
+                        orientation_bar = check_orientation(TrackHitBarType[j*800 + 0])
+                        if not orientation_bar == 'XBar':
+                            if orientation_bar == 'VBar':
+                                if check_orientation(TrackHitBarType[j*800 + 2*4]) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'UBar':
+                                if check_orientation(TrackHitBarType[j*800 + 1*4]) == 'XBar':
+                                    orientation_bar = 'XBar'
+                            if orientation_bar == 'YBar': orientation_bar = 'XBar'
+                        x_z.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf)
+                        z_y.fill_between(*hit_size(EndPos[j*4 + 2], EndPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
+                        x_y.fill_between(*hit_size(EndPos[j*4 + 0], EndPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                 
-                ### Track direction
-                #print(Direction)              
+                ### Track direction             
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[j*3 + 2] < 11000. or EndPos[j*3 + 2] < 11000.):   #StartPos[i*3 + 1] > -2000.0 or EndPos[i*3 + 1] > -2000.0 or 
+                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.):
 
-                    #print("Direction", StartPos[i*3 + 1], StartPos[i*3 + 2])
+                    if not StartPos[j*4 + 1] == 0.0 or EndPos[j*4 + 1] == 0.0:
+                        x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
+                        z_y.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_y.plot([StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
 
-                    if not StartPos[j*3 + 1] == 0.0 or EndPos[j*3 + 1] == 0.0:
-                        x_z.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
-                        z_y.plot([StartPos[j*3 + 2] / 1000.0, EndPos[j*3 + 2] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
-                        x_y.plot([StartPos[j*3 + 0] / 1000.0, EndPos[j*3 + 0] / 1000.0], [StartPos[j*3 + 1] / 1000.0, EndPos[j*3 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
-        
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
-                x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
-                
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
-                
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] > 11000.:
+                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
+                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
+                    
+                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                        
+                    x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                    x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
 
 
                 # Write the True Muon KE to each spill plot.
@@ -496,6 +592,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 fig.subplots_adjust(right = 0.84)
                 # save plot
                 output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
+                print("plotted ", output_filename)
                 mp.savefig(output_filename + ".png", bbox_inches = 'tight')
                 mp.close()
         
@@ -503,7 +600,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
 
 ### This is for cplotting the hits according to their different orientations
 def check_orientation(hit_z):
-    return layer_dict["%s" % hit_z]
+    if BarType == 0:
+        return 'XBar'
+    elif BarType == 2:
+        return 'UBar'
+    elif BarType == 3:
+        return 'VBar'
+    elif BarType == 1:
+        return 'YBar'
+#    return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
 first_z = 11185
@@ -585,9 +690,11 @@ if __name__ == "__main__":
     parser.add_argument('--input_filename', "-f", type = str, help = "The file with the events to draw.")
     parser.add_argument('--spillnum', "-s", type = int, help = "The spill to draw. -1 for all", default = -1)
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
-    parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
+    #parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
     parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
+    #parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--hists', "-H", help = "Plot hit times and energies histogram. Yes -> --hists", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--Lines2D', "-l", help = "Plot low level 2D lines for single orientations (debugging). Yes -> --Lines2D", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
@@ -596,12 +703,14 @@ if __name__ == "__main__":
     input_filename = args.input_filename
     spill_number = args.spillnum
     time_slice = args.timeslice
-    readout_filename =  args.readout_filename
+    #readout_filename =  args.readout_filename
     report_true_ke = args.report_true_ke
-    Xlayers = args.Xlayers
-    print(Xlayers)
-    calculate_layers(Xlayers)
-    print(layer_dict)
+    #Xlayers = args.Xlayers
+    #print(Xlayers)
+    #calculate_layers(Xlayers)
+    #print(layer_dict)
+    histograms = args.hists
+    lines2D = args.Lines2D
     
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, report_true_ke)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, histograms, lines2D, report_true_ke)
 
