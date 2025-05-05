@@ -1086,6 +1086,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             aTrack.End[0] = UTracks.front().GetRecoX();
             aTrack.End[1] = UTracks.front().GetRecoY();
             aTrack.End[2] = UTracks.front().GetZ();
+	    aTrack.End[3] = UTracks.front().GetT();
 #ifdef DEBUG                
             std::cout << "UTrack ends after VTrack" << std::endl;
 #endif            
@@ -1097,6 +1098,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = 0.5 * (UTracks.front().GetNotZ() + VTracks.front().GetNotZ());
               aTrack.End[1] = CompareY(UTracks.front(), VTracks.front(), XTracks.front());//XTracks.front().GetNotZ();
               aTrack.End[2] = UTracks.front().GetZ();
+		    aTrack.End[3] = UTracks.front().GetT();
 #ifdef DEBUG
               std::cout << "UTrack ends after VTrack and XTrack" << std::endl;
 #endif
@@ -1107,6 +1109,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = 0.5 * (UTracks.front().GetNotZ() + VTracks.front().GetNotZ());
               aTrack.End[1] = XTracks.front().GetNotZ();
               aTrack.End[2] = XTracks.front().GetZ();
+		    aTrack.End[3] = XTracks.front().GetT();
 #ifdef DEBUG
               std::cout << "UTrack ends after VTrack, before XTrack" << std::endl;
 #endif
@@ -1128,6 +1131,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             aTrack.End[0] = VTracks.front().GetRecoX();
             aTrack.End[1] = VTracks.front().GetRecoY();
             aTrack.End[2] = VTracks.front().GetZ();
+		  aTrack.End[3] = VTracks.front().GetT();
 #ifdef DEBUG                
             std::cout << "VTracks ends after UTrack, no XTrack" << std::endl;
 #endif              
@@ -1139,6 +1143,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
               aTrack.End[1] = CompareY(UTracks.front(), VTracks.front(), XTracks.front());//XTracks.front().GetNotZ();
               aTrack.End[2] = VTracks.front().GetZ();
+		    aTrack.End[3] = VTracks.front().GetT();
 #ifdef DEBUG
               std::cout << "VTracks ends after UTrack and XTrack" << std::endl;
 #endif
@@ -1150,6 +1155,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
               aTrack.End[1] = XTracks.front().GetNotZ();
               aTrack.End[2] = XTracks.front().GetZ();
+		    aTrack.End[3] = XTracks.front().GetT();
 #ifdef DEBUG
               std::cout << "VTracks ends after UTrack, before XTrack" << std::endl;
 #endif
@@ -1175,6 +1181,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             aTrack.Start[0] = VTracks.back().GetRecoX();
             aTrack.Start[1] = VTracks.back().GetRecoY();
             aTrack.Start[2] = VTracks.back().GetZ();
+		  aTrack.Start[3] = VTracks.back().GetT();
 #ifdef DEBUG
             std::cout << "VTrack starts before UTrack, no XTrack" << std::endl;
 #endif                
@@ -1186,6 +1193,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.Start[0] = 0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ());
               aTrack.Start[1] = CompareY(UTracks.back(), VTracks.back(), XTracks.back());//XTracks.back().GetNotZ();
               aTrack.Start[2] = VTracks.back().GetZ();
+		    aTrack.Start[3] = VTracks.back().GetT();
 #ifdef DEBUG
               std::cout << "VTrack starts before UTrack and XTrack" << std::endl;
 #endif
@@ -1196,6 +1204,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.Start[0] = 0.5 * (VTracks.back().GetNotZ() + UTracks.back().GetNotZ());
               aTrack.Start[1] = XTracks.back().GetNotZ();
               aTrack.Start[2] = XTracks.back().GetZ();
+		    aTrack.Start[3] = XTracks.back().GetT();
 #ifdef DEBUG
               std::cout << "VTrack starts before UTrack, after XTrack" << std::endl;
 #endif
@@ -1217,6 +1226,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             aTrack.Start[0] = UTracks.back().GetRecoX();
             aTrack.Start[1] = UTracks.back().GetRecoY();
             aTrack.Start[2] = UTracks.back().GetZ();
+		  aTrack.Start[3] = UTracks.back().GetT();
 #ifdef DEBUG                
             std::cout << "UTrack starts before VTrack, no XTrack" << std::endl;
 #endif                
@@ -1228,6 +1238,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.Start[0] = 0.5 * (UTracks.back().GetNotZ() + VTracks.back().GetNotZ());
               aTrack.Start[1] = CompareY(UTracks.back(), VTracks.back(), XTracks.back());//XTracks.back().GetNotZ();
               aTrack.Start[2] = UTracks.back().GetZ();
+		    aTrack.Start[3] = UTracks.back().GetT();
 #ifdef DEBUG
               std::cout << "UTrack starts before VTrack and XTrack" << std::endl;
 #endif
@@ -1238,6 +1249,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               aTrack.Start[0] = 0.5 * (UTracks.back().GetNotZ() + VTracks.back().GetNotZ());
               aTrack.Start[1] = XTracks.back().GetNotZ();
               aTrack.Start[2] = XTracks.back().GetZ();
+		    aTrack.Start[3] = XTracks.back().GetT();
 #ifdef DEBUG
               std::cout << "UTrack starts before VTrack, after XTrack" << std::endl;
 #endif
@@ -1254,6 +1266,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.Start[0] = 0.5 * (UTracks.back().GetNotZ() + VTracks.back().GetNotZ());
           aTrack.Start[1] = XTracks.back().GetNotZ();
           aTrack.Start[2] = XTracks.back().GetZ();
+		aTrack.Start[3] = XTracks.back().GetT();
 #ifdef DEBUG
           std::cout << "XTrack starts before all" << std::endl;
 #endif
@@ -1266,6 +1279,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.End[0] = 0.5 * (UTracks.front().GetNotZ() + VTracks.front().GetNotZ());
           aTrack.End[1] = XTracks.front().GetNotZ();
           aTrack.End[2] = XTracks.front().GetZ();
+		aTrack.End[3] = XTracks.front().GetT();
 #ifdef DEBUG
           std::cout << "XTrack ends after all" << std::endl;
 #endif
@@ -1687,6 +1701,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.End[0] = VTracks.front().GetRecoX();
           aTrack.End[1] = VTracks.front().GetRecoY();
           aTrack.End[2] = VTracks.front().GetZ();
+		aTrack.End[3] = VTracks.front().GetT();
 #ifdef DEBUG              
           std::cout << "End equal assigned" << std::endl;
 #endif              
@@ -1696,6 +1711,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.End[0] = 0.5 * (VTracks.front().GetNotZ() + UTracks.front().GetNotZ());
           aTrack.End[1] = CompareY(UTracks.front(), VTracks.front(), XTracks.front());//XTracks.front().GetNotZ();
           aTrack.End[2] = VTracks.front().GetZ();
+		aTrack.End[3] = VTracks.front().GetT();
 #ifdef DEBUG
           std::cout << "End equal assigned, XTrack" << std::endl;
 #endif
@@ -1717,6 +1733,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.Start[0] = UTracks.back().GetRecoX();
           aTrack.Start[1] = UTracks.back().GetRecoY();
           aTrack.Start[2] = UTracks.back().GetZ();
+		aTrack.Start[3] = UTracks.back().GetT();
 #ifdef DEBUG              
           std::cout << "Start equal assigned" << std::endl;
 #endif              
@@ -1726,6 +1743,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           aTrack.Start[0] = 0.5 * (VTracks.back().GetRecoX() + UTracks.back().GetNotZ());
           aTrack.Start[1] = CompareY(UTracks.back(), VTracks.back(), XTracks.back());//XTracks.back().GetNotZ();
           aTrack.Start[2] = XTracks.back().GetZ();
+		aTrack.Start[3] = XTracks.back().GetT();
 #ifdef DEBUG
           std::cout << "Start equal assigned, XTrack" << std::endl;
 #endif                
@@ -1739,9 +1757,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         aTrack.Start[0] = aTrack.Hits.front().GetRecoX();
         aTrack.Start[1] = aTrack.Hits.front().GetRecoY();
         aTrack.Start[2] = aTrack.Hits.front().GetZ();
+	      aTrack.Start[3] = aTrack.Hits.front().GetT();
         aTrack.End[0] = aTrack.Hits.back().GetRecoX();
         aTrack.End[1] = aTrack.Hits.back().GetRecoY();
         aTrack.End[2] = aTrack.Hits.back().GetZ();
+		aTrack.End[3] = aTrack.Hits.back().GetT();
       }
 
       // Smoothing of start and end of track in case of too much 'flailing around' in the y direction
@@ -1765,7 +1785,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       }*/
 #ifdef DEBUG
       for (auto hits: aTrack.Hits) {
-        std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << std::endl;
+        std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << "," << hits.GetT() << std::endl;
       }
 #endif
       // Charge ID
@@ -1794,8 +1814,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         aTrack.SetStartDirection(direction_x, direction_y, direction_z);
       }
 #ifdef DEBUG          
-      std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
-      std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
+      std::cout << "Start: " << aTrack.Start[0] << "mm(x) | " << aTrack.Start[1] << "mm(y) | " << aTrack.Start[2] << "mm(z) | " << aTrack.Start[3] << "s" << std::endl;
+      std::cout << "End: " << aTrack.End[0] << "mm(x) | " << aTrack.End[1] << "mm(y) | " << aTrack.End[2] << "mm(z) | " << aTrack.End[3] << "s" << std::endl;
       std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
 #endif       
   
@@ -1956,6 +1976,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                   aTrack.End[0] = YTracks.front().GetNotZ();
                   aTrack.End[1] = XTracks.front().GetNotZ();
                   aTrack.End[2] = XTracks.front().GetZ();
+		    aTrack.End[3] = XTracks.front().GetT();
                   (aTrack.Hits).push_back(XTracks.front());
                 }
 
@@ -1968,6 +1989,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                   aTrack.End[0] = YTracks.front().GetNotZ();
                   aTrack.End[1] = XTracks.front().GetNotZ();
                   aTrack.End[2] = YTracks.front().GetZ();
+			aTrack.End[3] = YTracks.front().GetT();
                   (aTrack.Hits).push_back(YTracks.front());
                 } 
               }
@@ -1981,6 +2003,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                   aTrack.Start[0] = YTracks.back().GetNotZ();
                   aTrack.Start[1] = XTracks.back().GetNotZ();
                   aTrack.Start[2] = YTracks.back().GetZ();
+			aTrack.Start[3] = YTracks.back().GetT();
 #ifdef DEBUG
                   std::cout << "YTrack starts before XTrack, no XTrack" << std::endl;
 #endif                
@@ -1995,6 +2018,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                   aTrack.Start[0] = YTracks.back().GetNotZ();
                   aTrack.Start[1] = XTracks.back().GetNotZ();
                   aTrack.Start[2] = XTracks.back().GetZ();
+			aTrack.Start[3] = XTracks.back().GetT();
 #ifdef DEBUG                
                   std::cout << "XTrack starts before YTrack, no XTrack" << std::endl;
 #endif                
@@ -2013,6 +2037,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                     aTrack.End[0] = YTracks.front().GetNotZ();
                     aTrack.End[1] = XTracks.front().GetNotZ();
                     aTrack.End[2] = YTracks.front().GetZ();
+			aTrack.End[3] = YTracks.front().GetT();
                     (aTrack.Hits).push_back(XTracks.front());
                 }
             }
@@ -2024,6 +2049,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
                     aTrack.Start[0] = YTracks.back().GetNotZ();
                     aTrack.Start[1] = XTracks.back().GetNotZ();
                     aTrack.Start[2] = XTracks.back().GetZ();
+			aTrack.Start[3] = XTracks.back().GetT();
                     (aTrack.Hits).push_back(XTracks.back());
                 } 
             }
@@ -2198,7 +2224,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 //            }
 #ifdef DEBUG
             for (auto hits: aTrack.Hits) {
-                std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() << std::endl;
+                std::cout << "Match: " << hits.GetRecoX() << "," << hits.GetRecoY() << "," << hits.GetZ() < "," << hits.GetT() << std::endl;
             }
 #endif
             // Charge ID
@@ -2227,8 +2253,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
               aTrack.SetStartDirection(direction_x, direction_y, direction_z);
             }
 #ifdef DEBUG          
-            std::cout << "Start: " << aTrack.Start[0] << " | " << aTrack.Start[1] << " | " << aTrack.Start[2] << std::endl;
-            std::cout << "End: " << aTrack.End[0] << " | " << aTrack.End[1] << " | " << aTrack.End[2] << std::endl;
+            std::cout << "Start: " << aTrack.Start[0] << "mm(x) | " << aTrack.Start[1] << "mm(y) | " << aTrack.Start[2] << "mm(z) | " << aTrack.Start[3] << "s" << std::endl;
+            std::cout << "End: " << aTrack.End[0] << "mm(x) | " << aTrack.End[1] << "mm(y) | " << aTrack.End[2] << "mm(z) | " << aTrack.End[3] << "s" << std::endl;
             //std::cout << "Added Direction: " << aTrack.Direction[0] << " | " << aTrack.Direction[1] << " | " << aTrack.Direction[2] << std::endl;
             std::cout << "Added StartDirection: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
 #endif          
