@@ -2167,7 +2167,7 @@ void TMS_TreeWriter::Clear() {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
     }
-    for (int j = 0, j < 3; ++j) {
+    for (int j = 0; j < 3; ++j) {
       RecoTrackStartDirection[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndDirection[i][j] = DEFAULT_CLEARING_FLOAT;
     }

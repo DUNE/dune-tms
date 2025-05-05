@@ -56,8 +56,8 @@ class TMS_Track {
     void SetEndDirection  (double ax, double ay, double az);// {EndDirection[0]=ax;   EndDirection[1]=ay;   EndDirection[2]=az;};
 
     // Set position unit vectors
-    void SetStartPosition(double ax, double ay, double az, double at) {Start[0]=ax; Start[1]=ay; Start[2]=az; Start[3]=at;};
-    void SetEndPosition  (double ax, double ay, double az, double at) {End[0]=ax;   End[1]=ay;   End[2]=az; End[3]=at;};
+    void SetStartPosition(double ax, double ay, double az) {Start[0]=ax; Start[1]=ay; Start[2]=az;};
+    void SetEndPosition  (double ax, double ay, double az) {End[0]=ax;   End[1]=ay;   End[2]=az;};
 
     int nHits;
     std::vector<TMS_Hit> Hits;
