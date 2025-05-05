@@ -429,13 +429,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     # check fro close by X hit for U hits
                     if orientation_bar == 'UBar':
                         if hit + helper + 1 < nHits[j]:
-                            if check_orientation(TrackHitBarType[hit + helper + 1]) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
                                 orientation_bar = 'XBar'
                         elif hit + helper + 2 < nHits[j]:
-                            if check_orientation(TrackHitBarType[hit + helper + 2]) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
                                 orientation_bar = 'XBar'
                         else:
-                            if check_orientation(TrackHitBarType[hit - helper - 2]) == 'XBar' or check_orientation(TrackHitBarType[hit - helper - 1]) == 'XBar':
+                            if check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar':
                                 orientation_bar = 'XBar'
 
                     if hit + 3 >= nHits[j]:
