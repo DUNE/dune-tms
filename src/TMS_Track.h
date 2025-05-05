@@ -19,8 +19,8 @@ class TMS_Track {
     int    Charge;
     int    Charge_Kalman;
     int    Charge_Kalman_curvature;
-    double Start[3];     // Start point in x,y,z
-    double End[3];       // End point in x,y,z
+    double Start[4];     // Start point in x,y,z,t
+    double End[4];       // End point in x,y,z,t
     double StartDirection[3]; // Unit vector in track direction at start
     double EndDirection[3]; // Unit vector in track direction at end
     double Length;
