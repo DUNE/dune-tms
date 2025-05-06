@@ -1,4 +1,4 @@
-    import ROOT
+import ROOT
 import numpy as np
 import matplotlib.pyplot as mp
 import os
@@ -694,7 +694,7 @@ if __name__ == "__main__":
     parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
     #parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
     parser.add_argument('--hists', "-H", help = "Plot hit times and energies histogram. Yes -> --hists", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--Lines2D', "-l", help = "Plot low level 2D lines for single orientations (debugging). Yes -> --Lines2D", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--lines2D', "-l", help = "Plot low level 2D lines for single orientations (debugging). Yes -> --lines2D", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
@@ -710,7 +710,7 @@ if __name__ == "__main__":
     #calculate_layers(Xlayers)
     #print(layer_dict)
     histograms = args.hists
-    lines2D = args.Lines2D
+    lines2D = args.lines2D
     
     draw_spill(out_dir, name, input_filename, spill_number, time_slice, histograms, lines2D, report_true_ke)
 
