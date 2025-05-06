@@ -216,6 +216,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
     
     # First loop through all the slices and draw one overall spill
     for current_spill_number in range(start_spill, max_n_spills):
+		counter_tracks = 0
         if fullspill:
             tracks_x = np.ones((n_events, 10 * 200), dtype = float) * -999999.
             tracks_y = np.ones((n_events, 10 * 200), dtype = float) * -999999.
@@ -256,6 +257,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             ### Check if a track exists in the event/spill, otherwise skip it
             nTracks = event.nTracks
             if nTracks <= 0: continue
+			else: counter_tracks += 1
                 
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
@@ -682,22 +684,27 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             x_y.vlines(tms_inner_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
 
             # color map
-            cividis = mp.colormaps['cividis'].resampled(n_events - 1)
-            color_array = np.array([cividis(i / (n_events - 1)) for i in range(n_events - 1)])
-            
+            cividis = mp.colormaps['cividis'].resampled(counter_tracks)
+            color_array = np.array([cividis(i / counter_tracks) for i in range(counter_tracks)])
+
+			color_it = 0
             for i in range(n_events):
+				full_track = False
                 for j in range(10*200):
                     if tracks_x[i, j] != -999999.:
-                        x_z.fill_between(*hit_size(hit_z[i, j], hit_x[i, j], 'xz', 'XBar'), color = color_array[j])
-                        z_y.fill_between(*hit_size(hit_z[i, j], hit_y[i, j], 'zy', 'XBar'), color = color_array[j])
-                        x_y.fill_between(*hit_size(hit_x[i, j], hit_y[i, j], 'xy', 'XBar'), color = color_array[j])
+						full_track = True
+                        x_z.fill_between(*hit_size(tracks_z[i, j], tracks_x[i, j], 'xz', 'XBar'), color = color_array[color_it])
+                        z_y.fill_between(*hit_size(tracks_z[i, j], tracks_y[i, j], 'zy', 'XBar'), color = color_array[color_it])
+                        x_y.fill_between(*hit_size(tracks_x[i, j], tracks_y[i, j], 'xy', 'XBar'), color = color_array[color_it])
+					if j == (10*200 - 1) and full_track:
+						color_it += 1
 
             tracks_t.flatten()
             tracks_e.flatten()
             boolean_tracks = (tracks_t != -999999.)
             tracks_t = tracks_t[boolean_tracks]
             tracks_e = tracks_e[boolean_tracks]
-            time.hist(tracks_t % 1.2e9, bins = int(max(tracks_t % 1.2e9) - min(tracks_t % 1.2e9)), color = black_cbf, align = 'mid', weights = tracks_e)
+            time.hist(tracks_t % 1.2e9, bins = int((max(tracks_t % 1.2e9) - min(tracks_t % 1.2e9)) / 4), color = black_cbf, align = 'mid', weights = tracks_e)
             energy.hist(tracks_e, bins = int(max(tracks_e) * 3), color = black_cbf, align = 'mid')
 
             fig.tight_layout()
@@ -805,10 +812,10 @@ if __name__ == "__main__":
     parser.add_argument('--timeslice', "-t", type = int, help = "The time slice to draw. -1 for all", default = -1)
     #parser.add_argument('--readout_filename', "-r", type = str, help = "(optional) A file with the raw readout.", default = "")
     parser.add_argument('--report_true_ke', help = "Add the true KE of muon to plot.", action = argparse.BooleanOptionalAction)
-    #parser.add_argument('--Xlayers', "-X", help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--hists', "-H", help = "Plot hit times and energies histogram. Yes -> --hists", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--lines2D', "-l", help = "Plot low level 2D lines for single orientations (debugging). Yes -> --lines2D", action = argparse.BooleanOptionalAction)
-    parser.add_argument('--fullspill', "-f", help = "Plot full spill instead of single events. Automatically enables the histogram option. Yes -> --fullspill", action = argparse.BooleanOptionalAction)
+    #parser.add_argument('--Xlayers', help = "Does the geometry use X (90 degree orientated) scintillator layers? Yes -> --Xlayers, No -> --no-Xlayers", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--hists', help = "Plot hit times and energies histogram. Yes -> --hists", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--lines2D', help = "Plot low level 2D lines for single orientations (debugging). Yes -> --lines2D", action = argparse.BooleanOptionalAction)
+    parser.add_argument('--fullspill', help = "Plot full spill instead of single events. Automatically enables the histogram option. Yes -> --fullspill", action = argparse.BooleanOptionalAction)
     
     args = parser.parse_args()
     
