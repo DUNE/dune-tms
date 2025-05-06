@@ -1441,7 +1441,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
                     (aTrack.Hits).push_back(UTracks[itU]);
                     (aTrack.Hits).push_back(VTracks[itV]);
-                } else if ((VTracks[itU]).GetZ() > (XTracks[itX]).GetZ()) {
+                } else if ((VTracks[itV]).GetZ() > (XTracks[itX]).GetZ()) {
                     CalculateRecoX(UTracks[itU - 1], VTracks[itV - 1], XTracks[itX]);
                     XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
 #ifdef DEBUG
