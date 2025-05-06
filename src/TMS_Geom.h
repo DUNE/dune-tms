@@ -170,8 +170,10 @@ class TMS_Geom {
       // If the geometry changes too much, then this would not work and so we'd want to give up.
       TGeoBBox *box = dynamic_cast<TGeoBBox*>(geom->GetTopVolume()->GetShape());
       double dx = 2*box->GetDX();
-      if (dx == 600000) ScaleFactor = 1;
-      else if (dx == 60000) ScaleFactor = 10;
+      // Rockbox is either 600000mm or 240000mm, so check if we're in that range
+      if (100000 <= dx && dx <= 1000000) ScaleFactor = 1;
+      // Rockbox is either 60000cm or 24000cm, so check if we're in that range
+      else if (10000 <= dx && dx < 100000) ScaleFactor = 10;
       else {
         std::cout << "DX: " << box->GetDX() << std::endl;
         std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
