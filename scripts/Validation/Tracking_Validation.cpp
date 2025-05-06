@@ -46,9 +46,11 @@ const double GEV = 1e-3; // GeV per MEV
 #ifdef GEOM_V3
 #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 #else
-#define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
-// #define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no
+//#define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
+#define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10 processing, hybrid, et al.
+//#define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no
 // kalman
+//#define length_to_energy(l) default_length_to_energy(l) // default for fitting
 #endif
 #define lar_length_to_energy(l) (l) * 1e-3
 
@@ -1264,6 +1266,13 @@ int main(int argc, char *argv[]) {
 
   // Extract input filename and number of events from command line arguments
   std::string inputFilename = argv[1];
+  std::string filename;
+  if (inputFilename.find("tmsreco.root") != std::string::npos)
+    // Assuming we're specifying a single tmsreco file
+    filename = inputFilename;
+  else
+    // Assuming the full directory
+    filename = inputFilename + "/tmsreco/RHC/00m/00/*.tmsreco.root";
   int numEvents = -1;
   if (argc > 2)
     numEvents = atoi(argv[2]);
@@ -1272,10 +1281,12 @@ int main(int argc, char *argv[]) {
     DrawSliceN::max_slices = atoi(argv[3]);
 
   // Load the tree and make the Truth_Info object
-  TFile TF(inputFilename.c_str());
-  TTree *truth = (TTree *)TF.Get("Truth_Info");
-  TTree *reco = (TTree *)TF.Get("Reco_Tree");
-  TTree *line_candidates = (TTree *)TF.Get("Line_Candidates");
+  TChain *truth = new TChain("Truth_Info");
+  truth->Add(filename.c_str());
+  TChain *reco = new TChain("Reco_Tree");
+  reco->Add(filename.c_str());
+  TChain *line_candidates = new TChain("Line_Candidates");
+  line_candidates->Add(filename.c_str());
   bool missing_ttree = false;
   if (!truth) {
     std::string message = inputFilename + " doesn't contain Truth_Info";
