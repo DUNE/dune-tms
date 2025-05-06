@@ -36,6 +36,13 @@ tms_bottom_stereo = -3.00223
 tms_top_hybrid = 0.37177
 tms_bottom_hybrid = -3.07623
 
+tms_start = 11.124
+tms_end = 18.544
+tms_start_thick = 14.460
+tms_start_double = 17.520
+tms_inner_steel = 1.87
+tms_outer_steel = 3.73
+
 ### Function for upper limit of tilted bar 'hit'
 def upper_limit(hit_x, hit_y, x, orientation_bar):
     if orientation_bar == 'VBar':  # assumption VBar is tilted in positive way and UBar then in negative
@@ -306,17 +313,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 x_y.set(xlabel = 'x [m]', ylabel = 'y [m]', xticks = [3, 2, 1, 0, -1, -2, -3, -4], yticks = [-3, -2, -1, 0])
                 z_y.set(xlabel = 'z [m]', ylabel = 'y [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0])
                 x_z.set(xlabel = 'z [m]', ylabel = 'x [m]', xticks = [11, 12, 13, 14, 15, 16, 17, 18], yticks = [-3, -2, -1, 0, 1, 2, 3])
-                x_y.text(3.79, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-                z_y.text(18.6, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
-                x_z.text(18.6, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                x_y.text(tms_outer_steel + 0.06, -2, 'front view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                z_y.text(tms_end + 0.056, -2, 'side view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
+                x_z.text(tms_end + 0.056, -0.5, 'top view', rotation = 'vertical', fontsize = 12, fontweight = 'bold', color = orange_cbf)
                 if histograms:
                     time.set(xlabel = 'Time [ns]', ylabel = 'Total Hit E [MeV]')
                     energy.set(xlabel = 'Hit E [MeV]', ylabel = 'N Hits')
             
                 ### Set TMS name
-                x_y.text(-3.73, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
-                z_y.text(11.2, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
-                x_z.text(11.2, 3.79, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
+                x_y.text(-tms_outer_steel, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
+                z_y.text(tms_start - 0.044, tms_top_hybrid, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8) #0.1
+                x_z.text(tms_start - 0.044, tms_outer_steel + 0.06, 'TMS', fontsize = 14, fontweight = 'bold', color = orange_cbf, alpha = 0.8)
 
                 ### Position plots efficient/nice in subplots
                 x_z.axis('equal')
@@ -335,30 +342,30 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     energy.axes.set_anchor('C')
 
                 ### Put in outlines of scintillator parts
-                x_z.hlines(-3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')   # outer steel plate
-                x_z.hlines(3.73, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # outer steel plate
-                x_z.hlines(-1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')   # inner steel plate
-                x_z.hlines(0, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')       # middle of steel
-                x_z.hlines(1.87, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')    # inner steel plate
-                x_z.vlines(11.124, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(18.544, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_z.vlines(14.460, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to thick steel
-                x_z.vlines(17.520, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to double thick steel
+                x_z.hlines(-tms_outer_steel, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')   # outer steel plate
+                x_z.hlines(tms_outer_steel, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')    # outer steel plate
+                x_z.hlines(-tms_inner_steel, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')   # inner steel plate
+                x_z.hlines(0, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')       # middle of steel
+                x_z.hlines(tms_inner_steel, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')    # inner steel plate
+                x_z.vlines(tms_start, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(tms_end, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_z.vlines(tms_start_thick, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to thick steel
+                x_z.vlines(tms_start_double, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5))) # to double thick steel
 
-                z_y.hlines(tms_bottom_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.hlines(tms_top_hybrid, 11.124, 18.544, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.vlines(11.124, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.vlines(18.544, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                z_y.vlines(14.460, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to thick steel
-                z_y.vlines(17.520, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to double thick steel
+                z_y.hlines(tms_bottom_hybrid, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.hlines(tms_top_hybrid, tms_start, tms_end, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(tms_start, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(tms_end, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                z_y.vlines(tms_start_thick, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to thick steel
+                z_y.vlines(tms_start_double, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = (0, (1, 5)))   # to double thick steel
 
-                x_y.hlines(tms_bottom_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.hlines(tms_top_hybrid, -3.73, 3.73, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(-3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(3.73, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(-1.87, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_bottom_hybrid, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.hlines(tms_top_hybrid, -tms_outer_steel, tms_outer_steel, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(-tms_outer_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(tms_outer_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(-tms_inner_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                 x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
-                x_y.vlines(1.87, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
+                x_y.vlines(tms_inner_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
 
 
                 # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
