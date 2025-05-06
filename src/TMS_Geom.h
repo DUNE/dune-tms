@@ -67,6 +67,17 @@ class TMS_Geom {
         TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + thickness); };
     inline TVector3 GetEndOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - thickness, 
         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - thickness); };
+    inline TVector3 GetStartOfLArFiducial() const {
+        double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + dxy, 
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + dxy,
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + dxy); };
+    inline TVector3 GetEndOfLArFiducial() const {
+        double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
+        double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT();
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };
     
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
@@ -79,7 +90,12 @@ class TMS_Geom {
     };
     bool IsInsideLAr(TVector3 position, double thickness = 0) const 
       { return IsInsideBox(position, GetStartOfLArActive(thickness), GetEndOfLArActive(thickness)); };
+    bool IsInsideLArShell(TVector3 position) const 
+      { double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS();
+        return IsInsideLAr(position) && !IsInsideLAr(position, thickness); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
+    bool IsInsideLarFiducial(TVector3 position) const
+     { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
     bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };

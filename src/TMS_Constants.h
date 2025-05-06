@@ -119,7 +119,7 @@ namespace TMS_Const {
   // The rock volume
   const std::string TMS_Rock = "rockBox_lv";
   // LAr active region
-  const std::string LAr_ActiveName = "volTPCActive";
+  const std::string LAr_ActiveName = "TPCActive";
 
   const double TMS_Small_Num = 1.E-5;
 
