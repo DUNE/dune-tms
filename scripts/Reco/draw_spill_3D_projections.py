@@ -19,6 +19,17 @@ mp.rc('axes', labelsize = 12)  # fontsize of the x and y labels
 mp.rc('xtick', labelsize = 12) # fontsize of the tick labels
 mp.rc('ytick', labelsize = 12) # fontsize of the tick labels
 
+# dyslexia friendly background
+mp.rcParams['axes.facecolor'] = '#fafafa'
+mp.rcParams["figure.facecolor"] = '#fafafa'
+mp.rcParams["savefig.facecolor"] = '#fafafa'
+
+# off-black text
+mp.rcParams['text.color'] = '#424242'
+mp.rcParams['axes.labelcolor'] = '#424242'
+mp.rcParams['xtick.color'] = '#424242'
+mp.rcParams['ytick.color'] = '#424242'
+
 cos_3 = 0.99863
 sin_3 = 0.05234
 tan_87 = 19.08114
