@@ -288,6 +288,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 nLinesV = branch.nLinesV
                 nLinesX = branch.nLinesX
                 nLinesY = branch.nLinesY
+                print("Lines: ", nLinesU, nLinesV, nLinesX, nLinesY)
                 nHitsU = np.frombuffer(branch.nHitsInTrackU, dtype = np.uint8)
                 nHitsU = np.array([nHitsU[i] for i in range(0, nLinesU * 4, 4)])
                 nHitsV = np.frombuffer(branch.nHitsInTrackV, dtype = np.uint8)
@@ -304,6 +305,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 nClustersV = branch.nClustersV
                 nClustersX = branch.nClustersX
                 nClustersY = branch.nClustersY
+                print("Clusters: ", nClustersU, nClustersV, nClustersX, nClustersY)
                 nHitsInClusterU = np.frombuffer(branch.nHitsInClusterU, dtype = np.uint8)
                 nHitsInClusterU = np.array([nHitsInClusterU[i] for i in range(0, nClustersU * 4, 4)])
                 nHitsInClusterV = np.frombuffer(branch.nHitsInClusterV, dtype = np.uint8)
@@ -328,7 +330,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             
             RecoTrackPrimaryParticleTruePositionTrackStart = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackStart, dtype = np.float32)
             RecoTrackPrimaryParticleTruePositionTrackEnd = np.frombuffer(true_event.RecoTrackPrimaryParticleTruePositionTrackEnd, dtype = np.float32)
-            
+  
             for j in range(nTracks):
                 ### Create subplots
                 fig = mp.figure(constrained_layout = False)
@@ -552,11 +554,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                         x_z.plot(Vhits_z, Vhits_x, ls = '-', lw = 1.3, color = green_cbf, label = '2D V')
 
                     if nLinesX != 0:
-                        Xhits_y = np.zeros(nHitsX[j])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
-                        Xhits_z = np.zeros(nHitsX[j])
-                        for hit in range(nHitsX[j]):
-                            Xhits_z[hit] = TrackHitPosX[j*400 + hit*2 + 0] / 1000.0
-                            Xhits_y[hit] = TrackHitPosX[j*400 + hit*2 + 1] / 1000.0
+                        helper = 0
+                        if nLinesX != nLinesU: 
+                            if j >= nLinesX:
+                                helper = j - (nLinesX - 1)
+                        Xhits_y = np.zeros(nHitsX[j - helper])   # TODO how are X simple tracks saved? Is the same iteration valid (j) or not for hybrid cases???
+                        Xhits_z = np.zeros(nHitsX[j - helper])
+                        for hit in range(nHitsX[j - helper]):
+                            Xhits_z[hit] = TrackHitPosX[(j - helper)*400 + hit*2 + 0] / 1000.0
+                            Xhits_y[hit] = TrackHitPosX[(j - helper)*400 + hit*2 + 1] / 1000.0
                         z_y.plot(Xhits_z, Xhits_y, ls = '-', lw = 1.3, color = blue_cbf, label = '2D X')
 
                     if nLinesY != 0:
@@ -568,36 +574,48 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                         x_z.plot(Yhits_z, Yhits_x, ls = '-', lw = 1.3, color = red_cbf, label = '2D Y')
 
                     if nClustersU != 0:
-                        for hit in range(nHitsInClusterU[j]):
-                            Cluster_z = ClusterHitPosU[j*400 + hit*2 + 0] / 1000.0
-                            Cluster_x = ClusterHitPosU[j*400 + hit*2 + 1] / 1000.0
+                        helper = 0
+                        if j >= nClustersU:
+                            helper = j - (nClustersU - 1)
+                        for hit in range(nHitsInClusterU[j - helper]):
+                            Cluster_z = ClusterHitPosU[(j - helper)*400 + hit*2 + 0] / 1000.0
+                            Cluster_x = ClusterHitPosU[(j - helper)*400 + hit*2 + 1] / 1000.0
                             if hit == 0:
                                 x_z.scatter(Cluster_z, Cluster_x, c = red_cbf, marker = '1', alpha = 0.5, label = 'U Cluster Hits')
                             else:
                                 x_z.scatter(Cluster_z, Cluster_x, c = red_cbf, marker = '1', alpha = 0.5)
 
                     if nClustersV != 0:
-                        for hit in range(nHitsInClusterV[j]):
-                            Cluster_z = ClusterHitPosV[j*400 + hit*2 + 0] / 1000.0
-                            Cluster_x = ClusterHitPosV[j*400 + hit*2 + 1] / 1000.0
+                        helper = 0
+                        if j >= nClustersV:
+                            helper = j - (nClustersV - 1)
+                        for hit in range(nHitsInClusterV[j - helper]):
+                            Cluster_z = ClusterHitPosV[(j - helper)*400 + hit*2 + 0] / 1000.0
+                            Cluster_x = ClusterHitPosV[(j - helper)*400 + hit*2 + 1] / 1000.0
                             if hit == 0:
                                 x_z.scatter(Cluster_z, Cluster_x, c = green_cbf, marker = '1', alpha = 0.5, label = 'V Cluster Hits')
                             else:
                                 x_z.scatter(Cluster_z, Cluster_x, c = green_cbf, marker = '1', alpha = 0.5)
 
                     if nClustersX != 0:
-                        for hit in range(nHitsInClusterX[j]):
-                            Cluster_z = ClusterHitPosX[j*400 + hit*2 + 0] / 1000.0
-                            Cluster_y = ClusterHitPosX[j*400 + hit*2 + 1] / 10000
+                        helper = 0
+                        if j >= nClustersX:
+                            helper = j - (nClustersX - 1)
+                        for hit in range(nHitsInClusterX[j - helper]):
+                            Cluster_z = ClusterHitPosX[(j - helper)*400 + hit*2 + 0] / 1000.0
+                            Cluster_y = ClusterHitPosX[(j - helper)*400 + hit*2 + 1] / 10000
                             if hit == 0:
                                 z_y.scatter(Cluster_z, Cluster_y, c = blue_cbf, marker = '1', alpha = 0.5, label = 'X Cluster Hits')
                             else:
                                 z_y.scatter(Cluster_z, Cluster_y, c = blue_cbf, marker = '1', alpha = 0.5)
 
                     if nClustersY != 0:
-                        for hit in range(nHitsInClusterY[j]):
-                            Cluster_z = ClusterHitPosY[j*400 + hit*2 + 0] / 1000.0
-                            Cluster_x = ClusterHitPosY[j*400 + hit*2 + 1] / 1000.0
+                        helper = 0
+                        if j >= nClustersY:
+                            helper = j - (nClustersY - 1)
+                        for hit in range(nHitsInClusterY[j - helper]):
+                            Cluster_z = ClusterHitPosY[(j - helper)*400 + hit*2 + 0] / 1000.0
+                            Cluster_x = ClusterHitPosY[(j - helper)*400 + hit*2 + 1] / 1000.0
                             if hit == 0:
                                 x_z.scatter(Cluster_z, Cluster_x, c = red_cbf, marker = '1', alpha = 0.5,  label = 'Y Cluster Hits')
                             else:
