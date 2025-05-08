@@ -855,10 +855,10 @@ double TMS_TrackFinder::CompareY(TMS_Hit &UHit, TMS_Hit &VHit, TMS_Hit &XHit) {
 }
 
 std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
-//#ifdef DEBUG
+#ifdef DEBUG
   std::cout << "3D matching" << std::endl;
   std::cout << "size Candidates: U: " << HoughCandidatesU.size() << " | V: " << HoughCandidatesV.size() << " | X: " << HoughCandidatesX.size() << std::endl;
-//#endif
+#endif
 
   // Sorting the candidate tracks descending by their hit number
   if (HoughCandidatesU.size() > 1) {
@@ -917,10 +917,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     // Run spatial prio just because one last time
     SpatialPrio(UTracks);
     SpatialPrio(VTracks);
-    if (Xrun) {
-      SpatialPrio(XTracks);
-      std::cout << "SpatialPrio X" << std::endl;
-    }
+    if (Xrun) SpatialPrio(XTracks);
+
 #ifdef DEBUG
     std::cout << "U track: " << UTracks.size() << std::endl;
     std::cout << "UTrack back: " << UTracks.front().GetPlaneNumber() << " | " << UTracks.front().GetBarNumber() << " | " << UTracks.front().GetT() << " front: " << UTracks.back().GetPlaneNumber() << " | " << UTracks.back().GetBarNumber() << " | " << UTracks.back().GetT() << std::endl;
@@ -1330,7 +1328,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
         // Stereo check
         bool stereo_view = true;
-//        bool stereo_view = false;
+
         if (Xrun && Xback_match && Xfront_match) {
           // Check if a neighbouring hit is from a X layer
           //if ((UTracks[itU].GetPlaneNumber() < TMS_Const::TMS_nThinPlanes / 2 && std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ() < TMS_Const::TMS_Thin_gap * 2 + 10))
@@ -1841,11 +1839,11 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         double direction_z = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
         aTrack.SetStartDirection(direction_x, direction_y, direction_z);
       }
-//#ifdef DEBUG          
+#ifdef DEBUG          
       std::cout << "Start: " << aTrack.Start[0] << "mm(x) | " << aTrack.Start[1] << "mm(y) | " << aTrack.Start[2] << "mm(z) | " << aTrack.Start[3] << "s" << std::endl;
       std::cout << "End: " << aTrack.End[0] << "mm(x) | " << aTrack.End[1] << "mm(y) | " << aTrack.End[2] << "mm(z) | " << aTrack.End[3] << "s" << std::endl;
       std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-//#endif       
+#endif       
   
       returned.push_back(aTrack);
 
