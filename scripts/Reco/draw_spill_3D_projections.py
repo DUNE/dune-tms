@@ -337,15 +337,15 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 if fullspill or histograms:
                     gs = fig.add_gridspec(ncols=2, nrows=3, hspace = 0.3, wspace = 0.0)
                     x_y = fig.add_subplot(gs[0, 0])
-                    z_y = fig.add_subplot(gs[1, 0])
                     x_z = fig.add_subplot(gs[0:2, 1:])
+                    z_y = fig.add_subplot(gs[1, 0])
                     time = fig.add_subplot(gs[2, 0])
                     energy = fig.add_subplot(gs[2, 1:])
                 elif not fullspill:
                     gs = fig.add_gridspec(2, 2, hspace = 0.25, wspace = 0.15)
                     x_y = fig.add_subplot(gs[0, 0])
-                    z_y = fig.add_subplot(gs[1, 0])
                     x_z = fig.add_subplot(gs[0:, 1:])
+                    z_y = fig.add_subplot(gs[1, 0])
     
                 if not fullspill:
                     ### Set labels and ticks
@@ -502,7 +502,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                         z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf, alpha = transparency)
                         x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
         
-                if DrawKalmanTrack:
+                if DrawKalmanTrack and not lines2D:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
     
                     prev_kal_x = -1E100
@@ -636,13 +636,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                                     if check_orientation(TrackHitBarType[j*800 + (nHits[j] - 1 - 2)*4]) == 'XBar':
                                         orientation_bar = 'XBar'
                                 if orientation_bar == 'YBar': orientation_bar = 'XBar'
-                            x_z.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf, label = 'Start/End reco')
-                            z_y.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf)
+                            x_z.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 0], 'xz', orientation_bar), color = green_cbf)
+                            z_y.fill_between(*hit_size(StartPos[j*4 + 2], StartPos[j*4 + 1], 'zy', orientation_bar), color = green_cbf, label = 'Start/End reco')
                             x_y.fill_between(*hit_size(StartPos[j*4 + 0], StartPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
 
                         elif lines2D:
-                            x_z.scatter(StartPos[j*4 + 2] / 1000.0, StartPos[j*4 + 0] / 1000.0, c = black_cbf, alpha = 0.5, marker = '2', label = 'Start reco')
-                            z_y.scatter(StartPos[j*4 + 2] / 1000.0, StartPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '2')
+                            x_z.scatter(StartPos[j*4 + 2] / 1000.0, StartPos[j*4 + 0] / 1000.0, c = black_cbf, alpha = 0.5, marker = '2')
+                            z_y.scatter(StartPos[j*4 + 2] / 1000.0, StartPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '2', label = 'Start reco')
                             x_y.scatter(StartPos[j*4 + 0] / 1000.0, StartPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '2')
 
             
@@ -666,8 +666,8 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                             x_y.fill_between(*hit_size(EndPos[j*4 + 0], EndPos[j*4 + 1], 'xy', orientation_bar), color = green_cbf, alpha = 0.5, linewidth = 0.5)
                         
                         elif lines2D:
-                            x_z.scatter(EndPos[j*4 + 2] / 1000.0, EndPos[j*4 + 0] / 1000.0, c = black_cbf, alpha = 0.5, marker = '1', label = 'End reco')
-                            z_y.scatter(EndPos[j*4 + 2] / 1000.0, EndPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '1')
+                            x_z.scatter(EndPos[j*4 + 2] / 1000.0, EndPos[j*4 + 0] / 1000.0, c = black_cbf, alpha = 0.5, marker = '1')
+                            z_y.scatter(EndPos[j*4 + 2] / 1000.0, EndPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '1', label = 'End reco')
                             x_y.scatter(EndPos[j*4 + 0] / 1000.0, EndPos[j*4 + 1] / 1000.0, c = black_cbf, alpha = 0.5, marker = '1')
                 
                 ### Track direction
@@ -676,16 +676,16 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.): 
 
                     if not StartPos[j*4 + 1] == 0.0 or EndPos[j*4 + 1] == 0.0:
-                        x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
-                        z_y.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
+                        z_y.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--', label = 'Direction')
                         x_y.plot([StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], [StartPos[j*4 + 1] / 1000.0, EndPos[j*4 + 1] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
                 
                 if RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] > 11000.: 
-                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
-                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
+                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
+                    x_z.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
                 
-                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
-                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
+                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
+                    z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
             
                     x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
                     x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
