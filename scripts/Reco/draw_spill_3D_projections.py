@@ -278,12 +278,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
             if histograms or fullspill:
                 TrackHitEnergies = np.frombuffer(event.TrackHitEnergies, dtype = np.float32)
-            
-            # I want the number of true hits.
-            # nTrueHits = true_event.RecoTrackNHits
-            # True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype=np.float32)
 
             if lines2D:
+                # 2d lines
                 nLinesU = branch.nLinesU
                 nLinesV = branch.nLinesV
                 nLinesX = branch.nLinesX
@@ -301,6 +298,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 TrackHitPosV = np.frombuffer(branch.TrackHitPosV, dtype = np.float32)
                 TrackHitPosX = np.frombuffer(branch.TrackHitPosX, dtype = np.float32)
                 TrackHitPosY = np.frombuffer(branch.TrackHitPosY, dtype = np.float32)
+                # 2d clusters
                 nClustersU = branch.nClustersU
                 nClustersV = branch.nClustersV
                 nClustersX = branch.nClustersX
@@ -318,11 +316,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 ClusterHitPosV = np.frombuffer(branch.ClusterHitPosV, dtype = np.float32)
                 ClusterHitPosX = np.frombuffer(branch.ClusterHitPosX, dtype = np.float32)
                 ClusterHitPosY = np.frombuffer(branch.ClusterHitPosY, dtype = np.float32)
+                # true hit information
+                nRecoTrackN = true_event.RecoTrackN
+                nTrueHits = np.frombuffer(true_event.RecoTrackNHits, dtype = np.uint8)
+                nTrueHits = np.array([nTrueHits[i] for i in range(0, nRecoTrackN * 4, 4)])
+                True_Hits = np.frombuffer(true_event.RecoTrackTrueHitPosition, dtype = np.float32)
 
-            # Kalman stuff
-            nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
-            KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
-            KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
+            if not lines2D:
+                # Kalman stuff
+                nKalmanNodes = np.frombuffer(event.nKalmanNodes, dtype = np.uint8)
+                KalmanPos = np.frombuffer(event.KalmanPos, dtype = np.float32)
+                KalmanTruePos = np.frombuffer(event.KalmanTruePos, dtype = np.float32)
 
             StartPos = np.frombuffer(event.StartPos, dtype = np.float32)            
             EndPos = np.frombuffer(event.EndPos, dtype = np.float32)            
@@ -406,102 +410,77 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     x_y.vlines(0, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
                     x_y.vlines(tms_inner_steel, tms_top_hybrid, tms_bottom_hybrid, color = orange_cbf, linewidth = 1, linestyle = ':')
 
-
-                # This isn't working with current file, Aug 2024. File doesn't have true_event.RecoTrackNHits
-                # # loop through those true hits in the TMS
-                # for hit in range(nTrueHits[i]):
-                #     thit_x = True_Hits[i * 600 + hit * 4 + 0]
-                #     thit_y = True_Hits[i * 600 + hit * 4 + 1]
-                #     thit_z = True_Hits[i * 600 + hit * 4 + 2]
-                #
-                #     # print("THit", thit_x, thit_y, thit_z)
-                #
-                #     if thit_z < 11000.: continue
-                #
-                #     x_z.scatter(thit_z / 1000.0, thit_x / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-                #     z_y.scatter(thit_z / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-                #     x_y.scatter(thit_x / 1000.0, thit_y / 1000.0, color=black_cbf, marker='.', alpha=0.5)
-                #
-                #     output_filename_thits = os.path.join(out_dir, f"{name}_truth_{current_spill_number:03d}")
-                #     mp.savefig(output_filename_thits + ".png", bbox_inches='tight')
-                #     mp.close()
-                
                 if histograms or fullspill:
                     times = np.zeros(nHits[j], dtype = float)
                     energies = np.zeros(nHits[j], dtype = float)
-                ### Hit positions of the hits in the track
-                for hit in range(nHits[j]):
-                    hit_x = TrackHitPos[j*800 + hit*4 + 0]
-                    hit_y = TrackHitPos[j*800 + hit*4 + 1]
-                    hit_z = TrackHitPos[j*800 + hit*4 + 2]
-                    if histograms or fullspill:
-                        times[hit] = TrackHitPos[j*800 + hit*4 + 3]
-                        energies[hit] = TrackHitEnergies[j*200 + hit]
-                        if fullspill:
-                            tracks_x[i, j*200 + hit] = hit_x
-                            tracks_y[i, j*200 + hit] = hit_y
-                            tracks_z[i, j*200 + hit] = hit_z
-                            tracks_t[i, j*200 + hit] = times[hit]
-                            tracks_e[i, j*200 + hit] = energies[hit]
-                
-                    #print('(%s)' %check_orientation(int(hit_z)), hit_x, hit_y, hit_z)
+                if not lines2D:
+                    ### Hit positions of the hits in the track
+                    for hit in range(nHits[j]):
+                        hit_x = TrackHitPos[j*800 + hit*4 + 0]
+                        hit_y = TrackHitPos[j*800 + hit*4 + 1]
+                        hit_z = TrackHitPos[j*800 + hit*4 + 2]
+                        if histograms or fullspill:
+                            times[hit] = TrackHitPos[j*800 + hit*4 + 3]
+                            energies[hit] = TrackHitEnergies[j*200 + hit]
+                            if fullspill:
+                                tracks_x[i, j*200 + hit] = hit_x
+                                tracks_y[i, j*200 + hit] = hit_y
+                                tracks_z[i, j*200 + hit] = hit_z
+                                tracks_t[i, j*200 + hit] = times[hit]
+                                tracks_e[i, j*200 + hit] = energies[hit]
 
-                    if not fullspill:
-                        #temporary fix
-                        if hit_z < 11000.: continue 
-                        if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue 
+                        if not fullspill:
+                            #temporary fix
+                            if hit_z < 11000.: continue 
+                            if np.abs(hit_x) > 10000. or np.abs(hit_y) > 10000. or np.abs(hit_z) > 20000.: continue 
                     
-                        orientation_bar = check_orientation(TrackHitBarType[j*800 + hit*4])
-                        if not lines2D:
-                            color_cbf = red_cbf
-                            if orientation_bar == 'VBar':
-                                color_cbf = blue_cbf
-                            elif orientation_bar == 'XBar':
+                            orientation_bar = check_orientation(TrackHitBarType[j*800 + hit*4])
+                            if not lines2D:
+                                color_cbf = red_cbf
+                                if orientation_bar == 'VBar':
+                                    color_cbf = blue_cbf
+                                elif orientation_bar == 'XBar':
+                                    color_cbf = black_cbf
+                                elif orientation_bar == 'YBar':
+                                    color_cbf = blue_cbf
+                                    orientation_bar = 'XBar'
+                            else:
                                 color_cbf = black_cbf
-                            elif orientation_bar == 'YBar':
-                                color_cbf = blue_cbf
-                                orientation_bar = 'XBar'
-                        else:
-                            color_cbf = black_cbf
                         
-                        transparency = 1
-                        if lines2D: transparency = 0.5
-                        # check if gap with two hits successively have the same BarType
-                        helper = 0
-                        if TrackHitPos[j*800 + (hit + 1)*4 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
-                        # check for close by X hit for V hits
-                        if orientation_bar == 'VBar':
-                            if hit + helper + 2 < nHits[j]:
-                                if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
-                                    # if close by X hit, set BarType for plotting (not color) to X type
-                                    orientation_bar = 'XBar'
-                            elif hit + helper + 1 < nHits[j]:
-                                if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
-                                    orientation_bar = 'XBar'
-                            else:
-                                if check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar':
-                                    orientation_bar = 'XBar'
-                        # check fro close by X hit for U hits
-                        if orientation_bar == 'UBar':
-                            if hit + helper + 1 < nHits[j]:
-                                if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
-                                    orientation_bar = 'XBar'
-                            elif hit + helper + 2 < nHits[j]:
-                                if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
-                                    orientation_bar = 'XBar'
-                            else:
-                                if check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar':
-                                    orientation_bar = 'XBar'
+                            # check if gap with two hits successively have the same BarType
+                            helper = 0
+                            if TrackHitPos[j*800 + (hit + 1)*4 + 2] == hit_z: helper = 1    # if this is the case set helper to 1, to check from the next hit
+                            # check for close by X hit for V hits
+                            if orientation_bar == 'VBar':
+                                if hit + helper + 2 < nHits[j]:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
+                                        # if close by X hit, set BarType for plotting (not color) to X type
+                                        orientation_bar = 'XBar'
+                                elif hit + helper + 1 < nHits[j]:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
+                                        orientation_bar = 'XBar'
+                                else:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar':
+                                        orientation_bar = 'XBar'
+                            # check fro close by X hit for U hits
+                            if orientation_bar == 'UBar':
+                                if hit + helper + 1 < nHits[j]:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit + helper + 1)*4]) == 'XBar':
+                                        orientation_bar = 'XBar'
+                                elif hit + helper + 2 < nHits[j]:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit + helper + 2)*4]) == 'XBar':
+                                        orientation_bar = 'XBar'
+                                else:
+                                    if check_orientation(TrackHitBarType[j*800 + (hit - helper - 2)*4]) == 'XBar' or check_orientation(TrackHitBarType[j*800 + (hit - helper - 1)*4]) == 'XBar':
+                                        orientation_bar = 'XBar'
 
-                        if hit + 3 >= nHits[j] and not lines2D:
-                            x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, alpha = transparency, label = 'hit area %s' % check_orientation(TrackHitBarType[j*800 + hit*4]))
-                        elif hit + 1 >= nHits[j] and lines2D:
-                            x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, alpha = transparency, label = 'hit area')
-                        else:
-                            x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, alpha = transparency)
-                        z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf, alpha = transparency)
-                        x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5, linewidth = 0.5)
-        
+                            if hit + 3 >= nHits[j]:
+                                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf, label = 'hit area %s' % check_orientation(TrackHitBarType[j*800 + hit*4]))
+                            else:
+                                x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', orientation_bar), color = color_cbf)
+                            z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
+                            x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5)
+
                 if DrawKalmanTrack and not lines2D:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
     
@@ -537,6 +516,21 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                     energy.hist(energies, bins = int(max(energies) * 3), color = black_cbf, align = 'mid')
                 
                 if lines2D:
+                    # plot true hits
+                    for hit in range(nTrueHits[j]):
+                        hit_x = True_Hits[j*800 + hit*4 + 0]
+                        hit_y = True_Hits[j*800 + hit*4 + 1]
+                        hit_z = True_Hits[j*800 + hit*4 + 2]
+
+                        if hit_z < 11000.: continue
+                        
+                        if hit + 1 >= nTrueHits[j]:
+                            x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', 'XBar'), color = black_cbf, alpha = 0.3, label = 'hit area')
+                        else:
+                            x_z.fill_between(*hit_size(hit_z, hit_x, 'xz', 'XBar'), color = black_cbf, alpha = 0.3)
+                        z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', 'XBar'), color = black_cbf, alpha = 0.3)
+                        x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', 'XBar'), color = black_cbf, alpha = 0.2)
+                   
                     if nLinesU != 0:
                         Uhits_x = np.zeros(nHitsU[j])
                         Uhits_z = np.zeros(nHitsU[j])
