@@ -747,16 +747,16 @@ double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D) {
 
 void TMS_TrackFinder::FindPseudoXTrack() {
   // Check if U and V Track exist
-  if (HoughCandidatesU.empty() || HoughCandidatesV.empty() || HoughCandidatesU.size() == HoughCandidatesV.size()) return;
+  if (HoughCandidatesU.empty() || HoughCandidatesV.empty()) return; //|| HoughCandidatesU.size() == HoughCandidatesV.size()) return;
 
   // Check if X hits exist
   if (XHitGroup.empty()) return;
 
   // Find first and last hit of U/V track to compare X hits to
-  int first_z[HoughCandidatesU.size()] = {100000};
-  int last_z[HoughCandidatesU.size()] = {0};
-  double first_t[HoughCandidatesU.size()] = {20000};
-  double last_t[HoughCandidatesU.size()] = {-999};
+  int Ufirst_z[HoughCandidatesU.size()] = {100000};
+  int Ulast_z[HoughCandidatesU.size()] = {0};
+  double Ufirst_t[HoughCandidatesU.size()] = {20000};
+  double Ulast_t[HoughCandidatesU.size()] = {-999};
   int i = 0;
   for (auto UTracks: HoughCandidatesU) {
     // Sort to make it computational less expensive
@@ -764,42 +764,61 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     // Make sure that the orientation is always the same (inverted!)
     if (UTracks.back().GetZ() > UTracks.front().GetZ()) std::reverse(UTracks.begin(), UTracks.end());
     // Now assign the first and last hit from the U track
-    if (UTracks.front().GetZ() > last_z[i]) last_z[i] = UTracks.front().GetZ();
-    if (UTracks.back().GetZ() < first_z[i]) first_z[i] = UTracks.back().GetZ();
-    if (UTracks.front().GetT() > last_t[i]) last_t[i] = UTracks.front().GetT();
-    if (UTracks.back().GetT() < first_t[i]) first_t[i] = UTracks.back().GetT();
+    if (UTracks.front().GetZ() > Ulast_z[i]) Ulast_z[i] = UTracks.front().GetZ();
+    if (UTracks.back().GetZ() < Ufirst_z[i]) Ufirst_z[i] = UTracks.back().GetZ();
+    if (UTracks.front().GetT() > Ulast_t[i]) Ulast_t[i] = UTracks.front().GetT();
+    if (UTracks.back().GetT() < Ufirst_t[i]) Ufirst_t[i] = UTracks.back().GetT();
     ++i;
   }
   i = 0;
+  int Vfirst_z[HoughCandidatesV.size()] = {100000};
+  int Vlast_z[HoughCandidatesV.size()] = {0};
+  double Vfirst_t[HoughCandidatesV.size()] = {20000};
+  double Vlast_t[HoughCandidatesV.size()] = {-999};
   for (auto VTracks: HoughCandidatesV) {
     // Sort to make it computational less expensive
     SpatialPrio(VTracks);
     // Make sure that the orientation is always the same (inverted!)
     if (VTracks.back().GetZ() > VTracks.front().GetZ()) std::reverse(VTracks.begin(), VTracks.end());
     // Now assign the first and last hit from the V track
-    if (VTracks.front().GetZ() > last_z[i]) last_z[i] = VTracks.front().GetZ();
-    if (VTracks.back().GetZ() < first_z[i]) first_z[i] = VTracks.back().GetZ();
-    if (VTracks.front().GetT() > last_t[i]) last_t[i] = VTracks.front().GetT();
-    if (VTracks.back().GetT() < first_t[i]) first_t[i] = VTracks.back().GetT();
+    if (VTracks.front().GetZ() > Vlast_z[i]) Vlast_z[i] = VTracks.front().GetZ();
+    if (VTracks.back().GetZ() < Vfirst_z[i]) Vfirst_z[i] = VTracks.back().GetZ();
+    if (VTracks.front().GetT() > Vlast_t[i]) Vlast_t[i] = VTracks.front().GetT();
+    if (VTracks.back().GetT() < Vfirst_t[i]) Vfirst_t[i] = VTracks.back().GetT();
     ++i;
   }
-  for (long unsigned int i = 0; i < HoughCandidatesU.size(); ++i) {
-    // Check for each X hit if between first and last U/V track hits in time plus some margin and plane number
-    std::vector<TMS_Hit> CheckedXHits;
-    for (auto UncheckedXHit: XHitGroup) {
-      if (UncheckedXHit.GetZ() >= (first_z[i] - TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit())
-          && UncheckedXHit.GetZ() <= (last_z[i] + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit())
-          && UncheckedXHit.GetT() >= (first_t[i] - TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit())
-          && UncheckedXHit.GetT() <= (last_z[i] + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit())){
-        // If so, add the hit to the pseudo X track
-        CheckedXHits.push_back(UncheckedXHit);
-      }
-    }
+  std::vector<TMS_Hit> UncheckedXHits = XHitGroup;
+  for (long unsigned int u = 0; u < HoughCandidatesU.size(); ++u) {
+    for (long unsigned int v = 0; v < HoughCandidatesV.size(); ++v) {
+      // Check for each X hit if between first and last U/V track hits in time plus some margin and plane number
+      std::vector<TMS_Hit> CheckedXHits;
+      std::vector<TMS_Hit>::iterator helper = UncheckedXHits.begin();
+      while (helper != UncheckedXHits.end()) {
+        TMS_Hit UncheckedXHit = *helper;
+        double distance_limit = 0;
+        if (UncheckedXHit.GetZ() < TMS_Const::TMS_Thick_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Thin_gap;}
+        else if (UncheckedXHit.GetZ() >= TMS_Const::TMS_Thick_Start || UncheckedXHit.GetZ() < TMS_Const::TMS_Double_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Thick_gap;}
+        else if (UncheckedXHit.GetZ() >= TMS_Const::TMS_Double_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Double_gap;}
+        
+        if ((UncheckedXHit.GetZ() >= (Ufirst_z[u] - distance_limit) && UncheckedXHit.GetZ() >= (Vfirst_z[v] - distance_limit))
+            && (UncheckedXHit.GetZ() <= (Ulast_z[u] + distance_limit) && UncheckedXHit.GetZ() <= (Vlast_z[v] + distance_limit))
+            && (UncheckedXHit.GetT() >= (Ufirst_t[u] - TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit()) && UncheckedXHit.GetT() >= (Vfirst_t[v] - TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit()))
+            && (UncheckedXHit.GetT() <= (Ulast_t[u] + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit()) && UncheckedXHit.GetT() <= (Vlast_t[v] + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XTimeLimit()))) {
+          // If so, add the hit to the pseudo X track
+          CheckedXHits.push_back(UncheckedXHit);
+          UncheckedXHits.erase(helper);
+          helper = UncheckedXHits.begin();
+        }
+        else {
+          ++helper;
+        }
+      } 
 #ifdef DEBUG
-    std::cout << "X hits added to Pseudo X track" << std::endl;
+      std::cout << "X hits added to Pseudo X track" << std::endl;
 #endif
-    // Push pseudo X track into HoughCandidatesX
-    if (CheckedXHits.size() > 0) HoughCandidatesX.push_back(CheckedXHits);
+      // Push pseudo X track into HoughCandidatesX
+      if (CheckedXHits.size() > 0) HoughCandidatesX.push_back(CheckedXHits);
+    }
   }
   return;
 }
@@ -1007,12 +1026,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           float min_backV = 9999.;
           float sum_min_U = 9999.;
           float sum_min_V = 9999.;
-          for (int it = 0; it < time_difference_frontU.size(); ++it) {
+          for (long unsigned int it = 0; it < time_difference_frontU.size(); ++it) {
             if (min_frontU > time_difference_frontU[it]) min_frontU = time_difference_frontU[it];
             if (min_backU > time_difference_backU[it]) min_backU = time_difference_backU[it];
             if (sum_min_U > time_difference_frontU[it] + time_difference_backU[it]) sum_min_U = time_difference_frontU[it] + time_difference_backU[it];
           }
-          for (int it = 0; it < time_difference_frontV.size(); ++it) {
+          for (long unsigned int it = 0; it < time_difference_frontV.size(); ++it) {
             if (min_frontV > time_difference_frontV[it]) min_frontV = time_difference_frontV[it];
             if (min_backV > time_difference_backV[it]) min_backV = time_difference_backV[it];
             if (sum_min_V > time_difference_frontV[it] + time_difference_backV[it]) sum_min_V = time_difference_frontV[it] + time_difference_backV[it];
