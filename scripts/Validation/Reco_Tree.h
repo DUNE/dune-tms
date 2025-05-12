@@ -41,6 +41,7 @@ public :
    Float_t         EnergyDeposit[__TMS_MAX_TRACKS__];   //[nTracks]
    Float_t         Momentum[__TMS_MAX_TRACKS__];   //[nTracks]
    Float_t         Length[__TMS_MAX_TRACKS__];   //[nTracks]
+   Float_t         Length_3D[__TMS_MAX_TRACKS__];   //[nTracks]
    Int_t           Charge[__TMS_MAX_TRACKS__];   //[nTracks]
    Float_t         TrackHitEnergies[__TMS_MAX_TRACKS__][200];
    Float_t         TimeSliceStartTime;
@@ -71,6 +72,7 @@ public :
    TBranch        *b_EnergyDeposit;   //!
    TBranch        *b_Momentum;   //!
    TBranch        *b_Length;   //!
+   TBranch        *b_Length_3D;   //!
    TBranch        *b_Charge;   //!
    TBranch        *b_RecoTrackHitEnergies;   //!
    TBranch        *b_TimeSliceStartTime;   //!
@@ -175,6 +177,7 @@ void Reco_Tree::Init(TTree *tree)
    fChain->SetBranchAddress("EnergyDeposit", EnergyDeposit, &b_EnergyDeposit);
    fChain->SetBranchAddress("Momentum", Momentum, &b_Momentum);
    fChain->SetBranchAddress("Length", Length, &b_Length);
+   fChain->SetBranchAddress("Length_3D", Length_3D, &b_Length_3D);
    fChain->SetBranchAddress("Charge", Charge, &b_Charge);
    fChain->SetBranchAddress("TrackHitEnergies", TrackHitEnergies, &b_RecoTrackHitEnergies);
    fChain->SetBranchAddress("TimeSliceStartTime", &TimeSliceStartTime, &b_TimeSliceStartTime);
