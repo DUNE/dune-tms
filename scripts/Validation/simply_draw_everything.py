@@ -105,10 +105,10 @@ def draw_histograms(input_file):
         ROOT.kRed,
         ROOT.kGreen,
         ROOT.kMagenta,
-        ROOT.kOrange,
         ROOT.kBlack,
+        ROOT.kOrange,
     ]
-    line_styles = [1, 2, 7, 9]
+    line_styles = [1, 2, 7]
     # Loop over each stack
     for name, hist_and_name in stack_plots.items():
         index = 0
@@ -159,9 +159,12 @@ def draw_histograms(input_file):
 
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
-        hist_stack.Draw(
-            "hist nostack" if "nostack" in first_hist.GetName() else "hist stack"
-        )
+        opts = "hist"
+        if "nostack" in first_hist.GetName(): opts += " nostack"
+        else: opts += " stack"
+        if "optsmooth" in first_hist.GetName(): opts += " C"
+        hist_stack.Draw(opts)
+
         hist_stack.GetXaxis().SetTitle("Example title")
         ytitle = first_hist.GetYaxis().GetTitle()
         if first_hist != None:
@@ -177,9 +180,7 @@ def draw_histograms(input_file):
             hist.GetYaxis().SetRangeUser(ymin, ymax * headroom)
 
         # Now finally draw and save
-        hist_stack.Draw(
-            "hist nostack" if "nostack" in first_hist.GetName() else "hist stack"
-        )
+        hist_stack.Draw(opts)
         leg.Draw()
         dunestyle.Simulation()
         subdir, image_name = get_subdir_and_name(name)
