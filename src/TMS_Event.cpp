@@ -1032,9 +1032,9 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
-  TrueNeutrinoPosition.SetX(vtx[0][0]);
-  TrueNeutrinoPosition.SetY(vtx[0][1]);
-  TrueNeutrinoPosition.SetZ(vtx[0][2]);
+  TrueNeutrinoPosition.SetX(vtx[0][0]*1000.);//change me to mm
+  TrueNeutrinoPosition.SetY(vtx[0][1]*1000.);
+  TrueNeutrinoPosition.SetZ(vtx[0][2]*1000.);
   TrueNeutrinoPosition.SetT(vtx[0][3]);
 }
 
