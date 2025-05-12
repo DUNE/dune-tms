@@ -148,7 +148,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   TH2D hist("", "X vs Z View;Z (cm);X (cm);N Hits", 100, 1100 - buffer,
             1900 + buffer, 100, -400 - buffer, 400 + buffer);
   TH2D histy("", "Y vs Z View;Z (cm);Y (cm);N Hits", 100, 1100 - buffer,
-             1900 + buffer, 100, -500 - buffer, 100 + buffer);
+             1900 + buffer, 100, -350 - buffer, 100 + buffer);
   ConfigureHist(hist);
   ConfigureHist(histy);
   const double titleh = 0.09;
@@ -490,12 +490,12 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
 
   y1 = 0.6;
   y2 = 1.0;
-  auto textBoxD = MakeTextBox(x1, y1, x2, y2, text_size, 12); // Left-aligned
-  auto textBoxE = MakeTextBox(x1, y1, x2, y2, text_size, 32); // Right-aligned
+  auto textBoxD = MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 12); // Left-aligned
+  auto textBoxE = MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 32); // Right-aligned
   // Add message but only if it's not the default message
   if (message.find("n tracks =") == std::string::npos) {
-    textBoxD.AddText("Display info:");
-    textBoxE.AddText("");
+    //textBoxD.AddText("Display info:");
+    //textBoxE.AddText("");
     int n_lines = 0;
     for (auto foo : split(message.c_str(), ';')) {
       textBoxD.AddText(foo.c_str());
@@ -523,7 +523,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   textBoxA.AddText("Slice width:");
   textBoxC.AddText(TString::Format("%dns", slice_width));
 
-  TLegend leg(x1, 0, x2 + 0.1, y1);
+  TLegend leg(x1, 0, x2 + 0.1, y1 - 0.1);
   leg.SetFillStyle(0);
   AddMarkerToLegend(leg, 21, 1.5, kBlack, "Reco Hits");
   AddMarkerToLegend(leg, 33, 1, kGreen + 2, "True Hits");
