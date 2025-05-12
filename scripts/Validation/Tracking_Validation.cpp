@@ -47,10 +47,11 @@ const double GEV = 1e-3; // GeV per MEV
 #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 #else
 //#define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
-#define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10 processing, hybrid, et al.
+//#define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10 processing, hybrid, et al.
 //#define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no
 // kalman
 //#define length_to_energy(l) default_length_to_energy(l) // default for fitting
+#define length_to_energy(l) (1.75*l*0.9528 + 56.4912)*1e-3 // 2025-04-10 stereo, simple length3d
 #endif
 #define lar_length_to_energy(l) (l) * 1e-3
 
@@ -174,8 +175,11 @@ enum TMSCutFlags {
 const double TMS_START_Z = 11362;
 #ifdef GEOM_V3
 const double TMS_LAST_PLANE_Z = 17900; // mm // 18314.0 - 50; // End Z - 5cm
+const double TMS_THICK_START = 13500; // mm
 #else
 const double TMS_LAST_PLANE_Z = 18400;
+const double TMS_THICK_START = 14480; // mm
+const double TMS_DOUBLE_THICK_START = 17560; // mm
 #endif
 const double TMS_Y_TOP =
     160.0; // Top of scintillator (I'm 99% sure starting from where U/V overlap)
@@ -183,6 +187,7 @@ const double TMS_Y_BOTTOM =
     -2850.0; // Bottom of scinillator (also measured from U/V overlap)
 const double TMS_Y_MIDDLE = 0.5 * (TMS_Y_TOP + TMS_Y_BOTTOM);
 const double TMS_X_EXTENT = 3300.0; // Assumes things are symmetrical right now
+const double TMS_X_START = -TMS_X_EXTENT;
 const double Y_BUFFER = 400;        // mm, 40 cm
 const double X_BUFFER = 30;         // mm, 3cm bar thickness?
 const double Z_BUFFER = 100;        // mm, two thin planes
@@ -419,7 +424,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
   std::map<int, double> manually_calculated_shell_hadronic_energy_per_vertex;
 
   std::map<int, int> particle_indices_reconstructed;
-
+  
   Long64_t entry_number = 0;
   // Now loop over the ttree
   for (; entry_number < truth.GetEntriesFast() &&
@@ -1267,12 +1272,12 @@ int main(int argc, char *argv[]) {
   // Extract input filename and number of events from command line arguments
   std::string inputFilename = argv[1];
   std::string filename;
-  if (inputFilename.find("tmsreco.root") != std::string::npos)
+  if (inputFilename.find(".root") != std::string::npos)
     // Assuming we're specifying a single tmsreco file
     filename = inputFilename;
   else
     // Assuming the full directory
-    filename = inputFilename + "/tmsreco/RHC/00m/00/*.tmsreco.root";
+    filename = inputFilename + "/tmsreco/*/00m/00/*.tmsreco.root";
   int numEvents = -1;
   if (argc > 2)
     numEvents = atoi(argv[2]);
@@ -1288,18 +1293,18 @@ int main(int argc, char *argv[]) {
   TChain *line_candidates = new TChain("Line_Candidates");
   line_candidates->Add(filename.c_str());
   bool missing_ttree = false;
-  if (!truth) {
-    std::string message = inputFilename + " doesn't contain Truth_Info";
+  if (!truth || truth->GetEntriesFast() == 0) {
+    std::string message = filename + " doesn't contain Truth_Info";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
-  if (!reco) {
-    std::string message = inputFilename + " doesn't contain Reco_Tree";
+  if (!reco || reco->GetEntriesFast() == 0) {
+    std::string message = filename + " doesn't contain Reco_Tree";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
-  if (!line_candidates) {
-    std::string message = inputFilename + " doesn't contain Line_Candidates";
+  if (!line_candidates || line_candidates->GetEntriesFast() == 0) {
+    std::string message = filename + " doesn't contain Line_Candidates";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
