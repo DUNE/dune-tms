@@ -560,3 +560,19 @@ TH1 *GetSpecialHist(std::string special_dir_and_name,
   specialHists[special_dir_and_name] = directory_and_name;
   return out;
 }
+
+void FillHistWithPositionCuts(const std::string& base_name,
+                      const std::string& title,
+                      const std::string& axis,
+                      double value,
+                      TVector3 position,
+                      const std::vector<std::pair<std::string, std::function<bool(TVector3)>>>& cuts) {
+  int index = 0;
+  for (const auto& [cut_name, cut_func] : cuts) {
+    if (cut_func(position)) {
+      std::string full_name = base_name + "_passes_" + std::to_string(index);
+      GetHist(full_name, title + ": " + cut_name, axis)->Fill(value);
+    }
+    index += 1;
+  }
+}
