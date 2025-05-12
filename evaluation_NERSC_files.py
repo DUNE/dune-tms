@@ -40,25 +40,25 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     if plot_Start:
         Reco_Start = np.ones((n_events, 5, 3), dtype = float) * -9999.
         Primary_True_Start = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        StartX = np.ones((n_events, 5), dtype = float) * -9999.
     if plot_End:
         Reco_End = np.ones((n_events, 5, 3), dtype = float) * -9999.
         Primary_True_End = np.ones((n_events, 5, 3), dtype = float) * -9999.
-        Reco_End_EscX = np.ones((n_events, 5, 3), dtype = float) * -9999.
-        Reco_End_EscY = np.ones((n_events, 5, 3), dtype = float) * -9999.
-        Primary_True_End_EscX = np.ones((n_events, 5, 3), dtype = float) * -9999.
-        Primary_True_End_EscY = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        #Reco_End_EscX = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        #Reco_End_EscY = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        #Primary_True_End_EscX = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        #Primary_True_End_EscY = np.ones((n_events, 5, 3), dtype = float) * -9999.
+        EndX = np.ones((n_events, 5), dtype = float) * -9999.
     if plot_Charge:
         Reco_Charge = np.ones((n_events, 5), dtype = float) * -9999.
         True_Charge_stop = np.ones((n_events, 5), dtype = float) * -9999.
+        ChargeX = np.ones((n_events, 5), dtype = float) * -9999.
     if plot_Charge or plot_Angle:
         True_Charge = np.ones((n_events, 5), dtype = float) * -9999.
         True_KE = np.ones((n_events, 5), dtype = float) * -9999.
         True_TrackDirection = np.ones((n_events, 5, 2), dtype = float) * -9999.
         Reco_TrackDirection = np.ones((n_events, 5, 2), dtype = float) * -9999.
-        True_ZDirection = np.ones((n_events, 5), dtype = float) * -9999.
-        Reco_ZDirection = np.ones((n_events, 5), dtype = float) * -9999.
-    True_Muon_Track = np.zeros((n_events, 5), dtype = float)    # treat as boolean array: 0 -> false, 1 -> true
-    Reco_Muon_Track = np.zeros((n_events, 5), dtype = float)    # treat as boolean array: 0 -> false, 1 -> true
+        AngleX = np.ones((n_events, 5), dtype = float) * -9999.
     HitsPerTrack = np.ones((n_events, 5), dtype = float) * -9999.
 
     ## reco efficiency
@@ -69,12 +69,11 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     True_Muon_Energy = np.ones((n_events, 5), dtype = float) * -9999.
     Reco_Muon_Energy = np.ones((n_events, 5), dtype = float) * -9999.
     AltReco_Energy = np.ones((n_events, 5), dtype = float) * -9999.
+    EnergyX = np.ones((n_events, 5), dtype = float) * -9999.
     True_Muon_Energy_sameZ = np.ones((n_events, 5), dtype = float) * -9999.
     Reco_Muon_Energy_sameZ = np.ones((n_events, 5), dtype = float) * -9999.
     AltReco_Energy_sameZ = np.ones((n_events, 5), dtype = float) * -9999.
-
-    # some simple counters for efficiency evaluation
-    counter_leaving = 0
+    EnergyStrictX = np.ones((n_events, 5), dtype = float) * -9999.
     
     # now fill the arrays
     for current_spill_number in range(max_n_spills):
@@ -146,11 +145,21 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
 
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
+            
+            # X hits in reconstructed track
+            BarTypes = np.frombuffer(event.TrackHitBarType, dtype = np.uint8)
 
             if nTracks <= 0: continue
             #if nTracks > 4: print("Too many tracks in event. Limit to first 5")
             for j in range(nTracks):
                 if j > 4: break
+
+                # check if X hits in reconstructed track
+                ContainsX = False
+                for hit in range(nHits[j]):
+                    if BarTypes[j*800 + hit*4] == 0: # 0 == XBar
+                        ContainsX = True
+                        break
                 
                 if True_Position_TMS_Start[j*4 + 0] > -8000. and not StartPos.size == 0:
                     # checking for muon tracks (minimal length for this are 20 planes traversed -> 890 mm in thin area
@@ -168,6 +177,8 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                             # energy resolution
                             if (np.abs(True_PDG[j]) == 13):
                                 if (TrueFiducialEnd[j]):
+                                    EnergyX[i, j] = ContainsX
+
                                     true_muon_starting_ke = MomentumEnteringTMS[j*4 + 3] * 1e-3
                                     True_Muon_Energy[i, j] = true_muon_starting_ke
     
@@ -178,20 +189,23 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                                     
                                     # roughly same end z for reco and truth
                                     if (True_Position_TMS_End[j*4 + 2] <= 14435):
-                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 65:
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 65.:
                                             True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
                                             Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
                                             AltReco_Energy_sameZ[i, j] = (alt_length[j] * 1.75 * 0.9428 + 18.73) * 1e-3
-                                    elif (True_Position_TMS_End[j*4 + 2] >= 14525 and True_Position_TMS_End[j*4 + 2] <= 18535):
-                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 90:
+                                            EnergyStrictX[i, j] = ContainsX
+                                    elif (True_Position_TMS_End[j*4 + 2] >= 14525 and True_Position_TMS_End[j*4 + 2] <= 17495):
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 90.:
                                             True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
                                             Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
                                             AltReco_Energy_sameZ[i, j] = (alt_length[j] * 1.75 * 0.9428 + 18.73) * 1e-3
-                                    elif (True_Position_TMS_End[j*4 + 2] > 18535):
-                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 130:
+                                            EnergyStrictX[i, j] = ContainsX
+                                    elif (True_Position_TMS_End[j*4 + 2] > 17495):
+                                        if np.abs(EndPos[j*3 + 2] - True_Position_TMS_End[j*4 + 2]) <= 130.:
                                             True_Muon_Energy_sameZ[i, j] = MomentumEnteringTMS[j*4 + 3] * 1e-3
                                             Reco_Muon_Energy_sameZ[i, j] = (length_to_use[j] * 1.75 * 0.9428 + 18.73) * 1e-3
                                             AltReco_Energy_sameZ[i, j] = (alt_length[j] * 1.75 * 0.9428 + 18.73) * 1e-3
+                                            EnergyStrictX[i, j] = ContainsX
 
                             # normalization of true direction
                             if plot_Angle or plot_Charge:
@@ -201,15 +215,15 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                                 True_TrackDirection[i, j, 1] = dir_to_angle(MomentumTrackStart[j*4 + 1] / magnitude, MomentumTrackStart[j*4 + 2] / magnitude)
                                 Reco_TrackDirection[i, j, 0] = dir_to_angle(Reco_Track_StartDirection[j*3 + 0], Reco_Track_StartDirection[j*3 + 2])
                                 Reco_TrackDirection[i, j, 1] = dir_to_angle(Reco_Track_StartDirection[j*3 + 1], Reco_Track_StartDirection[j*3 + 2])
-                                True_ZDirection[i, j] = MomentumTrackStart[j*4 + 2] / magnitude
-                                Reco_ZDirection[i, j] = Reco_Track_StartDirection[j*3 + 2] / magnitude_r
                                 True_KE[i, j] = np.sqrt((MomentumTrackStart[j*4 + 0]**2 + MomentumTrackStart[j*4 +1]**2 + MomentumTrackStart[j*4 + 2]**2 + 105.7**2) - 105.7)
-                                True_Charge[i, j] = True_PDG[j]                         
+                                True_Charge[i, j] = True_PDG[j]
+                                AngleX[i, j] = ContainsX
                             if plot_Charge:
                                 # Make sure that true muon stopped in TMS and is not leaving
                                 if TrueFiducialEnd[j]:  #np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) < 1:
                                     Reco_Charge[i, j] = Reco_Track_Charge[j]
                                     True_Charge_stop[i, j] = True_PDG[j]
+                                    ChargeX[i, j] = ContainsX
 
                             if plot_Start:
                                 Reco_Start[i, j, 0] = StartPos[j*3 + 0]
@@ -218,6 +232,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                                 Primary_True_Start[i, j, 0] = True_Position_TMS_Start[j*4 + 0]
                                 Primary_True_Start[i, j, 1] = True_Position_TMS_Start[j*4 + 1]
                                 Primary_True_Start[i, j, 2] = True_Position_TMS_Start[j*4 + 2]
+                                StartX[i, j] = ContainsX
                 if plot_End and Contained:
                     if True_Position_TMS_End[j*4 + 0] > -8000. and not EndPos.size == 0:
                         # Make sure that at least 4 potential hits in TMS
@@ -231,15 +246,13 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                                 Primary_True_End[i, j, 1] = True_Position_TMS_End[j*4 + 1]
                                 Primary_True_End[i, j, 2] = True_Position_TMS_End[j*4 + 2]
                                 HitsPerTrack[i, j] = event.nHits[j]
-                            else:
-                                counter_leaving += 1
+                                EndX[i, j] = ContainsX
+
                 if plot_End and not Contained:
                     if True_Position_TMS_End[j*4 + 0] > -8000. and not EndPos.size == 0:
                         # Make sure that at least 4 potential hits in TMS
                         if (EndPos[j*3 + 2] - StartPos[j*3 + 2]) > 14 * 65. and (True_Position_TMS_End[j*4 + 2] - True_Position_TMS_Start[j*4 + 2]) > 14 * 65.:
                             # Make sure that true muon stopped in TMS and is not leaving
-                            if not TrueFiducialEnd[j]:  #np.sqrt(True_Momentum_Leaving[j*4 + 0]**2 + True_Momentum_Leaving[j*4 + 1]**2 + True_Momentum_Leaving[j*4 + 2]**2) >= 1:
-                                counter_leaving += 1
                             Reco_End[i, j, 0] = EndPos[j*3 + 0]
                             Reco_End[i, j, 1] = EndPos[j*3 + 1]
                             Reco_End[i, j, 2] = EndPos[j*3 + 2]
@@ -255,35 +268,37 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
                             Primary_True_End[i, j, 0] = True_Position_TMS_End[j*4 + 0]
                             Primary_True_End[i, j, 1] = True_Position_TMS_End[j*4 + 1]
                             Primary_True_End[i, j, 2] = True_Position_TMS_End[j*4 + 2]
-                            if np.abs(True_Position_TMS_End[j*4 + 0]) >= 3219:
-                                Reco_End_EscX[i, j, 0] = EndPos[j*3 + 0]
-                                Reco_End_EscX[i, j, 1] = EndPos[j*3 + 1]
-                                Reco_End_EscX[i, j, 2] = EndPos[j*3 + 2]
-                                Primary_True_End_EscX[i, j, 0] = True_Position_TMS_End[j*4 + 0]
-                                Primary_True_End_EscX[i, j, 1] = True_Position_TMS_End[j*4 + 1]
-                                Primary_True_End_EscX[i, j, 2] = True_Position_TMS_End[j*4 + 2]
-                            elif True_Position_TMS_End[j*4 + 1] >= 271.77 or True_Position_TMS_End[j*4 + 1] <= -2776.23:
-                                Reco_End_EscY[i, j, 0] = EndPos[j*3 + 0]
-                                Reco_End_EscY[i, j, 1] = EndPos[j*3 + 1]
-                                Reco_End_EscY[i, j, 2] = EndPos[j*3 + 2]
-                                Primary_True_End_EscY[i, j, 0] = True_Position_TMS_End[j*4 + 0]
-                                Primary_True_End_EscY[i, j, 1] = True_Position_TMS_End[j*4 + 1]
-                                Primary_True_End_EscY[i, j, 2] = True_Position_TMS_End[j*4 + 2]
+                            #if np.abs(True_Position_TMS_End[j*4 + 0]) >= 3219:
+                            #    Reco_End_EscX[i, j, 0] = EndPos[j*3 + 0]
+                            #    Reco_End_EscX[i, j, 1] = EndPos[j*3 + 1]
+                            #    Reco_End_EscX[i, j, 2] = EndPos[j*3 + 2]
+                            #    Primary_True_End_EscX[i, j, 0] = True_Position_TMS_End[j*4 + 0]
+                            #    Primary_True_End_EscX[i, j, 1] = True_Position_TMS_End[j*4 + 1]
+                            #    Primary_True_End_EscX[i, j, 2] = True_Position_TMS_End[j*4 + 2]
+                            #elif True_Position_TMS_End[j*4 + 1] >= 271.77 or True_Position_TMS_End[j*4 + 1] <= -2776.23:
+                            #    Reco_End_EscY[i, j, 0] = EndPos[j*3 + 0]
+                            #    Reco_End_EscY[i, j, 1] = EndPos[j*3 + 1]
+                            #    Reco_End_EscY[i, j, 2] = EndPos[j*3 + 2]
+                            #    Primary_True_End_EscY[i, j, 0] = True_Position_TMS_End[j*4 + 0]
+                            #    Primary_True_End_EscY[i, j, 1] = True_Position_TMS_End[j*4 + 1]
+                            #    Primary_True_End_EscY[i, j, 2] = True_Position_TMS_End[j*4 + 2]
     
     boolean_True_KE = (True_KE != -9999.)
     True_KE = True_KE[boolean_True_KE]
     boolean_Reco_Start = (Reco_Start[:, :, 0] != -9999.)
     Reco_Start = Reco_Start[boolean_Reco_Start]
     Primary_True_Start = Primary_True_Start[boolean_Reco_Start]
+    StartX = StartX[boolean_Reco_Start]
     Reco_End = Reco_End[boolean_Reco_Start]
     Primary_True_End = Primary_True_End[boolean_Reco_Start]
+    EndX = EndX[boolean_Reco_Start]
     Reco_Charge = Reco_Charge[boolean_True_KE]
     True_Charge = True_Charge[boolean_True_KE]
+    ChargeX = ChargeX[boolean_True_KE]
     True_Charge_stop = True_Charge_stop[boolean_True_KE]
     True_TrackDirection = True_TrackDirection[boolean_Reco_Start]
     Reco_TrackDirection = Reco_TrackDirection[boolean_Reco_Start]
-    True_ZDirection = True_ZDirection[boolean_True_KE]
-    Reco_ZDirection = Reco_ZDirection[boolean_True_KE]
+    AngleX = AngleX[boolean_Reco_Start]
     HitsPerTrack = HitsPerTrack[boolean_True_KE]
     #boolean_TRUETrack = (TRUETrack != -9999.)
     #TRUETrack = TRUETrack[boolean_TRUETrack]
@@ -293,10 +308,12 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     True_Muon_Energy = True_Muon_Energy[boolean_energy]
     Reco_Muon_Energy = Reco_Muon_Energy[boolean_energy]
     AltReco_Energy = AltReco_Energy[boolean_energy]
+    EnergyX = EnergyX[boolean_energy]
     boolean_energy_sameZ = (True_Muon_Energy_sameZ != -9999.)
     True_Muon_Energy_sameZ = True_Muon_Energy_sameZ[boolean_energy_sameZ]
     Reco_Muon_Energy_sameZ = Reco_Muon_Energy_sameZ[boolean_energy_sameZ]
     AltReco_Energy_sameZ = AltReco_Energy_sameZ[boolean_energy_sameZ]
+    EnergyStrictX = EnergyStrictX[boolean_energy_sameZ]
     
     # flatten arrays
     if plot_Start:
@@ -332,6 +349,8 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     output.write('\n')
     output.write(str([Primary_True_Start_z[i] for i in range(len(Primary_True_Start_z))]))
     output.write('\n')
+    output.write(str([StartX[i] for i in range(len(StartX))]))
+    output.write('\n')
     output.write(str([Reco_End_x[i] for i in range(len(Reco_End_x))]))
     output.write('\n')
     output.write(str([Reco_End_y[i] for i in range(len(Reco_End_y))]))
@@ -344,6 +363,10 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     output.write('\n')
     output.write(str([Primary_True_End_z[i] for i in range(len(Primary_True_End_z))]))
     output.write('\n')
+    output.write(str([HitsPerTrack[i] for i in range(len(HitsPerTrack))]))
+    output.write('\n')
+    output.write(str([EndX[i] for i in range(len(EndX))]))
+    output.write('\n')
     output.write(str([Reco_TrackDirection_xz[i] for i in range(len(Reco_TrackDirection_xz))]))
     output.write('\n')
     output.write(str([Reco_TrackDirection_yz[i] for i in range(len(Reco_TrackDirection_yz))]))
@@ -352,36 +375,41 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
     output.write('\n')
     output.write(str([True_TrackDirection_yz[i] for i in range(len(True_TrackDirection_yz))]))
     output.write('\n')
-    output.write(str([Reco_Charge[i] for i in range(len(Reco_Charge))]))
-    output.write('\n')
     output.write(str([True_Charge[i] for i in range(len(True_Charge))]))
-    output.write('\n')
-    output.write(str([True_Charge_stop[i] for i in range(len(True_Charge_stop))]))
     output.write('\n')
     output.write(str([True_KE[i] for i in range(len(True_KE))]))
     output.write('\n')
-    output.write(str([True_ZDirection[i] for i in range(len(True_ZDirection))]))
+    output.write(str([AngleX[i] for i in range(len(AngleX))]))
     output.write('\n')
-    output.write(str([Reco_ZDirection[i] for i in range(len(Reco_ZDirection))]))
+    output.write(str([Reco_Charge[i] for i in range(len(Reco_Charge))]))
     output.write('\n')
-    output.write(str([HitsPerTrack[i] for i in range(len(HitsPerTrack))]))
+    output.write(str([True_Charge_stop[i] for i in range(len(True_Charge_stop))]))
     output.write('\n')
+    output.write(str([ChargeX[i] for i in range(len(ChargeX))]))
+    output.close()
+
     #output.write(str([TRUETrack[i] for i in range(len(TRUETrack))]))
     #output.write('\n')
     #output.write(str([TrueTrack[i] for i in range(len(TrueTrack))]))
     #output.write('\n')
-    output.write(str([True_Muon_Energy[i] for i in range(len(True_Muon_Energy))]))
-    output.write('\n')
-    output.write(str([Reco_Muon_Energy[i] for i in range(len(Reco_Muon_Energy))]))
-    output.write('\n')
-    output.write(str([AltReco_Energy[i] for i in range(len(AltReco_Energy))]))
-    output.write('\n')
-    output.write(str([True_Muon_Energy_sameZ[i] for i in range(len(True_Muon_Energy_sameZ))]))
-    output.write('\n')
-    output.write(str([Reco_Muon_Energy_sameZ[i] for i in range(len(Reco_Muon_Energy_sameZ))]))
-    output.write('\n')
-    output.write(str([AltReco_Energy_sameZ[i] for i in range(len(AltReco_Energy_sameZ))]))
-    output.close()
+    output1 = open('%s/energy_%s.txt' % (out_dir, output_name), 'w')
+    output1.write(str([True_Muon_Energy[i] for i in range(len(True_Muon_Energy))]))
+    output1.write('\n')
+    output1.write(str([Reco_Muon_Energy[i] for i in range(len(Reco_Muon_Energy))]))
+    output1.write('\n')
+    output1.write(str([AltReco_Energy[i] for i in range(len(AltReco_Energy))]))
+    output1.write('\n')
+    output1.write(str([EnergyX[i] for i in range(len(EnergyX))]))
+    output1.close()
+    output2 = open('%s/strict_%s.txt' % (out_dir, output_name), 'w')
+    output2.write(str([True_Muon_Energy_sameZ[i] for i in range(len(True_Muon_Energy_sameZ))]))
+    output2.write('\n')
+    output2.write(str([Reco_Muon_Energy_sameZ[i] for i in range(len(Reco_Muon_Energy_sameZ))]))
+    output2.write('\n')
+    output2.write(str([AltReco_Energy_sameZ[i] for i in range(len(AltReco_Energy_sameZ))]))
+    output2.write('\n')
+    output2.write(str([EnergyStrictX[i] for i in range(len(EnergyStrictX))]))
+    output2.close()
         
     return
 
