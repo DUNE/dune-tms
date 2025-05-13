@@ -161,8 +161,8 @@ class TMS_KalmanNode {
   void FillNoiseMatrix()
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
-    double A = 1.5*LayerBarWidth; //10.0; //10.0 mm bar width based uncert
-    double B = 1.2*LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
+    double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
+    double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
 
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {
@@ -233,11 +233,7 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    //TMS_Kalman(std::vector<TMS_Hit> &Candidates);
     TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
-
-    bool ErrorDetVol = false;
-
     
     double Start[3];
     double End[3];
