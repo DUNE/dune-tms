@@ -15,12 +15,12 @@ ROOT.TH2.AddDirectory(False)
 def inside_tms(x, y, z, only_thin_section = False):
   
     is_inside = True
-    if not -3520 < x < 3520: is_inside = False
-    if not -3864 < y < 1159: is_inside = False
+    if not -3730 < x < 3730: is_inside = False
+    if not -3702 < y < 998: is_inside = False
     if only_thin_section:
-        if not 11362 < z < 13500: is_inside = False
+        if not 11333 < z < 13500: is_inside = False
     else:
-        if not 11362 < z < 18314: is_inside = False
+        if not 11333 < z < 18535: is_inside = False
     return is_inside 
 
 def inside_lar(x, y, z):
@@ -96,6 +96,7 @@ def run(c, truth, reco, outfilename, nmax=-1):
     
     
     # Now loop over all events
+    lastspill = -1
     for i, event in enumerate(c):
         if i > nevents: break
         if i % print_every == 0 : print(f"On {i} / {nevents}")
@@ -104,84 +105,100 @@ def run(c, truth, reco, outfilename, nmax=-1):
             
         if reco != None: 
             reco.GetEntry(i)
-      
-        for index, value in enumerate(truth.RecoTrackPrimaryParticlePDG):
-            # Pick out the muons.
-            if truth.RecoTrackPrimaryParticlePDG[index] == 13:
-                n_true_muons+=1
-                x_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+0]
-                y_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+1]
-                z_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+2]
-                x_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+0]
-                y_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+1]
-                z_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+2]
-                p_z = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+2] 
-                p_y = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+1]
-                p_x = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+0]
-                
-                KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
-                
 
-                if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
-                    if KE <10:
-                        break
-                    if len(reco.TrackHitPos) < 3:               
-                        break
-                    nTracks = reco.nTracks
-                    if nTracks >0:
-                        charge_value = reco.Charge[index]
-                        # Selected Muon Energy Spectrum
-                        hist_total_charge_id.Fill(KE)
-                        
-                        if charge_value == 13: 
-                            hist_correct_charge_id.Fill(KE)
-                            n_correct_charge_muon_geo+=1
-                        else: 
-                            n_incorrect_charge_muon_geo += 1 
-                            hist_incorrect_charge_id.Fill(KE)   
+        if not truth.IsCC:
+            continue
 
-            # Pick out the antimuons.            
-            if truth.RecoTrackPrimaryParticlePDG[index] == -13:
-                n_true_antimuons+=1
-                x_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+0]
-                y_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+1]
-                z_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+2]
-                x_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+0]
-                y_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+1]
-                z_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+2]
-                p_z = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+2] 
-                p_y = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+1]
-                p_x = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+0]
-                
-                KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
-                
+        # on_new_spill = False
+        
+        # if lastspill != reco.SpillNo:
+        #     on_new_spill = True
+        # lastspill = reco.SpillNo
 
-                if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
-                    if KE <10:
-                        break
-                    if len(reco.TrackHitPos) < 3:               
-                        break
+        # if on_new_spill:
+        #    continue    
+        index = 0
+        #for index, value in enumerate(truth.RecoTrackPrimaryParticlePDG):
+        # Pick out the muons.
+        if len(truth.RecoTrackPrimaryParticlePDG) <= 0: continue
+        if truth.RecoTrackPrimaryParticlePDG[index] == 13:
+            n_true_muons+=1
+            x_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+0]
+            y_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+1]
+            z_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+2]
+            x_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+0]
+            y_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+1]
+            z_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+2]
+            p_z = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+2] 
+            p_y = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+1]
+            p_x = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+0]
+            
+            
+            KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+            #KE = math.sqrt((truth.Muon_TrueKE + 105.7) ** 2 - 105.7 ** 2)
+            
+            #if inside_lar(x_start,y_start,z_start) and inside_tms(truth.Muon_Death[0], truth.Muon_Death[1], truth.Muon_Death[2]):
+            if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
+                if KE <10:
+                    continue
+                if len(reco.TrackHitPos) < 3:               
+                    continue
+                nTracks = reco.nTracks
+                if nTracks >0:
+                    charge_value = reco.Charge[index]
+                    # Selected Muon Energy Spectrum
+                    hist_total_charge_id.Fill(KE)
                     
-                    nTracks = reco.nTracks
-                    if nTracks >0:
-                        charge_value = reco.Charge[index]
-                        hist_total_charge_id_antimuon.Fill(KE)
-                        
-                        if charge_value == -13: 
-                            hist_correct_charge_id_antimuon.Fill(KE)
-                            n_correct_charge_antimuon_geo+=1
+                    if charge_value == 13: 
+                        hist_correct_charge_id.Fill(KE)
+                        n_correct_charge_muon_geo+=1
+                    else: 
+                        n_incorrect_charge_muon_geo += 1 
+                        hist_incorrect_charge_id.Fill(KE)   
 
-                        else:
-                            n_incorrect_charge_antimuon_geo +=1
-                            hist_incorrect_charge_id_antimuon.Fill(KE)
+        # Pick out the antimuons.            
+        if truth.RecoTrackPrimaryParticlePDG[index] == -13:
+            n_true_antimuons+=1
+            x_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+0]
+            y_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+1]
+            z_start = truth.RecoTrackPrimaryParticleTruePositionStart[4*index+2]
+            x_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+0]
+            y_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+1]
+            z_end = truth.RecoTrackPrimaryParticleTruePositionEnd[4*index+2]
+            p_z = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+2] 
+            p_y = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+1]
+            p_x = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[4*index+0]
+            
+            KE = math.sqrt(p_x**2 + p_y**2 +p_z**2 +105.7**2) - 105.7
+            #KE = math.sqrt((truth.Muon_TrueKE + 105.7) ** 2 - 105.7 ** 2)
+            
+            #if inside_lar(x_start,y_start,z_start) and inside_tms(truth.Muon_Death[0], truth.Muon_Death[1], truth.Muon_Death[2]):
+            if inside_lar(x_start,y_start,z_start) and inside_tms(x_end,y_end,z_end):
+                if KE <10:
+                    continue
+                if len(reco.TrackHitPos) < 3:               
+                    continue
+                
+                nTracks = reco.nTracks
+                if nTracks >0:
+                    charge_value = reco.Charge[index]
+                    hist_total_charge_id_antimuon.Fill(KE)
+                    
+                    if charge_value == -13: 
+                        hist_correct_charge_id_antimuon.Fill(KE)
+                        n_correct_charge_antimuon_geo+=1
+
+                    else:
+                        n_incorrect_charge_antimuon_geo +=1
+                        hist_incorrect_charge_id_antimuon.Fill(KE)
    
     if n_correct_charge_muon_geo >0:  n_correct_charge_muon_geo_per = n_correct_charge_muon_geo/(n_incorrect_charge_muon_geo +n_correct_charge_muon_geo)
     if n_correct_charge_antimuon_geo >0:  n_correct_charge_antimuon_geo_per = n_correct_charge_antimuon_geo/(n_incorrect_charge_antimuon_geo+ n_correct_charge_antimuon_geo)
 
     
     # Divide histograms to compute percentage histograms
-    hist_correct_charge_id_percentage.Divide(hist_correct_charge_id, hist_total_charge_id)
-    hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon, hist_total_charge_id_antimuon)
+    hist_correct_charge_id_percentage.Divide(hist_correct_charge_id, hist_total_charge_id, 1.0, 1.0, "B")
+    hist_correct_charge_id_percentage_antimuon.Divide(hist_correct_charge_id_antimuon, hist_total_charge_id_antimuon, 1.0, 1.0, "B")
    
 
     print(f"Completed loop of {nevents} events. Saving to {outfilename}")
