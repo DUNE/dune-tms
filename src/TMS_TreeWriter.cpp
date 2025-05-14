@@ -493,16 +493,6 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
-  
-  /*
-  truth->Branch("TrueNonTMSNHits", &TrueNonTMSNHits, "TrueNonTMSNHits/I");
-  truth->Branch("TrueNonTMSHitPos", TrueNonTMSHitPos, "TrueNonTMSHitPos[TrueNonTMSNHits][4]/F");
-  truth->Branch("TrueNonTMSHitEnergy", TrueNonTMSHitEnergy, "TrueNonTMSHitEnergy[TrueNonTMSNHits]/F");
-  truth->Branch("TrueNonTMSHitHadronicEnergy", TrueNonTMSHitHadronicEnergy, "TrueNonTMSHitHadronicEnergy[TrueNonTMSNHits]/F");
-  truth->Branch("TrueNonTMSHitDx", TrueNonTMSHitDx, "TrueNonTMSHitDx[TrueNonTMSNHits]/F");
-  truth->Branch("TrueNonTMSHitdEdx", TrueNonTMSHitdEdx, "TrueNonTMSHitdEdx[TrueNonTMSNHits]/F");
-  truth->Branch("TrueNonTMSHitVertexID", TrueNonTMSHitVertexID, "TrueNonTMSHitVertexID[TrueNonTMSNHits]/I");
-  */
 
   truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
   truth->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
@@ -1945,42 +1935,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
   }
-  
-  TrueNonTMSNHits = event.GetNonTMSHits().size();
-  if (TrueNonTMSNHits > __TMS_MAX_TRUE_NONTMS_HITS__) TrueNonTMSNHits = __TMS_MAX_TRUE_NONTMS_HITS__;
-  int index = 0;
-  int n_TrueNonTMSNHits_filled = 0;
-  for (auto& hit : event.GetNonTMSHits()) {
-    if (index >= __TMS_MAX_TRUE_NONTMS_HITS__) {
-      std::cout<<"Warning: Found more nontms hits than __TMS_MAX_TRUE_NONTMS_HITS__. "
-                 "If this happens often, increase limit from "<<__TMS_MAX_TRUE_NONTMS_HITS__<<std::endl;
-      break;
-    }
-    //if (hit.GetE() < 0.5) continue; // Don't fill below energy threshold
-    TrueNonTMSHitPos[index][0] = hit.GetX();
-    TrueNonTMSHitPos[index][1] = hit.GetY();
-    TrueNonTMSHitPos[index][2] = hit.GetZ();
-    TrueNonTMSHitPos[index][3] = hit.GetT();
-    TrueNonTMSHitEnergy[index] = hit.GetE();
-    TrueNonTMSHitHadronicEnergy[index] = hit.GetHadronicEnergy();
-    TrueNonTMSHitDx[index] = hit.GetdX();
-    TrueNonTMSHitdEdx[index] = hit.GetdEdx();
-    if (hit.GetNTrueParticles() > 1) {
-      int target_vertex_id = hit.GetVertexIds(0);
-      for (size_t v = 1; v < hit.GetNTrueParticles(); v++) {
-        if (target_vertex_id != hit.GetVertexIds(v)) {
-          std::cout<<"Fatal: found > 1 true hit GetNTrueParticles() with different vertex ids. Expecting exactly one"<<target_vertex_id<<" vs "<<hit.GetVertexIds(v)<<std::endl;
-          throw std::runtime_error("Fatal: found > 1 true hit GetNTrueParticles()");
-        }
-      }
-    }
-    if (hit.GetNTrueParticles() == 1) {
-      TrueNonTMSHitVertexID[index] = hit.GetVertexIds(0);
-    }
-    n_TrueNonTMSNHits_filled += 1;
-    index += 1;
-  }
-  TrueNonTMSNHits = n_TrueNonTMSNHits_filled;
 
   auto vtx_info = event.GetVertexInfo();
   TrueVtxN = std::min((int)vtx_info.size(), __TMS_MAX_TRUE_VERTICES__);
@@ -2336,7 +2290,6 @@ void TMS_TreeWriter::Clear() {
   }
     
   nTrueParticles = 0;
-  TrueNonTMSNHits = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
     VertexID[i] = DEFAULT_CLEARING_FLOAT;
     Parent[i] = DEFAULT_CLEARING_FLOAT;
@@ -2358,15 +2311,8 @@ void TMS_TreeWriter::Clear() {
     LArFiducialStart[i] = false;
     LArFiducialTouch[i] = false;
     LArFiducialEnd[i] = false;
-    
-    TrueNonTMSHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
-    TrueNonTMSHitHadronicEnergy[i] = DEFAULT_CLEARING_FLOAT;
-    TrueNonTMSHitDx[i] = DEFAULT_CLEARING_FLOAT;
-    TrueNonTMSHitdEdx[i] = DEFAULT_CLEARING_FLOAT;
-    TrueNonTMSHitVertexID[i] = -99999;
 
     for (int j = 0; j < 4; ++j) {
-      TrueNonTMSHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
       
       BirthMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
       BirthPosition[i][j] = DEFAULT_CLEARING_FLOAT;

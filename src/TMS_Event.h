@@ -73,8 +73,6 @@ class TMS_Event {
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
     
-    const std::vector<TMS_TrueHit> GetNonTMSHits() { return NonTMS_Hits; };
-    
     bool IsInTimeSlice(double t) const;
 
     double GetMuonTrueKE();
