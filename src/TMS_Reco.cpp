@@ -886,7 +886,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::vector<std::vector<TMS_Hit> >::iterator helper = SortedHoughCandidatesX.begin();
   
   while (Uhelper != SortedHoughCandidatesU.end()) {
-    if (SortedHoughCandidatesV.empty()) {
+    if (Vhelper == SortedHoughCandidatesV.end()) {
       std::cout << "Not enough V tracks" << std::endl;
       break;
     }
@@ -900,7 +900,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
 #endif
     //  while (Xrun) {
-    if (SortedHoughCandidatesX.empty()) Xrun = false;
+    if (helper == SortedHoughCandidatesX.end()) Xrun = false;
     std::vector<TMS_Hit> XTracks = *Uhelper;
     if (Xrun) {
       XTracks = *helper;
