@@ -886,8 +886,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::vector<std::vector<TMS_Hit> >::iterator helper = SortedHoughCandidatesX.begin();
   
   while (Uhelper != SortedHoughCandidatesU.end()) {
-    if (Vhelper == SortedHoughCandidatesV.end()) {
+    if (SortedHoughCandidatesV.empty()) { //(Vhelper == SortedHoughCandidatesV.end()) {
+#ifdef DEBUG
       std::cout << "Not enough V tracks" << std::endl;
+#endif
       break;
     }
     std::vector<TMS_Hit> UTracks = *Uhelper;
@@ -1715,17 +1717,27 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       if (HoughCandidatesV.size() == 1) break;
 
       if (Xrun && !XTracks.empty()) {
+
+        if (Xback_match && Xfront_match) {
+
         // If match was made, remove the candidate tracks from candidate lists
         SortedHoughCandidatesV.erase(Vhelper);
         SortedHoughCandidatesX.erase(helper);
-        Vhelper = SortedHoughCandidatesV.begin();
-        helper = SortedHoughCandidatesX.begin();
+        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
+        if (!SortedHoughCandidatesX.empty()) helper = SortedHoughCandidatesX.begin();
         // Set iterator for U tracks to next track
         ++Uhelper;
+  
+        } else {
+          SortedHoughCandidatesV.erase(Vhelper);
+          if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
+          ++Uhelper;
+        }
+
       } else {
         // If match was made, remove the candidate (simple) track from candidate list
         SortedHoughCandidatesV.erase(Vhelper);
-        if (SortedHoughCandidatesV.size() > 1) Vhelper = SortedHoughCandidatesV.begin();
+        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin(); //if (SortedHoughCandidatesV.size() > 1) Vhelper = SortedHoughCandidatesV.begin();
         // Set iterator for U tracks to next track
         ++Uhelper;
       } 
