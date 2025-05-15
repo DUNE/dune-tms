@@ -1887,7 +1887,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       } else {
         // If match was made, remove the candidate (simple) track from candidate list
         SortedHoughCandidatesV.erase(Vhelper);
-        if (SortedHoughCandidatesV.size() > 1) Vhelper = SortedHoughCandidatesV.begin();
+        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
         // Set iterator for U tracks to next track
         ++Uhelper;
       }
