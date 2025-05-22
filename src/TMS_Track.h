@@ -21,7 +21,8 @@ class TMS_Track {
     double End[3];       // End point in x,y,z
     double StartDirection[3]; // Unit vector in track direction at start
     double EndDirection[3]; // Unit vector in track direction at end
-    double Length;
+    double LengthInCM; // Length in cm, wild
+    double Length; // WARNING: This Length is the AREAL DENSITY in g/cm^2
     double Occupancy;
     double EnergyDeposit;
     double EnergyRange;

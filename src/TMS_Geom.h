@@ -386,7 +386,9 @@ class TMS_Geom {
     }
 
     // Get the track length between two points by walking through the materials at those points
-    double GetTrackLength(const TVector3 &point1_temp, const TVector3 &point2_temp) {
+    // Default is to return the areal density, g/cm^2 along the track, with ReturnArealDensity = true,
+    // otherwise a track length in cm is returned.
+    double GetTrackLength(const TVector3 &point1_temp, const TVector3 &point2_temp, bool ReturnArealDensity = true) {
       // Make vectors have geometry scale
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
@@ -422,7 +424,10 @@ class TMS_Geom {
         counter++;
       }
       TotalPathLength = Scale(TotalPathLength);
-      return TotalPathLength;
+
+      // Return Areal density if desired, Length otherwise
+      if (ReturnArealDensity) return TotalPathLength;
+      else                    return TotalLength;
     };
     
     // Walks through all the pairs of nodes and returns the total track length

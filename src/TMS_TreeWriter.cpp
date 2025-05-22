@@ -241,6 +241,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
+  Reco_Tree->Branch("LengthInCM",     RecoTrackLengthInCM,      "LengthInCM[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
 
@@ -1218,6 +1219,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     //nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
+    RecoTrackLengthInCM[itTrack]    =       RecoTrack->LengthInCM;
     RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
@@ -1692,6 +1694,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLengthInCM[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
   }
   
