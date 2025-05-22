@@ -46,7 +46,7 @@
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
     MinDist = 4.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = true #false
+    FirstCluster = false
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
@@ -81,7 +81,23 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 10
+    DirectionDistance = 14
+
+  [Recon.TrackSmoothing]
+    UseTrackSmoothing = true
+    TrackSmoothingStrategy = "simple"
+    # This is the max y distance a track can travel in a UV detector
+    # before we expect to see another transition point
+    # Used to calculate the maximum slope you can hide in the UV Y position uncertainty
+    MaxYDistanceBetweenUVTransitionPoints = 300.0 # mm
+    # For a UV detector, this is the uncertainty in X
+    # Numbers from TMS det review 2024-10-18
+    UncertaintyGoodDirection = 18.0 # mm
+    # For a UV detector, this is the default uncertainty in Y
+    UncertaintyBadDirection = 340.0 # mm
+    # In UV detector, transition point has better uncertainty
+    # This is found using the FWHM of reco - true for transition points only
+    UncertaintyForUVTransitionPoints = 120.0 # mm
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -91,7 +107,11 @@
     IsGreedy = false
 
   [Recon.Kalman]
-    Run = true # Whether we run the Kalman filter or not
+
+    Run = true #false # Whether we run the Kalman filter or not
+    Assumed_Charge = 0.0 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
+
+
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
@@ -110,7 +130,9 @@
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
-[Fiducial]
+# Variables that have to do with the geometry or location of the detector 
+[Geometry]
+  YBarMiddle = -1.35  #m
   [Fiducial.TMS.Start]
     X = -3300.0 # mm
     Y = -2850.0 # mm
@@ -119,14 +141,19 @@
     X = 3300.0 # mm
     Y = 160.0 # mm
     Z = 18314.0 # mm
-  [Fiducial.LAr.Start]
+  [Active.LAr.Start]
     X = -3478.48 # mm
     Y = -2166.71 # mm
     Z = 4179.24 # mm
-  [Fiducial.LAr.End]
+  [Active.LAr.End]
     X = 3478.48 # mm
     Y = 829.282 # mm
     Z = 9135.88 # mm
+  [Fiducial.LAr]
+    DownstreamZCut = 1500.0 #mm
+    XYCut = 500.0 # mm
+    OuterShellThickness=300.0 # mm
+    CutEnergy = 30.0 # MeV
 
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
@@ -138,7 +165,3 @@
 [Applications]
   DrawPDF = false
   MaximumNEvents = -1
-
-# Variables that have to do with the geometry or location of the detector 
-[Geometry]
-  YBarMiddle = -1.35  #m

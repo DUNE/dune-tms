@@ -63,10 +63,21 @@ class TMS_Geom {
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Z()); };
     inline TVector3 GetEndOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_X(), 
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Z()); };
-    inline TVector3 GetStartOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_X(), 
-        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_START_Z()); };
-    inline TVector3 GetEndOfLArFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_X(), 
-        TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_LAR_END_Z()); };
+    inline TVector3 GetStartOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + thickness, 
+        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + thickness); };
+    inline TVector3 GetEndOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - thickness, 
+        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - thickness); };
+    inline TVector3 GetStartOfLArFiducial() const {
+        double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + dxy, 
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + dxy,
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + dxy); };
+    inline TVector3 GetEndOfLArFiducial() const {
+        double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
+        double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT();
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
+                        TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };
     
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
@@ -77,8 +88,14 @@ class TMS_Geom {
       if (position.Z() > end.Z()) return false;
       return true;
     };
-    bool IsInsideLAr(TVector3 position) const { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
+    bool IsInsideLAr(TVector3 position, double thickness = 0) const 
+      { return IsInsideBox(position, GetStartOfLArActive(thickness), GetEndOfLArActive(thickness)); };
+    bool IsInsideLArShell(TVector3 position) const 
+      { double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS();
+        return IsInsideLAr(position) && !IsInsideLAr(position, thickness); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
+    bool IsInsideLarFiducial(TVector3 position) const
+     { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
     bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };
@@ -100,6 +117,16 @@ class TMS_Geom {
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
+    // Readout on the +x side of the detector
+    double XBarPosReadoutLocation() { return GetXEndOfTMS(); };
+    // Readout on the -x side of the detector
+    double XBarNegReadoutLocation() { return GetXStartOfTMS(); };
+    // Readout on the top of the detector
+    double YBarReadoutLocation() { return GetYEndOfTMS(); };
+    // Bar goes from edge of x to x = 0
+    double XBarLength() { return GetXEndOfTMS(); };
+    // Bar spans entire Y
+    double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
     
     
     std::string GetNameOfDetector(const TVector3 &point) {
@@ -143,8 +170,10 @@ class TMS_Geom {
       // If the geometry changes too much, then this would not work and so we'd want to give up.
       TGeoBBox *box = dynamic_cast<TGeoBBox*>(geom->GetTopVolume()->GetShape());
       double dx = 2*box->GetDX();
-      if (dx == 600000) ScaleFactor = 1;
-      else if (dx == 60000) ScaleFactor = 10;
+      // Rockbox is either 600000mm or 240000mm, so check if we're in that range
+      if (100000 <= dx && dx <= 1000000) ScaleFactor = 1;
+      // Rockbox is either 60000cm or 24000cm, so check if we're in that range
+      else if (10000 <= dx && dx < 100000) ScaleFactor = 10;
       else {
         std::cout << "DX: " << box->GetDX() << std::endl;
         std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;

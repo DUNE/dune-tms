@@ -12,9 +12,13 @@ check-submodule:
 	fi
 
 clean:
-	make clean -C src
-	make clean -C app
+	$(MAKE) clean -C src
+	$(MAKE) clean -C app
 
 all: check-submodule
-	make -j8 -C src
-	make -j8 -C app
+	$(MAKE) -C src
+	$(MAKE) -C app
+
+sanitize: check-submodule
+	$(MAKE) -C src sanitize
+	$(MAKE) -C app sanitize

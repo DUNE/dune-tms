@@ -55,7 +55,7 @@ MKDIR_P := mkdir -p
 # Library directory where we build to
 LIB_DIR=../lib
 
-TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_Track.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_ChargeID.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o TMS_Utils.o
+TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_Track.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_ChargeID.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o TMS_Utils.o TMS_TimeSlicer.o
 
 # Our lovely collection of libs
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)
@@ -72,6 +72,10 @@ endif
 	$(CXX) -c $(CXXFLAGS) $<
 
 all: directories libTMS_Prod
+
+# Sanitize target
+sanitize: CXXFLAGS := $(CXXFLAGS) -fsanitize=address
+sanitize: all
 
 directories: $(LIB_DIR)
 

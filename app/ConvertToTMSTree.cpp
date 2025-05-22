@@ -19,6 +19,8 @@
 #include "TMS_EventViewer.h"
 // Reconstructor
 #include "TMS_Reco.h"
+// Time slicer
+#include "TMS_TimeSlicer.h"
 // TTree writer
 #include "TMS_TreeWriter.h"
 // TTree writer for det sim
@@ -89,9 +91,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   
   bool NerscOverlay = false;
   TParameter<double>* spillPeriod_s = (TParameter<double>*)input->Get("spillPeriod_s");
-  if (spillPeriod_s != NULL) NerscOverlay = true;
   double SpillPeriod = 0;
-  if (NerscOverlay) {
+  if (spillPeriod_s != NULL) {
+    NerscOverlay = true;
     std::cout<<"Combining spills"<<std::endl;
     SpillPeriod = spillPeriod_s->GetVal() * 1e9; // convert to ns
     std::cout<<"Found spillSeriod_s of "<<SpillPeriod<<"ns"<<std::endl;
@@ -121,6 +123,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    tms_event.SetSpillNumber(i);
     // Fill up truth information from the GRooTracker object
     if (gRoo){
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
@@ -151,7 +154,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       std::reverse(overlay_events.begin(), overlay_events.end());
       TMS_Event last_event = overlay_events.back();
       overlay_events.pop_back();
-      for (auto &event : overlay_events) last_event.AddEvent(event);
+      last_event.OverlayEvents(overlay_events);
+      // Make sure to set the spill number correctly
+      last_event.SetSpillNumber(current_spill_number);
       overlay_events.clear();
       // Now add this event as the first event in the next set
       overlay_events.push_back(tms_event);
@@ -160,9 +165,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
       tms_event = last_event;
     }
     
-    // Apply the det sim now, after overlaying events
-    // This doesn't work right now
-    tms_event.ApplyReconstructionEffects();
+    // Apply detector effects and connect truth and reco info
+    tms_event.FinalizeEvent();
 
     // Dump information
     //tms_event.Print();
@@ -172,7 +176,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
-
+    
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
@@ -206,21 +210,16 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
         if (primary_vertex_id >= 0) {
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
-          
           if (map.find(primary_vertex_id) == map.end()) 
               std::cout<<"Warning: Didn't find primary_vertex_id "<<primary_vertex_id<<" inside map of size "<<map.size()<<std::endl;
           double visible_energy_from_vertex = map[primary_vertex_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
-          
           gRoo->GetEntry(primary_vertex_id);
           tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-          tms_event_slice.SetLeptonInfoUsingVertexID(primary_vertex_id);
         }
       }
       
       event_counter += 1;
-      int spill_number = i;
-      tms_event_slice.SetSpillNumber(spill_number);
       
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);

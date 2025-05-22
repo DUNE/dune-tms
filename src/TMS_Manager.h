@@ -65,9 +65,17 @@ class TMS_Manager {
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
     bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
+    double Get_Reco_Kalman_Assumed_Charge() { return _RECO_KALMAN_ASSUMED_CHARGE; };
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
-    
+
+    bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
+    std::string Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy() { return _RECO_TRACKSMOOTHING_TrackSmoothingStrategy; };
+    double Get_Reco_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints() { return _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyGoodDirection() { return _RECO_TRACKSMOOTHING_UncertaintyGoodDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyBadDirection() { return _RECO_TRACKSMOOTHING_UncertaintyBadDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyForUVTransitionPoints() { return _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints; };
+
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
     bool Get_Reco_TIME_RunSimpleTimeSlicer() { return _RECO_TIME_RunSimpleTimeSlicer; };
     double Get_RECO_TIME_TimeSlicerThresholdStart() { return _RECO_TIME_TimeSlicerThresholdStart; };
@@ -85,12 +93,17 @@ class TMS_Manager {
     double Get_FIDUCIAL_TMS_END_X() { return _FIDUCIAL_TMS_END_X; };
     double Get_FIDUCIAL_TMS_END_Y() { return _FIDUCIAL_TMS_END_Y; };
     double Get_FIDUCIAL_TMS_END_Z() { return _FIDUCIAL_TMS_END_Z; };
-    double Get_FIDUCIAL_LAR_START_X() { return _FIDUCIAL_LAR_START_X; };
-    double Get_FIDUCIAL_LAR_START_Y() { return _FIDUCIAL_LAR_START_Y; };
-    double Get_FIDUCIAL_LAR_START_Z() { return _FIDUCIAL_LAR_START_Z; };
-    double Get_FIDUCIAL_LAR_END_X() { return _FIDUCIAL_LAR_END_X; };
-    double Get_FIDUCIAL_LAR_END_Y() { return _FIDUCIAL_LAR_END_Y; };
-    double Get_FIDUCIAL_LAR_END_Z() { return _FIDUCIAL_LAR_END_Z; };
+    double Get_ACTIVE_LAR_START_X() { return _ACTIVE_LAR_START_X; };
+    double Get_ACTIVE_LAR_START_Y() { return _ACTIVE_LAR_START_Y; };
+    double Get_ACTIVE_LAR_START_Z() { return _ACTIVE_LAR_START_Z; };
+    double Get_ACTIVE_LAR_END_X() { return _ACTIVE_LAR_END_X; };
+    double Get_ACTIVE_LAR_END_Y() { return _ACTIVE_LAR_END_Y; };
+    double Get_ACTIVE_LAR_END_Z() { return _ACTIVE_LAR_END_Z; };
+
+    double Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT() { return _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT; };
+    double Get_LAR_FIDUCIAL_XY_CUT() { return _LAR_FIDUCIAL_XY_CUT; };
+    double Get_LAR_OUTER_SHELL_THICKNESS() { return _LAR_OUTER_SHELL_THICKNESS; };
+    double Get_ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY() { return _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
@@ -143,6 +156,13 @@ class TMS_Manager {
     float _RECO_TRACKMATCH_YDifference;
     int _RECO_TRACKMATCH_DirectionDistance;
 
+    bool _RECO_TRACKSMOOTHING_UseTrackSmoothing;
+    std::string _RECO_TRACKSMOOTHING_TrackSmoothingStrategy;
+    double _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints;
+    double _RECO_TRACKSMOOTHING_UncertaintyGoodDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyBadDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints;
+
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;
 
@@ -155,6 +175,7 @@ class TMS_Manager {
     double _NERSC_SPILL_PERIOD;
 
     bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
+    double _RECO_KALMAN_ASSUMED_CHARGE; //set the assumed charge of the track in the kalman filter
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
@@ -176,12 +197,17 @@ class TMS_Manager {
     double _FIDUCIAL_TMS_END_X;
     double _FIDUCIAL_TMS_END_Y;
     double _FIDUCIAL_TMS_END_Z;
-    double _FIDUCIAL_LAR_START_X;
-    double _FIDUCIAL_LAR_START_Y;
-    double _FIDUCIAL_LAR_START_Z;
-    double _FIDUCIAL_LAR_END_X;
-    double _FIDUCIAL_LAR_END_Y;
-    double _FIDUCIAL_LAR_END_Z;
+    double _ACTIVE_LAR_START_X;
+    double _ACTIVE_LAR_START_Y;
+    double _ACTIVE_LAR_START_Z;
+    double _ACTIVE_LAR_END_X;
+    double _ACTIVE_LAR_END_Y;
+    double _ACTIVE_LAR_END_Z;
+    
+    double _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT;
+    double _LAR_FIDUCIAL_XY_CUT;
+    double _LAR_OUTER_SHELL_THICKNESS;
+    double _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;

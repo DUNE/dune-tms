@@ -16,7 +16,6 @@ TMS_Event::TMS_Event() {
   LightWeight = true;
 }
 
-
 static bool TMS_TrueParticle_NotWorthSaving(TMS_TrueParticle tp) {
   if (tp.GetTrueVisibleEnergy() == 0 && !tp.IsPrimary()) return true;
   // Don't worry about really low visible energy
@@ -43,6 +42,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nCharged = 0;
   int nHighMomentum = 0;
   int nChargedAndLowMomentum = 0;
+  RunNumber = event.RunId;
   int current_vertexid = event.EventId;
   // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
   // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
@@ -55,10 +55,26 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     TG4PrimaryVertex vtx = *it;
     Reaction = (*it).GetReaction();
     
+    // Interaction number is off-by-one in recent microprod files, so set it manually
+    // See https://github.com/DUNE/2x2_sim/issues/61
+    vtx.InteractionNumber = current_vertexid;
     // Ideally we'd do it like this, but it's not supported by the spill builder
     // See https://github.com/DUNE/2x2_sim/issues/54
     if (use_GetInteractionNumber)
       current_vertexid = vtx.GetInteractionNumber();
+    if (current_vertexid < 0) {
+      std::cout<<"Fatal: Got a current_vertexid < 0 in TMS_Event: "<<current_vertexid<<std::endl;
+      throw std::runtime_error("Fatal: Get a vertex id < 0");
+    }
+    Reactions[current_vertexid] = Reaction;
+      
+    Vtx_Info vtx_info;
+    vtx_info.reaction = Reaction;
+    vtx_info.vtx_id = current_vertexid;
+    // Had issues with lorentz vectors before so best make a copy
+    vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
+    
+    info_about_vtx[current_vertexid] = vtx_info;
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -70,6 +86,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         TG4PrimaryParticle particle = *jt;
         TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
         TMS_TruePrimaryParticles.emplace_back(truepart);
+        
+        if (current_vertexid != truepart.GetVertexID()) {
+          std::cout<<"Fatal: TMS_TrueParticle's vertex id was set incorrectly in true primary particle list" \
+                     " and doesn't match the current id: true part vtx id: ";
+          std::cout<<truepart.GetVertexID()<<" vs current: "<<current_vertexid<<std::endl;
+          throw std::runtime_error("Fatal: TMS_TrueParticle's vertex id was set incorrectly");
+        }
       }
 
       // Number of true trajectories
@@ -170,6 +193,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
             TMS_TrueParticle part(ParentId, TrackId, PDGcode, current_vertexid);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
+        
+            if (current_vertexid != part.GetVertexID()) {
+              std::cout<<"Fatal: TMS_TrueParticle's vertex id was set incorrectly in all particle list " \
+                         "and doesn't match the current id: true part vtx id: ";
+              std::cout<<part.GetVertexID()<<" vs current: "<<current_vertexid<<std::endl;
+              throw std::runtime_error("Fatal: TMS_TrueParticle's vertex id was set incorrectly in all particle list");
+            }
           } // End if (firsttime)
 
           // At this point we have a trajectory point that we are interested in, great!
@@ -232,8 +262,16 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       int track_id = traj.GetTrackId();
       mapping_track_to_vertex_id[track_id] = vertex_index;
     }
-  } 
+  }
+
+  std::map<int, TMS_TrueParticle*> mapping_track_to_true_particle;
+  for (auto& tp : TMS_TrueParticles) {
+    int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
+    mapping_track_to_true_particle[key] = &tp;
+  }
   
+  std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
+
   // Loop over each hit
   for (TG4HitSegmentDetectors::iterator jt = event.SegmentDetectors.begin(); jt != event.SegmentDetectors.end(); ++jt) {
     // Only look at TMS hits
@@ -257,23 +295,84 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
       if (barnum >= 0) {
+        auto t = hit.GetAdjustableTrueHit();
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          int key = t.GetVertexIds(i) * 100000 + t.GetPrimaryIds(i);
+          if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
+            // Now set info
+            auto tp = mapping_track_to_true_particle[key];
+            if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
+          }
+        }
+        SaveKeyVertexInfo(t);
         TMS_Hits.push_back(std::move(hit));
-        
+
         // todo, maybe skip for michel electrons or late neutrons
         for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
           TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
           TrueVisibleEnergyPerParticle[hit.GetTrueHit().GetVertexIds(i) * 100000 + hit.GetTrueHit().GetPrimaryIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
         }
       }
+      else if (DetString.find(TMS_Const::LAr_ActiveName) != std::string::npos) {
+        // Only care about LAr active volume
+        // We only need it for truth info so just save truth info
+        TMS_TrueHit t(edep_hit, vertex_id);
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          int key = t.GetVertexIds(i) * 100000 + t.GetPrimaryIds(i);
+          auto itp = mapping_track_to_true_particle.find(key);
+          if (itp != mapping_track_to_true_particle.end()) {
+            // Now set info
+            auto tp = itp->second;
+            if (tp->IsLeptonic()) t.SetEnergyLeptonic(i);
+          }
+        }
+        
+        SaveKeyVertexInfo(t);
+        
+        double divide = 10.0;
+        auto poskey = std::tuple((int) (t.GetX() / divide), (int) (t.GetY() / divide), (int) (t.GetZ() / divide), t.GetVertexIds(0));
+        if (map_pos_nontms_hits.find(poskey) != map_pos_nontms_hits.end()) {
+          // Already exists, merge with existing
+          auto& merge_with_me = NonTMS_Hits[map_pos_nontms_hits[poskey]];
+          merge_with_me.MergeWith(t);
+        }
+        else {
+          // Doesn't exist, add to list and map
+          NonTMS_Hits.push_back(t);
+          map_pos_nontms_hits[poskey] = NonTMS_Hits.size() - 1;
+        }
+      }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+  bool OnlyPrimaryOrVisibleEnergy = true;
+  
+  // Now update truth info per particle
+  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+    double energy = 0;
+    // If it's not in the map, don't create it
+    int key = TMS_TrueParticles[i].GetVertexID() * 100000 + TMS_TrueParticles[i].GetTrackId();
+    auto it = TrueVisibleEnergyPerParticle.find(key);
+    if (it != TrueVisibleEnergyPerParticle.end()) {
+      energy = it->second;
+    }
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy, false);
+  }
+  nTrueForgottenParticles = -1;
+  if (OnlyPrimaryOrVisibleEnergy) {
+    size_t initial = TMS_TrueParticles.size();
+    TMS_TrueParticles.erase(std::remove_if(TMS_TrueParticles.begin(), 
+                            TMS_TrueParticles.end(), 
+                            TMS_TrueParticle_NotWorthSaving), 
+                            TMS_TrueParticles.end());
+    size_t end = TMS_TrueParticles.size();
+    nTrueForgottenParticles = initial - end;
+  }
 }
 
 // Start the relatively tedious process of converting into TMS products!
 // Can also use FillEvent = false to get a simple meta data extractor
 TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   //std::cout<<"Making TMS event"<<std::endl;
-  bool OnlyPrimaryOrVisibleEnergy = true;
 
   // Save down the event number
   EventNumber = EventCounter;
@@ -289,28 +388,6 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 
   ProcessTG4Event(event, FillEvent);
   
-  // Now update truth info per particle
-  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
-    double energy = 0;
-    // If it's not in the map, don't create it
-    int key = TMS_TrueParticles[i].GetVertexID() * 100000 + TMS_TrueParticles[i].GetTrackId();
-    auto it = TrueVisibleEnergyPerParticle.find(key);
-    if (it != TrueVisibleEnergyPerParticle.end()) {
-      energy = it->second;
-    }
-    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy);
-  }
-  nTrueForgottenParticles = -1;
-  if (OnlyPrimaryOrVisibleEnergy) {
-    size_t initial = TMS_TrueParticles.size();
-    TMS_TrueParticles.erase(std::remove_if(TMS_TrueParticles.begin(), 
-                            TMS_TrueParticles.end(), 
-                            TMS_TrueParticle_NotWorthSaving), 
-                            TMS_TrueParticles.end());
-    size_t end = TMS_TrueParticles.size();
-    nTrueForgottenParticles = initial - end;
-  }
-  
   // Now apply optical and timing models
   //ApplyReconstructionEffects();
   // TODO figure out why SimulateOpticalModel/MergeCoincidentHits are needed here to avoid crash
@@ -324,10 +401,10 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice)),
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
-      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), 
+      TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
       TrueNeutrino(event.TrueNeutrino), 
       TrueNeutrinoPosition(event.TrueNeutrinoPosition),
       TrueLeptonPosition(event.TrueLeptonPosition), 
@@ -335,7 +412,8 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       TrueVisibleEnergyPerVertex(event.TrueVisibleEnergyPerVertex), 
       TrueVisibleEnergyPerParticle(event.TrueVisibleEnergyPerParticle), 
       ChannelPositions(event.ChannelPositions), 
-      DeadChannelTimes(event.DeadChannelTimes), ReadChannelTimes(event.ReadChannelTimes),
+      DeadChannelTimes(event.DeadChannelTimes), ReadChannelTimes(event.ReadChannelTimes), 
+      TimeSliceBounds(event.TimeSliceBounds), info_about_vtx(event.info_about_vtx),
       generator(event.generator) {
   // Create an event from a slice of another event
   SliceNumber = slice;
@@ -356,6 +434,19 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   else {
     EventNumber = event.EventNumber;
   }
+  
+  Reaction = "";
+  
+  int primary_vertex_id = GetVertexIdOfMostVisibleEnergy();
+  if (primary_vertex_id >= 0) {
+    SetLeptonInfoUsingVertexID(primary_vertex_id);
+    if (Reactions.find(primary_vertex_id) != Reactions.end()) 
+      Reaction = Reactions[primary_vertex_id];
+    else { Reaction = "NA"; std::cout<<"Warning: couldn't find reaction for primary vertex"<<std::endl; }
+  }
+
+  // Update the counts per slice
+  ConnectTrueHitWithTrueParticle(true);
 }
 
 void TMS_Event::MergeCoincidentHits() {
@@ -487,6 +578,7 @@ void TMS_Event::SimulateOpticalModel() {
     if (should_simulate_fiber_lengths) {
     
       // Calculate the long and short path lengths
+      #ifdef USE_OLD_CODE
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
       if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -496,6 +588,10 @@ void TMS_Event::SimulateOpticalModel() {
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
+      #else
+      double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
+      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
+      #endif
       
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
@@ -725,6 +821,7 @@ void TMS_Event::SimulateTimingModel() {
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
+    #ifdef USE_OLD_CODE
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
     if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -734,6 +831,10 @@ void TMS_Event::SimulateTimingModel() {
     // TODO manually found this center. Want a better way in case things change
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
+    #else
+    double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
+    double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+    #endif
     
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
@@ -840,6 +941,51 @@ const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
   return out;
 }
 
+bool TMS_Event::IsInTimeSlice(double time) const {
+  int current_time_slice = GetSliceNumber();
+  bool out;
+  if (current_time_slice == 0) {
+    // Special case: Make sure t isn't part of any other time slice
+    out = true;
+    for (const auto& bounds : TimeSliceBounds) {
+      double start = bounds.first;
+      double end = bounds.second;
+      // If t is within any bound, then it's not part of slice zero so it's not in slice 0
+      if (start <= time && time <= end) { out = false; break; }
+    }
+  }
+  else {
+    // Check if t is within time slice bounds
+    if (current_time_slice < 0 || current_time_slice > (int) TimeSliceBounds.size()) {
+      std::cout<<"Fatal: IsInTimeSlice got slice number outside time slice bounds. Got: "<<current_time_slice;
+      std::cout<<", TimeSliceBounds.size(): "<<TimeSliceBounds.size()<<std::endl;
+      throw std::runtime_error("Fatal: IsInTimeSlice got slice number outside time slice bounds");
+    }
+    double start = TimeSliceBounds[current_time_slice].first;
+    double end = TimeSliceBounds[current_time_slice].second;
+    if (start <= time && time <= end) out = true;
+    else out = false;
+  }
+  return out;
+}
+
+std::pair<double, double> TMS_Event::GetTimeSliceBounds(int slice) {
+  if (slice == -1) {
+    if (GetSliceNumber() == -1) {
+      std::cout<<"Warning: Found circular logic in GetTimeSliceBounds. Returning default bounds"<<std::endl;
+      return std::make_pair(0.0, 10000.0);
+    }
+    return GetTimeSliceBounds(GetSliceNumber());
+  }
+  else {
+    if (slice < 0 || slice >= (int) TimeSliceBounds.size()) {
+      std::cout<<"Fatal: GetTimeSliceBounds error: slice: "<<slice<<" outside TimeSliceBounds.size(): "<<TimeSliceBounds.size()<<std::endl;
+      throw std::runtime_error("GetTimeSliceBounds error: slice outside TimeSliceBounds range");
+    }
+    return TimeSliceBounds[slice];
+  }
+}
+
 // Add a separate event to this event
 // Handy for making hacked overlays
 void TMS_Event::AddEvent(TMS_Event &Other_Event) {
@@ -852,36 +998,84 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (auto &hit: other_hits) {
     TMS_Hits.emplace_back(std::move(hit));
   }
+  
+  // Do the same for non-tms hits
+  for (auto &hit: Other_Event.NonTMS_Hits) {
+    NonTMS_Hits.emplace_back(std::move(hit));
+  }
 
   // Do the same for the true particles
   std::vector<TMS_TrueParticle> other_truepart = Other_Event.GetTrueParticles();
   for (auto &part: other_truepart) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
+  // And true primary particles
+  std::vector<TMS_TrueParticle> other_trueprimpart = Other_Event.TMS_TruePrimaryParticles;
+  for (auto &part: other_trueprimpart) {
+    TMS_TruePrimaryParticles.emplace_back(std::move(part));
+  }
   
   // Merge these lists
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
+  Reactions.merge(Other_Event.Reactions);
+  info_about_vtx.merge(Other_Event.info_about_vtx);
   // Reset this to recalculate on next call
   VertexIdOfMostEnergyInEvent = -9999;
 
   nVertices += Other_Event.nVertices;
+}
 
+void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
+  for (auto &event : overlay_events) AddEvent(event);
+}
+
+void TMS_Event::FinalizeEvent() {
+  // Apply the det sim now, after overlaying events
+  // The timing and optical model were moved to the initial event creation
+  ApplyReconstructionEffects();
+  // Connect true vis E and true n hits with true particles
+  ConnectTrueHitWithTrueParticle(false);
 }
 
 // For now just fill the true neutrino
 // But shows how you can easily make a vector of rootracker particles for the TMS_Event to carry along
 void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double p4[__EDEP_SIM_MAX_PART__][4], 
   double vtx[__EDEP_SIM_MAX_PART__][4]) {
+  // Momenta/Energy are in GeV
   TrueNeutrino.first.SetX(p4[0][0]);
   TrueNeutrino.first.SetY(p4[0][1]);
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
+  // Positions are in m
   TrueNeutrinoPosition.SetX(vtx[0][0]);
   TrueNeutrinoPosition.SetY(vtx[0][1]);
   TrueNeutrinoPosition.SetZ(vtx[0][2]);
   TrueNeutrinoPosition.SetT(vtx[0][3]);
+  
+  if (info_about_vtx.size() == 1) {
+    auto it = info_about_vtx.begin();
+    auto key = (*it).first;
+    auto second = (*it).second;
+    // Calculate the distance squared to make sure they're about the same vertex position
+    double mm = 1000.0; // convert from m
+    double dist2 = 0;
+    dist2 += pow(vtx[0][0]*mm - second.vtx.X(), 2);
+    dist2 += pow(vtx[0][1]*mm - second.vtx.Y(), 2);
+    dist2 += pow(vtx[0][2]*mm - second.vtx.Z(), 2);
+    double eps = 0.1; // should be about the same
+    if (dist2 < eps) {
+      info_about_vtx[key].pdg = pdg[0];
+      double MeV = 1000.0; // Convert from GeV
+      info_about_vtx[key].p4 = TLorentzVector(p4[0][0] * MeV, p4[0][1] * MeV, p4[0][2] * MeV, p4[0][3] * MeV);
+    }
+    else { 
+      std::cout<<"Found mismatch between groo vtx and info_about_vtx. Please investigate. Dist2="<<dist2<<std::endl;
+      std::cout<<vtx[0][0]<<", "<<vtx[0][1]<<", "<<vtx[0][2]<<std::endl;
+      std::cout<<second.vtx.X()<<", "<<second.vtx.Y()<<", "<<second.vtx.Z()<<std::endl;
+    }
+  }
 }
 
 void TMS_Event::FillTrueLeptonInfo(int pdg, TLorentzVector position, TLorentzVector momentum, int vertexid) {
@@ -1016,16 +1210,16 @@ double TMS_Event::GetMuonTrueTrackLength() {
 
     std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
     int num = 0;
-    for (auto pnt = pos.begin(); pnt != pos.end(); ++pnt, ++num) {
+    for (auto pnt = pos.begin(); (pnt+1) != pos.end(); ++pnt, ++num) {
       auto nextpnt = *(pnt+1);
       TVector3 point1((*pnt).X(), (*pnt).Y(), (*pnt).Z());  //-200
       TVector3 point2(nextpnt.X(), nextpnt.Y(), nextpnt.Z()); //-200
       if (TMS_Geom::GetInstance().IsInsideTMS(point1) && TMS_Geom::GetInstance().IsInsideTMS(point2)) {
-      if ((point2-point1).Mag() > 100) {
-        continue;
-      }
-      double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
-      total += tracklength;
+        if ((point2-point1).Mag() > 100) {
+          continue;
+        }
+        double tracklength = TMS_Geom::GetInstance().GetTrackLength(point1, point2);
+        total += tracklength;
       }
     }
   }
@@ -1051,7 +1245,7 @@ int TMS_Event::GetTrueParticleIndex(int vertexid, int trackid) {
 int TMS_Event::GetPrimaryLeptonOfVertexID(int vertexid) {
   int lepton_index = -999;
   int current_index = 0;
-  for (auto particle : TMS_TruePrimaryParticles) {
+  for (auto& particle : TMS_TruePrimaryParticles) {
     if (particle.GetVertexID() == vertexid) {
       int pdg = std::abs(particle.GetPDG());
       if (pdg >= 11 && pdg <= 16) {
@@ -1076,7 +1270,132 @@ void TMS_Event::SetLeptonInfoUsingVertexID(int vertexid) {
     FillTrueLeptonInfo(lepton_pdg, lepton_position, lepton_momentum, vertexid);
   }
   else {
+    std::cout<<"Warning in SetLeptonInfoUsingVertexID: GetPrimaryLeptonOfVertexID didn't"
+               "return a valid particle index for vertex id "<<vertexid<<std::endl;
     FillTrueLeptonInfo(-9999999, TLorentzVector(-9999999, -999999, -999999, -999999), 
       TLorentzVector(-9999999, -999999, -999999, -999999), vertexid);
   }
 }
+
+double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, int vertexid) {
+  double out = 0;
+  // Lar doesn't have good timing info, so we want all non tms hits, not just in this slice
+  for (const auto& hit : NonTMS_Hits) {
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) {
+      TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+      if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
+        out += hit.GetHadronicEnergy();
+      }
+    }
+  }
+  return out;
+}
+
+double TMS_Event::CalculateEnergyInLAr(int vertexid) {
+  double out = 0;
+  for (const auto& hit : NonTMS_Hits) {
+    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) { 
+      TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+      if (TMS_Geom::GetInstance().IsInsideLAr(position))
+        out += hit.GetHadronicEnergy();
+    }
+  }
+  return out;
+}
+
+
+double TMS_Event::CalculateTotalNonTMSEnergy(int vertexid) {
+  double out = 0;
+  for (const auto& hit : NonTMS_Hits) {
+    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (vertexid < 0 || hit.GetVertexIds(0) == vertexid) out += hit.GetHadronicEnergy();
+  }
+  return out;
+}
+
+void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
+  // Now count the number of true hits per particle
+  std::map<int, int> NHitsPerParticle;
+  std::map<int, double> EnergyPerParticle;
+  for (auto& hit : TMS_Hits) {
+    // Only count hits that are not ped subtracted
+    if (!hit.GetPedSup()) {
+      auto true_hit = hit.GetTrueHit();
+      // Only add 1 hit for each key once, so track if we saw a key already
+      std::map<int, int> key_seen;
+      for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+        int key = true_hit.GetVertexIds(i) * 100000 + true_hit.GetPrimaryIds(i);
+        if (key_seen.find(key) == key_seen.end()) { 
+          NHitsPerParticle[key] += 1;
+          key_seen[key] = 1;
+        }
+        EnergyPerParticle[key] += true_hit.GetEnergyShare(i);
+      }
+    }
+  }
+  for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
+    int count = 0;
+    double energy = 0;
+    // If it's not in the map, don't create it
+    int key = TMS_TrueParticles[i].GetVertexID() * 100000 + TMS_TrueParticles[i].GetTrackId();
+    if (NHitsPerParticle.find(key) != NHitsPerParticle.end()) {
+      count = NHitsPerParticle[key];
+      energy = EnergyPerParticle[key];
+    }
+    TMS_TrueParticles[i].SetNTrueHits(count, slice);
+    TMS_TrueParticles[i].SetTrueVisibleEnergy(energy, slice);
+  }
+}
+
+
+void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
+  for (size_t i = 0; i < hit.GetNTrueParticles(); i++) {
+    int vertex_id = hit.GetVertexIds(i);
+    if (info_about_vtx.find(vertex_id) != info_about_vtx.end()) {
+      info_about_vtx[vertex_id].AddEnergyFromHit(hit, i);
+    }
+    else std::cout<<"This should not happen but I didn't find a vertex for vertex id "<<vertex_id<<std::endl;
+  }
+}
+
+Vtx_Info* TMS_Event::GetVertexInfo(int vertex_id) {
+  Vtx_Info* out = NULL;
+  if (info_about_vtx.find(vertex_id) != info_about_vtx.end())
+    out = &info_about_vtx.at(vertex_id);
+  return out;
+}
+
+
+void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
+  double hadronic_energy = hit.GetHadronicEnergy() * hit.GetEnergySharePortion(index);
+  double energy = hit.GetE() * hit.GetEnergySharePortion(index);
+  TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
+
+  // Total
+  hadronic_energy_total += hadronic_energy;
+  true_visible_energy_total += energy;
+
+  // Lar-specific
+  if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
+    hadronic_energy_lar += hadronic_energy;
+    true_visible_energy_lar += energy;
+  }
+  // Lar outer-shell for the hadron containment cut
+  if (TMS_Geom::GetInstance().IsInsideLArShell(position) && 0 < hadronic_energy) {
+    hadronic_energy_lar_shell += hadronic_energy;
+    UpdateShellEnergyCut();
+  }
+
+  // TMS-specific
+  if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
+    hadronic_energy_tms += hadronic_energy;
+    true_visible_energy_tms += energy;
+  }
+}
+
+
+
+
+
+

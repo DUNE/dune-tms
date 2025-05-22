@@ -111,6 +111,7 @@ namespace TMS_Const {
   // To find scintillator "box"
   const std::string TMS_ScintLayerName = "scinBoxlvTMS";
   const std::string TMS_ScintLayerOrthoName = "scinBoxlv_orthoTMS";
+  const std::string TMS_ScintLayerParallelName = "scinBoxlv_parallelTMS";
   // The top layer name
   const std::string TMS_TopLayerName = "volWorld";
   // The detector enclosure
@@ -118,7 +119,7 @@ namespace TMS_Const {
   // The rock volume
   const std::string TMS_Rock = "rockBox_lv";
   // LAr active region
-  const std::string LAr_ActiveName = "volTPCActive";
+  const std::string LAr_ActiveName = "TPCActive";
 
   const double TMS_Small_Num = 1.E-5;
 
