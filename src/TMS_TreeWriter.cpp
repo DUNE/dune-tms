@@ -2216,11 +2216,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
-<<<<<<< HEAD
     RecoTrackLengthInCM[i] = DEFAULT_CLEARING_FLOAT;
-=======
-    RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
->>>>>>> main
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
   }
