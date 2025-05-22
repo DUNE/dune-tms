@@ -298,7 +298,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
-  Reco_Tree->Branch("Length_3D",      RecoTrackLength_3D,       "Length_3D[nTracks]/F");
+  Reco_Tree->Branch("LengthInCM",     RecoTrackLengthInCM,      "LengthInCM[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
 
   Reco_Tree->Branch("Charge_Kalman",         RecoTrackCharge_Kalman,          "Charge_Kalman[nTracks]/I");
@@ -1462,14 +1462,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
 //    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
     RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
+    RecoTrackLengthInCM[itTrack]    =       RecoTrack->LengthInCM;
+    // RecoTrackLength[]
     if (nLinesU<=0){
-        RecoTrackLength[itTrack]        =       0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]);
+    } else {
+        // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]);
     }
-    else {
-        RecoTrackLength[itTrack]        =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
-    }
-
-    RecoTrackLength_3D[itTrack]        =    RecoTrack->Length; 
     RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
@@ -2222,7 +2223,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
-    RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLengthInCM[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
   }

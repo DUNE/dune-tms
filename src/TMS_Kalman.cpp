@@ -144,7 +144,6 @@ void TMS_Kalman::RunKalman() {
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
   }
- 
   
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
@@ -434,26 +433,6 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   //CovarianceMatrix.Print();
   //GainMatrix.Print();
   //CurrentState.Print();
-  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
-  {
-    std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
-  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
-  {
-    std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
 
   Node.SetRecoXY(CurrentState);
   if (Talk) Node.PrintTrueReco();
