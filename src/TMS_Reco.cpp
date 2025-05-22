@@ -722,6 +722,9 @@ for (auto Lines: HoughCandidatesY) {
       // Add tracklength with Kalman filter
       trk.Length = CalculateTrackArealLengthKalman(trk);
       trk.LengthInCM = CalculateTrackLengthKalman(trk);
+
+      kalman_chi2 = KalmanFilter.GetTrackChi2();
+      trk.SetChi2(kalman_chi2);
     }
   }
 
