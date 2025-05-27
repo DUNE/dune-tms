@@ -1,3 +1,27 @@
+"""
+- This script takes the output files from evaluation_Reco_files.py and analyses them.
+- Creates histograms for Start (x,y,z), End (x,y,z), Start direction (xz,yz, xz KE,yz KE),
+Energy resolution and Charge ID (efficiency KE for muons&antimuons) with mean/median and quartile distances
+- Also creates txt files as output with the histogram distributions to allow a collective plotting of several.
+- The file creates an output with the information of mean/median and quartile distances for all parameters,
+as well as efficiencies, purities and accuracies along side the TP,TN,FP,FN numbers for the charge ID.
+
+- Usage:
+python3 plotting_RecoEvaluation_files.py --outdir /output/directory/ --input_folder . --Start --End --Charge --Angle --Contained
+- If the output wants to get saved add '> /path/to/directory/output...txt' in the command-line above
+- This script automatically loops through all files in a directory and checks the start of their names. In order to do this well,
+this script has to be in the same directory as the output files from evaluation_Reco_files.py and the --input_folder as '.'.
+
+- Requirements: numpy, matplotlib
+-> at the gpvms:
+$ source setup_FNAL.sh (in dune-tms)
+$ spack load py-packaging
+$ spack load py-numpy
+$ spack load py-matplotlib
+
+- At some point this script also performed fits to the different distributions, but this is disabled (commented out at this point),
+as there were some problems with running this at the gpvms. -> Use this option at your own risk
+"""
 import ROOT
 import numpy as np
 import matplotlib.pyplot as mp
