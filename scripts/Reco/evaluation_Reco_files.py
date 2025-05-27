@@ -8,6 +8,12 @@ Start and End position of the reconstructed tracks, as well as the kinetic energ
 python3 evaluation_Reco_files.py --outdir /output/directory/ --input_filename /input/file.root --Start --End --Charge --Angle --Contained --output /file/name/for/the/output
 - As only one file at a time is read in, either combine all reco files into one, or run it in a bash script looping through the files in a directory.
 
+- Requirements: ROOT, numpy
+-> at the gpvms:
+$ source setup_FNAL.sh (in dune-tms)
+$ spack load py-packaging
+$ spack load py-numpy
+
 - The output file(s) include [ and ] at the start and end of each line. To delete them: 
 sed -i 's/[][]//g'
 afterwards or in the bash script as well.
