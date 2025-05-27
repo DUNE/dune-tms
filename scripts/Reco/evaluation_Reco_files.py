@@ -1,3 +1,17 @@
+"""
+- This script takes reconstructed files as input, loops through the spills, events and tracks and extracts the
+Start and End position of the reconstructed tracks, as well as the kinetic energy, start direction and charge.
+- This is done for the reconstruction and the truth allowing a comparison between the two.
+- The extracted values are output into txt files for further analysis with plotting_RecoEvaluation_files.py.
+
+- Usage: 
+python3 evaluation_Reco_files.py --outdir /output/directory/ --input_filename /input/file.root --Start --End --Charge --Angle --Contained --output /file/name/for/the/output
+- As only one file at a time is read in, either combine all reco files into one, or run it in a bash script looping through the files in a directory.
+
+- The output file(s) include [ and ] at the start and end of each line. To delete them: 
+sed -i 's/[][]//g'
+afterwards or in the bash script as well.
+"""
 import ROOT
 import numpy as np
 import os
