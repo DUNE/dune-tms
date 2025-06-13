@@ -454,57 +454,57 @@ def check_orientation(hit_z):
     return layer_dict["%s" % hit_z]
 
 ### Dictionary that after calculate_layers contains for each z-coordinate the orientation str
-first_z = 11185
+first_z = 11368
 layer_dict = { "%s" % first_z : "UBar" }
         
 def calculate_layers(Xlayers):
     increment = 2
     if Xlayers:
         increment = 3
-    thin_layers = 50
-    thick_layers = 34
-    double_layers = 9
+    thin_layers = 40
+    thick_layers = 60
+    double_layers = 0
     # Calculate the z position for each layer for the thin section
     for i in range(thin_layers):
-        hit_z = first_z + i * 65
+        hit_z = first_z + i * 55
         # even layers
-        if (((hit_z - first_z) / 65) % increment) == 0:
+        if (((hit_z - first_z) / 55) % increment) == 0:
             layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
-        elif (((hit_z - first_z) / 65) % increment) == 1:
+        elif (((hit_z - first_z) / 55) % increment) == 1:
             layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - first_z) / 65) % increment) == 0:
+            if (((hit_z - first_z) / 55) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "XBar" })
             # even layers
-            if (((hit_z - first_z) / 65) % increment) == 1:
+            if (((hit_z - first_z) / 55) % increment) == 1:
                 layer_dict.update({ "%s" % hit_z : "UBar" })
             # odd layers
-            elif (((hit_z - first_z) / 65) % increment) == 2:
+            elif (((hit_z - first_z) / 55) % increment) == 2:
                 layer_dict.update({ "%s" % hit_z : "VBar" })
     # Calculate the z position for each layer for the thick section
-    start_thick = first_z + thin_layers * 65
-    for i in range(thick_layers):
-        hit_z = start_thick + i * 90
+    start_thick = first_z + (thin_layers-1) * 55
+    for i in range(thick_layers+1):
+        hit_z = start_thick + i * 80
         # even layers
-        if (((hit_z - start_thick) / 90) % increment) == 0:
+        if (((hit_z - start_thick) / 80) % increment) == 0:
             layer_dict.update({ "%s" % hit_z : "UBar" })
         # odd layers
-        elif (((hit_z - start_thick) / 90) % increment) == 1:
+        elif (((hit_z - start_thick) / 80) % increment) == 1:
             layer_dict.update({ "%s" % hit_z : "VBar" })
         # x layers
         if Xlayers:
-            if (((hit_z - start_thick) / 90) % increment) == 0:
+            if (((hit_z - start_thick) / 80) % increment) == 0:
                 layer_dict.update({ "%s" % hit_z : "VBar" })
             # even layers
-            elif (((hit_z - start_thick) / 90) % increment) == 1:
+            elif (((hit_z - start_thick) / 80) % increment) == 1:
                 layer_dict.update({ "%s" % hit_z : "XBar" })
             # odd layers
-            elif (((hit_z - start_thick) / 90) % increment) == 2:
+            elif (((hit_z - start_thick) / 80) % increment) == 2:
                 layer_dict.update({ "%s" % hit_z : "UBar" })
     # Calculate the z position for each layer for the double section
-    start_double = first_z + thin_layers * 65 + thick_layers * 90
+    start_double = first_z + thin_layers * 55 + thick_layers * 80
     for i in range(double_layers):
         hit_z = start_double + i * 130
         # even layers
