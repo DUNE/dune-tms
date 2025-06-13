@@ -106,6 +106,7 @@ TMS_Track(const TMS_Track& other) {
     double Time;         // TODO: Fill this in a sensible way
     double Chi2_minus;
     double Chi2_plus;
+    double Chi2;
     
 
 
