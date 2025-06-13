@@ -674,7 +674,6 @@ for (auto Lines: HoughCandidatesY) {
     double kalman_reco_mom, kalman_chi2_plus, kalman_chi2_minus;
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
     for (auto &trk : HoughTracks3D) {
-
       KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
       KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
 
@@ -714,18 +713,6 @@ for (auto Lines: HoughCandidatesY) {
       trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
       trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
       trk.Length = CalculateTrackLengthKalman(trk);
-    }
-  } else { // No Kalman filter enabled
-    for (auto &trk : HoughTracks3D) {
-    // Track Direction
-//    if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
-      trk.SetStartDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
-      trk.SetEndDirection(trk.Start[0] - trk.End[0], trk.Start[1] - trk.End[1], trk.Start[2] - trk.End[2]);
-//    } else {
-//      .Direction[0] = aTrack.Start[0] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoX();
-//      .Direction[1] = aTrack.Start[1] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetRecoY();
-//      .Direction[2] = aTrack.Start[2] - aTrack.Hits[TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance()].GetZ();
-//    }
     }
   }
 

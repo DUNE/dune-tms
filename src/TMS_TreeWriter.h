@@ -19,7 +19,7 @@
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
-#define __TMS_MAX_TRUE_NONTMS_HITS__ 100000 // Maximum number of true particles to save info about
+#define __TMS_MAX_TRUE_VERTICES__ 1000 // Maximum number of true vertices to save info about, a spill has ~200, so 1k should be okay
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
@@ -48,6 +48,11 @@ class TMS_TreeWriter {
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
     int nKalmanNodes[__TMS_MAX_TRACKS__];
+
+    int KalmanErrorDetVol[__TMS_MAX_TRACKS__];
+    int nKalmanNodes_plus[__TMS_MAX_TRACKS__];
+    int nKalmanNodes_minus[__TMS_MAX_TRACKS__];
+
     float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackKalmanPos_plus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackKalmanPos_minus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
@@ -76,7 +81,6 @@ class TMS_TreeWriter {
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
-
   private:
     TMS_TreeWriter();
     TMS_TreeWriter(TMS_TreeWriter const &) = delete;
@@ -350,14 +354,6 @@ class TMS_TreeWriter {
     float TruePathLengthInTMS[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthInTMSIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
 
-    int TrueNonTMSNHits;
-    float TrueNonTMSHitPos[__TMS_MAX_TRUE_NONTMS_HITS__][4];
-    float TrueNonTMSHitEnergy[__TMS_MAX_TRUE_NONTMS_HITS__];
-    float TrueNonTMSHitHadronicEnergy[__TMS_MAX_TRUE_NONTMS_HITS__];
-    float TrueNonTMSHitDx[__TMS_MAX_TRUE_NONTMS_HITS__];
-    float TrueNonTMSHitdEdx[__TMS_MAX_TRUE_NONTMS_HITS__];
-    int TrueNonTMSHitVertexID[__TMS_MAX_TRUE_NONTMS_HITS__];
-
     // Flags for easy use
     bool InteractionTMSFiducial;
     bool InteractionTMSFirstTwoModules;
@@ -438,6 +434,11 @@ class TMS_TreeWriter {
     bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
+
+    int RecoTrackPrimaryParticleVtxId[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxFiducialCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxShellEnergyCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxNDPhysicsCut[__TMS_MAX_LINES__];
     
     // Save truth info about secondary particle
     int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];
@@ -502,6 +503,29 @@ class TMS_TreeWriter {
     MYVAR(TrueRecoHitPE);
     MYVAR(TrueRecoHitEVis);
     bool TrueRecoHitIsPedSupped[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    
+    int TrueVtxN;
+    float TrueVtxX[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxY[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxZ[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxT[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPx[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPy[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPz[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxE[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxPDG[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxID[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicELarShell[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicELAr[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicETMS[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicE[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleETMS[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleELAr[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleE[__TMS_MAX_TRUE_VERTICES__];
+    std::vector<std::string> TrueVtxReaction;
+    bool TrueVtxFiducialCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxShellEnergyCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxNDPhysicsCut[__TMS_MAX_TRUE_VERTICES__];
 };
 
 

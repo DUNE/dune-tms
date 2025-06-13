@@ -14,6 +14,81 @@ class TMS_Track {
     {
       // TODO: Take first and last hits and do the maffs
     };
+   // In TMS_Track.h, inside the class definition:
+TMS_Track(const TMS_Track& other) {
+    // Copy simple types
+    Charge          = other.Charge;
+    Charge_Kalman   = other.Charge_Kalman;
+    Length          = other.Length;
+    Occupancy       = other.Occupancy;
+    EnergyDeposit   = other.EnergyDeposit;
+    EnergyRange     = other.EnergyRange;
+    Momentum        = other.Momentum;
+    Time            = other.Time;
+    Chi2            = other.Chi2;
+    Chi2_minus      = other.Chi2_minus;
+    Chi2_plus       = other.Chi2_plus;
+    nHits           = other.nHits;
+    nKalmanNodes    = other.nKalmanNodes;
+
+    // Copy arrays element by element
+    for (int i = 0; i < 3; ++i) {
+        Start[i]          = other.Start[i];
+        End[i]            = other.End[i];
+        StartDirection[i] = other.StartDirection[i];
+        EndDirection[i]   = other.EndDirection[i];
+    }
+
+    // Copy STL containers (which perform deep copy if their elements are copyable)
+    Hits        = other.Hits;
+    KalmanNodes = other.KalmanNodes;
+    KalmanNodes_plus = other.KalmanNodes_plus;
+    KalmanNodes_minus = other.KalmanNodes_minus;
+
+    // Copy custom type; ensure that TMS_TrueParticle supports copying.
+    fTrueParticle = other.fTrueParticle;
+}
+
+    // define the assignment operator 
+   TMS_Track& operator=(const TMS_Track &other) {
+    if (this != &other) {
+        // Copy simple types
+        Charge          = other.Charge;
+        Charge_Kalman   = other.Charge_Kalman;
+        Length          = other.Length;
+        Occupancy       = other.Occupancy;
+        EnergyDeposit   = other.EnergyDeposit;
+        EnergyRange     = other.EnergyRange;
+        Momentum        = other.Momentum;
+        Time            = other.Time;
+        Chi2            = other.Chi2;
+        Chi2_minus      = other.Chi2_minus;
+        Chi2_plus       = other.Chi2_plus;
+        nHits           = other.nHits;
+        nKalmanNodes    = other.nKalmanNodes;
+
+        // Copy arrays (for Start, End, StartDirection, EndDirection)
+        for (int i = 0; i < 3; i++) {
+            Start[i]          = other.Start[i];
+            End[i]            = other.End[i];
+            StartDirection[i] = other.StartDirection[i];
+            EndDirection[i]   = other.EndDirection[i];
+        }
+
+        // Copy STL containers (vector<TMS_Hit> and vector<TMS_KalmanNode>)
+        Hits        = other.Hits;
+        KalmanNodes = other.KalmanNodes;
+        KalmanNodes_plus = other.KalmanNodes_plus;
+        KalmanNodes_minus = other.KalmanNodes_minus;
+
+
+        // Copy the private member fTrueParticle
+        fTrueParticle = other.fTrueParticle;
+    }
+    return *this;
+}
+
+    
     void Print();
 
     int    Charge;
@@ -64,9 +139,14 @@ class TMS_Track {
 
     // Kalman filter track info
     int nKalmanNodes;
+
+    int KalmanErrorDetVol = 0;
+    int nKalmanNodes_plus;
+    int nKalmanNodes_minus;
+
     std::vector<TMS_KalmanNode> KalmanNodes;
-    std::vector<TMS_KalmanNode> KalmanNodes_minus;
     std::vector<TMS_KalmanNode> KalmanNodes_plus;
+    std::vector<TMS_KalmanNode> KalmanNodes_minus;
 
     void Compare()
     {
