@@ -32,10 +32,10 @@ namespace TMS_KinConst {
 // Lots of these are hard-coded geometry constants that *NEED* to be updated for each production IF detectors move
 namespace TMS_Const {
 
-  // Number of planes, check against geometry
-  const int TMS_nThinPlanes = 51;
-  const int TMS_nThickPlanes = 34;
-  const int TMS_nDoublePlanes = 9;
+  // Number of scintillator planes, check against geometry
+  const int TMS_nThinPlanes = 35;
+  const int TMS_nThickPlanes = 22;
+  const int TMS_nDoublePlanes = 25;
 
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
   const double Dead_Region_Track_Length = 24.35;
@@ -83,7 +83,7 @@ namespace TMS_Const {
 
   // z
   // TMS scintillator width (10 mm)
-  const double TMS_Scint_Width = 17;
+  const double TMS_Scint_Width = 16;
   // TMS aluminium enclosure width (1mm)  // This is not implemented currently
   //const double TMS_Enclosure_Width = 1;
   // TMS steel width in thin region (15 mm);
@@ -135,7 +135,7 @@ namespace TMS_Const {
 
   const int nModulesPerSubModule = 32;
   const int nModules = 12;
-  const int nPlanes = 94;
+  const int nPlanes = 82;
 
 }
 
