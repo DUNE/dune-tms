@@ -136,7 +136,11 @@ namespace TMS_Const {
   const int nModulesPerSubModule = 32;
   const int nModules = 12;
   const int nPlanes = 82;
-
+  
+  const double TMS_Magnetic_region_1_outer_edge = -3730.0;
+  const double TMS_Magnetic_region_1_and_2_border = -1860.0;
+  const double TMS_Magnetic_region_2_and_3_border = 1860.0;
+  const double TMS_Magnetic_region_3_outer_edge = 3730.0;
 }
 
 #endif
