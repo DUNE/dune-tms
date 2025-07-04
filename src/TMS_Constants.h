@@ -35,7 +35,7 @@ namespace TMS_Const {
   // Number of scintillator planes, check against geometry
   const int TMS_nThinPlanes = 35;
   const int TMS_nThickPlanes = 22;
-  const int TMS_nDoublePlanes = 25;
+  const int TMS_nDoublePlanes = 24;
 
   // Dead region (area between LAr and TMS) track length contribution, in g/cm2
   const double Dead_Region_Track_Length = 24.35;
@@ -47,13 +47,13 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11133;  //11134 should be, but Kalman filter is freaking out
+  const double TMS_Thin_Start = 11152;  //start of TMS at 1116 cm - bar thickness / 2 (8 mm) = 11160 - 8 = 11152 mm
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 14435;
+  const double TMS_Thick_Start = 13392;  //this is still with problems in the geometry!!!
   // Where does the thick region end
-  const double TMS_Double_Start = 17495;
+  const double TMS_Double_Start = 15364;  //this is still with problems in the geometry!!!
   // Where does the double region end
-  const double TMS_Double_End = 18535;
+  const double TMS_Double_End = 18350;  //this is still with problems in the geometry!!!
 
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
