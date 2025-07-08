@@ -225,7 +225,8 @@ bool TMS_Bar::CheckBar() {
 
   // Sanity check the global bar number
   //if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
-  if (BarNumber >= (TMS_Const::TMS_End_Bars_Only[0]-TMS_Const::TMS_Start_Bars_Only[0])/GetXw() || BarNumber < 0) {  // Change from TMS_..._Exact to TMS_..._Bars_Only
+  //if (BarNumber >= (TMS_Const::TMS_End_Bars_Only[0]-TMS_Const::TMS_Start_Bars_Only[0])/GetXw() || BarNumber < 0) {  // Change from TMS_..._Exact to TMS_..._Bars_Only
+  if (BarNumber >= 32*6+3 || BarNumber < 0) {  // Change from TMS_..._Exact to TMS_..._Bars_Only
     std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
     std::cout << "Bar number: " << BarNumber << std::endl;
