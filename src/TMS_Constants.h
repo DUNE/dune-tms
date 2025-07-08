@@ -47,13 +47,18 @@ namespace TMS_Const {
   const double TMS_Scint_density = 1.05;
 
   // Z positions of the first hits of the TMS
-  const double TMS_Thin_Start = 11152;  //start of TMS at 1116 cm - bar thickness / 2 (8 mm) = 11160 - 8 = 11152 mm
+  // for PDR
+  //const double TMS_Thin_Start = 11177.5;  //start of TMS at 1116 cm - bar thickness / 2 (8 mm) = 11160 - 8 = 11152 mm
+  // 6m for 4.2 geometry due to the double scintilltor at first layer
+  const double TMS_Thin_Start = 11127;  //start of TMS at 1116 cm - bar thickness / 2 (8 mm) = 11160 - 8 = 11152 mm
+
   // Where do we transition to the thick region (first layer of scintillator before the change)
-  const double TMS_Thick_Start = 13392;  //this is still with problems in the geometry!!!
+  const double TMS_Thick_Start = 13393;  //this is still with problems in the geometry!!!
   // Where does the thick region end
-  const double TMS_Double_Start = 15364;  //this is still with problems in the geometry!!!
+  const double TMS_Double_Start = 15282.5;  //this is still with problems in the geometry!!!
   // Where does the double region end
-  const double TMS_Double_End = 18350;  //this is still with problems in the geometry!!!
+  // from readout reco
+  const double TMS_Double_End = 18502.5;  //this is still with problems in the geometry!!!
 
 
   // Approximate starting and end positions of TMS detector in geometry for plotting hits, in {x,y,z}
@@ -67,12 +72,22 @@ namespace TMS_Const {
 
   // More exact locations of bars
   // This seems to contain the steel as well
-  const double TMS_Start_Exact[] = {-3730, -3702.23, TMS_Thin_Start};
-  const double TMS_End_Exact[] = {3730, 997.77, TMS_Double_End};
+  // PDR
+  //const double TMS_Start_Exact[] = {-3730, -3702.23, TMS_Thin_Start};
+  //const double TMS_End_Exact[] = {3730, 997.77, TMS_Double_End};
+
+  //6m
+  const double TMS_Start_Exact[] = {-2945, -3702.23, TMS_Thin_Start};
+  const double TMS_End_Exact[] = {2945, 997.77, TMS_Double_End};
 
   // Plot TrueHitX,Y,Z and zoom in to see where the last hits are
-  const double TMS_Start_Bars_Only[] = {-3488, -3076.23, TMS_Thin_Start};  // this is the bottom with horizontal bars, stereo: -3002.23
-  const double TMS_End_Bars_Only[] = {3488, 371.77, TMS_Double_End};       // this is the top with horizontal bars, stereo: 297.77
+  // PDR
+  //const double TMS_Start_Bars_Only[] = {-3488, -3076.23, TMS_Thin_Start};  // this is the bottom with horizontal bars, stereo: -3002.23
+  //const double TMS_End_Bars_Only[] = {3488, 371.77, TMS_Double_End};       // this is the top with horizontal bars, stereo: 297.77
+  //
+  //6m from readout reco x,y,z
+  const double TMS_Start_Bars_Only[] = {-2880.23, -3076.23, TMS_Thin_Start};  // this is the bottom with horizontal bars, stereo: -3002.23
+  const double TMS_End_Bars_Only[] = {2888.23, 371.77, TMS_Double_End};       // this is the top with horizontal bars, stereo: 297.77
 
   // Gap for TMS region that is thin iron layer (mm)
   const double TMS_Thin_gap = 65;
@@ -137,10 +152,17 @@ namespace TMS_Const {
   const int nModules = 12;
   const int nPlanes = 82;
   
-  const double TMS_Magnetic_region_1_outer_edge = -3730.0;
-  const double TMS_Magnetic_region_1_and_2_border = -1860.0;
-  const double TMS_Magnetic_region_2_and_3_border = 1860.0;
-  const double TMS_Magnetic_region_3_outer_edge = 3730.0;
+  //7m each steel plate=1.850m + gap 0.020m
+  //const double TMS_Magnetic_region_1_outer_edge = -3730.0;
+  //const double TMS_Magnetic_region_1_and_2_border = -1860.0;
+  //const double TMS_Magnetic_region_2_and_3_border = 1860.0;
+  //const double TMS_Magnetic_region_3_outer_edge = 3730.0;
+
+  //6m each steel plate=1.4575m + gap 0.020m
+  const double TMS_Magnetic_region_1_outer_edge = -2945;
+  const double TMS_Magnetic_region_1_and_2_border = -1467.5;
+  const double TMS_Magnetic_region_2_and_3_border = 1467.5;
+  const double TMS_Magnetic_region_3_outer_edge = 2945;
 }
 
 #endif
