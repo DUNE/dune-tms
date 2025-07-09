@@ -2,9 +2,9 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main", "Liam-CI-test", "liam_dev" ]
+    branches: [ "main", "Liam-CI-test", "liam_dev", "double_plus_Kalman"]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "double_plus_Kalman"]
 
 jobs:
   build:
