@@ -1,3 +1,5 @@
+//script to do basic track matching between tms and nd lar
+
 #include<DUNEStyle.h>
 #include<TFile.h>
 #include<TH1D.h>
@@ -87,6 +89,14 @@ float delta_theta(float xdir1, float ydir1, float zdir1, float xdir2, float ydir
 	return delta_theta;
 }
 
+bool ismatched(){
+	bool is_matched = false;
+
+
+
+	return is_matched;
+}
+
 int main(std::string inputFilename){
 
 	std::unique_ptr<TFile> myFile(TFile::Open(inputFilename.c_str()));
@@ -114,8 +124,11 @@ int main(std::string inputFilename){
 	TTree *truth = myFile->Get<TTree>("Truth_Info");
 	TTree *reco = myFile->Get<TTree>("Reco_Tree");
 
-	// List histos
-	
+	float TrueTMSStart;
+	float PDG;
+
+	truth->SetBranchAddress("RecoTrackPrimaryParticleTruePositionEnteringTMS", &TrueTMSStart);
+	truth->SetBranchAddress("PDG", PDG);
 
 	int nentries = truth->GetEntries();
 
@@ -126,24 +139,13 @@ int main(std::string inputFilename){
 		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
 			
 		for(int itrack = 0; itrack <= nTracksTrue; itrack++){
-			auto end_array = truth.RecoTrackPrimaryParticleTruePositionTrackEnd[itrack];
-			auto start_array = truth.RecoTrackPrimaryParticleTruePositionTrackStart[itrack];			
-
-			float XTrackEndpoint = end_array[0];
-			float YTrackEndpoint = end_array[1];
-			float ZTrackEndpoint = end_array[2]; 
-			
-			float XTrackStartpoint = start_array[0];
-			float YTrackStartPoint = start_array[1];
-			float ZTrackStartPoint = start_array[2];		
-	
 			bool is_muon = isMuon(truth->GetLeaf("PDG")->GetValue(itrack));
 			bool is_TMS_contained = isTMSContained(XTrackEndpoint, YTrackEndpoint, ZTrackEndpoint);		
 			bool is_LAr_contained = isLArContained(XTrackStartpoint, YTrackStartpoint, ZTrackStartpoint);
 			bool has_min_hits = hasMinHits(reco->GetLeaf("nHits")->GetValue(itrack));	
 
 			if(is_muon && is_TMS_contained && is_LAr_contained && has_min_hits){
-			
+				cout << XTrackEndpoint << " X" << endl;
 			}
 		}
 	}
