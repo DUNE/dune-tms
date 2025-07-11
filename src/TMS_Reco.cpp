@@ -2357,14 +2357,14 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &UHit, TMS_Hit &VH
   else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = false;
 
   if (above) {
-    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 167.0) {
-      OneHit.SetRecoY(244.0);
+    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 10 * TMS_Const::TMS_Scint_Width) { //167.0) {
+      OneHit.SetRecoY(TMS_Const::TMS_End_Bars_Only[1]);//244.0);
     } else {
       OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
     }
   } else {
-    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 167.0) {
-      OneHit.SetRecoY(-2949.0);
+    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 10 * TMS_Const::TMS_Scint_Width) { //167.0) {
+      OneHit.SetRecoY(TMS_Const::TMS_Start_Bars_Only[1]);//-2949.0);
     } else {
       OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
     }
