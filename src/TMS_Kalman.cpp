@@ -217,7 +217,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
    // Modification begins here: introduce magnetic field and deflection based on regions
   // Determine magnetic field based on x-position
   double MagneticField = 0;
-  const double RegionBoundaryX = 1860; // hard coded boundary for regions
+  const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; //1860; // hard coded boundary for regions
   if (fabs(PreviousState.x) <= RegionBoundaryX) {
       MagneticField = -1.0; // Central region: Magnetic field downwards
   } else if (PreviousState.x > RegionBoundaryX) {
@@ -583,7 +583,7 @@ void TMS_Kalman::BetheBloch() {
 
 
         double MagneticField = 0;
-        const double RegionBoundaryX = 1860; // hard coded boundary for regions
+        const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; //1860; // hard coded boundary for regions
         if (fabs(PreviousState.x) <= RegionBoundaryX) {
             MagneticField = -1.0; // Central region: Magnetic field downwards
         } else if (PreviousState.x > RegionBoundaryX) {
@@ -794,7 +794,7 @@ void TMS_Kalman::SignSelection() {
 
 
         TVector3 B;
-        const double RegionBoundaryX = 1860; // mm
+        const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; //1860; // mm
         if (std::abs(0.5 * (PreviousState.x + CurrentState.x)) <= RegionBoundaryX)
             B = TVector3(0.0, 1.0, 0.0); // Central region
         else
