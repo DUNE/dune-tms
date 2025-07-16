@@ -42,53 +42,71 @@ const double GEV = 1e-3; // GeV per MEV
 #define length_to_energy_clarence(l) (l * 1.75 + 82) * 1e-3
 #define default_length_to_energy(l) (l * 1.75) * 1e-3
 // #define length_to_energy(l) default_length_to_energy(l) // No fit
-//#define GEOM_V3 // for old geom
-//#define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
-//#define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
-//#define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10 processing, hybrid, et al.
-//#define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no
+// #define GEOM_V3 // for old geom
+// #define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
+// #define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
+// #define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10
+// processing, hybrid, et al. #define length_to_energy(l) (l*1.75*0.9460
+// + 91.80)*1e-3 // New geom, no
 // kalman
-//#define length_to_energy(l) default_length_to_energy(l) // default for fitting
-//#define length_to_energy(l) (1.75*l*0.9528 + 56.4912)*1e-3 // 2025-04-10 stereo, simple length3d
+// #define length_to_energy(l) default_length_to_energy(l) // default for
+// fitting #define length_to_energy(l) (1.75*l*0.9528 + 56.4912)*1e-3 //
+// 2025-04-10 stereo, simple length3d
 #define lar_length_to_energy(l) (l) * 1e-3
 
 namespace energy_function {
-  enum energy_function {
-    none,
-    old_geom,
-    length3d_20250410_stereo,
-    f7_PDR_3_2b,
-    f7_5v6h_4_2d,
-    f7_5v6h_4_2c,
-    f32b,
-    f42c,
-    f42d,
-  };
+enum energy_function {
+  none,
+  old_geom,
+  length3d_20250410_stereo,
+  f7_PDR_3_2b,
+  f7_5v6h_4_2d,
+  f7_5v6h_4_2c,
+  f32b,
+  f42c,
+  f42d,
+};
 }
 energy_function::energy_function energy_function_to_use = energy_function::none;
 double length_to_energy(double l) {
-  if (energy_function_to_use == energy_function::none) return default_length_to_energy(l);
-  if (energy_function_to_use == energy_function::old_geom) return (l * 1.75 * 0.951 + 76.8) * 1e-3;
-  if (energy_function_to_use == energy_function::length3d_20250410_stereo) return (1.75*l*0.9528 + 56.4912)*1e-3;
-  if (energy_function_to_use == energy_function::f7_PDR_3_2b) return (1.75*l*1.0736 + 62.9978)*1e-3;
-  if (energy_function_to_use == energy_function::f7_5v6h_4_2d) return (1.75*l*0.9461 + 94.7684)*1e-3;
-  if (energy_function_to_use == energy_function::f7_5v6h_4_2c) return (1.75*l*1.0501 + 47.5804)*1e-3;
-  if (energy_function_to_use == energy_function::f32b) return (1.75*l*1.0583 + 78.4743)*1e-3;
-  if (energy_function_to_use == energy_function::f42c) return (1.75*l*1.0501 + 47.5804)*1e-3;
-  if (energy_function_to_use == energy_function::f42d) return (1.75*l*0.9708 + 71.8783)*1e-3;
+  if (energy_function_to_use == energy_function::none)
+    return default_length_to_energy(l);
+  if (energy_function_to_use == energy_function::old_geom)
+    return (l * 1.75 * 0.951 + 76.8) * 1e-3;
+  if (energy_function_to_use == energy_function::length3d_20250410_stereo)
+    return (1.75 * l * 0.9528 + 56.4912) * 1e-3;
+  if (energy_function_to_use == energy_function::f7_PDR_3_2b)
+    return (1.75 * l * 1.0736 + 62.9978) * 1e-3;
+  if (energy_function_to_use == energy_function::f7_5v6h_4_2d)
+    return (1.75 * l * 0.9461 + 94.7684) * 1e-3;
+  if (energy_function_to_use == energy_function::f7_5v6h_4_2c)
+    return (1.75 * l * 1.0501 + 47.5804) * 1e-3;
+  if (energy_function_to_use == energy_function::f32b)
+    return (1.75 * l * 1.0583 + 78.4743) * 1e-3;
+  if (energy_function_to_use == energy_function::f42c)
+    return (1.75 * l * 1.0501 + 47.5804) * 1e-3;
+  if (energy_function_to_use == energy_function::f42d)
+    return (1.75 * l * 0.9708 + 71.8783) * 1e-3;
   return default_length_to_energy(l);
 }
 
 void SetEnergyFunctionBasedOnInputFile(const std::string &inputFilename) {
   auto starting_function = energy_function_to_use;
-  if (inputFilename.find("7_PDR_3_2b") != std::string::npos) energy_function_to_use = energy_function::f7_PDR_3_2b;
-  if (inputFilename.find("7_5v6h_4_2d") != std::string::npos) energy_function_to_use = energy_function::f7_5v6h_4_2d;
-  if (inputFilename.find("7_5v6h_4_2c") != std::string::npos) energy_function_to_use = energy_function::f7_5v6h_4_2c;
-  if (inputFilename.find("32b") != std::string::npos) energy_function_to_use = energy_function::f32b;
-  if (inputFilename.find("42c") != std::string::npos) energy_function_to_use = energy_function::f42c;
-  if (inputFilename.find("42d") != std::string::npos) energy_function_to_use = energy_function::f42d;
+  if (inputFilename.find("7_PDR_3_2b") != std::string::npos)
+    energy_function_to_use = energy_function::f7_PDR_3_2b;
+  if (inputFilename.find("7_5v6h_4_2d") != std::string::npos)
+    energy_function_to_use = energy_function::f7_5v6h_4_2d;
+  if (inputFilename.find("7_5v6h_4_2c") != std::string::npos)
+    energy_function_to_use = energy_function::f7_5v6h_4_2c;
+  if (inputFilename.find("32b") != std::string::npos)
+    energy_function_to_use = energy_function::f32b;
+  if (inputFilename.find("42c") != std::string::npos)
+    energy_function_to_use = energy_function::f42c;
+  if (inputFilename.find("42d") != std::string::npos)
+    energy_function_to_use = energy_function::f42d;
   if (energy_function_to_use != starting_function)
-    std::cout<<"Set energy_function_to_use to "<<energy_function_to_use<<" based on inputFilename: "<<inputFilename<<std::endl;
+    std::cout << "Set energy_function_to_use to " << energy_function_to_use
+              << " based on inputFilename: " << inputFilename << std::endl;
 }
 
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
@@ -211,10 +229,10 @@ enum TMSCutFlags {
 const double TMS_START_Z = 11362;
 #ifdef GEOM_V3
 const double TMS_LAST_PLANE_Z = 17900; // mm // 18314.0 - 50; // End Z - 5cm
-const double TMS_THICK_START = 13500; // mm
+const double TMS_THICK_START = 13500;  // mm
 #else
 const double TMS_LAST_PLANE_Z = 18400;
-const double TMS_THICK_START = 14480; // mm
+const double TMS_THICK_START = 14480;        // mm
 const double TMS_DOUBLE_THICK_START = 17560; // mm
 #endif
 const double TMS_Y_TOP =
@@ -224,9 +242,9 @@ const double TMS_Y_BOTTOM =
 const double TMS_Y_MIDDLE = 0.5 * (TMS_Y_TOP + TMS_Y_BOTTOM);
 const double TMS_X_EXTENT = 3300.0; // Assumes things are symmetrical right now
 const double TMS_X_START = -TMS_X_EXTENT;
-const double Y_BUFFER = 400;        // mm, 40 cm
-const double X_BUFFER = 30;         // mm, 3cm bar thickness?
-const double Z_BUFFER = 100;        // mm, two thin planes
+const double Y_BUFFER = 400; // mm, 40 cm
+const double X_BUFFER = 30;  // mm, 3cm bar thickness?
+const double Z_BUFFER = 100; // mm, two thin planes
 const double VIEW_ANGLE = 3.0 * TMath::DegToRad();
 
 TVector3 GetRotatedVector(TVector3 v, bool u) {
@@ -460,7 +478,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
   std::map<int, double> manually_calculated_shell_hadronic_energy_per_vertex;
 
   std::map<int, int> particle_indices_reconstructed;
-  
+
   Long64_t entry_number = 0;
   // Now loop over the ttree
   for (; entry_number < truth.GetEntriesFast() &&
@@ -1007,14 +1025,18 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
           mapOfXLineIndices[iH] = -1;
           for (int ih = 0; ih < lc.nHitsInTrackX[0]; ih++) {
             double reco_z = lc.TrackHitPosX[0][ih][0];
-            if (reco_z < pre_line_z) pre_line_z = reco_z;
-            if (reco_z > post_line_z) post_line_z = reco_z;
+            if (reco_z < pre_line_z)
+              pre_line_z = reco_z;
+            if (reco_z > post_line_z)
+              post_line_z = reco_z;
             double dz = std::abs(reco_z - true_z);
-            if (dz < z_eps) { mapOfXLineIndices[iH] = ih; break; }
+            if (dz < z_eps) {
+              mapOfXLineIndices[iH] = ih;
+              break;
+            }
           }
         }
-        
-        
+
         for (int iH = 0; iH < reco.nHits[0]; iH++) {
           int ih = mapOfXLineIndices[iH];
           double true_y = truth.RecoTrackTrueHitPosition[0][iH][1];
@@ -1022,43 +1044,55 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
             double reco_y = lc.TrackHitPosX[0][ih][1];
             double dy = reco_y - true_y;
             GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y",
-                    "Reco Track Hit Resolution Y", "hit_position_resolution_y", "#N Hits")
+                    "Reco Track Hit Resolution Y", "hit_position_resolution_y",
+                    "#N Hits")
                 ->Fill(dy * CM);
-            GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_1_has_x",
-                    "Reco Track Hit Resolution Y: Has X info", "hit_position_resolution_y", "#N Hits")
+            GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_"
+                    "v2_nostack_1_has_x",
+                    "Reco Track Hit Resolution Y: Has X info",
+                    "hit_position_resolution_y", "#N Hits")
                 ->Fill(dy * CM);
-          }
-          else {
+          } else {
             double reco_z = reco.TrackHitPos[0][iH][2];
             double dy = reco.TrackHitPos[0][iH][1] - true_y;
-            
+
             if (reco_z < pre_line_z)
-              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_3_pre_line",
-                      "Reco Track Hit Resolution Y: Before X Line", "hit_position_resolution_y", "#N Hits")
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_"
+                      "y_v2_nostack_3_pre_line",
+                      "Reco Track Hit Resolution Y: Before X Line",
+                      "hit_position_resolution_y", "#N Hits")
                   ->Fill(dy * CM);
             else if (reco_z > post_line_z)
-              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_4_post_line",
-                      "Reco Track Hit Resolution Y: After X Line", "hit_position_resolution_y", "#N Hits")
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_"
+                      "y_v2_nostack_4_post_line",
+                      "Reco Track Hit Resolution Y: After X Line",
+                      "hit_position_resolution_y", "#N Hits")
                   ->Fill(dy * CM);
             else
-              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_y_v2_nostack_2_missing_x",
-                      "Reco Track Hit Resolution Y: Missing X info", "hit_position_resolution_y", "#N Hits")
+              GetHist("resolution__reco_track__lines_2d__line_x_hit_resolution_"
+                      "y_v2_nostack_2_missing_x",
+                      "Reco Track Hit Resolution Y: Missing X info",
+                      "hit_position_resolution_y", "#N Hits")
                   ->Fill(dy * CM);
           }
         }
       }
-      
+
       double avg_offset = 0;
       for (int ih = 0; ih < reco.nHits[0]; ih++) {
         double dx = reco.TrackHitPos[0][ih][0] -
                     truth.RecoTrackTrueHitPosition[0][ih][0];
-        GetSpecialHist("special__track_hit_resolution_x", "resolution__reco_track__hit_resolution_x",
-                "Reco Track Hit Resolution X", "hit_position_resolution_x", "#N Hits")
+        GetSpecialHist("special__track_hit_resolution_x",
+                       "resolution__reco_track__hit_resolution_x",
+                       "Reco Track Hit Resolution X",
+                       "hit_position_resolution_x", "#N Hits")
             ->Fill(dx * CM);
         double dy = reco.TrackHitPos[0][ih][1] -
                     truth.RecoTrackTrueHitPosition[0][ih][1];
-        GetSpecialHist("special__track_hit_resolution_y", "resolution__reco_track__hit_resolution_y",
-                "Reco Track Hit Resolution Y", "hit_position_resolution_y", "#N Hits")
+        GetSpecialHist("special__track_hit_resolution_y",
+                       "resolution__reco_track__hit_resolution_y",
+                       "Reco Track Hit Resolution Y",
+                       "hit_position_resolution_y", "#N Hits")
             ->Fill(dy * CM);
         GetHist("resolution__reco_track__hit_resolution_y_comparison_nostack_"
                 "with_offset",
@@ -1175,8 +1209,8 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                 "first_n_events",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::tons);
-                
-    if (lc.nLinesX > 0) 
+
+    if (lc.nLinesX > 0)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                 "track_multiplicity/has_nonzero_nLinesX",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
@@ -1286,11 +1320,14 @@ std::string getOutputFilename(const std::string &inputFilename) {
   // Check for special case where user specified dir/*root
   if (filename.find("*.root") != std::string::npos) {
     // Make output filename out of remaining directory if possible
-    if (pos != std::string::npos) filename = getOutputFilename(inputFilename.substr(0, pos));
-    else filename = "validation.root"; // No choice but a default file
+    if (pos != std::string::npos)
+      filename = getOutputFilename(inputFilename.substr(0, pos));
+    else
+      filename = "validation.root"; // No choice but a default file
   }
   // Now add .root if needed
-  if (filename.find(".root") == std::string::npos) filename += ".root";
+  if (filename.find(".root") == std::string::npos)
+    filename += ".root";
   return filename;
 }
 
@@ -1310,7 +1347,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Usage: " << argv[0]
               << " <input_filename> <num_events (optional)> <max num slices to "
                  "draw (optional)> \\\n <output filename (defaults to "
-                 "/exp/dune/data/users/$USER/dune-tms/Validation/" + exeName + "/<inputdirname>.root)"
+                 "/exp/dune/data/users/$USER/dune-tms/Validation/" +
+                     exeName + "/<inputdirname>.root)"
               << std::endl;
     return 1;
   }
@@ -1380,13 +1418,15 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to create directory" << std::endl;
     exit(1);
   }
-  
+
   SetEnergyFunctionBasedOnInputFile(inputFilename);
 
   // Create output filename, GIT_BRANCH_NAME + "_" +
   std::string outputFilename;
-  if (argc > 4) outputFilename = argv[4];
-  else outputFilename = directoryPath + getOutputFilename(inputFilename);
+  if (argc > 4)
+    outputFilename = argv[4];
+  else
+    outputFilename = directoryPath + getOutputFilename(inputFilename);
 
   save_location = getOutputDirname(outputFilename);
 
