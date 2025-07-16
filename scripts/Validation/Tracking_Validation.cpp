@@ -43,17 +43,53 @@ const double GEV = 1e-3; // GeV per MEV
 #define default_length_to_energy(l) (l * 1.75) * 1e-3
 // #define length_to_energy(l) default_length_to_energy(l) // No fit
 //#define GEOM_V3 // for old geom
-#ifdef GEOM_V3
-#define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
-#else
+//#define length_to_energy(l) (l * 1.75 * 0.951 + 76.8) * 1e-3 // Old geom
 //#define length_to_energy(l) (l * 1.75 * 0.9428 + 18.73) * 1e-3 // New geom
 //#define length_to_energy(l) (1.75*l*0.9931 + 101.2445)*1e-3 // 2025-04-10 processing, hybrid, et al.
 //#define length_to_energy(l) (l*1.75*0.9460 + 91.80)*1e-3 // New geom, no
 // kalman
 //#define length_to_energy(l) default_length_to_energy(l) // default for fitting
-#define length_to_energy(l) (1.75*l*0.9528 + 56.4912)*1e-3 // 2025-04-10 stereo, simple length3d
-#endif
+//#define length_to_energy(l) (1.75*l*0.9528 + 56.4912)*1e-3 // 2025-04-10 stereo, simple length3d
 #define lar_length_to_energy(l) (l) * 1e-3
+
+namespace energy_function {
+  enum energy_function {
+    none,
+    old_geom,
+    length3d_20250410_stereo,
+    f7_PDR_3_2b,
+    f7_5v6h_4_2d,
+    f7_5v6h_4_2c,
+    f32b,
+    f42c,
+    f42d,
+  };
+}
+energy_function::energy_function energy_function_to_use = energy_function::none;
+double length_to_energy(double l) {
+  if (energy_function_to_use == energy_function::none) return default_length_to_energy(l);
+  if (energy_function_to_use == energy_function::old_geom) return (l * 1.75 * 0.951 + 76.8) * 1e-3;
+  if (energy_function_to_use == energy_function::length3d_20250410_stereo) return (1.75*l*0.9528 + 56.4912)*1e-3;
+  if (energy_function_to_use == energy_function::f7_PDR_3_2b) return (1.75*l*1.0736 + 62.9978)*1e-3;
+  if (energy_function_to_use == energy_function::f7_5v6h_4_2d) return (1.75*l*0.9461 + 94.7684)*1e-3;
+  if (energy_function_to_use == energy_function::f7_5v6h_4_2c) return (1.75*l*1.0501 + 47.5804)*1e-3;
+  if (energy_function_to_use == energy_function::f32b) return (1.75*l*1.0583 + 78.4743)*1e-3;
+  if (energy_function_to_use == energy_function::f42c) return (1.75*l*1.0501 + 47.5804)*1e-3;
+  if (energy_function_to_use == energy_function::f42d) return (1.75*l*0.9708 + 71.8783)*1e-3;
+  return default_length_to_energy(l);
+}
+
+void SetEnergyFunctionBasedOnInputFile(const std::string &inputFilename) {
+  auto starting_function = energy_function_to_use;
+  if (inputFilename.find("7_PDR_3_2b") != std::string::npos) energy_function_to_use = energy_function::f7_PDR_3_2b;
+  if (inputFilename.find("7_5v6h_4_2d") != std::string::npos) energy_function_to_use = energy_function::f7_5v6h_4_2d;
+  if (inputFilename.find("7_5v6h_4_2c") != std::string::npos) energy_function_to_use = energy_function::f7_5v6h_4_2c;
+  if (inputFilename.find("32b") != std::string::npos) energy_function_to_use = energy_function::f32b;
+  if (inputFilename.find("42c") != std::string::npos) energy_function_to_use = energy_function::f42c;
+  if (inputFilename.find("42d") != std::string::npos) energy_function_to_use = energy_function::f42d;
+  if (energy_function_to_use != starting_function)
+    std::cout<<"Set energy_function_to_use to "<<energy_function_to_use<<" based on inputFilename: "<<inputFilename<<std::endl;
+}
 
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
 
@@ -1247,6 +1283,14 @@ std::string getOutputFilename(const std::string &inputFilename) {
   std::string filename = (pos != std::string::npos)
                              ? inputFilename.substr(pos + 1)
                              : inputFilename;
+  // Check for special case where user specified dir/*root
+  if (filename.find("*.root") != std::string::npos) {
+    // Make output filename out of remaining directory if possible
+    if (pos != std::string::npos) filename = getOutputFilename(inputFilename.substr(0, pos));
+    else filename = "validation.root"; // No choice but a default file
+  }
+  // Now add .root if needed
+  if (filename.find(".root") == std::string::npos) filename += ".root";
   return filename;
 }
 
@@ -1261,10 +1305,12 @@ std::string getOutputDirname(const std::string &outputFilename) {
 
 int main(int argc, char *argv[]) {
   // Check if the correct number of arguments is provided
+  std::string exeName = getExecutableName(argv[0]);
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0]
-              << " <input_filename> <num_events (optional)> <num slices to "
-                 "draw (optional)>"
+              << " <input_filename> <num_events (optional)> <max num slices to "
+                 "draw (optional)> \\\n <output filename (defaults to "
+                 "/exp/dune/data/users/$USER/dune-tms/Validation/" + exeName + "/<inputdirname>.root)"
               << std::endl;
     return 1;
   }
@@ -1274,10 +1320,12 @@ int main(int argc, char *argv[]) {
   std::string filename;
   if (inputFilename.find(".root") != std::string::npos)
     // Assuming we're specifying a single tmsreco file
+    // Optionally someone might specify several using dir/\*root
     filename = inputFilename;
-  else
+  else {
     // Assuming the full directory
-    filename = inputFilename + "/tmsreco/*/00m/00/*.tmsreco.root";
+    filename = inputFilename + "/tmsreco/*/00m/00/*.root";
+  }
   int numEvents = -1;
   if (argc > 2)
     numEvents = atoi(argv[2]);
@@ -1322,7 +1370,6 @@ int main(int argc, char *argv[]) {
   static Line_Candidates li(line_candidates);
   std::cout << "Loaded Line_Candidates" << std::endl;
 
-  std::string exeName = getExecutableName(argv[0]);
   std::string directoryPath = "/exp/dune/data/users/" +
                               std::string(getenv("USER")) +
                               "/dune-tms/Validation/" + exeName + "/";
@@ -1333,9 +1380,13 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to create directory" << std::endl;
     exit(1);
   }
+  
+  SetEnergyFunctionBasedOnInputFile(inputFilename);
 
   // Create output filename, GIT_BRANCH_NAME + "_" +
-  std::string outputFilename = directoryPath + getOutputFilename(inputFilename);
+  std::string outputFilename;
+  if (argc > 4) outputFilename = argv[4];
+  else outputFilename = directoryPath + getOutputFilename(inputFilename);
 
   save_location = getOutputDirname(outputFilename);
 
