@@ -28,6 +28,7 @@
 
 // Hand over to the Kalman reconstruction once we find tracks
 #include "TMS_Kalman.h"
+#include "TMS_Reco_Truth_Override.h"
 
 #define __LARGE_COST__ 999999999
 

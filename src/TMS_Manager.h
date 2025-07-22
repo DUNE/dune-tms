@@ -21,6 +21,7 @@ class TMS_Manager {
     std::string GetFileName() { return Filename; };
 
     int Get_Reco_MinHits() { return _RECO_MinHits; };
+    bool Get_Reco_UseTruthOverride() { return _RECO_UseTruthOverride; };
 
     int Get_Reco_DBSCAN_MinPoints() { return _RECO_DBSCAN_MinPoints; };
     double Get_Reco_DBSCAN_Epsilon() { return _RECO_DBSCAN_Epsilon; };
@@ -122,6 +123,7 @@ class TMS_Manager {
     std::string Filename;
 
     int _RECO_MinHits;
+    bool _RECO_UseTruthOverride;
 
     int _RECO_DBSCAN_MinPoints;
     double _RECO_DBSCAN_Epsilon;

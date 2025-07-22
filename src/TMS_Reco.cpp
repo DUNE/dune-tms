@@ -1,4 +1,5 @@
 #include "TMS_Reco.h"
+#include "TMS_Reco_Truth_Override.h"
 
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
@@ -184,6 +185,14 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
   // Clean hits (check duplicate hits, and energy threshold)
   CleanedHits = CleanHits(RawHits);
+  
+  bool truth_override = TMS_Manager::GetInstance().Get_Reco_UseTruthOverride();
+  if (truth_override) {
+    // Use the override
+    TMS_Reco_Truth_Override::FindTracksUsingTruth(CleanedHits, event, HoughTracks3D);
+    // End without doing regular reco
+    return;
+  }
 
   // Require N hits after cleaning
   if (CleanedHits.size() < nMinHits) return;

@@ -18,6 +18,7 @@ TMS_Manager::TMS_Manager() {
 
   // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
+  _RECO_UseTruthOverride = toml::find<bool>(data, "Recon", "UseTruthOverride");
   
   _RECO_TIME_RunTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunTimeSlicer");
   _RECO_TIME_RunSimpleTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunSimpleTimeSlicer");

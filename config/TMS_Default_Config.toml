@@ -5,6 +5,8 @@
 [Recon]
   # Minimum number of hits to consider reconstructing the event
   MinHits = 5
+  # Whether to use the true hits to feed into the kalman filter
+  UseTruthOverride = false
 
   # Track reco; Hough, AStar, DBSCAN
   TrackMethod = "Hough"
