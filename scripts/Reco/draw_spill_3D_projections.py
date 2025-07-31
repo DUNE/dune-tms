@@ -481,7 +481,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                             z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
                             x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5)
 
-                if DrawKalmanTrack and not lines2D:
+                if DrawKalmanTrack and not lines2D and not fullspill:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
     
                     prev_kal_x = -1E100
@@ -617,7 +617,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
                 ### Track start
                 #temporary fix
-                if not (StartPos[j*4 + 2] < 11000.): 
+                if not (StartPos[j*4 + 2] < 11000.) and not fullspill: 
                     
                     if not StartPos[j*4 + 1] == 0.0:
                         if not lines2D:
@@ -642,7 +642,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             
                 ### Track end               
                 #temporary fix
-                if not (EndPos[j*4 + 2] < 11000.):  
+                if not (EndPos[j*4 + 2] < 11000.) and not fullspill:  
     
                     if not EndPos[j*4 + 1] == 0.0:
                         if not lines2D:
@@ -667,7 +667,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 ### Track direction
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.): 
+                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.) and not fullspill: 
 
                     if not StartPos[j*4 + 1] == 0.0 or EndPos[j*4 + 1] == 0.0:
                         x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
@@ -680,13 +680,13 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 
                     z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5, label = 'Start true')
                     z_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 2] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5, label = 'End true')
-            
+                
                     x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackStart[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '2', alpha = 0.5)
                     x_y.scatter(RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 0] / 1000.0, RecoTrackPrimaryParticleTruePositionTrackEnd[j*4 + 1] / 1000.0, c = magenta_cbf, marker = '1', alpha = 0.5)
 
     
                 # Write the True Muon KE to each spill plot.
-                if report_true_ke:
+                if report_true_ke and not fullspill:
                     for idx, pdg in enumerate(true_event.PDG):
                         if pdg != abs(13): continue
         
@@ -699,16 +699,17 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
     
                         if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
                             print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
-    
-                # add a legend
-                fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
-                fig.tight_layout()
-                fig.subplots_adjust(right = 0.84)
-                # save plot
-                output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
-                print("plotted ", output_filename)
-                mp.savefig(output_filename + ".png", bbox_inches = 'tight')
-                mp.close()
+                
+                if not fullspill:
+                    # add a legend
+                    fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
+                    fig.tight_layout()
+                    fig.subplots_adjust(right = 0.84)
+                    # save plot
+                    output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
+                    print("plotted ", output_filename)
+                    mp.savefig(output_filename + ".png", bbox_inches = 'tight')
+                    mp.close()
         
         if fullspill:
             fig = mp.figure(constrained_layout = False)
@@ -781,24 +782,41 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             color_array = np.array([cividis(i / counter_tracks) for i in range(counter_tracks)])
 
             color_it = 0
+            #selected = False
+            #selected_event = False
             for i in range(n_events):
+                #if tracks_x[i, 0] != -999999.:
+                    #if not selected:
+                    #    selected_event = True
+                    #    selected = True
                 for j in range(10):
                     full_track = False
                     for k in range(200):
                         if tracks_x[i, j*200 + k] != -999999.:
                             full_track = True
-                            x_z.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_x[i, j*200 + k], 'xz', 'XBar'), color = color_array[color_it])
-                            z_y.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_y[i, j*200 + k], 'zy', 'XBar'), color = color_array[color_it])
-                            x_y.fill_between(*hit_size(tracks_x[i, j*200 + k], tracks_y[i, j*200 + k], 'xy', 'XBar'), color = color_array[color_it])
+                            #if selected_event:
+                            #    print(" time: ", tracks_t[i, j*200 + k])
+                            #    x_z.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_x[i, j*200 + k], 'xz', 'XBar'), color = 'blue')
+                            #    z_y.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_y[i, j*200 + k], 'zy', 'XBar'), color = 'blue')
+                            #    x_y.fill_between(*hit_size(tracks_x[i, j*200 + k], tracks_y[i, j*200 + k], 'xy', 'XBar'), color = 'blue')
+                            #else:
+                            x_z.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_x[i, j*200 + k], 'xz', 'XBar'), color = 'grey')#color_array[color_it])
+                            z_y.fill_between(*hit_size(tracks_z[i, j*200 + k], tracks_y[i, j*200 + k], 'zy', 'XBar'), color = 'grey')#color_array[color_it])
+                            x_y.fill_between(*hit_size(tracks_x[i, j*200 + k], tracks_y[i, j*200 + k], 'xy', 'XBar'), color = 'grey')#color_array[color_it])
                         if k == 199 and full_track:
                             color_it += 1
+                            #if selected_event:
+                            #    selected_event = False
 
             tracks_t.flatten()
             tracks_e.flatten()
             boolean_tracks = (tracks_t != -999999.)
             tracks_t = tracks_t[boolean_tracks]
             tracks_e = tracks_e[boolean_tracks]
-            time.hist(tracks_t % 1.2e9, bins = int((max(tracks_t % 1.2e9) - min(tracks_t % 1.2e9)) / 4), color = black_cbf, align = 'mid', weights = tracks_e)
+            number_bins = int((max(tracks_t % 1.2e9) - min(tracks_t % 1.2e9)) / 2)
+            time.hist(tracks_t % 1.2e9, bins = number_bins, color = 'grey', align = 'mid', weights = tracks_e) #black_cbf
+            #tracks_t_sel = (tracks_t > 9994) & (tracks_t < 10028)
+            #time.hist(tracks_t[tracks_t_sel] % 1.2e9, bins = number_bins, range = (min(tracks_t % 1.2e9), max(tracks_t % 1.2e9)), color = 'blue', align = 'mid', weights = tracks_e[tracks_t_sel])
             energy.hist(tracks_e, bins = int(max(tracks_e) * 3), color = black_cbf, align = 'mid')
 
             fig.tight_layout()
