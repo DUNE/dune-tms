@@ -716,7 +716,6 @@ for (auto Lines: HoughCandidatesY) {
       trk.Length = CalculateTrackLengthKalman(trk);
     }
   } 
-  
   return;
 }
 
@@ -1337,7 +1336,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
           } else if (((UTracks[itU].GetZ() >= TMS_Const::TMS_Double_Start && XTracks[itX].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * 2 + 10))
               || ((VTracks[itV].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * 2 + 10))) {
             stereo_view = false;
-          }
+          } 
           if (itX > 0 && itU == 0 && itV == 0) stereo_view = false;
         }
 #ifdef DEBUG
@@ -1848,6 +1847,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
       std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
 #endif
+
       // Track Direction
       if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
         double direction_x = aTrack.End[0] - aTrack.Start[0];
@@ -1862,6 +1862,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         double magnitude = sqrt(direction_x * direction_x + direction_y * direction_y + direction_z * direction_z);
         aTrack.SetStartDirection(direction_x / magnitude, direction_y / magnitude, direction_z / magnitude);
       }
+
 #ifdef DEBUG          
       std::cout << "Start: " << aTrack.Start[0] << "mm(x) | " << aTrack.Start[1] << "mm(y) | " << aTrack.Start[2] << "mm(z) | " << aTrack.Start[3] << "s" << std::endl;
       std::cout << "End: " << aTrack.End[0] << "mm(x) | " << aTrack.End[1] << "mm(y) | " << aTrack.End[2] << "mm(z) | " << aTrack.End[3] << "s" << std::endl;
@@ -2349,7 +2350,7 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &UHit, TMS_Hit &VH
   bool above = false;
   if ((UHit.GetNotZ() > 0 && VHit.GetNotZ() > 0) || (UHit.GetNotZ() < 0 && VHit.GetNotZ() < 0)) {
     if (std::abs(UHit.GetNotZ()) >= std::abs(VHit.GetNotZ()) && UHit.GetNotZ() < 0) above = true;
-    else if (std::abs(UHit.GetNotZ()) >=std::abs( VHit.GetNotZ()) && UHit.GetNotZ() > 0) above = false;
+    else if (std::abs(UHit.GetNotZ()) >=std::abs(VHit.GetNotZ()) && UHit.GetNotZ() > 0) above = false;
     else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ()) && UHit.GetNotZ() < 0) above = false;
     else if (std::abs(UHit.GetNotZ()) < std::abs(VHit.GetNotZ()) && UHit.GetNotZ() > 0) above = true;
   }
