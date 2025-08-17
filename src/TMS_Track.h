@@ -25,7 +25,6 @@ TMS_Track(const TMS_Track& other) {
     EnergyRange     = other.EnergyRange;
     Momentum        = other.Momentum;
     Time            = other.Time;
-    Chi2            = other.Chi2;
     Chi2_minus      = other.Chi2_minus;
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
@@ -61,7 +60,6 @@ TMS_Track(const TMS_Track& other) {
         EnergyRange     = other.EnergyRange;
         Momentum        = other.Momentum;
         Time            = other.Time;
-        Chi2            = other.Chi2;
         Chi2_minus      = other.Chi2_minus;
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
@@ -104,6 +102,7 @@ TMS_Track(const TMS_Track& other) {
     double EnergyRange;
     double Momentum;
     double Time;         // TODO: Fill this in a sensible way
+    double Chi2;
     double Chi2_minus;
     double Chi2_plus;
     
