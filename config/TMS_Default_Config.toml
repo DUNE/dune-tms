@@ -57,9 +57,9 @@
     # Whether extrapolation should be performed or not
     Extrapolation = true
     # Maximal distance from start/end hit to first added hit by extrapolation
-    ExtrapolateDist = 4
+    ExtrapolateDist = 9
     # Maximal distance from first added hit (by extrapolation) to last added hit
-    ExtrapolateLimit = 20
+    ExtrapolateLimit = 23
     # Distance in number of bars a hit can be away from the direction line at the end
     NumBarsEnd = 4
     # Distance in number of bars a hit can be away from the direction line at the start
