@@ -138,7 +138,7 @@
     X = 3419.0 # mm   # TODO this is very preliminary
     Y = 291.77 # mm   # TODO this is very preliminary
     Z = 18535.0 # mm
-  [Fiducial.LAr.Start]
+  [Active.LAr.Start]
     X = -3478.48 # mm
     Y = -2166.71 # mm
     Z = 4179.24 # mm
