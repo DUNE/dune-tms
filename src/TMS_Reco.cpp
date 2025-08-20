@@ -1867,11 +1867,12 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       std::cout << "Start: " << aTrack.Start[0] << "mm(x) | " << aTrack.Start[1] << "mm(y) | " << aTrack.Start[2] << "mm(z) | " << aTrack.Start[3] << "s" << std::endl;
       std::cout << "End: " << aTrack.End[0] << "mm(x) | " << aTrack.End[1] << "mm(y) | " << aTrack.End[2] << "mm(z) | " << aTrack.End[3] << "s" << std::endl;
 //      std::cout << "Added Direction: " << aTrack.StartDirection[0] << " | " << aTrack.StartDirection[1] << " | " << aTrack.StartDirection[2] << std::endl;
-#endif
+
       if (aTrack.End[0] < -3500.0) std::cout << "EndX!!! (small) " << aTrack.End[0] << std::endl;
       if (aTrack.End[0] > 3500.0) std::cout << "EndX!!! (big) " << aTrack.End[0] << std::endl;
       if (aTrack.Start[0] < -3500.0) std::cout << "StartX!!! (small) " << aTrack.Start[0] << std::endl;
       if (aTrack.Start[0] > 3500.0) std::cout << "StartX!!! (big) " << aTrack.Start[0] << std::endl;
+#endif
   
       returned.push_back(aTrack);
 
