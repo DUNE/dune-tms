@@ -33,7 +33,7 @@ class TMS_TreeWriter {
     void Fill(TMS_Event &event);
     void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
     void FillTruthInfo(TMS_Event &event);
-    void WriteMetadata();
+    void FillMetadata();
 
     void Write() {
       Output->cd();
