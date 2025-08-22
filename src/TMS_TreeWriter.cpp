@@ -63,7 +63,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
   FillMetadata();
 }
 
-void TMS_TreeWriter::WriteMetadata() {
+void TMS_TreeWriter::FillMetadata() {
   auto start = TMS_Geom::GetInstance().GetStartOfTMSFiducial();
   TMSFiducialStartX = start.X();
   TMSFiducialStartY = start.Y();
