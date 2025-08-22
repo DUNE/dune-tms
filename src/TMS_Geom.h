@@ -56,7 +56,7 @@ class TMS_Geom {
     inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
     inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
-    inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
+    inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 130; }; // module 2 - module 0 = 13cm
     inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
 
     inline TVector3 GetStartOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_X(), 
@@ -127,7 +127,6 @@ class TMS_Geom {
     double XBarLength() { return GetXEndOfTMS(); };
     // Bar spans entire Y
     double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
-    
     
     std::string GetNameOfDetector(const TVector3 &point) {
       std::string out = "";

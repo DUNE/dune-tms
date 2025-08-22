@@ -241,6 +241,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       } // End loop over the trajectories
       nVertices++;
     } // End if (FillEvent)
+
   } // End loop over the primary vertices, for (TG4PrimaryVertexContainer::iterator it
   
   
@@ -269,7 +270,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     int key = tp.GetVertexID() * 100000 + tp.GetTrackId();
     mapping_track_to_true_particle[key] = &tp;
   }
-  
   std::map<std::tuple<int, int, int, int>, size_t> map_pos_nontms_hits;
 
   // Loop over each hit
@@ -345,7 +345,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
   bool OnlyPrimaryOrVisibleEnergy = true;
-  
+
   // Now update truth info per particle
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
     double energy = 0;
@@ -578,7 +578,7 @@ void TMS_Event::SimulateOpticalModel() {
     if (should_simulate_fiber_lengths) {
     
       // Calculate the long and short path lengths
-      #ifdef USE_OLD_CODE
+#ifdef USE_OLD_CODE
       double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
       if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -588,11 +588,10 @@ void TMS_Event::SimulateOpticalModel() {
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
-      #else
+#else
       double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
       double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
-      #endif
-      
+#endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
       distance_from_end *= wsf_length_multiplier;
@@ -821,7 +820,7 @@ void TMS_Event::SimulateTimingModel() {
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center) 
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
-    #ifdef USE_OLD_CODE
+#ifdef USE_OLD_CODE
     double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
     if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
@@ -831,11 +830,10 @@ void TMS_Event::SimulateTimingModel() {
     // TODO manually found this center. Want a better way in case things change
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799 
     double long_way_distance = distance_from_middle + 8;
-    #else
+#else
     double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
     double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
-    #endif
-    
+#endif
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
     distance_from_middle *= wsf_length_multiplier;
@@ -1048,10 +1046,9 @@ void TMS_Event::FillTruthFromGRooTracker(int pdg[__EDEP_SIM_MAX_PART__], double 
   TrueNeutrino.first.SetZ(p4[0][2]);
   TrueNeutrino.first.SetT(p4[0][3]);
   TrueNeutrino.second = pdg[0];
-  // Positions are in m
-  TrueNeutrinoPosition.SetX(vtx[0][0]);
-  TrueNeutrinoPosition.SetY(vtx[0][1]);
-  TrueNeutrinoPosition.SetZ(vtx[0][2]);
+  TrueNeutrinoPosition.SetX(vtx[0][0]*1000.);//change me to mm
+  TrueNeutrinoPosition.SetY(vtx[0][1]*1000.);
+  TrueNeutrinoPosition.SetZ(vtx[0][2]*1000.);
   TrueNeutrinoPosition.SetT(vtx[0][3]);
   
   if (info_about_vtx.size() == 1) {

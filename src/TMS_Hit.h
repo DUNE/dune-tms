@@ -126,7 +126,7 @@ class TMS_Hit {
     double GetTrueDistanceFromReadout();
     double GetTrueLongDistanceFromReadout();
     double GetTrueDistanceFromMiddle();
-    double GetTrueLongDistanceFromMiddle();
+    double GetTrueLongDistanceFromMiddle(); 
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars

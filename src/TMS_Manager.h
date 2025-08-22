@@ -67,6 +67,7 @@ class TMS_Manager {
     bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
     double Get_Reco_Kalman_Assumed_Charge() { return _RECO_KALMAN_ASSUMED_CHARGE; };
 
+
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
 
     bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
@@ -176,6 +177,7 @@ class TMS_Manager {
 
     bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
     double _RECO_KALMAN_ASSUMED_CHARGE; //set the assumed charge of the track in the kalman filter
+
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;

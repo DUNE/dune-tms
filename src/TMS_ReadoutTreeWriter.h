@@ -73,7 +73,6 @@ class TMS_ReadoutTreeWriter {
     bool RecoHitIsPedSupped[__MAX_READOUT_TREE_ARRAY_LENGTH__];
     INTVAR(RecoHitBar);
     INTVAR(RecoHitPlane);
-    INTVAR(RecoHitBarType);
     #ifdef RECORD_HIT_DEADTIME
     VAR(RecoHitDeadtimeStart);
     VAR(RecoHitDeadtimeStop);

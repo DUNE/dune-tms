@@ -132,7 +132,7 @@ def draw_performance(out_dir, input_filename, plot_Start, plot_End, plot_Charge,
             sum_true_hits = true_event.RecoTrackNHits            
             
             if (abs(Particle_PDG) == 13):
-                if 4179.24 < Muon_Start[2] < 9135.88 and 11185 < Muon_End[2] < 18535:
+                if 4179.24 < Muon_Start[2] < 9135.88 and 11134 < Muon_End[2] < 18535:
                     if 371.77 > Muon_End[1] > -3076.23 and abs(Muon_End[0]) < 3491:
                         count_muons += 1
             
