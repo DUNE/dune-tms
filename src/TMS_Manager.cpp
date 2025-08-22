@@ -109,4 +109,15 @@ TMS_Manager::TMS_Manager() {
   _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
   
   _NERSC_SPILL_PERIOD = 1.2e9;
+
+  _GEOMETRY_git_tag = toml::find<std::string>(data, "Geometry", "GitTag");
+  _GEOMETRY_git_branch = toml::find<std::string>(data, "Geometry", "GitBranch");
+  _GEOMETRY_git_commit = toml::find<std::string>(data, "Geometry", "GitCommit");
+  _GEOMETRY_NumberOfScintillatorPlanes = toml::find<int>(data, "Geometry", "NumberOfScintillatorPlanes");
+  _GEOMETRY_NumberOfSteelPlatesThin = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesThin");
+  _GEOMETRY_NumberOfSteelPlatesThick = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesThick");
+  _GEOMETRY_NumberOfSteelPlatesDouble = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesDouble");
+  _META_version_major = toml::find<int>(data, "Meta", "Version", "Major");
+  _META_version_minor = toml::find<int>(data, "Meta", "Version", "Minor");
+  _META_version_patch = toml::find<int>(data, "Meta", "Version", "Patch");
 }

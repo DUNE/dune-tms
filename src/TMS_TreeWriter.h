@@ -33,6 +33,7 @@ class TMS_TreeWriter {
     void Fill(TMS_Event &event);
     void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
     void FillTruthInfo(TMS_Event &event);
+    void WriteMetadata();
 
     void Write() {
       Output->cd();
@@ -40,6 +41,7 @@ class TMS_TreeWriter {
       Reco_Tree->Write();
       Truth_Info->Write();
       Truth_Spill->Write();
+      Meta->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
@@ -92,6 +94,7 @@ class TMS_TreeWriter {
     TTree* Reco_Tree; // The TTree 
     TTree* Truth_Info; // Truth info
     TTree* Truth_Spill; // Truth spill
+    TTree* Meta; // Metadata
 
     void Clear();
     void MakeBranches(); // Make the output branches
@@ -99,6 +102,24 @@ class TMS_TreeWriter {
     
     float TimeSliceStartTime;
     float TimeSliceEndTime;
+
+    // Meta variables
+    int DuneTMSVersionMajor;
+    int DuneTMSVersionMinor;
+    int DuneTMSVersionPatch;
+    std::string GeometryGitTag;
+    std::string GeometryGitBranch;
+    std::string GeometryGitCommit;
+    int NumberOfScintillatorPlanes;
+    int NumberOfSteelPlatesThin;
+    int NumberOfSteelPlatesThick;
+    int NumberOfSteelPlatesDouble;
+    double TMSFiducialStartX;
+    double TMSFiducialStartY;
+    double TMSFiducialStartZ;
+    double TMSFiducialEndX;
+    double TMSFiducialEndY;
+    double TMSFiducialEndZ;
 
     // The variables
     int EventNo;

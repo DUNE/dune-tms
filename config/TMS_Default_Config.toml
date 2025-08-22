@@ -133,6 +133,13 @@
 # Variables that have to do with the geometry or location of the detector 
 [Geometry]
   YBarMiddle = -1.35  #m
+  GitTag = "v2025.08.11"
+  GitBranch = "HEAD"
+  GitCommit = "cc28d73d93ee4c50c9f5b453c996e4ea20373e2f"
+  NumberOfScintillatorPlanes = 82
+  NumberOfSteelPlatesThin = 34
+  NumberOfSteelPlatesThick = 22
+  NumberOfSteelPlatesDouble = 24
   [Fiducial.TMS.Start]
     X = -3300.0 # mm
     Y = -2850.0 # mm
@@ -165,3 +172,9 @@
 [Applications]
   DrawPDF = false
   MaximumNEvents = -1
+
+[Meta]
+  [Meta.Version]
+    Major = 1
+    Minor = 0
+    Patch = 0

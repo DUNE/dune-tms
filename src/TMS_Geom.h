@@ -78,7 +78,15 @@ class TMS_Geom {
         return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };
-    
+
+    std::string GetGeometryGitTag() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitTag(); };
+    std::string GetGeometryGitBranch() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitBranch(); };
+    std::string GetGeometryGitCommit() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitCommit(); };
+    int GetNumberOfScintillatorPlanes() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfScintillatorPlanes(); };
+    int GetNumberOfSteelPlatesThin() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThin(); };
+    int GetNumberOfSteelPlatesThick() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThick(); };
+    int GetNumberOfSteelPlatesDouble() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesDouble(); };
+
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
       if (position.Y() < start.Y()) return false;
