@@ -60,7 +60,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
 
 
   MakeBranches();
-  WriteMetadata();
+  FillMetadata();
 }
 
 void TMS_TreeWriter::WriteMetadata() {
