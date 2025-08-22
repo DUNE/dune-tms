@@ -58,8 +58,6 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Meta->SetDirectory(Output);
   Meta->SetAutoSave(__TMS_AUTOSAVE__);
 
-  // Make a metadata branch
-  //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
 
   MakeBranches();
   WriteMetadata();
