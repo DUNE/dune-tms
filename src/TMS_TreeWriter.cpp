@@ -54,14 +54,56 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Truth_Spill->SetDirectory(Output);
   Truth_Spill->SetAutoSave(__TMS_AUTOSAVE__);
 
-  // Make a metadata branch
-  //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
+  Meta = new TTree("Metadata", "Metadata");
+  Meta->SetDirectory(Output);
+  Meta->SetAutoSave(__TMS_AUTOSAVE__);
+
 
   MakeBranches();
+  FillMetadata();
+}
+
+void TMS_TreeWriter::FillMetadata() {
+  auto start = TMS_Geom::GetInstance().GetStartOfTMSFiducial();
+  TMSFiducialStartX = start.X();
+  TMSFiducialStartY = start.Y();
+  TMSFiducialStartZ = start.Z();
+  auto end = TMS_Geom::GetInstance().GetEndOfTMSFiducial();
+  TMSFiducialEndX = end.X();
+  TMSFiducialEndY = end.Y();
+  TMSFiducialEndZ = end.Z();
+  GeometryGitTag = TMS_Geom::GetInstance().GetGeometryGitTag();
+  GeometryGitBranch = TMS_Geom::GetInstance().GetGeometryGitBranch();
+  GeometryGitCommit = TMS_Geom::GetInstance().GetGeometryGitCommit();
+  NumberOfScintillatorPlanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
+  NumberOfSteelPlatesThin = TMS_Geom::GetInstance().GetNumberOfSteelPlatesThin();
+  NumberOfSteelPlatesThick = TMS_Geom::GetInstance().GetNumberOfSteelPlatesThick();
+  NumberOfSteelPlatesDouble = TMS_Geom::GetInstance().GetNumberOfSteelPlatesDouble();
+  DuneTMSVersionMajor = TMS_Manager::GetInstance().Get_Meta_Version_Major();
+  DuneTMSVersionMinor = TMS_Manager::GetInstance().Get_Meta_Version_Minor();
+  DuneTMSVersionPatch = TMS_Manager::GetInstance().Get_Meta_Version_Patch();
+  Meta->Fill();
 }
 
 // Create the branches
 void TMS_TreeWriter::MakeBranches() {
+  Meta->Branch("DuneTMSVersionMajor", &DuneTMSVersionMajor);
+  Meta->Branch("DuneTMSVersionMinor", &DuneTMSVersionMinor);
+  Meta->Branch("DuneTMSVersionPatch", &DuneTMSVersionPatch);
+  Meta->Branch("GeometryGitTag", &GeometryGitTag);
+  Meta->Branch("GeometryGitBranch", &GeometryGitBranch);
+  Meta->Branch("GeometryGitCommit", &GeometryGitCommit);
+  Meta->Branch("NumberOfScintillatorPlanes", &NumberOfScintillatorPlanes);
+  Meta->Branch("NumberOfSteelPlatesThin", &NumberOfSteelPlatesThin);
+  Meta->Branch("NumberOfSteelPlatesThick", &NumberOfSteelPlatesThick);
+  Meta->Branch("NumberOfSteelPlatesDouble", &NumberOfSteelPlatesDouble);
+  Meta->Branch("TMSFiducialStartX", &TMSFiducialStartX);
+  Meta->Branch("TMSFiducialStartY", &TMSFiducialStartY);
+  Meta->Branch("TMSFiducialStartZ", &TMSFiducialStartZ);
+  Meta->Branch("TMSFiducialEndX", &TMSFiducialEndX);
+  Meta->Branch("TMSFiducialEndY", &TMSFiducialEndY);
+  Meta->Branch("TMSFiducialEndZ", &TMSFiducialEndZ);
+
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");

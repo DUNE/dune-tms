@@ -113,6 +113,19 @@ class TMS_Manager {
     
     double Get_Nersc_Spill_Period() { return _NERSC_SPILL_PERIOD; };
     void Set_Nersc_Spill_Period(double value) { _NERSC_SPILL_PERIOD = value; };
+    
+    std::string Get_GEOMETRY_GitTag() { return _GEOMETRY_git_tag; };
+    std::string Get_GEOMETRY_GitBranch() { return _GEOMETRY_git_branch; };
+    std::string Get_GEOMETRY_GitCommit() { return _GEOMETRY_git_commit; };
+    
+    int Get_GEOMETRY_NumberOfScintillatorPlanes() { return _GEOMETRY_NumberOfScintillatorPlanes; };
+    int Get_GEOMETRY_NumberOfSteelPlatesThin() { return _GEOMETRY_NumberOfSteelPlatesThin; };
+    int Get_GEOMETRY_NumberOfSteelPlatesThick() { return _GEOMETRY_NumberOfSteelPlatesThick; };
+    int Get_GEOMETRY_NumberOfSteelPlatesDouble() { return _GEOMETRY_NumberOfSteelPlatesDouble; };
+
+    int Get_Meta_Version_Major() { return _META_version_major; };
+    int Get_Meta_Version_Minor() { return _META_version_minor; };
+    int Get_Meta_Version_Patch() { return _META_version_patch; };
 
   private:
     TMS_Manager();
@@ -215,6 +228,17 @@ class TMS_Manager {
     int _APPLICATIONS_MaximumNEvents;
 
     double _GEOMETRY_YMIDDLE;
+    
+    std::string _GEOMETRY_git_tag;
+    std::string _GEOMETRY_git_branch;
+    std::string _GEOMETRY_git_commit;
+    int _GEOMETRY_NumberOfScintillatorPlanes;
+    int _GEOMETRY_NumberOfSteelPlatesThin;
+    int _GEOMETRY_NumberOfSteelPlatesThick;
+    int _GEOMETRY_NumberOfSteelPlatesDouble;
+    int _META_version_major;
+    int _META_version_minor;
+    int _META_version_patch;
 };
 
 #endif
