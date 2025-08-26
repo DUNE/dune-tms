@@ -19,7 +19,7 @@
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
-#define __TMS_MAX_TRUE_VERTICES__ 1000 // Maximum number of true vertices to save info about, a spill has ~200, so 1k should be okay
+#define __TMS_MAX_TRUE_VERTICES__ 5000 // Maximum number of true vertices to save info about, a spill has 400-2500 (not 100% sure right now), but 5k should be okay
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
