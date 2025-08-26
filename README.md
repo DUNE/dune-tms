@@ -51,6 +51,9 @@ All run-time configuration happens through `config/TMS_Default_Config.toml`. At 
 # Production at NERSC
 The `dune-tms` repository features in the simulation and reconstruction chain of the full DUNE ND complex in the step referred to as `tms-reco`. The chain is currently exercised at NERSC using an SL7 container. Details of how to install the necessary software for, and, run both interctively and via batch job can be found [here](https://github.com/DUNE/ND_Production/tree/main/nersc/run-tms-reco) in the `run-tms-reco` subdirectory of the `ND_Production` repository. 
 
+# Description of flow for simulation (NERSC) and reconstruction (NERSC and fermigrid)
+A document describing the flow for creating data sets can be found [here](https://docs.google.com/document/d/1Q7uz7eAPPELmB4gD7mLVXBk9scImvigmormv3BCUv48/edit?usp=sharing). This is also where updates are (supposed to be) described.
+
 # Contact
 * Liam O'Sullivan, [liam.osullivan@uni-mainz.de](mailto:liam.osullivan@uni-mainz.de)
 * Gavin Davies, [gsdavies@phy.olemiss.edu](mailto:gsdavies@phy.olemiss.edu)
