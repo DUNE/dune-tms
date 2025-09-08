@@ -1,14 +1,13 @@
 // Add scope to avoid cross talk with other scripts
 {
-  REGISTER_AXIS(energy_resolution,
-                std::make_tuple("Energy Resolution (Reco - True) / True", 21,
-                                -0.4, 0.4));
-  REGISTER_AXIS(energy_resolution_high_res,
-                std::make_tuple("Energy Resolution (Reco - True) / True", 31,
-                                -0.4, 0.4));
-  REGISTER_AXIS(basic_z,
-                std::make_tuple("Z (cm)", 30,
-                                (TMS_START_Z - 300) * CM, (TMS_LAST_PLANE_Z + 300) * CM));
+  REGISTER_AXIS(
+      energy_resolution,
+      std::make_tuple("Energy Resolution (Reco - True) / True", 21, -0.4, 0.4));
+  REGISTER_AXIS(
+      energy_resolution_high_res,
+      std::make_tuple("Energy Resolution (Reco - True) / True", 31, -0.4, 0.4));
+  REGISTER_AXIS(basic_z, std::make_tuple("Z (cm)", 30, (TMS_START_Z - 300) * CM,
+                                         (TMS_LAST_PLANE_Z + 300) * CM));
   // True muon that starts in LAr and ends in TMS
   bool passes_truth_cuts = true;
   // Reco starts in front of TMS, and end is inside containment zone far from
@@ -29,10 +28,10 @@
   double highest_reco_starting_muon_ke_uncorrected = -9e-12;
   double highest_reco_starting_muon_ke_without_fit = -9e-12;
   double highest_reco_starting_muon_ke_using_old_length = -9e-12;
-  //#define HAS_LENGTH_3D
-  #ifdef HAS_LENGTH_3D
+// #define HAS_LENGTH_3D
+#ifdef HAS_LENGTH_3D
   double highest_reco_starting_muon_ke_using_simple_y_correction = -9e-12;
-  #endif
+#endif
   double true_muon_ke_lar = -9e-12;
   double true_muon_areal_density_lar = -9e12; // starting from lar to end
   double true_muon_areal_density_lar_only =
@@ -61,7 +60,7 @@
       //                  truth.DeathPosition[ip][1],
       //                  truth.DeathPosition[ip][2]);
       bool start_lar = truth.LArFiducialStart[ip];
-      //bool end_tms = true; // isTMSContained(end_pos) == 0;
+      // bool end_tms = true; // isTMSContained(end_pos) == 0;
       bool end_tms = truth.TMSFiducialEnd[ip];
       if (start_lar && end_tms &&
           abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 13) {
@@ -108,25 +107,28 @@
         true_muon_areal_density_lar_only =
             true_muon_areal_density_lar - true_areal_density_of_highest;
       }
-      TVector3 endpos(reco.EndPos[it][0], reco.EndPos[it][1], reco.EndPos[it][2]);
-      TVector3 startpos(reco.StartPos[it][0], reco.StartPos[it][1], reco.StartPos[it][2]);
+      TVector3 endpos(reco.EndPos[it][0], reco.EndPos[it][1],
+                      reco.EndPos[it][2]);
+      TVector3 startpos(reco.StartPos[it][0], reco.StartPos[it][1],
+                        reco.StartPos[it][2]);
       TVector3 dx = endpos - startpos;
       TVector3 dx_no_y = dx - TVector3(0, dx.Y(), 0);
       double y_correction = dx.Mag() / dx_no_y.Mag();
-      //std::cout<<"y correction: "<<y_correction<<std::endl;
-      double length_to_use_with_simple_y_correction = reco.Length[it] * y_correction;
-      #ifdef HAS_LENGTH_3D
+      // std::cout<<"y correction: "<<y_correction<<std::endl;
+      double length_to_use_with_simple_y_correction =
+          reco.Length[it] * y_correction;
+#ifdef HAS_LENGTH_3D
       double length_to_use = reco.Length_3D[it];
-      #else
+#else
       double length_to_use = length_to_use_with_simple_y_correction;
-      #endif
+#endif
       double uncorrected_length_to_use = length_to_use;
       TVector3 direction(reco.EndDirection[it][0], 0, reco.EndDirection[it][2]);
       if (direction.Mag() == 0)
         direction.SetZ(1); // Normalize to 1 in z since we don't know direction
       else
         direction.SetMag(1); // Normalize to 1
-      #ifdef add_half_steel
+#ifdef add_half_steel
       // add half thickness of steel
       // plus the avg we're off because we're failing to reco the track end
       // note that length is in g/cm^2
@@ -141,7 +143,7 @@
       // On avg we're off by about this much in cm
       // direction.SetMag(30);
       length_to_use += density_to_use * direction.Z();
-      #endif // ifdef add_half_steel
+#endif // ifdef add_half_steel
       double reco_muon_starting_ke = length_to_energy(length_to_use);
       if (highest_reco_starting_muon_ke < reco_muon_starting_ke) {
         highest_reco_starting_muon_ke = reco_muon_starting_ke;
@@ -150,10 +152,12 @@
         highest_reco_starting_muon_ke_without_fit =
             default_length_to_energy(length_to_use);
         reco_areal_density_of_highest = length_to_use;
-        highest_reco_starting_muon_ke_using_old_length = length_to_energy(reco.Length[it]);
-        #ifdef HAS_LENGTH_3D
-        highest_reco_starting_muon_ke_using_simple_y_correction = length_to_energy(length_to_use_with_simple_y_correction);
-        #endif
+        highest_reco_starting_muon_ke_using_old_length =
+            length_to_energy(reco.Length[it]);
+#ifdef HAS_LENGTH_3D
+        highest_reco_starting_muon_ke_using_simple_y_correction =
+            length_to_energy(length_to_use_with_simple_y_correction);
+#endif
         index_of_muon = it;
       }
 
@@ -167,8 +171,13 @@
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][1],
                        truth.RecoTrackPrimaryParticleTruePositionEnd[it][2]);
       bool end_tms = isTMSContained(end_pos) == 0;*/
+
       bool start_lar = truth.RecoTrackPrimaryParticleLArFiducialStart[it];
       bool end_tms = true; // truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
+// #define PARTICLE_GUN
+#ifdef PARTICLE_GUN
+      start_lar = true; // always true with PG
+#endif
       if (!start_lar || !end_tms) {
         passes_truth_cuts = false;
       } else
@@ -194,6 +203,12 @@
       GetHist("energy_resolution__cut_validation__passes_truth_cuts",
               "passes_truth_cuts", "yesno")
           ->Fill(passes_truth_cuts ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__passes_true_start_lar",
+              "start_lar", "yesno")
+          ->Fill(start_lar ? 0 : 1);
+      GetHist("energy_resolution__cut_validation__passes_true_end_tms",
+              "end_tms", "yesno")
+          ->Fill(end_tms ? 0 : 1);
       GetHist("energy_resolution__cut_validation__start_tms_reco",
               "start_tms_reco", "yesno")
           ->Fill(start_tms_reco ? 0 : 1);
@@ -231,6 +246,12 @@
     }
   }
 
+#define remove_zero
+#ifdef remove_zero
+  if (reco_areal_density_of_highest < 0.1)
+    has_muon = false;
+#endif
+
   // Only want events with a muon
   if (!has_muon)
     passes_truth_cuts = false;
@@ -250,12 +271,19 @@
       (highest_reco_starting_muon_ke_using_old_length -
        highest_true_muon_starting_ke) /
       highest_true_muon_starting_ke;
-      
-  double estimated_e_from_true_areal_density = length_to_energy(true_areal_density_of_highest);
-  double estimated_e_from_reco_true_areal_density = length_to_energy(truth.RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[index_of_muon]);
-  double resolution_using_true_areal_density = estimated_e_from_true_areal_density - highest_true_muon_starting_ke;
-  double fractional_resolution_using_true_areal_density = resolution_using_true_areal_density / highest_true_muon_starting_ke;
-  double fractional_resolution_using_reco_true_areal_density = (estimated_e_from_reco_true_areal_density - highest_true_muon_starting_ke) / highest_true_muon_starting_ke;
+
+  double estimated_e_from_true_areal_density =
+      length_to_energy(true_areal_density_of_highest);
+  double estimated_e_from_reco_true_areal_density = length_to_energy(
+      truth.RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[index_of_muon]);
+  double resolution_using_true_areal_density =
+      estimated_e_from_true_areal_density - highest_true_muon_starting_ke;
+  double fractional_resolution_using_true_areal_density =
+      resolution_using_true_areal_density / highest_true_muon_starting_ke;
+  double fractional_resolution_using_reco_true_areal_density =
+      (estimated_e_from_reco_true_areal_density -
+       highest_true_muon_starting_ke) /
+      highest_true_muon_starting_ke;
 
   // double lar_component_reco_ke_estimate =
   // lar_length_to_energy(true_muon_areal_density_lar_only);
@@ -506,7 +534,17 @@
               "comparison_drawn_slices",
               "True Areal Density Compared to Energy", "true_areal_density",
               "basic_true_ke_enter")
-          ->Fill(true_areal_density_of_highest, highest_true_muon_starting_ke);*/
+          ->Fill(true_areal_density_of_highest,
+         highest_true_muon_starting_ke);*/
+    }
+    if (reco_areal_density_of_highest < 1) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/reco_areal_density_of_highest_about_zero",
+                TString::Format("reco_dense = %.2f;true_dense = %.2f",
+                                reco_areal_density_of_highest,
+                                true_areal_density_of_highest)
+                    .Data(),
+                reco, lc, truth, DrawSliceN::many);
     }
   }
 
@@ -587,9 +625,9 @@
             "Muon Resolution: Row Normalized", "ke_tms_enter_true",
             "ke_tms_enter_reco")
         ->Fill(highest_true_muon_starting_ke, highest_reco_starting_muon_ke);
-    GetHist(
-        "energy_resolution__resolution__muon_starting_ke_fractional_resolution_optsmooth",
-        "Muon Resolution: Selected Muons", "energy_resolution")
+    GetHist("energy_resolution__resolution__muon_starting_ke_fractional_"
+            "resolution_optsmooth",
+            "Muon Resolution: Selected Muons", "energy_resolution")
         ->Fill(fractional_resolution);
     GetHist("energy_resolution__resolution__muon_starting_ke_resolution_"
             "residual_column_maximize",
@@ -599,17 +637,17 @@
     double end_z = reco.EndPos[index_of_muon][2] * CM;
     GetHist("energy_resolution__resolution__muon_end_z_reco_resolution_"
             "residual_column_maximize",
-            "Residual Muon KE vs Reco Endpoint Z, Column Peak-Normalized", "basic_z",
-            "residual_ke")
+            "Residual Muon KE vs Reco Endpoint Z, Column Peak-Normalized",
+            "basic_z", "residual_ke")
         ->Fill(end_z, resolution);
-    double true_end_z = truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][2] * CM;
+    double true_end_z =
+        truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][2] * CM;
     GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
             "residual_column_maximize",
-            "Residual Muon KE vs True Endpoint Z, Column Peak-Normalized", "basic_z",
-            "residual_ke")
+            "Residual Muon KE vs True Endpoint Z, Column Peak-Normalized",
+            "basic_z", "residual_ke")
         ->Fill(true_end_z, resolution);
-        
-        
+
     GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
             "perfect_residual_column_maximize",
             "Frac. Res. Using True Areal Density vs True Endpoint Z", "basic_z",
@@ -623,76 +661,78 @@
     if (std::abs(true_end_z - end_z) < 10) {
       GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
               "perfect_residual_column_maximize_more_reco",
-              "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z", "basic_z",
-              "energy_resolution")
-          ->Fill(true_end_z, fractional_resolution_using_reco_true_areal_density);
+              "Frac. Res. Using More Reco-ish True Areal Density vs True "
+              "Endpoint Z",
+              "basic_z", "energy_resolution")
+          ->Fill(true_end_z,
+                 fractional_resolution_using_reco_true_areal_density);
       GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
               "perfect_high_res_residual_column_maximize_more_reco",
-              "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z", "basic_z",
-              "energy_resolution_high_res")
-          ->Fill(true_end_z, fractional_resolution_using_reco_true_areal_density);
+              "Frac. Res. Using More Reco-ish True Areal Density vs True "
+              "Endpoint Z",
+              "basic_z", "energy_resolution_high_res")
+          ->Fill(true_end_z,
+                 fractional_resolution_using_reco_true_areal_density);
     }
-    GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
-            "perfect_residual_column_maximize_more_reco_all",
-            "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z", "basic_z",
-            "energy_resolution")
+    GetHist(
+        "energy_resolution__resolution__muon_end_z_true_resolution_"
+        "perfect_residual_column_maximize_more_reco_all",
+        "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z",
+        "basic_z", "energy_resolution")
         ->Fill(true_end_z, fractional_resolution_using_reco_true_areal_density);
-    GetHist("energy_resolution__resolution__muon_end_z_true_resolution_"
-            "perfect_high_res_residual_column_maximize_more_reco_all",
-            "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z", "basic_z",
-            "energy_resolution_high_res")
+    GetHist(
+        "energy_resolution__resolution__muon_end_z_true_resolution_"
+        "perfect_high_res_residual_column_maximize_more_reco_all",
+        "Frac. Res. Using More Reco-ish True Areal Density vs True Endpoint Z",
+        "basic_z", "energy_resolution_high_res")
         ->Fill(true_end_z, fractional_resolution_using_reco_true_areal_density);
-        
-        
-    std::string info_str = TString::Format("PDG: %d;Reco AD: %.0f g/cm2;True AD: %.0f g/cm2;Reco SKE: %.1f GeV;Resolution: %.1f GeV;True SKE: %.1f GeV;Reco End Z: %.0fcm;True End Z: %.0fcm", true_pdg_of_highest, reco_areal_density_of_highest, true_areal_density_of_highest, highest_reco_starting_muon_ke, resolution, highest_true_muon_starting_ke, end_z, true_end_z).Data();
-    if (resolution < -0.25 && end_z > 1450 && end_z < 1500 && !std::isnan(end_z))
+
+    std::string info_str =
+        TString::Format("PDG: %d;Reco AD: %.0f g/cm2;True AD: %.0f g/cm2;Reco "
+                        "SKE: %.1f GeV;Resolution: %.1f GeV;True SKE: %.1f "
+                        "GeV;Reco End Z: %.0fcm;True End Z: %.0fcm",
+                        true_pdg_of_highest, reco_areal_density_of_highest,
+                        true_areal_density_of_highest,
+                        highest_reco_starting_muon_ke, resolution,
+                        highest_true_muon_starting_ke, end_z, true_end_z)
+            .Data();
+    if (resolution < -0.25 && end_z > 1450 && end_z < 1500 &&
+        !std::isnan(end_z))
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/reco_end_z_14s",
-                info_str,
-                reco, lc,
+                "energy_resolution/reco_end_z_14s", info_str, reco, lc, truth,
+                DrawSliceN::many);
+    if (resolution < -0.25 && end_z > 1500 && end_z < 1600 &&
+        !std::isnan(end_z))
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/reco_end_z_15s", info_str, reco, lc, truth,
+                DrawSliceN::many);
+    if (resolution < -0.25 && end_z > 1600 && end_z < 1700 &&
+        !std::isnan(end_z))
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/reco_end_z_16s", info_str, reco, lc, truth,
+                DrawSliceN::many);
+    if (resolution < -0.25 && highest_true_muon_starting_ke > 1.5 &&
+        highest_true_muon_starting_ke < 3.0)
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/residual_below_n025GeV", info_str, reco, lc,
                 truth, DrawSliceN::many);
-    if (resolution < -0.25 && end_z > 1500 && end_z < 1600 && !std::isnan(end_z))
+    if (resolution < -0.5 && highest_true_muon_starting_ke > 1.5 &&
+        highest_true_muon_starting_ke < 3.0)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/reco_end_z_15s",
-                info_str,
-                reco, lc,
-                truth, DrawSliceN::many);
-    if (resolution < -0.25 && end_z > 1600 && end_z < 1700 && !std::isnan(end_z))
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/reco_end_z_16s",
-                info_str,
-                reco, lc,
-                truth, DrawSliceN::many);
-    if (resolution < -0.25 && highest_true_muon_starting_ke > 1.5 && highest_true_muon_starting_ke < 3.0)
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/residual_below_n025GeV",
-                info_str,
-                reco, lc,
-                truth, DrawSliceN::many);
-    if (resolution < -0.5 && highest_true_muon_starting_ke > 1.5 && highest_true_muon_starting_ke < 3.0)
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/residual_below_n05GeV",
-                info_str,
-                reco, lc,
+                "energy_resolution/residual_below_n05GeV", info_str, reco, lc,
                 truth, DrawSliceN::many);
     if (resolution < -0.5 && highest_true_muon_starting_ke > 4)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                "energy_resolution/above_4GeV",
-                info_str,
-                reco, lc,
+                "energy_resolution/above_4GeV", info_str, reco, lc, truth,
+                DrawSliceN::many);
+    if (std::abs(resolution) < 0.1)
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/great_resolution", info_str, reco, lc, truth,
+                DrawSliceN::many);
+    if (std::abs(resolution) < 0.1 && highest_true_muon_starting_ke < 1)
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "energy_resolution/great_resolution_low_e", info_str, reco, lc,
                 truth, DrawSliceN::many);
-    if (std::abs(resolution) < 0.1)    
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "energy_resolution/great_resolution",
-                  info_str,
-                  reco, lc,
-                  truth, DrawSliceN::many);
-    if (std::abs(resolution) < 0.1 && highest_true_muon_starting_ke < 1)    
-      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "energy_resolution/great_resolution_low_e",
-                  info_str,
-                  reco, lc,
-                  truth, DrawSliceN::many);
 
     GetHist("energy_resolution__selection_eff__selection_eff_ke_tms_enter_"
             "numerator",
@@ -718,33 +758,38 @@
             "Muon Resolution: Uncorrected", "energy_resolution")
         ->Fill(fractional_resolution_uncorrected);
     GetSpecialHist("special__energy_resolution_nostack_optsmooth_1_with_fit",
-            "energy_resolution__resolution__fit_starting_ke_fractional_"
-            "resolution_nostack_optsmooth_1_with_fit",
-            "Muon KE Resolution: With Fit", "energy_resolution", "#N Muons")
+                   "energy_resolution__resolution__fit_starting_ke_fractional_"
+                   "resolution_nostack_optsmooth_1_with_fit",
+                   "Muon KE Resolution: With Fit", "energy_resolution",
+                   "#N Muons")
         ->Fill(fractional_resolution);
     GetSpecialHist("special__energy_resolution_nostack_optsmooth_3_no_fit",
-            "energy_resolution__resolution__fit_starting_ke_fractional_"
-            "resolution_nostack_optsmooth_3_no_fit",
-            "Muon KE Resolution: Without Fit", "energy_resolution", "#N Muons")
+                   "energy_resolution__resolution__fit_starting_ke_fractional_"
+                   "resolution_nostack_optsmooth_3_no_fit",
+                   "Muon KE Resolution: Without Fit", "energy_resolution",
+                   "#N Muons")
         ->Fill(fractional_resolution_without_fit);
-        
+
     GetHist("energy_resolution__resolution__old_length_starting_ke_fractional_"
             "resolution_nostack_optsmooth_1_length_3d",
-            "Muon KE Resolution: 3D Areal Density", "energy_resolution", "#N Muons")
+            "Muon KE Resolution: 3D Areal Density", "energy_resolution",
+            "#N Muons")
         ->Fill(fractional_resolution);
-    #ifdef HAS_LENGTH_3D
+#ifdef HAS_LENGTH_3D
     double fractional_resolution_using_simple_y_correction =
         (highest_reco_starting_muon_ke_using_simple_y_correction -
          highest_true_muon_starting_ke) /
         highest_true_muon_starting_ke;
     GetHist("energy_resolution__resolution__old_length_starting_ke_fractional_"
             "resolution_nostack_optsmooth_2_length_3d_simple",
-            "Muon KE Resolution: 3D Areal Density (simple)", "energy_resolution", "#N Muons")
+            "Muon KE Resolution: 3D Areal Density (simple)",
+            "energy_resolution", "#N Muons")
         ->Fill(fractional_resolution_using_simple_y_correction);
-    #endif
+#endif
     GetHist("energy_resolution__resolution__old_length_starting_ke_fractional_"
             "resolution_nostack_optsmooth_3_old_length",
-            "Muon KE Resolution: Old Areal Density (2D)", "energy_resolution", "#N Muons")
+            "Muon KE Resolution: Old Areal Density (2D)", "energy_resolution",
+            "#N Muons")
         ->Fill(fractional_resolution_using_old_length);
 
     GetHist("energy_resolution__resolution__contained_starting_ke_fractional_"
@@ -821,73 +866,222 @@
             ->Fill(resolution);
       }
     }
-    
-    #ifdef GEOM_V3
+
+    {
+      std::vector<double> cuts2 = {1.0, 1.5, 1.5, 2.0, 2.0, 2.5, 2.5, 3.0};
+      for (size_t ic = 0; ic < cuts2.size() - 1; ic += 2) {
+        double min = cuts2[ic];
+        double max = cuts2[ic + 1];
+        if (min <= highest_true_muon_starting_ke &&
+            highest_true_muon_starting_ke < max) {
+          GetHist(
+              Form("energy_resolution__pdr_resolution__fraction_resolution_"
+                   "slices_muon_normalize_to_probability_nostack_optsmooth_%ld",
+                   ic),
+              Form("Muon Resolution: %.1f < True KE / GeV< %.1f", min, max),
+              "energy_resolution_slice", "#Probability")
+              ->Fill(fractional_resolution);
+          GetHist(
+              Form("energy_resolution__pdr_resolution__residual_slices_muon_"
+                   "normalize_to_probability_nostack_optsmooth_%ld",
+                   ic),
+              Form("Muon Resolution: %.1f < True KE / GeV < %.1f", min, max),
+              "residual_ke_slice", "#Probability")
+              ->Fill(resolution);
+        }
+      }
+    }
+    {
+      std::vector<double> cuts2 = {0.9, 1.1, 1.4, 1.6, 1.9, 2.1, 2.4, 2.6};
+      for (size_t ic = 0; ic < cuts2.size() - 1; ic += 2) {
+        double min = cuts2[ic];
+        double max = cuts2[ic + 1];
+        double avg = 0.5 * (min + max);
+        if (min <= highest_true_muon_starting_ke &&
+            highest_true_muon_starting_ke < max) {
+          GetHist(
+              Form(
+                  "energy_resolution__pdr_resolution__fraction_resolution_thin_"
+                  "slices_muon_normalize_to_probability_nostack_optsmooth_%ld",
+                  ic),
+              Form("Muon Resolution: True KE ~ %.1f GeV", avg),
+              "energy_resolution_slice", "#Probability")
+              ->Fill(fractional_resolution);
+          GetHist(
+              Form("energy_resolution__pdr_resolution__residual_thin_slices_"
+                   "muon_normalize_to_probability_nostack_optsmooth_%ld",
+                   ic),
+              Form("Muon Resolution: True KE ~ %.1f GeV", avg),
+              "residual_ke_slice", "#Probability")
+              ->Fill(resolution);
+        }
+      }
+    }
+    GetHist("energy_resolution__pdr_resolution__fraction_resolution_vs_true_ke_"
+            "column_maximize",
+            "Muon Resolution vs True TMS-Entering KE", "ke_tms_enter_true",
+            "energy_resolution_slice")
+        ->Fill(highest_true_muon_starting_ke, fractional_resolution);
+    GetHist("energy_resolution__pdr_resolution__residual_vs_true_ke_column_"
+            "maximize",
+            "Muon Resolution vs True TMS-Entering KE", "ke_tms_enter_true",
+            "residual_ke_slice")
+        ->Fill(highest_true_muon_starting_ke, resolution);
+    GetHist("energy_resolution__pdr_resolution__fraction_resolution_vs_reco_ke_"
+            "column_maximize",
+            "Muon Resolution vs Reco TMS-Entering KE", "ke_tms_enter_reco",
+            "energy_resolution_slice")
+        ->Fill(highest_reco_starting_muon_ke, fractional_resolution);
+    GetHist("energy_resolution__pdr_resolution__residual_vs_reco_ke_column_"
+            "maximize",
+            "Muon Resolution vs Reco TMS-Entering KE", "ke_tms_enter_reco",
+            "residual_ke_slice")
+        ->Fill(highest_reco_starting_muon_ke, resolution);
+
+#ifdef GEOM_V3
     double dz_thin = (TMS_THICK_START - TMS_START_Z) / 2.0;
     double dz_thick = (TMS_LAST_PLANE_Z - TMS_THICK_START) / 2.0;
     std::vector<std::pair<std::string, std::function<bool(TVector3)>>> zcuts = {
-        {"Z, thin region 1st half", [dz_thin](TVector3 p) { return p.Z() < TMS_START_Z + dz_thin; }},
-        {"Z, thin region 2nd half", [dz_thin](TVector3 p) { return p.Z() >= TMS_START_Z + dz_thin && p.Z() < TMS_START_Z + 2 * dz_thin; }},
-        {"Z, thick region 1st half", [dz_thick](TVector3 p) { return p.Z() >= TMS_THICK_START && p.Z() < TMS_THICK_START + dz_thick; }},
-        {"Z, thick region 2nd half", [dz_thick](TVector3 p) { return p.Z() >= TMS_THICK_START + dz_thick && p.Z() <= TMS_LAST_PLANE_Z; }}
-    };
-    #else
+        {"Z, thin region 1st half",
+         [dz_thin](TVector3 p) { return p.Z() < TMS_START_Z + dz_thin; }},
+        {"Z, thin region 2nd half",
+         [dz_thin](TVector3 p) {
+           return p.Z() >= TMS_START_Z + dz_thin &&
+                  p.Z() < TMS_START_Z + 2 * dz_thin;
+         }},
+        {"Z, thick region 1st half",
+         [dz_thick](TVector3 p) {
+           return p.Z() >= TMS_THICK_START &&
+                  p.Z() < TMS_THICK_START + dz_thick;
+         }},
+        {"Z, thick region 2nd half", [dz_thick](TVector3 p) {
+           return p.Z() >= TMS_THICK_START + dz_thick &&
+                  p.Z() <= TMS_LAST_PLANE_Z;
+         }}};
+#else
     double dz_thin = (TMS_THICK_START - TMS_START_Z) / 2.0;
     double dz_thick = (TMS_DOUBLE_THICK_START - TMS_THICK_START) / 2.0;
     double dz_double = (TMS_LAST_PLANE_Z - TMS_DOUBLE_THICK_START) / 2.0;
     std::vector<std::pair<std::string, std::function<bool(TVector3)>>> zcuts = {
-        {"Z, thin region 1st half", [dz_thin](TVector3 p) { return p.Z() < TMS_START_Z + dz_thin; }},
-        {"Z, thin region 2nd half", [dz_thin](TVector3 p) { return p.Z() >= TMS_START_Z + dz_thin && p.Z() < TMS_START_Z + 2 * dz_thin; }},
-        {"Z, thick region 1st half", [dz_thick](TVector3 p) { return p.Z() >= TMS_THICK_START && p.Z() < TMS_THICK_START + dz_thick; }},
-        {"Z, thick region 2nd half", [dz_thick](TVector3 p) { return p.Z() >= TMS_THICK_START + dz_thick && p.Z() < TMS_DOUBLE_THICK_START; }},
-        {"Z, double region 1st half", [dz_double](TVector3 p) { return p.Z() >= TMS_DOUBLE_THICK_START && p.Z() < TMS_DOUBLE_THICK_START + dz_double; }},
-        {"Z, double region 2nd half", [dz_double](TVector3 p) { return p.Z() >= TMS_DOUBLE_THICK_START + dz_double && p.Z() <= TMS_LAST_PLANE_Z; }}
-    };
-    #endif
+        {"Z, thin region 1st half",
+         [dz_thin](TVector3 p) { return p.Z() < TMS_START_Z + dz_thin; }},
+        {"Z, thin region 2nd half",
+         [dz_thin](TVector3 p) {
+           return p.Z() >= TMS_START_Z + dz_thin &&
+                  p.Z() < TMS_START_Z + 2 * dz_thin;
+         }},
+        {"Z, thick region 1st half",
+         [dz_thick](TVector3 p) {
+           return p.Z() >= TMS_THICK_START &&
+                  p.Z() < TMS_THICK_START + dz_thick;
+         }},
+        {"Z, thick region 2nd half",
+         [dz_thick](TVector3 p) {
+           return p.Z() >= TMS_THICK_START + dz_thick &&
+                  p.Z() < TMS_DOUBLE_THICK_START;
+         }},
+        {"Z, double region 1st half",
+         [dz_double](TVector3 p) {
+           return p.Z() >= TMS_DOUBLE_THICK_START &&
+                  p.Z() < TMS_DOUBLE_THICK_START + dz_double;
+         }},
+        {"Z, double region 2nd half", [dz_double](TVector3 p) {
+           return p.Z() >= TMS_DOUBLE_THICK_START + dz_double &&
+                  p.Z() <= TMS_LAST_PLANE_Z;
+         }}};
+#endif
     double dy = (TMS_Y_TOP - TMS_Y_BOTTOM) / 4.0;
     std::vector<std::pair<std::string, std::function<bool(TVector3)>>> ycuts = {
-        {"Y in first fourth", [dy](TVector3 p) { return p.Y() < TMS_Y_BOTTOM + dy; }},
-        {"Y in second fourth", [dy](TVector3 p) { return p.Y() >= TMS_Y_BOTTOM + dy && p.Y() < TMS_Y_BOTTOM + 2 * dy; }},
-        {"Y in third fourth", [dy](TVector3 p) { return p.Y() >= TMS_Y_BOTTOM + 2 * dy && p.Y() < TMS_Y_BOTTOM + 3 * dy; }},
-        {"Y in last fourth", [dy](TVector3 p) { return p.Y() >= TMS_Y_BOTTOM + 3 * dy; }}
-    };
+        {"Y in first fourth",
+         [dy](TVector3 p) { return p.Y() < TMS_Y_BOTTOM + dy; }},
+        {"Y in second fourth",
+         [dy](TVector3 p) {
+           return p.Y() >= TMS_Y_BOTTOM + dy && p.Y() < TMS_Y_BOTTOM + 2 * dy;
+         }},
+        {"Y in third fourth",
+         [dy](TVector3 p) {
+           return p.Y() >= TMS_Y_BOTTOM + 2 * dy &&
+                  p.Y() < TMS_Y_BOTTOM + 3 * dy;
+         }},
+        {"Y in last fourth",
+         [dy](TVector3 p) { return p.Y() >= TMS_Y_BOTTOM + 3 * dy; }}};
     double dx = 2.0 * TMS_X_EXTENT / 4.0;
     std::vector<std::pair<std::string, std::function<bool(TVector3)>>> xcuts = {
-        {"X in first fourth", [dx](TVector3 p) { return p.X() < TMS_X_START + dx; }},
-        {"X in second fourth", [dx](TVector3 p) { return p.X() >= TMS_X_START + dx && p.X() < TMS_X_START + 2 * dx; }},
-        {"X in third fourth", [dx](TVector3 p) { return p.X() >= TMS_X_START + 2 * dx && p.X() < TMS_X_START + 3 * dx; }},
-        {"X in last fourth", [dx](TVector3 p) { return p.X() >= TMS_X_START + 3 * dx; }}
-    };
-    
-    
-    TVector3 end_pos_reco(reco.EndPos[index_of_muon][0], reco.EndPos[index_of_muon][1],
-                          reco.EndPos[index_of_muon][2]);
-    TVector3 end_pos_true(truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][0],
-                          truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][1],
-                          truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][2]);
-                          
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_z_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of True Z", "energy_resolution", fractional_resolution, end_pos_true, zcuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_z_cut_renorm_nostack_optsmooth_normalize_to_one",
-            "Muon Resolution in Bins of True Z", "energy_resolution", fractional_resolution, end_pos_true, zcuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_z_cut_true_areal_renorm_nostack_optsmooth_normalize_to_one",
-            "Muon Resolution in Bins of True Z", "energy_resolution", fractional_resolution_using_true_areal_density, end_pos_true, zcuts);
-    if (std::abs(true_end_z - end_z) < 10) {
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_z_cut_true_areal_more_reco_renorm_nostack_optsmooth_normalize_to_one",
-            "Muon Resolution in Bins of True Z", "energy_resolution", fractional_resolution_using_reco_true_areal_density, end_pos_true, zcuts);
-    }
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_z_cut_true_areal_more_reco_all_renorm_nostack_optsmooth_normalize_to_one",
-            "Muon Resolution in Bins of True Z", "energy_resolution", fractional_resolution_using_reco_true_areal_density, end_pos_true, zcuts);
+        {"X in first fourth",
+         [dx](TVector3 p) { return p.X() < TMS_X_START + dx; }},
+        {"X in second fourth",
+         [dx](TVector3 p) {
+           return p.X() >= TMS_X_START + dx && p.X() < TMS_X_START + 2 * dx;
+         }},
+        {"X in third fourth",
+         [dx](TVector3 p) {
+           return p.X() >= TMS_X_START + 2 * dx && p.X() < TMS_X_START + 3 * dx;
+         }},
+        {"X in last fourth",
+         [dx](TVector3 p) { return p.X() >= TMS_X_START + 3 * dx; }}};
 
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_z_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of Reco Z", "energy_resolution", fractional_resolution, end_pos_reco, zcuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_y_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of True Y", "energy_resolution", fractional_resolution, end_pos_true, ycuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_y_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of Reco Y", "energy_resolution", fractional_resolution, end_pos_reco, ycuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_x_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of True X", "energy_resolution", fractional_resolution, end_pos_true, xcuts);
-    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_x_cut_nostack_optsmooth",
-            "Muon Resolution in Bins of Reco X", "energy_resolution", fractional_resolution, end_pos_reco, xcuts);
+    TVector3 end_pos_reco(reco.EndPos[index_of_muon][0],
+                          reco.EndPos[index_of_muon][1],
+                          reco.EndPos[index_of_muon][2]);
+    TVector3 end_pos_true(
+        truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][0],
+        truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][1],
+        truth.RecoTrackPrimaryParticleTruePositionEnd[index_of_muon][2]);
+
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_"
+                             "z_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of True Z",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_true, zcuts);
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_"
+                             "z_cut_renorm_nostack_optsmooth_normalize_to_one",
+                             "Muon Resolution in Bins of True Z",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_true, zcuts);
+    FillHistWithPositionCuts(
+        "energy_resolution__resolution__starting_ke_true_z_cut_true_areal_"
+        "renorm_nostack_optsmooth_normalize_to_one",
+        "Muon Resolution in Bins of True Z", "energy_resolution",
+        fractional_resolution_using_true_areal_density, end_pos_true, zcuts);
+    if (std::abs(true_end_z - end_z) < 10) {
+      FillHistWithPositionCuts(
+          "energy_resolution__resolution__starting_ke_true_z_cut_true_areal_"
+          "more_reco_renorm_nostack_optsmooth_normalize_to_one",
+          "Muon Resolution in Bins of True Z", "energy_resolution",
+          fractional_resolution_using_reco_true_areal_density, end_pos_true,
+          zcuts);
+    }
+    FillHistWithPositionCuts(
+        "energy_resolution__resolution__starting_ke_true_z_cut_true_areal_more_"
+        "reco_all_renorm_nostack_optsmooth_normalize_to_one",
+        "Muon Resolution in Bins of True Z", "energy_resolution",
+        fractional_resolution_using_reco_true_areal_density, end_pos_true,
+        zcuts);
+
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_"
+                             "z_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of Reco Z",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_reco, zcuts);
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_"
+                             "y_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of True Y",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_true, ycuts);
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_"
+                             "y_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of Reco Y",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_reco, ycuts);
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_true_"
+                             "x_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of True X",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_true, xcuts);
+    FillHistWithPositionCuts("energy_resolution__resolution__starting_ke_reco_"
+                             "x_cut_nostack_optsmooth",
+                             "Muon Resolution in Bins of Reco X",
+                             "energy_resolution", fractional_resolution,
+                             end_pos_reco, xcuts);
   }
 }

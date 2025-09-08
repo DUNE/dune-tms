@@ -31,7 +31,8 @@
                           truth.TrueVtxPz[ivtx])
                      .Mag() *
                  GEV;
-      GetHist("basic__truth_vtx__TrueVtxP", "TrueVtxP", "PNu", "#N Vertices")->Fill(P);
+      GetHist("basic__truth_vtx__TrueVtxP", "TrueVtxP", "PNu", "#N Vertices")
+          ->Fill(P);
       GetHist("basic__truth_vtx__TrueVtxE", "TrueVtxE", "ENu", "#N Vertices")
           ->Fill(truth.TrueVtxE[ivtx] * GEV);
 
@@ -61,22 +62,28 @@
           ->Fill(truth.TrueVtxVisibleE[ivtx]);
 
       if (truth.TrueVtxFiducialCut[ivtx]) {
-        GetHist("basic__truth_vtx__FidCut__TrueVtxX", "TrueVtxX", "X", "#N Vertices")
+        GetHist("basic__truth_vtx__FidCut__TrueVtxX", "TrueVtxX", "X",
+                "#N Vertices")
             ->Fill(truth.TrueVtxX[ivtx] * CM);
-        GetHist("basic__truth_vtx__FidCut__TrueVtxY", "TrueVtxY", "Y_full", "#N Vertices")
+        GetHist("basic__truth_vtx__FidCut__TrueVtxY", "TrueVtxY", "Y_full",
+                "#N Vertices")
             ->Fill(truth.TrueVtxY[ivtx] * CM);
-        GetHist("basic__truth_vtx__FidCut__TrueVtxZ", "TrueVtxZ", "Z_full", "#N Vertices")
+        GetHist("basic__truth_vtx__FidCut__TrueVtxZ", "TrueVtxZ", "Z_full",
+                "#N Vertices")
             ->Fill(truth.TrueVtxZ[ivtx] * CM);
         GetHist("basic__truth_vtx__FidCut__TrueVtxXY", "TrueVtx X vs Y", "X",
                 "Y_full")
             ->Fill(truth.TrueVtxX[ivtx] * CM, truth.TrueVtxY[ivtx] * CM);
       }
       if (truth.TrueVtxShellEnergyCut[ivtx]) {
-        GetHist("basic__truth_vtx__ShellCut__TrueVtxX", "TrueVtxX", "X", "#N Vertices")
+        GetHist("basic__truth_vtx__ShellCut__TrueVtxX", "TrueVtxX", "X",
+                "#N Vertices")
             ->Fill(truth.TrueVtxX[ivtx] * CM);
-        GetHist("basic__truth_vtx__ShellCut__TrueVtxY", "TrueVtxY", "Y_full", "#N Vertices")
+        GetHist("basic__truth_vtx__ShellCut__TrueVtxY", "TrueVtxY", "Y_full",
+                "#N Vertices")
             ->Fill(truth.TrueVtxY[ivtx] * CM);
-        GetHist("basic__truth_vtx__ShellCut__TrueVtxZ", "TrueVtxZ", "Z_full", "#N Vertices")
+        GetHist("basic__truth_vtx__ShellCut__TrueVtxZ", "TrueVtxZ", "Z_full",
+                "#N Vertices")
             ->Fill(truth.TrueVtxZ[ivtx] * CM);
         GetHist("basic__truth_vtx__ShellCut__TrueVtxXY", "TrueVtx X vs Y", "X",
                 "Y_full")
@@ -87,7 +94,8 @@
             ->Fill(truth.TrueVtxHadronicELarShell[ivtx]);
       }
       if (truth.TrueVtxNDPhysicsCut[ivtx]) {
-        GetHist("basic__truth_vtx__NDPhysicsCut__TrueVtxX", "TrueVtxX", "X", "#N Vertices")
+        GetHist("basic__truth_vtx__NDPhysicsCut__TrueVtxX", "TrueVtxX", "X",
+                "#N Vertices")
             ->Fill(truth.TrueVtxX[ivtx] * CM);
         GetHist("basic__truth_vtx__NDPhysicsCut__TrueVtxY", "TrueVtxY",
                 "Y_full", "#N Vertices")

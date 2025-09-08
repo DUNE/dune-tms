@@ -8,10 +8,13 @@
   GetHist("basic__raw__SpillNo", "SpillNo", "SpillNo", "#N Slices")
       ->Fill(reco.SpillNo);
 
-  GetSpecialHist("special__track_n", "basic__raw__ntracks", "N Reco Tracks", "ntracks", "#N Slices")
+  GetSpecialHist("special__track_n", "basic__raw__ntracks", "N Reco Tracks",
+                 "ntracks", "#N Slices")
       ->Fill(reco.nTracks);
   for (int it = 0; it < reco.nTracks; it++) {
-    GetSpecialHist("special__track_nhits", "basic__raw__nHits", "N Hits per Track", "n0-120", "#N Tracks")->Fill(reco.nHits[it]);
+    GetSpecialHist("special__track_nhits", "basic__raw__nHits",
+                   "N Hits per Track", "n0-120", "#N Tracks")
+        ->Fill(reco.nHits[it]);
     GetHist("basic__raw__nKalmanNodes", "nKalmanNodes", "n0-120")
         ->Fill(reco.nKalmanNodes[it]);
     for (int ih = 0; ih < reco.nHits[it]; ih++) {
@@ -51,6 +54,20 @@
         ->Fill(reco.EndDirection[it][1]);
     GetHist("basic__raw__EndDirection_Z", "EndDirection Z", "dz", "#N Tracks")
         ->Fill(reco.EndDirection[it][2]);
+
+    REGISTER_AXIS(chi2, std::make_tuple("Chi2", 100, 0, 200));
+    REGISTER_AXIS(chi2_diff, std::make_tuple("Chi2 Difference (plus - minus)",
+                                             101, -100, 100));
+    GetHist("basic__raw__Chi2", "Chi2", "chi2", "#N Tracks")
+        ->Fill(reco.Chi2[it]);
+    GetHist("basic__raw__Chi2_plus", "Chi2 Plus", "chi2", "#N Tracks")
+        ->Fill(reco.Chi2_plus[it]);
+    GetHist("basic__raw__Chi2_minus", "Chi2 Minus", "chi2", "#N Tracks")
+        ->Fill(reco.Chi2_minus[it]);
+
+    GetHist("basic__sanity__Chi2_difference", "Chi2 Plus - Minus", "chi2_diff",
+            "#N Tracks")
+        ->Fill(reco.Chi2_plus[it] - reco.Chi2_minus[it]);
 
     REGISTER_AXIS(DirectionSanityCheck,
                   std::make_tuple("Direction Mag", 51, 0, 10));
@@ -112,18 +129,26 @@
 
     GetHist("basic__raw__Charge", "Charge", "charge", "#N Tracks")
         ->Fill(reco.Charge[it]);
+    REGISTER_AXIS(charge_zoom, std::make_tuple("Charge", 101, -40.5, 40.5));
+    GetHist("basic__sanity__Charge_zoom", "Charge", "charge_zoom", "#N Tracks")
+        ->Fill(reco.Charge[it]);
     GetHist("basic__raw__Length", "Areal Density, AKA Length", "areal_density",
             "#N Tracks")
         ->Fill(reco.Length[it]);
+    GetHist("basic__raw__Length_3D", "Areal Density, AKA Length",
+            "areal_density", "#N Tracks")
+        ->Fill(reco.Length_3D[it]);
     GetHist("basic__raw__Momentum", "Momentum", "momentum", "#N Tracks")
-        ->Fill(reco.Momentum[it]);
+        ->Fill(reco.Momentum[it] * GEV);
     GetHist("basic__raw__EnergyRange", "EnergyRange", "energy_range",
             "#N Tracks")
-        ->Fill(reco.EnergyRange[it]);
+        ->Fill(reco.EnergyRange[it] * GEV);
     GetHist("basic__raw__EnergyDeposit", "EnergyDeposit", "energy_deposit",
             "#N Tracks")
-        ->Fill(reco.EnergyDeposit[it]);
+        ->Fill(reco.EnergyDeposit[it] * GEV);
   }
+
+#ifdef FIX_KALMAN
 
   // Adjust to kalman if needed
   if (!has_kalman) {
@@ -168,6 +193,7 @@
     reco.KalmanPos[itrack][last_index - n_nodes][2];
     }*/
   }
+#endif // fix def FIX_KALMAN
 
   // "Fixed" variables
   for (int it = 0; it < reco.nTracks; it++) {
@@ -253,7 +279,7 @@
             ->Fill(hit_flag_y);
     }
   }
-  
+
   // Truth variables
   REGISTER_AXIS(HitEnergy, std::make_tuple("Hit Energy (MeV)", 51, 0, 100));
   REGISTER_AXIS(

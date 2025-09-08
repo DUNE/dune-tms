@@ -348,7 +348,7 @@ def draw_spill(
                 elif reco_hit_energy < 0:
                     print(f"Found unexpected reco_hit_energy < 0: {reco_hit_energy}")
 
-        for hit in range(truth_spill.TrueNonTMSNHits):
+        """for hit in range(truth_spill.TrueNonTMSNHits):
             x = truth_spill.TrueNonTMSHitPos[hit * 4 + 2] / 1000.0
             y = truth_spill.TrueNonTMSHitPos[hit * 4 + 0] / 1000.0
             e = truth_spill.TrueNonTMSHitEnergy[hit]
@@ -381,7 +381,7 @@ def draw_spill(
                 vertex_slice = slice_mapping[vid]
                 markers_in_slice[vertex_slice].append(marker)
                 markers_from_vertex_id[vid].append(marker)
-                # print(x, z)
+                # print(x, z)"""
 
         def make_box(bounds, color=ROOT.kMagenta + 2, style=1):
             out = ROOT.TBox(*bounds)

@@ -30,7 +30,12 @@
         bool tms_end = truth.TMSFiducialEnd[ip];
         double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
         double particle_ke = truth.BirthMomentum[ip][3] * GEV;
-        if (ismuon && tms_touch) {
+        bool should_include = true;
+        if (only_nd_physics) {
+          should_include =
+              truth.TMSFiducialEnd[ip] && truth.LArFiducialStart[ip];
+        }
+        if (ismuon && tms_touch && should_include) {
           GetHist(
               "reco_eff__no_lar_tms_cuts__all_muon_ke_tms_enter_denominator",
               "Reconstruction Efficiency: Denominator", "ke_tms_enter")
@@ -69,18 +74,20 @@
                   "Reconstruction Efficiency: Denominator", "muon_startpoint_z")
               ->Fill(truth.PositionTMSStart[ip][2] * CM);
         }
-        if (ispion)
+        if (ispion && should_include)
           GetHist(
               "reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_denominator",
               "Reconstruction Efficiency: Denominator", "pion_ke_tms_enter")
               ->Fill(particle_starting_ke);
-        if (ismuon && lar_start && tms_end) {
-          GetSpecialHist("special__reco_eff_muon_ke_tms_enter_denominator", 
-                  "reco_eff__muon_ke_tms_enter_denominator",
-                  "Reconstruction Efficiency: Denominator", "ke_tms_enter")
+        if (ismuon && lar_start && tms_end && should_include) {
+          GetSpecialHist("special__reco_eff_muon_ke_tms_enter_denominator",
+                         "reco_eff__muon_ke_tms_enter_denominator",
+                         "Reconstruction Efficiency: Denominator",
+                         "ke_tms_enter")
               ->Fill(particle_starting_ke);
           GetHist("reco_eff__good_reco_muon_ke_tms_enter_denominator",
-                  "Reconstruction Efficiency, with Good Reco: Denominator", "ke_tms_enter")
+                  "Reconstruction Efficiency, with Good Reco: Denominator",
+                  "ke_tms_enter")
               ->Fill(particle_starting_ke);
           GetHist("reco_eff__muon_ke_denominator",
                   "Reco Efficiency vs True KE: Denominator", "ke_tms")
@@ -200,38 +207,37 @@
         GetHist("reco_eff__startpoint__muon_startpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_z")
             ->Fill(truth.PositionTMSStart[ip][2] * CM);
-            
+
         if (particle_starting_ke < 1)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "reco_eff/reco_low_e_muon",
-                      TString::Format("Low E muon: %.1f GeV",
-                                      particle_starting_ke)
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::few);
+          DrawSlice(
+              TString::Format("entry_%lld", entry_number).Data(),
+              "reco_eff/reco_low_e_muon",
+              TString::Format("Low E muon: %.1f GeV", particle_starting_ke)
+                  .Data(),
+              reco, lc, truth, DrawSliceN::few);
         if (particle_starting_ke < 0.25)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "reco_eff/reco_very_low_e_muon",
-                      TString::Format("Low E muon: %.2f GeV",
-                                      particle_starting_ke)
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::few);
+          DrawSlice(
+              TString::Format("entry_%lld", entry_number).Data(),
+              "reco_eff/reco_very_low_e_muon",
+              TString::Format("Low E muon: %.2f GeV", particle_starting_ke)
+                  .Data(),
+              reco, lc, truth, DrawSliceN::few);
       }
       if (ispion && not_double_reco) {
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator",
                 "Reco Efficiency, All Pions: Numerator", "pion_ke_tms_enter")
             ->Fill(particle_starting_ke);
-        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                  "reco_eff/reco_pion",
-                  TString::Format("Pion with %.1f GeV",
-                                  particle_starting_ke)
-                      .Data(),
-                  reco, lc, truth, DrawSliceN::few);
+        DrawSlice(
+            TString::Format("entry_%lld", entry_number).Data(),
+            "reco_eff/reco_pion",
+            TString::Format("Pion with %.1f GeV", particle_starting_ke).Data(),
+            reco, lc, truth, DrawSliceN::few);
       }
       if (ismuon && lar_start && tms_end && not_double_reco) {
         GetSpecialHist("special__reco_eff_muon_ke_tms_enter_numerator",
-                "reco_eff__muon_ke_tms_enter_numerator",
-                "Reco Efficiency vs True TMS-Entering KE: Numerator",
-                "ke_tms_enter")
+                       "reco_eff__muon_ke_tms_enter_numerator",
+                       "Reco Efficiency vs True TMS-Entering KE: Numerator",
+                       "ke_tms_enter")
             ->Fill(particle_starting_ke);
         int charge = reco.Charge[it];
         int true_charge = (truth.RecoTrackPrimaryParticlePDG[it] < 0) ? -1 : 1;
@@ -239,8 +245,9 @@
         /*double true_muon_starting_ke =
           truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
         double reco_ke = length_to_energy(reco.Length[it]);
-        bool correct_energy = std::abs((reco_ke - true_muon_starting_ke) / true_muon_starting_ke) < 0.05;
-        
+        bool correct_energy = std::abs((reco_ke - true_muon_starting_ke) /
+        true_muon_starting_ke) < 0.05;
+
         GetHist("reco_eff__debugging__energy_reco",
                 "Reco Energy",
                 "ke_tms_enter")
@@ -249,12 +256,14 @@
                 "Reco Energy",
                 "ke_tms_enter")
             ->Fill(true_muon_starting_ke);
-        REGISTER_AXIS(fractional_e_resolution, std::make_tuple("Fractional E", 41, -1.0, 1.0));
+        REGISTER_AXIS(fractional_e_resolution, std::make_tuple("Fractional E",
+        41, -1.0, 1.0));
         GetHist("reco_eff__debugging__energy_resolution_fraction",
                 "Fractional E Resolution",
                 "fractional_e_resolution")
             ->Fill((reco_ke - true_muon_starting_ke) / true_muon_starting_ke);*/
-        double true_z = truth.RecoTrackPrimaryParticleTruePositionEnd[it][2] * CM;
+        double true_z =
+            truth.RecoTrackPrimaryParticleTruePositionEnd[it][2] * CM;
         double reco_z = reco.EndPos[it][2] * CM;
         double dz = reco_z - true_z;
         bool correct_endpoint = -30 < dz && dz < 0;

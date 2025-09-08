@@ -98,20 +98,28 @@ const double BOUNDS_Y_END = 100;
 const double BOUNDS_Z_START = 1100;
 const double BOUNDS_Z_END = 1900;
 
-void ConstrainMarkerX(float& mx, float& my) {
+void ConstrainMarkerX(float &mx, float &my) {
   double buffer = 5;
-  if (mx > BOUNDS_Z_END - buffer)   mx = BOUNDS_Z_END - buffer;
-  if (mx < BOUNDS_Z_START + buffer) mx = BOUNDS_Z_START + buffer;
-  if (my > BOUNDS_X_END - buffer)   my = BOUNDS_X_END - buffer;
-  if (my < BOUNDS_X_START + buffer) my = BOUNDS_X_START + buffer;
+  if (mx > BOUNDS_Z_END - buffer)
+    mx = BOUNDS_Z_END - buffer;
+  if (mx < BOUNDS_Z_START + buffer)
+    mx = BOUNDS_Z_START + buffer;
+  if (my > BOUNDS_X_END - buffer)
+    my = BOUNDS_X_END - buffer;
+  if (my < BOUNDS_X_START + buffer)
+    my = BOUNDS_X_START + buffer;
 }
 
-void ConstrainMarkerY(float& mx, float& my) {
+void ConstrainMarkerY(float &mx, float &my) {
   double buffer = 5;
-  if (mx > BOUNDS_Z_END - buffer)   mx = BOUNDS_Z_END - buffer;
-  if (mx < BOUNDS_Z_START + buffer) mx = BOUNDS_Z_START + buffer;
-  if (my > BOUNDS_Y_END - buffer)   my = BOUNDS_Y_END - buffer;
-  if (my < BOUNDS_Y_START + buffer) my = BOUNDS_Y_START + buffer;
+  if (mx > BOUNDS_Z_END - buffer)
+    mx = BOUNDS_Z_END - buffer;
+  if (mx < BOUNDS_Z_START + buffer)
+    mx = BOUNDS_Z_START + buffer;
+  if (my > BOUNDS_Y_END - buffer)
+    my = BOUNDS_Y_END - buffer;
+  if (my < BOUNDS_Y_START + buffer)
+    my = BOUNDS_Y_START + buffer;
 }
 
 void DrawSlice(std::string outfilename, std::string reason, std::string message,
@@ -254,12 +262,14 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       }
     }
   }
-  
+
   bool draw_2d_tracks_u = true;
   bool draw_2d_tracks_v = true;
   bool draw_2d_tracks_x = true;
   int color_adjustment = -2;
-  std::cout<<"lc.nLinesU: "<<lc.nLinesU<<", lc.nLinesV: "<<lc.nLinesV<<", lc.nLinesX: "<<lc.nLinesX<<", reco.nTracks: "<<reco.nTracks<<std::endl;
+  std::cout << "lc.nLinesU: " << lc.nLinesU << ", lc.nLinesV: " << lc.nLinesV
+            << ", lc.nLinesX: " << lc.nLinesX
+            << ", reco.nTracks: " << reco.nTracks << std::endl;
   if (draw_2d_tracks_u) {
     for (int it = 0; it < lc.nLinesU; it++) {
       auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
@@ -288,7 +298,8 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   }
   if (draw_2d_tracks_v) {
     for (int it = 0; it < lc.nLinesV; it++) {
-      std::cout<<it<<" lc.nHitsInTrackV[it]: "<<lc.nHitsInTrackV[it]<<std::endl;
+      std::cout << it << " lc.nHitsInTrackV[it]: " << lc.nHitsInTrackV[it]
+                << std::endl;
       auto color_to_use = track_colors[it % n_track_colors] - color_adjustment;
       for (int ih = 0; ih < lc.nHitsInTrackV[it]; ih++) {
         float mx = lc.TrackHitPosV[it][ih][0] * CM;
@@ -315,7 +326,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   }
   if (draw_2d_tracks_x) {
     for (int it = 0; it < lc.nLinesX; it++) {
-      //std::cout<<"lc.nHitsInTrackX[it]: "<<lc.nHitsInTrackX[it]<<std::endl;
+      // std::cout<<"lc.nHitsInTrackX[it]: "<<lc.nHitsInTrackX[it]<<std::endl;
       auto color_to_use = track_colors[it % n_track_colors] + color_adjustment;
       for (int ih = 0; ih < lc.nHitsInTrackX[it]; ih++) {
         float mx = lc.TrackHitPosX[it][ih][0] * CM;
@@ -342,12 +353,11 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     }
   }
 
-
   // This section draws reco tracks as lines between two points
   if (true) {
     for (int it = 0; it < reco.nTracks; it++) {
-      auto color_to_use = track_colors[it % n_track_colors];
-      for (int ih = 0; ih < reco.nKalmanNodes[it] - 1; ih++) {
+      auto color_to_use = track_colors[it % n_track_colors] - 2;
+      for (int ih = 0; ih < reco.nHits[it] - 1; ih++) {
         {
           float mx = reco.TrackHitPos[it][ih][2];
           float my = reco.TrackHitPos[it][ih][0];
@@ -355,7 +365,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
           float my2 = reco.TrackHitPos[it][ih + 1][0];
           TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
           line.SetLineColor(color_to_use);
-          line.SetLineWidth(2);
+          line.SetLineWidth(1);
           lines.push_back(line);
         }
         {
@@ -365,14 +375,42 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
           float my2 = reco.TrackHitPos[it][ih + 1][1];
           TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
           line.SetLineColor(color_to_use);
+          line.SetLineWidth(1);
+          linesy.push_back(line);
+        }
+      }
+    }
+  }
+
+  // Same but for kalman
+  if (true) {
+    for (int it = 0; it < reco.nTracks; it++) {
+      auto color_to_use = track_colors[it % n_track_colors];
+      for (int ih = 0; ih < reco.nKalmanNodes[it] - 1; ih++) {
+        {
+          float mx = reco.KalmanPos[it][ih][2];
+          float my = reco.KalmanPos[it][ih][0];
+          float mx2 = reco.KalmanPos[it][ih + 1][2];
+          float my2 = reco.KalmanPos[it][ih + 1][0];
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
+          line.SetLineColor(color_to_use);
+          line.SetLineWidth(2);
+          lines.push_back(line);
+        }
+        {
+          float mx = reco.KalmanPos[it][ih][2];
+          float my = reco.KalmanPos[it][ih][1];
+          float mx2 = reco.KalmanPos[it][ih + 1][2];
+          float my2 = reco.KalmanPos[it][ih + 1][1];
+          TLine line(mx * CM, my * CM, mx2 * CM, my2 * CM);
+          line.SetLineColor(color_to_use);
           line.SetLineWidth(2);
           linesy.push_back(line);
         }
       }
     }
   }
-  
-  
+
   int empty_up_triangle = 55;
   int empty_down_triangle = 59;
   double marker_size = 1.5;
@@ -490,12 +528,14 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
 
   y1 = 0.6;
   y2 = 1.0;
-  auto textBoxD = MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 12); // Left-aligned
-  auto textBoxE = MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 32); // Right-aligned
+  auto textBoxD =
+      MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 12); // Left-aligned
+  auto textBoxE =
+      MakeTextBox(x1, y1 - 0.1, x2, y2, text_size, 32); // Right-aligned
   // Add message but only if it's not the default message
   if (message.find("n tracks =") == std::string::npos) {
-    //textBoxD.AddText("Display info:");
-    //textBoxE.AddText("");
+    // textBoxD.AddText("Display info:");
+    // textBoxE.AddText("");
     int n_lines = 0;
     for (auto foo : split(message.c_str(), ';')) {
       textBoxD.AddText(foo.c_str());
@@ -508,8 +548,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       textBoxE.AddText("");
       n_lines += 1;
     }
-  }
-  else {
+  } else {
     textBoxD.AddText("");
     textBoxE.AddText("");
   }
@@ -531,8 +570,10 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     AddMarkerToLegend(leg, 20, 1.5, kRed, "Reco Track Nodes");
     AddMarkerToLegend(leg, 33, 1, kGreen + 2, "True Hits on Track");
   }
-  auto reco_entry = leg.AddEntry("", "Reco Track", "l");
-  reco_entry->SetLineColor(kRed);
+  auto kalman_entry = leg.AddEntry("", "Kalman Track", "l");
+  kalman_entry->SetLineColor(kRed);
+  auto reco_entry = leg.AddEntry("", "3D Reco Track", "l");
+  reco_entry->SetLineColor(kRed - 1);
   AddMarkerToLegend(leg, 22, 1, kBlack, "True Particle Start");
   AddMarkerToLegend(leg, 32, 1, kBlack, "True Part. Last TMS Pos");
   AddMarkerToLegend(leg, 23, 1, kBlack, "True Particle End");

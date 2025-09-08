@@ -35,6 +35,8 @@
 
 std::string save_location = "";
 
+const bool only_nd_physics = false;
+
 const double CM = 0.1; // cm per mm
 const double DEG = 360 / TAU;
 const double GEV = 1e-3; // GeV per MEV
@@ -54,10 +56,13 @@ const double GEV = 1e-3; // GeV per MEV
 // 2025-04-10 stereo, simple length3d
 #define lar_length_to_energy(l) (l) * 1e-3
 
+#define GEOM_V3
+
 namespace energy_function {
 enum energy_function {
   none,
   old_geom,
+  new_geom,
   length3d_20250410_stereo,
   f7_PDR_3_2b,
   f7_5v6h_4_2d,
@@ -65,6 +70,7 @@ enum energy_function {
   f32b,
   f42c,
   f42d,
+  test_reco_truth_override,
 };
 }
 energy_function::energy_function energy_function_to_use = energy_function::none;
@@ -73,6 +79,8 @@ double length_to_energy(double l) {
     return default_length_to_energy(l);
   if (energy_function_to_use == energy_function::old_geom)
     return (l * 1.75 * 0.951 + 76.8) * 1e-3;
+  if (energy_function_to_use == energy_function::new_geom)
+    return (l * 1.75 * 0.9428 + 18.73) * 1e-3;
   if (energy_function_to_use == energy_function::length3d_20250410_stereo)
     return (1.75 * l * 0.9528 + 56.4912) * 1e-3;
   if (energy_function_to_use == energy_function::f7_PDR_3_2b)
@@ -82,16 +90,28 @@ double length_to_energy(double l) {
   if (energy_function_to_use == energy_function::f7_5v6h_4_2c)
     return (1.75 * l * 1.0501 + 47.5804) * 1e-3;
   if (energy_function_to_use == energy_function::f32b)
-    return (1.75 * l * 1.0583 + 78.4743) * 1e-3;
+    // return (1.75 * l * 1.0583 + 78.4743) * 1e-3;
+    return (1.75 * l * 0.9258 + 46.6447) * 1e-3;
   if (energy_function_to_use == energy_function::f42c)
-    return (1.75 * l * 1.0501 + 47.5804) * 1e-3;
+    // return (1.75 * l * 1.0501 + 47.5804) * 1e-3;
+    return (1.75 * l * 0.9233 + 18.6727) * 1e-3;
   if (energy_function_to_use == energy_function::f42d)
-    return (1.75 * l * 0.9708 + 71.8783) * 1e-3;
+    // return (1.75 * l * 0.9708 + 71.8783) * 1e-3;
+    return (1.75 * l * 0.9208 + 22.7190) * 1e-3;
+  if (energy_function_to_use == energy_function::test_reco_truth_override)
+    // return (1.75*l*0.9110 + 119.4421)*1e-3;
+    return (1.75 * l * 0.9132 + 117.5892) * 1e-3;
   return default_length_to_energy(l);
 }
 
 void SetEnergyFunctionBasedOnInputFile(const std::string &inputFilename) {
   auto starting_function = energy_function_to_use;
+  if (inputFilename.find("MicroProdN3p1_2024-12-18_candidate") !=
+      std::string::npos)
+    energy_function_to_use = energy_function::old_geom;
+  if (inputFilename.find("MicroProdN1p2_2024-12-18_candidate") !=
+      std::string::npos)
+    energy_function_to_use = energy_function::old_geom;
   if (inputFilename.find("7_PDR_3_2b") != std::string::npos)
     energy_function_to_use = energy_function::f7_PDR_3_2b;
   if (inputFilename.find("7_5v6h_4_2d") != std::string::npos)
@@ -104,9 +124,14 @@ void SetEnergyFunctionBasedOnInputFile(const std::string &inputFilename) {
     energy_function_to_use = energy_function::f42c;
   if (inputFilename.find("42d") != std::string::npos)
     energy_function_to_use = energy_function::f42d;
+  if (inputFilename.find("2025-07-23_test_jdkio_reco_truth_override") !=
+      std::string::npos)
+    energy_function_to_use = energy_function::test_reco_truth_override;
   if (energy_function_to_use != starting_function)
     std::cout << "Set energy_function_to_use to " << energy_function_to_use
               << " based on inputFilename: " << inputFilename << std::endl;
+  else
+    std::cout << "Using default energy function" << std::endl;
 }
 
 const double MINIMUM_VISIBLE_ENERGY = 5; // MeV
@@ -493,6 +518,9 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     truth.GetEntry(entry_number);
     reco.GetEntry(entry_number);
     lc.GetEntry(entry_number);
+
+    if (only_nd_physics && !NDPhysicsSlice(truth, reco))
+      continue;
 
     // Check if we're on a new spill
     // Some things should only be filled per spill
@@ -1002,6 +1030,10 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         std::make_tuple("Hit Position Resolution X (Reco - True) (cm)", 21, -4,
                         4));
     REGISTER_AXIS(
+        hit_position_resolution_x_wide,
+        std::make_tuple("Hit Position Resolution X (Reco - True) (cm)", 31, -30,
+                        30));
+    REGISTER_AXIS(
         hit_position_resolution_y,
         std::make_tuple("Hit Position Resolution Y (Reco - True) (cm)", 81, -40,
                         40));
@@ -1078,7 +1110,25 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
         }
       }
 
+      for (int ih = 0; ih < reco.nKalmanNodes[0]; ih++) {
+        double dx =
+            reco.KalmanPos[0][ih][0] - truth.RecoTrackTrueHitPosition[0][ih][0];
+        GetSpecialHist("special__kalman_node_resolution_x",
+                       "resolution__reco_track__kalman_node_resolution_x",
+                       "Reco Kalman Node Resolution X",
+                       "hit_position_resolution_x_wide", "#N Hits")
+            ->Fill(dx * CM);
+        double dy =
+            reco.KalmanPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1];
+        GetSpecialHist("special__kalman_node_resolution_y",
+                       "resolution__reco_track__kalman_node_resolution_y",
+                       "Reco Kalman Node Resolution Y",
+                       "hit_position_resolution_y", "#N Hits")
+            ->Fill(dy * CM);
+      }
+
       double avg_offset = 0;
+      double largest_dx_deviation = 0;
       for (int ih = 0; ih < reco.nHits[0]; ih++) {
         double dx = reco.TrackHitPos[0][ih][0] -
                     truth.RecoTrackTrueHitPosition[0][ih][0];
@@ -1087,6 +1137,8 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
                        "Reco Track Hit Resolution X",
                        "hit_position_resolution_x", "#N Hits")
             ->Fill(dx * CM);
+        if (abs(dx * CM) > abs(largest_dx_deviation))
+          largest_dx_deviation = dx * CM;
         double dy = reco.TrackHitPos[0][ih][1] -
                     truth.RecoTrackTrueHitPosition[0][ih][1];
         GetSpecialHist("special__track_hit_resolution_y",
@@ -1132,6 +1184,29 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
               ->Fill(dy * CM);
         }
       }
+
+      if (largest_dx_deviation > 4)
+        DrawSlice(
+            TString::Format("entry_%lld", entry_number).Data(),
+            "resolution/poor_hit_x_resolution",
+            TString::Format("Found poor dx;dx = %.1f cm", largest_dx_deviation)
+                .Data(),
+            reco, lc, truth, DrawSliceN::many);
+      if (largest_dx_deviation > 10)
+        DrawSlice(
+            TString::Format("entry_%lld", entry_number).Data(),
+            "resolution/poor_hit_x_resolution_worse",
+            TString::Format("Found poor dx;dx = %.1f cm", largest_dx_deviation)
+                .Data(),
+            reco, lc, truth, DrawSliceN::many);
+      if (largest_dx_deviation > 20)
+        DrawSlice(
+            TString::Format("entry_%lld", entry_number).Data(),
+            "resolution/poor_hit_x_resolution_worst",
+            TString::Format("Found poor dx;dx = %.1f cm", largest_dx_deviation)
+                .Data(),
+            reco, lc, truth, DrawSliceN::many);
+
       avg_offset /= reco.nHits[0];
       bool draw_slice = false;
       bool draw_slice_large = false;
@@ -1328,6 +1403,11 @@ std::string getOutputFilename(const std::string &inputFilename) {
   // Now add .root if needed
   if (filename.find(".root") == std::string::npos)
     filename += ".root";
+  if (only_nd_physics) {
+    filename = filename.substr(0, filename.size() - 5);
+    filename += "_only_nd_physics.root";
+    std::cout << "Saving in filename: " << filename << std::endl;
+  }
   return filename;
 }
 
@@ -1356,13 +1436,15 @@ int main(int argc, char *argv[]) {
   // Extract input filename and number of events from command line arguments
   std::string inputFilename = argv[1];
   std::string filename;
-  if (inputFilename.find(".root") != std::string::npos)
+  if (inputFilename.find(".root") != std::string::npos) {
     // Assuming we're specifying a single tmsreco file
     // Optionally someone might specify several using dir/\*root
     filename = inputFilename;
-  else {
+    std::cout << "Using single file filename: " << filename << std::endl;
+  } else {
     // Assuming the full directory
-    filename = inputFilename + "/tmsreco/*/00m/00/*.root";
+    filename = inputFilename + "/tmsreco/RHC/00m/*.root";
+    std::cout << "Using full directory filename: " << filename << std::endl;
   }
   int numEvents = -1;
   if (argc > 2)

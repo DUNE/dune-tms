@@ -160,9 +160,12 @@ def draw_histograms(input_file):
         # Use the first hist to set the title and stuff
         # Draw first to make the underlying histogram
         opts = "hist"
-        if "nostack" in first_hist.GetName(): opts += " nostack"
-        else: opts += " stack"
-        if "optsmooth" in first_hist.GetName(): opts += " C"
+        if "nostack" in first_hist.GetName():
+            opts += " nostack"
+        else:
+            opts += " stack"
+        if "optsmooth" in first_hist.GetName():
+            opts += " C"
         hist_stack.Draw(opts)
 
         hist_stack.GetXaxis().SetTitle("Example title")

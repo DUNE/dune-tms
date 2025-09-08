@@ -10,31 +10,35 @@
     int true_charge = (truth.RecoTrackPrimaryParticlePDG[it] < 0) ? -1 : 1;
     int charge = reco.Charge[it];
     bool correct_charge_id = true_charge * charge > 0;
-    double particle_starting_ke = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
+    double particle_starting_ke =
+        truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
     if (ismuon || isantimuon) {
       // incorrect charge id
       if (nd_physics_muon && ismuon && correct_charge_id)
-        GetSpecialHist("special__charge_id_muon_numerator", "charge_id__true_muon_numerator",
-                "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
-                "ke_tms_enter", "#Efficiency")
+        GetSpecialHist("special__charge_id_muon_numerator",
+                       "charge_id__true_muon_numerator",
+                       "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
+                       "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && isantimuon && correct_charge_id)
-        GetSpecialHist("special__charge_id_antimuon_numerator", "charge_id__true_antimuon_numerator",
-                "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
-                "ke_tms_enter", "#Efficiency")
+        GetSpecialHist("special__charge_id_antimuon_numerator",
+                       "charge_id__true_antimuon_numerator",
+                       "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
+                       "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && ismuon)
-        GetSpecialHist("special__charge_id_muon_denominator", "charge_id__true_muon_denominator",
-                "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
-                "ke_tms_enter", "#Efficiency")
+        GetSpecialHist("special__charge_id_muon_denominator",
+                       "charge_id__true_muon_denominator",
+                       "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
+                       "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
       if (nd_physics_muon && isantimuon)
-        GetSpecialHist("special__charge_id_antimuon_denominator", "charge_id__true_antimuon_denominator",
-                "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
-                "ke_tms_enter", "#Efficiency")
+        GetSpecialHist("special__charge_id_antimuon_denominator",
+                       "charge_id__true_antimuon_denominator",
+                       "#mu^{+} Charge ID Efficiency vs True KE_{Enter}",
+                       "ke_tms_enter", "#Efficiency")
             ->Fill(particle_starting_ke);
-            
-            
+
       if (tms_touch && ismuon && correct_charge_id)
         GetHist("charge_id__all_true_muon_numerator",
                 "#mu^{-} Charge ID Efficiency vs True KE_{Enter}",
@@ -62,23 +66,19 @@
         double ex = reco.EndPos[it][0] * CM;
         if (isantimuon)
           GetHist("charge_id__validation__startpoint_antimuons",
-                  "Startpoint of Incorrectedly Identified Antimuons",
-                  "Z", "X")
+                  "Startpoint of Incorrectedly Identified Antimuons", "Z", "X")
               ->Fill(sz, sx);
         if (ismuon)
           GetHist("charge_id__validation__startpoint_muon",
-                  "Startpoint of Incorrectedly Identified Muons",
-                  "Z", "X")
+                  "Startpoint of Incorrectedly Identified Muons", "Z", "X")
               ->Fill(sz, sx);
         if (isantimuon)
           GetHist("charge_id__validation__endpoint_antimuons",
-                  "Endpoint of Incorrectedly Identified Antimuons",
-                  "Z", "X")
+                  "Endpoint of Incorrectedly Identified Antimuons", "Z", "X")
               ->Fill(ez, ex);
         if (ismuon)
           GetHist("charge_id__validation__endpoint_muon",
-                  "Endpoint of Incorrectedly Identified Muons",
-                  "Z", "X")
+                  "Endpoint of Incorrectedly Identified Muons", "Z", "X")
               ->Fill(ez, ex);
       }
     } // if muon || antimuon

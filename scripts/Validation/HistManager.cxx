@@ -140,7 +140,7 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "X")
     return std::make_tuple("X (cm)", 100, -400, 400);
   if (axis_name == "Y")
-    return std::make_tuple("Y (cm)", 100, -500, 100);
+    return std::make_tuple("Y (cm)", 100, -350, 150);
   if (axis_name == "Y_full")
     return std::make_tuple("Y (cm)", 100, -500, 500);
   if (axis_name == "Z")
@@ -168,7 +168,7 @@ std::tuple<std::string, int, double, double> GetBinning(std::string axis_name) {
   if (axis_name == "unusual_hit_locations")
     return std::make_tuple("Hit Location", 4, -0.5, 3.5);
   if (axis_name == "charge")
-    return std::make_tuple("Charge", 50, -100, 100);
+    return std::make_tuple("Charge", 31, -15, 15);
   if (axis_name == "areal_density")
     return std::make_tuple("Areal Density (g/cm^2)", 50, 0, 3000);
   if (axis_name == "momentum")
@@ -217,6 +217,23 @@ GetComplexBinning(std::string axis_name) {
     return std::make_tuple(true, "Reco Muon KE Entering TMS (GeV)",
                            n_muon_ke_bins, muon_ke_bins);
   return std::make_tuple(false, "", 0, (double *)NULL);
+}
+
+std::tuple<bool, std::string, int, double *>
+CreateComplexBinning(std::string axis_name) {
+  double start;
+  double end;
+  std::string title;
+  int n;
+  std::tie(title, n, start, end) = GetBinning(axis_name);
+  const size_t n_elements = n + 1;
+  double *out = new double[n_elements];
+  double dx = (end - start) / n;
+  for (size_t i = 0; i < n_elements; i++) {
+    double bin = start + i * dx;
+    out[i] = bin;
+  }
+  return std::make_tuple(true, title, n, out);
 }
 
 void AdjustAxis(TH1 *hist, std::string xaxis, std::string yaxis = "",
@@ -313,8 +330,10 @@ void AdjustAxis(TH1 *hist, std::string xaxis, std::string yaxis = "",
 TH1 *MakeHist(std::string directory_and_name, std::string title,
               std::string xaxis, std::string yaxis = "",
               std::string zaxis = "") {
-  if (zaxis != "") {
+  if (zaxis != "" && zaxis.find("#") != 0) {
     // 3d hist case
+    std::cout << "Was given directory_and_name: " << directory_and_name
+              << ", title: " << title << ", zaxis: " << zaxis << std::endl;
     throw std::runtime_error("3d hists are not implemented yet");
   } else if (yaxis != "" && yaxis != "Probability" &&
              yaxis != "Normalized Frequency" && yaxis.find("#") != 0) {
@@ -334,11 +353,16 @@ TH1 *MakeHist(std::string directory_and_name, std::string title,
     bool has_complex_binning_y;
     std::tie(has_complex_binning_y, yaxis_title, yaxis_nbins, yaxis_bins) =
         GetComplexBinning(yaxis);
-    // Can't do one and not the other, but could manually create the binning if
-    // we wanted
-    if (has_complex_binning_y != has_complex_binning_x)
-      throw std::runtime_error(
-          "2d hists have to use complex y and x bins simultaneously");
+    // Can't do one and not the other, so create the missing ones
+    if (has_complex_binning_y != has_complex_binning_x) {
+      // Create the missing
+      if (!has_complex_binning_x)
+        std::tie(has_complex_binning_x, xaxis_title, xaxis_nbins, xaxis_bins) =
+            CreateComplexBinning(xaxis);
+      if (!has_complex_binning_y)
+        std::tie(has_complex_binning_y, yaxis_title, yaxis_nbins, yaxis_bins) =
+            CreateComplexBinning(yaxis);
+    }
     if (has_complex_binning_x) {
       auto complete_title = title + ";" + xaxis_title + ";" + yaxis_title;
       out = new TH2D(directory_and_name.c_str(), complete_title.c_str(),
@@ -386,7 +410,8 @@ TH1 *MakeHist(std::string directory_and_name, std::string title,
     }
     // Add special naming here
     AdjustAxis(out, xaxis);
-    if (yaxis.find("#") == 0) yaxis = yaxis.substr(1, yaxis.size()-1);
+    if (yaxis.find("#") == 0)
+      yaxis = yaxis.substr(1, yaxis.size() - 1);
     out->GetYaxis()->SetTitle(yaxis.c_str());
     return out;
   }
@@ -488,13 +513,14 @@ void FinalizeHists() {
       hist.second->Scale(1 / hist.second->GetMaximum());
     }
   }
-  
+
   // Now save copies of all the special hists
-  for (auto& is : specialHists) {
+  for (auto &is : specialHists) {
     auto special_name = is.first;
     auto regular_name = is.second;
     // Save a copy under the new special name
-    mapForGetHist[special_name] = dynamic_cast<TH1*>(mapForGetHist[regular_name]->Clone(special_name.c_str()));
+    mapForGetHist[special_name] = dynamic_cast<TH1 *>(
+        mapForGetHist[regular_name]->Clone(special_name.c_str()));
   }
 }
 
@@ -552,23 +578,22 @@ TH1 *GetHist(std::string directory_and_name, std::string title,
 }
 
 TH1 *GetSpecialHist(std::string special_dir_and_name,
-             std::string directory_and_name, std::string title,
-             std::string xaxis, std::string yaxis = "",
-             std::string zaxis = "") {
-  TH1* out = GetHist(directory_and_name, title, xaxis, yaxis, zaxis);
+                    std::string directory_and_name, std::string title,
+                    std::string xaxis, std::string yaxis = "",
+                    std::string zaxis = "") {
+  TH1 *out = GetHist(directory_and_name, title, xaxis, yaxis, zaxis);
   // Save a copy
   specialHists[special_dir_and_name] = directory_and_name;
   return out;
 }
 
-void FillHistWithPositionCuts(const std::string& base_name,
-                      const std::string& title,
-                      const std::string& axis,
-                      double value,
-                      TVector3 position,
-                      const std::vector<std::pair<std::string, std::function<bool(TVector3)>>>& cuts) {
+void FillHistWithPositionCuts(
+    const std::string &base_name, const std::string &title,
+    const std::string &axis, double value, TVector3 position,
+    const std::vector<std::pair<std::string, std::function<bool(TVector3)>>>
+        &cuts) {
   int index = 0;
-  for (const auto& [cut_name, cut_func] : cuts) {
+  for (const auto &[cut_name, cut_func] : cuts) {
     if (cut_func(position)) {
       std::string full_name = base_name + "_passes_" + std::to_string(index);
       GetHist(full_name, title + ": " + cut_name, axis)->Fill(value);
