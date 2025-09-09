@@ -2,6 +2,9 @@
 #define _TMS_KALMAN_H_SEEN_
 
 #include <iostream>
+#include <vector>
+#include <cmath>
+#include <unordered_map>
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -56,6 +59,7 @@ class TMS_KalmanNode {
   // x,y,z, delta_z = distance from previous hit to current in z
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
+    StepIndex(-1),
     RecoX(xvar), RecoY(yvar),
     PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
     CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
@@ -117,6 +121,9 @@ class TMS_KalmanNode {
   double dxdz;
   double dydz;
 
+  // Index of this node within the track (0-based). Used for adaptive gating.
+  int StepIndex;
+
   double RecoX; // Reco X and Reco Y get updated with Kalman prediction info
   double RecoY;
 
@@ -155,6 +162,7 @@ class TMS_KalmanNode {
   TVectorD MeasurementVec;
 //  TVectorD DeflectedVec;
   double chi2;
+  bool Accepted; // true if the measurement was used (passed outlier cuts)
 
 
   void SetRecoXY(TMS_KalmanState& State)
@@ -198,7 +206,11 @@ class TMS_KalmanNode {
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
     } else {
-      throw; // xd haha TODO tho
+      // Unknown orientation: fall back to diagonal measurement noise
+      NoiseMatrix(0,0) = A*A;
+      NoiseMatrix(1,1) = B*B;
+      NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
+      return;
     }
     H *= sign;
 
@@ -299,6 +311,7 @@ class TMS_Kalman {
     void Predict(TMS_KalmanNode &Node);
     void Update(TMS_KalmanNode &PreviousNode, TMS_KalmanNode &CurrentNode);
     void RunKalman();
+    void PruneRejectedAndDuplicateZ();
     void runRTSSmoother();
     void BetheBloch();
     void SignSelection();
@@ -322,6 +335,18 @@ class TMS_Kalman {
     double AverageYSlope; // Seeding initial Y slope in Kalman
     
     bool Talk;
+
+    // Outlier handling state
+    int ConsecutiveOutliers = 0;           // running count during filtering
+    int OutlierResetThreshold = TMS_Manager::GetInstance().Get_Reco_Kalman_Outlier_ResetThreshold();
+    // Track if a z-layer already has an accepted measurement, to reject duplicates at same z
+    std::unordered_map<long long, bool> ZLayerAccepted;
+    static long long QuantizeZKey(double z) { return llround(z * 1000.0); } // quantize to micron to group same-z hits
+
+    // Outlier rejection control
+    bool EnableOutlierRejection = TMS_Manager::GetInstance().Get_Reco_Kalman_Use_Outlier_Rejection();
+    // 2-DOF chi2 threshold (tunable)
+    double Chi2RejectThreshold = TMS_Manager::GetInstance().Get_Reco_Kalman_Outlier_Rejection_Chi2_Threshold();
 };
 
 #endif

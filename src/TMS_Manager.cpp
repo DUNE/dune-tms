@@ -80,6 +80,23 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   _RECO_KALMAN_ASSUMED_CHARGE = toml::find<double>(data, "Recon", "Kalman", "Assumed_Charge");
+  _RECO_KALMAN_USE_OUTLIER_REJECTION = toml::find<bool>(data, "Recon", "Kalman", "Use_Outlier_Rejection");
+  _RECO_KALMAN_OUTLIER_REJECTION_CHI2_THRESHOLD = toml::find<double>(data, "Recon", "Kalman", "Outlier_Rejection_Chi2_Threshold");
+  // Optional knobs with defaults
+  _RECO_KALMAN_OUTLIER_EARLYSTEP_MULTIPLIER = toml::find<double>(data, "Recon", "Kalman", "Outlier_EarlyStepMultiplier");
+  _RECO_KALMAN_OUTLIER_EARLYSTEPS_COUNT     = toml::find<int>(   data, "Recon", "Kalman", "Outlier_EarlyStepsCount");
+  _RECO_KALMAN_OUTLIER_MAXSCALE             = toml::find<double>(data, "Recon", "Kalman", "Outlier_MaxScale");
+  _RECO_KALMAN_OUTLIER_INNOVATIONTRACE_COEFF= toml::find<double>(data, "Recon", "Kalman", "Outlier_InnovationTraceCoeff");
+  _RECO_KALMAN_OUTLIER_RESET_THRESHOLD      = toml::find<int>(   data, "Recon", "Kalman", "Outlier_ResetThreshold");
+  _RECO_KALMAN_OUTLIER_NUDGE_ALPHA          = toml::find<double>(data, "Recon", "Kalman", "Outlier_NudgeAlpha");
+  _RECO_KALMAN_OUTLIER_NUDGE_SLOPES         = toml::find<bool>(  data, "Recon", "Kalman", "Outlier_NudgeSlopes");
+  _RECO_KALMAN_OUTLIER_NUDGE_SLOPES_ALPHA   = toml::find<double>(data, "Recon", "Kalman", "Outlier_NudgeSlopesAlpha");
+  _RECO_KALMAN_OUTLIER_USE_ABS_RESID        = toml::find<bool>(  data, "Recon", "Kalman", "Outlier_UseAbsoluteResidual");
+  _RECO_KALMAN_OUTLIER_ABS_RESID_MAX        = toml::find<double>(data, "Recon", "Kalman", "Outlier_AbsoluteResidualMax");
+  _RECO_KALMAN_OUTLIER_ABS_RESID_MAX_X      = toml::find<double>(data, "Recon", "Kalman", "Outlier_AbsoluteResidualMaxX");
+  _RECO_KALMAN_OUTLIER_ABS_RESID_MAX_Y      = toml::find<double>(data, "Recon", "Kalman", "Outlier_AbsoluteResidualMaxY");
+  _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE    = toml::find<bool>(  data, "Recon", "Kalman", "Outlier_EarlyRampEnable");
+  _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS     = toml::find<int>(   data, "Recon", "Kalman", "Outlier_EarlyRampSteps");
 
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");

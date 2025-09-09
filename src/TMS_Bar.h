@@ -67,7 +67,7 @@ class TMS_Bar {
     // Find if a 2D point is inside the bar
     // x here denotes the other view than z
     // can be both x and y views (depending on bar type)!
-    bool Contains(double x, double z) {
+    bool Contains(double x, double z) const {
 
       // Get the maxium and minimum of the bar
       double zmin = GetZ()-GetZw()/2;

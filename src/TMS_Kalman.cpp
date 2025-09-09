@@ -1,10 +1,73 @@
 #include "TMS_Kalman.h"
 #include "TMS_Geom.h"
+#include "TMS_Manager.h"
+#include <algorithm>
+#include <limits>
 
 TMS_Kalman::TMS_Kalman() : 
   Bethe(Material::kPolyStyrene),
   MSC(Material::kPolyStyrene),
-  ForwardFitting(false) {
+  ForwardFitting(false),
+  total_en(0.0),
+  mass(0.0),
+  momentum(0.0),
+  charge_curvature(0.0),
+  assumed_charge(0.0),
+  AverageXSlope(0.0),
+  AverageYSlope(0.0),
+  Talk(false) {
+}
+
+// Helper to inflate the initial state covariance so the filter
+// is humble about the initial state estimate.
+namespace {
+  inline void SetInflatedInitialCovariance(TMatrixD &P) {
+    P.Zero();
+    // Position (mm^2): large uncertainty to downweight initial estimate
+    const double cov_x  = 1.0e4;  // std ~ 100 mm
+    const double cov_y  = 1.0e4;  // std ~ 100 mm
+    // Slopes ((dx/dz)^2, (dy/dz)^2): very uninformative initial slope
+    const double cov_tx = 25.0;   // std ~ 5
+    const double cov_ty = 25.0;   // std ~ 5
+    // Curvature ((q/p)^2): large to avoid overconfidence on momentum
+    const double cov_qp = 100.0;  // very conservative
+
+    P(0,0) = cov_x;
+    P(1,1) = cov_y;
+    P(2,2) = cov_tx;
+    P(3,3) = cov_ty;
+    P(4,4) = cov_qp;
+  }
+
+  inline double AdaptiveChi2Threshold(const TMatrixD &S, int step_index, double base_thresh) {
+    double factor = 1.0;
+    const auto &mgr = TMS_Manager::GetInstance();
+    double early_mult = mgr.Get_Reco_Kalman_Outlier_EarlyStepMultiplier();
+    int    early_n    = mgr.Get_Reco_Kalman_Outlier_EarlyStepsCount();
+    bool   ramp_en    = mgr.Get_Reco_Kalman_Outlier_EarlyRampEnable();
+    int    ramp_n     = mgr.Get_Reco_Kalman_Outlier_EarlyRampSteps();
+    double k_trace    = mgr.Get_Reco_Kalman_Outlier_InnovationTraceCoeff();
+    double max_scale  = mgr.Get_Reco_Kalman_Outlier_MaxScale();
+
+    if (step_index >= 0) {
+      if (ramp_en && ramp_n > 0 && step_index < ramp_n) {
+        double t = (ramp_n > 1) ? static_cast<double>(step_index) / static_cast<double>(ramp_n - 1) : 1.0;
+        double ramp_factor = early_mult + (1.0 - early_mult) * std::clamp(t, 0.0, 1.0);
+        factor = std::max(factor, ramp_factor);
+      } else if (step_index < early_n) {
+        factor = std::max(factor, early_mult);
+      }
+    }
+
+    if (S.GetNrows() == 2 && S.GetNcols() == 2) {
+      double traceS = S(0,0) + S(1,1);
+      double conf_factor = 1.0 + k_trace * std::max(0.0, traceS);
+      factor = std::max(factor, conf_factor);
+    }
+    if (std::isnan(factor) || std::isinf(factor)) factor = 1.0;
+    factor = std::min(factor, max_scale);
+    return base_thresh * factor;
+  }
 }
 
 // Take a collection of hits, return collection of Kalman nodes
@@ -50,23 +113,25 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     int j;
     for (j=i; j<nCand; j++)
-      if (abs(Candidates[j].GetZ() - z) > 1E-3)
+      if (std::abs(Candidates[j].GetZ() - z) > 1E-3)
       {
         break;
       }
 
-    double future_z = (i+1 == nCand ) ? z : Candidates[i+1].GetZ();
-    double DeltaZ = future_z-z;
+    // Use the next different-z hit as the future reference, if it exists
+    int next_idx = (j < nCand) ? j : i;
+    double future_z = (next_idx == i) ? z : Candidates[next_idx].GetZ();
+    double DeltaZ = future_z - z;
 
-    double future_x = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoX();
-    double DeltaX = future_x-x;
+    double future_x = (next_idx == i) ? x : Candidates[next_idx].GetRecoX();
+    double DeltaX = future_x - x;
 
-    double future_y = (i+1 == nCand ) ? z : Candidates[i+1].GetRecoY();
-    double DeltaY = future_y-y;
+    double future_y = (next_idx == i) ? y : Candidates[next_idx].GetRecoY();
+    double DeltaY = future_y - y;
 
 
     // This also initialises the state vectors in each of the nodes
-    if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
+    if (std::abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
       TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
@@ -76,6 +141,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
       Node.LayerBarLength   = hit.GetBar().GetBarLength();
 
       KalmanNodes.emplace_back(std::move(Node));
+      KalmanNodes.back().StepIndex = KalmanNodes.size() - 1;
 //    } else { // TODO: Handle layers with more than one hit, waiting on Asa to confirm potential structures
 //      //std::cout << "more than one hit per layer? Kalman unhappy " << i << "\t " << j-i << std::endl;
     }
@@ -86,8 +152,14 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   if (Candidates.size() < (unsigned)N_LAYER_BACK)
     N_LAYER_BACK = Candidates.size();
 
-  AverageXSlope = (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX()) / (Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
-  AverageYSlope = (Candidates.front().GetRecoY() - Candidates.back().GetRecoY()) / (Candidates.front().GetZ() - Candidates.back().GetZ());
+  double dz_x = (Candidates[Candidates.size() - N_LAYER_BACK].GetZ() - Candidates.back().GetZ());
+  double dz_y = (Candidates.front().GetZ() - Candidates.back().GetZ());
+  AverageXSlope = (std::abs(dz_x) > 1e-6)
+                    ? (Candidates[Candidates.size() - N_LAYER_BACK].GetRecoX() - Candidates.back().GetRecoX()) / dz_x
+                    : 0.0;
+  AverageYSlope = (std::abs(dz_y) > 1e-6)
+                    ? (Candidates.front().GetRecoY() - Candidates.back().GetRecoY()) / dz_y
+                    : 0.0;
 
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
@@ -115,6 +187,8 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   BetheBloch();
   Runchi2();
   SignSelection();
+  // Prune out nodes rejected as outliers and duplicates at the same z-layer
+  PruneRejectedAndDuplicateZ();
 }
 
 // Used for seeding the starting KE for the Kalman filter from the start and end point of a track
@@ -146,10 +220,20 @@ double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double st
 void TMS_Kalman::RunKalman() {
  
   int nCand = KalmanNodes.size();
+  if (nCand == 0) return;
+  ConsecutiveOutliers = 0; // reset outlier streak at start
+  ZLayerAccepted.clear();  // clear per-z acceptance map
   KalmanNodes[0].SetRecoXY(KalmanNodes[0].PreviousState);
+  // Ensure the very first node has an inflated initial covariance.
+  // This keeps the filter humble about the starting state.
+  if (KalmanNodes[0].CovarianceMatrix.GetNrows() == 5 && KalmanNodes[0].CovarianceMatrix.GetNcols() == 5) {
+    SetInflatedInitialCovariance(KalmanNodes[0].CovarianceMatrix);
+  }
+  KalmanNodes[0].StepIndex = 0;
   for (int i = 1; i < nCand; ++i) {
     // Perform the update from the (i-1)th node's predicted to the ith node's previous
     Update(KalmanNodes[i-1], KalmanNodes[i]);
+    KalmanNodes[i].StepIndex = i; // keep index synced for adaptive gating
     Predict(KalmanNodes[i]);
   }
  
@@ -193,37 +277,37 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // Initialise to something sane(-ish)
   if (PreviousState.dxdz ==  -999.9) // Only on initialisation?
   {
-    //PreviousState.dxdz = TMS_Kalman::AverageXSlope;
-    if ( abs(TMS_Kalman::AverageXSlope) > 2.0 )
+    //PreviousState.dxdz = AverageXSlope;
+    if ( std::abs(AverageXSlope) > 2.0 )
     {
       //std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dxdz = 0.0;
     } else {
-      PreviousState.dxdz = TMS_Kalman::AverageXSlope;
+      PreviousState.dxdz = AverageXSlope;
     }
   }
   if (PreviousState.dydz ==  -999.9) // Only on initialisation?
   {
-    if ( abs(TMS_Kalman::AverageYSlope) > 1.5 )
+    if ( std::abs(AverageYSlope) > 1.5 )
     {
       //std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dydz = 0.0;
     } else {
-      PreviousState.dydz = TMS_Kalman::AverageYSlope;
+      PreviousState.dydz = AverageYSlope;
     }
   }
   
 
    // Modification begins here: introduce magnetic field and deflection based on regions
   // Determine magnetic field based on x-position
-  double MagneticField = 0;
-  const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; //1860; // hard coded boundary for regions
-  if (fabs(PreviousState.x) <= RegionBoundaryX) {
-      MagneticField = -1.0; // Central region: Magnetic field downwards
+  double MagneticField = 0.0;
+  const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; // mm
+  if (std::abs(PreviousState.x) <= RegionBoundaryX) {
+      MagneticField = -1.0; // Central region: field +y or -y encoded by sign
   } else if (PreviousState.x > RegionBoundaryX) {
-      MagneticField = 1.0; // Right side region: Magnetic field upwards
+      MagneticField = 1.0; // Right side region
   } else {
-      MagneticField = 1.0; // Left side region: Magnetic field upwards
+      MagneticField = 1.0; // Left side region
   }
 
   // Calculate Lorentz force (deflection in x only)
@@ -233,7 +317,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
   // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
-  double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
+  // Linearized deflection of slope in x due to B ~ By; units chosen to be consistent with internal code
+  double dz = CurrentState.z - PreviousState.z;
+  double magnetic_deflection_tx = 0.303 * assumed_charge * MagneticField * 1.95 * dz * 0.5 / std::max(p, 1e-9);
   // Modification ends here
   
 
@@ -245,8 +331,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   PreviousVec[4] = PreviousState.qp;
 
   TVectorD UpdateVec = Transfer*(PreviousVec);
-  //add a magnetic deflection term
-//  UpdateVec[2] += magnetic_deflection_px/p;
+  // Add magnetic deflection to slope and position (x only for By field)
+  UpdateVec[2] += magnetic_deflection_tx;
+  UpdateVec[0] += 0.5 * magnetic_deflection_tx * dz; // small-angle approx
 
   if (Talk) std::cout << "\nPrevious vector: " << std::endl;
   if (Talk) PreviousState.Print();
@@ -270,10 +357,10 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double zval2 = PreviousState.z + Transfer(0,2); // Probably a nicer way to do this (:
 
   //TODO: When it is blowed up, temporary
-  if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
-  if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
-  if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
-  if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
+  if (std::abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+  if (std::abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
+  if (yval>TMS_Const::TMS_End_Exact[1]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
+  if (yval2>TMS_Const::TMS_End_Exact[1] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
 
   // Make TVector3s of the two points
   TVector3 start(xval,yval,zval); // Start
@@ -369,24 +456,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &EstimatedCovarianceMatrix = Node.EstimatedCovarianceMatrix;//For smooth
 
 
-  // 'measurement' matrices
-  TMatrixD H   = TMatrixD(KALMAN_DIM,KALMAN_DIM);
-  TMatrixD H_T = TMatrixD(KALMAN_DIM,KALMAN_DIM);
-  H  .Zero();
-  H_T.Zero();
-  for (int l=0; l<2; l++) { H(l,l) = 1.0; H_T(l,l) = 1.0; }
-
   double sigma = MSC.Calc_MS_Sigma();
 
   if (TotalPathLength >= 1.0) { // If path is 0 we're in the first Node, set initial cov
-    Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], CurrentState.qp, sigma, false); // Fill the matrix for multiple scattering
+    Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], qp_var, sigma, false); // Fill the matrix for multiple scattering (use variance on q/p)
   } else { // Initialise cov to something 'sane'-ish
     UpdatedCovarianceMatrix.Zero(); // zero this out to be sure
-    CovarianceMatrix(0,0) = 200.0; // TODO: enable swapping the x and y for z layers, should rarely happen
-    CovarianceMatrix(1,1) = 1.0E3;
-    CovarianceMatrix(2,2) = 1.50;
-    CovarianceMatrix(3,3) = 2.50;
-    CovarianceMatrix(4,4) = 1.0;
+    // Inflate the initial covariance strongly to avoid overconfidence
+    SetInflatedInitialCovariance(CovarianceMatrix);
     if (Talk) std::cout << "Initialising covariance!" << std::endl;
   }
 
@@ -398,36 +475,145 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   EstimatedCovarianceMatrix = CovarianceMatrix;
 
-  TMatrixD GainMatrix = TMatrixD(5,5);
+  // Proper Kalman update using H and R
+  TMatrixD H(2,5); H.Zero(); H(0,0) = 1.0; H(1,1) = 1.0;
+  TMatrixD HT = TMatrixD(TMatrixD::kTransposed, H);
+  TMatrixD R(2,2); R.Zero();
+  // Use the top-left 2x2 of the measurement noise matrix
+  R(0,0) = NoiseMatrix(0,0);
+  R(0,1) = NoiseMatrix(0,1);
+  R(1,0) = NoiseMatrix(1,0);
+  R(1,1) = NoiseMatrix(1,1);
 
-  GainMatrix = CovarianceMatrix + NoiseMatrix;
-  for (int l=2; l<KALMAN_DIM; l++) GainMatrix(l,l) = 1.0; // Set diags to 1 for inversion
-  GainMatrix = GainMatrix.Invert();
-
-  GainMatrix = CovarianceMatrix*GainMatrix;
+  TMatrixD S = H * CovarianceMatrix * HT; S += R; // innovation covariance
+  // Symmetrize S to reduce numerical asymmetry
+  {
+    TMatrixD ST(TMatrixD::kTransposed, S);
+    S += ST; S *= 0.5;
+  }
+  // Guard inversion
+  bool invertible = true;
+  double detS = S.Determinant();
+  if (!std::isfinite(detS) || std::abs(detS) < 1e-18) invertible = false;
+  TMatrixD S_inv = S;
+  if (invertible) {
+    S_inv.Invert();
+    // Basic sanity: check result isn't exploding
+    if (!std::isfinite(S_inv(0,0)) || !std::isfinite(S_inv(1,1))) invertible = false;
+  }
+  TMatrixD GainMatrix = CovarianceMatrix * HT * S_inv;
 
   if (Talk) std::cout << "Final cov\n" << std::flush;
   if (Talk) CovarianceMatrix.Print();
 
   TVectorD FilteredVec = TVectorD(5);
-  TVectorD Measurement = TVectorD(5);
+  TVectorD Measurement = TVectorD(2);
 
-  Measurement[0] = CurrentState.x ;//+ NoiseVec[0];
-  Measurement[1] = CurrentState.y ;//+ NoiseVec[1];
-  Measurement[2] = UpdateVec[2];//0.0;//NoiseVec[2];//CurrentState.dxdz;
-  Measurement[3] = UpdateVec[3];//0.0;//NoiseVec[3];//CurrentState.dydz;
-  Measurement[4] = 0.0; //CurrentState.qp;
+  // Measurement is the observed hit position of this node
+  Measurement[0] = Node.x;
+  Measurement[1] = Node.y;
 
 
   if (Talk) std::cout << "Gain" << std::flush;
   if (Talk) GainMatrix.Print();
 
-  FilteredVec = UpdateVec + GainMatrix*( Measurement - UpdateVec );
+  // Innovation and chi2
+  TVectorD innovation = Measurement - H * UpdateVec; // size 2
+  // Compute per-node chi2 ahead of update (only if inversion succeeded)
+  double node_chi2 = std::numeric_limits<double>::infinity();
+  if (invertible) {
+    TVectorD tmp_for_chi2 = S_inv * innovation;
+    node_chi2 = innovation * tmp_for_chi2; // r^T S^{-1} r (2 dof)
+  }
 
-  TMatrixD IdentityMatrix(5,5);
-  IdentityMatrix.UnitMatrix();
-//editted:the final Covariance=(1-K)C~ from arXiv:2404.08614
-  CovarianceMatrix = (IdentityMatrix-GainMatrix)*CovarianceMatrix;
+  // Outlier rejection: skip measurement update if chi2 too large
+  bool use_measurement = true;
+  double effective_chi2_thresh = Chi2RejectThreshold;
+  if (EnableOutlierRejection) {
+    effective_chi2_thresh = AdaptiveChi2Threshold(S, Node.StepIndex, Chi2RejectThreshold);
+    if (!invertible || node_chi2 > effective_chi2_thresh || std::isnan(node_chi2) || std::isinf(node_chi2)) {
+      use_measurement = false;
+    }
+    // Absolute residual guardrail (per-axis, in mm)
+    if (use_measurement && TMS_Manager::GetInstance().Get_Reco_Kalman_Outlier_UseAbsoluteResidual() \
+        && Node.StepIndex > TMS_Manager::GetInstance().Get_Reco_Kalman_Outlier_EarlyStepsCount()) {
+      const auto &mgr = TMS_Manager::GetInstance();
+      double max_x = mgr.Get_Reco_Kalman_Outlier_AbsoluteResidualMaxX();
+      double max_y = mgr.Get_Reco_Kalman_Outlier_AbsoluteResidualMaxY();
+      if (std::abs(innovation[0]) > max_x || std::abs(innovation[1]) > max_y) use_measurement = false;
+    }
+  }
+  // Duplicate-at-same-z guard: if a measurement at this z was already
+  // accepted, reject others (always enforced, independent of outlier switch)
+  {
+    long long zkey = QuantizeZKey(Node.z);
+    if (use_measurement && ZLayerAccepted.count(zkey) && ZLayerAccepted[zkey]) {
+      use_measurement = false;
+    }
+  }
+
+  if (use_measurement) {
+    FilteredVec = UpdateVec + GainMatrix * innovation;
+    ConsecutiveOutliers = 0; // reset streak when we accept a hit
+    // Mark this z-layer as having an accepted measurement
+    long long zkey = QuantizeZKey(Node.z);
+    ZLayerAccepted[zkey] = true;
+  } else {
+    // prediction only
+    FilteredVec = UpdateVec;
+    // Nudge towards raw measurement in position space (configurable alpha)
+    const auto &mgr = TMS_Manager::GetInstance();
+    double alpha = mgr.Get_Reco_Kalman_Outlier_NudgeAlpha();
+    alpha = std::clamp(alpha, 0.0, 1.0);
+    FilteredVec[0] += alpha * (Measurement[0] - UpdateVec[0]);
+    FilteredVec[1] += alpha * (Measurement[1] - UpdateVec[1]);
+    if (mgr.Get_Reco_Kalman_Outlier_NudgeSlopes()) {
+      double as = mgr.Get_Reco_Kalman_Outlier_NudgeSlopesAlpha();
+      as = std::clamp(as, 0.0, 1.0);
+      double dz_step = std::max(1e-6, Node.dz);
+      // Approximate slope residuals from position innovation over dz
+      FilteredVec[2] += as * (innovation[0] / dz_step);
+      FilteredVec[3] += as * (innovation[1] / dz_step);
+    }
+    ConsecutiveOutliers++;
+    if (ConsecutiveOutliers > OutlierResetThreshold) {
+      // Too many outliers in a row: reset covariance to a humble prior
+      SetInflatedInitialCovariance(CovarianceMatrix);
+      EstimatedCovarianceMatrix = CovarianceMatrix;
+      if (Talk) std::cout << "[Kalman] Resetting covariance after " << ConsecutiveOutliers << " consecutive outliers" << std::endl;
+      ConsecutiveOutliers = 0; // avoid repeated resets
+    }
+  }
+
+  TMatrixD IdentityMatrix(5,5); IdentityMatrix.UnitMatrix();
+  TMatrixD KH = GainMatrix * H;
+  // Joseph form to preserve symmetry/positivity: P = (I-KH) P (I-KH)^T + K R K^T
+  TMatrixD IminusKH = IdentityMatrix; IminusKH -= KH;
+  if (use_measurement) {
+    CovarianceMatrix = IminusKH * CovarianceMatrix * TMatrixD(TMatrixD::kTransposed, IminusKH);
+    TMatrixD KRKt = GainMatrix * R * TMatrixD(TMatrixD::kTransposed, GainMatrix);
+    CovarianceMatrix += KRKt;
+  }
+  // Symmetrize P
+  {
+    TMatrixD PT(TMatrixD::kTransposed, CovarianceMatrix);
+    CovarianceMatrix += PT; CovarianceMatrix *= 0.5;
+  }
+
+  // Store innovation-based chi2 per node (2D residual normalized by innovation covariance)
+  Node.rVec[0] = innovation[0];
+  Node.rVec[1] = innovation[1];
+  // Store a symmetrized inverse for stability when available
+  if (invertible) {
+    TMatrixD S_inv_sym = S_inv;
+    TMatrixD S_inv_T(TMatrixD::kTransposed, S_inv);
+    S_inv_sym += S_inv_T; S_inv_sym *= 0.5;
+    Node.RMatrix = S_inv_sym;
+  } else {
+    Node.RMatrix.Zero();
+  }
+  Node.chi2 = node_chi2;
+  Node.Accepted = use_measurement;
 
   CurrentState.x    = FilteredVec[0];
   CurrentState.y    = FilteredVec[1];
@@ -436,7 +622,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
   {
-    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.x << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -481,6 +667,41 @@ TVectorD TMS_Kalman::GetNoiseVector(TMS_KalmanNode Node) {
   return toy;
 }
 
+void TMS_Kalman::PruneRejectedAndDuplicateZ() {
+  if (KalmanNodes.empty()) return;
+
+  std::vector<TMS_KalmanNode> pruned;
+  pruned.reserve(KalmanNodes.size());
+  std::unordered_map<long long, bool> keptZ;
+  for (auto &node : KalmanNodes) {
+    if (!node.Accepted) continue; // drop outlier-rejected nodes
+    long long key = QuantizeZKey(node.z);
+    if (keptZ.count(key)) continue; // drop duplicates at same z
+    pruned.emplace_back(node);
+    keptZ[key] = true;
+  }
+
+  KalmanNodes.swap(pruned);
+
+  // Reindex and refresh start/end for downstream users
+  for (size_t i = 0; i < KalmanNodes.size(); ++i) {
+    KalmanNodes[i].StepIndex = static_cast<int>(i);
+  }
+
+  if (!KalmanNodes.empty()) {
+    // Momentum already set; keep it. Refresh geometry endpoints to match pruned nodes
+    SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
+    SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
+    if (KalmanNodes.size() > 1) {
+      SetEndPosition(KalmanNodes.front().PreviousState.x, KalmanNodes.front().PreviousState.y, KalmanNodes.front().PreviousState.z);
+      if (KalmanNodes.size() > 1) SetEndDirection(KalmanNodes[1].CurrentState.dxdz, KalmanNodes[1].CurrentState.dydz);
+    } else {
+      SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
+      SetEndDirection(KalmanNodes.front().CurrentState.dxdz, KalmanNodes.front().CurrentState.dydz);
+    }
+  }
+}
+
 
 void TMS_Kalman::SetStartDirection(double ax, double ay)
 {
@@ -511,66 +732,54 @@ void TMS_Kalman::SetEndDirection(double ax, double ay)
 //reference:https://jwmi.github.io/ASM/6-KalmanFilter.pdf
 void TMS_Kalman::runRTSSmoother() {
   int nCand = KalmanNodes.size();
-  //Don't use [1] component for now. due to Covariance is not well maded.
-  KalmanNodes[1].SmoothState=KalmanNodes[1].CurrentState;
-  KalmanNodes[1].SmoothCovarianceMatrix=KalmanNodes[1].CovarianceMatrix;
-  for (int t = nCand-1; t >1; --t) {
-      if (t==nCand-1) {
-          KalmanNodes[t].SmoothState=KalmanNodes[t].CurrentState;
-          KalmanNodes[t].SmoothCovarianceMatrix=KalmanNodes[t].CovarianceMatrix;
-          continue;
-      }
-      // Retrieve filtered covariance and predicted covariance
+  if (nCand == 0) return;
+  // Initialize last node
+  KalmanNodes[nCand-1].SmoothState = KalmanNodes[nCand-1].CurrentState;
+  KalmanNodes[nCand-1].SmoothCovarianceMatrix = KalmanNodes[nCand-1].CovarianceMatrix;
+  // Backward pass
+  for (int t = nCand-2; t >= 0; --t) {
+      // Filtered covariance (at t) and predicted covariance (t+1|t)
       TMatrixD V_t = KalmanNodes[t].CovarianceMatrix;
-      TMatrixD P_t = KalmanNodes[t+1].EstimatedCovarianceMatrix;
-      if (t==0) {
-          P_t = KalmanNodes[2].EstimatedCovarianceMatrix;
-      }
-      TMatrixD SmoothCov_t_1 = KalmanNodes[t+1].SmoothCovarianceMatrix;
-      TMatrixD &F = KalmanNodes[t].TransferMatrix;
+      TMatrixD P_t1_pred = KalmanNodes[t+1].EstimatedCovarianceMatrix;
+      TMatrixD SmoothCov_t1 = KalmanNodes[t+1].SmoothCovarianceMatrix;
+      TMatrixD F = KalmanNodes[t+1].TransferMatrix; // transition from t -> t+1
+      TMatrixD FT(F); FT.T();
 
-      // Ensure the covariance matrix is invertible
-      if (P_t.Determinant() == 0) {
-          //std::cerr << "Warning: Singular covariance matrix at step " << t << std::endl;
+      if (P_t1_pred.Determinant() == 0) {
           continue;
       }
 
-      // Compute smoothing gain J_t
-      TMatrixD C_t = V_t * (F.T()) * P_t.Invert();
+      // Smoothing gain
+      TMatrixD P_t1_pred_inv = P_t1_pred; P_t1_pred_inv.Invert();
+      TMatrixD C_t = V_t * FT * P_t1_pred_inv;
 
-      // Convert PreviousState and CurrentState to TVectorD
+      // States
       TVectorD u_t(5);
       u_t[0] = KalmanNodes[t].CurrentState.x;
       u_t[1] = KalmanNodes[t].CurrentState.y;
       u_t[2] = KalmanNodes[t].CurrentState.dxdz;
       u_t[3] = KalmanNodes[t].CurrentState.dydz;
       u_t[4] = KalmanNodes[t].CurrentState.qp;
-      TVectorD u_hat_t_1(5);
-      u_hat_t_1[0] = KalmanNodes[t + 1].SmoothState.x;
-      u_hat_t_1[1] = KalmanNodes[t + 1].SmoothState.y;
-      u_hat_t_1[2] = KalmanNodes[t + 1].SmoothState.dxdz;
-      u_hat_t_1[3] = KalmanNodes[t + 1].SmoothState.dydz;
-      u_hat_t_1[4] = KalmanNodes[t + 1].SmoothState.qp;
-      if (t==0) { //for the very end of kalman filter, there is no dxdz,dydz value. Now, just use previous values.
-          u_t[2] = KalmanNodes[1].CurrentState.dxdz;
-          u_t[3] = KalmanNodes[1].CurrentState.dydz;
-      }
-      // Compute smoothed state update
 
-      // Apply RTS smoothing equation to update the state
-      // This one can not be contaminated purely from Kalman filter result.
-      TVectorD smoothed_state = u_t + C_t * (u_hat_t_1 - F.T()*u_t);//Need to F.T() again to get just F
-      TMatrixD Cov_smooth = V_t + C_t * (SmoothCov_t_1-P_t) * C_t.T();
+      TVectorD u_t1_smooth(5);
+      u_t1_smooth[0] = KalmanNodes[t + 1].SmoothState.x;
+      u_t1_smooth[1] = KalmanNodes[t + 1].SmoothState.y;
+      u_t1_smooth[2] = KalmanNodes[t + 1].SmoothState.dxdz;
+      u_t1_smooth[3] = KalmanNodes[t + 1].SmoothState.dydz;
+      u_t1_smooth[4] = KalmanNodes[t + 1].SmoothState.qp;
+
+      // Predicted state at t+1|t
+      TVectorD u_t1_pred = F * u_t;
+
+      TVectorD smoothed_state = u_t + C_t * (u_t1_smooth - u_t1_pred);
+      TMatrixD Cov_smooth = V_t + C_t * (SmoothCov_t1 - P_t1_pred) * TMatrixD(TMatrixD::kTransposed, C_t);
 
       KalmanNodes[t].SmoothCovarianceMatrix = Cov_smooth;
-
-
-
       KalmanNodes[t].SmoothState.x    = smoothed_state[0];
       KalmanNodes[t].SmoothState.y    = smoothed_state[1];
       KalmanNodes[t].SmoothState.dxdz = smoothed_state[2];
       KalmanNodes[t].SmoothState.dydz = smoothed_state[3];
-      KalmanNodes[t].SmoothState.qp= KalmanNodes[t].CurrentState.qp;
+      KalmanNodes[t].SmoothState.qp   = KalmanNodes[t].CurrentState.qp;
       KalmanNodes[t].SetRecoXY(KalmanNodes[t].SmoothState);
   }
 }
@@ -612,10 +821,10 @@ void TMS_Kalman::BetheBloch() {
         double zval2 = CurrentState.z; // Probably a nicer way to do this (:
 
         //TODO: When it is blowed up, temporary
-        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
-        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
-        if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
-        if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
+        if (std::abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
+        if (std::abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
+        if (yval>TMS_Const::TMS_End_Exact[1]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
+        if (yval2>TMS_Const::TMS_End_Exact[1] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
 
         TVector3 start(xval,yval,zval); // Start
         TVector3 stop(xval2,yval2,zval2); // Stop
@@ -685,93 +894,12 @@ void TMS_Kalman::BetheBloch() {
 }
 void TMS_Kalman::Runchi2() {
     int nCand = KalmanNodes.size();
-    //From the front to third last hits  cuz it is too sensitive at the end.
-    for (int i = nCand-1; i >=2; --i) {
-        TMS_KalmanState &FutureState = KalmanNodes[i-1].SmoothState;
-        TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
-        TMatrixD &F = KalmanNodes[i].TransferMatrix;
-        //Forward direction
-        F(0,2)=-F(0,2);
-        F(1,3)=-F(1,3);
-
-        TVectorD tempvec(5);
-        if (i==nCand-1){
-            tempvec[0] = CurrentState.x;
-            tempvec[1] = CurrentState.y;
-            tempvec[2] = CurrentState.dxdz; //Take dxdz from the i+1 which is not yet magnetic effected
-            tempvec[3] = CurrentState.dydz;
-            tempvec[4] = CurrentState.qp;
-        } else {
-            tempvec[0] = KalmanNodes[i+1].MeasurementVec[0];
-            tempvec[1] = KalmanNodes[i+1].MeasurementVec[1];
-            tempvec[2] = KalmanNodes[i+1].MeasurementVec[2];
-            tempvec[3] = KalmanNodes[i+1].SmoothState.dydz;//except y
-            tempvec[4] = KalmanNodes[i+1].MeasurementVec[4];
+    for (int i = 0; i < nCand; ++i) {
+        // If innovation and S^{-1} were stored during filtering, compute normalized chi2
+        if (KalmanNodes[i].RMatrix.GetNrows() == 2 && KalmanNodes[i].RMatrix.GetNcols() == 2) {
+            TVectorD tmp = KalmanNodes[i].RMatrix * KalmanNodes[i].rVec;
+            KalmanNodes[i].chi2 = KalmanNodes[i].rVec * tmp; // r^T S^{-1} r
         }
-
-
-        double MagneticField = 0;
-        const double RegionBoundaryX = 1860; // hard coded boundary for regions
-        if (fabs(CurrentState.x) <= RegionBoundaryX) {
-            MagneticField = -1.0; // Central region: Magnetic field downwards
-        } else if (CurrentState.x > RegionBoundaryX) {
-            MagneticField = 1.0; // Right side region: Magnetic field upwards
-        } else {
-            MagneticField = 1.0; // Left side region: Magnetic field upwards
-        }
-
-        // Read the position between current point and extrapolated into next bar
-        double xval = FutureState.x;
-        double yval = FutureState.y;
-        double zval = FutureState.z;
-
-        double xval2 = CurrentState.x;
-        double yval2 = CurrentState.y;
-        double zval2 = CurrentState.z; // Probably a nicer way to do this (:
-
-        //TODO: When it is blowed up, temporary
-        if (abs(xval)>TMS_Const::TMS_End_Exact[0]) xval=0;
-        if (abs(xval2)>TMS_Const::TMS_End_Exact[0]) xval2=0;
-        if (yval>TMS_Const::TMS_End_Exact[0]||yval<TMS_Const::TMS_Start_Exact[1]) yval=0;
-        if (yval2>TMS_Const::TMS_End_Exact[0] || yval2 < TMS_Const::TMS_Start_Exact[1]) yval2=0;
-
-        TVector3 start(xval,yval,zval); // Start
-        TVector3 stop(xval2,yval2,zval2); // Stop
-
-        double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(start-stop).Mag()*0.5;
-        //
-
-        double mom = 1./CurrentState.qp;
-        tempvec[2]-=magnetic_deflection_px/mom;
-        TVectorD UpdateVec = F*(tempvec);
-
-        KalmanNodes[i].MeasurementVec[0]=UpdateVec[0];
-        KalmanNodes[i].MeasurementVec[1]=UpdateVec[1];
-        KalmanNodes[i].MeasurementVec[2]=UpdateVec[2];
-        KalmanNodes[i].MeasurementVec[3]=UpdateVec[3];
-        KalmanNodes[i].MeasurementVec[4]=UpdateVec[4];
-
-
-
-
-
-        KalmanNodes[i].rVec[0] = (FutureState.x-UpdateVec[0]);
-        KalmanNodes[i].rVec[1] = (FutureState.y-UpdateVec[1]);
-        //just use NoiseMatrix cuz sometime RMatrix is negative value or we can just ignore it
-        //KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0));
-        //KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0));
-        //KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1));
-        //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1));
-        //KalmanNodes[i].RMatrix(0,0) = (KalmanNodes[i].NoiseMatrix(0,0) - KalmanNodes[i].SmoothCovarianceMatrix(0,0));
-        //KalmanNodes[i].RMatrix(1,0) = (KalmanNodes[i].NoiseMatrix(1,0) - KalmanNodes[i].SmoothCovarianceMatrix(1,0));
-        //KalmanNodes[i].RMatrix(0,1) = (KalmanNodes[i].NoiseMatrix(0,1) - KalmanNodes[i].SmoothCovarianceMatrix(0,1));
-        //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
-        //KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
-
-        //Just ignore the noise.
-        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*KalmanNodes[i].rVec; // Calc chi^2
-        //KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
-
     }
 }
 void TMS_Kalman::SignSelection() {
