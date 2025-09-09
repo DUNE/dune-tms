@@ -1546,6 +1546,18 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][1] = last_bar_true.GetBarNumber();
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
+    
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes_plus.size(); ++j) {
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[0];
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[1];
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_plus[j].z;
+    }
+    
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes_minus.size(); ++j) {
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[0];
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[1];
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_minus[j].z;
+    }
 
     for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
       //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
@@ -1556,20 +1568,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
       RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
       RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
-      //TODO?
-
-      RecoTrackKalmanPos_plus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[0];
-      RecoTrackKalmanPos_plus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[1];
-      RecoTrackKalmanPos_plus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_plus[j].z;
-
-      RecoTrackKalmanPos_minus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[0];
-      RecoTrackKalmanPos_minus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[1];
-      RecoTrackKalmanPos_minus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_minus[j].z;
 
       RecoTrackKalmanTruePos[itTrack][j][0] = RecoTrack->KalmanNodes[j].TrueX;
       RecoTrackKalmanTruePos[itTrack][j][1] = RecoTrack->KalmanNodes[j].TrueY;
       RecoTrackKalmanTruePos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
-      //TODO?
 
       TMS_Bar current_bar(RecoTrack->KalmanNodes[j].RecoX, RecoTrack->KalmanNodes[j].RecoY,
                           RecoTrack->KalmanNodes[j].z);
