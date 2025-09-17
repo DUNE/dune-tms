@@ -682,34 +682,41 @@ for (auto Lines: HoughCandidatesY) {
       trk.SetChi2_plus(kalman_chi2_plus);
       kalman_chi2_minus = KalmanFilter_minus.GetTrackChi2();
       trk.SetChi2_minus(kalman_chi2_minus);
+      
+      double kalman_chi2_plus_per_dof = kalman_chi2_plus / KalmanFilter_plus.GetKalmanNodes().size();
+      double kalman_chi2_minus_per_dof = kalman_chi2_minus / KalmanFilter_minus.GetKalmanNodes().size();
 
-      if (kalman_chi2_minus < kalman_chi2_plus) {
-          trk.Charge_Kalman = -13;}
+      TMS_Kalman canonical;
+      if (kalman_chi2_minus_per_dof < kalman_chi2_plus_per_dof) {
+          trk.Charge_Kalman = -13;
+          canonical = KalmanFilter_minus;
+          }
       else{
           trk.Charge_Kalman = 13;
+          canonical = KalmanFilter_plus;
       }
 
-      trk.Charge_Kalman_curvature=KalmanFilter_plus.GetCharge_curvature();
-      kalman_reco_mom = KalmanFilter_plus.GetMomentum();
+      trk.Charge_Kalman_curvature=canonical.GetCharge_curvature();
+      kalman_reco_mom = canonical.GetMomentum();
 
       bool verbose_kalman = false;
       if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
       trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter start pos : " << KalmanFilter_plus.Start[0] << ", " << KalmanFilter_plus.Start[1] << ", "  << KalmanFilter_plus.Start[2] << std::endl;
-      trk.SetStartPosition(KalmanFilter_plus.Start[0], KalmanFilter_plus.Start[1], KalmanFilter_plus.Start[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter start pos : " << canonical.Start[0] << ", " << canonical.Start[1] << ", "  << canonical.Start[2] << std::endl;
+      trk.SetStartPosition(canonical.Start[0], canonical.Start[1], canonical.Start[2]); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter end pos : " << KalmanFilter_plus.End[0] << ", " << KalmanFilter_plus.End[1] << ", "  << KalmanFilter_plus.End[2] << std::endl;
-      trk.SetEndPosition(KalmanFilter_plus.End[0], KalmanFilter_plus.End[1], KalmanFilter_plus.End[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter end pos : " << canonical.End[0] << ", " << canonical.End[1] << ", "  << canonical.End[2] << std::endl;
+      trk.SetEndPosition(canonical.End[0], canonical.End[1], canonical.End[2]); // Fill the momentum of the TMS_Track obj
 
       if (verbose_kalman) std::cout << "Kalman filter start dir : " << KalmanFilter.StartDirection[0] << ", " << KalmanFilter.StartDirection[1] << ", "  << KalmanFilter.StartDirection[2] << std::endl;
-      trk.SetStartDirection(KalmanFilter_plus.StartDirection[0], KalmanFilter_plus.StartDirection[1], KalmanFilter_plus.StartDirection[2]); // Fill the momentum of the TMS_Track obj
+      trk.SetStartDirection(canonical.StartDirection[0], canonical.StartDirection[1], canonical.StartDirection[2]); // Fill the momentum of the TMS_Track obj
 
-      if (verbose_kalman) std::cout << "Kalman filter end dir : " << KalmanFilter_plus.EndDirection[0] << ", " << KalmanFilter_plus.EndDirection[1] << ", "  << KalmanFilter_plus.EndDirection[2] << std::endl;
-      trk.SetEndDirection(KalmanFilter_plus.EndDirection[0], KalmanFilter_plus.EndDirection[1], KalmanFilter_plus.EndDirection[2]); // Fill the momentum of the TMS_Track obj
+      if (verbose_kalman) std::cout << "Kalman filter end dir : " << canonical.EndDirection[0] << ", " << canonical.EndDirection[1] << ", "  << canonical.EndDirection[2] << std::endl;
+      trk.SetEndDirection(canonical.EndDirection[0], canonical.EndDirection[1], canonical.EndDirection[2]); // Fill the momentum of the TMS_Track obj
 
       //When Kalman fitting the charge is not involved, so any assumed charge is okay
-      trk.KalmanNodes = KalmanFilter_plus.GetKalmanNodes();
+      trk.KalmanNodes = canonical.GetKalmanNodes();
       //for chi2 tracking
       trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
       trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
