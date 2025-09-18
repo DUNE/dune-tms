@@ -334,6 +334,9 @@ class TMS_Kalman {
     void BetheBloch();
     void SignSelection();
     void Runchi2();
+    void UpdateParameters();
+
+    void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
 
     // Build a 2D measurement (x,y) at hit z using bar geometry and
     // the current track state projected to that z. For bars that do not

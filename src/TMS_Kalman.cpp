@@ -207,7 +207,7 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
   std::sort(pool.begin(), pool.end(), TMS_Hit::SortByZ);
 
   // Ensure nodes are sorted by z ascending so back() is highest z
-  std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;});
+  SortNodesByZ();
   // Seed from the smoothed state at the highest-z node (back of vector)
   TMS_KalmanNode seed = KalmanNodes.back();
   TMS_KalmanNode prev_node(
@@ -294,7 +294,7 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
   // Merge: append accepted new nodes, then re-sort by z
   if (!accepted_new.empty()) {
     KalmanNodes.insert(KalmanNodes.end(), accepted_new.begin(), accepted_new.end());
-    std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;});
+    SortNodesByZ();
 
     // Reindex step indices
     for (size_t i = 0; i < KalmanNodes.size(); ++i) {
@@ -306,6 +306,7 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     BetheBloch();
     Runchi2();
     SignSelection();
+    UpdateParameters();
   }
 
   // Restore the previous direction flag
@@ -411,21 +412,27 @@ void TMS_Kalman::RunKalman() {
     KalmanNodes[i].StepIndex = i; // keep index synced for adaptive gating
     Predict(KalmanNodes[i]);
   }
- 
-  // TODO make separate function
-  SetMomentum(1./KalmanNodes.back().CurrentState.qp);
+
+  // Update the momentum, and start/end position
+  UpdateParameters();
+}
+
+void TMS_Kalman::UpdateParameters() {
+  // Make sure of a consistent sorting
+  SortNodesByZ();
+  auto FrontNode = KalmanNodes.front();
+  auto BackNode = KalmanNodes.back();
+  auto DirectionNode = BackNode;
+  if (KalmanNodes.size() > 1) DirectionNode = KalmanNodes.at(KalmanNodes.size() - 2);
+
+  SetMomentum(1./FrontNode.CurrentState.qp);
 
   // Set start pos/dir
-  SetStartPosition(KalmanNodes.back().CurrentState.x, KalmanNodes.back().CurrentState.y, KalmanNodes.back().CurrentState.z);
-  SetStartDirection(KalmanNodes.back().CurrentState.dxdz, KalmanNodes.back().CurrentState.dydz);
+  SetStartPosition(FrontNode.CurrentState.x, FrontNode.CurrentState.y, FrontNode.CurrentState.z);
+  SetStartDirection(FrontNode.CurrentState.dxdz, FrontNode.CurrentState.dydz);
   // Set end pos/dir
-  if (KalmanNodes.size() > 1) {
-    SetEndPosition(KalmanNodes.at(0).PreviousState.x, KalmanNodes.at(0).PreviousState.y, KalmanNodes.at(0).PreviousState.z);//KalmanNodes.at(1).CurrentState.x, KalmanNodes.at(1).CurrentState.y, KalmanNodes.at(1).CurrentState.z);
-    SetEndDirection(KalmanNodes.at(1).CurrentState.dxdz, KalmanNodes.at(1).CurrentState.dydz);
-  } else { // Kalman output is rubbish in this case, but we don't crash :)
-    SetEndPosition(KalmanNodes.front().CurrentState.x, KalmanNodes.front().CurrentState.y, KalmanNodes.front().CurrentState.z);
-    SetEndDirection(KalmanNodes.front().CurrentState.dxdz, KalmanNodes.front().CurrentState.dydz);
-  }
+  SetEndPosition(BackNode.CurrentState.x, BackNode.CurrentState.y, BackNode.CurrentState.z);
+  SetEndDirection(DirectionNode.CurrentState.dxdz, DirectionNode.CurrentState.dydz);
 
   if (std::isnan(momentum) || std::isinf(momentum)){
     //std::cerr << "[TMS_Kalmann.cpp] Weirdness -- Momentum from fitter isn't a sane number: " << momentum << std::endl;
