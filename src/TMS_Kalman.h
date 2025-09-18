@@ -133,6 +133,7 @@ class TMS_KalmanNode {
   TMS_Bar::BarType LayerOrientation;
   double LayerBarWidth;
   double LayerBarLength;
+  int PlaneNumber;
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState PreviousState;
@@ -226,7 +227,15 @@ class TMS_KalmanNode {
     // Also see MINOS note on Kalman filter (John Marshall, Nov 15 2005)
     //double norm = 1+dxdz+dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
     double norm = 1 + dxdz*dxdz + dydz*dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
+    if (std::isnan(norm) || std::isinf(norm)) {
+      std::cout<<"Norm is incorrect: "<<norm<<" with dxdz: "<<dxdz<<" and dydz: "<<dydz<<std::endl;
+      norm = 1;
+    }
     double covAxAx = norm*ms*(1 + dxdz*dxdz);// eq 16 Wolin and Ho
+    if (std::isnan(covAxAx) || std::isinf(covAxAx)) {
+      std::cout<<"covAxAx is incorrect: "<<norm<<" with dxdz: "<<dxdz<<" and dydz: "<<dydz<<" and ms: "<<ms<<std::endl;
+      norm = 1;
+    }
     double covAyAy = norm*ms*(1 + dydz*dydz);// eq 17 Wolin and Ho
     double covAxAy = norm*ms*dxdz*dydz;// eq 18 Wolin and Ho
 
@@ -264,6 +273,13 @@ class TMS_Kalman {
     TRandom3 RNG;
     TMS_Kalman();
     TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
+    // Minimal API to add a forward augment pass using a pool of extra hits.
+    // Call this after constructing with the seed hits above. It will start
+    // from the smoothed state at the front (lowest z) and propagate forward,
+    // considering each candidate in z order and accepting those that pass
+    // outlier gating. Accepted hits are merged into the node list and the
+    // track is re-smoothed.
+    void AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool);
     
     double Start[3];
     double End[3];
@@ -302,6 +318,8 @@ class TMS_Kalman {
     std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
+    
+    void SetTalk(bool value) { Talk = value; };
 
   private:
     // Energy-loss calculator
@@ -316,6 +334,17 @@ class TMS_Kalman {
     void BetheBloch();
     void SignSelection();
     void Runchi2();
+
+    // Build a 2D measurement (x,y) at hit z using bar geometry and
+    // the current track state projected to that z. For bars that do not
+    // directly measure one axis, use the projected value for that axis.
+    // For U/V stereo bars, apply a ±3° rotation correction using the
+    // projected y to adjust the effective x measurement.
+    static void BuildBarMeasurement(const TMS_Hit &hit,
+                                    const TMS_KalmanState &state_at_prev,
+                                    double meas_z,
+                                    double &meas_x,
+                                    double &meas_y);
 
 
 

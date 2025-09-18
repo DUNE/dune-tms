@@ -139,6 +139,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
       Node.LayerOrientation = hit.GetBar().GetBarType();
       Node.LayerBarWidth    = hit.GetBar().GetBarWidth();
       Node.LayerBarLength   = hit.GetBar().GetBarLength();
+      Node.PlaneNumber      = hit.GetPlaneNumber();
 
       KalmanNodes.emplace_back(std::move(Node));
       KalmanNodes.back().StepIndex = KalmanNodes.size() - 1;
@@ -191,6 +192,180 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   PruneRejectedAndDuplicateZ();
 }
 
+// Minimal second pass: start from the smoothed state near the front (lowest z),
+// propagate forward in z through an external pool of candidates, and accept any
+// non-outlier hits. Merge accepted nodes, re-sort by z, and re-smooth.
+void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool) {
+  if (KalmanNodes.empty() || candidate_pool.empty()) return;
+
+  // We will run a forward pass, so set this flag for physics (energy loss sign)
+  bool prevForward = ForwardFitting;
+  ForwardFitting = true;
+
+  // Sort a local copy of candidates by z
+  std::vector<TMS_Hit> pool(candidate_pool.begin(), candidate_pool.end());
+  std::sort(pool.begin(), pool.end(), TMS_Hit::SortByZ);
+
+  // Ensure nodes are sorted by z ascending so back() is highest z
+  std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;});
+  // Seed from the smoothed state at the highest-z node (back of vector)
+  TMS_KalmanNode seed = KalmanNodes.back();
+  TMS_KalmanNode prev_node(
+      seed.SmoothState.x,
+      seed.SmoothState.y,
+      seed.SmoothState.z,
+      0.0,
+      seed.SmoothState.dxdz,
+      seed.SmoothState.dydz);
+  prev_node.SetTrueXY(seed.TrueX, seed.TrueY);
+  prev_node.LayerOrientation = seed.LayerOrientation;
+  prev_node.LayerBarWidth = seed.LayerBarWidth;
+  prev_node.LayerBarLength = seed.LayerBarLength;
+  prev_node.PlaneNumber = seed.PlaneNumber;
+  prev_node.StepIndex = seed.StepIndex;
+  // Carry covariance from the smoother as our starting uncertainty
+  prev_node.CovarianceMatrix = KalmanNodes.back().SmoothCovarianceMatrix;
+  prev_node.CurrentState = seed.SmoothState;
+  prev_node.PreviousState = seed.SmoothState;
+  // Boost initial momentum for forward pass (reduce qp) on BOTH states
+  {
+    double qp_seed = seed.SmoothState.qp;
+    if (!std::isfinite(qp_seed) || std::abs(qp_seed) < 1e-12) {
+      // Fallback to a conservative finite qp (~1/1 GeV)
+      qp_seed = 1.0/1000.0;
+    }
+    double scale = 0.25; // 4x momentum to avoid starvation
+    prev_node.PreviousState.qp = qp_seed * scale;
+    prev_node.CurrentState.qp  = qp_seed * scale;
+  }
+  prev_node.StepIndex = 0;
+  // Be conservative about momentum during augmentation
+  if (prev_node.CovarianceMatrix.GetNrows() == 5 && prev_node.CovarianceMatrix.GetNcols() == 5) {
+    prev_node.CovarianceMatrix(4,4) *= 25.0; // inflate qp variance modestly
+  }
+
+  // Reset outlier streak and per-z acceptance map for this pass
+  ConsecutiveOutliers = 0;
+  ZLayerAccepted.clear();
+
+  // Track current z to enforce monotonic forward propagation beyond the current end
+  double current_z = prev_node.CurrentState.z;
+  int step_index = 0;
+
+  std::vector<TMS_KalmanNode> accepted_new;
+  accepted_new.reserve(pool.size());
+
+  for (const auto &hit : pool) {
+    double z = hit.GetZ();
+    double dz = z - prev_node.CurrentState.z;
+    if (z <= current_z + 1e-6) continue; // only forward propagation
+
+    // Form a node at the candidate's z with a measurement (x,y) derived
+    // from bar geometry and the current track projection.
+    double x = 0.0, y = 0.0;
+    BuildBarMeasurement(hit, prev_node.CurrentState, z, x, y);
+
+    TMS_KalmanNode node(x, y, z, dz, prev_node.CurrentState.dxdz, prev_node.CurrentState.dydz);
+    double x_true = hit.GetTrueHit().GetX();
+    double y_true = hit.GetTrueHit().GetY();
+    node.SetTrueXY(x_true, y_true);
+    node.LayerOrientation = hit.GetBar().GetBarType();
+    node.LayerBarWidth    = hit.GetBar().GetBarWidth();
+    node.LayerBarLength   = hit.GetBar().GetBarLength();
+    node.PlaneNumber      = hit.GetPlaneNumber();
+    node.StepIndex        = ++step_index;
+    
+    // Skip if over a certain number of planes
+    int maximum_n_planes = 5;
+    if (maximum_n_planes > 0 && node.PlaneNumber > prev_node.PlaneNumber + maximum_n_planes) continue;
+
+    // Propagate from prev_node state to this node and perform update/gating
+    Update(prev_node, node);
+    Predict(node);
+
+    // If accepted by gating, keep it and advance the prev_node state
+    if (node.Accepted) {
+      accepted_new.emplace_back(node);
+      prev_node = node; // advance
+      current_z = prev_node.CurrentState.z;
+    }
+  }
+
+  // Merge: append accepted new nodes, then re-sort by z
+  if (!accepted_new.empty()) {
+    KalmanNodes.insert(KalmanNodes.end(), accepted_new.begin(), accepted_new.end());
+    std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;});
+
+    // Reindex step indices
+    for (size_t i = 0; i < KalmanNodes.size(); ++i) {
+      KalmanNodes[i].StepIndex = static_cast<int>(i);
+    }
+    // Skip global smoothing to keep interior stable; optionally we could
+    // perform a trailing-window smoother/update only on the last N nodes.
+    //runRTSSmoother();
+    BetheBloch();
+    Runchi2();
+    SignSelection();
+  }
+
+  // Restore the previous direction flag
+  ForwardFitting = prevForward;
+}
+
+// Static helper: compute a 2D measurement for a hit's bar at z using the
+// previous state projected to that z. Coordinate mapping follows the existing
+// measurement/noise model used in FillNoiseMatrix():
+//  - X bars constrain y (x is weak), so use bar y and projected x
+//  - Y bars constrain x (y is weak), so use bar x and projected y
+//  - U/V bars are ±3° stereo around Y; use projected y to adjust x by tan(±3°)
+void TMS_Kalman::BuildBarMeasurement(const TMS_Hit &hit,
+                                     const TMS_KalmanState &state_at_prev,
+                                     double meas_z,
+                                     double &meas_x,
+                                     double &meas_y) {
+  const auto &bar = hit.GetBar();
+  // Project previous state to measurement z
+  double dz = meas_z - state_at_prev.z;
+  double x_proj = state_at_prev.x + state_at_prev.dxdz * dz;
+  double y_proj = state_at_prev.y + state_at_prev.dydz * dz;
+
+  // Configured stereo slope (tan(tilt)) and midplane reference (mm)
+  const double t = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle();
+  const double y_mid_mm = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000.0;
+  const double y_rel = y_proj - y_mid_mm;
+
+  switch (bar.GetBarType()) {
+    case TMS_Bar::kXBar:
+      // X bar: precise y; use bar's y center, x from projection
+      meas_y = bar.GetNotZ();
+      meas_x = x_proj;
+      break;
+    case TMS_Bar::kYBar:
+      // Y bar: precise x; use bar's x center, y from projection
+      meas_x = bar.GetNotZ();
+      meas_y = y_proj;
+      break;
+    case TMS_Bar::kUBar:
+      // U bar: +tilt; use y relative to detector midplane
+      meas_x = bar.GetNotZ() - t * y_rel;
+      meas_y = y_proj;
+      break;
+    case TMS_Bar::kVBar:
+      // V bar: -tilt; use y relative to detector midplane
+      meas_x = bar.GetNotZ() + t * y_rel;
+      meas_y = y_proj;
+      break;
+    default:
+      // Fallback: use projected values
+      meas_x = x_proj;
+      meas_y = y_proj;
+      break;
+  }
+  // Basic sanity guards
+  if (!std::isfinite(meas_x)) meas_x = x_proj;
+  if (!std::isfinite(meas_y)) meas_y = y_proj;
+}
+
 // Used for seeding the starting KE for the Kalman filter from the start and end point of a track
 double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double startz, double endz) {
   // if in thin and thick target there's a different relationship
@@ -237,7 +412,7 @@ void TMS_Kalman::RunKalman() {
     Predict(KalmanNodes[i]);
   }
  
-  
+  // TODO make separate function
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
   // Set start pos/dir
@@ -318,7 +493,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
   // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
   // Linearized deflection of slope in x due to B ~ By; units chosen to be consistent with internal code
-  double dz = CurrentState.z - PreviousState.z;
+  // Use the node's configured step size to avoid accidental
+  // inconsistencies in CurrentState.z during augmentation.
+  double dz = Node.dz;
   double magnetic_deflection_tx = 0.303 * assumed_charge * MagneticField * 1.95 * dz * 0.5 / std::max(p, 1e-9);
   // Modification ends here
   
@@ -346,6 +523,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   double en_initial = sqrt(mom*mom+mass*mass);
   // The energy we'll be changing
   double en = en_initial;
+  if (en < 0 || std::isnan(en) || std::isinf(en)) {
+    if (Talk) { 
+      std::cout<<"Got invalid energy "<<en<<" from momentum ";
+      std::cout<<mom<<" and mass "<<mass;
+      std::cout<<". Switching to energy: 0.25"<<std::endl;
+    }
+    en = 0.25;
+  }
 
   // Read the position between current point and extrapolated into next bar
   double xval = PreviousState.x;
@@ -410,6 +595,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
       std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
     }
 
+    double old_en = en;
     // Subtract off the energy loss for this material
     if (ForwardFitting) en -= Bethe.Calc_dEdx(en)*density*thickness;
     else                en += Bethe.Calc_dEdx(en)*density*thickness;
@@ -421,6 +607,16 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
     // Calculate this before or after the energy subtraction/addition?
     MSC.Calc_MS(en, thickness*density);
+    
+    // Check that new energy is valid
+    if (en < 0 || std::isnan(en) || std::isinf(en)) {
+      if (Talk) { 
+        std::cout<<"Got invalid energy "<<en<<" from thickness ";
+        std::cout<<thickness<<" and density "<<density;
+        std::cout<<". Switching to old energy: "<<old_en<<std::endl;
+      }
+      en = old_en;
+    }
 
     counter++;
   }
@@ -442,11 +638,21 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   // Update the state's q/p
   if (Talk) std::cout << "setting current p = " << p_up << std::endl;
-  CurrentState.qp = 1./p_up;
+  // Guard against zero/NaN momentum
+  if (!std::isfinite(p_up) || p_up <= 0.0) {
+    p_up = 1e-3; // clamp to small but finite momentum to avoid INF
+  }
+  CurrentState.qp = 1.0 / p_up;
+  if (!std::isfinite(CurrentState.qp)) {
+    CurrentState.qp = 1.0; // fallback to modest curvature if something went wrong
+  }
 
 
   double p_var = (2*en/p_up)*(2*en/p_up) * total_en_var;
-  double qp_var = 1./(p_up*p_up*p_up*p_up) * p_var;
+  // Guard qp variance against zero/NaN
+  double p4 = p_up*p_up*p_up*p_up;
+  double qp_var = (p4 > 0.0 && std::isfinite(p4)) ? (p_var / p4) : 0.0;
+  if (!std::isfinite(qp_var)) qp_var = 0.0;
 
 
   // Set pointers to the noise matrix
@@ -454,12 +660,21 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &CovarianceMatrix = Node.CovarianceMatrix;
   TMatrixD &UpdatedCovarianceMatrix = Node.UpdatedCovarianceMatrix;
   TMatrixD &EstimatedCovarianceMatrix = Node.EstimatedCovarianceMatrix;//For smooth
-
+  
+  if (Talk) std::cout << "Initial cov\n" << std::flush;
+  if (Talk) CovarianceMatrix.Print();
 
   double sigma = MSC.Calc_MS_Sigma();
+  
+  if (sigma < 0 || std::isnan(sigma) || std::isinf(sigma)) {
+    if (Talk) { 
+      std::cout<<"Got invalid sigma "<<sigma<<", setting it to 0.0001"<<std::endl;
+    }
+    sigma = 0.0001;
+  }
 
   if (TotalPathLength >= 1.0) { // If path is 0 we're in the first Node, set initial cov
-    Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], qp_var, sigma, false); // Fill the matrix for multiple scattering (use variance on q/p)
+    Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], qp_var, sigma, ForwardFitting); // Use direction for proper sign
   } else { // Initialise cov to something 'sane'-ish
     UpdatedCovarianceMatrix.Zero(); // zero this out to be sure
     // Inflate the initial covariance strongly to avoid overconfidence
@@ -501,7 +716,11 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     // Basic sanity: check result isn't exploding
     if (!std::isfinite(S_inv(0,0)) || !std::isfinite(S_inv(1,1))) invertible = false;
   }
-  TMatrixD GainMatrix = CovarianceMatrix * HT * S_inv;
+  // Only compute gain with a valid inverse; otherwise keep zero
+  TMatrixD GainMatrix(5,2); GainMatrix.Zero();
+  if (invertible) {
+    GainMatrix = CovarianceMatrix * HT * S_inv;
+  }
 
   if (Talk) std::cout << "Final cov\n" << std::flush;
   if (Talk) CovarianceMatrix.Print();
