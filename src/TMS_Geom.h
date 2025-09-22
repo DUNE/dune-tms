@@ -86,6 +86,15 @@ class TMS_Geom {
     int GetNumberOfSteelPlatesThin() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThin(); };
     int GetNumberOfSteelPlatesThick() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThick(); };
     int GetNumberOfSteelPlatesDouble() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesDouble(); };
+    double GetSteelThickness(TVector3 position) {
+      // Function assumes z thin < z thick < z double
+      double z = position.Z();
+      // Default to thick since it's the middle case
+      double out = TMS_Const::TMS_Thick_Steel_Width;
+      if (z < TMS_Const::TMS_Thick_Start) out = TMS_Const::TMS_Thin_Steel_Width;
+      if (z >= TMS_Const::TMS_Double_Start) out = TMS_Const::TMS_Double_Steel_Width;
+      return out;
+    }
 
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;

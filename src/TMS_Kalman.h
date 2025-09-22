@@ -286,7 +286,9 @@ class TMS_Kalman {
     double StartDirection[3];
     double EndDirection[3];
    
+    void InitializeMomentum(bool only_momentum = true);
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
+    double CalculateKEFromSteel(TVector3 position);
 
     void SetMomentum(double mom) {momentum = mom;}
     void SetCharge_curvature(double charge) {
@@ -337,6 +339,12 @@ class TMS_Kalman {
     void UpdateParameters();
 
     void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
+    // Sorts so that first node is first node processed by RunKalman. ie. based on ForwardFitting flag.
+    void SortNodesByRunOrder() { 
+        const bool fit_direction = ForwardFitting;
+        std::sort(KalmanNodes.begin(), KalmanNodes.end(), [fit_direction](const TMS_KalmanNode &a, const TMS_KalmanNode &b)
+        {return fit_direction ? a.z < b.z : a.z > b.z;}); 
+      };
 
     // Build a 2D measurement (x,y) at hit z using bar geometry and
     // the current track state projected to that z. For bars that do not

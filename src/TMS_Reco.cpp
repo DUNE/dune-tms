@@ -677,6 +677,18 @@ for (auto Lines: HoughCandidatesY) {
 
       KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
       KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
+      
+      // Augment with additional hits
+      // TODO do we want all hits or only hits downstream?
+      //std::cout<<"\n\nAugmenting hits to kalman plus"<<std::endl;
+      //KalmanFilter_plus.SetTalk(true);
+      KalmanFilter_plus.AugmentWithCandidates(CleanedHits);
+      //KalmanFilter_plus.SetTalk(false);
+      //std::cout<<"\n\nAugmenting hits to kalman minus"<<std::endl;
+      //KalmanFilter_minus.SetTalk(true);
+      KalmanFilter_minus.AugmentWithCandidates(CleanedHits);
+      //KalmanFilter_minus.SetTalk(false);
+      //std::cout<<"Done augmenting hits\n\n"<<std::endl;
 
       kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
       trk.SetChi2_plus(kalman_chi2_plus);

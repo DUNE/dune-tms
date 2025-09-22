@@ -162,6 +162,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
                     ? (Candidates.front().GetRecoY() - Candidates.back().GetRecoY()) / dz_y
                     : 0.0;
 
+
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
     double startx = Candidates.front().GetNotZ();
@@ -183,6 +184,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
     KalmanNodes.back().PreviousState.dxdz = 0.0;//AverageXSlope;
     KalmanNodes.back().PreviousState.dydz = 0.0;//AverageYSlope;
   }
+  //InitializeMomentum();
   RunKalman();
   runRTSSmoother();
   BetheBloch();
@@ -190,6 +192,62 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   SignSelection();
   // Prune out nodes rejected as outliers and duplicates at the same z-layer
   PruneRejectedAndDuplicateZ();
+}
+
+void TMS_Kalman::InitializeMomentum(bool only_momentum) {
+  // Sets the initial momentum of the first kalman node
+  //SortNodesByRunOrder();
+  int N_LAYER_BACK = 10;
+  // Can't look back further than the first element
+  if (KalmanNodes.size() < (unsigned)N_LAYER_BACK)
+    N_LAYER_BACK = KalmanNodes.size();
+
+  double dz_x = (KalmanNodes[KalmanNodes.size() - N_LAYER_BACK].z - KalmanNodes.back().z);
+  double dz_y = (KalmanNodes.front().z - KalmanNodes.back().z);
+  AverageXSlope = (std::abs(dz_x) > 1e-6)
+                    ? (KalmanNodes[KalmanNodes.size() - N_LAYER_BACK].RecoX - KalmanNodes.back().RecoX) / dz_x
+                    : 0.0;
+  AverageYSlope = (std::abs(dz_y) > 1e-6)
+                    ? (KalmanNodes.front().RecoY - KalmanNodes.back().RecoY) / dz_y
+                    : 0.0;
+
+  // Set the momentum seed for the first hit from its length
+  if (ForwardFitting) {
+    // TODO GetNotZ might represent y position, which would give wrong numbers
+    double startx = KalmanNodes.front().RecoX;
+    double endx = KalmanNodes.back().RecoX;
+    double startz = KalmanNodes.front().z;
+    double endz = KalmanNodes.back().z;
+    double KEest = GetKEEstimateFromLength(startx, endx, startz, endz);
+    double momest = sqrt((KEest+mass)*(KEest+mass)-mass*mass);
+    if (Talk) std::cout << "momentum estimate from length: " << momest << std::endl;
+    KalmanNodes.front().PreviousState.qp = 1./momest;
+    KalmanNodes.front().CurrentState.qp = 1./momest;
+    if (!only_momentum) {
+      KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
+      KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
+      KalmanNodes.back().PreviousState.dxdz = 0.0;//AverageXSlope;
+      KalmanNodes.back().PreviousState.dydz = 0.0;//AverageYSlope;
+    }
+  } else {
+    // todo: get better starting position in the future
+    // But for now this is good enough since we're just calculating small correction
+    // that's probably the same independent of x and y.
+    /*double endz = KalmanNodes.back().z;
+    TVector3 endpoint(0, 0, endz);
+    double KEest = CalculateKEFromSteel(endpoint);
+    double momest = sqrt((KEest+mass)*(KEest+mass)-mass*mass);
+    if (Talk) std::cout << "momentum estimate from half of steel: " << momest << std::endl;
+    KalmanNodes.front().PreviousState.qp = 1./momest;
+    KalmanNodes.front().CurrentState.qp = 1./momest;*/
+    // TODO check if 0 is sane
+    if (!only_momentum) {
+      KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
+      KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
+      KalmanNodes.back().PreviousState.dxdz = 0.0;//AverageXSlope;
+      KalmanNodes.back().PreviousState.dydz = 0.0;//AverageYSlope;
+    }
+  }
 }
 
 // Minimal second pass: start from the smoothed state near the front (lowest z),
@@ -303,6 +361,8 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     // Skip global smoothing to keep interior stable; optionally we could
     // perform a trailing-window smoother/update only on the last N nodes.
     //runRTSSmoother();
+    // Turn on backward fitting
+    //ForwardFitting = false;
     BetheBloch();
     Runchi2();
     SignSelection();
@@ -367,6 +427,56 @@ void TMS_Kalman::BuildBarMeasurement(const TMS_Hit &hit,
   if (!std::isfinite(meas_y)) meas_y = y_proj;
 }
 
+// Used for seeding the starting KE for the Kalman filter for backtracking
+// Will have some momentum from steel component, assuming half steel penetration on average
+double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
+  double en = 0;
+  // Assume half steel thickness penetration depth on average
+  double steel_depth = TMS_Geom::GetInstance().GetSteelThickness(position) * 0.5;
+  TVector3 endpoint = position + TVector3(0, 0, steel_depth);
+  // Get the materials between the two points
+  std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(position, endpoint);
+
+  if (Talk) std::cout << "Looping over " << Materials.size() << " materials" << std::endl;
+  // Loop over the materials between the two projection points
+  for (auto material : Materials) {
+    // Read these directly from a TGeoManager
+    // If the geometry is in mm (CLHEP units), then want to scale density to g/cm3 and thickness to cm
+    // Otherwise, assume it's like that and then fix it with geometry scaling functions
+    double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); 
+    double thickness = material.second/10.; 
+    // Potentially need to scale from g/cm3 to g/mm3, so find the scale factor and scale by 1/that^3.
+    double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
+    density /= std::pow(scale_factor, 3);
+    thickness = TMS_Geom::GetInstance().Scale(thickness);
+
+    // Update the Bethe Bloch calculator to use this material
+    try {
+      Material matter(density);
+      Bethe.fMaterial = matter;
+      // Set the material for the multiple scattering
+      MSC.fMaterial = matter;
+    }
+    catch (std::invalid_argument const& ex) {
+      std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
+    }
+
+    double old_en = en;
+    en += Bethe.Calc_dEdx(en)*density*thickness;
+
+    // Check that new energy is valid
+    if (en < 0 || std::isnan(en) || std::isinf(en)) {
+      if (Talk) { 
+        std::cout<<"Got invalid energy "<<en<<" from thickness ";
+        std::cout<<thickness<<" and density "<<density;
+        std::cout<<". Switching to old energy: "<<old_en<<std::endl;
+      }
+      en = old_en;
+    }
+  }
+  return en;
+}
+
 // Used for seeding the starting KE for the Kalman filter from the start and end point of a track
 double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double startz, double endz) {
   // if in thin and thick target there's a different relationship
@@ -397,6 +507,8 @@ void TMS_Kalman::RunKalman() {
  
   int nCand = KalmanNodes.size();
   if (nCand == 0) return;
+  // Make sure nodes are sorted correctly
+  //SortNodesByRunOrder();
   ConsecutiveOutliers = 0; // reset outlier streak at start
   ZLayerAccepted.clear();  // clear per-z acceptance map
   KalmanNodes[0].SetRecoXY(KalmanNodes[0].PreviousState);
@@ -419,11 +531,21 @@ void TMS_Kalman::RunKalman() {
 
 void TMS_Kalman::UpdateParameters() {
   // Make sure of a consistent sorting
-  SortNodesByZ();
   auto FrontNode = KalmanNodes.front();
   auto BackNode = KalmanNodes.back();
+  // Swap directions if needed
+  bool swapped = false;
+  if (FrontNode.CurrentState.z > BackNode.CurrentState.z) {
+    auto temp = FrontNode;
+    FrontNode = BackNode;
+    BackNode = temp;
+    swapped =  true;
+  }
   auto DirectionNode = BackNode;
-  if (KalmanNodes.size() > 1) DirectionNode = KalmanNodes.at(KalmanNodes.size() - 2);
+  if (KalmanNodes.size() > 1) {
+    if (!swapped) DirectionNode = KalmanNodes.at(KalmanNodes.size() - 2);
+    else DirectionNode = KalmanNodes.at(1);
+  }
 
   SetMomentum(1./FrontNode.CurrentState.qp);
 
@@ -431,7 +553,7 @@ void TMS_Kalman::UpdateParameters() {
   SetStartPosition(FrontNode.CurrentState.x, FrontNode.CurrentState.y, FrontNode.CurrentState.z);
   SetStartDirection(FrontNode.CurrentState.dxdz, FrontNode.CurrentState.dydz);
   // Set end pos/dir
-  SetEndPosition(BackNode.CurrentState.x, BackNode.CurrentState.y, BackNode.CurrentState.z);
+  SetEndPosition(DirectionNode.CurrentState.x, DirectionNode.CurrentState.y, DirectionNode.CurrentState.z);
   SetEndDirection(DirectionNode.CurrentState.dxdz, DirectionNode.CurrentState.dydz);
 
   if (std::isnan(momentum) || std::isinf(momentum)){
