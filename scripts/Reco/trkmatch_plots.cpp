@@ -7,9 +7,10 @@
 
 using namespace std;
 
-float delta_x(float XStart, float XEnd, float XDir, float ZDir, float Direction){
+float delta_x(float XStart, float XEnd, float ZStart, float ZEnd, float XDir, float ZDir){
     float ExtrapX, XOffset, DeltaX;
     float dxdz;
+	float ZGap = ZEnd - ZStart;
 
     dxdz = XDir / ZDir;
 
@@ -22,9 +23,10 @@ float delta_x(float XStart, float XEnd, float XDir, float ZDir, float Direction)
     return DeltaX;
 }
 
-float delta_y(float YStart, float YEnd, float YDir, float ZDir, float Direction){
+float delta_y(float YStart, float YEnd, float ZStart, float ZEnd, float YDir, float ZDir){
     float ExtrapY, YOffset, DeltaY;
     float dydz;
+	float ZGap = ZEnd - ZStart;
 
     dydz = YDir / ZDir;
 
@@ -35,17 +37,6 @@ float delta_y(float YStart, float YEnd, float YDir, float ZDir, float Direction)
     DeltaY = ExtrapY - YEnd;
 
     return DeltaY;
-}
-
-float delta_r(float XStart, float YStart, float XEnd, float YEnd, float XDir, float YDir, float ZDir, float Direction){
-    float DeltaX, DeltaY, DeltaR;
-
-    DeltaX = delta_x(XStart, XEnd, XDir, ZDir, Direction);
-    DeltaY = delta_y(YStart, YEnd, YDir, ZDir, Direction);
-
-    DeltaR = sqrt(pow(DeltaX, 2) + pow(DeltaY, 2));
-
-    return DeltaR;
 }
 
 float delta_theta(float XDir1, float YDir1, float ZDir1, float XDir2, float YDir2, float ZDir2){
@@ -63,7 +54,8 @@ float delta_theta(float XDir1, float YDir1, float ZDir1, float XDir2, float YDir
 }
 
 void track_matching_clean(std::string filename){
-	std::unique_ptr<TFile> myFile(TFile::Open(filename.c_str()));
+	std::string filepath = "root://fndca1.fnal.gov:1094//pnfs/fnal.gov/usr/dune/persistent/users/kleykamp/tmsreco_combined_files/" + filename + ".tmsreco.root";
+	std::unique_ptr<TFile> myFile(TFile::Open(filepath.c_str()));
 
 	gStyle->SetOptStat(0);
         	  
@@ -71,6 +63,9 @@ void track_matching_clean(std::string filename){
             std::cerr << "Error opening file" << endl;
             exit(-1);
 	 }
+
+	double mean, sigma;
+    auto c1 = new TCanvas("");
 
 	//declaring histograms
 	TH1F *deltax_tms_truth = new TH1F("", "Delta X", 200, -1000, 1000);
@@ -173,8 +168,69 @@ void track_matching_clean(std::string filename){
 			float dy_lar_truth = true_lar_p_end_y / p_abs_lar_truth;
 			float dz_lar_truth = true_lar_p_end_z / p_abs_lar_truth;
 
+			
+			float delta_theta_xz_tmstruth = delta_theta(dx_tms_truth, 0, dz_tms_truth, dx_lar_truth, 0, dz_lar_truth);
+			float delta_theta_yz_tmstruth = delta_theta(0, dy_tms_truth, dz_tms_truth, 0, dy_lar_truth, dz_lar_truth);
+
+			float delta_theta_xz_tmsreco = delta_theta(reco_tms_start_x, 0, reco_tms_start_z, dx_lar_truth, 0, dz_lar_truth);
+			float delta_theta_yz_tmsreco = delta_theta(0, reco_tms_start_y, reco_tms_start_z, 0, dy_lar_truth, dz_lar_truth);
+
+			//fill histograms
+			deltax_tms_truth->Fill(delta_x(true_lar_end_x, true_tms_start_x, true_lar_end_z, true_tms_start_z, dx_lar_truth, dz_lar_truth));
+			deltay_tms_truth->Fill(delta_y(true_lar_end_y, true_tms_start_y, true_lar_end_z, true_tms_start_z, dy_lar_truth, dz_lar_truth));
+
+			deltax_tms_reco->Fill(delta_x(true_lar_end_x, reco_tms_start_x, true_lar_end_z, reco_tms_start_z, dx_lar_truth, dz_lar_truth));
+			deltay_tms_reco->Fill(delta_y(true_lar_end_y, reco_tms_start_y, true_lar_end_z, reco_tms_start_z, dy_lar_truth, dz_lar_truth));
+
+			delta_theta_x_truth->Fill(delta_theta_xz_tmstruth);
+			delta_theta_y_truth->Fill(delta_theta_yz_tmstruth);
+
+			delta_theta_x_reco->Fill(delta_theta_xz_tmsreco);
+			delta_theta_y_reco->Fill(delta_theta_yz_tmsreco);
 		}
 	}
+
+	//delta x and delta y plots
+	deltax_tms_truth->SetTitle("\\Delta X (TMS Truth)");
+	deltax_tms_truth->Draw();
+	std::string printname = "plots/" + filename + "/deltax_tms_truth.png";
+    c1->Print(printname.c_str());
+
+	deltay_tms_truth->SetTitle("\\Delta Y (TMS Truth)");
+	deltay_tms_truth->Draw();
+	printname = "plots/" + filename + "/deltay_tms_truth.png";
+	c1->Print(printname.c_str());
+
+	deltax_tms_reco->SetTitle("\\Delta X (TMS Reco.)");
+	deltax_tms_reco->Draw();
+	std::string printname = "plots/" + filename + "/deltax_tms_reco.png";
+    c1->Print(printname.c_str());
+
+	deltay_tms_reco->SetTitle("\\Delta Y (TMS Reco.)");
+	deltay_tms_reco->Draw();
+	printname = "plots/" + filename + "/deltay_tms_reco.png";
+	c1->Print(printname.c_str());
+
+	//delta theta_x and theta_y plots
+	delta_theta_x_truth->SetTitle("\\Delta \\theta_x (TMS Truth)");
+	delta_theta_x_truth->Draw();
+	std::string printname = "plots/" + filename + "/delta_theta_x_truth.png";
+    c1->Print(printname.c_str());
+
+	delta_theta_y_truth->SetTitle("\\Delta \\theta_y (TMS Truth)");
+	delta_theta_y_truth->Draw();
+	printname = "plots/" + filename + "/delta_theta_y_truth.png";
+	c1->Print(printname.c_str());
+
+	delta_theta_x_reco->SetTitle("\\Delta \\theta_x (TMS Reco.)");
+	delta_theta_x_reco->Draw();
+	std::string printname = "plots/" + filename + "/delta_theta_x_reco.png";
+    c1->Print(printname.c_str());
+
+	delta_theta_y_reco->SetTitle("\\Delta \\theta_y (TMS Reco.)");
+	delta_theta_y_reco->Draw();
+	printname = "plots/" + filename + "/delta_theta_y_reco.png";
+	c1->Print(printname.c_str());
 
 	 
 }
