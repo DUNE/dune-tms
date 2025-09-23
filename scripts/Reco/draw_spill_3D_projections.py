@@ -270,7 +270,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
             if nTracks <= 0: continue
             else: counter_tracks += nTracks
-                
+            
             nHits = np.frombuffer(event.nHits, dtype = np.uint8)
             nHits = np.array([nHits[i] for i in range(0, nTracks * 4, 4)])
             TrackHitPos = np.frombuffer(event.TrackHitPos, dtype = np.float32)
@@ -481,7 +481,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                             z_y.fill_between(*hit_size(hit_z, hit_y, 'zy', orientation_bar), color = color_cbf)
                             x_y.fill_between(*hit_size(hit_x, hit_y, 'xy', orientation_bar), color = color_cbf, alpha = 0.5)
 
-                if DrawKalmanTrack and not lines2D:
+                if DrawKalmanTrack and not lines2D and not fullspill:
                     print("Track: ", j, "\t Hits: ", nHits[j], "\t Nodes: ", nKalmanNodes[j])
     
                     prev_kal_x = -1E100
@@ -617,7 +617,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
                 ### Track start
                 #temporary fix
-                if not (StartPos[j*4 + 2] < 11000.): 
+                if not (StartPos[j*4 + 2] < 11000.) and not fullspill: 
                     
                     if not StartPos[j*4 + 1] == 0.0:
                         if not lines2D:
@@ -642,7 +642,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
             
                 ### Track end               
                 #temporary fix
-                if not (EndPos[j*4 + 2] < 11000.):  
+                if not (EndPos[j*4 + 2] < 11000.) and not fullspill:  
     
                     if not EndPos[j*4 + 1] == 0.0:
                         if not lines2D:
@@ -667,7 +667,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                 ### Track direction
                 #temporary fix
                 # Add check on DrawKalmanTrack so we draw the true kalman info instead of a line
-                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.): 
+                if not DrawKalmanTrack and not (StartPos[j*4 + 2] < 11000. or EndPos[j*4 + 2] < 11000.) and not fullspill: 
 
                     if not StartPos[j*4 + 1] == 0.0 or EndPos[j*4 + 1] == 0.0:
                         x_z.plot([StartPos[j*4 + 2] / 1000.0, EndPos[j*4 + 2] / 1000.0], [StartPos[j*4 + 0] / 1000.0, EndPos[j*4 + 0] / 1000.0], color = black_cbf, linewidth = 1.5, linestyle = '--')
@@ -686,7 +686,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
 
     
                 # Write the True Muon KE to each spill plot.
-                if report_true_ke:
+                if report_true_ke and not fullspill:
                     for idx, pdg in enumerate(true_event.PDG):
                         if pdg != abs(13): continue
         
@@ -700,15 +700,16 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, histogra
                         if muon_ke_tms_start > 5.0 or muon_ke_lar > 5.0:  # GeV
                             print(f'Event: {i}, Spill {spill_number}, Muon KE at birth (LAr): {muon_ke_lar}, Muon KE entering TMS: {muon_ke_tms_start}, GeV.')
     
-                # add a legend
-                fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
-                fig.tight_layout()
-                fig.subplots_adjust(right = 0.84)
-                # save plot
-                output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
-                print("plotted ", output_filename)
-                mp.savefig(output_filename + ".png", bbox_inches = 'tight')
-                mp.close()
+                if not fullspill:
+                    # add a legend
+                    fig.legend(loc = 7, fontsize = 'x-large', markerscale = 1.0, columnspacing = 0.5, handlelength = 0.8)
+                    fig.tight_layout()
+                    fig.subplots_adjust(right = 0.84)
+                    # save plot
+                    output_filename = os.path.join(out_dir, f"{name}_{current_spill_number:03d}_{i:03d}_{j:02d}")
+                    print("plotted ", output_filename)
+                    mp.savefig(output_filename + ".png", bbox_inches = 'tight')
+                    mp.close()
         
         if fullspill:
             fig = mp.figure(constrained_layout = False)

@@ -582,17 +582,6 @@ void TMS_Kalman::BetheBloch() {
         TMS_KalmanState &CurrentState = KalmanNodes[i].SmoothState;
 
 
-        double MagneticField = 0;
-        const double RegionBoundaryX = TMS_Const::TMS_Magnetic_region_2_and_3_border; //1860; // hard coded boundary for regions
-        if (fabs(PreviousState.x) <= RegionBoundaryX) {
-            MagneticField = -1.0; // Central region: Magnetic field downwards
-        } else if (PreviousState.x > RegionBoundaryX) {
-            MagneticField = 1.0; // Right side region: Magnetic field upwards
-        } else {
-            MagneticField = 1.0; // Left side region: Magnetic field upwards
-        }
-
-
         TVectorD PreviousVec(5);
         PreviousVec[0] = PreviousState.x;
         PreviousVec[1] = PreviousState.y;
