@@ -3,7 +3,7 @@
 #include<cstdlib>
 #include<iostream>
 #include<math.h>
-#include<DUNEStyle.h>
+//#include<DUNEStyle.h>
 
 using namespace std;
 
@@ -14,7 +14,7 @@ float delta_x(float XStart, float XEnd, float ZStart, float ZEnd, float XDir, fl
 
     dxdz = XDir / ZDir;
 
-    XOffset = dxdz * ZGap * Direction;
+    XOffset = dxdz * ZGap;
 
     ExtrapX = XOffset + XStart;
 
@@ -30,7 +30,7 @@ float delta_y(float YStart, float YEnd, float ZStart, float ZEnd, float YDir, fl
 
     dydz = YDir / ZDir;
 
-    YOffset = dydz * Direction * ZGap;
+    YOffset = dydz *  ZGap;
 
 	ExtrapY = YOffset + YStart;
 
@@ -53,8 +53,8 @@ float delta_theta(float XDir1, float YDir1, float ZDir1, float XDir2, float YDir
 
 }
 
-void track_matching_clean(std::string filename){
-	std::string filepath = "root://fndca1.fnal.gov:1094//pnfs/fnal.gov/usr/dune/persistent/users/kleykamp/tmsreco_combined_files/" + filename + ".tmsreco.root";
+void trkmatch_plots(std::string filename){
+	std::string filepath = "/pnfs/dune/persistent/users/kleykamp/tmsreco_combined_files/" + filename + ".tmsreco.root";
 	std::unique_ptr<TFile> myFile(TFile::Open(filepath.c_str()));
 
 	gStyle->SetOptStat(0);
@@ -68,17 +68,17 @@ void track_matching_clean(std::string filename){
     auto c1 = new TCanvas("");
 
 	//declaring histograms
-	TH1F *deltax_tms_truth = new TH1F("", "Delta X", 200, -1000, 1000);
-    TH1F *deltay_tms_truth = new TH1F("", "Delta Y", 200, -1000, 1000);
+	TH1F *deltax_tms_truth = new TH1F("", "Delta X", 100, -600, 600);
+    TH1F *deltay_tms_truth = new TH1F("", "Delta Y", 100, -600, 600);
 
-	TH1F *deltax_tms_reco = new TH1F("", "Delta X, Reco", 200, -1000, 1000);
-	TH1F *deltay_tms_reco = new TH1F("", "Delta Y, Reco", 200, -1000, 1000);
+	TH1F *deltax_tms_reco = new TH1F("", "Delta X, Reco", 100, -600, 600);
+	TH1F *deltay_tms_reco = new TH1F("", "Delta Y, Reco", 100, -600, 600);
 
-	TH1F *delta_theta_x_truth = new TH1F("", "", 80, -25, 25);
-	TH1F *delta_theta_y_truth = new TH1F("", "", 80, -25, 25);
+	TH1F *delta_theta_x_truth = new TH1F("", "", 80, 0, 35);
+	TH1F *delta_theta_y_truth = new TH1F("", "", 80, 0, 35);
 
-	TH1F *delta_theta_x_reco = new TH1F("", "", 80, -25, 25);
-	TH1F *delta_theta_y_reco = new TH1F("", "", 80, -25, 25);
+	TH1F *delta_theta_x_reco = new TH1F("", "", 80, 0, 35);
+	TH1F *delta_theta_y_reco = new TH1F("", "", 80, 0, 35);
 
 
 	//defining truth variables
@@ -97,7 +97,7 @@ void track_matching_clean(std::string filename){
 	int nentries = truth->GetEntries();
 
 	for(int i = 0; i <= nentries; i++){
-		truth-GetEntry(i);
+		truth->GetEntry(i);
 		reco->GetEntry(i);
 
 		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
@@ -105,10 +105,14 @@ void track_matching_clean(std::string filename){
 
 		int j, k, l;
 		for(j=0, k=0, l=0; (l<= nTracksReco); j+=4, k+=3, l++){
-			nhits_intms = reco-GetLeaf("nHits")->GetValue(l);
+			nhits_intms = reco->GetLeaf("nHits")->GetValue(l);
 			pdg = truth->GetLeaf("PDG")->GetValue(l);
 
-			if(pdg != 13 || pdg != -13){
+			//for some reason this logic works but just checking for != 13 || != -13 doesn't?
+			if(pdg == 13 || pdg == -13){
+			}
+			else{
+				//cout << "not muon, pdg " << pdg << endl;
 				continue;
 			}
 
@@ -138,7 +142,7 @@ void track_matching_clean(std::string filename){
 
 			float true_deathpos_x = truth->GetLeaf("DeathPosition")->GetValue(j);
 			float true_deathpos_y = truth->GetLeaf("DeathPosition")->GetValue(j+1);
-			float true_deathpos_z = truth->GetLeaf("DeathPosition")->GetValues(j+2);
+			float true_deathpos_z = truth->GetLeaf("DeathPosition")->GetValue(j+2);
 
 			//double check that direction variables are normalized correctly
 			float reco_dirlen = sqrt((reco_tms_startdir_x * reco_tms_startdir_x) + (reco_tms_startdir_y * reco_tms_startdir_y) + (reco_tms_startdir_z * reco_tms_startdir_z));
@@ -148,14 +152,19 @@ void track_matching_clean(std::string filename){
 
 			//containment checks
 			if(true_tms_start_x > 3300 || true_tms_start_x < -3300 || true_tms_start_y > 160 || true_tms_start_y < -2850){
+				//cout << "did not end in tms" << endl;
 				continue;
 			}
 			if(true_lar_end_x < -4500 || true_lar_end_x > 3700 || true_lar_end_y < -3200 || true_lar_end_y > 1000){
+				//cout << "did not start in lar" << endl;
 				continue;
 			}
 			if(true_deathpos_z > 18314){
-			       continue;
-			}	       
+				//cout << "punched out the back" << endl;
+			    continue;
+			}
+			
+			//cout << "passed cuts, yay!" << endl; //debugging
 			
 			//finding direction cosines from momentum information because true direction is not saved well
 			float p_abs_tms_truth = sqrt((true_tms_p_start_x * true_tms_p_start_x) + (true_tms_p_start_y * true_tms_p_start_y) + (true_tms_p_start_z * true_tms_p_start_z));
@@ -203,7 +212,7 @@ void track_matching_clean(std::string filename){
 
 	deltax_tms_reco->SetTitle("\\Delta X (TMS Reco.)");
 	deltax_tms_reco->Draw();
-	std::string printname = "plots/" + filename + "/deltax_tms_reco.png";
+	printname = "plots/" + filename + "/deltax_tms_reco.png";
     c1->Print(printname.c_str());
 
 	deltay_tms_reco->SetTitle("\\Delta Y (TMS Reco.)");
@@ -214,7 +223,7 @@ void track_matching_clean(std::string filename){
 	//delta theta_x and theta_y plots
 	delta_theta_x_truth->SetTitle("\\Delta \\theta_x (TMS Truth)");
 	delta_theta_x_truth->Draw();
-	std::string printname = "plots/" + filename + "/delta_theta_x_truth.png";
+	printname = "plots/" + filename + "/delta_theta_x_truth.png";
     c1->Print(printname.c_str());
 
 	delta_theta_y_truth->SetTitle("\\Delta \\theta_y (TMS Truth)");
@@ -224,7 +233,7 @@ void track_matching_clean(std::string filename){
 
 	delta_theta_x_reco->SetTitle("\\Delta \\theta_x (TMS Reco.)");
 	delta_theta_x_reco->Draw();
-	std::string printname = "plots/" + filename + "/delta_theta_x_reco.png";
+	printname = "plots/" + filename + "/delta_theta_x_reco.png";
     c1->Print(printname.c_str());
 
 	delta_theta_y_reco->SetTitle("\\Delta \\theta_y (TMS Reco.)");
