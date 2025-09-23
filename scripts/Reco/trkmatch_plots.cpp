@@ -98,7 +98,60 @@ void track_matching_clean(std::string filename){
 		int nTracksTrue = truth->GetLeaf("RecoTrackN")->GetValue(0);
 		int nTracksReco = reco->GetLeaf("nTracks")->GetValue(0);
 
-		
+		int j, k, l;
+		for(j=0, k=0, l=0; (l<= nTracksReco); j+=4, k+=3, l++){
+			nhits_intms = reco-GetLeaf("nHits")->GetValue(l);
+			pdg = truth->GetLeaf("PDG")->GetValue(l);
+
+			if(pdg != 13 || pdg != -13){
+				continue;
+			}
+
+			true_tms_start_x = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionEnteringTMS")->GetValue(j);
+			true_tms_start_y = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionEnteringTMS")->GetValue(j+1);
+			true_tms_start_z = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionEnteringTMS")->GetValue(j+2);
+			
+			true_lar_end_x = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionLeavingLAr")->GetValue(j);
+			true_lar_end_y = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionLeavingLAr")->GetValue(j+1);
+			true_lar_end_z = truth->GetLeaf("RecoTrackPrimaryParticleTruePositionLeavingLAr")->GetValue(j+2);
+
+			true_tms_p_start_x = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumEnteringTMS")->GetValue(j);
+			true_tms_p_start_y = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumEnteringTMS")->GetValue(j+1);
+			true_tms_p_start_z = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumEnteringTMS")->GetValue(j+2);
+
+			true_lar_p_end_x = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumLeavingLAr")->GetValue(j);
+			true_lar_p_end_y = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumLeavingLAr")->GetValue(j+1);
+			true_lar_p_end_z = truth->GetLeaf("RecoTrackPrimaryParticleTrueMomentumLeavingLAr")->GetValue(j+2);
+
+			reco_tms_start_x = reco->GetLeaf("StartPos")->GetValue(k);
+			reco_tms_start_y = reco->GetLeaf("StartPos")->GetValue(k+1);
+			reco_tms_start_z = reco->GetLeaf("StartPos")->GetValue(k+2);
+
+			reco_tms_startdir_x = reco->GetLeaf("StartDirection")->GetValue(k);
+			reco_tms_startdir_y = reco->GetLeaf("StartDirection")->GetValue(k+1);
+			reco_tms_startdir_z = reco->GetLeaf("StartDirection")->GetValue(k+2);
+
+			float true_deathpos_x = truth->GetLeaf("DeathPosition")->GetValue(j);
+			float true_deathpos_y = truth->GetLeaf("DeathPosition")->GetValue(j+1);
+			float true_deathpos_z = truth->GetLeaf("DeathPosition")->GetValues(j+2);
+
+			//double check that direction variables are normalized correctly
+			float reco_dirlen = sqrt((reco_tms_startdir_x * reco_tms_startdir_x) + (reco_tms_startdir_y * reco_tms_startdir_y) + (reco_tms_startdir_z * reco_tms_startdir_z));
+			reco_tms_startdir_x = reco_tms_startdir_x / reco_dirlen;
+			reco_tms_startdir_y = reco_tms_startdir_y / reco_dirlen;
+			reco_tms_startdir_z = reco_tms_startdir_z / reco_dirlen;
+
+			//containment checks
+			if(true_tms_start_x > 3300 || true_tms_start_x < -3300 || true_tms_start_y > 160 || true_tms_start_y < -2850){
+				continue;
+			}
+			if(true_lar_end_x < -4500 || true_lar_end_x > 3700 || true_lar_end_y < -3200 || true_lar_end_y > 1000){
+				continue;
+			}
+			if(true_deathpos_z > 18314){
+			       continue;
+			}	       
+		}
 	}
 
 	 
