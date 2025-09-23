@@ -27,8 +27,7 @@
 #endif
 
 
-// State vector for Kalman filter
-// Not actually ever truly observed (not a measurement!)
+// State vector for the Kalman filter (not directly observed)
 class TMS_KalmanState {
   public:
     TMS_KalmanState() = delete;
@@ -50,20 +49,20 @@ class TMS_KalmanState {
     }
 };
 
-// One node in the Kalman code
-// Has information about the two states i and i+1
+// One Kalman node containing measurement, state, and matrices for a step
 class TMS_KalmanNode {
   public:
   TMS_KalmanNode() = delete;
 
-  // x,y,z, delta_z = distance from previous hit to current in z
+  // x,y at plane zvar; dzvar = zvar - z_prev (step size). PreviousState is
+  // defined at z_prev = zvar - dzvar; Current/Smooth at zvar.
   TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar) :
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     StepIndex(-1),
     RecoX(xvar), RecoY(yvar),
-    PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
-    CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
-    SmoothState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
+    PreviousState(x, y, zvar - dzvar, dxdzvar, dydzvar, 1./20.),
+    CurrentState(x, y, zvar,          dxdzvar, dydzvar, 1./20.), // Initialise at plane z
+    SmoothState(x, y, zvar,           -999.9, -999.9, -1./20.),  // Initialise at plane z
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
     TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
@@ -89,8 +88,7 @@ class TMS_KalmanNode {
     MeasurementVec.ResizeTo(5);
 //    DeflectedVec.ResizeTo(5);
 
-    // Make the transfer matrix for each of the states
-    // Initialise to zero
+    // Build identity transfer and set dz terms for x/y from slopes
     TransferMatrix.Zero();
     TransferMatrixT.Zero(); // Transposed
     rVec.Zero();
@@ -134,19 +132,18 @@ class TMS_KalmanNode {
   double LayerBarWidth;
   double LayerBarLength;
   int PlaneNumber;
+  double LayerNotZ; // Bar center along the measured axis (mm)
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState PreviousState;
   TMS_KalmanState CurrentState;
   TMS_KalmanState SmoothState;
 
-  // Propagator matrix
-  // Takes us from detector k-1 to detector k
+  // Propagator matrix (from k-1 to k)
   TMatrixD TransferMatrix;
   TMatrixD TransferMatrixT; // Transposed
 
-  // Random variable w(k-1) includes random disturbances of track between z(k-1) and z(k) from multiple scattering
-  // Noise matrix
+  // Process/measurement covariance storage
   TMatrixD NoiseMatrix;
   TMatrixD CovarianceMatrix;
   TMatrixD UpdatedCovarianceMatrix;
@@ -156,7 +153,7 @@ class TMS_KalmanNode {
 
   // Measurement matrix
   TMatrixD MeasurementMatrix;
-  // For chi2 stuff
+  // Innovation and chi2 bookkeeping
   TVectorD rVec;
   TVectorD rVecT;
   TMatrixD RMatrix;
@@ -186,22 +183,21 @@ class TMS_KalmanNode {
 
   void FillNoiseMatrix()
   {
-    double H = 0.00274576; // ( tan(3 deg) )**2
-    double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
-    //double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
-    double B = 2000;//4000.0; //4000.0 mm bar length based uncert
+    double H = 0.00274576; // (tan(3 deg))^2
+    double A = LayerBarWidth;
+    double B = 2000;       // bar-length uncertainty (mm)
 
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {
       sign = -1;
     } else if (LayerOrientation == TMS_Bar::kVBar) {
       sign =  1;
-    } else if (LayerOrientation == TMS_Bar::kXBar) { // this should just work right?
+    } else if (LayerOrientation == TMS_Bar::kXBar) {
       NoiseMatrix(0,0) = B*B;
       NoiseMatrix(1,1) = A*A;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
-    } else if (LayerOrientation == TMS_Bar::kYBar) { // this should just work right?
+    } else if (LayerOrientation == TMS_Bar::kYBar) {
       NoiseMatrix(0,0) = A*A;
       NoiseMatrix(1,1) = B*B;
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
@@ -339,6 +335,19 @@ class TMS_Kalman {
     void SignSelection();
     void Runchi2();
     void UpdateParameters();
+    // Refit helper: backward → forward → backward passes with smoothing
+    void TripleRefitSmooth();
+
+    // Repair obviously bad node measurements (x,y) by recomputing them
+    // from bar geometry using the previous state's projection as seed.
+    // Only adjusts nodes that exceed residual/bounds heuristics.
+    void RepairBadNodeMeasurements();
+
+    // Remove nodes that are inconsistent after rebuilding/refit.
+    // Heuristics:
+    //  - Large residual vs projection from previous smoothed state
+    //  - High-frequency oscillation pattern across consecutive nodes
+    void PruneInconsistentNodes();
 
     void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
     // Sorts so that first node is first node processed by RunKalman. ie. based on ForwardFitting flag.
@@ -347,6 +356,11 @@ class TMS_Kalman {
         std::sort(KalmanNodes.begin(), KalmanNodes.end(), [fit_direction](const TMS_KalmanNode &a, const TMS_KalmanNode &b)
         {return fit_direction ? a.z < b.z : a.z > b.z;}); 
       };
+
+    // After sorting in the current run order, rebuild each node's dz and
+    // transfer matrices to reflect adjacency in that order. Also ensure
+    // PreviousState.z = z - dz and CurrentState.z = z at each node.
+    void RebuildRunOrderSteps();
 
     // Build a 2D measurement (x,y) at hit z using bar geometry and
     // the current track state projected to that z. For bars that do not
@@ -380,6 +394,10 @@ class TMS_Kalman {
     int nAugmentedNodes;
     
     bool Talk;
+
+    // True during augmentation pass so we can tame qp updates
+    bool AugmentationMode = false;
+    int  AugmentFreezeSteps = 2; // freeze physics for first few augmented nodes
 
     // Outlier handling state
     int ConsecutiveOutliers = 0;           // running count during filtering
