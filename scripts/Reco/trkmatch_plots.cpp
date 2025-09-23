@@ -7,10 +7,6 @@
 
 using namespace std;
 
-float ZGap = 2250;
-float tmstolar = -1;
-float lartotms = 1;
-
 float delta_x(float XStart, float XEnd, float XDir, float ZDir, float Direction){
     float ExtrapX, XOffset, DeltaX;
     float dxdz;
@@ -76,15 +72,29 @@ void track_matching_clean(std::string filename){
             exit(-1);
 	 }
 
-	 //defining truth variables
-	 float true_tms_start_x, true_tms_start_y, true_tms_start_z, true_lar_end_x, true_lar_end_y, true_lar_end_z;
-	 float true_tms_p_start_x, true_tms_p_start_y, true_tms_p_start_z, true_lar_p_end_x, true_lar_p_end_y, true_lar_p_end_z;
-	 int pdg;
+	//declaring histograms
+	TH1F *deltax_tms_truth = new TH1F("", "Delta X", 200, -1000, 1000);
+    TH1F *deltay_tms_truth = new TH1F("", "Delta Y", 200, -1000, 1000);
 
-	 //defining reco variables
-	 float reco_tms_start_x, reco_tms_start_y, reco_tms_start_z, reco_lar_end_x, reco_lar_end_y, reco_lar_end_z;
-	 float reco_tms_startdir_x, reco_tms_startdir_y, reco_tms_startdir_z, reco_lar_enddir_x, reco_lar_enddir_y, reco_lar_enddir_z;
-	 float nhits_intms;
+	TH1F *deltax_tms_reco = new TH1F("", "Delta X, Reco", 200, -1000, 1000);
+	TH1F *deltay_tms_reco = new TH1F("", "Delta Y, Reco", 200, -1000, 1000);
+
+	TH1F *delta_theta_x_truth = new TH1F("", "", 80, -25, 25);
+	TH1F *delta_theta_y_truth = new TH1F("", "", 80, -25, 25);
+
+	TH1F *delta_theta_x_reco = new TH1F("", "", 80, -25, 25);
+	TH1F *delta_theta_y_reco = new TH1F("", "", 80, -25, 25);
+
+
+	//defining truth variables
+	float true_tms_start_x, true_tms_start_y, true_tms_start_z, true_lar_end_x, true_lar_end_y, true_lar_end_z;
+	float true_tms_p_start_x, true_tms_p_start_y, true_tms_p_start_z, true_lar_p_end_x, true_lar_p_end_y, true_lar_p_end_z;
+	int pdg;
+
+	//defining reco variables
+	float reco_tms_start_x, reco_tms_start_y, reco_tms_start_z, reco_lar_end_x, reco_lar_end_y, reco_lar_end_z;
+	float reco_tms_startdir_x, reco_tms_startdir_y, reco_tms_startdir_z, reco_lar_enddir_x, reco_lar_enddir_y, reco_lar_enddir_z;
+	float nhits_intms;
 
 	TTree *truth = myFile->Get<TTree>("Truth_Info");
 	TTree *reco = myFile->Get<TTree>("Reco_Tree");
@@ -151,6 +161,18 @@ void track_matching_clean(std::string filename){
 			if(true_deathpos_z > 18314){
 			       continue;
 			}	       
+			
+			//finding direction cosines from momentum information because true direction is not saved well
+			float p_abs_tms_truth = sqrt((true_tms_p_start_x * true_tms_p_start_x) + (true_tms_p_start_y * true_tms_p_start_y) + (true_tms_p_start_z * true_tms_p_start_z));
+			float dx_tms_truth = true_tms_p_start_x / p_abs_tms_truth;
+			float dy_tms_truth = true_tms_p_start_y / p_abs_tms_truth;
+			float dz_tms_truth = true_tms_p_start_z / p_abs_tms_truth;
+
+			float p_abs_lar_truth = sqrt((true_lar_p_end_x * true_lar_p_end_x) + (true_lar_p_end_y * true_lar_p_end_y) + (true_lar_p_end_z * true_lar_p_end_z));
+			float dx_lar_truth = true_lar_p_end_x / p_abs_lar_truth;
+			float dy_lar_truth = true_lar_p_end_y / p_abs_lar_truth;
+			float dz_lar_truth = true_lar_p_end_z / p_abs_lar_truth;
+
 		}
 	}
 
