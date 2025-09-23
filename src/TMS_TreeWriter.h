@@ -57,6 +57,8 @@ class TMS_TreeWriter {
     int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
     float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; //TODO?
+    bool KalmanWasAugmented[__TMS_MAX_TRACKS__];
+    int nAugmentedNodesKalman[__TMS_MAX_TRACKS__];
     int RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
     int RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];

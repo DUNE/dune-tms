@@ -733,6 +733,9 @@ for (auto Lines: HoughCandidatesY) {
       trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
       trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
       trk.Length = CalculateTrackLengthKalman(trk);
+      
+      trk.KalmanWasAugmented = canonical.GetWasAugmented();
+      trk.nAugmentedNodesKalman = canonical.GetNAugmentedNodes();
     }
   } 
   return;

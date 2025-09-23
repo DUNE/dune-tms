@@ -262,17 +262,23 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
 
   // Sort a local copy of candidates by z
   std::vector<TMS_Hit> pool(candidate_pool.begin(), candidate_pool.end());
-  std::sort(pool.begin(), pool.end(), TMS_Hit::SortByZ);
+  std::sort(pool.begin(), pool.end(), TMS_Hit::SortByZInc);
 
   // Ensure nodes are sorted by z ascending so back() is highest z
   SortNodesByZ();
   // Seed from the smoothed state at the highest-z node (back of vector)
+  size_t new_length = KalmanNodes.size();
+  size_t new_length_half = new_length / 2;
+  for (size_t j = 0; j < 5 && j < new_length_half; j++) {
+    KalmanNodes.pop_back();
+  }
+  //KalmanNodes.resize(new_length);
   TMS_KalmanNode seed = KalmanNodes.back();
   TMS_KalmanNode prev_node(
       seed.SmoothState.x,
       seed.SmoothState.y,
       seed.SmoothState.z,
-      0.0,
+      seed.SmoothState.qp,
       seed.SmoothState.dxdz,
       seed.SmoothState.dydz);
   prev_node.SetTrueXY(seed.TrueX, seed.TrueY);
@@ -313,6 +319,11 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
   std::vector<TMS_KalmanNode> accepted_new;
   accepted_new.reserve(pool.size());
 
+  int nCandidates = 0;
+  bool EnableOutlierRejectionOld = EnableOutlierRejection;
+  // Turn off outlier rejection for now
+  EnableOutlierRejection = false;
+
   for (const auto &hit : pool) {
     double z = hit.GetZ();
     double dz = z - prev_node.CurrentState.z;
@@ -337,6 +348,8 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     int maximum_n_planes = 5;
     if (maximum_n_planes > 0 && node.PlaneNumber > prev_node.PlaneNumber + maximum_n_planes) continue;
 
+    nCandidates += 1;
+
     // Propagate from prev_node state to this node and perform update/gating
     Update(prev_node, node);
     Predict(node);
@@ -348,9 +361,21 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
       current_z = prev_node.CurrentState.z;
     }
   }
+  // Change back to old value
+  EnableOutlierRejection = EnableOutlierRejectionOld;
+  if (Talk) {
+    std::cout<<"Checked "<<pool.size()<<" hits. Found "<<nCandidates<<" candidates. Augmented "<<accepted_new.size()<<" nodes."<<std::endl;
+  }  
 
   // Merge: append accepted new nodes, then re-sort by z
   if (!accepted_new.empty()) {
+    wasAugmented = true;
+    nAugmentedNodes = accepted_new.size();
+    // Set the smooth states. runRTSSmoother is unhappy with new nodes
+    for (size_t i = 0; i < accepted_new.size(); ++i) {
+      accepted_new[i].SmoothState = accepted_new[i].CurrentState;
+      accepted_new[i].SmoothCovarianceMatrix = accepted_new[i].CovarianceMatrix;
+    }
     KalmanNodes.insert(KalmanNodes.end(), accepted_new.begin(), accepted_new.end());
     SortNodesByZ();
 
@@ -358,8 +383,11 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     for (size_t i = 0; i < KalmanNodes.size(); ++i) {
       KalmanNodes[i].StepIndex = static_cast<int>(i);
     }
+    InitializeMomentum(false);
     // Skip global smoothing to keep interior stable; optionally we could
     // perform a trailing-window smoother/update only on the last N nodes.
+    //ForwardFitting = false;
+    //SortNodesByRunOrder();
     //runRTSSmoother();
     // Turn on backward fitting
     //ForwardFitting = false;

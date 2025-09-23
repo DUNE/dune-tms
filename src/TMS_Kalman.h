@@ -318,6 +318,8 @@ class TMS_Kalman {
 
 
     std::vector<TMS_KalmanNode> GetKalmanNodes() {return KalmanNodes;}
+    bool GetWasAugmented() { return wasAugmented; }
+    int GetNAugmentedNodes() { return nAugmentedNodes; }
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
     
@@ -373,6 +375,9 @@ class TMS_Kalman {
     double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
+    
+    bool wasAugmented;
+    int nAugmentedNodes;
     
     bool Talk;
 

@@ -327,6 +327,8 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView",  RecoTrackKalmanLastPlaneBarView,  "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanPlaneBarView",      RecoTrackKalmanPlaneBarView,      "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
   Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");  //TODO?
+  Reco_Tree->Branch("KalmanWasAugmented",   KalmanWasAugmented,  "KalmanWasAugmented[nTracks]/O");
+  Reco_Tree->Branch("nAugmentedNodesKalman",   nAugmentedNodesKalman,             "nAugmentedNodesKalman[nTracks]/I");
   Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarViewTrue", RecoTrackKalmanFirstPlaneBarViewTrue, "RecoTrackKalmanFirstPlaneBarViewTrue[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarViewTrue",  RecoTrackKalmanLastPlaneBarViewTrue,  "RecoTrackKalmanLastPlaneBarViewTrue[nTracks][3]/I");
   Reco_Tree->Branch("RecoTrackKalmanPlaneBarViewTrue",      RecoTrackKalmanPlaneBarViewTrue,      "RecoTrackKalmanPlaneBarViewTrue[nTracks][200][3]/I");
@@ -1494,6 +1496,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    KalmanWasAugmented[itTrack]     = RecoTrack->KalmanWasAugmented;
+    nAugmentedNodesKalman[itTrack]     = RecoTrack->nAugmentedNodesKalman;
     RecoTrackEnergyRange[itTrack]   = RecoTrack->EnergyRange;
     if (nLinesU<=0){
         RecoTrackLength[itTrack]    = 0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps

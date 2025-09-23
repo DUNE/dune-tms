@@ -29,6 +29,9 @@ TMS_Track(const TMS_Track& other) {
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
     nKalmanNodes    = other.nKalmanNodes;
+    nKalmanNodes    = other.nKalmanNodes;
+    KalmanWasAugmented    = other.KalmanWasAugmented;
+    nAugmentedNodesKalman = other.nAugmentedNodesKalman;
 
     // Copy arrays element by element
     for (int i = 0; i < 3; ++i) {
@@ -64,6 +67,8 @@ TMS_Track(const TMS_Track& other) {
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
         nKalmanNodes    = other.nKalmanNodes;
+        KalmanWasAugmented    = other.KalmanWasAugmented;
+        nAugmentedNodesKalman = other.nAugmentedNodesKalman;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
         for (int i = 0; i < 3; i++) {
@@ -143,6 +148,8 @@ TMS_Track(const TMS_Track& other) {
     std::vector<TMS_KalmanNode> KalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;
     std::vector<TMS_KalmanNode> KalmanNodes_plus;
+    bool KalmanWasAugmented;
+    int nAugmentedNodesKalman;
 
     void Compare()
     {
