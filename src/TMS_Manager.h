@@ -84,6 +84,15 @@ class TMS_Manager {
     double Get_Reco_Kalman_Outlier_AbsoluteResidualMaxY() const { return _RECO_KALMAN_OUTLIER_ABS_RESID_MAX_Y; };
     bool   Get_Reco_Kalman_Outlier_EarlyRampEnable() const     { return _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE; };
     int    Get_Reco_Kalman_Outlier_EarlyRampSteps() const      { return _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS; };
+
+    // Augmentation tuning
+    int    Get_Reco_Kalman_Augment_MaximumPlaneGap() const      { return _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP; };
+    int    Get_Reco_Kalman_Augment_FreezeSteps() const          { return _RECO_KALMAN_AUGMENT_FREEZE_STEPS; };
+    double Get_Reco_Kalman_Augment_MaxDeflectionPerStep() const { return _RECO_KALMAN_AUGMENT_MAX_DEFLECTION_PER_STEP; };
+    double Get_Reco_Kalman_Augment_MomentumWindowZ() const      { return _RECO_KALMAN_AUGMENT_MOMENTUM_WINDOW_Z; };
+    double Get_Reco_Kalman_Augment_FinalPlaneRelaxFactor() const { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR; };
+    double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsX() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X; };
+    double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsY() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y; };
     
 
 
@@ -225,6 +234,15 @@ class TMS_Manager {
     double _RECO_KALMAN_OUTLIER_ABS_RESID_MAX_Y;
     bool   _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE;
     int    _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS;
+
+    // Augmentation tuning (must be provided in TOML)
+    int    _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP;
+    int    _RECO_KALMAN_AUGMENT_FREEZE_STEPS;
+    double _RECO_KALMAN_AUGMENT_MAX_DEFLECTION_PER_STEP;
+    double _RECO_KALMAN_AUGMENT_MOMENTUM_WINDOW_Z;
+    double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR;
+    double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X;
+    double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y;
 
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)

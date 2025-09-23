@@ -98,6 +98,15 @@ TMS_Manager::TMS_Manager() {
   _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE    = toml::find<bool>(  data, "Recon", "Kalman", "Outlier_EarlyRampEnable");
   _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS     = toml::find<int>(   data, "Recon", "Kalman", "Outlier_EarlyRampSteps");
 
+  // Augmentation tuning (all must be defined in TOML)
+  _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP       = toml::find<int>(   data, "Recon", "Kalman", "Augment", "MaximumPlaneGap");
+  _RECO_KALMAN_AUGMENT_FREEZE_STEPS            = toml::find<int>(   data, "Recon", "Kalman", "Augment", "FreezeSteps");
+  _RECO_KALMAN_AUGMENT_MAX_DEFLECTION_PER_STEP = toml::find<double>(data, "Recon", "Kalman", "Augment", "MaxDeflectionPerStep");
+  _RECO_KALMAN_AUGMENT_MOMENTUM_WINDOW_Z       = toml::find<double>(data, "Recon", "Kalman", "Augment", "MomentumWindowZ");
+  _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR= toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxFactor");
+  _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsX");
+  _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsY");
+
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   
