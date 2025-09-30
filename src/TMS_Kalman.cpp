@@ -597,14 +597,15 @@ void TMS_Kalman::BuildBarMeasurement(const TMS_Hit &hit,
 // Seed the starting KE for backtracking from steel thickness at a position.
 // Assumes ~half steel penetration on average.
 double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
-  double en = 0;
+  // Needs to be at least the particle mass, but it'll fail if it's exactly the mass
+  double en = mass + 1e-2;
   // Assume half steel thickness penetration depth on average
   double steel_depth = TMS_Geom::GetInstance().GetSteelThickness(position) * 0.5;
   TVector3 endpoint = position + TVector3(0, 0, steel_depth);
   // Get the materials between the two points
   std::vector<std::pair<TGeoMaterial*, double> > Materials = TMS_Geom::GetInstance().GetMaterials(position, endpoint);
 
-  if (Talk) std::cout << "Looping over " << Materials.size() << " materials" << std::endl;
+  if (Talk) std::cout << "[CalculateKEFromSteel] Looping over " << Materials.size() << " materials" << std::endl;
   // Loop over the materials between the two projection points
   for (auto material : Materials) {
     // Read these directly from a TGeoManager
@@ -625,23 +626,34 @@ double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
       MSC.fMaterial = matter;
     }
     catch (std::invalid_argument const& ex) {
-      std::cout<<"Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
+      std::cout<<"[CalculateKEFromSteel] Could not make a material using density "<<density<<", is position within tms bounds?"<<std::endl;
     }
 
     double old_en = en;
-    en += Bethe.Calc_dEdx(en)*density*thickness;
+    // Bethe.Calc_dEdx(mass) is very high, so move alittle away from mass
+    // so we're not oversampling the highest point
+    double b = Bethe.Calc_dEdx(std::max(mass + 5, en));
+    if (!std::isfinite(b) || b < 0) {
+      std::cout << "[CalculateKEFromSteel] Warning: Found Bethe(" << en << " MeV) = " << b << ", setting it to 1" << std::endl;
+      b = 1;
+    }
+    en += b*density*thickness;
+    
 
     // Check that new energy is valid
     if (en < 0 || std::isnan(en) || std::isinf(en)) {
       if (Talk) { 
-        std::cout<<"Got invalid energy "<<en<<" from thickness ";
+        std::cout<<"[CalculateKEFromSteel] Got invalid energy "<<en<<" from thickness ";
         std::cout<<thickness<<" and density "<<density;
+        std::cout<<" and Bethe.Calc_dEdx(en) "<<Bethe.Calc_dEdx(old_en);
         std::cout<<". Switching to old energy: "<<old_en<<std::endl;
       }
       en = old_en;
     }
   }
-  return en;
+  double ke = en - mass;
+  if (Talk) std::cout << "[CalculateKEFromSteel] Found KE " << ke << " MeV for a steel thickness of " << steel_depth << "mm" << std::endl;
+  return ke;
 }
 
 // Estimate starting KE from straight-line length (start→end), with separate
