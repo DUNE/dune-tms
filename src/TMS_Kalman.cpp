@@ -207,6 +207,10 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
                     ? (KalmanNodes.front().RecoY - KalmanNodes.back().RecoY) / dz_y
                     : 0.0;
 
+  if (std::abs(mass) < 1e-3) { 
+    std::cout<<"Fatal: particle mass is zero"<<std::endl;
+    exit(-1);
+  }
   // Set the momentum seed for the first hit from its length
   if (ForwardFitting) {
     // TODO GetNotZ might represent y position, which would give wrong numbers
@@ -216,9 +220,10 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
     double endz = KalmanNodes.back().z;
     double KEest = GetKEEstimateFromLength(startx, endx, startz, endz);
     double momest = sqrt((KEest+mass)*(KEest+mass)-mass*mass);
-    if (Talk) std::cout << "momentum estimate from length: " << momest << std::endl;
+    if (Talk) std::cout << "[InitializeMomentum] momentum estimate from length: " << momest << std::endl;
     KalmanNodes.front().PreviousState.qp = 1./momest;
     KalmanNodes.front().CurrentState.qp = 1./momest;
+    if (Talk) std::cout << "[InitializeMomentum] momentum estimate from length as set: " << KalmanNodes[0].CurrentState.qp << std::endl;
     if (!only_momentum) {
       KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
       KalmanNodes.back().CurrentState.dydz = 0.0;//AverageYSlope;
@@ -229,13 +234,16 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
     // todo: get better starting position in the future
     // But for now this is good enough since we're just calculating small correction
     // that's probably the same independent of x and y.
-    /*double endz = KalmanNodes.back().z;
+    double endz = KalmanNodes.back().z;
     TVector3 endpoint(0, 0, endz);
     double KEest = CalculateKEFromSteel(endpoint);
-    double momest = sqrt((KEest+mass)*(KEest+mass)-mass*mass);
-    if (Talk) std::cout << "momentum estimate from half of steel: " << momest << std::endl;
+    double momest = std::max(sqrt((KEest+mass)*(KEest+mass)-mass*mass), 1e-3);
+    if (Talk) std::cout << "[InitializeMomentum] KE est from steel " << KEest << std::endl;
+    if (Talk) std::cout << "[InitializeMomentum] mass " << mass << std::endl;
+    if (Talk) std::cout << "[InitializeMomentum] momentum estimate from half of steel: " << momest << std::endl;
     KalmanNodes.front().PreviousState.qp = 1./momest;
-    KalmanNodes.front().CurrentState.qp = 1./momest;*/
+    KalmanNodes.front().CurrentState.qp = 1./momest;
+    if (Talk) std::cout << "[InitializeMomentum] momentum estimate from length as set: " << KalmanNodes[0].CurrentState.qp << std::endl;
     // TODO check if 0 is sane
     if (!only_momentum) {
       KalmanNodes.back().CurrentState.dxdz = 0.0;//AverageXSlope;
@@ -782,6 +790,7 @@ void TMS_Kalman::RebuildRunOrderSteps() {
 // Backward → Forward → Backward refit with RTS smoother in each pass,
 // then update physics summaries.
 void TMS_Kalman::TripleRefitSmooth() {
+  if (Talk) std::cout<<"[TripleRefitSmooth] Running triple refit"<<std::endl;
   if (KalmanNodes.empty()) return;
   bool saved_dir = ForwardFitting;
 
@@ -789,6 +798,8 @@ void TMS_Kalman::TripleRefitSmooth() {
   ForwardFitting = false;
   SortNodesByRunOrder();
   RebuildRunOrderSteps();
+  InitializeMomentum(true);
+  if (Talk) std::cout<<"[TripleRefitSmooth] 1st backfit p / MeV = "<<(1/KalmanNodes.at(0).PreviousState.qp)<<std::endl;
   RunKalman();
   runRTSSmoother();
 
@@ -802,6 +813,7 @@ void TMS_Kalman::TripleRefitSmooth() {
     if (!std::isfinite(qp_seed) || std::abs(qp_seed) < 1e-12) qp_seed = 1.0/1000.0; // ~1 GeV fallback
     KalmanNodes[0].PreviousState.qp = qp_seed;
     KalmanNodes[0].CurrentState.qp  = qp_seed;
+    if (Talk) std::cout<<"[TripleRefitSmooth] Forward fit p / MeV = "<<(1/qp_seed)<<std::endl;
   }
   RunKalman();
   runRTSSmoother();
@@ -823,8 +835,8 @@ void TMS_Kalman::TripleRefitSmooth() {
     double KE_corr = std::isfinite(KE) ? KE * scale : 0.0;
     double en = KE_corr + mass;
     double p2 = en*en - mass*mass;
-    double p = (p2 > 0.0 && std::isfinite(p2)) ? std::sqrt(p2) : 1000.0; // MeV
-    qp_back_seed = 1.0 / std::max(p, 1.0);
+    double p = (p2 > 0.0 && std::isfinite(p2)) ? std::sqrt(p2) : 1.0; // MeV
+    qp_back_seed = 1.0 / std::max(p, 1e-3);
   }
   ForwardFitting = false;
   SortNodesByRunOrder();
@@ -832,6 +844,8 @@ void TMS_Kalman::TripleRefitSmooth() {
   if (!KalmanNodes.empty()) {
     KalmanNodes[0].PreviousState.qp = qp_back_seed;
     KalmanNodes[0].CurrentState.qp  = qp_back_seed;
+    if (Talk) std::cout<<"[TripleRefitSmooth] 2nd backfit p / MeV = "<<(1/KalmanNodes.at(0).PreviousState.qp)<<std::endl;
+    if (Talk) std::cout<<"[TripleRefitSmooth] 2nd backfit p / MeV back = "<<(1/KalmanNodes.back().PreviousState.qp)<<std::endl;
   }
   RunKalman();
   runRTSSmoother();
@@ -843,6 +857,7 @@ void TMS_Kalman::TripleRefitSmooth() {
   Runchi2();
   SignSelection();
   UpdateParameters();
+  if (Talk) std::cout<<"[TripleRefitSmooth] Done running triple refit"<<std::endl;
 }
 
 // Recompute measurements for nodes whose input (x,y) is suspicious. Uses the
