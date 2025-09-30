@@ -674,21 +674,9 @@ for (auto Lines: HoughCandidatesY) {
     double kalman_reco_mom, kalman_chi2_plus, kalman_chi2_minus;
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
     for (auto &trk : HoughTracks3D) {
-
-      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
-      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
-      
-      // Augment with additional hits
-      // TODO do we want all hits or only hits downstream?
-      //std::cout<<"\n\nAugmenting hits to kalman plus"<<std::endl;
-      //KalmanFilter_plus.SetTalk(true);
-      KalmanFilter_plus.AugmentWithCandidates(CleanedHits);
-      //KalmanFilter_plus.SetTalk(false);
-      //std::cout<<"\n\nAugmenting hits to kalman minus"<<std::endl;
-      //KalmanFilter_minus.SetTalk(true);
-      KalmanFilter_minus.AugmentWithCandidates(CleanedHits);
-      //KalmanFilter_minus.SetTalk(false);
-      //std::cout<<"Done augmenting hits\n\n"<<std::endl;
+    
+      KalmanFilter_plus = RunKalmanWithAugment(trk.Hits, assumed_charge, CleanedHits);
+      KalmanFilter_minus = RunKalmanWithAugment(trk.Hits, -assumed_charge, CleanedHits);
 
       kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
       trk.SetChi2_plus(kalman_chi2_plus);
@@ -1871,7 +1859,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #endif
 
       // Track Direction
-      if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+      if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= (int) aTrack.Hits.size()) {
         double direction_x = aTrack.End[0] - aTrack.Start[0];
         double direction_y = aTrack.End[1] - aTrack.Start[1];
         double direction_z = aTrack.End[2] - aTrack.Start[2];
@@ -2320,7 +2308,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
             std::cout << "Added TrackEnergyDeposit: " << aTrack.EnergyDeposit << std::endl;
 #endif
             // Track Direction
-            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= aTrack.Hits.size()) {
+            if (TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_DirectionDistance() >= (int) aTrack.Hits.size()) {
               double direction_x = aTrack.Start[0] - aTrack.End[0];
               double direction_y = aTrack.Start[1] - aTrack.End[1];
               double direction_z = aTrack.Start[2] - aTrack.End[2];
@@ -4518,3 +4506,14 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
   }
 }
 
+
+TMS_Kalman TMS_TrackFinder::RunKalmanWithAugment(std::vector<TMS_Hit> &candidates, int assumed_charge, const std::vector<TMS_Hit> &candidate_pool) {
+  TMS_Kalman out(candidates, assumed_charge);
+  const auto &mgr = TMS_Manager::GetInstance();
+  out.SetTalk(true);
+  if (mgr.Get_Reco_Kalman_Augment_RunAugment()) {
+  out.AugmentWithCandidates(candidate_pool, mgr.Get_Reco_Kalman_Augment_NNodesToRemove());
+  }
+  out.SetTalk(false);
+  return out;
+}

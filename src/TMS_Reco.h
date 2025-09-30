@@ -309,6 +309,8 @@ class TMS_TrackFinder {
       eff->Divide(Total);
       return eff;
     }
+    
+    TMS_Kalman RunKalmanWithAugment(std::vector<TMS_Hit> &candidates, int assumed_charge, const std::vector<TMS_Hit> &candidate_pool);
 
   private:
     TMS_TrackFinder();

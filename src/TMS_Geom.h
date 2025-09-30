@@ -270,6 +270,10 @@ class TMS_Geom {
 
       if ((point1 - point2).Mag() <= 1E-3) 
         return Materials;
+      if ((point1 - point2).Mag() > 1E6) {
+        std::cout<<"[GetMaterials] Warning: Points are very far apart at "<<(point1 - point2).Mag()<<"mm. Returning blank materials list"<<std::endl;
+        return Materials;
+      }
 
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
@@ -328,6 +332,11 @@ class TMS_Geom {
         std::pair<TGeoMaterial*, double> temp(mat, Scale(step));
         Materials.push_back(temp);
         total += step;
+        
+        if (Materials.size() > 50) {
+          std::cout<<"[GetMaterials] Warning: Have many materials at "<<Materials.size()<<". Returning incomplete materials list"<<std::endl;
+          return Materials;
+        }
       }
 
       /*

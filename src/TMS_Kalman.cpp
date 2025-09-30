@@ -96,7 +96,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   // Each node i represents the plane at z_i, with dz_i = z_i - z_{i-1} (backward step).
   for (int i = 0; i < nCand; ++i) {
 
-    const TMS_Hit &hit = Candidates[i];
+    TMS_Hit &hit = Candidates[i];
     double x_true = hit.GetTrueHit().GetX();
     double y_true = hit.GetTrueHit().GetY();
     double x = hit.GetRecoX();
@@ -139,6 +139,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
     Node.LayerBarLength   = hit.GetBar().GetBarLength();
     Node.LayerNotZ        = hit.GetBar().GetNotZ();
     Node.PlaneNumber      = hit.GetPlaneNumber();
+    Node.Hit              = &hit;
 
     KalmanNodes.emplace_back(std::move(Node));
     KalmanNodes.back().StepIndex = KalmanNodes.size() - 1;
@@ -254,12 +255,12 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
   }
 }
 
-  // Augment the track with additional candidate hits:
-  // - Seed from the smoothed state near the front (lowest z)
-  // - Propagate forward through a candidate pool
-  // - Accept candidates that pass gating/guards (one per plane)
-  // - Merge, repair/prune, and run the triple refit for consistency
-  void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool) {
+// Augment the track with additional candidate hits:
+// - Seed from the smoothed state near the front (lowest z)
+// - Propagate forward through a candidate pool
+// - Accept candidates that pass gating/guards (one per plane)
+// - Merge, repair/prune, and run the triple refit for consistency
+void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool, const size_t number_to_remove) {
   if (KalmanNodes.empty() || candidate_pool.empty()) return;
 
   // We will run a forward pass, so set this flag for physics (energy loss sign)
@@ -275,7 +276,7 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
   // Seed from the smoothed state at the highest-z node (back of vector)
   size_t new_length = KalmanNodes.size();
   size_t new_length_half = new_length / 2;
-  for (size_t j = 0; j < 5 && j < new_length_half; j++) {
+  for (size_t j = 0; j < number_to_remove && j < new_length_half; j++) {
     KalmanNodes.pop_back();
   }
   //KalmanNodes.resize(new_length);
@@ -292,6 +293,7 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
   prev_node.LayerBarWidth = seed.LayerBarWidth;
   prev_node.LayerBarLength = seed.LayerBarLength;
   prev_node.PlaneNumber = seed.PlaneNumber;
+  prev_node.Hit = seed.Hit;
   prev_node.StepIndex = seed.StepIndex;
   // Carry covariance from the smoother as our starting uncertainty
   prev_node.CovarianceMatrix = KalmanNodes.back().SmoothCovarianceMatrix;
@@ -379,7 +381,7 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
   // Highest-z candidate in the pool (pool is sorted ascending by z)
   double z_max_pool = pool.empty() ? -std::numeric_limits<double>::infinity() : pool.back().GetZ();
 
-  for (const auto &hit : pool) {
+  for (auto &hit : pool) {
     double z = hit.GetZ();
     double dz = z - prev_node.CurrentState.z;
     if (z <= current_z + 1e-6) continue; // only forward propagation
@@ -401,6 +403,7 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
     node.LayerBarLength   = hit.GetBar().GetBarLength();
     node.LayerNotZ        = hit.GetBar().GetNotZ();
     node.PlaneNumber      = hit.GetPlaneNumber();
+    node.Hit              = &hit;
     node.StepIndex        = ++step_index;
     
     // Skip if over a certain number of planes, but allow the very last pool plane
@@ -594,9 +597,36 @@ void TMS_Kalman::BuildBarMeasurement(const TMS_Hit &hit,
   if (!std::isfinite(meas_y)) meas_y = y_proj;
 }
 
+void TMS_Kalman::BuildMeasurementsFromBar() {
+  for (size_t i = 1; i < KalmanNodes.size(); i++) {
+    auto& node = KalmanNodes[i];
+    if (node.Hit == NULL) continue;
+    auto prev = KalmanNodes[i-1].SmoothState;
+    double z = node.z;
+    double x = node.x;
+    double y = node.y;
+    TMS_Hit& hit = (*node.Hit);
+    BuildBarMeasurement(hit, prev, z, x, y);
+    node.x = x;
+    node.y = y;
+  }
+}
+
 // Seed the starting KE for backtracking from steel thickness at a position.
 // Assumes ~half steel penetration on average.
 double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
+  if (Talk) std::cout << "[CalculateKEFromSteel] Checking for position(" << position.X()<<","<<position.Y()<<","<<position.Z() << ")" << std::endl;
+  // Sanity checks
+  bool bad = false;
+  if (std::abs(position.X()) > TMS_Const::TMS_Start[0]) { 
+    position.SetX(0);
+    bad = true;
+  }
+  if (position.Y() > TMS_Const::TMS_End[1] || position.Y() < TMS_Const::TMS_Start[1]) {
+    position.SetY(0);
+    bad = true;
+  }
+  if (Talk && bad) std::cout << "[CalculateKEFromSteel] Position was out of bounds. Changed to (" << position.X()<<","<<position.Y()<<","<<position.Z() << ")" << std::endl;
   // Needs to be at least the particle mass, but it'll fail if it's exactly the mass
   double en = mass + 1e-2;
   // Assume half steel thickness penetration depth on average
@@ -684,6 +714,9 @@ double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double st
 
 // Run a single-direction Kalman filter across nodes in the current run order
 void TMS_Kalman::RunKalman() {
+
+  // Ensure all measurements are inside bounds
+  //RepairBadNodeMeasurements(false);
  
   int nCand = KalmanNodes.size();
   if (nCand == 0) return;
@@ -814,6 +847,8 @@ void TMS_Kalman::TripleRefitSmooth() {
   if (Talk) std::cout<<"[TripleRefitSmooth] 1st backfit p / MeV = "<<(1/KalmanNodes.at(0).PreviousState.qp)<<std::endl;
   RunKalman();
   runRTSSmoother();
+  PruneRejectedAndDuplicateZ();
+  //BuildMeasurementsFromBar();
 
   // 2) Forward pass, seeded with momentum from the backward-smoothed front
   ForwardFitting = true;
@@ -856,6 +891,7 @@ void TMS_Kalman::TripleRefitSmooth() {
   if (!KalmanNodes.empty()) {
     KalmanNodes[0].PreviousState.qp = qp_back_seed;
     KalmanNodes[0].CurrentState.qp  = qp_back_seed;
+
     if (Talk) std::cout<<"[TripleRefitSmooth] 2nd backfit p / MeV = "<<(1/KalmanNodes.at(0).PreviousState.qp)<<std::endl;
     if (Talk) std::cout<<"[TripleRefitSmooth] 2nd backfit p / MeV back = "<<(1/KalmanNodes.back().PreviousState.qp)<<std::endl;
   }
@@ -876,7 +912,7 @@ void TMS_Kalman::TripleRefitSmooth() {
 // previous state's projection to the node z and bar geometry to form a
 // consistent (x,y) per BuildBarMeasurement logic. Intended for cases where
 // 3D-tracker-provided x/y are unreliable.
-void TMS_Kalman::RepairBadNodeMeasurements() {
+void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
   if (KalmanNodes.size() < 2) return;
 
   const auto &mgr = TMS_Manager::GetInstance();
@@ -888,6 +924,62 @@ void TMS_Kalman::RepairBadNodeMeasurements() {
   // Assume current order is fine (we already sorted earlier in the flow).
 
   auto in_bounds = [](double v, double lo, double hi){ return (v >= lo && v <= hi); };
+  
+  bool check_initial = true;
+  if (check_initial) {
+    bool bad = false;
+    auto &node = KalmanNodes[0];
+    if (!in_bounds(node.x, TMS_Const::TMS_Start[0], TMS_Const::TMS_End[0])) bad = true;
+    if (!in_bounds(node.y, TMS_Const::TMS_Start[1], TMS_Const::TMS_End[1])) bad = true;
+    if (bad) {
+      double x_proj = node.x;
+      double y_proj = node.y;
+      // First try bringing into bounds
+      if (node.x < TMS_Const::TMS_Start[0]) x_proj = TMS_Const::TMS_Start[0];
+      if (node.x > TMS_Const::TMS_End[0]) x_proj = TMS_Const::TMS_End[0];
+      if (node.y < TMS_Const::TMS_Start[1]) y_proj = TMS_Const::TMS_Start[1];
+      if (node.y > TMS_Const::TMS_End[1]) y_proj = TMS_Const::TMS_End[1];
+      
+      // Now try to fix with bar information
+      double mx = x_proj, my = y_proj;
+      if (extrapolate) {
+        const double y_rel = y_proj - y_mid_mm;
+        switch (node.LayerOrientation) {
+          case TMS_Bar::kXBar:
+            my = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : y_proj; // y center of bar
+            mx = x_proj;         // weakly measured axis from projection
+            break;
+          case TMS_Bar::kYBar:
+            mx = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj; // x center of bar
+            my = y_proj;
+            break;
+          case TMS_Bar::kUBar:
+            mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) - t * y_rel;
+            my = y_proj;
+            break;
+          case TMS_Bar::kVBar:
+            mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) + t * y_rel;
+            my = y_proj;
+            break;
+          default:
+            // Fallback to projection
+            mx = x_proj;
+            my = y_proj;
+            break;
+        }
+      }
+      if (Talk) {
+        std::cout << "[RepairMeas] Warning: plane=" << node.PlaneNumber
+                  << " z=" << node.z
+                  << " out of bounds(x,y)=(" << node.x << "," << node.y << ")"
+                  << " updated to(x,y)=(" << mx << "," << my << ")"
+                  << std::endl;
+      }
+      
+      node.x = mx;
+      node.y = my;
+    }
+  }
 
   int repaired = 0;
   for (size_t i = 1; i < KalmanNodes.size(); ++i) {
@@ -900,6 +992,11 @@ void TMS_Kalman::RepairBadNodeMeasurements() {
     double dz = node.z - ps.z;
     double x_proj = ps.x + ps.dxdz * dz;
     double y_proj = ps.y + ps.dydz * dz;
+    
+    if (x_proj < TMS_Const::TMS_Start[0]) x_proj = TMS_Const::TMS_Start[0];
+    if (x_proj > TMS_Const::TMS_End[0]) x_proj = TMS_Const::TMS_End[0];
+    if (y_proj < TMS_Const::TMS_Start[1]) y_proj = TMS_Const::TMS_Start[1];
+    if (y_proj > TMS_Const::TMS_End[1]) y_proj = TMS_Const::TMS_End[1];
 
     // Residuals compared to current node measurement
     double dx = node.x - x_proj;
@@ -932,36 +1029,40 @@ void TMS_Kalman::RepairBadNodeMeasurements() {
     }
 
     if (!bad) continue;
-
-    // Recompute measurement using bar geometry and projected seed
+    
     double mx = x_proj, my = y_proj;
-    const double y_rel = y_proj - y_mid_mm;
-    switch (node.LayerOrientation) {
-      case TMS_Bar::kXBar:
-        my = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : y_proj; // y center of bar
-        mx = x_proj;         // weakly measured axis from projection
-        break;
-      case TMS_Bar::kYBar:
-        mx = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj; // x center of bar
-        my = y_proj;
-        break;
-      case TMS_Bar::kUBar:
-        mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) - t * y_rel;
-        my = y_proj;
-        break;
-      case TMS_Bar::kVBar:
-        mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) + t * y_rel;
-        my = y_proj;
-        break;
-      default:
-        // Fallback to projection
-        mx = x_proj;
-        my = y_proj;
-        break;
-    }
+    if (extrapolate) {
 
-    if (!std::isfinite(mx)) mx = x_proj;
-    if (!std::isfinite(my)) my = y_proj;
+      // Recompute measurement using bar geometry and projected seed
+      const double y_rel = y_proj - y_mid_mm;
+      switch (node.LayerOrientation) {
+        case TMS_Bar::kXBar:
+          my = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : y_proj; // y center of bar
+          mx = x_proj;         // weakly measured axis from projection
+          break;
+        case TMS_Bar::kYBar:
+          mx = std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj; // x center of bar
+          my = y_proj;
+          break;
+        case TMS_Bar::kUBar:
+          mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) - t * y_rel;
+          my = y_proj;
+          break;
+        case TMS_Bar::kVBar:
+          mx = (std::isfinite(node.LayerNotZ) ? node.LayerNotZ : x_proj) + t * y_rel;
+          my = y_proj;
+          break;
+        default:
+          // Fallback to projection
+          mx = x_proj;
+          my = y_proj;
+          break;
+      }
+
+      if (!std::isfinite(mx)) mx = x_proj;
+      if (!std::isfinite(my)) my = y_proj;
+    
+    }
 
     if (Talk) {
       std::cout << "[RepairMeas] plane=" << node.PlaneNumber
@@ -976,6 +1077,9 @@ void TMS_Kalman::RepairBadNodeMeasurements() {
     node.y = my;
     repaired++;
   }
+  
+  // Double check that everything is within bounds
+  if (extrapolate) RepairBadNodeMeasurements(false);
 
   if (Talk) std::cout << "[RepairMeas] Repaired nodes: " << repaired << std::endl;
 }

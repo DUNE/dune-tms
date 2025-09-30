@@ -128,13 +128,12 @@
     Outlier_AbsoluteResidualMaxX = 100.0 # mm
     Outlier_AbsoluteResidualMaxY = 300.0 # mm
 
-    # Secondary fit
-    RunSecondFit = true
-    
     [Recon.Kalman.Augment]
+    RunAugment = true
+    NNodesToRemove = 5
     MaximumPlaneGap = 10
     FreezeSteps = 2
-    MaxDeflectionPerStep = 0.002
+    MaxDeflectionPerStep = 100.0
     MomentumWindowZ = 1000.0
     FinalPlaneRelaxFactor = 2.0
     FinalPlaneRelaxAbsX = 100.0

@@ -60,6 +60,7 @@ class TMS_KalmanNode {
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     StepIndex(-1),
     RecoX(xvar), RecoY(yvar),
+    Hit(NULL),
     PreviousState(x, y, zvar - dzvar, dxdzvar, dydzvar, 1./20.),
     CurrentState(x, y, zvar,          dxdzvar, dydzvar, 1./20.), // Initialise at plane z
     SmoothState(x, y, zvar,           -999.9, -999.9, -1./20.),  // Initialise at plane z
@@ -133,6 +134,7 @@ class TMS_KalmanNode {
   double LayerBarLength;
   int PlaneNumber;
   double LayerNotZ; // Bar center along the measured axis (mm)
+  TMS_Hit *Hit;
 
   // The state vectors carry information about the covariance matrices etc
   TMS_KalmanState PreviousState;
@@ -221,7 +223,6 @@ class TMS_KalmanNode {
     // Now proceed with Wolin and Ho (Nucl Inst A329 1993 493-500)
     // covariance for multiple scattering
     // Also see MINOS note on Kalman filter (John Marshall, Nov 15 2005)
-    //double norm = 1+dxdz+dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
     double norm = 1 + dxdz*dxdz + dydz*dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
     if (std::isnan(norm) || std::isinf(norm)) {
       std::cout<<"Norm is incorrect: "<<norm<<" with dxdz: "<<dxdz<<" and dydz: "<<dydz<<std::endl;
@@ -275,7 +276,7 @@ class TMS_Kalman {
     // considering each candidate in z order and accepting those that pass
     // outlier gating. Accepted hits are merged into the node list and the
     // track is re-smoothed.
-    void AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool);
+    void AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool, const size_t number_to_remove = 5);
     
     double Start[3];
     double End[3];
@@ -341,7 +342,7 @@ class TMS_Kalman {
     // Repair obviously bad node measurements (x,y) by recomputing them
     // from bar geometry using the previous state's projection as seed.
     // Only adjusts nodes that exceed residual/bounds heuristics.
-    void RepairBadNodeMeasurements();
+    void RepairBadNodeMeasurements(bool extrapolate = true);
 
     // Remove nodes that are inconsistent after rebuilding/refit.
     // Heuristics:
@@ -372,6 +373,7 @@ class TMS_Kalman {
                                     double meas_z,
                                     double &meas_x,
                                     double &meas_y);
+    void BuildMeasurementsFromBar();
 
 
 

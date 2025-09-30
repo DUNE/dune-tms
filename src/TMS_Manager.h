@@ -86,6 +86,8 @@ class TMS_Manager {
     int    Get_Reco_Kalman_Outlier_EarlyRampSteps() const      { return _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS; };
 
     // Augmentation tuning
+    bool   Get_Reco_Kalman_Augment_RunAugment() const           { return _RECO_KALMAN_AUGMENT_RUN_AUGMENT; };
+    int    Get_Reco_Kalman_Augment_NNodesToRemove() const       { return _RECO_KALMAN_AUGMENT_N_NODES_TO_REMOVE; };
     int    Get_Reco_Kalman_Augment_MaximumPlaneGap() const      { return _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP; };
     int    Get_Reco_Kalman_Augment_FreezeSteps() const          { return _RECO_KALMAN_AUGMENT_FREEZE_STEPS; };
     double Get_Reco_Kalman_Augment_MaxDeflectionPerStep() const { return _RECO_KALMAN_AUGMENT_MAX_DEFLECTION_PER_STEP; };
@@ -235,7 +237,9 @@ class TMS_Manager {
     bool   _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE;
     int    _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS;
 
-    // Augmentation tuning (must be provided in TOML)
+    // Augmentation tuning 
+    bool   _RECO_KALMAN_AUGMENT_RUN_AUGMENT;
+    int    _RECO_KALMAN_AUGMENT_N_NODES_TO_REMOVE;
     int    _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP;
     int    _RECO_KALMAN_AUGMENT_FREEZE_STEPS;
     double _RECO_KALMAN_AUGMENT_MAX_DEFLECTION_PER_STEP;
