@@ -308,9 +308,17 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     double en_seed = std::sqrt(p_seed*p_seed + mass*mass);
 
     // Estimate additional KE the muon had earlier by integrating a short
-    // straight segment ahead (default 1000 mm). This uses the same Bethe/geom
+    // straight segment ahead. This uses the same Bethe/geom
     // model as energy loss in Predict.
-    const double window_z = TMS_Manager::GetInstance().Get_Reco_Kalman_Augment_MomentumWindowZ();
+    // Skips any hits that are outside the window
+    const double min_z = prev_node.SmoothState.z;
+    const double max_window = TMS_Manager::GetInstance().Get_Reco_Kalman_Augment_MomentumWindowZ();
+    double max_z = min_z;
+    for (auto &hit : candidate_pool) {
+      if (hit.GetZ() - min_z > max_window) continue; // outside window
+      max_z = std::max(max_z, hit.GetZ());
+    }
+    const double window_z = max_z - min_z;
     TVector3 start(seed.SmoothState.x, seed.SmoothState.y, seed.SmoothState.z);
     TVector3 stop (seed.SmoothState.x, seed.SmoothState.y, seed.SmoothState.z + window_z);
     double dE_gain = 0.0;
@@ -331,11 +339,13 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
         if (std::isfinite(dE) && dE > 0) dE_gain += dE;
       }
     } catch (...) {
+      if (Talk) std::cout << "[Augment] Warning: Caught exception. Setting dE_gain to zero" << std::endl;
       dE_gain = 0.0;
     }
     // Convert back to momentum
     double en_aug = en_seed + dE_gain;
     if (!std::isfinite(en_aug) || en_aug <= mass) en_aug = en_seed;
+    if (Talk) std::cout << "[Augment] Set en_aug to " << en_aug << ", up from en_seed " << en_seed << std::endl;
     double p2_aug = en_aug*en_aug - mass*mass;
     double p_aug = (p2_aug > 0.0) ? std::sqrt(p2_aug) : p_seed;
     // Clamp to sane muon range [0.2, 20] GeV

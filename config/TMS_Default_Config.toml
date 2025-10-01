@@ -124,20 +124,20 @@
     Outlier_NudgeSlopesAlpha = 0.05
     # Maximum residual before rejecting outlier (not super stable)
     Outlier_UseAbsoluteResidual = false
-    Outlier_AbsoluteResidualMax = 300.0 # mm
-    Outlier_AbsoluteResidualMaxX = 100.0 # mm
-    Outlier_AbsoluteResidualMaxY = 300.0 # mm
+    Outlier_AbsoluteResidualMax = 400.0 # mm
+    Outlier_AbsoluteResidualMaxX = 400.0 # mm
+    Outlier_AbsoluteResidualMaxY = 400.0 # mm
 
-    [Recon.Kalman.Augment]
+  [Recon.Kalman.Augment]
     RunAugment = true
     NNodesToRemove = 5
     MaximumPlaneGap = 10
     FreezeSteps = 2
-    MaxDeflectionPerStep = 100.0
-    MomentumWindowZ = 1000.0
+    MaxDeflectionPerStep = 100.0 # mm
+    MomentumWindowZ = 2000.0 # mm
     FinalPlaneRelaxFactor = 2.0
-    FinalPlaneRelaxAbsX = 100.0
-    FinalPlaneRelaxAbsY = 100.0
+    FinalPlaneRelaxAbsX = 400.0 # mm
+    FinalPlaneRelaxAbsY = 400.0 # mm
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
