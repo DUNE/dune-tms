@@ -109,7 +109,7 @@
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
     Assumed_Charge = 0.5 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
-    Use_Outlier_Rejection = true # If true, kalman filter will reject nodes with chi2 above threshold
+    Use_Outlier_Rejection = false # If true, kalman filter will reject nodes with chi2 above threshold
     Outlier_Rejection_Chi2_Threshold = 2.0 # Maximum chi2 before rejection
     Outlier_EarlyStepMultiplier = 10.0 # Multiplier on outlier rejection chi2 for early steps to avoid bias
     Outlier_EarlyStepsCount = 8 # Number of steps to count as early
@@ -129,7 +129,7 @@
     Outlier_AbsoluteResidualMaxY = 400.0 # mm
 
   [Recon.Kalman.Augment]
-    RunAugment = true
+    RunAugment = false
     NNodesToRemove = 5
     MaximumPlaneGap = 10
     FreezeSteps = 2
