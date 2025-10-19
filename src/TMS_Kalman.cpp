@@ -3,6 +3,8 @@
 #include "TMS_Manager.h"
 #include <algorithm>
 #include <limits>
+#include <unordered_set>
+#include <numeric>
 
 TMS_Kalman::TMS_Kalman() : 
   Bethe(Material::kPolyStyrene),
@@ -622,6 +624,394 @@ void TMS_Kalman::BuildMeasurementsFromBar() {
   }
 }
 
+// Add downstream hits by snapping them onto a +z-aligned cylinder centered at
+// the last accepted node's (x0,y0). Accept up to max_planes planes and then
+// refit. Designed to recover the last 2–3 planes without relying on the final
+// state direction.
+void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
+                                            double dz_mm) {
+  if (KalmanNodes.empty() || pool.empty()) return;
+
+  // Work with nodes sorted by z so back() is the highest-z node
+  SortNodesByZ();
+  const TMS_KalmanNode &seed = KalmanNodes.back();
+  // Axis center (x0,y0) at z >= z0
+  const TMS_KalmanState &sref = std::isfinite(seed.SmoothState.x) && std::isfinite(seed.SmoothState.y)
+                                ? seed.SmoothState : seed.CurrentState;
+  const double x0 = sref.x;
+  const double y0 = sref.y;
+  const double z0 = sref.z;
+
+  // Capture pre-snap baseline end and chi2 for downstream ntuple output
+  hasPreSnapBaseline = true;
+  preSnapEnd[0] = x0;
+  preSnapEnd[1] = y0;
+  preSnapEnd[2] = z0;
+  preSnapChi2   = GetTrackChi2();
+
+  if (Talk) {
+    std::cout << "[Snap] Seed at z0=" << z0 << " x0=" << x0 << " y0=" << y0
+              << ", dz_mm=" << dz_mm << ", pool_size=" << pool.size() << std::endl;
+  }
+
+  // Geometry helpers
+  // Stereo tilt handling: allow config in degrees or as tan(tilt). Heuristic:
+  // if magnitude > 0.5, assume degrees and convert to tan(radians); else assume already tan.
+  double t_cfg = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle();
+  double t = (std::abs(t_cfg) > 0.5) ? std::tan(t_cfg * M_PI / 180.0) : t_cfg;
+  // Y middle: if value looks like meters (|val| < 10), convert to mm; else assume mm
+  double y_mid_cfg = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE();
+  double y_mid_mm = (std::abs(y_mid_cfg) < 10.0) ? (y_mid_cfg * 1000.0) : y_mid_cfg;
+  const double y_rel = y0 - y_mid_mm;
+  if (Talk) {
+    std::cout << "[Snap] Effective tilt t=" << t << " (cfg=" << t_cfg << ")"
+              << ", y_mid_mm=" << y_mid_mm << std::endl;
+  }
+
+  // Window definition: include hits with z in [z0, z0 + dz_mm]
+
+  // Prepare candidate selection: choose best (closest to axis) per (plane, view)
+  struct Cand { const TMS_Hit* hit; double x; double y; double z; double d; int plane; int view; };
+  auto key_for = [](int plane, int view)->long long { return (static_cast<long long>(plane) << 3) ^ static_cast<long long>(view & 0x7); };
+  std::unordered_map<long long, Cand> best_per_layer_view;
+
+  // Consider pool hits downstream only; sort by z increasing
+  std::vector<const TMS_Hit*> sorted;
+  sorted.reserve(pool.size());
+  for (const auto &h : pool) sorted.push_back(&h);
+  std::sort(sorted.begin(), sorted.end(), [](const TMS_Hit* a, const TMS_Hit* b){ return a->GetZ() < b->GetZ(); });
+
+  const double z_min = z0;
+  const double z_max = z0 + std::max(0.0, dz_mm);
+  auto view_name = [](TMS_Bar::BarType v)->const char*{
+    switch (v) {
+      case TMS_Bar::kXBar: return "X";
+      case TMS_Bar::kYBar: return "Y";
+      case TMS_Bar::kUBar: return "U";
+      case TMS_Bar::kVBar: return "V";
+      default: return "?";
+    }
+  };
+
+  for (const TMS_Hit* hp : sorted) {
+    const auto &hit = *hp;
+    double zh = hit.GetZ();
+    if (zh < z_min - 1e-6) continue;
+    if (zh > z_max + 1e-6) continue;
+    // If this hit is at the same z as the seed and same view, skip duplicating the last accepted view
+    if (std::abs(zh - z0) < 1e-6 && hit.GetBar().GetBarType() == seed.LayerOrientation) continue;
+
+    // Form a measurement located on the cylinder axis according to bar mapping.
+    // We do NOT use track projection; we only use (x0,y0).
+    double xm = x0, ym = y0;
+    auto btype = hit.GetBar().GetBarType();
+    switch (btype) {
+      case TMS_Bar::kXBar: // precise y from bar; x from axis center
+        ym = hit.GetBar().GetNotZ();
+        xm = x0;
+        break;
+      case TMS_Bar::kYBar: // precise x from bar; y from axis center
+        xm = hit.GetBar().GetNotZ();
+        ym = y0;
+        break;
+      case TMS_Bar::kUBar: // +tilt; x adjusted by tilt * (y0 - y_mid)
+        xm = hit.GetBar().GetNotZ() - t * y_rel;
+        ym = y0;
+        break;
+      case TMS_Bar::kVBar: // -tilt; x adjusted oppositely
+        xm = hit.GetBar().GetNotZ() + t * y_rel;
+        ym = y0;
+        break;
+      default:
+        xm = x0; ym = y0;
+        break;
+    }
+
+    double d = std::hypot(xm - x0, ym - y0);
+    if (!std::isfinite(d)) d = 0.0; // accept all
+
+    int view = static_cast<int>(hit.GetBar().GetBarType());
+    long long zkey = QuantizeZKey(zh);
+    long long key = key_for(static_cast<int>(zkey), view);
+    if (Talk) {
+      std::cout << "[SnapCheck] z=" << zh << " zkey=" << zkey
+                << " plane=" << hit.GetPlaneNumber()
+                << " view=" << view_name(hit.GetBar().GetBarType())
+                << " notZ=" << hit.GetBar().GetNotZ()
+                << " xm=" << xm << " ym=" << ym
+                << " d_axis=" << d
+                << " within_window=1"
+                << std::endl;
+    }
+    auto it = best_per_layer_view.find(key);
+    if (it == best_per_layer_view.end() || d < it->second.d) {
+      if (Talk && it != best_per_layer_view.end()) {
+        std::cout << "[SnapSelect] Replacing prior candidate at zkey/view due to smaller distance."
+                  << " prev_d=" << it->second.d << " new_d=" << d << std::endl;
+      }
+      best_per_layer_view[key] = Cand{ &hit, xm, ym, zh, d, /*plane*/-1, view };
+    }
+  }
+
+  if (best_per_layer_view.empty()) return;
+
+  // Flatten all selected (z_key, view) candidates within the z window
+  std::vector<Cand> chosen;
+  chosen.reserve(best_per_layer_view.size());
+  for (auto &kv : best_per_layer_view) chosen.push_back(kv.second);
+  // Ensure increasing z order for dz construction
+  std::sort(chosen.begin(), chosen.end(), [](const Cand &a, const Cand &b){ return a.z < b.z; });
+  if (Talk) {
+    std::cout << "[SnapChosen] n_selected=" << chosen.size() << std::endl;
+    for (auto &c : chosen) {
+      std::cout << "  - z=" << c.z << " view=" << view_name(c.hit->GetBar().GetBarType())
+                << " xm=" << c.x << " ym=" << c.y << " d_axis=" << c.d << std::endl;
+    }
+  }
+
+  // Build new nodes snapped to the axis-centered measurements
+  std::vector<TMS_KalmanNode> new_nodes;
+  new_nodes.reserve(chosen.size());
+  double prev_z = z0;
+  // Track used z-keys to avoid duplicate-z pruning and gating
+  std::unordered_set<long long> used_zkeys;
+  used_zkeys.reserve(KalmanNodes.size() + chosen.size());
+  for (auto &n : KalmanNodes) used_zkeys.insert(QuantizeZKey(n.z));
+  // Track which hits we add, so we can identify them later for warnings/rollback
+  std::unordered_set<const TMS_Hit*> added_hit_ptrs;
+  added_hit_ptrs.reserve(chosen.size());
+  for (size_t i = 0; i < chosen.size(); ++i) {
+    const auto &c = chosen[i];
+    // Ensure unique, strictly increasing z by introducing a tiny epsilon if needed
+    double z_new = c.z;
+    long long key = QuantizeZKey(z_new);
+    const double eps = 0.1; // mm; >> 1 micron quantization
+    while (used_zkeys.count(key) || z_new <= prev_z + 1e-6) { z_new += eps; key = QuantizeZKey(z_new); }
+    used_zkeys.insert(key);
+    double dz = z_new - prev_z;
+    if (dz <= 1e-6) continue;
+    // Build measurement consistent with bar mapping using a simple projection
+    // from the seed state for the unmeasured component.
+    double x_meas = c.x;
+    double y_meas = c.y;
+    double x_proj = sref.x + sref.dxdz * (z_new - sref.z);
+    double y_proj = sref.y + sref.dydz * (z_new - sref.z);
+    auto btype = c.hit->GetBar().GetBarType();
+    switch (btype) {
+      case TMS_Bar::kXBar: // precise y, x from projection
+        y_meas = c.hit->GetBar().GetNotZ();
+        x_meas = x_proj;
+        break;
+      case TMS_Bar::kYBar: // precise x, y from projection
+        x_meas = c.hit->GetBar().GetNotZ();
+        y_meas = y_proj;
+        break;
+      case TMS_Bar::kUBar:
+        y_meas = y_proj;
+        x_meas = c.hit->GetBar().GetNotZ() - t * (y_proj - y_mid_mm);
+        break;
+      case TMS_Bar::kVBar:
+        y_meas = y_proj;
+        x_meas = c.hit->GetBar().GetNotZ() + t * (y_proj - y_mid_mm);
+        break;
+      default:
+        // Fallback: use projection
+        x_meas = x_proj;
+        y_meas = y_proj;
+        break;
+    }
+    // Clamp measurements into a slightly expanded detector envelope to avoid numerical explosions
+    auto clamp = [](double v, double lo, double hi){ return std::min(std::max(v, lo), hi); };
+    const double x_lo = TMS_Const::TMS_Start[0] - 50.0;
+    const double x_hi = TMS_Const::TMS_End[0]   + 50.0;
+    const double y_lo = TMS_Const::TMS_Start[1] - 50.0;
+    const double y_hi = TMS_Const::TMS_End[1]   + 50.0;
+    if (!std::isfinite(x_meas) || std::abs(x_meas) > 1e6) x_meas = x_proj;
+    if (!std::isfinite(y_meas) || std::abs(y_meas) > 1e6) y_meas = y_proj;
+    x_meas = clamp(x_meas, x_lo, x_hi);
+    y_meas = clamp(y_meas, y_lo, y_hi);
+    if (Talk) {
+      std::cout << "[SnapAdd] z_orig=" << c.z << " z_new=" << z_new
+                << " view=" << view_name(btype)
+                << " meas=(" << x_meas << "," << y_meas << ")"
+                << " proj=(" << x_proj << "," << y_proj << ")"
+                << std::endl;
+    }
+    // Seed slopes from seed (we are not using these for selection; refit will adjust)
+    TMS_KalmanNode node(x_meas, y_meas, z_new, dz, sref.dxdz, sref.dydz);
+    node.SetTrueXY(c.hit->GetTrueHit().GetX(), c.hit->GetTrueHit().GetY());
+    node.LayerOrientation = c.hit->GetBar().GetBarType();
+    node.LayerBarWidth    = c.hit->GetBar().GetBarWidth();
+    node.LayerBarLength   = c.hit->GetBar().GetBarLength();
+    node.LayerNotZ        = c.hit->GetBar().GetNotZ();
+    node.PlaneNumber      = c.hit->GetPlaneNumber();
+    node.Hit              = const_cast<TMS_Hit*>(c.hit);
+    node.Accepted         = true; // force-accept; we are snapping
+    new_nodes.emplace_back(std::move(node));
+    added_hit_ptrs.insert(c.hit);
+    prev_z = z_new;
+  }
+
+  if (new_nodes.empty()) return;
+
+  // Snapshot baseline chi2 for rollback
+  double chi2_before = GetTrackChi2();
+
+  // Merge and refit
+  KalmanNodes.insert(KalmanNodes.end(), new_nodes.begin(), new_nodes.end());
+  SortNodesByZ();
+  for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
+  RebuildRunOrderSteps();
+
+  InitializeMomentum(false);
+  // Disable outlier rejection during the snap refit so snapped planes are not removed
+  bool prev_outlier = EnableOutlierRejection;
+  double charge_before = charge_curvature;
+  EnableOutlierRejection = false;
+  // Optional: repair/protect measurements — but we intentionally set measurements; skip repair.
+  //PruneInconsistentNodes(); // keep minimal; rely on refit and duplicate-z pruning inside refit
+  TripleRefitSmooth();
+  runRTSSmoother();
+  RepairBadNodeMeasurements();
+  PruneNodesOutsideTMS();
+  TripleRefitSmooth();
+  runRTSSmoother();
+  BetheBloch();
+  Runchi2();
+  SignSelection();
+  UpdateParameters();
+  EnableOutlierRejection = prev_outlier;
+
+  double chi2_after = GetTrackChi2();
+  if (Talk) {
+    std::cout << "[SnapRefit] chi2_before=" << chi2_before << " chi2_after=" << chi2_after
+              << " charge_before=" << charge_before << " charge_after=" << charge_curvature
+              << std::endl;
+  }
+
+  // Emit warnings for large residuals on newly added nodes, but keep them
+  if (Talk) {
+    const auto &mgr = TMS_Manager::GetInstance();
+    double warn_abs_x = mgr.Get_Reco_Kalman_Outlier_AbsoluteResidualMaxX();
+    double warn_abs_y = mgr.Get_Reco_Kalman_Outlier_AbsoluteResidualMaxY();
+    if (!(warn_abs_x > 0)) warn_abs_x = 200.0; // mm fallback
+    if (!(warn_abs_y > 0)) warn_abs_y = 200.0; // mm fallback
+    int kept_cnt = 0;
+    int dropped_cnt = 0;
+    for (const auto &n : KalmanNodes) {
+      if (!(n.Hit && added_hit_ptrs.count(n.Hit))) continue;
+      double rx = (n.rVec.GetNrows() >= 1) ? n.rVec[0] : 0.0;
+      double ry = (n.rVec.GetNrows() >= 2) ? n.rVec[1] : 0.0;
+      if (std::abs(rx) > warn_abs_x || std::abs(ry) > warn_abs_y) {
+        std::cout << "[SnapWarn] Large residual at z=" << n.z
+                  << " plane=" << n.PlaneNumber
+                  << " view=" << static_cast<int>(n.LayerOrientation)
+                  << " rx(mm)=" << rx << " ry(mm)=" << ry << std::endl;
+      }
+      std::cout << "[SnapKeep] z=" << n.z << " view=" << static_cast<int>(n.LayerOrientation)
+                << " accepted=" << (n.Accepted ? 1 : 0)
+                << " chi2=" << n.chi2
+                << std::endl;
+      kept_cnt++;
+    }
+    for (const auto *hp : added_hit_ptrs) {
+      bool found = false;
+      for (const auto &n : KalmanNodes) {
+        if (n.Hit == hp) { found = true; break; }
+      }
+      if (!found) dropped_cnt++;
+    }
+    if (dropped_cnt > 0) {
+      std::cout << "[SnapDrop] dropped_nodes_count=" << dropped_cnt << " (likely due to pruning)" << std::endl;
+    }
+
+    // Final per-node diagnostic dump
+    PrintNodesDiagnostics("AfterSnap");
+    // Check expected X-U-V coverage across consecutive triplets
+    PrintMissingXUVTriplets("AfterSnap");
+  }
+}
+
+void TMS_Kalman::PrintNodesDiagnostics(const char* tag) {
+  if (!Talk) return;
+  auto view_name = [](TMS_Bar::BarType v)->const char*{
+    switch (v) {
+      case TMS_Bar::kXBar: return "X";
+      case TMS_Bar::kYBar: return "Y";
+      case TMS_Bar::kUBar: return "U";
+      case TMS_Bar::kVBar: return "V";
+      default: return "?";
+    }
+  };
+  std::cout << "[Nodes] " << tag << " n=" << KalmanNodes.size() << std::endl;
+  for (size_t i = 0; i < KalmanNodes.size(); ++i) {
+    const auto &n = KalmanNodes[i];
+    double rx = (n.rVec.GetNrows() >= 1) ? n.rVec[0] : std::numeric_limits<double>::quiet_NaN();
+    double ry = (n.rVec.GetNrows() >= 2) ? n.rVec[1] : std::numeric_limits<double>::quiet_NaN();
+    std::cout << "  [Node] i=" << i
+              << " z=" << n.z
+              << " view=" << view_name(n.LayerOrientation)
+              << " accepted=" << (n.Accepted ? 1 : 0)
+              << " chi2=" << n.chi2
+              << " r=(" << rx << "," << ry << ")"
+              << " meas=(" << n.x << "," << n.y << ")"
+              << " curr=(" << n.CurrentState.x << "," << n.CurrentState.y << ")"
+              << " smooth=(" << n.SmoothState.x << "," << n.SmoothState.y << ")"
+              << std::endl;
+  }
+}
+
+void TMS_Kalman::PrintMissingXUVTriplets(const char* tag) {
+  if (!Talk) return;
+  // Build an index order by increasing z without mutating KalmanNodes
+  std::vector<size_t> idx(KalmanNodes.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::sort(idx.begin(), idx.end(), [&](size_t a, size_t b){ return KalmanNodes[a].z < KalmanNodes[b].z; });
+
+  auto vname = [](TMS_Bar::BarType v){
+    switch (v) {
+      case TMS_Bar::kXBar: return 'X';
+      case TMS_Bar::kYBar: return 'Y';
+      case TMS_Bar::kUBar: return 'U';
+      case TMS_Bar::kVBar: return 'V';
+      default: return '?';
+    }
+  };
+  auto has = [](const std::vector<TMS_Bar::BarType>& vv, TMS_Bar::BarType t){
+    return std::find(vv.begin(), vv.end(), t) != vv.end();
+  };
+
+  int total = 0, complete = 0, missing = 0;
+  for (size_t i = 0; i + 2 < idx.size(); ++i) {
+    const auto &n0 = KalmanNodes[idx[i]];
+    const auto &n1 = KalmanNodes[idx[i+1]];
+    const auto &n2 = KalmanNodes[idx[i+2]];
+    std::vector<TMS_Bar::BarType> vv = { n0.LayerOrientation, n1.LayerOrientation, n2.LayerOrientation };
+    bool hasX = has(vv, TMS_Bar::kXBar);
+    bool hasU = has(vv, TMS_Bar::kUBar);
+    bool hasV = has(vv, TMS_Bar::kVBar);
+    total++;
+    if (hasX && hasU && hasV) { complete++; continue; }
+    missing++;
+    std::string miss;
+    if (!hasX) miss += 'X';
+    if (!hasU) miss += (miss.empty() ? "U" : ",U");
+    if (!hasV) miss += (miss.empty() ? "V" : ",V");
+    std::cout << "[XUVGap] " << tag
+              << " z_window=[" << n0.z << ", " << n2.z << "]"
+              << " views=(" << vname(n0.LayerOrientation) << ","
+                             << vname(n1.LayerOrientation) << ","
+                             << vname(n2.LayerOrientation) << ")"
+              << " missing={" << miss << "}"
+              << std::endl;
+  }
+  std::cout << "[XUVSummary] " << tag
+            << " windows=" << total
+            << " complete=" << complete
+            << " missing=" << missing
+            << std::endl;
+}
+
 // Seed the starting KE for backtracking from steel thickness at a position.
 // Assumes ~half steel penetration on average.
 double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
@@ -1152,6 +1542,35 @@ void TMS_Kalman::PruneInconsistentNodes() {
   KalmanNodes.swap(pruned);
   for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
   if (Talk) std::cout << "[Prune] Removed inconsistent nodes: " << removed << std::endl;
+}
+
+void TMS_Kalman::PruneNodesOutsideTMS() {
+  const size_t n = KalmanNodes.size();
+  if (n < 3) return;
+
+  SortNodesByZ();
+  
+  std::vector<char> keep(n, 1);
+  
+  for (size_t i = 0; i < n; ++i) {
+    auto node = KalmanNodes[i];
+    TVector3 pos(node.x, node.y, node.z);
+    if (!TMS_Geom::GetInstance().IsInsideTMS(pos)) keep[i] = 0;
+    else keep[i] = 1;
+  }
+
+  // Build pruned list
+  std::vector<TMS_KalmanNode> pruned;
+  pruned.reserve(n);
+  int removed = 0;
+  for (size_t i = 0; i < n; ++i) {
+    if (keep[i]) pruned.emplace_back(KalmanNodes[i]); else removed++;
+  }
+  if (removed == 0) return;
+
+  KalmanNodes.swap(pruned);
+  for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
+  if (Talk) std::cout << "[Prune] Removed nodes outside TMS: " << removed << std::endl;
 }
 
 // Predict the next step: propagate state/covariance from PreviousState to

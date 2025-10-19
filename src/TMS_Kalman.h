@@ -277,6 +277,27 @@ class TMS_Kalman {
     // outlier gating. Accepted hits are merged into the node list and the
     // track is re-smoothed.
     void AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_pool, const size_t number_to_remove = 5);
+
+    // Snap downstream hits within a large cylinder aligned to +z whose axis
+    // passes through the last accepted node's (x0,y0) position. Creates up to
+    // max_planes new nodes, forces their measurements onto the cylinder axis
+    // projection for that plane, merges, and refits. Intended to recover the
+    // final 2–3 planes that are commonly missing after augment.
+    // Defaults: radius_mm = 500 mm (50 cm), max_planes = 5.
+    // Snap any downstream hits within a forward z-window [z_last, z_last + dz_mm]
+    // aligned to +z. Default dz is 500 mm (50 cm). Outlier rejection is
+    // disabled during the refit, and duplicates at identical z are avoided
+    // by nudging z slightly.
+    void SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
+                                    double dz_mm = 500.0);
+
+    // Print a concise per-node diagnostic summary. Includes z, view, acceptance,
+    // chi2, residuals, and measured vs filtered positions. Only prints if Talk is true.
+    void PrintNodesDiagnostics(const char* tag = "KalmanNodes");
+
+    // Scan the node sequence for expected X-U-V view coverage. Reports windows
+    // of 3 consecutive nodes that are missing one or more views. Only prints if Talk is true.
+    void PrintMissingXUVTriplets(const char* tag = "XUVPattern");
     
     double Start[3];
     double End[3];
@@ -318,6 +339,11 @@ class TMS_Kalman {
     bool GetWasAugmented() { return wasAugmented; }
     int GetNAugmentedNodes() { return nAugmentedNodes; }
 
+    // Baseline (pre-snap) diagnostics
+    bool   HasPreSnapBaseline() const { return hasPreSnapBaseline; }
+    double GetPreSnapChi2() const { return preSnapChi2; }
+    void   GetPreSnapEnd(double &x, double &y, double &z) const { x = preSnapEnd[0]; y = preSnapEnd[1]; z = preSnapEnd[2]; }
+
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
     
     void SetTalk(bool value) { Talk = value; };
@@ -349,6 +375,7 @@ class TMS_Kalman {
     //  - Large residual vs projection from previous smoothed state
     //  - High-frequency oscillation pattern across consecutive nodes
     void PruneInconsistentNodes();
+    void PruneNodesOutsideTMS();
 
     void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
     // Sorts so that first node is first node processed by RunKalman. ie. based on ForwardFitting flag.
@@ -396,6 +423,11 @@ class TMS_Kalman {
     int nAugmentedNodes;
     
     bool Talk;
+
+    // Diagnostics captured before snap augmentation
+    bool   hasPreSnapBaseline = false;
+    double preSnapEnd[3] = {0.0, 0.0, 0.0};
+    double preSnapChi2 = 0.0;
 
     // True during augmentation pass so we can tame qp updates
     bool AugmentationMode = false;

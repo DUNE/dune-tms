@@ -4514,6 +4514,7 @@ TMS_Kalman TMS_TrackFinder::RunKalmanWithAugment(std::vector<TMS_Hit> &candidate
   if (mgr.Get_Reco_Kalman_Augment_RunAugment()) {
   out.AugmentWithCandidates(candidate_pool, mgr.Get_Reco_Kalman_Augment_NNodesToRemove());
   }
+  out.SnapDownstreamHitsAndRefit(candidate_pool);
   out.SetTalk(false);
   return out;
 }
