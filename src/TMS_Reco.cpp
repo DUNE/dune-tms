@@ -4510,11 +4510,9 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
 TMS_Kalman TMS_TrackFinder::RunKalmanWithAugment(std::vector<TMS_Hit> &candidates, int assumed_charge, const std::vector<TMS_Hit> &candidate_pool) {
   TMS_Kalman out(candidates, assumed_charge);
   const auto &mgr = TMS_Manager::GetInstance();
-  out.SetTalk(true);
   if (mgr.Get_Reco_Kalman_Augment_RunAugment()) {
   out.AugmentWithCandidates(candidate_pool, mgr.Get_Reco_Kalman_Augment_NNodesToRemove());
   }
   out.SnapDownstreamHitsAndRefit(candidate_pool);
-  out.SetTalk(false);
   return out;
 }
