@@ -69,9 +69,12 @@ def add_text(x1, y1, x2, y2, lines, text_size=0.04):
 filename = sys.argv[1]
 assert os.path.exists(filename), "Input file not found"
 tf = ROOT.TFile(filename)
-if not os.path.exists("output"):
-    os.makedirs("output")
-n_start = 1
+
+
+outputdir = os.path.split(filename)[-1].replace(".root", "")
+if not os.path.exists(outputdir):
+    os.makedirs(outputdir)
+n_start = 2
 n_end = 19
 
 # Define bin edges and centers
@@ -210,16 +213,16 @@ def do_fit(h, outfilename, i):
     
 
 
-selected_sample_hist = tf.Get("energy_resolution__resolution__muon_starting_ke_fractional_resolution")
+selected_sample_hist = tf.Get("energy_resolution__resolution__muon_starting_ke_fractional_resolution_optsmooth")
 if selected_sample_hist != None:
     selected_sample_hist.SetLineColor(ROOT.kBlack)
-    do_fit(selected_sample_hist, "output/selected_sample_resolution.png", 1)
+    do_fit(selected_sample_hist, f"{outputdir}/selected_sample_resolution.png", 1)
 
 
 selected_sample_hist = tf.Get("energy_resolution__lar_resolution__lar_muon_fractional_resolution")
 if selected_sample_hist != None:
     selected_sample_hist.SetLineColor(ROOT.kBlack)
-    do_fit(selected_sample_hist, "output/selected_sample_full_muon_resolution.png", 1)
+    do_fit(selected_sample_hist, f"{outputdir}/selected_sample_full_muon_resolution.png", 1)
     
 for i in range(n_start, n_end + 1):
     histname = f"energy_resolution__resolution__slices__muon_{i}"
@@ -231,7 +234,7 @@ for i in range(n_start, n_end + 1):
     h.SetTitle(title)
     h.SetLineColor(ROOT.kBlack)
     
-    mean, error = do_fit(h, f"output/slice_{i:02d}.png", i) 
+    mean, error = do_fit(h, f"{outputdir}/slice_{i:02d}.png", i) 
     means.append(mean)
     errors.append(error)
     
@@ -243,7 +246,7 @@ as_array = lambda x: array.array("d", x)
 col = tf.Get("energy_resolution__resolution__muon_starting_ke_resolution_column_normalized")
 g = ROOT.TGraphErrors(n, as_array(centers), as_array(means), as_array(zero_error), as_array(errors))
 fit_min = 0.5 # GeV
-fit_max = 4 # GeV
+fit_max = 3.5 # GeV
 f1 = ROOT.TF1("fit", "[0]*x+[1]", fit_min, fit_max)
 g.Fit(f1, "", "", fit_min, fit_max);
 
@@ -258,7 +261,7 @@ col.GetZaxis().SetRangeUser(0.001, col.GetMaximum()*1.0001)
 col.Draw("colz")
 dunestyle.Simulation()
 g.Draw("P same")
-canvas.Print("output/fit_result.png")
+canvas.Print(f"{outputdir}/fit_result.png")
 
 
 
