@@ -56,7 +56,7 @@ const double GEV = 1e-3; // GeV per MEV
 // 2025-04-10 stereo, simple length3d
 #define lar_length_to_energy(l) (l) * 1e-3
 
-#define GEOM_V3
+//#define GEOM_V3
 
 namespace energy_function {
 enum energy_function {
@@ -71,6 +71,7 @@ enum energy_function {
   f42c,
   f42d,
   test_reco_truth_override,
+  test_kalman_refit,
 };
 }
 energy_function::energy_function energy_function_to_use = energy_function::none;
@@ -101,6 +102,8 @@ double length_to_energy(double l) {
   if (energy_function_to_use == energy_function::test_reco_truth_override)
     // return (1.75*l*0.9110 + 119.4421)*1e-3;
     return (1.75 * l * 0.9132 + 117.5892) * 1e-3;
+  if (energy_function_to_use == energy_function::test_kalman_refit)
+    return (1.75*l*0.9577 + 63.4506)*1e-3;
   return default_length_to_energy(l);
 }
 
@@ -124,6 +127,8 @@ void SetEnergyFunctionBasedOnInputFile(const std::string &inputFilename) {
     energy_function_to_use = energy_function::f42c;
   if (inputFilename.find("42d") != std::string::npos)
     energy_function_to_use = energy_function::f42d;
+  if (inputFilename.find("2025-10-18_finalize_kalman_v2") != std::string::npos)
+    energy_function_to_use = energy_function::test_kalman_refit;
   if (inputFilename.find("2025-07-23_test_jdkio_reco_truth_override") !=
       std::string::npos)
     energy_function_to_use = energy_function::test_reco_truth_override;
@@ -1112,14 +1117,14 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
 
       for (int ih = 0; ih < reco.nKalmanNodes[0]; ih++) {
         double dx =
-            reco.KalmanPos[0][ih][0] - truth.RecoTrackTrueHitPosition[0][ih][0];
+            reco.KalmanPos[0][ih][0] - reco.KalmanTruePos[0][ih][0];
         GetSpecialHist("special__kalman_node_resolution_x",
                        "resolution__reco_track__kalman_node_resolution_x",
                        "Reco Kalman Node Resolution X",
                        "hit_position_resolution_x_wide", "#N Hits")
             ->Fill(dx * CM);
         double dy =
-            reco.KalmanPos[0][ih][1] - truth.RecoTrackTrueHitPosition[0][ih][1];
+            reco.KalmanPos[0][ih][1] - reco.KalmanTruePos[0][ih][1];
         GetSpecialHist("special__kalman_node_resolution_y",
                        "resolution__reco_track__kalman_node_resolution_y",
                        "Reco Kalman Node Resolution Y",
@@ -1282,6 +1287,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     if (entry_number < 1000)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                 "first_n_events",
+                TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
+                truth, DrawSliceN::tons);
+    if (entry_number == 128 || entry_number == 292)
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "selected_events",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::tons);
 

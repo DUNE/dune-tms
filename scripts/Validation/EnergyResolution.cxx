@@ -28,7 +28,7 @@
   double highest_reco_starting_muon_ke_uncorrected = -9e-12;
   double highest_reco_starting_muon_ke_without_fit = -9e-12;
   double highest_reco_starting_muon_ke_using_old_length = -9e-12;
-// #define HAS_LENGTH_3D
+#define HAS_LENGTH_3D
 #ifdef HAS_LENGTH_3D
   double highest_reco_starting_muon_ke_using_simple_y_correction = -9e-12;
 #endif

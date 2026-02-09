@@ -356,7 +356,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   // This section draws reco tracks as lines between two points
   if (true) {
     for (int it = 0; it < reco.nTracks; it++) {
-      auto color_to_use = track_colors[it % n_track_colors] - 2;
+      auto color_to_use = track_colors[(it + 1) % n_track_colors] - 2;
       for (int ih = 0; ih < reco.nHits[it] - 1; ih++) {
         {
           float mx = reco.TrackHitPos[it][ih][2];
@@ -414,6 +414,96 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   int empty_up_triangle = 55;
   int empty_down_triangle = 59;
   double marker_size = 1.5;
+  
+  
+  bool should_draw_reco_endpoint = true;
+  if (should_draw_reco_endpoint) {
+    for (int it = 0; it < reco.nTracks; it++) {
+      double reco_startpoint_x = reco.StartPos[it][0];
+      double reco_startpoint_y = reco.StartPos[it][1];
+      double reco_startpoint_z = reco.StartPos[it][2];
+      double kalman_startpoint_x = reco.KalmanPos[it][0][0];
+      double kalman_startpoint_y = reco.KalmanPos[it][0][1];
+      double kalman_startpoint_z = reco.KalmanPos[it][0][2];
+      double reco_endpoint_x = reco.EndPos[it][0];
+      double reco_endpoint_y = reco.EndPos[it][1];
+      double reco_endpoint_z = reco.EndPos[it][2];
+      int last_kalman_node = reco.nKalmanNodes[it] - 1;
+      double kalman_endpoint_x = reco.KalmanPos[it][last_kalman_node][0];
+      double kalman_endpoint_y = reco.KalmanPos[it][last_kalman_node][1];
+      double kalman_endpoint_z = reco.KalmanPos[it][last_kalman_node][2];
+      
+      int color_to_use = kOrange - 3;
+      int marker_to_use = 22;
+      {
+        float mx = reco_startpoint_z;
+        float my = reco_startpoint_x;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markers.push_back(marker);
+      }
+      {
+        float mx = reco_startpoint_z;
+        float my = reco_startpoint_y;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markersy.push_back(marker);
+      }
+      {
+        float mx = reco_endpoint_z;
+        float my = reco_endpoint_x;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markers.push_back(marker);
+      }
+      {
+        float mx = reco_endpoint_z;
+        float my = reco_endpoint_y;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markersy.push_back(marker);
+      }
+      color_to_use = kBlue;
+      {
+        float mx = kalman_startpoint_z;
+        float my = kalman_startpoint_x;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markers.push_back(marker);
+      }
+      {
+        float mx = kalman_startpoint_z;
+        float my = kalman_startpoint_y;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markersy.push_back(marker);
+      }
+      {
+        float mx = kalman_endpoint_z;
+        float my = kalman_endpoint_x;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markers.push_back(marker);
+      }
+      {
+        float mx = kalman_endpoint_z;
+        float my = kalman_endpoint_y;
+        TMarker marker(mx * CM, my * CM, marker_to_use);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(marker_size);
+        markersy.push_back(marker);
+      }
+    }
+  }
+  
+  
   // This section draws true particles
   bool should_draw_true_particles = true;
   if (should_draw_true_particles) {
@@ -421,7 +511,9 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     int ncolors = sizeof(colors) / sizeof(colors[0]);
     int n_offset = 0;
     for (int ip = 0; ip < reco.nTracks; ip++) {
+      #ifdef USE_TRUTH_VARS
       int it = truth.RecoTrackPrimaryParticleIndex[ip];
+      // TODO these variables no longer exist. Use Truth_Spill instead
       if (it < 0 || it > truth.nTrueParticles)
         continue; // Outside valid range
       // Only draw charged particles
@@ -437,6 +529,7 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
       // Proton
       if (std::abs(truth.PDG[it]) == 2212)
         should_draw_true_particle = true;
+      
       if (should_draw_true_particle) {
         int marker_to_use_start = 22;
         if (!truth.TMSFiducialStart[it])
@@ -501,6 +594,86 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         }
         n_offset += 1;
       }
+      #else
+      // Only draw charged particles
+      bool should_draw_true_particle = false;
+      if (std::abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 13)
+        should_draw_true_particle = true;
+      // Pion
+      if (std::abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 211)
+        should_draw_true_particle = true;
+      // Kaon
+      if (std::abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 321)
+        should_draw_true_particle = true;
+      // Proton
+      if (std::abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 2212)
+        should_draw_true_particle = true;
+      
+      if (should_draw_true_particle) {
+        int marker_to_use_start = 22;
+        if (!truth.RecoTrackPrimaryParticleTMSFiducialStart[ip])
+          marker_to_use_start = empty_up_triangle;
+        {
+          float mx = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[ip][0];
+          TMarker marker(mx * CM, my * CM, marker_to_use_start);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[ip][1];
+          TMarker marker(mx * CM, my * CM, marker_to_use_start);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markersy.push_back(marker);
+        }
+        int marker_to_use_end = empty_down_triangle;
+        {
+          float mx = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][0];
+          if (mx > 19000) {
+            mx = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][2];
+            my = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][0];
+          }
+          TMarker marker(mx * CM, my * CM, marker_to_use_end);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][1];
+          if (mx > 19000) {
+            mx = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][2];
+            my = truth.RecoTrackPrimaryParticleTrueMomentumLeavingTMS[ip][1];
+          }
+          TMarker marker(mx * CM, my * CM, marker_to_use_end);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markersy.push_back(marker);
+        }
+        int marker_to_use_death = 23;
+        {
+          float mx = truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTruePositionEnd[ip][0];
+          TMarker marker(mx * CM, my * CM, marker_to_use_death);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markers.push_back(marker);
+        }
+        {
+          float mx = truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2];
+          float my = truth.RecoTrackPrimaryParticleTruePositionEnd[ip][1];
+          TMarker marker(mx * CM, my * CM, marker_to_use_death);
+          marker.SetMarkerColor(colors[n_offset % ncolors]);
+          marker.SetMarkerSize(marker_size);
+          markersy.push_back(marker);
+        }
+        n_offset += 1;
+      }
+      #endif
     }
   }
 

@@ -24,6 +24,9 @@
       GetHist("basic__truth_vtx__TrueVtxYZ", "TrueVtx Y vs Z", "Z_full",
               "Y_full")
           ->Fill(truth.TrueVtxZ[ivtx] * CM, truth.TrueVtxY[ivtx] * CM);
+      GetHist("basic__truth_vtx__TrueVtxXZ", "TrueVtx X vs Z", "Z_full",
+              "X")
+          ->Fill(truth.TrueVtxZ[ivtx] * CM, truth.TrueVtxX[ivtx] * CM);
 
       GetHist("basic__truth_vtx__TrueVtxPz", "TrueVtxPz", "PNuZ", "#N Vertices")
           ->Fill(truth.TrueVtxPz[ivtx] * GEV);

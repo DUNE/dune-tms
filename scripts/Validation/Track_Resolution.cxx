@@ -21,26 +21,67 @@
       has_contained_muon = true;
 
     if (has_contained_muon) {
+      #define USE_TRACK_NODES
+      #ifdef USE_TRACK_NODES
+      int last_node_index = reco.nHits[it] - 1;
+      // First most downstream hit
+      for (int j = 0; j < reco.nHits[it]; j++) {
+        if (reco.TrackHitPos[it][j][2] > reco.TrackHitPos[it][last_node_index][2]) {
+          last_node_index = j;
+        }
+      }
+      int first_node_index = 0;
+      double reco_startpoint_x = reco.TrackHitPos[it][first_node_index][0];
+      double reco_startpoint_y = reco.TrackHitPos[it][first_node_index][1];
+      double reco_startpoint_z = reco.TrackHitPos[it][first_node_index][2];
+      double reco_endpoint_x = reco.TrackHitPos[it][last_node_index][0];
+      double reco_endpoint_y = reco.TrackHitPos[it][last_node_index][1];
+      double reco_endpoint_z = reco.TrackHitPos[it][last_node_index][2];
+      #else
       double reco_startpoint_x = reco.StartPos[it][0];
       double reco_startpoint_y = reco.StartPos[it][1];
       double reco_startpoint_z = reco.StartPos[it][2];
+      double reco_endpoint_x = reco.EndPos[it][0];
+      double reco_endpoint_y = reco.EndPos[it][1];
+      double reco_endpoint_z = reco.EndPos[it][2];
+      #endif
+      
+      int first_kalman_node = 0;
+      int last_kalman_node = reco.nKalmanNodes[it] - 1;
+      // Flip order if needed
+      if (reco.KalmanPos[it][first_kalman_node][2] > reco.KalmanPos[it][last_kalman_node][2]) {
+        int temp = first_kalman_node;
+        first_kalman_node = last_kalman_node;
+        last_kalman_node = temp;
+      }
+      double kalman_startpoint_x = reco.KalmanPos[it][first_kalman_node][0];
+      double kalman_startpoint_y = reco.KalmanPos[it][first_kalman_node][1];
+      double kalman_startpoint_z = reco.KalmanPos[it][first_kalman_node][2];
+      double kalman_endpoint_x = reco.KalmanPos[it][last_kalman_node][0];
+      double kalman_endpoint_y = reco.KalmanPos[it][last_kalman_node][1];
+      double kalman_endpoint_z = reco.KalmanPos[it][last_kalman_node][2];
       double true_endpoint_x =
           truth.RecoTrackPrimaryParticleTruePositionEnd[it][0];
-      double reco_endpoint_x = reco.EndPos[it][0];
       double true_endpoint_y =
           truth.RecoTrackPrimaryParticleTruePositionEnd[it][1];
-      double reco_endpoint_y = reco.EndPos[it][1];
       double true_endpoint_z =
           truth.RecoTrackPrimaryParticleTruePositionEnd[it][2];
-      double reco_endpoint_z = reco.EndPos[it][2];
       double endpoint_dz = (reco_endpoint_z - true_endpoint_z) * CM;
       double endpoint_dy = (reco_endpoint_y - true_endpoint_y) * CM;
       double endpoint_dx = (reco_endpoint_x - true_endpoint_x) * CM;
+      double kalman_endpoint_dz = (kalman_endpoint_z - true_endpoint_z) * CM;
+      double kalman_endpoint_dy = (kalman_endpoint_y - true_endpoint_y) * CM;
+      double kalman_endpoint_dx = (kalman_endpoint_x - true_endpoint_x) * CM;
       double endpoint_dxz =
           std::sqrt(endpoint_dz * endpoint_dz + endpoint_dx * endpoint_dx);
       GetSpecialHist("special__track_resolution_endpoint_z",
                      "reco_track__track_resolution__endpoint_z",
                      "Endpoint Resolution dz", "endpoint_dz", "#N Tracks")
+          ->Fill(endpoint_dz);
+      if (reco.nTracks == 1)
+        GetSpecialHist("special__track_resolution_endpoint_z_single_track",
+                       "reco_track__track_resolution__endpoint_z_single_track",
+                       "Endpoint Resolution dz", "endpoint_dz", "#N Tracks")
           ->Fill(endpoint_dz);
       GetSpecialHist("special__track_resolution_endpoint_x",
                      "reco_track__track_resolution__endpoint_x",
@@ -53,6 +94,25 @@
       GetHist("reco_track__track_resolution__endpoint_xz",
               "Endpoint Resolution 2d", "endpoint_dboth")
           ->Fill(endpoint_dxz);
+          
+          
+      GetSpecialHist("special__track_resolution_kalman_endpoint_z",
+                     "reco_track__track_resolution__kalman_endpoint_z",
+                     "Endpoint Resolution dz", "endpoint_dz", "#N Tracks")
+          ->Fill(kalman_endpoint_dz);
+      if (reco.nTracks == 1)
+        GetSpecialHist("special__track_resolution_kalman_endpoint_z_single_track",
+                       "reco_track__track_resolution__kalman_endpoint_z_single_track",
+                       "Endpoint Resolution dz", "endpoint_dz", "#N Tracks")
+          ->Fill(kalman_endpoint_dz);
+      GetSpecialHist("special__track_resolution_kalman_endpoint_x",
+                     "reco_track__track_resolution__kalman_endpoint_x",
+                     "Endpoint Resolution dx", "endpoint_dx", "#N Tracks")
+          ->Fill(kalman_endpoint_dx);
+      GetSpecialHist("special__track_resolution_kalman_endpoint_y",
+                     "reco_track__track_resolution__kalman_endpoint_y",
+                     "Endpoint Resolution dy", "endpoint_dy", "#N Tracks")
+          ->Fill(kalman_endpoint_dy);
 
       TVector3 direction(reco.EndDirection[it][0], 0, reco.EndDirection[it][2]);
       // TVector3 direction(0, 0, 1);
@@ -152,24 +212,85 @@
               "Track Startpoint XY", "X", "Y")
           ->Fill(reco_startpoint_x * CM, reco_startpoint_y * CM);
 
-      if (endpoint_dz > 10)
+      if (std::abs(endpoint_dz) > 10)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                   "resolution/track_endpoint/z_resolution",
                   TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
                   reco, lc, truth, DrawSliceN::few);
-      if (endpoint_dz > 75)
+      if (std::abs(endpoint_dz) > 75)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                   "resolution/track_endpoint/poor_z_resolution",
                   TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
                   reco, lc, truth, DrawSliceN::few);
-      if (endpoint_dz > 400)
+      if (std::abs(endpoint_dz) > 400)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                   "resolution/track_endpoint/terrible_z_resolution",
                   TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
                   reco, lc, truth, DrawSliceN::few);
-      if (endpoint_dz > 800)
+      if (std::abs(endpoint_dz) > 800)
         DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                   "resolution/track_endpoint/horrific_z_resolution",
+                  TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+
+      if (std::abs(kalman_endpoint_dz) > 10)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/z_resolution",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (std::abs(kalman_endpoint_dz) > 75)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/poor_z_resolution",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (std::abs(kalman_endpoint_dz) > 400)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/terrible_z_resolution",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (std::abs(kalman_endpoint_dz) > 800)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/horrific_z_resolution",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+                  
+      if (std::abs(kalman_endpoint_dx) > 20)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/x_resolution",
+                  TString::Format("endpoint_dx = %.1fcm", kalman_endpoint_dx).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+                  
+      if (std::abs(kalman_endpoint_dy) > 20)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint/y_resolution",
+                  TString::Format("endpoint_dy = %.1fcm", kalman_endpoint_dy).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+                  
+      
+      if (kalman_endpoint_dz >= 5)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint_single_track/above_5cm",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (kalman_endpoint_dz <= -25)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/kalman_track_endpoint_single_track/below_n25cm",
+                  TString::Format("endpoint_dz = %.1fcm", kalman_endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      
+      if (endpoint_dz >= 5)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/track_endpoint_single_track/above_5cm",
+                  TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (endpoint_dz >= 25)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/track_endpoint_single_track/above_25cm",
+                  TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
+                  reco, lc, truth, DrawSliceN::few);
+      if (endpoint_dz <= -25)
+        DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                  "resolution/track_endpoint_single_track/below_n25cm",
                   TString::Format("endpoint_dz = %.1fcm", endpoint_dz).Data(),
                   reco, lc, truth, DrawSliceN::few);
     }

@@ -1,6 +1,10 @@
 // Add scope to avoid cross talk with other scripts
 {
   REGISTER_AXIS(ke_tms, std::make_tuple("True Muon KE (GeV)", 28, 0.0, 7.0));
+  // Simple per-spill debug counters for reco-eff fills
+  static long spill_counter = 0;
+  static int cnt_mu_den = 0, cnt_mu_num = 0;
+  static int cnt_pi_den = 0, cnt_pi_num = 0;
   REGISTER_AXIS(
       pion_ke_tms_enter,
       std::make_tuple("True Pion KE Entering TMS (GeV)", 20, 0.0, 5.0));
@@ -20,6 +24,19 @@
       muon_startpoint_x,
       std::make_tuple("True Muon Startpoint X (cm)", 20, -330.0, 330.0));
   if (on_new_spill) {
+    if (spill_counter > 0) {
+      bool mu_inconsistent = (cnt_mu_num > cnt_mu_den) || (cnt_mu_den == 0 && cnt_mu_num > 0);
+      bool pi_inconsistent = (cnt_pi_num > cnt_pi_den) || (cnt_pi_den == 0 && cnt_pi_num > 0);
+      if (mu_inconsistent || pi_inconsistent) {
+        std::cout << "[Reco_Eff] Potential inconsistency in spill " << spill_counter
+                  << ": mu_den=" << cnt_mu_den
+                  << ", mu_num=" << cnt_mu_num
+                  << ", pi_den=" << cnt_pi_den
+                  << ", pi_num=" << cnt_pi_num << std::endl;
+      }
+    }
+    spill_counter++;
+    cnt_mu_den = cnt_mu_num = cnt_pi_den = cnt_pi_num = 0;
     for (int ip = 0; ip < truth.nTrueParticles; ip++) {
       // Only consider those that have enough visible energy in the TMS to count
       bool tms_touch = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
@@ -44,6 +61,7 @@
                   "Reco Efficiency vs True KE, All Muons: Denominator",
                   "ke_tms_enter")
               ->Fill(particle_starting_ke);
+          cnt_mu_den++;
           GetHist(
               "reco_eff__all_muon_ke_tms_enter_including_doubles_denominator",
               "Reco Efficiency w/2x vs True KE, All Muons: Denominator",
@@ -74,11 +92,13 @@
                   "Reconstruction Efficiency: Denominator", "muon_startpoint_z")
               ->Fill(truth.PositionTMSStart[ip][2] * CM);
         }
-        if (ispion && should_include)
+        if (ispion && should_include) {
           GetHist(
               "reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_denominator",
               "Reconstruction Efficiency: Denominator", "pion_ke_tms_enter")
               ->Fill(particle_starting_ke);
+          cnt_pi_den++;
+        }
         if (ismuon && lar_start && tms_end && should_include) {
           GetSpecialHist("special__reco_eff_muon_ke_tms_enter_denominator",
                          "reco_eff__muon_ke_tms_enter_denominator",
@@ -181,6 +201,7 @@
                 "Reco Efficiency vs True TMS-Entering KE, All Muons: Numerator",
                 "ke_tms_enter")
             ->Fill(particle_starting_ke);
+        cnt_mu_num++;
         GetHist("reco_eff__all_muon_ke_numerator",
                 "Reco Efficiency vs True KE, All Muons: Numerator", "ke_tms")
             ->Fill(particle_ke);
@@ -227,6 +248,7 @@
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_numerator",
                 "Reco Efficiency, All Pions: Numerator", "pion_ke_tms_enter")
             ->Fill(particle_starting_ke);
+        cnt_pi_num++;
         DrawSlice(
             TString::Format("entry_%lld", entry_number).Data(),
             "reco_eff/reco_pion",

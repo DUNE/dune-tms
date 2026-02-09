@@ -38,6 +38,24 @@
           ->Fill(reco.KalmanTruePos[it][ih][1] * CM);
       GetHist("basic__raw__KalmanTruePos_Z", "KalmanTruePos Z", "Z", "#N Nodes")
           ->Fill(reco.KalmanTruePos[it][ih][2] * CM);
+          
+      REGISTER_AXIS(EventNum, std::make_tuple("Event Number", 501, 0, 500));
+      REGISTER_AXIS(KalmanHitResolution, std::make_tuple("Resolution (cm, reco - true)", 100, -100, 100));
+      REGISTER_AXIS(KalmanHitResolutionR, std::make_tuple("Resolution (cm, reco - true)", 100, 0, 100));
+      double dx = (reco.TrackHitPos[it][ih][0] - reco.KalmanTruePos[it][ih][0]) * CM;
+      double dy = (reco.TrackHitPos[it][ih][1] - reco.KalmanTruePos[it][ih][1]) * CM;
+      double dz = (reco.TrackHitPos[it][ih][2] - reco.KalmanTruePos[it][ih][2]) * CM;
+      double dr = std::sqrt(dx*dx + dy*dy + dz*dz);
+      GetHist("basic__vs_event_num__KalmanHitAccuracy_X", "Kalman Hit Accuracy X vs Event Num", "EventNum", "KalmanHitResolution", "#N Nodes")
+          ->Fill(reco.EventNo, std::clamp(dx, -99.0, 99.0));
+      GetHist("basic__vs_event_num__KalmanHitAccuracy_Y", "Kalman Hit Accuracy Y vs Event Num", "EventNum", "KalmanHitResolution", "#N Nodes")
+          ->Fill(reco.EventNo, std::clamp(dy, -99.0, 99.0));
+      GetHist("basic__vs_event_num__KalmanHitAccuracy_Z", "Kalman Hit Accuracy Z vs Event Num", "EventNum", "KalmanHitResolution", "#N Nodes")
+          ->Fill(reco.EventNo, std::clamp(dz, -99.0, 99.0));
+      GetHist("basic__vs_event_num__KalmanHitAccuracy_R", "Kalman Hit Accuracy R vs Event Num", "EventNum", "KalmanHitResolutionR", "#N Nodes")
+          ->Fill(reco.EventNo, std::clamp(dr, 0.0, 99.0));
+      GetHist("basic__vs_event_num__N_Nodes", "Number of Kalman Hits vs Event Num", "EventNum", "#N Nodes")
+          ->Fill(reco.EventNo);
     }
     GetHist("basic__raw__StartDirection_X", "StartDirection X", "dx",
             "#N Tracks")
@@ -68,6 +86,45 @@
     GetHist("basic__sanity__Chi2_difference", "Chi2 Plus - Minus", "chi2_diff",
             "#N Tracks")
         ->Fill(reco.Chi2_plus[it] - reco.Chi2_minus[it]);
+        
+    if (std::abs(reco.Chi2_plus[it] - reco.Chi2_minus[it]) > 10) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "kalman/large_chi2_difference",
+                TString::Format("chi2 diff = %.2f", reco.Chi2_plus[it] - reco.Chi2_minus[it]).Data(), reco, lc,
+                truth, DrawSliceN::many);
+    }
+        
+    if (std::abs(reco.Chi2_plus[it] - reco.Chi2_minus[it]) > 4) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "kalman/small_chi2_difference",
+                TString::Format("chi2 diff = %.2f", reco.Chi2_plus[it] - reco.Chi2_minus[it]).Data(), reco, lc,
+                truth, DrawSliceN::many);
+    }
+    double min_chi2 = reco.Chi2_plus[it] <= reco.Chi2_minus[it] ? reco.Chi2_plus[it] : reco.Chi2_minus[it];
+    int dof = reco.nKalmanNodes[it];
+    double min_chi2_per_dof = min_chi2 / dof;
+    DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+              "kalman/chi2_per_dof",
+              TString::Format("chi2 = %.2f;dof = %d;chi2/dof=%.3f", min_chi2, dof, min_chi2_per_dof).Data(), reco, lc,
+              truth, DrawSliceN::many);
+    if (min_chi2_per_dof > 0.25) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "kalman/chi2_per_dof_above_quarter",
+                TString::Format("chi2 = %.2f;dof = %d;chi2/dof=%.3f", min_chi2, dof, min_chi2_per_dof).Data(), reco, lc,
+                truth, DrawSliceN::many);
+    }
+    if (min_chi2_per_dof > 0.5) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "kalman/chi2_per_dof_above_half",
+                TString::Format("chi2 = %.2f;dof = %d;chi2/dof=%.3f", min_chi2, dof, min_chi2_per_dof).Data(), reco, lc,
+                truth, DrawSliceN::many);
+    }
+    if (min_chi2_per_dof > 1) {
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "kalman/chi2_per_dof_above_1",
+                TString::Format("chi2 = %.2f;dof = %d;chi2/dof=%.3f", min_chi2, dof, min_chi2_per_dof).Data(), reco, lc,
+                truth, DrawSliceN::many);
+    }
 
     REGISTER_AXIS(DirectionSanityCheck,
                   std::make_tuple("Direction Mag", 51, 0, 10));
