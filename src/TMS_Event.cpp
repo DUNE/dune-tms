@@ -70,6 +70,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       
     Vtx_Info vtx_info;
     vtx_info.reaction = Reaction;
+    vtx_info.run_id = event.RunId;
     vtx_info.vtx_id = current_vertexid;
     // Had issues with lorentz vectors before so best make a copy
     vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
@@ -84,7 +85,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       // Loop over the particles in the vertex and save them
       for (TG4PrimaryVertex::PrimaryParticles::iterator jt = particles.begin(); jt != particles.end(); ++jt) {
         TG4PrimaryParticle particle = *jt;
-        TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx);
+        TMS_TrueParticle truepart = TMS_TrueParticle(particle, vtx, event.RunId);
         TMS_TruePrimaryParticles.emplace_back(truepart);
         
         if (current_vertexid != truepart.GetVertexID()) {
@@ -190,7 +191,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           if (firsttime) {
             // Can't set start momentum and position whe looping over the trajectory points, do this later
             //TMS_TrueParticle part(ParentId, TrackId, PDGcode, Momentum, Position);
-            TMS_TrueParticle part(ParentId, TrackId, PDGcode, current_vertexid);
+            TMS_TrueParticle part(ParentId, TrackId, PDGcode, current_vertexid, event.RunId);
             // Make the true particle that created this trajectory
             TMS_TrueParticles.push_back(std::move(part));
         

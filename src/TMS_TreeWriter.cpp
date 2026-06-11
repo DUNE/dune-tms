@@ -359,6 +359,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
   Truth_Spill->Branch("nTrueForgottenParticles", &nTrueForgottenParticles, "nTrueForgottenParticles/I");
   Truth_Spill->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
+  Truth_Spill->Branch("ParticleRunNo", ParticleRunNo, "ParticleRunNo[nTrueParticles]/I");
   Truth_Spill->Branch("VertexGlobalID", VertexGlobalID, "VertexGlobalID[nTrueParticles]/L");
   Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
@@ -423,6 +424,7 @@ void TMS_TreeWriter::MakeBranches() {
   // Other info
   Truth_Spill->Branch("TrueVtxPDG", TrueVtxPDG, "TrueVtxPDG[TrueVtxN]/I");
   Truth_Spill->Branch("TrueVtxID", TrueVtxID, "TrueVtxID[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxRunNo", TrueVtxRunNo, "TrueVtxRunNo[TrueVtxN]/I");
   Truth_Spill->Branch("TrueVtxGlobalID", TrueVtxGlobalID, "TrueVtxGlobalID[TrueVtxN]/L");
   Truth_Spill->Branch("TrueVtxReaction", &TrueVtxReaction);
   // Hadronic E
@@ -640,6 +642,10 @@ static void setPosition(float *branch, TLorentzVector position) {
     branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
 }
 
+static int normalizeRunNumber(int run) {
+    return run >= 1000000000 ? run - 1000000000 : run;
+}
+
 static Long64_t makeGlobalVertexID(int run, int vertex) {
     return static_cast<Long64_t>(run) * 1000000ll + static_cast<Long64_t>(vertex);
 }
@@ -659,7 +665,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
-  RunNo = event.GetRunNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -1848,7 +1854,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
-  RunNo = event.GetRunNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
@@ -1925,7 +1931,8 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     }
   
     VertexID[index] = (*it).GetVertexID();
-    VertexGlobalID[index] = makeGlobalVertexID(RunNo, VertexID[index]);
+    ParticleRunNo[index] = (*it).GetRunID();
+    VertexGlobalID[index] = makeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
@@ -2009,7 +2016,8 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     // Pdg
     TrueVtxPDG[true_vtx_index] = vtx.pdg;
     TrueVtxID[true_vtx_index] = vtx.vtx_id;
-    TrueVtxGlobalID[true_vtx_index] = makeGlobalVertexID(RunNo, TrueVtxID[true_vtx_index]);
+    TrueVtxRunNo[true_vtx_index] = vtx.run_id;
+    TrueVtxGlobalID[true_vtx_index] = makeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
     TrueVtxReaction.push_back(vtx.reaction);
     // Hadronic E
     TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
@@ -2349,6 +2357,7 @@ void TMS_TreeWriter::Clear() {
   nTrueParticles = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
     VertexID[i] = DEFAULT_CLEARING_FLOAT;
+    ParticleRunNo[i] = DEFAULT_CLEARING_FLOAT;
     VertexGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
     Parent[i] = DEFAULT_CLEARING_FLOAT;
     TrackId[i] = DEFAULT_CLEARING_FLOAT;
@@ -2399,6 +2408,7 @@ void TMS_TreeWriter::Clear() {
 
   for (int i = 0; i < __TMS_MAX_TRUE_VERTICES__; ++i) {
     TrueVtxID[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
     TrueVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
   }
 

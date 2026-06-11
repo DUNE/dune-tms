@@ -20,6 +20,7 @@ struct Vtx_Info {
   TLorentzVector p4;
   
   int pdg { -999 };
+  int run_id { -999 };
   int vtx_id { -999 };
   std::string reaction;
   double hadronic_energy_lar_shell {};

@@ -358,6 +358,7 @@ class TMS_TreeWriter {
     int nTrueForgottenParticles;
     
     int VertexID[__TMS_MAX_TRUE_PARTICLES__];
+    int ParticleRunNo[__TMS_MAX_TRUE_PARTICLES__];
     Long64_t VertexGlobalID[__TMS_MAX_TRUE_PARTICLES__];
     int Parent[__TMS_MAX_TRUE_PARTICLES__];
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
@@ -533,6 +534,7 @@ class TMS_TreeWriter {
     float TrueVtxE[__TMS_MAX_TRUE_VERTICES__];
     int TrueVtxPDG[__TMS_MAX_TRUE_VERTICES__];
     int TrueVtxID[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxRunNo[__TMS_MAX_TRUE_VERTICES__];
     Long64_t TrueVtxGlobalID[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELarShell[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELAr[__TMS_MAX_TRUE_VERTICES__];
