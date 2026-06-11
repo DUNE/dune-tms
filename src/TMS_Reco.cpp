@@ -3216,7 +3216,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     DB_Points.push_back(point);
   }
   // See if DBSCAN can find different clusters
-  TMS_DBScan LineDB(3, 5, DB_Points);
+  TMS_DBScan LineDB(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints(), TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon(), DB_Points);
   LineDB.RunDBScan();
   std::vector<std::vector<TMS_DBScan_Point> > ClusterPoints = LineDB.GetClusters();
   if (ClusterPoints.empty()) {
