@@ -2,6 +2,7 @@ import os
 import collections
 import logging
 import argparse
+import shutil
 from dataclasses import dataclass
 from typing import Optional, Dict
 
@@ -192,6 +193,8 @@ def draw_histograms(input_file):
 
     # Create a directory to save images
     output_dir = os.path.splitext(input_file)[0] + "_images"
+    if os.path.isdir(output_dir):
+        shutil.rmtree(output_dir)
     os.makedirs(output_dir, exist_ok=True)
     logging.info("Output directory: %s", output_dir)
 
@@ -346,21 +349,31 @@ def draw_histograms(input_file):
     # Draw reco eff
     def draw_recoefficiencies(canvas: ROOT.TCanvas, num_map: Dict[str, ROOT.TH1], den_map: Dict[str, ROOT.TH1], output_dir: str) -> None:
         """Compute and draw reconstruction efficiencies from numerator/denominator pairs."""
+        denominator_only = set(den_map.keys()) - set(num_map.keys())
+        numerator_only = set(num_map.keys()) - set(den_map.keys())
+        for name in sorted(denominator_only):
+            logging.warning(
+                "No numerator found for %s; drawing zero reconstruction efficiency",
+                name,
+            )
+        for name in sorted(numerator_only):
+            logging.warning("No denominator found for %s; skipping", name)
+
         all_names = set(num_map.keys()) & set(den_map.keys())
-        for name in all_names:
-            error = False
-            if name not in num_map:
-                logging.warning("Didn't find %s in numerator map", name)
-                error = True
+        all_names |= denominator_only
+        for name in sorted(all_names):
             if name not in den_map:
-                logging.warning("Didn't find %s in denominator map", name)
-                error = True
-            if error:
-                logging.warning("Had one or more errors, skipping %s", name)
                 continue
 
-            numerator = num_map[name]
             denominator = den_map[name]
+            if name in num_map:
+                numerator = num_map[name]
+            else:
+                numerator = denominator.Clone(name + "_numerator")
+                numerator.Reset()
+                numerator.SetTitle(
+                    denominator.GetTitle().replace(": Denominator", "").strip()
+                )
 
             # Clone before divide to avoid altering originals
             eff = numerator.Clone()
@@ -386,9 +399,17 @@ def draw_histograms(input_file):
 
     # Reco-eff: compute intersection once and log counts
     recoeff_pairs = set(recoeff_plots_numerators.keys()) & set(recoeff_plots_denominators.keys())
-    logging.info("Rendering reconstruction efficiencies for %d pairs...", len(recoeff_pairs))
+    recoeff_denominator_only = set(recoeff_plots_denominators.keys()) - set(recoeff_plots_numerators.keys())
+    logging.info(
+        "Rendering reconstruction efficiencies for %d pairs and %d denominator-only plots...",
+        len(recoeff_pairs),
+        len(recoeff_denominator_only),
+    )
     draw_recoefficiencies(canvas, recoeff_plots_numerators, recoeff_plots_denominators, output_dir)
-    logging.info("Reconstruction efficiencies rendered: %d", len(recoeff_pairs))
+    logging.info(
+        "Reconstruction efficiencies rendered: %d",
+        len(recoeff_pairs) + len(recoeff_denominator_only),
+    )
 
     # Close the input ROOT file
     root_file.Close()
