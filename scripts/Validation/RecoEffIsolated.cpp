@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -281,9 +282,9 @@ int main(int argc, char **argv) {
     if (HasTree(file, "Reco_Tree")) reco_chain.Add(file.c_str());
   }
 
-  TruthSpill spill(&truth_spill_chain);
-  Truth_Info truth(&truth_info_chain);
-  Reco_Tree reco(&reco_chain);
+  auto spill = std::make_unique<TruthSpill>(&truth_spill_chain);
+  auto truth = std::make_unique<Truth_Info>(&truth_info_chain);
+  auto reco = std::make_unique<Reco_Tree>(&reco_chain);
 
   Counters counts;
   std::vector<std::string> examples;
@@ -344,29 +345,30 @@ int main(int argc, char **argv) {
        "KE in hist bounds", "not duplicate", "LAr fid start", "TMS fid end",
        "strict numerator"});
 
-  counts.truth_spill_entries = spill.GetEntries();
-  for (Long64_t entry = 0; entry < spill.GetEntries(); ++entry) {
-    spill.GetEntry(entry);
-    if (spill.nTrueParticles > kMaxTrueParticles) {
+  counts.truth_spill_entries = spill->GetEntries();
+  for (Long64_t entry = 0; entry < spill->GetEntries(); ++entry) {
+    spill->GetEntry(entry);
+    if (spill->nTrueParticles > kMaxTrueParticles) {
       AddExample(examples, "Truth_Spill entry " + std::to_string(entry) +
                                " nTrueParticles exceeds max: " +
-                               std::to_string(spill.nTrueParticles));
+                               std::to_string(spill->nTrueParticles));
     }
-    const int n_particles = std::max(0, std::min(spill.nTrueParticles, kMaxTrueParticles));
+    const int n_particles =
+        std::max(0, std::min(spill->nTrueParticles, kMaxTrueParticles));
     counts.truth_spill_particles += n_particles;
     for (int ip = 0; ip < n_particles; ++ip) {
       FillCut(h_den_cutflow, "all particles");
-      const bool is_muon = std::abs(spill.PDG[ip]) == 13;
+      const bool is_muon = std::abs(spill->PDG[ip]) == 13;
       FillCut(h_den_passfail, is_muon ? "muon pdg pass" : "muon pdg fail");
       if (!is_muon) continue;
       FillCut(h_den_cutflow, "muon pdg");
       counts.denom_muons++;
 
-      const double visible = spill.TrueVisibleEnergy[ip];
+      const double visible = spill->TrueVisibleEnergy[ip];
       const bool tms_touch = visible >= kMinVisibleEnergy;
-      const bool lar_start = spill.LArFiducialStart[ip];
-      const bool tms_end = spill.TMSFiducialEnd[ip];
-      const double ke_tms_enter = spill.MomentumTMSStart[ip][3] * kGeV;
+      const bool lar_start = spill->LArFiducialStart[ip];
+      const bool tms_end = spill->TMSFiducialEnd[ip];
+      const double ke_tms_enter = spill->MomentumTMSStart[ip][3] * kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
 
       h_den_visible->Fill(visible);
@@ -385,7 +387,7 @@ int main(int argc, char **argv) {
                                  std::to_string(ip) + " KE=" +
                                  std::to_string(ke_tms_enter));
       }
-      if (DefaultLike(spill.MomentumTMSStart[ip][3])) counts.denom_default_ke++;
+      if (DefaultLike(spill->MomentumTMSStart[ip][3])) counts.denom_default_ke++;
       if (!ke_in_bounds) counts.denom_out_of_bounds_ke++;
 
       if (!tms_touch) continue;
@@ -404,54 +406,55 @@ int main(int argc, char **argv) {
     }
   }
 
-  counts.truth_info_entries = truth.GetEntriesFast();
-  counts.reco_entries = reco.GetEntriesFast();
+  counts.truth_info_entries = truth->GetEntriesFast();
+  counts.reco_entries = reco->GetEntriesFast();
   int last_truth_tree = -1;
   int last_spill = -999999999;
-  for (Long64_t entry = 0; entry < truth.GetEntriesFast(); ++entry) {
-    truth.GetEntry(entry);
-    if (entry < reco.GetEntriesFast()) reco.GetEntry(entry);
+  for (Long64_t entry = 0; entry < truth->GetEntriesFast(); ++entry) {
+    truth->GetEntry(entry);
+    if (entry < reco->GetEntriesFast()) reco->GetEntry(entry);
     const int current_truth_tree =
-        truth.fChain ? truth.fChain->GetTreeNumber() : -1;
-    if (current_truth_tree != last_truth_tree || truth.SpillNo != last_spill) {
+        truth->fChain ? truth->fChain->GetTreeNumber() : -1;
+    if (current_truth_tree != last_truth_tree || truth->SpillNo != last_spill) {
       reconstructed_fingerprints.clear();
       last_truth_tree = current_truth_tree;
-      last_spill = truth.SpillNo;
+      last_spill = truth->SpillNo;
     }
 
-    const int reco_ntracks = entry < reco.GetEntriesFast() ? reco.nTracks : -1;
-    counts.truth_info_reco_tracks += truth.RecoTrackN;
+    const int reco_ntracks = entry < reco->GetEntriesFast() ? reco->nTracks : -1;
+    counts.truth_info_reco_tracks += truth->RecoTrackN;
     if (reco_ntracks >= 0) counts.reco_tree_tracks += reco_ntracks;
-    if (reco_ntracks >= 0 && truth.RecoTrackN != reco_ntracks) {
+    if (reco_ntracks >= 0 && truth->RecoTrackN != reco_ntracks) {
       counts.reco_track_count_mismatch++;
-      h_reco_trackn_compare->Fill(truth.RecoTrackN - reco_ntracks);
+      h_reco_trackn_compare->Fill(truth->RecoTrackN - reco_ntracks);
       AddExample(examples, "RecoTrackN mismatch entry=" + std::to_string(entry) +
                                " truth.RecoTrackN=" +
-                               std::to_string(truth.RecoTrackN) +
+                               std::to_string(truth->RecoTrackN) +
                                " reco.nTracks=" + std::to_string(reco_ntracks));
     }
-    if (truth.RecoTrackN > Truth_Info::kMaxRecoTracks) {
+    if (truth->RecoTrackN > Truth_Info::kMaxRecoTracks) {
       counts.numerator_reco_trackn_over_max++;
       AddExample(examples, "RecoTrackN over max entry=" + std::to_string(entry) +
                                " RecoTrackN=" +
-                               std::to_string(truth.RecoTrackN));
+                               std::to_string(truth->RecoTrackN));
     }
 
-    const int n_tracks = std::max(0, std::min(truth.RecoTrackN, Truth_Info::kMaxRecoTracks));
+    const int n_tracks =
+        std::max(0, std::min(truth->RecoTrackN, Truth_Info::kMaxRecoTracks));
     for (int it = 0; it < n_tracks; ++it) {
       FillCut(h_num_cutflow, "all reco summaries");
-      const bool is_muon = std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
+      const bool is_muon = std::abs(truth->RecoTrackPrimaryParticlePDG[it]) == 13;
       FillCut(h_num_passfail, is_muon ? "muon pdg pass" : "muon pdg fail");
       if (!is_muon) continue;
       FillCut(h_num_cutflow, "muon pdg");
       counts.numerator_muons++;
 
-      const double visible = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it];
+      const double visible = truth->RecoTrackPrimaryParticleTrueVisibleEnergy[it];
       const bool tms_touch = visible >= kMinVisibleEnergy;
-      const bool lar_start = truth.RecoTrackPrimaryParticleLArFiducialStart[it];
-      const bool tms_end = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
+      const bool lar_start = truth->RecoTrackPrimaryParticleLArFiducialStart[it];
+      const bool tms_end = truth->RecoTrackPrimaryParticleTMSFiducialEnd[it];
       const double ke_tms_enter =
-          truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * kGeV;
+          truth->RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
 
       h_num_visible->Fill(visible);
@@ -470,7 +473,7 @@ int main(int argc, char **argv) {
                                  std::to_string(it) + " KE=" +
                                  std::to_string(ke_tms_enter));
       }
-      if (DefaultLike(truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]))
+      if (DefaultLike(truth->RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]))
         counts.numerator_default_ke++;
       if (!ke_in_bounds) counts.numerator_out_of_bounds_ke++;
 
@@ -479,7 +482,7 @@ int main(int argc, char **argv) {
       counts.numerator_tms_touch++;
       if (ke_in_bounds) FillCut(h_num_cutflow, "KE in hist bounds");
 
-      const std::string fingerprint = RecoTruthFingerprint(truth, it);
+      const std::string fingerprint = RecoTruthFingerprint(*truth, it);
       reconstructed_fingerprints[fingerprint]++;
       const bool not_duplicate = reconstructed_fingerprints[fingerprint] == 1;
       h_duplicate->Fill(not_duplicate ? 0 : 1);
