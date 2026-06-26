@@ -125,18 +125,27 @@
   }
 
   // Fill numerators of reco_eff plots here
-  for (int it = 0; it < reco.nTracks; it++) {
-    int ip = truth.RecoTrackPrimaryParticleIndex[it];
-    if (ip >= truth.nTrueParticles || ip < 0) {
-      std::cout << "Warning: RecoTrackPrimaryParticleIndex is broken: Found "
-                   "no true particle in reco eff with ip="
-                << ip << std::endl;
-      continue;
-    }
+  auto quantize_reco_truth = [](float value) -> long long {
+    return static_cast<long long>(std::llround(value * 1000.0));
+  };
+  auto reco_truth_fingerprint = [&](int track) -> std::string {
+    std::string key = std::to_string(truth.RecoTrackPrimaryParticlePDG[track]);
+    for (int dim = 0; dim < 4; ++dim)
+      key += ":" + std::to_string(quantize_reco_truth(
+                       truth.RecoTrackPrimaryParticleTrueMomentum[track][dim]));
+    for (int dim = 0; dim < 4; ++dim)
+      key += ":" + std::to_string(quantize_reco_truth(
+                       truth.RecoTrackPrimaryParticleTruePositionStart[track][dim]));
+    for (int dim = 0; dim < 4; ++dim)
+      key += ":" + std::to_string(quantize_reco_truth(
+                       truth.RecoTrackPrimaryParticleTruePositionEnd[track][dim]));
+    return key;
+  };
 
-    // Use the per-reco truth summary branches for numerator quantities.  They
-    // are written from the same true particle as RecoTrackPrimaryParticleIndex,
-    // while the valid-index guard keeps duplicate suppression well-defined.
+  for (int it = 0; it < reco.nTracks; it++) {
+    // Use only per-reco truth summary branches for numerator quantities.
+    // Future Truth_Info files may not carry full per-particle truth arrays; the
+    // denominator can move to Truth_Spill separately.
     bool tms_touch = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] >=
                      MINIMUM_VISIBLE_ENERGY;
     if (tms_touch) {
@@ -147,48 +156,43 @@
       bool tms_end = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
       double particle_starting_ke =
           truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
-      double particle_ke = truth.BirthMomentum[ip][3] * GEV;
-      if (ip >= 0) {
-        particle_indices_reconstructed[ip]++;
-        if (particle_indices_reconstructed[ip] > 1) {
-          // Found this particle already at least once
-          not_double_reco = false;
-          /*if (ismuon)
-            std::cout
-                << "Warning: Found muon reconstructed multiple times in spill: "
-                << particle_starting_ke << " GeV" << std::endl;
-          else
-            std::cout << "Warning: Found non-muon reconstructed multiple times "
-                         "in spill: "
-                      << particle_starting_ke << " GeV" << std::endl;*/
-          if (ismuon) {
-            GetHist("reco_eff__multi_reco__muons",
-                    "Muons which were reconstructed more than once",
-                    "ke_tms_enter")
-                ->Fill(particle_starting_ke);
-            GetHist("reco_eff__multi_reco__probability_multi_reco_numerator",
-                    "Chance of Getting Reco'd more than Once", "ke_tms_enter")
-                ->Fill(particle_starting_ke);
-          } else
-            GetHist("reco_eff__multi_reco__nonmuon",
-                    "Non-muons which were reconstructed more than once",
-                    "ke_tms")
-                ->Fill(particle_starting_ke);
-          if (ismuon)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "reco_eff/multi_reco_muon",
-                      TString::Format("Particle %d reco'd %dx", ip,
-                                      particle_indices_reconstructed[ip])
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::many);
-          else
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "reco_eff/multi_reco_nonmuon",
-                      TString::Format("Particle %d reco'd %dx", ip,
-                                      particle_indices_reconstructed[ip])
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::many);
-        }
+      double particle_ke =
+          truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * GEV;
+
+      const std::string particle_fingerprint = reco_truth_fingerprint(it);
+      particle_fingerprints_reconstructed[particle_fingerprint]++;
+      if (particle_fingerprints_reconstructed[particle_fingerprint] > 1) {
+        // Found this apparent truth particle already at least once
+        not_double_reco = false;
+        if (ismuon) {
+          GetHist("reco_eff__multi_reco__muons",
+                  "Muons which were reconstructed more than once",
+                  "ke_tms_enter")
+              ->Fill(particle_starting_ke);
+          GetHist("reco_eff__multi_reco__probability_multi_reco_numerator",
+                  "Chance of Getting Reco'd more than Once", "ke_tms_enter")
+              ->Fill(particle_starting_ke);
+        } else
+          GetHist("reco_eff__multi_reco__nonmuon",
+                  "Non-muons which were reconstructed more than once",
+                  "ke_tms")
+              ->Fill(particle_starting_ke);
+        if (ismuon)
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                    "reco_eff/multi_reco_muon",
+                    TString::Format("Particle fingerprint reco'd %dx",
+                                    particle_fingerprints_reconstructed
+                                        [particle_fingerprint])
+                        .Data(),
+                    reco, lc, truth, DrawSliceN::many);
+        else
+          DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                    "reco_eff/multi_reco_nonmuon",
+                    TString::Format("Particle fingerprint reco'd %dx",
+                                    particle_fingerprints_reconstructed
+                                        [particle_fingerprint])
+                        .Data(),
+                    reco, lc, truth, DrawSliceN::many);
       }
       if (ismuon) {
         GetHist("reco_eff__all_muon_ke_tms_enter_including_doubles_numerator",
@@ -212,23 +216,26 @@
 
         GetHist("reco_eff__endpoint__muon_endpoint_x_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_x")
-            ->Fill(truth.PositionTMSEnd[ip][0] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][0] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_y_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_y")
-            ->Fill(truth.PositionTMSEnd[ip][1] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][1] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_endpoint_z")
-            ->Fill(truth.PositionTMSEnd[ip][2] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[it][2] * CM);
 
         GetHist("reco_eff__startpoint__muon_startpoint_x_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_x")
-            ->Fill(truth.PositionTMSStart[ip][0] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[it][0] *
+                   CM);
         GetHist("reco_eff__startpoint__muon_startpoint_y_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_y")
-            ->Fill(truth.PositionTMSStart[ip][1] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[it][1] *
+                   CM);
         GetHist("reco_eff__startpoint__muon_startpoint_z_numerator",
                 "Reconstruction Efficiency: Numerator", "muon_startpoint_z")
-            ->Fill(truth.PositionTMSStart[ip][2] * CM);
+            ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnteringTMS[it][2] *
+                   CM);
 
         if (particle_starting_ke < 1)
           DrawSlice(

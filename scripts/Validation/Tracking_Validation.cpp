@@ -512,7 +512,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
   auto time_start = std::chrono::high_resolution_clock::now();
   std::map<int, double> manually_calculated_shell_hadronic_energy_per_vertex;
 
-  std::map<int, int> particle_indices_reconstructed;
+  std::map<std::string, int> particle_fingerprints_reconstructed;
 
   Long64_t entry_number = 0;
   // Now loop over the ttree
@@ -542,7 +542,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
       last_tree_seen = current_tree;
       last_spill_seen = current_spill;
       // Empty on each new spill
-      particle_indices_reconstructed.clear();
+      particle_fingerprints_reconstructed.clear();
     }
 
 #include "Basic.cxx"
