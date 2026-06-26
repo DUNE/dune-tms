@@ -506,6 +506,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
   // StartPos, EndPos, nHits, TrackHitPos/KalmanPos
   // EnergyRange, EnergyDeposit, Length
 
+  int last_tree_seen = -1;
   int last_spill_seen = -1;
 
   auto time_start = std::chrono::high_resolution_clock::now();
@@ -534,9 +535,12 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     // Check if we're on a new spill
     // Some things should only be filled per spill
     bool on_new_spill = false;
-    if (last_spill_seen != reco.SpillNo) {
+    int current_tree = truth.fChain ? truth.fChain->GetTreeNumber() : -1;
+    int current_spill = truth.SpillNo;
+    if (last_tree_seen != current_tree || last_spill_seen != current_spill) {
       on_new_spill = true;
-      last_spill_seen = reco.SpillNo;
+      last_tree_seen = current_tree;
+      last_spill_seen = current_spill;
       // Empty on each new spill
       particle_indices_reconstructed.clear();
     }

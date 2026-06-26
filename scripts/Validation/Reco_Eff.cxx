@@ -126,28 +126,27 @@
 
   // Fill numerators of reco_eff plots here
   for (int it = 0; it < reco.nTracks; it++) {
-    // Only consider those that have enough visible energy in the TMS to count
-    bool tms_touch = truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] >=
-                     MINIMUM_VISIBLE_ENERGY;
+    int ip = truth.RecoTrackPrimaryParticleIndex[it];
+    if (ip >= truth.nTrueParticles || ip < 0) {
+      std::cout << "Warning: RecoTrackPrimaryParticleIndex is broken: Found "
+                   "no true particle in reco eff with ip="
+                << ip << std::endl;
+      continue;
+    }
+
+    // Keep numerator cuts and x-values tied to the same truth-particle arrays
+    // used by the denominator.  The per-reco summary branches are convenient,
+    // but using them here can fill a numerator without a denominator partner.
+    bool tms_touch = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
     if (tms_touch) {
-      bool ismuon = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
-      bool ispion = abs(truth.RecoTrackPrimaryParticlePDG[it]) == 211;
+      bool ismuon = abs(truth.PDG[ip]) == 13;
+      bool ispion = abs(truth.PDG[ip]) == 211;
       bool not_double_reco = true;
-      bool lar_start = truth.RecoTrackPrimaryParticleLArFiducialStart[it];
-      bool tms_end = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
-      double particle_starting_ke =
-          truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
-      double particle_ke = -1;
-      // truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * GEV;
-      int ip = truth.RecoTrackPrimaryParticleIndex[it];
-      if (ip >= truth.nTrueParticles || ip < 0) {
-        std::cout << "Warning: RecoTrackPrimaryParticleIndex is broken: Found "
-                     "no true particle in reco eff with ip="
-                  << ip << std::endl;
-        ip = -1;
-      }
+      bool lar_start = truth.LArFiducialStart[ip];
+      bool tms_end = truth.TMSFiducialEnd[ip];
+      double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
+      double particle_ke = truth.BirthMomentum[ip][3] * GEV;
       if (ip >= 0) {
-        particle_ke = truth.BirthMomentum[ip][3] * GEV;
         particle_indices_reconstructed[ip]++;
         if (particle_indices_reconstructed[ip] > 1) {
           // Found this particle already at least once
@@ -262,7 +261,7 @@
                        "ke_tms_enter")
             ->Fill(particle_starting_ke);
         int charge = reco.Charge[it];
-        int true_charge = (truth.RecoTrackPrimaryParticlePDG[it] < 0) ? -1 : 1;
+        int true_charge = (truth.PDG[ip] < 0) ? -1 : 1;
         bool correct_charge_id = true_charge * charge > 0;
         /*double true_muon_starting_ke =
           truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
@@ -284,8 +283,7 @@
                 "Fractional E Resolution",
                 "fractional_e_resolution")
             ->Fill((reco_ke - true_muon_starting_ke) / true_muon_starting_ke);*/
-        double true_z =
-            truth.RecoTrackPrimaryParticleTruePositionEnd[it][2] * CM;
+        double true_z = truth.PositionTMSEnd[ip][2] * CM;
         double reco_z = reco.EndPos[it][2] * CM;
         double dz = reco_z - true_z;
         bool correct_endpoint = -30 < dz && dz < 0;
@@ -299,9 +297,8 @@
                 "Reco Efficiency vs True KE, TMS ending: Numerator", "ke_tms")
             ->Fill(particle_ke);
         double particle_starting_angle =
-            std::atan2(
-                truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][0],
-                truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2]) *
+            std::atan2(truth.MomentumTMSStart[ip][0],
+                       truth.MomentumTMSStart[ip][2]) *
             DEG;
         GetHist("reco_eff__angle_tms_enter_numerator",
                 "Reco Efficiency vs True TMS-Entering Angle: Numerator",
