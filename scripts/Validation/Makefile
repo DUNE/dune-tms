@@ -2,7 +2,7 @@ CXX = g++
 ROOTCONFIG := $(shell which root-config)
 ROOTCFLAGS := $(shell $(ROOTCONFIG) --cflags)
 ROOTLIBS := $(shell $(ROOTCONFIG) --libs)
-CXXFLAGS := -g -Wall -Wextra -DNDEBUG -O0 -I $(DUNE_PLOT_STYLE_INC)
+CXXFLAGS := -g -Wall -Wextra -DNDEBUG -O0 -std=c++17 -I $(DUNE_PLOT_STYLE_INC)
 
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
