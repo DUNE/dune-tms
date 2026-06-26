@@ -93,15 +93,8 @@
             truth.RecoTrackPrimaryParticleTrueTrackLengthInTMS[it];
         true_pdg_of_highest = truth.RecoTrackPrimaryParticlePDG[it];
 
-        int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
-        if (particle_index >= 0 && particle_index < truth.nTrueParticles) {
-          true_muon_ke_lar = truth.BirthMomentum[particle_index][3] * 1e-3;
-        } else {
-          std::cout << "Warning: Didn't get a valid particle index: "
-                    << particle_index << std::endl;
-          true_muon_ke_lar =
-              truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * 1e-3;
-        }
+        true_muon_ke_lar =
+            truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * 1e-3;
         true_muon_areal_density_lar =
             truth.RecoTrackPrimaryParticleTrueTrackLength[it];
         true_muon_areal_density_lar_only =

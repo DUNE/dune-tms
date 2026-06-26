@@ -511,90 +511,6 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
     int ncolors = sizeof(colors) / sizeof(colors[0]);
     int n_offset = 0;
     for (int ip = 0; ip < reco.nTracks; ip++) {
-      #ifdef USE_TRUTH_VARS
-      int it = truth.RecoTrackPrimaryParticleIndex[ip];
-      // TODO these variables no longer exist. Use Truth_Spill instead
-      if (it < 0 || it > truth.nTrueParticles)
-        continue; // Outside valid range
-      // Only draw charged particles
-      bool should_draw_true_particle = false;
-      if (std::abs(truth.PDG[it]) == 13)
-        should_draw_true_particle = true;
-      // Pion
-      if (std::abs(truth.PDG[it]) == 211)
-        should_draw_true_particle = true;
-      // Kaon
-      if (std::abs(truth.PDG[it]) == 321)
-        should_draw_true_particle = true;
-      // Proton
-      if (std::abs(truth.PDG[it]) == 2212)
-        should_draw_true_particle = true;
-      
-      if (should_draw_true_particle) {
-        int marker_to_use_start = 22;
-        if (!truth.TMSFiducialStart[it])
-          marker_to_use_start = empty_up_triangle;
-        {
-          float mx = truth.PositionZIsTMSStart[it][2];
-          float my = truth.PositionZIsTMSStart[it][0];
-          TMarker marker(mx * CM, my * CM, marker_to_use_start);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markers.push_back(marker);
-        }
-        {
-          float mx = truth.PositionZIsTMSStart[it][2];
-          float my = truth.PositionZIsTMSStart[it][1];
-          TMarker marker(mx * CM, my * CM, marker_to_use_start);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markersy.push_back(marker);
-        }
-        int marker_to_use_end = empty_down_triangle;
-        {
-          float mx = truth.DeathPosition[it][2];
-          float my = truth.DeathPosition[it][0];
-          if (mx > 19000) {
-            mx = truth.PositionZIsTMSEnd[it][2];
-            my = truth.PositionZIsTMSEnd[it][0];
-          }
-          TMarker marker(mx * CM, my * CM, marker_to_use_end);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markers.push_back(marker);
-        }
-        {
-          float mx = truth.PositionTMSEnd[it][2];
-          float my = truth.PositionTMSEnd[it][1];
-          if (mx > 19000) {
-            mx = truth.PositionZIsTMSEnd[it][2];
-            my = truth.PositionZIsTMSEnd[it][1];
-          }
-          TMarker marker(mx * CM, my * CM, marker_to_use_end);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markersy.push_back(marker);
-        }
-        int marker_to_use_death = 23;
-        {
-          float mx = truth.DeathPosition[it][2];
-          float my = truth.DeathPosition[it][0];
-          TMarker marker(mx * CM, my * CM, marker_to_use_death);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markers.push_back(marker);
-        }
-        {
-          float mx = truth.DeathPosition[it][2];
-          float my = truth.DeathPosition[it][1];
-          TMarker marker(mx * CM, my * CM, marker_to_use_death);
-          marker.SetMarkerColor(colors[n_offset % ncolors]);
-          marker.SetMarkerSize(marker_size);
-          markersy.push_back(marker);
-        }
-        n_offset += 1;
-      }
-      #else
       // Only draw charged particles
       bool should_draw_true_particle = false;
       if (std::abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 13)
@@ -673,7 +589,6 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
         }
         n_offset += 1;
       }
-      #endif
     }
   }
 

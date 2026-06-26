@@ -565,214 +565,65 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
       GetHist("reco_track__secondary_pdg", "Reco Track Secondary Particle PDG",
               "pdg", "#N Tracks")
           ->Fill(PDGtoIndex(truth.RecoTrackSecondaryParticlePDG[it]));
-      int particle_index = truth.RecoTrackPrimaryParticleIndex[it];
-      if (particle_index < 0 || particle_index >= truth.nTrueParticles) {
-        std::cout << "Found a particle index outside the range: "
-                  << particle_index
-                  << ", nTrueParticles=" << truth.nTrueParticles << std::endl;
-      } else {
-        // Completeness = true primary on track / true primary, lower -> more
-        // missed hits Cleanliness = true primary on track / true all on track,
-        // lower -> more contamination
-        double completeness_energy =
-            truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] /
-            truth.TrueVisibleEnergy[particle_index];
+      if (NDPhysicsMuon(truth, reco, it) &&
+          truth.RecoTrackTrueVisibleEnergy[it] > 0 && truth.RecoTrackNHits[it] > 0) {
         double cleanliness_energy =
             truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] /
             truth.RecoTrackTrueVisibleEnergy[it];
-        double completeness_nhits =
-            truth.RecoTrackPrimaryParticleTrueNHits[it] /
-            (double)
-                truth.TrueNHits[particle_index]; // Also can do TrueNHitsInSlice
         double cleanliness_nhits = truth.RecoTrackPrimaryParticleTrueNHits[it] /
                                    (double)truth.RecoTrackNHits[it];
+        GetHist("reco_track__cleanliness_energy",
+                "Reco Track Cleanliness, Visible Energy", "cleanliness",
+                "#N Tracks")
+            ->Fill(cleanliness_energy);
+        GetHist("reco_track__cleanliness_nhits",
+                "Reco Track Cleanliness, N Hits", "cleanliness", "#N Tracks")
+            ->Fill(cleanliness_nhits);
 
-        if (NDPhysicsMuon(truth, reco, it)) {
-          GetHist("reco_track__completeness_energy",
-                  "Reco Track Completeness, Visible Energy", "completeness",
-                  "#N Tracks")
-              ->Fill(completeness_energy);
-          GetHist("reco_track__cleanliness_energy",
-                  "Reco Track Cleanliness, Visible Energy", "cleanliness",
-                  "#N Tracks")
-              ->Fill(cleanliness_energy);
-          GetHist("reco_track__completeness_nhits",
-                  "Reco Track Completeness, N Hits", "completeness",
-                  "#N Tracks")
-              ->Fill(completeness_nhits);
-          GetHist("reco_track__cleanliness_nhits",
-                  "Reco Track Cleanliness, N Hits", "cleanliness", "#N Tracks")
-              ->Fill(cleanliness_nhits);
-
-          GetHist("reco_track__debugging__completeness_nostack_1_n_hits_"
-                  "in_track",
-                  "N Hits in Track: Reco Track", "nhits_in_track", "#N Tracks")
-              ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-          GetHist("reco_track__debugging__completeness_nostack_2_n_hits_"
-                  "in_slice",
-                  "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
-              ->Fill(truth.TrueNHitsInSlice[particle_index]);
-          GetHist("reco_track__debugging__completeness_nostack_3_n_hits_"
-                  "in_truth",
-                  "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
-              ->Fill(truth.TrueNHits[particle_index]);
-
-          GetHist("reco_track__debugging__completeness_energy_nostack_1_"
-                  "energy_in_track",
-                  "Energy in Track: Reco Track", "energy_in_track", "#N Tracks")
-              ->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
-          GetHist("reco_track__debugging__completeness_energy_nostack_2_"
-                  "energy_in_truth",
-                  "Energy in Track: Truth", "energy_in_track", "#N Tracks")
-              ->Fill(truth.TrueVisibleEnergy[particle_index]);
-
-          bool ismuon = std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
-          if (ismuon) {
-            GetHist("reco_track__debugging__muon_only_completeness_"
-                    "nostack_1_n_hits_in_track",
-                    "N Hits in Track: Reco Track", "nhits_in_track",
-                    "#N Tracks")
-                ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-            GetHist("reco_track__debugging__muon_only_completeness_"
-                    "nostack_2_n_hits_in_slice",
-                    "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
-                ->Fill(truth.TrueNHitsInSlice[particle_index]);
-            GetHist("reco_track__debugging__muon_only_completeness_"
-                    "nostack_3_n_hits_in_truth",
-                    "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
-                ->Fill(truth.TrueNHits[particle_index]);
-
-            GetHist("reco_track__debugging__muon_only_completeness_energy_"
-                    "nostack_1_energy_in_track",
-                    "Energy in Track: Reco Track", "energy_in_track",
-                    "#N Tracks")
-                ->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it]);
-            GetHist("reco_track__debugging__muon_only_completeness_energy_"
-                    "nostack_2_energy_in_truth",
-                    "Energy in Track: Truth", "energy_in_track", "#N Tracks")
-                ->Fill(truth.TrueVisibleEnergy[particle_index]);
+        bool ismuon = std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13;
+        if (ismuon && reco.nTracks == 1) {
+          std::map<double, int> count;
+          for (int ih = 0; ih < lc.nHits; ih++) {
+            count[lc.RecoHitPos[ih][2]] += 1;
+            if (count[lc.RecoHitPos[ih][2]] == 2)
+              GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_"
+                      "planes",
+                      "Z Pos with Two or More Hits in Plane", "Z", "#Count")
+                  ->Fill(lc.RecoHitPos[ih][2] * CM);
+          }
+          for (auto &plane : count) {
+            GetHist("reco_track__debugging__n_hits_in_plane",
+                    "Hits per plane: All Reco Hits", "n_hits_per_plane",
+                    "#Count")
+                ->Fill(plane.second);
+            GetHist("reco_track__debugging__n_hits_in_plane_both_"
+                    "nostack_1_all_hits",
+                    "Hits per plane: All Reco Hits", "n_hits_per_plane",
+                    "#Count")
+                ->Fill(plane.second);
           }
 
-          if (ismuon && reco.nTracks == 1) {
-            GetHist("reco_track__debugging__single_muon_completeness_"
-                    "nostack_1_n_hits_in_track",
-                    "N Hits in Track: Reco Track", "nhits_in_track",
-                    "#N Tracks")
-                ->Fill(truth.RecoTrackPrimaryParticleTrueNHits[it]);
-            GetHist("reco_track__debugging__single_muon_completeness_"
-                    "nostack_2_n_hits_in_slice",
-                    "N Hits in Track: Slice", "nhits_in_track", "#N Tracks")
-                ->Fill(truth.TrueNHitsInSlice[particle_index]);
-            GetHist("reco_track__debugging__single_muon_completeness_"
-                    "nostack_3_n_hits_in_truth",
-                    "N Hits in Track: Truth", "nhits_in_track", "#N Tracks")
-                ->Fill(truth.TrueNHits[particle_index]);
-            {
-              std::map<double, int> count;
-              for (int ih = 0; ih < lc.nHits; ih++) {
-                count[lc.RecoHitPos[ih][2]] += 1;
-                if (count[lc.RecoHitPos[ih][2]] == 2)
-                  GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_"
-                          "planes",
-                          "Z Pos with Two or More Hits in Plane", "Z", "#Count")
-                      ->Fill(lc.RecoHitPos[ih][2] * CM);
-              }
-              for (auto &plane : count) {
-                GetHist("reco_track__debugging__n_hits_in_plane",
-                        "Hits per plane: All Reco Hits", "n_hits_per_plane",
-                        "#Count")
-                    ->Fill(plane.second);
-                GetHist("reco_track__debugging__n_hits_in_plane_both_"
-                        "nostack_1_all_hits",
-                        "Hits per plane: All Reco Hits", "n_hits_per_plane",
-                        "#Count")
-                    ->Fill(plane.second);
-              }
-            }
-            {
-              std::map<double, int> count;
-              for (int ih = 0; ih < reco.nHits[0]; ih++) {
-                count[reco.TrackHitPos[0][ih][2]] += 1;
-                if (count[reco.TrackHitPos[0][ih][2]] == 2)
-                  GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_"
-                          "planes_in_track",
-                          "Z Pos with Two or More Hits in Plane in Track", "Z",
-                          "#Count")
-                      ->Fill(reco.TrackHitPos[0][ih][2] * CM);
-              }
-              for (auto &plane : count) {
-                GetHist("reco_track__debugging__n_hits_in_plane_track",
-                        "Hits per plane: In Track", "n_hits_per_plane",
-                        "#Count")
-                    ->Fill(plane.second);
-                GetHist("reco_track__debugging__n_hits_in_plane_both_"
-                        "nostack_2_track",
-                        "Hits per plane: In Tracks", "n_hits_per_plane",
-                        "#Count")
-                    ->Fill(plane.second);
-              }
-            }
+          count.clear();
+          for (int ih = 0; ih < reco.nHits[0]; ih++) {
+            count[reco.TrackHitPos[0][ih][2]] += 1;
+            if (count[reco.TrackHitPos[0][ih][2]] == 2)
+              GetHist("reco_track__debugging__z_pos_with_two_or_more_hit_"
+                      "planes_in_track",
+                      "Z Pos with Two or More Hits in Plane in Track", "Z",
+                      "#Count")
+                  ->Fill(reco.TrackHitPos[0][ih][2] * CM);
+          }
+          for (auto &plane : count) {
+            GetHist("reco_track__debugging__n_hits_in_plane_track",
+                    "Hits per plane: In Track", "n_hits_per_plane",
+                    "#Count")
+                ->Fill(plane.second);
+            GetHist("reco_track__debugging__n_hits_in_plane_both_"
+                    "nostack_2_track",
+                    "Hits per plane: In Tracks", "n_hits_per_plane", "#Count")
+                ->Fill(plane.second);
           }
 
-          bool has_more_reco_energy =
-              truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] >
-              truth.TrueVisibleEnergy[particle_index];
-          bool has_more_reco_nhits =
-              truth.RecoTrackPrimaryParticleTrueNHits[it] >
-              truth.TrueNHits[particle_index];
-          bool has_zero_true_nhits = truth.TrueNHits[particle_index] == 0;
-
-          if (has_zero_true_nhits)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "completeness_cleanliness/completeness/zero_true_nhits",
-                      TString::Format("n tracks = %d", reco.nTracks).Data(),
-                      reco, lc, truth, DrawSliceN::handfull);
-          if (has_more_reco_nhits)
-            DrawSlice(
-                TString::Format("entry_%lld", entry_number).Data(),
-                "completeness_cleanliness/completeness/has_more_reco_nhits",
-                TString::Format("Track has more reco N hits;N hits reco: %d;N "
-                                "hits true: %d",
-                                truth.RecoTrackPrimaryParticleTrueNHits[it],
-                                truth.TrueNHits[particle_index])
-                    .Data(),
-                reco, lc, truth, DrawSliceN::handfull);
-          if (has_more_reco_energy)
-            DrawSlice(
-                TString::Format("entry_%lld", entry_number).Data(),
-                "completeness_cleanliness/completeness/has_more_reco_energy",
-                TString::Format(
-                    "Track has more reco E;E Reco: %.1f MeV;E True: %.1f MeV",
-                    truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it],
-                    truth.TrueVisibleEnergy[particle_index])
-                    .Data(),
-                reco, lc, truth, DrawSliceN::handfull);
-
-          if (completeness_energy < 0.5)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "completeness_cleanliness/completeness/under_50_percent",
-                      TString::Format(
-                          "Completeness by E;is under 50%%;Completeness = %.2f",
-                          completeness_energy)
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::handfull);
-          if (completeness_energy >= 0.67 && completeness_energy <= 0.73)
-            DrawSlice(
-                TString::Format("entry_%lld", entry_number).Data(),
-                "completeness_cleanliness/completeness/around_70_percent",
-                TString::Format(
-                    "Completeness by E;is around 70%%;Completeness = %.2f",
-                    completeness_energy)
-                    .Data(),
-                reco, lc, truth, DrawSliceN::handfull);
-          if (completeness_energy >= 0.98)
-            DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
-                      "completeness_cleanliness/completeness/above_98_percent",
-                      TString::Format(
-                          "Completeness by E;is above 98%%;Completeness = %.2f",
-                          completeness_energy)
-                          .Data(),
-                      reco, lc, truth, DrawSliceN::handfull);
           if (cleanliness_energy < 0.5)
             DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                       "completeness_cleanliness/cleanliness/under_50_percent",
@@ -994,7 +845,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
       }
 
       // First find the max true reco'd muon starting ke
-      int index = -99999;
+      int highest_muon_track = -1;
       double max_muon_starting_ke = -999999;
       for (int it = 0; it < reco.nTracks; it++) {
         if (std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13) {
@@ -1003,15 +854,13 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
               1e-3;
           if (muon_starting_ke > max_muon_starting_ke) {
             max_muon_starting_ke = muon_starting_ke;
-            index = truth.RecoTrackPrimaryParticleIndex[it];
+            highest_muon_track = it;
           }
         }
       }
-      if (index >= 0) {
-        TVector3 birth_pos(truth.BirthPosition[index][0],
-                           truth.BirthPosition[index][1],
-                           truth.BirthPosition[index][2]);
-        passes_ndlar_fiducial_cut = LArFiducialCut(birth_pos);
+      if (highest_muon_track >= 0) {
+        passes_ndlar_fiducial_cut =
+            truth.RecoTrackPrimaryParticleLArFiducialStart[highest_muon_track];
       }
       // Now fill the plots if we found one
       if (max_muon_starting_ke >= 0) {

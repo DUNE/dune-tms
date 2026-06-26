@@ -207,12 +207,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     lc.GetEntry(entry_number);
 
     for (int itrack = 0; itrack < truth.RecoTrackN; itrack++) {
-      int particle_index = truth.RecoTrackPrimaryParticleIndex[itrack];
-      int pdg = -999999999;
-      if (particle_index >= 0 && particle_index < truth.nTrueParticles)
-        pdg = truth.PDG[particle_index];
-      // else std::cout<<"Found unusual RecoTrackPrimaryParticleIndex:
-      // "<<particle_index<<std::endl;
+      int pdg = truth.RecoTrackPrimaryParticlePDG[itrack];
       auto end_array =
           truth.RecoTrackPrimaryParticleTruePositionTrackEnd[itrack];
       TVector3 endpoint(end_array[0], end_array[1], end_array[2]);
