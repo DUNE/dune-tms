@@ -1,11 +1,14 @@
 #include <chrono> // for high res clock
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <math.h> /* atan2 */
+#include <stdexcept>
 #include <tuple>
+#include <vector>
 #define TAU 6.283185307179586
 
 // Root specific
@@ -20,6 +23,7 @@
 #include <TPaveText.h>
 #include <TString.h>
 #include <TStyle.h>
+#include <TChain.h>
 #include <TVector3.h>
 
 // dune specific
@@ -1430,13 +1434,114 @@ std::string getOutputDirname(const std::string &outputFilename) {
   return filename + "_images/";
 }
 
+bool HasWildcard(const std::string &path) {
+  return path.find('*') != std::string::npos ||
+         path.find('?') != std::string::npos ||
+         path.find('[') != std::string::npos;
+}
+
+bool HasValidationTrees(const std::filesystem::path &path) {
+  TFile file(path.string().c_str(), "READ");
+  if (file.IsZombie())
+    return false;
+
+  return file.Get("Truth_Info") && file.Get("Reco_Tree") &&
+         file.Get("Line_Candidates");
+}
+
+struct InputFiles {
+  std::vector<std::string> files;
+  std::vector<std::string> patterns;
+
+  std::string Description() const {
+    if (!patterns.empty())
+      return patterns.front();
+    if (files.size() == 1)
+      return files.front();
+    return std::to_string(files.size()) + " validation ROOT files";
+  }
+};
+
+InputFiles ResolveInputFiles(const std::string &inputFilename) {
+  InputFiles inputs;
+
+  if (HasWildcard(inputFilename)) {
+    inputs.patterns.push_back(inputFilename);
+    std::cout << "Using input pattern: " << inputFilename << std::endl;
+    return inputs;
+  }
+
+  std::error_code ec;
+  const std::filesystem::path inputPath(inputFilename);
+  if (!std::filesystem::exists(inputPath, ec)) {
+    throw std::runtime_error("Input path does not exist: " + inputFilename);
+  }
+
+  if (std::filesystem::is_regular_file(inputPath, ec)) {
+    inputs.files.push_back(inputPath.string());
+    std::cout << "Using single input file: " << inputPath << std::endl;
+    return inputs;
+  }
+
+  if (!std::filesystem::is_directory(inputPath, ec)) {
+    throw std::runtime_error("Input path is neither a file nor a directory: " +
+                             inputFilename);
+  }
+
+  std::cout << "Scanning input directory recursively: " << inputPath << std::endl;
+  for (const auto &entry : std::filesystem::recursive_directory_iterator(
+           inputPath, std::filesystem::directory_options::skip_permission_denied,
+           ec)) {
+    if (ec) {
+      std::cerr << "Warning while scanning " << inputPath << ": " << ec.message()
+                << std::endl;
+      ec.clear();
+      continue;
+    }
+
+    if (!entry.is_regular_file(ec))
+      continue;
+
+    const auto &path = entry.path();
+    if (path.extension() != ".root")
+      continue;
+
+    if (HasValidationTrees(path))
+      inputs.files.push_back(path.string());
+  }
+
+  std::sort(inputs.files.begin(), inputs.files.end());
+
+  if (inputs.files.empty()) {
+    throw std::runtime_error("No ROOT files with Truth_Info, Reco_Tree, and "
+                             "Line_Candidates were found under: " +
+                             inputFilename);
+  }
+
+  std::cout << "Found " << inputs.files.size()
+            << " validation input files under " << inputPath << std::endl;
+  return inputs;
+}
+
+void AddInputsToChain(TChain &chain, const InputFiles &inputs) {
+  if (!inputs.patterns.empty()) {
+    for (const auto &pattern : inputs.patterns)
+      chain.Add(pattern.c_str());
+    return;
+  }
+
+  for (const auto &file : inputs.files)
+    chain.Add(file.c_str());
+}
+
 int main(int argc, char *argv[]) {
   // Check if the correct number of arguments is provided
   std::string exeName = getExecutableName(argv[0]);
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0]
-              << " <input_filename> <num_events (optional)> <max num slices to "
-                 "draw (optional)> \\\n <output filename (defaults to "
+              << " <input file|glob|directory> <num_events (optional)> "
+                 "<max num slices to draw (optional)> \\\n"
+                 "<output filename (defaults to "
                  "/exp/dune/data/users/$USER/dune-tms/Validation/" +
                      exeName + "/<inputdirname>.root)"
               << std::endl;
@@ -1445,17 +1550,7 @@ int main(int argc, char *argv[]) {
 
   // Extract input filename and number of events from command line arguments
   std::string inputFilename = argv[1];
-  std::string filename;
-  if (inputFilename.find(".root") != std::string::npos) {
-    // Assuming we're specifying a single tmsreco file
-    // Optionally someone might specify several using dir/\*root
-    filename = inputFilename;
-    std::cout << "Using single file filename: " << filename << std::endl;
-  } else {
-    // Assuming the full directory
-    filename = inputFilename + "/tmsreco/RHC/00m/*.root";
-    std::cout << "Using full directory filename: " << filename << std::endl;
-  }
+  InputFiles inputFiles = ResolveInputFiles(inputFilename);
   int numEvents = -1;
   if (argc > 2)
     numEvents = atoi(argv[2]);
@@ -1465,24 +1560,25 @@ int main(int argc, char *argv[]) {
 
   // Load the tree and make the Truth_Info object
   TChain *truth = new TChain("Truth_Info");
-  truth->Add(filename.c_str());
   TChain *reco = new TChain("Reco_Tree");
-  reco->Add(filename.c_str());
   TChain *line_candidates = new TChain("Line_Candidates");
-  line_candidates->Add(filename.c_str());
+  AddInputsToChain(*truth, inputFiles);
+  AddInputsToChain(*reco, inputFiles);
+  AddInputsToChain(*line_candidates, inputFiles);
   bool missing_ttree = false;
   if (!truth || truth->GetEntriesFast() == 0) {
-    std::string message = filename + " doesn't contain Truth_Info";
+    std::string message = inputFiles.Description() + " doesn't contain Truth_Info";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
   if (!reco || reco->GetEntriesFast() == 0) {
-    std::string message = filename + " doesn't contain Reco_Tree";
+    std::string message = inputFiles.Description() + " doesn't contain Reco_Tree";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
   if (!line_candidates || line_candidates->GetEntriesFast() == 0) {
-    std::string message = filename + " doesn't contain Line_Candidates";
+    std::string message =
+        inputFiles.Description() + " doesn't contain Line_Candidates";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
