@@ -38,6 +38,11 @@ struct Counters {
   long long truth_spill_particles = 0;
   long long denom_muons = 0;
   long long denom_tms_touch = 0;
+  long long denom_tms_touch_lar_start = 0;
+  long long denom_tms_touch_tms_end = 0;
+  long long denom_tms_touch_lar_only = 0;
+  long long denom_tms_touch_tms_only = 0;
+  long long denom_tms_touch_neither_strict_flag = 0;
   long long denom_strict = 0;
   long long denom_negative_ke = 0;
   long long denom_default_ke = 0;
@@ -48,6 +53,11 @@ struct Counters {
   long long numerator_muons = 0;
   long long numerator_tms_touch = 0;
   long long numerator_all_unique = 0;
+  long long numerator_unique_lar_start = 0;
+  long long numerator_unique_tms_end = 0;
+  long long numerator_unique_lar_only = 0;
+  long long numerator_unique_tms_only = 0;
+  long long numerator_unique_neither_strict_flag = 0;
   long long numerator_strict_unique = 0;
   long long numerator_duplicates = 0;
   long long numerator_negative_ke = 0;
@@ -208,6 +218,18 @@ void FillCut(TH1D *hist, const std::string &label) {
   hist->Fill(label.c_str(), 1.0);
 }
 
+void FillStrictReason(TH1D *hist, bool lar_start, bool tms_end) {
+  if (lar_start && tms_end) {
+    FillCut(hist, "pass");
+  } else if (!lar_start && tms_end) {
+    FillCut(hist, "no LAr start");
+  } else if (lar_start && !tms_end) {
+    FillCut(hist, "no TMS end");
+  } else {
+    FillCut(hist, "no LAr start or TMS end");
+  }
+}
+
 void SaveCanvas(TCanvas &canvas, const std::string &path) {
   canvas.Print(path.c_str());
 }
@@ -258,6 +280,11 @@ void WriteSummary(const std::string &filename, const Counters &counts,
   out << "  True particles:      " << counts.truth_spill_particles << "\n";
   out << "  Muons:               " << counts.denom_muons << "\n";
   out << "  Muons TMS-touching:  " << counts.denom_tms_touch << "\n";
+  out << "  TMS-touching with LAr start: " << counts.denom_tms_touch_lar_start << "\n";
+  out << "  TMS-touching with TMS end:   " << counts.denom_tms_touch_tms_end << "\n";
+  out << "  TMS-touching LAr only:       " << counts.denom_tms_touch_lar_only << "\n";
+  out << "  TMS-touching TMS only:       " << counts.denom_tms_touch_tms_only << "\n";
+  out << "  TMS-touching neither flag:   " << counts.denom_tms_touch_neither_strict_flag << "\n";
   out << "  Strict muons:        " << counts.denom_strict << "\n";
   out << "  Negative KE:         " << counts.denom_negative_ke << "\n";
   out << "  Default-like KE:     " << counts.denom_default_ke << "\n";
@@ -269,6 +296,11 @@ void WriteSummary(const std::string &filename, const Counters &counts,
   out << "  Reco primary muons:     " << counts.numerator_muons << "\n";
   out << "  TMS-touching muons:     " << counts.numerator_tms_touch << "\n";
   out << "  Unique all numerators:  " << counts.numerator_all_unique << "\n";
+  out << "  Unique with LAr start:  " << counts.numerator_unique_lar_start << "\n";
+  out << "  Unique with TMS end:    " << counts.numerator_unique_tms_end << "\n";
+  out << "  Unique LAr only:        " << counts.numerator_unique_lar_only << "\n";
+  out << "  Unique TMS only:        " << counts.numerator_unique_tms_only << "\n";
+  out << "  Unique neither flag:    " << counts.numerator_unique_neither_strict_flag << "\n";
   out << "  Unique strict numerators: " << counts.numerator_strict_unique << "\n";
   out << "  Duplicate reco muons:   " << counts.numerator_duplicates << "\n";
   out << "  Negative KE:            " << counts.numerator_negative_ke << "\n";
@@ -363,6 +395,14 @@ int main(int argc, char **argv) {
       {"muon pdg pass", "muon pdg fail", "TMS visible pass", "TMS visible fail",
        "KE bounds pass", "KE bounds fail", "duplicate pass", "duplicate fail",
        "LAr start pass", "LAr start fail", "TMS end pass", "TMS end fail"});
+  TH1D *h_den_strict_reason = MakeCutflow(
+      "denominator_strict_cut_reason",
+      "Truth_Spill strict denominator cut reason",
+      {"pass", "no LAr start", "no TMS end", "no LAr start or TMS end"});
+  TH1D *h_num_strict_reason = MakeCutflow(
+      "numerator_strict_cut_reason",
+      "Truth_Info strict numerator cut reason",
+      {"pass", "no LAr start", "no TMS end", "no LAr start or TMS end"});
   TH1D *h_den_cutflow = MakeCutflow(
       "denominator_cutflow", "Truth_Spill denominator cutflow",
       {"all particles", "muon pdg", "TMS visible >= 5 MeV", "KE in hist bounds",
@@ -433,6 +473,23 @@ int main(int argc, char **argv) {
       counts.denom_tms_touch++;
       if (ke_in_bounds) FillCut(h_den_cutflow, "KE in hist bounds");
       h_all_den->Fill(ke_tms_enter);
+
+      FillStrictReason(h_den_strict_reason, lar_start, tms_end);
+      if (lar_start) counts.denom_tms_touch_lar_start++;
+      if (tms_end) counts.denom_tms_touch_tms_end++;
+      if (lar_start && !tms_end) counts.denom_tms_touch_lar_only++;
+      if (!lar_start && tms_end) counts.denom_tms_touch_tms_only++;
+      if (!lar_start && !tms_end) counts.denom_tms_touch_neither_strict_flag++;
+      if (!(lar_start && tms_end)) {
+        AddExample(examples,
+                   "Denom strict fail: spill entry=" + std::to_string(spill_entry) +
+                       " SpillNo=" + std::to_string(spill->SpillNo) +
+                       " particle=" + std::to_string(ip) +
+                       " KE=" + std::to_string(ke_tms_enter) +
+                       " visible=" + std::to_string(visible) +
+                       " LArStart=" + std::to_string(lar_start) +
+                       " TMSEnd=" + std::to_string(tms_end));
+      }
 
       if (lar_start) FillCut(h_den_cutflow, "LAr fid start");
       if (tms_end) FillCut(h_den_cutflow, "TMS fid end");
@@ -535,6 +592,39 @@ int main(int argc, char **argv) {
       h_all_num->Fill(ke_tms_enter);
       counts.numerator_all_unique++;
 
+      FillStrictReason(h_num_strict_reason, lar_start, tms_end);
+      if (lar_start) counts.numerator_unique_lar_start++;
+      if (tms_end) counts.numerator_unique_tms_end++;
+      if (lar_start && !tms_end) counts.numerator_unique_lar_only++;
+      if (!lar_start && tms_end) counts.numerator_unique_tms_only++;
+      if (!lar_start && !tms_end) counts.numerator_unique_neither_strict_flag++;
+      if (!(lar_start && tms_end)) {
+        std::ostringstream msg;
+        msg << "Numerator strict fail: truth entry=" << entry
+            << " SpillNo=" << truth->SpillNo
+            << " track=" << it
+            << " KE=" << ke_tms_enter
+            << " visible=" << visible
+            << " LArStart=" << lar_start
+            << " TMSEnd=" << tms_end
+            << " start=("
+            << truth->RecoTrackPrimaryParticleTruePositionStart[it][0] << ","
+            << truth->RecoTrackPrimaryParticleTruePositionStart[it][1] << ","
+            << truth->RecoTrackPrimaryParticleTruePositionStart[it][2] << ")"
+            << " end=("
+            << truth->RecoTrackPrimaryParticleTruePositionEnd[it][0] << ","
+            << truth->RecoTrackPrimaryParticleTruePositionEnd[it][1] << ","
+            << truth->RecoTrackPrimaryParticleTruePositionEnd[it][2] << ")"
+            << " enterTMS=("
+            << truth->RecoTrackPrimaryParticleTruePositionEnteringTMS[it][0]
+            << ","
+            << truth->RecoTrackPrimaryParticleTruePositionEnteringTMS[it][1]
+            << ","
+            << truth->RecoTrackPrimaryParticleTruePositionEnteringTMS[it][2]
+            << ")";
+        AddExample(examples, msg.str());
+      }
+
       if (lar_start) FillCut(h_num_cutflow, "LAr fid start");
       if (tms_end) FillCut(h_num_cutflow, "TMS fid end");
       if (lar_start && tms_end) {
@@ -574,6 +664,8 @@ int main(int argc, char **argv) {
       {h_duplicate, "num_duplicate_fingerprint"},
       {h_den_passfail, "denominator_cut_pass_fail"},
       {h_num_passfail, "numerator_cut_pass_fail"},
+      {h_den_strict_reason, "denominator_strict_cut_reason"},
+      {h_num_strict_reason, "numerator_strict_cut_reason"},
       {h_den_cutflow, "denominator_cutflow"},
       {h_num_cutflow, "numerator_cutflow"},
   };
