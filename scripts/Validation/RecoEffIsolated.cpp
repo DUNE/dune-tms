@@ -267,6 +267,8 @@ void AddExample(std::vector<std::string> &examples, const std::string &text) {
 
 void WriteSummary(const std::string &filename, const Counters &counts,
                   const std::vector<std::string> &examples,
+                  const std::vector<std::string> &denominator_examples,
+                  const std::vector<std::string> &numerator_examples,
                   const std::vector<std::string> &input_files) {
   std::ofstream out(filename);
   out << "RecoEffIsolated diagnostics\n";
@@ -307,8 +309,12 @@ void WriteSummary(const std::string &filename, const Counters &counts,
   out << "  Default-like KE:        " << counts.numerator_default_ke << "\n";
   out << "  Out-of-bounds KE:       " << counts.numerator_out_of_bounds_ke << "\n";
   out << "  RecoTrackN over max:    " << counts.numerator_reco_trackn_over_max << "\n";
-  out << "\nExamples\n";
+  out << "\nGeneral examples\n";
   for (const auto &example : examples) out << "  " << example << "\n";
+  out << "\nDenominator strict-fail examples\n";
+  for (const auto &example : denominator_examples) out << "  " << example << "\n";
+  out << "\nNumerator strict-fail examples\n";
+  for (const auto &example : numerator_examples) out << "  " << example << "\n";
 }
 
 } // namespace
@@ -348,6 +354,8 @@ int main(int argc, char **argv) {
 
   Counters counts;
   std::vector<std::string> examples;
+  std::vector<std::string> denominator_examples;
+  std::vector<std::string> numerator_examples;
   std::map<std::string, int> reconstructed_fingerprints;
 
   TH1D *h_all_den = MakeKeHist("all_muon_ke_tms_enter_denominator",
@@ -481,8 +489,9 @@ int main(int argc, char **argv) {
       if (!lar_start && tms_end) counts.denom_tms_touch_tms_only++;
       if (!lar_start && !tms_end) counts.denom_tms_touch_neither_strict_flag++;
       if (!(lar_start && tms_end)) {
-        AddExample(examples,
-                   "Denom strict fail: spill entry=" + std::to_string(spill_entry) +
+        AddExample(denominator_examples,
+                   "Denom strict fail: spill entry=" +
+                       std::to_string(spill_entry) +
                        " SpillNo=" + std::to_string(spill->SpillNo) +
                        " particle=" + std::to_string(ip) +
                        " KE=" + std::to_string(ke_tms_enter) +
@@ -501,13 +510,15 @@ int main(int argc, char **argv) {
     }
   }
 
-  counts.truth_info_entries = truth->GetEntriesFast();
-  counts.reco_entries = reco->GetEntriesFast();
+  const Long64_t truth_info_entries = truth->fChain ? truth->fChain->GetEntries() : 0;
+  const Long64_t reco_entries = reco->fChain ? reco->fChain->GetEntries() : 0;
+  counts.truth_info_entries = truth_info_entries;
+  counts.reco_entries = reco_entries;
   int last_truth_tree = -1;
   int last_spill = -999999999;
-  for (Long64_t entry = 0; entry < truth->GetEntriesFast(); ++entry) {
+  for (Long64_t entry = 0; entry < truth_info_entries; ++entry) {
     truth->GetEntry(entry);
-    if (entry < reco->GetEntriesFast()) reco->GetEntry(entry);
+    if (entry < reco_entries) reco->GetEntry(entry);
     const int current_truth_tree =
         truth->fChain ? truth->fChain->GetTreeNumber() : -1;
     if (current_truth_tree != last_truth_tree || truth->SpillNo != last_spill) {
@@ -516,7 +527,7 @@ int main(int argc, char **argv) {
       last_spill = truth->SpillNo;
     }
 
-    const int reco_ntracks = entry < reco->GetEntriesFast() ? reco->nTracks : -1;
+    const int reco_ntracks = entry < reco_entries ? reco->nTracks : -1;
     counts.truth_info_reco_tracks += truth->RecoTrackN;
     if (reco_ntracks >= 0) counts.reco_tree_tracks += reco_ntracks;
     if (reco_ntracks >= 0 && truth->RecoTrackN != reco_ntracks) {
@@ -622,7 +633,7 @@ int main(int argc, char **argv) {
             << ","
             << truth->RecoTrackPrimaryParticleTruePositionEnteringTMS[it][2]
             << ")";
-        AddExample(examples, msg.str());
+        AddExample(numerator_examples, msg.str());
       }
 
       if (lar_start) FillCut(h_num_cutflow, "LAr fid start");
@@ -684,7 +695,8 @@ int main(int argc, char **argv) {
   for (auto &item : diagnostics) item.first->Write();
   out.Close();
 
-  WriteSummary(output_dir + "/diagnostics.txt", counts, examples, input_files);
+  WriteSummary(output_dir + "/diagnostics.txt", counts, examples,
+               denominator_examples, numerator_examples, input_files);
 
   std::cout << "RecoEffIsolated output written to " << output_dir << std::endl;
   std::cout << "  efficiencies: " << output_dir << std::endl;
