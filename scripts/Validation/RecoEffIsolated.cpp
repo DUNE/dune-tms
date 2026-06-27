@@ -26,6 +26,12 @@ namespace {
 constexpr double kGeV = 1e-3;
 constexpr double kMinVisibleEnergy = 5.0; // MeV
 constexpr double kDefaultLike = -1e8;
+constexpr double kLArFiducialStartX = -3478.48;
+constexpr double kLArFiducialStartY = -2166.71;
+constexpr double kLArFiducialStartZ = 4179.24;
+constexpr double kLArFiducialEndX = 3478.48;
+constexpr double kLArFiducialEndY = 829.282;
+constexpr double kLArFiducialEndZ = 9135.88;
 
 double muon_ke_bins[] = {0.0,  0.25, 0.5,  0.75, 1.0, 1.25, 1.5, 1.75, 2.0,
                          2.25, 2.5,  2.75, 3.0,  3.5, 4.0,  4.5, 5.0};
@@ -43,6 +49,7 @@ struct Counters {
   long long denom_tms_touch_lar_only = 0;
   long long denom_tms_touch_tms_only = 0;
   long long denom_tms_touch_neither_strict_flag = 0;
+  long long denom_lar_start_branch_disagrees = 0;
   long long denom_strict = 0;
   long long denom_negative_ke = 0;
   long long denom_default_ke = 0;
@@ -58,6 +65,7 @@ struct Counters {
   long long numerator_unique_lar_only = 0;
   long long numerator_unique_tms_only = 0;
   long long numerator_unique_neither_strict_flag = 0;
+  long long numerator_lar_start_branch_disagrees = 0;
   long long numerator_strict_unique = 0;
   long long numerator_duplicates = 0;
   long long numerator_negative_ke = 0;
@@ -85,6 +93,7 @@ struct TruthSpill {
   std::vector<Float_t> TrueVisibleEnergy;
   std::unique_ptr<Bool_t[]> LArFiducialStart;
   std::unique_ptr<Bool_t[]> TMSFiducialEnd;
+  std::vector<Float_t> BirthPosition;
   std::vector<Float_t> MomentumTMSStart;
 
   TruthSpill(TChain *input, Long64_t max_particles_in)
@@ -92,6 +101,7 @@ struct TruthSpill {
         TrueVisibleEnergy(max_particles),
         LArFiducialStart(std::make_unique<Bool_t[]>(max_particles)),
         TMSFiducialEnd(std::make_unique<Bool_t[]>(max_particles)),
+        BirthPosition(max_particles * 4),
         MomentumTMSStart(max_particles * 4) {
     chain->SetMakeClass(1);
     chain->SetBranchStatus("*", 0);
@@ -101,6 +111,7 @@ struct TruthSpill {
     chain->SetBranchStatus("TrueVisibleEnergy", 1);
     chain->SetBranchStatus("LArFiducialStart", 1);
     chain->SetBranchStatus("TMSFiducialEnd", 1);
+    chain->SetBranchStatus("BirthPosition", 1);
     chain->SetBranchStatus("MomentumTMSStart", 1);
     chain->SetBranchAddress("SpillNo", &SpillNo);
     chain->SetBranchAddress("nTrueParticles", &nTrueParticles);
@@ -108,6 +119,7 @@ struct TruthSpill {
     chain->SetBranchAddress("TrueVisibleEnergy", TrueVisibleEnergy.data());
     chain->SetBranchAddress("LArFiducialStart", LArFiducialStart.get());
     chain->SetBranchAddress("TMSFiducialEnd", TMSFiducialEnd.get());
+    chain->SetBranchAddress("BirthPosition", BirthPosition.data());
     chain->SetBranchAddress("MomentumTMSStart", MomentumTMSStart.data());
   }
 
@@ -115,6 +127,13 @@ struct TruthSpill {
   void GetEntry(Long64_t entry) { chain->GetEntry(entry); }
   Float_t MomentumTMSStartE(int particle) const {
     return MomentumTMSStart[particle * 4 + 3];
+  }
+  Float_t BirthPositionX(int particle) const { return BirthPosition[particle * 4]; }
+  Float_t BirthPositionY(int particle) const {
+    return BirthPosition[particle * 4 + 1];
+  }
+  Float_t BirthPositionZ(int particle) const {
+    return BirthPosition[particle * 4 + 2];
   }
 };
 
@@ -170,6 +189,12 @@ bool InKeBounds(double value) {
 
 bool DefaultLike(double value) {
   return value <= kDefaultLike;
+}
+
+bool IsInsideLArFiducial(double x, double y, double z) {
+  return x >= kLArFiducialStartX && x <= kLArFiducialEndX &&
+         y >= kLArFiducialStartY && y <= kLArFiducialEndY &&
+         z >= kLArFiducialStartZ && z <= kLArFiducialEndZ;
 }
 
 long long Quantize(float value) {
@@ -286,7 +311,10 @@ void WriteSummary(const std::string &filename, const Counters &counts,
   out << "  TMS-touching with TMS end:   " << counts.denom_tms_touch_tms_end << "\n";
   out << "  TMS-touching LAr only:       " << counts.denom_tms_touch_lar_only << "\n";
   out << "  TMS-touching TMS only:       " << counts.denom_tms_touch_tms_only << "\n";
-  out << "  TMS-touching neither flag:   " << counts.denom_tms_touch_neither_strict_flag << "\n";
+  out << "  TMS-touching neither strict cut: "
+      << counts.denom_tms_touch_neither_strict_flag << "\n";
+  out << "  TMS-touching LAr start branch/position disagreements: "
+      << counts.denom_lar_start_branch_disagrees << "\n";
   out << "  Strict muons:        " << counts.denom_strict << "\n";
   out << "  Negative KE:         " << counts.denom_negative_ke << "\n";
   out << "  Default-like KE:     " << counts.denom_default_ke << "\n";
@@ -302,7 +330,10 @@ void WriteSummary(const std::string &filename, const Counters &counts,
   out << "  Unique with TMS end:    " << counts.numerator_unique_tms_end << "\n";
   out << "  Unique LAr only:        " << counts.numerator_unique_lar_only << "\n";
   out << "  Unique TMS only:        " << counts.numerator_unique_tms_only << "\n";
-  out << "  Unique neither flag:    " << counts.numerator_unique_neither_strict_flag << "\n";
+  out << "  Unique neither strict cut: "
+      << counts.numerator_unique_neither_strict_flag << "\n";
+  out << "  Unique LAr start branch/position disagreements: "
+      << counts.numerator_lar_start_branch_disagrees << "\n";
   out << "  Unique strict numerators: " << counts.numerator_strict_unique << "\n";
   out << "  Duplicate reco muons:   " << counts.numerator_duplicates << "\n";
   out << "  Negative KE:            " << counts.numerator_negative_ke << "\n";
@@ -363,9 +394,9 @@ int main(int argc, char **argv) {
   TH1D *h_all_num = MakeKeHist("all_muon_ke_tms_enter_numerator",
                                "All muons numerator");
   TH1D *h_strict_den = MakeKeHist("muon_ke_tms_enter_denominator",
-                                  "LAr-start/TMS-end muons denominator");
+                                  "LAr-position-start/TMS-end muons denominator");
   TH1D *h_strict_num = MakeKeHist("muon_ke_tms_enter_numerator",
-                                  "LAr-start/TMS-end muons numerator");
+                                  "LAr-position-start/TMS-end muons numerator");
 
   TH1D *h_den_visible = new TH1D("den_muon_true_visible_energy",
                                  "Denominator muon true visible energy;True visible energy (MeV);N",
@@ -380,13 +411,19 @@ int main(int argc, char **argv) {
                             "Numerator muon KE entering TMS;KE (GeV);N", 120,
                             -1, 11);
   TH1D *h_den_lar = MakeBoolHist("den_lar_fiducial_start",
-                                 "Denominator muon LAr fiducial start");
+                                 "Denominator muon start inside LAr fiducial box");
   TH1D *h_den_tms = MakeBoolHist("den_tms_fiducial_end",
                                  "Denominator muon TMS fiducial end");
   TH1D *h_num_lar = MakeBoolHist("num_lar_fiducial_start",
-                                 "Numerator muon LAr fiducial start");
+                                 "Numerator muon start inside LAr fiducial box");
   TH1D *h_num_tms = MakeBoolHist("num_tms_fiducial_end",
                                  "Numerator muon TMS fiducial end");
+  TH1D *h_den_lar_branch_match = MakeBoolHist(
+      "den_lar_start_branch_matches_position",
+      "Denominator LAr start branch matches position-box check");
+  TH1D *h_num_lar_branch_match = MakeBoolHist(
+      "num_lar_start_branch_matches_position",
+      "Numerator LAr start branch matches position-box check");
   TH1D *h_reco_trackn_compare = new TH1D(
       "truth_info_recotrackn_minus_reco_tree_ntracks",
       "Truth_Info RecoTrackN - Reco_Tree nTracks;difference;N entries", 21, -10.5,
@@ -451,7 +488,10 @@ int main(int argc, char **argv) {
 
       const double visible = spill->TrueVisibleEnergy[ip];
       const bool tms_touch = visible >= kMinVisibleEnergy;
-      const bool lar_start = spill->LArFiducialStart[ip];
+      const bool lar_start_branch = spill->LArFiducialStart[ip];
+      const bool lar_start = IsInsideLArFiducial(
+          spill->BirthPositionX(ip), spill->BirthPositionY(ip),
+          spill->BirthPositionZ(ip));
       const bool tms_end = spill->TMSFiducialEnd[ip];
       const double ke_tms_enter = spill->MomentumTMSStartE(ip) * kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
@@ -460,6 +500,7 @@ int main(int argc, char **argv) {
       h_den_ke->Fill(ke_tms_enter);
       h_den_lar->Fill(lar_start ? 1 : 0);
       h_den_tms->Fill(tms_end ? 1 : 0);
+      h_den_lar_branch_match->Fill(lar_start == lar_start_branch ? 1 : 0);
       FillCut(h_den_passfail, tms_touch ? "TMS visible pass" : "TMS visible fail");
       FillCut(h_den_passfail, ke_in_bounds ? "KE bounds pass" : "KE bounds fail");
       FillCut(h_den_passfail, lar_start ? "LAr start pass" : "LAr start fail");
@@ -483,6 +524,7 @@ int main(int argc, char **argv) {
       h_all_den->Fill(ke_tms_enter);
 
       FillStrictReason(h_den_strict_reason, lar_start, tms_end);
+      if (lar_start != lar_start_branch) counts.denom_lar_start_branch_disagrees++;
       if (lar_start) counts.denom_tms_touch_lar_start++;
       if (tms_end) counts.denom_tms_touch_tms_end++;
       if (lar_start && !tms_end) counts.denom_tms_touch_lar_only++;
@@ -497,7 +539,11 @@ int main(int argc, char **argv) {
                        " KE=" + std::to_string(ke_tms_enter) +
                        " visible=" + std::to_string(visible) +
                        " LArStart=" + std::to_string(lar_start) +
-                       " TMSEnd=" + std::to_string(tms_end));
+                       " LArStartBranch=" + std::to_string(lar_start_branch) +
+                       " TMSEnd=" + std::to_string(tms_end) +
+                       " birth=(" + std::to_string(spill->BirthPositionX(ip)) +
+                       "," + std::to_string(spill->BirthPositionY(ip)) + "," +
+                       std::to_string(spill->BirthPositionZ(ip)) + ")");
       }
 
       if (lar_start) FillCut(h_den_cutflow, "LAr fid start");
@@ -557,7 +603,12 @@ int main(int argc, char **argv) {
 
       const double visible = truth->RecoTrackPrimaryParticleTrueVisibleEnergy[it];
       const bool tms_touch = visible >= kMinVisibleEnergy;
-      const bool lar_start = truth->RecoTrackPrimaryParticleLArFiducialStart[it];
+      const bool lar_start_branch =
+          truth->RecoTrackPrimaryParticleLArFiducialStart[it];
+      const bool lar_start = IsInsideLArFiducial(
+          truth->RecoTrackPrimaryParticleTruePositionStart[it][0],
+          truth->RecoTrackPrimaryParticleTruePositionStart[it][1],
+          truth->RecoTrackPrimaryParticleTruePositionStart[it][2]);
       const bool tms_end = truth->RecoTrackPrimaryParticleTMSFiducialEnd[it];
       const double ke_tms_enter =
           truth->RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * kGeV;
@@ -567,6 +618,7 @@ int main(int argc, char **argv) {
       h_num_ke->Fill(ke_tms_enter);
       h_num_lar->Fill(lar_start ? 1 : 0);
       h_num_tms->Fill(tms_end ? 1 : 0);
+      h_num_lar_branch_match->Fill(lar_start == lar_start_branch ? 1 : 0);
       FillCut(h_num_passfail, tms_touch ? "TMS visible pass" : "TMS visible fail");
       FillCut(h_num_passfail, ke_in_bounds ? "KE bounds pass" : "KE bounds fail");
       FillCut(h_num_passfail, lar_start ? "LAr start pass" : "LAr start fail");
@@ -604,6 +656,8 @@ int main(int argc, char **argv) {
       counts.numerator_all_unique++;
 
       FillStrictReason(h_num_strict_reason, lar_start, tms_end);
+      if (lar_start != lar_start_branch)
+        counts.numerator_lar_start_branch_disagrees++;
       if (lar_start) counts.numerator_unique_lar_start++;
       if (tms_end) counts.numerator_unique_tms_end++;
       if (lar_start && !tms_end) counts.numerator_unique_lar_only++;
@@ -617,6 +671,7 @@ int main(int argc, char **argv) {
             << " KE=" << ke_tms_enter
             << " visible=" << visible
             << " LArStart=" << lar_start
+            << " LArStartBranch=" << lar_start_branch
             << " TMSEnd=" << tms_end
             << " start=("
             << truth->RecoTrackPrimaryParticleTruePositionStart[it][0] << ","
@@ -651,7 +706,8 @@ int main(int argc, char **argv) {
                                    h_all_num, h_all_den);
   TH1D *h_strict_eff = MakeEfficiency(
       "muon_ke_tms_enter",
-      "Reco efficiency, LAr-start/TMS-end muons", h_strict_num, h_strict_den);
+      "Reco efficiency, LAr-position-start/TMS-end muons", h_strict_num,
+      h_strict_den);
 
   TCanvas canvas("canvas", "canvas", 900, 700);
   DrawEfficiency(h_all_eff, canvas, output_dir, "all_muon_ke_tms_enter");
@@ -671,6 +727,8 @@ int main(int argc, char **argv) {
       {h_den_tms, "den_tms_fiducial_end"},
       {h_num_lar, "num_lar_fiducial_start"},
       {h_num_tms, "num_tms_fiducial_end"},
+      {h_den_lar_branch_match, "den_lar_start_branch_matches_position"},
+      {h_num_lar_branch_match, "num_lar_start_branch_matches_position"},
       {h_reco_trackn_compare, "truth_info_recotrackn_minus_reco_tree_ntracks"},
       {h_duplicate, "num_duplicate_fingerprint"},
       {h_den_passfail, "denominator_cut_pass_fail"},
