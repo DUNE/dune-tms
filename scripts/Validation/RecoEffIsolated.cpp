@@ -4,7 +4,6 @@
 #include <TH1D.h>
 #include <TLine.h>
 #include <TTreeReader.h>
-#include <TTreeReaderArray.h>
 #include <TTreeReaderValue.h>
 
 #include <algorithm>
@@ -55,6 +54,58 @@ struct Counters {
   long long numerator_default_ke = 0;
   long long numerator_out_of_bounds_ke = 0;
   long long numerator_reco_trackn_over_max = 0;
+};
+
+Long64_t FindMaxTruthSpillParticles(TChain *chain) {
+  TTreeReader reader(chain);
+  TTreeReaderValue<Int_t> n_true_particles(reader, "nTrueParticles");
+  Long64_t max_particles = 0;
+  while (reader.Next()) {
+    max_particles = std::max(max_particles, static_cast<Long64_t>(*n_true_particles));
+  }
+  return std::max<Long64_t>(max_particles, 1);
+}
+
+struct TruthSpill {
+  TChain *chain = nullptr;
+  Int_t SpillNo = 0;
+  Int_t nTrueParticles = 0;
+  Long64_t max_particles = 0;
+  std::vector<Int_t> PDG;
+  std::vector<Float_t> TrueVisibleEnergy;
+  std::unique_ptr<Bool_t[]> LArFiducialStart;
+  std::unique_ptr<Bool_t[]> TMSFiducialEnd;
+  std::vector<Float_t> MomentumTMSStart;
+
+  TruthSpill(TChain *input, Long64_t max_particles_in)
+      : chain(input), max_particles(max_particles_in), PDG(max_particles),
+        TrueVisibleEnergy(max_particles),
+        LArFiducialStart(std::make_unique<Bool_t[]>(max_particles)),
+        TMSFiducialEnd(std::make_unique<Bool_t[]>(max_particles)),
+        MomentumTMSStart(max_particles * 4) {
+    chain->SetMakeClass(1);
+    chain->SetBranchStatus("*", 0);
+    chain->SetBranchStatus("SpillNo", 1);
+    chain->SetBranchStatus("nTrueParticles", 1);
+    chain->SetBranchStatus("PDG", 1);
+    chain->SetBranchStatus("TrueVisibleEnergy", 1);
+    chain->SetBranchStatus("LArFiducialStart", 1);
+    chain->SetBranchStatus("TMSFiducialEnd", 1);
+    chain->SetBranchStatus("MomentumTMSStart", 1);
+    chain->SetBranchAddress("SpillNo", &SpillNo);
+    chain->SetBranchAddress("nTrueParticles", &nTrueParticles);
+    chain->SetBranchAddress("PDG", PDG.data());
+    chain->SetBranchAddress("TrueVisibleEnergy", TrueVisibleEnergy.data());
+    chain->SetBranchAddress("LArFiducialStart", LArFiducialStart.get());
+    chain->SetBranchAddress("TMSFiducialEnd", TMSFiducialEnd.get());
+    chain->SetBranchAddress("MomentumTMSStart", MomentumTMSStart.data());
+  }
+
+  Long64_t GetEntries() const { return chain->GetEntries(); }
+  void GetEntry(Long64_t entry) { chain->GetEntry(entry); }
+  Float_t MomentumTMSStartE(int particle) const {
+    return MomentumTMSStart[particle * 4 + 3];
+  }
 };
 
 bool HasTree(const std::string &filename, const std::string &tree_name) {
@@ -322,52 +373,39 @@ int main(int argc, char **argv) {
        "KE in hist bounds", "not duplicate", "LAr fid start", "TMS fid end",
        "strict numerator"});
 
-  TTreeReader spill_reader(&truth_spill_chain);
-  TTreeReaderValue<Int_t> spill_no(spill_reader, "SpillNo");
-  TTreeReaderValue<Int_t> spill_n_true_particles(spill_reader, "nTrueParticles");
-  TTreeReaderArray<Int_t> spill_pdg(spill_reader, "PDG");
-  TTreeReaderArray<Float_t> spill_true_visible_energy(spill_reader,
-                                                      "TrueVisibleEnergy");
-  TTreeReaderArray<Bool_t> spill_lar_fiducial_start(spill_reader,
-                                                    "LArFiducialStart");
-  TTreeReaderArray<Bool_t> spill_tms_fiducial_end(spill_reader,
-                                                  "TMSFiducialEnd");
-  TTreeReaderArray<Float_t> spill_momentum_tms_start(spill_reader,
-                                                     "MomentumTMSStart");
+  const Long64_t max_truth_spill_particles =
+      FindMaxTruthSpillParticles(&truth_spill_chain);
+  auto spill = std::make_unique<TruthSpill>(&truth_spill_chain,
+                                            max_truth_spill_particles);
 
-  counts.truth_spill_entries = truth_spill_chain.GetEntries();
-  Long64_t spill_entry = 0;
-  while (spill_reader.Next()) {
-    const int n_reported = *spill_n_true_particles;
-    const int n_available = std::min({
-        static_cast<int>(spill_pdg.GetSize()),
-        static_cast<int>(spill_true_visible_energy.GetSize()),
-        static_cast<int>(spill_lar_fiducial_start.GetSize()),
-        static_cast<int>(spill_tms_fiducial_end.GetSize()),
-        static_cast<int>(spill_momentum_tms_start.GetSize() / 4)});
-    if (n_reported != n_available) {
+  counts.truth_spill_entries = spill->GetEntries();
+  for (Long64_t spill_entry = 0; spill_entry < spill->GetEntries(); ++spill_entry) {
+    spill->GetEntry(spill_entry);
+    if (spill->nTrueParticles > spill->max_particles) {
       AddExample(examples, "Truth_Spill entry " + std::to_string(spill_entry) +
-                               " SpillNo=" + std::to_string(*spill_no) +
+                               " SpillNo=" + std::to_string(spill->SpillNo) +
                                " reports nTrueParticles=" +
-                               std::to_string(n_reported) +
-                               " but reader sees usable particles=" +
-                               std::to_string(n_available));
+                               std::to_string(spill->nTrueParticles) +
+                               " beyond allocated max=" +
+                               std::to_string(spill->max_particles));
     }
-    const int n_particles = std::max(0, std::min(n_reported, n_available));
+    const int n_particles = static_cast<int>(
+        std::max<Long64_t>(0, std::min<Long64_t>(spill->nTrueParticles,
+                                                spill->max_particles)));
     counts.truth_spill_particles += n_particles;
     for (int ip = 0; ip < n_particles; ++ip) {
       FillCut(h_den_cutflow, "all particles");
-      const bool is_muon = std::abs(spill_pdg[ip]) == 13;
+      const bool is_muon = std::abs(spill->PDG[ip]) == 13;
       FillCut(h_den_passfail, is_muon ? "muon pdg pass" : "muon pdg fail");
       if (!is_muon) continue;
       FillCut(h_den_cutflow, "muon pdg");
       counts.denom_muons++;
 
-      const double visible = spill_true_visible_energy[ip];
+      const double visible = spill->TrueVisibleEnergy[ip];
       const bool tms_touch = visible >= kMinVisibleEnergy;
-      const bool lar_start = spill_lar_fiducial_start[ip];
-      const bool tms_end = spill_tms_fiducial_end[ip];
-      const double ke_tms_enter = spill_momentum_tms_start[ip * 4 + 3] * kGeV;
+      const bool lar_start = spill->LArFiducialStart[ip];
+      const bool tms_end = spill->TMSFiducialEnd[ip];
+      const double ke_tms_enter = spill->MomentumTMSStartE(ip) * kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
 
       h_den_visible->Fill(visible);
@@ -386,7 +424,7 @@ int main(int argc, char **argv) {
                                  std::to_string(ip) + " KE=" +
                                  std::to_string(ke_tms_enter));
       }
-      if (DefaultLike(spill_momentum_tms_start[ip * 4 + 3]))
+      if (DefaultLike(spill->MomentumTMSStartE(ip)))
         counts.denom_default_ke++;
       if (!ke_in_bounds) counts.denom_out_of_bounds_ke++;
 
@@ -404,7 +442,6 @@ int main(int argc, char **argv) {
         h_strict_den->Fill(ke_tms_enter);
       }
     }
-    spill_entry++;
   }
 
   counts.truth_info_entries = truth->GetEntriesFast();
