@@ -41,6 +41,15 @@ struct TruthSpill {
   Float_t MomentumTMSStart[kMaxTrueParticles][4];
 
   explicit TruthSpill(TChain *input) : chain(input) {
+    chain->SetMakeClass(1);
+    chain->SetBranchStatus("*", 0);
+    chain->SetBranchStatus("SpillNo", 1);
+    chain->SetBranchStatus("nTrueParticles", 1);
+    chain->SetBranchStatus("PDG", 1);
+    chain->SetBranchStatus("TrueVisibleEnergy", 1);
+    chain->SetBranchStatus("LArFiducialStart", 1);
+    chain->SetBranchStatus("TMSFiducialEnd", 1);
+    chain->SetBranchStatus("MomentumTMSStart", 1);
     chain->SetBranchAddress("SpillNo", &SpillNo);
     chain->SetBranchAddress("nTrueParticles", &nTrueParticles);
     chain->SetBranchAddress("PDG", PDG);
