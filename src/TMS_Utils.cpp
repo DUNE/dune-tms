@@ -121,7 +121,7 @@ caf::SRTMS ConvertEvent() {
 
 namespace TMS_Utils {
   TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits) { 
-      std::map<std::pair<long long, int>, std::pair<int, double>> totalMap;
+      std::map<std::pair<long long, int>, double> totalMap;
 
       // Iterate through the list of hits
       int total_n_true_particles = 0;
@@ -129,14 +129,12 @@ namespace TMS_Utils {
         auto true_hit = hit.GetTrueHit();
         total_n_true_particles += true_hit.GetNTrueParticles();
         for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-          int vertexid = true_hit.GetVertexIds(i);
           long long vertexglobalid = true_hit.GetVertexGlobalIds(i);
           int pid = true_hit.GetPrimaryIds(i);
           double energy = true_hit.GetEnergyShare(i);
           auto pair = std::make_pair(vertexglobalid, pid);
           // Add the utility to the corresponding pid in the map
-          totalMap[pair].first = vertexid;
-          totalMap[pair].second += energy;
+          totalMap[pair] += energy;
         }
       }
 
@@ -155,13 +153,12 @@ namespace TMS_Utils {
   }
 
   struct ParticlePair {
-    int vertexid;
     long long vertexglobalid;
     int trackid;
     double energy;
     
-    ParticlePair(std::pair<long long, int> i, int local_vertexid, double e) :
-      vertexid(local_vertexid), vertexglobalid(i.first), trackid(i.second), energy(e) {}
+    ParticlePair(std::pair<long long, int> i, double e) :
+      vertexglobalid(i.first), trackid(i.second), energy(e) {}
   };
 
   static bool CompareByEnergy(const ParticlePair& a, const ParticlePair& b) {
@@ -169,11 +166,11 @@ namespace TMS_Utils {
   }
 
 
-  TMS_Utils::ParticleInfo GetSumAndHighest(const std::map<std::pair<long long, int>, std::pair<int, double>>& map) {
+  TMS_Utils::ParticleInfo GetSumAndHighest(const std::map<std::pair<long long, int>, double>& map) {
       // First make a vector and sort it
       std::vector<ParticlePair> pairs;
       for (const auto& pair : map) {
-          pairs.push_back(ParticlePair(pair.first, pair.second.first, pair.second.second));
+          pairs.push_back(ParticlePair(pair.first, pair.second));
       }
       std::sort(pairs.begin(), pairs.end(), CompareByEnergy);
 
@@ -181,7 +178,6 @@ namespace TMS_Utils {
       for (const auto& pair : pairs) {
         out.total_energy += pair.energy;
         out.trackids.push_back(pair.trackid);
-        out.vertexids.push_back(pair.vertexid);
         out.vertexglobalids.push_back(pair.vertexglobalid);
         out.energies.push_back(pair.energy);
       }
@@ -190,6 +186,5 @@ namespace TMS_Utils {
   }
 
 }
-
 
 

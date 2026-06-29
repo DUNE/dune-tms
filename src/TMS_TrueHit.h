@@ -12,7 +12,7 @@
 // Essentially a copy of the edep-sim THit
 class TMS_TrueHit {
   public:
-    TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id, long long vertex_global_id);
+    TMS_TrueHit(TG4HitSegment &edep_seg, long long vertex_global_id);
     
     TMS_TrueHit() = delete;
     
@@ -20,8 +20,7 @@ class TMS_TrueHit {
     // Or else true particle information is lost 
     // Copy constructor
     TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexIds(other.VertexIds), VertexGlobalIds(other.VertexGlobalIds),
-      EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
+      VertexGlobalIds(other.VertexGlobalIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
     {
         if (this != &other) {
           x = other.x;
@@ -41,7 +40,6 @@ class TMS_TrueHit {
     TMS_TrueHit& operator=(const TMS_TrueHit& other) {
         if (this != &other) {
           PrimaryIds = other.PrimaryIds;
-          VertexIds = other.VertexIds;
           VertexGlobalIds = other.VertexGlobalIds;
           EnergyShare = other.EnergyShare;
           EnergyShareIsLeptonic = other.EnergyShareIsLeptonic;
@@ -63,7 +61,6 @@ class TMS_TrueHit {
     TMS_TrueHit& operator=(TMS_TrueHit&& other) noexcept {
         if (this != &other) {
           PrimaryIds = std::move(other.PrimaryIds);
-          VertexIds = std::move(other.VertexIds);
           VertexGlobalIds = std::move(other.VertexGlobalIds);
           EnergyShare = std::move(other.EnergyShare);
           EnergyShareIsLeptonic = std::move(other.EnergyShareIsLeptonic);
@@ -94,14 +91,7 @@ class TMS_TrueHit {
     double GetPEAfterFibersShortPath() const {return peAfterFibersShortPath; };
     
     int GetPrimaryId() const { return PrimaryIds.at(0); };
-    int GetVertexId() const { 
-      if (VertexIds.size() == 1) return VertexIds.at(0); 
-      else if (VertexIds.size() == 0) return -999;
-      std::cout<<"Fatal: Using GetVertexId with > 1 possible VertexId. Use GetVertexIds instead."<<std::endl;
-      exit(1);
-    };
     int GetPrimaryIds(int index) const { return PrimaryIds.at(index); };
-    int GetVertexIds(int index) const { return VertexIds.at(index); };
     long long GetVertexGlobalIds(int index) const { return VertexGlobalIds.at(index); };
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
     double GetEnergySharePortion(int index) const { return EnergyShare.at(index) / GetE(); };
@@ -140,7 +130,6 @@ class TMS_TrueHit {
     
     // Store individual particles for later particle identication
     std::vector<int> PrimaryIds;
-    std::vector<int> VertexIds;
     std::vector<long long> VertexGlobalIds;
     std::vector<double> EnergyShare;
     std::vector<bool> EnergyShareIsLeptonic;

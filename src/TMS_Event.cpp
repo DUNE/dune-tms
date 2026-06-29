@@ -258,16 +258,17 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   //std::cout<<"N total: "<<nTotal<<", N Primary: "<<nPrimary<<", N Interesting: "<<nInteresting<<", N charged: "<<nCharged<<", N high P: "<<nHighMomentum<<", N charged and low P: "<<nChargedAndLowMomentum<<", n TMS_TruePrimaryParticles: "<<TMS_TruePrimaryParticles.size()<<std::endl;
 
   // First create a mapping so we don't loop multiple times
-  std::map<int, int> mapping_track_to_vertex_id;
+  std::map<int, long long> mapping_track_to_vertex_global_id;
   const int vertex_index = event.EventId;
+  const long long vertex_global_index = MakeGlobalVertexID(RunNumber, vertex_index);
   for (auto vertex : event.Primaries) {
     for (auto particle : vertex.Particles) {
       int track_id = particle.GetTrackId();
-      mapping_track_to_vertex_id[track_id] = vertex_index;
+      mapping_track_to_vertex_global_id[track_id] = vertex_global_index;
     }
     for (auto traj : event.Trajectories) {
       int track_id = traj.GetTrackId();
-      mapping_track_to_vertex_id[track_id] = vertex_index;
+      mapping_track_to_vertex_global_id[track_id] = vertex_global_index;
     }
   }
 
@@ -290,14 +291,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
       TG4HitSegment edep_hit = *kt;
       int track_id = edep_hit.GetPrimaryId();
-      int vertex_id = -999;
-      auto value = mapping_track_to_vertex_id.find(track_id);
-      if (value == mapping_track_to_vertex_id.end()) {
-        std::cout<<"WARNING: Didn't find track id in mapping_track_to_vertex_id! track_id = "<<track_id<<", mapping_track_to_vertex_id.size() = "<<mapping_track_to_vertex_id.size()<<", this shouldn't happen anymore\n\n\n"<<std::endl;
+      long long vertex_global_id = -999;
+      auto value = mapping_track_to_vertex_global_id.find(track_id);
+      if (value == mapping_track_to_vertex_global_id.end()) {
+        std::cout<<"WARNING: Didn't find track id in mapping_track_to_vertex_global_id! track_id = "<<track_id<<", mapping_track_to_vertex_global_id.size() = "<<mapping_track_to_vertex_global_id.size()<<", this shouldn't happen anymore\n\n\n"<<std::endl;
       }
-      else vertex_id = value->second;
-      long long vertex_global_id = MakeGlobalVertexID(RunNumber, vertex_id);
-      TMS_Hit hit = TMS_Hit(edep_hit, vertex_id, vertex_global_id);
+      else vertex_global_id = value->second;
+      TMS_Hit hit = TMS_Hit(edep_hit, vertex_global_id);
       int barnum = hit.GetBarNumber();
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
@@ -323,8 +323,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       else if (DetString.find(TMS_Const::LAr_ActiveName) != std::string::npos) {
         // Only care about LAr active volume
         // We only need it for truth info so just save truth info
-        long long vertex_global_id = MakeGlobalVertexID(RunNumber, vertex_id);
-        TMS_TrueHit t(edep_hit, vertex_id, vertex_global_id);
+        TMS_TrueHit t(edep_hit, vertex_global_id);
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
           auto key = std::make_pair(t.GetVertexGlobalIds(i), t.GetPrimaryIds(i));
           auto itp = mapping_track_to_true_particle.find(key);
@@ -1328,7 +1327,7 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, long long ver
 double TMS_Event::CalculateEnergyInLAr(long long vertexglobalid) {
   double out = 0;
   for (const auto& hit : NonTMS_Hits) {
-    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (hit.GetVertexGlobalIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexGlobalId"<<std::endl;
     if (vertexglobalid < 0 || hit.GetVertexGlobalIds(0) == vertexglobalid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position))
@@ -1342,7 +1341,7 @@ double TMS_Event::CalculateEnergyInLAr(long long vertexglobalid) {
 double TMS_Event::CalculateTotalNonTMSEnergy(long long vertexglobalid) {
   double out = 0;
   for (const auto& hit : NonTMS_Hits) {
-    if (hit.GetVertexIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexId"<<std::endl;
+    if (hit.GetVertexGlobalIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexGlobalId"<<std::endl;
     if (vertexglobalid < 0 || hit.GetVertexGlobalIds(0) == vertexglobalid) out += hit.GetHadronicEnergy();
   }
   return out;
@@ -1385,13 +1384,12 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
 
 void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
   for (size_t i = 0; i < hit.GetNTrueParticles(); i++) {
-    int vertex_id = hit.GetVertexIds(i);
-    const long long global_vertex_id = MakeGlobalVertexID(RunNumber, vertex_id);
+    const long long global_vertex_id = hit.GetVertexGlobalIds(i);
     if (info_about_vtx.find(global_vertex_id) != info_about_vtx.end()) {
       info_about_vtx[global_vertex_id].AddEnergyFromHit(hit, i);
     }
-    else std::cout<<"This should not happen but I didn't find a vertex for run "
-                  <<RunNumber<<" vertex id "<<vertex_id<<std::endl;
+    else std::cout<<"This should not happen but I didn't find a vertex for global vertex id "
+                  <<global_vertex_id<<std::endl;
   }
 }
 
