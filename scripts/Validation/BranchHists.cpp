@@ -153,6 +153,11 @@ bool Contains(const std::string &haystack, const std::string &needle) {
   return haystack.find(needle) != std::string::npos;
 }
 
+bool EndsWith(const std::string &value, const std::string &suffix) {
+  return value.size() >= suffix.size() &&
+         value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 std::vector<std::string> ParseLeafDimensions(const std::string &title) {
   std::vector<std::string> dimensions;
   size_t pos = 0;
@@ -314,7 +319,22 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
   }
 
   const std::string name = Lower(spec.branch + " " + spec.leaf);
-  const std::string component = Lower(spec.component);
+  std::string compact_name = name;
+  compact_name.erase(std::remove_if(compact_name.begin(), compact_name.end(),
+                                    [](unsigned char c) {
+                                      return std::isspace(c) || c == '_';
+                                    }),
+                     compact_name.end());
+  std::string component = Lower(spec.component);
+  if (component.empty() &&
+      (Contains(compact_name, "pos") || Contains(compact_name, "position") ||
+       Contains(compact_name, "vertex") || Contains(compact_name, "vtx") ||
+       Contains(compact_name, "hit"))) {
+    if (EndsWith(compact_name, "x")) component = "x";
+    if (EndsWith(compact_name, "y")) component = "y";
+    if (EndsWith(compact_name, "z")) component = "z";
+    if (EndsWith(compact_name, "t")) component = "t";
+  }
 
   if (Contains(name, "runno") || name == "run") {
     axis.bins = 220;
@@ -363,29 +383,6 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
     axis.low = -100.5;
     axis.high = 1000000.5;
     axis.source = "fixed_local_id";
-  } else if (Contains(name, "direction")) {
-    axis.bins = 120;
-    axis.low = -1.2;
-    axis.high = 1.2;
-    axis.source = "fixed_direction";
-  } else if (Contains(name, "pos") || Contains(name, "vertex") ||
-             Contains(name, "vtx") || Contains(name, "hit")) {
-    axis.bins = 200;
-    if (component == "x" || component == "y") {
-      axis.low = -5000.0;
-      axis.high = 5000.0;
-      axis.source = "fixed_position_xy";
-    } else if (component == "z") {
-      axis.low = 0.0;
-      axis.high = 25000.0;
-      axis.source = "fixed_position_z";
-    } else if (component == "t") {
-      axis.low = -1000.0;
-      axis.high = 50000.0;
-      axis.source = "fixed_position_t";
-    } else {
-      axis = DynamicAxis(min, max);
-    }
   } else if (Contains(name, "momentum") || Contains(name, "p4") ||
              Contains(name, "px") || Contains(name, "py") ||
              Contains(name, "pz")) {
@@ -404,6 +401,12 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
     axis.low = -100.0;
     axis.high = 50000.0;
     axis.source = "fixed_energy";
+  } else if (EndsWith(compact_name, "e") || Contains(compact_name, "pe") ||
+             Contains(compact_name, "dedx")) {
+    axis.bins = 200;
+    axis.low = -100.0;
+    axis.high = 50000.0;
+    axis.source = "fixed_energy_like";
   } else if (Contains(name, "length")) {
     axis.bins = 200;
     axis.low = -100.0;
@@ -414,6 +417,31 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
     axis.low = 0.0;
     axis.high = 1000.0;
     axis.source = "fixed_chi2";
+  } else if (Contains(name, "direction")) {
+    axis.bins = 120;
+    axis.low = -1.2;
+    axis.high = 1.2;
+    axis.source = "fixed_direction";
+  } else if (Contains(name, "pos") || Contains(name, "position") ||
+             Contains(name, "vertex") || Contains(name, "vtx") ||
+             Contains(compact_name, "hitx") || Contains(compact_name, "hity") ||
+             Contains(compact_name, "hitz") || Contains(compact_name, "hitt")) {
+    axis.bins = 200;
+    if (component == "x" || component == "y") {
+      axis.low = -5000.0;
+      axis.high = 5000.0;
+      axis.source = "fixed_position_xy";
+    } else if (component == "z") {
+      axis.low = 0.0;
+      axis.high = 25000.0;
+      axis.source = "fixed_position_z";
+    } else if (component == "t") {
+      axis.low = -1000.0;
+      axis.high = 50000.0;
+      axis.source = "fixed_position_t";
+    } else {
+      axis = DynamicAxis(min, max);
+    }
   } else {
     axis = DynamicAxis(min, max);
   }
