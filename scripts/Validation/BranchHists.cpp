@@ -29,6 +29,8 @@ namespace {
 const std::vector<std::string> kTreeNames = {"Reco_Tree", "Truth_Info",
                                              "Truth_Spill"};
 constexpr double kDefaultValueCut = -900000000.0;
+constexpr double kLargeMissingValueCut = -1000000.0;
+constexpr double kSmallMissingValueCut = -998.0;
 
 struct BranchSpec {
   std::string tree;
@@ -195,7 +197,10 @@ std::vector<std::pair<std::string, std::string>> ComponentExpressions(
   const int last_dim = NumericDimension(dimensions.back());
   if (last_dim != 3 && last_dim != 4) return components;
 
-  static const std::vector<std::string> labels = {"X", "Y", "Z", "T"};
+  std::vector<std::string> labels = {"X", "Y", "Z", "T"};
+  if (Contains(Lower(leaf_name), "planebarview")) {
+    labels = {"Plane", "Bar", "View", "T"};
+  }
   for (int component = 0; component < last_dim; ++component) {
     components.push_back({labels[component],
                           ComponentExpression(leaf_name, dimensions.size(),
@@ -353,10 +358,32 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
     axis.high = 3000.5;
     axis.source = "fixed_pdg";
   } else if (Contains(name, "charge")) {
-    axis.bins = 8;
-    axis.low = -3.5;
-    axis.high = 4.5;
+    axis.bins = 41;
+    axis.low = -20.5;
+    axis.high = 20.5;
     axis.source = "fixed_charge";
+  } else if (Contains(compact_name, "planebarview")) {
+    if (component == "plane") {
+      axis.bins = 121;
+      axis.low = -0.5;
+      axis.high = 120.5;
+      axis.source = "fixed_plane";
+    } else if (component == "bar") {
+      axis.bins = 101;
+      axis.low = -0.5;
+      axis.high = 100.5;
+      axis.source = "fixed_bar";
+    } else {
+      axis.bins = 8;
+      axis.low = -0.5;
+      axis.high = 7.5;
+      axis.source = "fixed_view";
+    }
+  } else if (Contains(compact_name, "bar") || Contains(compact_name, "view")) {
+    axis.bins = 16;
+    axis.low = -0.5;
+    axis.high = 15.5;
+    axis.source = "fixed_bar_or_view";
   } else if (Contains(name, "ntruehits") || Contains(name, "nhits")) {
     axis.bins = 200;
     axis.low = -0.5;
@@ -389,29 +416,29 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
              Contains(name, "pz")) {
     axis.bins = 200;
     if (component == "e" || component == "t" || Contains(name, "energy")) {
-      axis.low = -100.0;
-      axis.high = 50000.0;
+      axis.low = -1000.0;
+      axis.high = 200000.0;
       axis.source = "fixed_momentum_e";
     } else {
-      axis.low = -50000.0;
-      axis.high = 50000.0;
+      axis.low = -200000.0;
+      axis.high = 200000.0;
       axis.source = "fixed_momentum_xyz";
     }
   } else if (Contains(name, "energy") || Contains(name, "evis")) {
     axis.bins = 200;
-    axis.low = -100.0;
-    axis.high = 50000.0;
+    axis.low = -1000.0;
+    axis.high = 200000.0;
     axis.source = "fixed_energy";
   } else if (EndsWith(compact_name, "e") || Contains(compact_name, "pe") ||
              Contains(compact_name, "dedx")) {
     axis.bins = 200;
-    axis.low = -100.0;
-    axis.high = 50000.0;
+    axis.low = -1000.0;
+    axis.high = 200000.0;
     axis.source = "fixed_energy_like";
   } else if (Contains(name, "length")) {
     axis.bins = 200;
-    axis.low = -100.0;
-    axis.high = 50000.0;
+    axis.low = -1000.0;
+    axis.high = 100000.0;
     axis.source = "fixed_length";
   } else if (Contains(name, "chi2")) {
     axis.bins = 200;
@@ -429,16 +456,16 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
              Contains(compact_name, "hitz") || Contains(compact_name, "hitt")) {
     axis.bins = 200;
     if (component == "x" || component == "y") {
-      axis.low = -5000.0;
-      axis.high = 5000.0;
+      axis.low = -10000.0;
+      axis.high = 10000.0;
       axis.source = "fixed_position_xy";
     } else if (component == "z") {
-      axis.low = 0.0;
-      axis.high = 25000.0;
+      axis.low = -5000.0;
+      axis.high = 30000.0;
       axis.source = "fixed_position_z";
     } else if (component == "t") {
-      axis.low = -1000.0;
-      axis.high = 50000.0;
+      axis.low = -100000.0;
+      axis.high = 100000.0;
       axis.source = "fixed_position_t";
     } else {
       axis = DynamicAxis(min, max);
@@ -447,6 +474,38 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
     axis = DynamicAxis(min, max);
   }
   return axis;
+}
+
+double MissingValueCut(const BranchSpec &spec) {
+  if (IsBoolType(spec.type)) return -std::numeric_limits<double>::infinity();
+
+  const std::string name = Lower(spec.branch + " " + spec.leaf);
+  std::string compact_name = name;
+  compact_name.erase(std::remove_if(compact_name.begin(), compact_name.end(),
+                                    [](unsigned char c) {
+                                      return std::isspace(c) || c == '_';
+                                    }),
+                     compact_name.end());
+
+  if (Contains(name, "pos") || Contains(name, "position") ||
+      Contains(name, "vertex") || Contains(name, "vtx") ||
+      Contains(name, "momentum") || Contains(name, "p4") ||
+      Contains(compact_name, "hitx") || Contains(compact_name, "hity") ||
+      Contains(compact_name, "hitz") || Contains(compact_name, "hitt")) {
+    return kLargeMissingValueCut;
+  }
+
+  if (Contains(name, "chi2") || Contains(name, "charge") ||
+      Contains(name, "energy") || Contains(name, "evis") ||
+      Contains(name, "length") || Contains(name, "pdg") ||
+      Contains(name, "index") || Contains(name, "trackid") ||
+      Contains(name, "parent") || Contains(name, "vertexid") ||
+      Contains(name, "vtxid") || Contains(compact_name, "bar") ||
+      Contains(compact_name, "view")) {
+    return kSmallMissingValueCut;
+  }
+
+  return kDefaultValueCut;
 }
 
 std::string BranchLabel(const BranchSpec &spec) {
@@ -463,7 +522,8 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
              << " could not determine finite range\n";
     return nullptr;
   }
-  if (min < kDefaultValueCut && max > kDefaultValueCut) {
+  const double missing_cut = MissingValueCut(spec);
+  if (std::isfinite(missing_cut) && min < missing_cut && max > missing_cut) {
     min = std::min(0.0, max);
   }
 
@@ -482,7 +542,7 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
   const std::string draw = spec.expression + ">>" + spec.hist_name;
   const std::string selection =
       IsBoolType(spec.type) ? "" : spec.expression + ">" +
-                                    std::to_string(kDefaultValueCut);
+                                    std::to_string(missing_cut);
   const Long64_t filled = chain.Draw(draw.c_str(), selection.c_str(), "goff");
   hist->SetDirectory(nullptr);
   if (filled < 0) {
