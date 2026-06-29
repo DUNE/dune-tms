@@ -69,7 +69,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       std::cout<<"Fatal: Got a current_vertexid < 0 in TMS_Event: "<<current_vertexid<<std::endl;
       throw std::runtime_error("Fatal: Get a vertex id < 0");
     }
-    Reactions[current_vertexid] = Reaction;
       
     Vtx_Info vtx_info;
     vtx_info.reaction = Reaction;
@@ -79,6 +78,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
     
     const long long global_vertex_id = MakeGlobalVertexID(vtx_info.run_id, vtx_info.vtx_id);
+    Reactions[global_vertex_id] = Reaction;
     auto inserted = info_about_vtx.emplace(global_vertex_id, vtx_info);
     if (!inserted.second) {
       std::cout<<"Fatal: Duplicate global vertex id "<<global_vertex_id
@@ -450,8 +450,9 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   int primary_vertex_id = GetVertexIdOfMostVisibleEnergy();
   if (primary_vertex_id >= 0) {
     SetLeptonInfoUsingGlobalVertexID(GetVertexGlobalIdOfMostVisibleEnergy());
-    if (Reactions.find(primary_vertex_id) != Reactions.end()) 
-      Reaction = Reactions[primary_vertex_id];
+    long long primary_vertex_global_id = GetVertexGlobalIdOfMostVisibleEnergy();
+    if (Reactions.find(primary_vertex_global_id) != Reactions.end())
+      Reaction = Reactions[primary_vertex_global_id];
     else { Reaction = "NA"; std::cout<<"Warning: couldn't find reaction for primary vertex"<<std::endl; }
   }
 
@@ -1030,7 +1031,14 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (const auto& it : Other_Event.TrueVisibleEnergyPerParticle) {
     TrueVisibleEnergyPerParticle[it.first] += it.second;
   }
-  Reactions.merge(Other_Event.Reactions);
+  for (const auto& it : Other_Event.Reactions) {
+    auto inserted = Reactions.emplace(it.first, it.second);
+    if (!inserted.second && inserted.first->second != it.second) {
+      std::cout<<"Fatal: Conflicting reactions for global vertex id "<<it.first
+               <<" while merging TMS events"<<std::endl;
+      throw std::runtime_error("Fatal: conflicting reactions while merging events");
+    }
+  }
   for (const auto& it : Other_Event.info_about_vtx) {
     auto inserted = info_about_vtx.emplace(it.first, it.second);
     if (!inserted.second) {
@@ -1399,20 +1407,6 @@ Vtx_Info* TMS_Event::GetVertexInfoByGlobalID(long long vertex_global_id) {
   Vtx_Info* out = NULL;
   if (info_about_vtx.find(vertex_global_id) != info_about_vtx.end())
     out = &info_about_vtx.at(vertex_global_id);
-  return out;
-}
-
-Vtx_Info* TMS_Event::GetVertexInfoByVertexID(int vertex_id) {
-  Vtx_Info* out = NULL;
-  for (auto& it : info_about_vtx) {
-    if (it.second.vtx_id != vertex_id) continue;
-    if (out != NULL) {
-      std::cout<<"Fatal: Found multiple run-qualified vertices for local vertex id "
-               <<vertex_id<<". Use run-qualified vertex lookup instead."<<std::endl;
-      throw std::runtime_error("Fatal: ambiguous local vertex id");
-    }
-    out = &it.second;
-  }
   return out;
 }
 

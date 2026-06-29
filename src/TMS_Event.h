@@ -159,7 +159,6 @@ class TMS_Event {
      VertexInfoMap GetVertexInfo() { return info_about_vtx; };
      Vtx_Info* GetVertexInfo(int run_id, int vertex_id);
      Vtx_Info* GetVertexInfoByGlobalID(long long vertex_global_id);
-     Vtx_Info* GetVertexInfoByVertexID(int vertex_id);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -198,7 +197,7 @@ class TMS_Event {
     int nVertices;
 
     std::string Reaction;
-    std::map<int, std::string> Reactions;
+    std::map<long long, std::string> Reactions;
  
     // Counts how many times constructor has been called
     static int EventCounter;

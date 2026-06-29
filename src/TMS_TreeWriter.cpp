@@ -1778,7 +1778,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     RecoTrackPrimaryParticleTrueNHits[itTrack] = 0;
     RecoTrackSecondaryParticleTrueNHits[itTrack] = 0;
-    if (particle_info.vertexids.size() > 0) {
+    if (particle_info.vertexglobalids.size() > 0) {
       // Loop through all the hits, check if truth info matches primary (or secondary) particle, and then add to count
       for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
         auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
@@ -1788,7 +1788,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
             // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
             break; 
           }
-          if (particle_info.vertexids.size() > 1) {
+          if (particle_info.vertexglobalids.size() > 1) {
             if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
               RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
               // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
