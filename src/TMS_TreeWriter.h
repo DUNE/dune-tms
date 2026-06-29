@@ -132,6 +132,8 @@ class TMS_TreeWriter {
     int SpillNo;
     
     int VertexIdOfMostEnergyInEvent;
+    int VertexRunNoOfMostEnergyInEvent;
+    Long64_t VertexGlobalIDOfMostEnergyInEvent;
     float VisibleEnergyFromVertexInSlice;
     float TotalVisibleEnergyFromVertex;
     float VisibleEnergyFromOtherVerticesInSlice;
@@ -455,6 +457,8 @@ class TMS_TreeWriter {
     bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
 
     int RecoTrackPrimaryParticleVtxId[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleVtxRunNo[__TMS_MAX_LINES__];
+    Long64_t RecoTrackPrimaryParticleVtxGlobalID[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxFiducialCut[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxShellEnergyCut[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxNDPhysicsCut[__TMS_MAX_LINES__];
