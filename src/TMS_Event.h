@@ -9,6 +9,7 @@
 #include "TMS_Hit.h"
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
+#include <map>
 #include <random>
 #include "TMS_Track.h"
 
@@ -50,6 +51,8 @@ struct Vtx_Info {
     UpdateNDPhysicsCut(); // Update dirty cut
   };
 };
+
+using VertexInfoMap = std::map<long long, Vtx_Info>;
 
 // The general event class
 class TMS_Event {
@@ -152,8 +155,9 @@ class TMS_Event {
      
      void ConnectTrueHitWithTrueParticle(bool slide);
      
-     std::map<int, Vtx_Info> GetVertexInfo() { return info_about_vtx; };
-     Vtx_Info* GetVertexInfo(int vertex_id);
+     VertexInfoMap GetVertexInfo() { return info_about_vtx; };
+     Vtx_Info* GetVertexInfo(int run_id, int vertex_id);
+     Vtx_Info* GetVertexInfoByVertexID(int vertex_id);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -225,7 +229,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ReadChannelTimes;
     std::vector<std::pair<double, double>> TimeSliceBounds;
     
-    std::map<int, Vtx_Info> info_about_vtx;
+    VertexInfoMap info_about_vtx;
 
     std::default_random_engine generator;
     

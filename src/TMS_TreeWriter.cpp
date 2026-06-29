@@ -697,7 +697,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   LeptonX4[3] = event.GetLeptonX4().T();
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
-  if (auto* vtx_info = event.GetVertexInfo(VertexIdOfMostEnergyInEvent)) {
+  if (auto* vtx_info = event.GetVertexInfoByVertexID(VertexIdOfMostEnergyInEvent)) {
     VertexRunNoOfMostEnergyInEvent = vtx_info->run_id;
     VertexGlobalIDOfMostEnergyInEvent = makeGlobalVertexID(VertexRunNoOfMostEnergyInEvent, VertexIdOfMostEnergyInEvent);
   }
@@ -1737,7 +1737,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleVtxGlobalID[itTrack] =
             makeGlobalVertexID(RecoTrackPrimaryParticleVtxRunNo[itTrack], RecoTrackPrimaryParticleVtxId[itTrack]);
 
-        auto* vtx_info = event.GetVertexInfo(tp.GetVertexID());
+        auto* vtx_info = event.GetVertexInfo(tp.GetRunID(), tp.GetVertexID());
         if (vtx_info != NULL) {
           RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = vtx_info->fiducial_cut;
           RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = vtx_info->shell_energy_cut;

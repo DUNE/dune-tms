@@ -6,6 +6,10 @@
 // Initialise the event counter to 0
 int TMS_Event::EventCounter = 0;
 
+static long long MakeGlobalVertexID(int run_id, int vertex_id) {
+  return static_cast<long long>(run_id) * 1000000ll + static_cast<long long>(vertex_id);
+}
+
 TMS_Event::TMS_Event() {
   EventNumber = -999;
   SliceNumber = 0;
@@ -44,11 +48,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   int nChargedAndLowMomentum = 0;
   RunNumber = event.RunId;
   int current_vertexid = event.EventId;
-  // Nersc jobs have 1 primary vertex per entry, whereas fermigrid jobs have many, but don't use the spill builder.
-  // So they're not affected by the https://github.com/DUNE/2x2_sim/issues/54 bug
-  // todo: Make both GetInteractionNumber when bug is fixed
-  bool use_GetInteractionNumber = false;
-  if (event.Primaries.size() > 1) use_GetInteractionNumber = true; 
+  if (event.Primaries.size() > 1) {
+    std::cout<<"Fatal: TMS_Event found "<<event.Primaries.size()
+             <<" primary vertices in one TG4Event. This path used to fall back to"
+             <<" PrimaryVertex::GetInteractionNumber(), but that is not guaranteed to match"
+             <<" the edep-sim EventId convention used by CAFMaker."<<std::endl;
+    throw std::runtime_error("Fatal: multiple primary vertices need explicit edep-sim vertex IDs");
+  }
   // Loop over the primary vertices
   for (TG4PrimaryVertexContainer::iterator it = event.Primaries.begin(); it != event.Primaries.end(); ++it) {
 
@@ -58,10 +64,6 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     // Interaction number is off-by-one in recent microprod files, so set it manually
     // See https://github.com/DUNE/2x2_sim/issues/61
     vtx.InteractionNumber = current_vertexid;
-    // Ideally we'd do it like this, but it's not supported by the spill builder
-    // See https://github.com/DUNE/2x2_sim/issues/54
-    if (use_GetInteractionNumber)
-      current_vertexid = vtx.GetInteractionNumber();
     if (current_vertexid < 0) {
       std::cout<<"Fatal: Got a current_vertexid < 0 in TMS_Event: "<<current_vertexid<<std::endl;
       throw std::runtime_error("Fatal: Get a vertex id < 0");
@@ -75,7 +77,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     // Had issues with lorentz vectors before so best make a copy
     vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
     
-    info_about_vtx[current_vertexid] = vtx_info;
+    const long long global_vertex_id = MakeGlobalVertexID(vtx_info.run_id, vtx_info.vtx_id);
+    auto inserted = info_about_vtx.emplace(global_vertex_id, vtx_info);
+    if (!inserted.second) {
+      std::cout<<"Fatal: Duplicate global vertex id "<<global_vertex_id
+               <<" for run "<<vtx_info.run_id<<" vertex "<<vtx_info.vtx_id<<std::endl;
+      throw std::runtime_error("Fatal: duplicate global vertex id");
+    }
 
     if (FillEvent) {
       // Primary particles in edep-sim are before any particle propagation happens
@@ -250,12 +258,8 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 
   // First create a mapping so we don't loop multiple times
   std::map<int, int> mapping_track_to_vertex_id;
-  int vertex_index = event.EventId;
+  const int vertex_index = event.EventId;
   for (auto vertex : event.Primaries) {
-    // Ideally we'd do it like this for nersc files, but it's not supported by the spill builder
-    // See https://github.com/DUNE/2x2_sim/issues/54
-    if (use_GetInteractionNumber)
-      vertex_index = vertex.GetInteractionNumber();
     for (auto particle : vertex.Particles) {
       int track_id = particle.GetTrackId();
       mapping_track_to_vertex_id[track_id] = vertex_index;
@@ -417,6 +421,7 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       TimeSliceBounds(event.TimeSliceBounds), info_about_vtx(event.info_about_vtx),
       generator(event.generator) {
   // Create an event from a slice of another event
+  RunNumber = event.RunNumber;
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
   
@@ -1018,7 +1023,14 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   TrueVisibleEnergyPerVertex.merge(Other_Event.TrueVisibleEnergyPerVertex);
   TrueVisibleEnergyPerParticle.merge(Other_Event.TrueVisibleEnergyPerParticle);
   Reactions.merge(Other_Event.Reactions);
-  info_about_vtx.merge(Other_Event.info_about_vtx);
+  for (const auto& it : Other_Event.info_about_vtx) {
+    auto inserted = info_about_vtx.emplace(it.first, it.second);
+    if (!inserted.second) {
+      std::cout<<"Fatal: Duplicate global vertex id "<<it.first
+               <<" while merging TMS events"<<std::endl;
+      throw std::runtime_error("Fatal: duplicate global vertex id while merging events");
+    }
+  }
   // Reset this to recalculate on next call
   VertexIdOfMostEnergyInEvent = -9999;
 
@@ -1350,17 +1362,34 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
 void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
   for (size_t i = 0; i < hit.GetNTrueParticles(); i++) {
     int vertex_id = hit.GetVertexIds(i);
-    if (info_about_vtx.find(vertex_id) != info_about_vtx.end()) {
-      info_about_vtx[vertex_id].AddEnergyFromHit(hit, i);
+    const long long global_vertex_id = MakeGlobalVertexID(RunNumber, vertex_id);
+    if (info_about_vtx.find(global_vertex_id) != info_about_vtx.end()) {
+      info_about_vtx[global_vertex_id].AddEnergyFromHit(hit, i);
     }
-    else std::cout<<"This should not happen but I didn't find a vertex for vertex id "<<vertex_id<<std::endl;
+    else std::cout<<"This should not happen but I didn't find a vertex for run "
+                  <<RunNumber<<" vertex id "<<vertex_id<<std::endl;
   }
 }
 
-Vtx_Info* TMS_Event::GetVertexInfo(int vertex_id) {
+Vtx_Info* TMS_Event::GetVertexInfo(int run_id, int vertex_id) {
   Vtx_Info* out = NULL;
-  if (info_about_vtx.find(vertex_id) != info_about_vtx.end())
-    out = &info_about_vtx.at(vertex_id);
+  const long long global_vertex_id = MakeGlobalVertexID(run_id, vertex_id);
+  if (info_about_vtx.find(global_vertex_id) != info_about_vtx.end())
+    out = &info_about_vtx.at(global_vertex_id);
+  return out;
+}
+
+Vtx_Info* TMS_Event::GetVertexInfoByVertexID(int vertex_id) {
+  Vtx_Info* out = NULL;
+  for (auto& it : info_about_vtx) {
+    if (it.second.vtx_id != vertex_id) continue;
+    if (out != NULL) {
+      std::cout<<"Fatal: Found multiple run-qualified vertices for local vertex id "
+               <<vertex_id<<". Use run-qualified vertex lookup instead."<<std::endl;
+      throw std::runtime_error("Fatal: ambiguous local vertex id");
+    }
+    out = &it.second;
+  }
   return out;
 }
 
@@ -1391,9 +1420,4 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
     true_visible_energy_tms += energy;
   }
 }
-
-
-
-
-
 
