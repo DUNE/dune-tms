@@ -28,6 +28,7 @@ namespace {
 
 const std::vector<std::string> kTreeNames = {"Reco_Tree", "Truth_Info",
                                              "Truth_Spill"};
+constexpr double kDefaultValueCut = -900000000.0;
 
 struct BranchSpec {
   std::string tree;
@@ -455,12 +456,15 @@ std::string BranchLabel(const BranchSpec &spec) {
 }
 
 TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
-  const double min = chain.GetMinimum(spec.expression.c_str());
+  double min = chain.GetMinimum(spec.expression.c_str());
   const double max = chain.GetMaximum(spec.expression.c_str());
   if (!std::isfinite(min) || !std::isfinite(max)) {
     manifest << "SKIP " << BranchLabel(spec)
              << " could not determine finite range\n";
     return nullptr;
+  }
+  if (min < kDefaultValueCut && max > kDefaultValueCut) {
+    min = std::min(0.0, max);
   }
 
   const AxisSpec axis = ChooseAxis(spec, min, max);
@@ -476,7 +480,10 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
   hist->Sumw2();
   hist->SetDirectory(gDirectory);
   const std::string draw = spec.expression + ">>" + spec.hist_name;
-  const Long64_t filled = chain.Draw(draw.c_str(), "", "goff");
+  const std::string selection =
+      IsBoolType(spec.type) ? "" : spec.expression + ">" +
+                                    std::to_string(kDefaultValueCut);
+  const Long64_t filled = chain.Draw(draw.c_str(), selection.c_str(), "goff");
   hist->SetDirectory(nullptr);
   if (filled < 0) {
     manifest << "SKIP " << BranchLabel(spec)
@@ -500,7 +507,8 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
            << " bins=" << axis.bins << " range=[" << std::setprecision(12)
            << axis.low << "," << axis.high << "]"
            << " root_reported_range=[" << min << "," << max << "]"
-           << " axis_source=" << axis.source << " integral=" << integral
+           << " axis_source=" << axis.source << " selection=\""
+           << selection << "\" integral=" << integral
            << " underflow=" << underflow << " overflow=" << overflow
            << " flow_fraction=" << flow_fraction << "\n";
   if (flow_fraction > 0.20) {
