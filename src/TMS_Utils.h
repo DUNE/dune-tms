@@ -27,6 +27,7 @@ namespace TMS_Utils {
     double total_energy = 0;
     std::vector<int> trackids;
     std::vector<int> vertexids;
+    std::vector<long long> vertexglobalids;
     std::vector<double> energies;
     
     void Print() {
@@ -35,6 +36,7 @@ namespace TMS_Utils {
       for (size_t i = 0; i < trackids.size(); i++) {
         std::cout<<trackids.at(i)<<": "<<energies.at(i)<<std::endl;
         std::cout<<vertexids.at(i)<<": "<<energies.at(i)<<std::endl;
+        std::cout<<vertexglobalids.at(i)<<": "<<energies.at(i)<<std::endl;
       }
     }
   };
@@ -45,7 +47,7 @@ namespace TMS_Utils {
   }
   
   ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits);
-  ParticleInfo GetSumAndHighest(const std::map<std::pair<int, int>, double>& map);
+  ParticleInfo GetSumAndHighest(const std::map<std::pair<long long, int>, std::pair<int, double>>& map);
 
 // Can only run this if we have linkage to CAF format
 #ifdef DUNEANAOBJ_ENABLED

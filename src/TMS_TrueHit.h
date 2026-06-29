@@ -12,7 +12,7 @@
 // Essentially a copy of the edep-sim THit
 class TMS_TrueHit {
   public:
-    TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id);
+    TMS_TrueHit(TG4HitSegment &edep_seg, int vertex_id, long long vertex_global_id);
     
     TMS_TrueHit() = delete;
     
@@ -20,7 +20,8 @@ class TMS_TrueHit {
     // Or else true particle information is lost 
     // Copy constructor
     TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexIds(other.VertexIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
+      VertexIds(other.VertexIds), VertexGlobalIds(other.VertexGlobalIds),
+      EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
     {
         if (this != &other) {
           x = other.x;
@@ -41,6 +42,7 @@ class TMS_TrueHit {
         if (this != &other) {
           PrimaryIds = other.PrimaryIds;
           VertexIds = other.VertexIds;
+          VertexGlobalIds = other.VertexGlobalIds;
           EnergyShare = other.EnergyShare;
           EnergyShareIsLeptonic = other.EnergyShareIsLeptonic;
           x = other.x;
@@ -62,6 +64,7 @@ class TMS_TrueHit {
         if (this != &other) {
           PrimaryIds = std::move(other.PrimaryIds);
           VertexIds = std::move(other.VertexIds);
+          VertexGlobalIds = std::move(other.VertexGlobalIds);
           EnergyShare = std::move(other.EnergyShare);
           EnergyShareIsLeptonic = std::move(other.EnergyShareIsLeptonic);
           x = other.x;
@@ -99,6 +102,7 @@ class TMS_TrueHit {
     };
     int GetPrimaryIds(int index) const { return PrimaryIds.at(index); };
     int GetVertexIds(int index) const { return VertexIds.at(index); };
+    long long GetVertexGlobalIds(int index) const { return VertexGlobalIds.at(index); };
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
     double GetEnergySharePortion(int index) const { return EnergyShare.at(index) / GetE(); };
     //void SetVertexId(int id) { VertexId = id; };
@@ -137,6 +141,7 @@ class TMS_TrueHit {
     // Store individual particles for later particle identication
     std::vector<int> PrimaryIds;
     std::vector<int> VertexIds;
+    std::vector<long long> VertexGlobalIds;
     std::vector<double> EnergyShare;
     std::vector<bool> EnergyShareIsLeptonic;
 };

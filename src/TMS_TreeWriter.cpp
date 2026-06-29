@@ -697,9 +697,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   LeptonX4[3] = event.GetLeptonX4().T();
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
-  if (auto* vtx_info = event.GetVertexInfoByVertexID(VertexIdOfMostEnergyInEvent)) {
+  VertexGlobalIDOfMostEnergyInEvent = event.GetVertexGlobalIdOfMostVisibleEnergy();
+  if (auto* vtx_info = event.GetVertexInfoByGlobalID(VertexGlobalIDOfMostEnergyInEvent)) {
     VertexRunNoOfMostEnergyInEvent = vtx_info->run_id;
-    VertexGlobalIDOfMostEnergyInEvent = makeGlobalVertexID(VertexRunNoOfMostEnergyInEvent, VertexIdOfMostEnergyInEvent);
   }
   VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
   TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
@@ -716,11 +716,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
   double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS(); // mm
   LArOuterShellEnergy = event.CalculateEnergyInLArOuterShell(thickness);
-  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexIdOfMostEnergyInEvent);
+  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexGlobalIDOfMostEnergyInEvent);
   LArTotalEnergy = event.CalculateEnergyInLAr();
-  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexIdOfMostEnergyInEvent);
+  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexGlobalIDOfMostEnergyInEvent);
   TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
-  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexIdOfMostEnergyInEvent);
+  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexGlobalIDOfMostEnergyInEvent);
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
@@ -1647,7 +1647,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1753,7 +1753,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1783,13 +1783,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
         auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
         for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-          if (true_hit.GetVertexIds(i) == particle_info.vertexids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
+          if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
             RecoTrackPrimaryParticleTrueNHits[itTrack] += 1;
             // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
             break; 
           }
           if (particle_info.vertexids.size() > 1) {
-            if (true_hit.GetVertexIds(i) == particle_info.vertexids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
+            if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
               RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
               // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
               break; 
