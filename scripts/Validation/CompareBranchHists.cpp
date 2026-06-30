@@ -1,8 +1,11 @@
+#include <TCanvas.h>
 #include <TDirectory.h>
+#include <TError.h>
 #include <TFile.h>
 #include <TH1.h>
 #include <TH1D.h>
 #include <TKey.h>
+#include <TLegend.h>
 #include <TROOT.h>
 
 #include <algorithm>
@@ -39,12 +42,58 @@ std::string DefaultDataDir() {
   return base;
 }
 
+std::string DefaultComparisonDir(const std::string &file_a_path,
+                                 const std::string &file_b_path) {
+  const char *user = std::getenv("USER");
+  std::string base = "/exp/dune/data/users/";
+  base += user ? user : "unknown";
+  base += "/dune-tms/Validation/BranchHists/comparisons";
+  const std::string stem_a = std::filesystem::path(file_a_path).stem().string();
+  const std::string stem_b = std::filesystem::path(file_b_path).stem().string();
+  return (std::filesystem::path(base) / (stem_a + "_vs_" + stem_b)).string();
+}
+
+std::string PrepareComparisonDir(const std::string &file_a_path,
+                                 const std::string &file_b_path) {
+  std::error_code ec;
+  std::string output_dir = DefaultComparisonDir(file_a_path, file_b_path);
+  std::filesystem::create_directories(output_dir, ec);
+  if (!ec) return output_dir;
+
+  const std::string stem_a = std::filesystem::path(file_a_path).stem().string();
+  const std::string stem_b = std::filesystem::path(file_b_path).stem().string();
+  output_dir =
+      (std::filesystem::path(file_a_path).parent_path() /
+       ("comparison_" + stem_a + "_vs_" + stem_b)).string();
+  ec.clear();
+  std::filesystem::create_directories(output_dir, ec);
+  if (ec) {
+    throw std::runtime_error("Could not create comparison plot directory: " +
+                             output_dir + " (" + ec.message() + ")");
+  }
+  return output_dir;
+}
+
 std::string ResolveProjectFile(const std::string &project_or_file) {
   const std::filesystem::path path(project_or_file);
   if (std::filesystem::exists(path)) return path.string();
   if (path.has_parent_path() || path.extension() == ".root") return path.string();
   return (std::filesystem::path(DefaultDataDir()) /
           (project_or_file + ".root")).string();
+}
+
+std::string SanitizeFilename(const std::string &input) {
+  std::string output;
+  output.reserve(input.size());
+  for (char c : input) {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.') {
+      output.push_back(c);
+    } else {
+      output.push_back('_');
+    }
+  }
+  return output;
 }
 
 std::string JoinPath(const std::string &dir, const std::string &name) {
@@ -138,6 +187,83 @@ Comparison CompareHistograms(const std::string &path, const TH1 &a, const TH1 &b
   return result;
 }
 
+void StyleHist(TH1 &hist, int color, int marker, const std::string &title) {
+  hist.SetLineColor(color);
+  hist.SetMarkerColor(color);
+  hist.SetMarkerStyle(marker);
+  hist.SetLineWidth(2);
+  hist.SetTitle(title.c_str());
+  hist.GetYaxis()->SetTitle("entries");
+}
+
+std::filesystem::path PlotPath(const std::string &output_dir,
+                               const std::string &hist_path) {
+  const size_t slash = hist_path.find('/');
+  std::filesystem::path out(output_dir);
+  if (slash != std::string::npos) {
+    out /= SanitizeFilename(hist_path.substr(0, slash));
+    out /= SanitizeFilename(hist_path.substr(slash + 1)) + ".png";
+  } else {
+    out /= SanitizeFilename(hist_path) + ".png";
+  }
+  return out;
+}
+
+void DrawComparison(TFile &file_a, TFile &file_b, const Comparison &comparison,
+                    const std::string &label_a, const std::string &label_b,
+                    const std::string &output_dir) {
+  auto hist_a = ReadHist(file_a, comparison.path);
+  auto hist_b = ReadHist(file_b, comparison.path);
+  if (!hist_a && !hist_b) return;
+
+  std::unique_ptr<TH1> draw_a;
+  std::unique_ptr<TH1> draw_b;
+  if (hist_a && hist_b) {
+    const double low =
+        std::min(hist_a->GetXaxis()->GetXmin(), hist_b->GetXaxis()->GetXmin());
+    const double high =
+        std::max(hist_a->GetXaxis()->GetXmax(), hist_b->GetXaxis()->GetXmax());
+    const int bins = std::max(hist_a->GetNbinsX(), hist_b->GetNbinsX());
+    draw_a = ProjectToAxis(*hist_a, "plot_a", bins, low, high);
+    draw_b = ProjectToAxis(*hist_b, "plot_b", bins, low, high);
+  } else if (hist_a) {
+    draw_a.reset(dynamic_cast<TH1 *>(hist_a->Clone("plot_a")));
+    draw_a->SetDirectory(nullptr);
+  } else {
+    draw_b.reset(dynamic_cast<TH1 *>(hist_b->Clone("plot_b")));
+    draw_b->SetDirectory(nullptr);
+  }
+
+  if (draw_a) StyleHist(*draw_a, kBlue + 1, 20, comparison.path);
+  if (draw_b) StyleHist(*draw_b, kRed + 1, 24, comparison.path);
+
+  const double max_a = draw_a ? draw_a->GetMaximum() : 0.0;
+  const double max_b = draw_b ? draw_b->GetMaximum() : 0.0;
+  const double ymax = std::max(max_a, max_b) * 1.25 + 1.0;
+  if (draw_a) draw_a->SetMaximum(ymax);
+  if (draw_b) draw_b->SetMaximum(ymax);
+
+  TCanvas canvas("branch_compare_canvas", "branch_compare_canvas", 1100, 800);
+  canvas.SetTicks();
+  if (draw_a) {
+    draw_a->Draw("hist e");
+    if (draw_b) draw_b->Draw("hist e same");
+  } else if (draw_b) {
+    draw_b->Draw("hist e");
+  }
+
+  TLegend legend(0.62, 0.72, 0.88, 0.88);
+  legend.SetBorderSize(0);
+  legend.SetFillStyle(0);
+  if (draw_a) legend.AddEntry(draw_a.get(), label_a.c_str(), "l");
+  if (draw_b) legend.AddEntry(draw_b.get(), label_b.c_str(), "l");
+  legend.Draw();
+
+  const auto plot_path = PlotPath(output_dir, comparison.path);
+  std::filesystem::create_directories(plot_path.parent_path());
+  canvas.Print(plot_path.string().c_str());
+}
+
 bool Changed(const Comparison &comparison, double min_chi2,
              double min_integral_delta) {
   if (comparison.only_a || comparison.only_b) return true;
@@ -161,6 +287,7 @@ int main(int argc, char **argv) {
   }
 
   TH1::AddDirectory(false);
+  gErrorIgnoreLevel = kWarning;
   const std::string file_a_path = ResolveProjectFile(argv[1]);
   const std::string file_b_path = ResolveProjectFile(argv[2]);
   const double min_chi2 = argc >= 4 ? std::atof(argv[3]) : 1e-9;
@@ -216,6 +343,8 @@ int main(int argc, char **argv) {
   std::cout << "  A: " << file_a_path << "\n";
   std::cout << "  B: " << file_b_path << "\n";
   std::cout << "  Changed histograms: " << changed.size() << "\n";
+  const std::string output_dir = PrepareComparisonDir(file_a_path, file_b_path);
+  std::cout << "  Plots: " << output_dir << "\n";
   std::cout << std::setprecision(8);
   for (const auto &comparison : changed) {
     if (comparison.only_a) {
@@ -235,6 +364,12 @@ int main(int argc, char **argv) {
               << " integral_delta="
               << (comparison.integral_b - comparison.integral_a)
               << " max_abs_bin_delta=" << comparison.max_abs_bin_delta << "\n";
+  }
+
+  const std::string label_a = std::filesystem::path(file_a_path).stem().string();
+  const std::string label_b = std::filesystem::path(file_b_path).stem().string();
+  for (const auto &comparison : changed) {
+    DrawComparison(file_a, file_b, comparison, label_a, label_b, output_dir);
   }
 
   return 0;
