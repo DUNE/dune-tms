@@ -8,6 +8,7 @@
 #include <TObjArray.h>
 #include <TROOT.h>
 #include <TTree.h>
+#include <TTreeFormula.h>
 
 #include <algorithm>
 #include <cmath>
@@ -39,6 +40,7 @@ struct BranchSpec {
   std::string expression;
   std::string type;
   std::string component;
+  int vector_size = 0;
   std::string hist_name;
   std::string title;
 };
@@ -48,6 +50,20 @@ struct AxisSpec {
   double low = 0.0;
   double high = 1.0;
   std::string source = "dynamic";
+};
+
+struct ValueStats {
+  Long64_t count = 0;
+  double min = std::numeric_limits<double>::infinity();
+  double max = -std::numeric_limits<double>::infinity();
+
+  bool HasValues() const { return count > 0; }
+  void Add(double value) {
+    if (!std::isfinite(value)) return;
+    min = std::min(min, value);
+    max = std::max(max, value);
+    ++count;
+  }
 };
 
 std::string Sanitize(const std::string &input) {
@@ -250,10 +266,13 @@ std::vector<BranchSpec> CollectBranches(TChain &chain,
 
       const auto dimensions = ParseLeafDimensions(leaf->GetTitle());
       const auto components = ComponentExpressions(leaf_name, dimensions);
+      const int vector_size =
+          dimensions.empty() ? 0 : NumericDimension(dimensions.back());
       if (!components.empty() && leaves->GetEntries() == 1) {
         for (const auto &component : components) {
           BranchSpec component_spec = spec;
           component_spec.component = component.first;
+          component_spec.vector_size = vector_size;
           component_spec.expression = component.second;
           component_spec.hist_name = Sanitize(tree_name + "__" + branch_name +
                                               "__" + leaf_name + "__" +
@@ -453,7 +472,8 @@ AxisSpec ChooseAxis(const BranchSpec &spec, double min, double max) {
   } else if (Contains(name, "pos") || Contains(name, "position") ||
              Contains(name, "vertex") || Contains(name, "vtx") ||
              Contains(compact_name, "hitx") || Contains(compact_name, "hity") ||
-             Contains(compact_name, "hitz") || Contains(compact_name, "hitt")) {
+             Contains(compact_name, "hitz") || Contains(compact_name, "hitt") ||
+             spec.vector_size == 4) {
     axis.bins = 200;
     if (component == "x" || component == "y") {
       axis.low = -10000.0;
@@ -491,7 +511,8 @@ double MissingValueCut(const BranchSpec &spec) {
       Contains(name, "vertex") || Contains(name, "vtx") ||
       Contains(name, "momentum") || Contains(name, "p4") ||
       Contains(compact_name, "hitx") || Contains(compact_name, "hity") ||
-      Contains(compact_name, "hitz") || Contains(compact_name, "hitt")) {
+      Contains(compact_name, "hitz") || Contains(compact_name, "hitt") ||
+      spec.vector_size == 4) {
     return kLargeMissingValueCut;
   }
 
@@ -514,52 +535,74 @@ std::string BranchLabel(const BranchSpec &spec) {
   return label;
 }
 
-TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
-  const double chain_min = chain.GetMinimum(spec.expression.c_str());
-  const double chain_max = chain.GetMaximum(spec.expression.c_str());
-  double axis_min_input = chain_min;
-  if (!std::isfinite(chain_min) || !std::isfinite(chain_max)) {
-    manifest << "SKIP " << BranchLabel(spec)
-             << " could not determine finite range\n";
-    return nullptr;
-  }
-  const double missing_cut = MissingValueCut(spec);
-  if (std::isfinite(missing_cut) && axis_min_input < missing_cut &&
-      chain_max > missing_cut) {
-    axis_min_input = std::min(0.0, chain_max);
+ValueStats ScanValues(TChain &chain, const BranchSpec &spec,
+                      const std::string &selection, TH1D *hist = nullptr) {
+  ValueStats stats;
+  TTreeFormula value_formula("branch_hist_value", spec.expression.c_str(),
+                             &chain);
+  std::unique_ptr<TTreeFormula> selection_formula;
+  if (!selection.empty()) {
+    selection_formula = std::make_unique<TTreeFormula>(
+        "branch_hist_selection", selection.c_str(), &chain);
   }
 
-  const AxisSpec axis = ChooseAxis(spec, axis_min_input, chain_max);
+  int current_tree = -1;
+  const Long64_t entries = chain.GetEntries();
+  for (Long64_t entry = 0; entry < entries; ++entry) {
+    const Long64_t local_entry = chain.LoadTree(entry);
+    if (local_entry < 0) continue;
+    if (chain.GetTreeNumber() != current_tree) {
+      current_tree = chain.GetTreeNumber();
+      value_formula.UpdateFormulaLeaves();
+      if (selection_formula) selection_formula->UpdateFormulaLeaves();
+    }
+    chain.GetEntry(entry);
+
+    const int ndata = value_formula.GetNdata();
+    for (int idata = 0; idata < ndata; ++idata) {
+      if (selection_formula && selection_formula->EvalInstance(idata) == 0.0)
+        continue;
+      const double value = value_formula.EvalInstance(idata);
+      if (!std::isfinite(value)) continue;
+      stats.Add(value);
+      if (hist) hist->Fill(value);
+    }
+  }
+  return stats;
+}
+
+TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
+  const double missing_cut = MissingValueCut(spec);
+  const std::string selection =
+      IsBoolType(spec.type) ? "" : spec.expression + ">" +
+                                    std::to_string(missing_cut);
+  const ValueStats selected_stats = ScanValues(chain, spec, selection);
+  if (!selected_stats.HasValues()) {
+    manifest << "SKIP " << BranchLabel(spec)
+             << " has no finite selected values selection=\"" << selection
+             << "\"\n";
+    return nullptr;
+  }
+
+  const AxisSpec axis = ChooseAxis(spec, selected_stats.min, selected_stats.max);
   if (!(axis.low < axis.high)) {
     manifest << "SKIP " << BranchLabel(spec)
-             << " invalid range chain_min=" << chain_min
-             << " chain_max=" << chain_max << " axis_input_min="
-             << axis_min_input << " axis=[" << axis.low << "," << axis.high
-             << "]\n";
+             << " invalid range selected_min=" << selected_stats.min
+             << " selected_max=" << selected_stats.max << " axis=["
+             << axis.low << "," << axis.high << "]\n";
     return nullptr;
   }
 
   auto *hist = new TH1D(spec.hist_name.c_str(), spec.title.c_str(), axis.bins,
                         axis.low, axis.high);
   hist->Sumw2();
-  hist->SetDirectory(gDirectory);
-  const std::string draw = spec.expression + ">>" + spec.hist_name;
-  const std::string selection =
-      IsBoolType(spec.type) ? "" : spec.expression + ">" +
-                                    std::to_string(missing_cut);
-  const Long64_t filled = chain.Draw(draw.c_str(), selection.c_str(), "goff");
   hist->SetDirectory(nullptr);
-  if (filled < 0) {
-    manifest << "SKIP " << BranchLabel(spec)
-             << " draw failed expression=" << spec.expression << "\n";
-    delete hist;
-    return nullptr;
-  }
+  const ValueStats filled_stats = ScanValues(chain, spec, selection, hist);
 
   hist->SetTitle(spec.title.c_str());
   hist->GetXaxis()->SetTitle("value");
   hist->GetYaxis()->SetTitle("entries");
-  hist->SetEntries(filled);
+  hist->SetEntries(filled_stats.count);
   const double integral = hist->Integral(0, axis.bins + 1);
   const double underflow = hist->GetBinContent(0);
   const double overflow = hist->GetBinContent(axis.bins + 1);
@@ -569,11 +612,12 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
       integral > 0.0 ? (underflow + overflow) / integral : 0.0;
   manifest << "HIST " << BranchLabel(spec)
            << " name=" << spec.hist_name << " type=" << spec.type
-           << " expression=" << spec.expression << " filled=" << filled
+           << " expression=" << spec.expression << " filled="
+           << filled_stats.count
            << " bins=" << axis.bins << " range=[" << std::setprecision(12)
            << axis.low << "," << axis.high << "]"
-           << " chain_min=" << chain_min << " chain_max=" << chain_max
-           << " axis_input_min=" << axis_min_input
+           << " selected_min=" << selected_stats.min
+           << " selected_max=" << selected_stats.max
            << " axis_source=" << axis.source << " selection=\""
            << selection << "\" integral=" << integral
            << " underflow=" << underflow << " overflow=" << overflow
@@ -586,7 +630,8 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
             << 100.0 * underflow_fraction << "% underflow and "
             << 100.0 * overflow_fraction << "% overflow ("
             << 100.0 * flow_fraction << "% combined)"
-            << " chain_min=" << chain_min << " chain_max=" << chain_max
+            << " selected_min=" << selected_stats.min
+            << " selected_max=" << selected_stats.max
             << " hist_range=[" << axis.low << "," << axis.high << "]"
             << " selection=\"" << selection << "\"";
     manifest << warning.str() << "\n";
