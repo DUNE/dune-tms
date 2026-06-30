@@ -4,12 +4,13 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./run_validation.sh <input file|glob|directory> [output name|output.root] [num_events] [max_slices]
-  ./run_validation.sh <input file|glob|directory> [num_events] [max_slices]
-  ./run_validation.sh <input file|glob|directory> [num_events] [max_slices] [output name|output.root]
+  ./run_validation.sh <input file|filelist.txt|glob|directory> [output name|output.root] [num_events] [max_slices]
+  ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices]
+  ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices] [output name|output.root]
 
 If the second argument is non-numeric, it is used as the output name/stem.
 Directory inputs are scanned recursively by Tracking_Validation.
+Text-file inputs are treated as one ROOT file path or URL per line.
 EOF
 }
 
@@ -57,6 +58,7 @@ fi
 if [[ -z "$output_name" ]]; then
   base_filename=$(basename "$infile")
   output_name="${base_filename%.root}"
+  output_name="${output_name%.txt}"
 fi
 
 if [[ "$output_name" == */* ]]; then

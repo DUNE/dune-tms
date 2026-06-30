@@ -1267,6 +1267,9 @@ std::string getOutputFilename(const std::string &inputFilename) {
     else
       filename = "validation.root"; // No choice but a default file
   }
+  if (filename.size() >= 4 &&
+      filename.substr(filename.size() - 4) == ".txt")
+    filename = filename.substr(0, filename.size() - 4);
   // Now add .root if needed
   if (filename.find(".root") == std::string::npos)
     filename += ".root";
@@ -1293,6 +1296,14 @@ bool HasWildcard(const std::string &path) {
          path.find('[') != std::string::npos;
 }
 
+std::string Trim(const std::string &text) {
+  const auto first = text.find_first_not_of(" \t\r\n");
+  if (first == std::string::npos)
+    return "";
+  const auto last = text.find_last_not_of(" \t\r\n");
+  return text.substr(first, last - first + 1);
+}
+
 bool HasValidationTrees(const std::filesystem::path &path) {
   TFile file(path.string().c_str(), "READ");
   if (file.IsZombie())
@@ -1315,6 +1326,29 @@ struct InputFiles {
   }
 };
 
+std::vector<std::string> ReadInputFileList(const std::filesystem::path &path) {
+  std::ifstream list(path);
+  if (!list) {
+    throw std::runtime_error("Could not open input file list: " +
+                             path.string());
+  }
+
+  std::vector<std::string> files;
+  std::string line;
+  while (std::getline(list, line)) {
+    const std::string file = Trim(line);
+    if (file.empty() || file[0] == '#')
+      continue;
+    files.push_back(file);
+  }
+
+  if (files.empty()) {
+    throw std::runtime_error("Input file list is empty: " + path.string());
+  }
+
+  return files;
+}
+
 InputFiles ResolveInputFiles(const std::string &inputFilename) {
   InputFiles inputs;
 
@@ -1331,6 +1365,13 @@ InputFiles ResolveInputFiles(const std::string &inputFilename) {
   }
 
   if (std::filesystem::is_regular_file(inputPath, ec)) {
+    if (inputPath.extension() == ".txt") {
+      inputs.files = ReadInputFileList(inputPath);
+      std::cout << "Using " << inputs.files.size()
+                << " input files from file list: " << inputPath << std::endl;
+      return inputs;
+    }
+
     inputs.files.push_back(inputPath.string());
     std::cout << "Using single input file: " << inputPath << std::endl;
     return inputs;
