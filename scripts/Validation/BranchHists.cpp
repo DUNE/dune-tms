@@ -515,23 +515,27 @@ std::string BranchLabel(const BranchSpec &spec) {
 }
 
 TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
-  double min = chain.GetMinimum(spec.expression.c_str());
-  const double max = chain.GetMaximum(spec.expression.c_str());
-  if (!std::isfinite(min) || !std::isfinite(max)) {
+  const double chain_min = chain.GetMinimum(spec.expression.c_str());
+  const double chain_max = chain.GetMaximum(spec.expression.c_str());
+  double axis_min_input = chain_min;
+  if (!std::isfinite(chain_min) || !std::isfinite(chain_max)) {
     manifest << "SKIP " << BranchLabel(spec)
              << " could not determine finite range\n";
     return nullptr;
   }
   const double missing_cut = MissingValueCut(spec);
-  if (std::isfinite(missing_cut) && min < missing_cut && max > missing_cut) {
-    min = std::min(0.0, max);
+  if (std::isfinite(missing_cut) && axis_min_input < missing_cut &&
+      chain_max > missing_cut) {
+    axis_min_input = std::min(0.0, chain_max);
   }
 
-  const AxisSpec axis = ChooseAxis(spec, min, max);
+  const AxisSpec axis = ChooseAxis(spec, axis_min_input, chain_max);
   if (!(axis.low < axis.high)) {
-    manifest << "SKIP " << BranchLabel(spec) << " invalid range min=" << min
-             << " max=" << max << " axis=[" << axis.low << ","
-             << axis.high << "]\n";
+    manifest << "SKIP " << BranchLabel(spec)
+             << " invalid range chain_min=" << chain_min
+             << " chain_max=" << chain_max << " axis_input_min="
+             << axis_min_input << " axis=[" << axis.low << "," << axis.high
+             << "]\n";
     return nullptr;
   }
 
@@ -559,6 +563,8 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
   const double integral = hist->Integral(0, axis.bins + 1);
   const double underflow = hist->GetBinContent(0);
   const double overflow = hist->GetBinContent(axis.bins + 1);
+  const double underflow_fraction = integral > 0.0 ? underflow / integral : 0.0;
+  const double overflow_fraction = integral > 0.0 ? overflow / integral : 0.0;
   const double flow_fraction =
       integral > 0.0 ? (underflow + overflow) / integral : 0.0;
   manifest << "HIST " << BranchLabel(spec)
@@ -566,18 +572,25 @@ TH1D *MakeHist(TChain &chain, const BranchSpec &spec, std::ostream &manifest) {
            << " expression=" << spec.expression << " filled=" << filled
            << " bins=" << axis.bins << " range=[" << std::setprecision(12)
            << axis.low << "," << axis.high << "]"
-           << " root_reported_range=[" << min << "," << max << "]"
+           << " chain_min=" << chain_min << " chain_max=" << chain_max
+           << " axis_input_min=" << axis_min_input
            << " axis_source=" << axis.source << " selection=\""
            << selection << "\" integral=" << integral
            << " underflow=" << underflow << " overflow=" << overflow
+           << " underflow_fraction=" << underflow_fraction
+           << " overflow_fraction=" << overflow_fraction
            << " flow_fraction=" << flow_fraction << "\n";
   if (flow_fraction > 0.20) {
-    const std::string warning =
-        "WARNING " + BranchLabel(spec) + " has " +
-        std::to_string(100.0 * flow_fraction) +
-        "% of entries in under/overflow";
-    manifest << warning << "\n";
-    std::cerr << warning << std::endl;
+    std::ostringstream warning;
+    warning << "WARNING " << BranchLabel(spec) << " has "
+            << 100.0 * underflow_fraction << "% underflow and "
+            << 100.0 * overflow_fraction << "% overflow ("
+            << 100.0 * flow_fraction << "% combined)"
+            << " chain_min=" << chain_min << " chain_max=" << chain_max
+            << " hist_range=[" << axis.low << "," << axis.high << "]"
+            << " selection=\"" << selection << "\"";
+    manifest << warning.str() << "\n";
+    std::cerr << warning.str() << std::endl;
   }
   return hist;
 }
