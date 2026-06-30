@@ -366,73 +366,74 @@
   if (on_new_spill) {
     GetHist("basic__truth__nTrueParticles", "nTrueParticles", "n0-500",
             "#N Spills")
-        ->Fill(truth.nTrueParticles);
+        ->Fill(truth_spill.nTrueParticles);
     GetHist("basic__truth__nTruePrimaryParticles", "nTruePrimaryParticles",
             "n0-500", "#N Spills")
-        ->Fill(truth.nTruePrimaryParticles);
+        ->Fill(truth_spill.nTruePrimaryParticles);
     GetHist("basic__truth__nTrueForgottenParticles", "nTrueForgottenParticles",
             "n0-120", "#N Spills")
-        ->Fill(truth.nTrueForgottenParticles);
+        ->Fill(truth_spill.nTrueForgottenParticles);
 
     std::map<int, bool> vertex_id_to_fiducial;
-    for (int ip = 0; ip < truth.nTrueParticles; ip++) {
-      int pdg = truth.PDG[ip];
+    const int n_true_particles =
+        std::max(0, std::min<int>(truth_spill.nTrueParticles, Truth_Spill::kMaxTrueParticles));
+    for (int ip = 0; ip < n_true_particles; ip++) {
+      int pdg = truth_spill.PDG[ip];
       if (std::abs(pdg) != 13) {
-        int vid = truth.VertexID[ip];
-        TVector3 position(truth.BirthPosition[ip][0] * CM,
-                          truth.BirthPosition[ip][1] * CM,
-                          truth.BirthPosition[ip][2] * CM);
+        int vid = truth_spill.VertexID[ip];
+        TVector3 position(truth_spill.BirthPosition[ip][0] * CM,
+                          truth_spill.BirthPosition[ip][1] * CM,
+                          truth_spill.BirthPosition[ip][2] * CM);
         bool result = IsInLAr(position, LArFiducial);
         vertex_id_to_fiducial[vid] = result;
       }
     }
 
-    for (int ip = 0; ip < truth.nTrueParticles; ip++) {
+    for (int ip = 0; ip < n_true_particles; ip++) {
       GetHist("basic__truth__PDG", "PDG", "pdg", "#N Particles")
-          ->Fill(PDGtoIndex(truth.PDG[ip]));
-      if (truth.IsPrimary[ip])
+          ->Fill(PDGtoIndex(truth_spill.PDG[ip]));
+      if (truth_spill.IsPrimary[ip])
         GetHist("basic__truth__PDG_Primary", "PDG Primary Particles", "pdg",
                 "#N Particles")
-            ->Fill(PDGtoIndex(truth.PDG[ip]));
-      if (!truth.IsPrimary[ip])
+            ->Fill(PDGtoIndex(truth_spill.PDG[ip]));
+      if (!truth_spill.IsPrimary[ip])
         GetHist("basic__truth__PDG_Secondary", "PDG Secondary Particles", "pdg",
                 "#N Particles")
-            ->Fill(PDGtoIndex(truth.PDG[ip]));
+            ->Fill(PDGtoIndex(truth_spill.PDG[ip]));
       GetHist("basic__truth__TrueVisibleEnergy", "TrueVisibleEnergy",
               "TrueVisibleEnergy", "#N Particles")
-          ->Fill(truth.TrueVisibleEnergy[ip]);
-      // TODO these are looping outside n reco tracks, right?
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_X",
-              "RecoTrackPrimaryParticleTruePositionStart X", "X",
+          ->Fill(truth_spill.TrueVisibleEnergy[ip]);
+      GetHist("basic__truth__TrueParticleBirthPosition_X",
+              "TrueParticleBirthPosition X", "X",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][0] * CM);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Y",
-              "RecoTrackPrimaryParticleTruePositionStart Y", "Y_full",
+          ->Fill(truth_spill.BirthPosition[ip][0] * CM);
+      GetHist("basic__truth__TrueParticleBirthPosition_Y",
+              "TrueParticleBirthPosition Y", "Y_full",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][1] * CM);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionStart_Z",
-              "RecoTrackPrimaryParticleTruePositionStart Z", "Z_full",
+          ->Fill(truth_spill.BirthPosition[ip][1] * CM);
+      GetHist("basic__truth__TrueParticleBirthPosition_Z",
+              "TrueParticleBirthPosition Z", "Z_full",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionStart[ip][2] * CM);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_X",
-              "RecoTrackPrimaryParticleTruePositionEnd X", "X", "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][0] * CM);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Y",
-              "RecoTrackPrimaryParticleTruePositionEnd Y", "Y_full",
+          ->Fill(truth_spill.BirthPosition[ip][2] * CM);
+      GetHist("basic__truth__TrueParticleDeathPosition_X",
+              "TrueParticleDeathPosition X", "X", "#N Particles")
+          ->Fill(truth_spill.DeathPosition[ip][0] * CM);
+      GetHist("basic__truth__TrueParticleDeathPosition_Y",
+              "TrueParticleDeathPosition Y", "Y_full",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][1] * CM);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTruePositionEnd_Z",
-              "RecoTrackPrimaryParticleTruePositionEnd Z", "Z_full",
+          ->Fill(truth_spill.DeathPosition[ip][1] * CM);
+      GetHist("basic__truth__TrueParticleDeathPosition_Z",
+              "TrueParticleDeathPosition Z", "Z_full",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTruePositionEnd[ip][2] * CM);
+          ->Fill(truth_spill.DeathPosition[ip][2] * CM);
 
-      GetHist("basic__truth__RecoTrackPrimaryParticleLArFiducialStart",
-              "RecoTrackPrimaryParticleLArFiducialStart", "yesno",
+      GetHist("basic__truth__LArFiducialStart",
+              "LArFiducialStart", "yesno",
               "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleLArFiducialStart[ip] ? 0 : 1);
-      GetHist("basic__truth__RecoTrackPrimaryParticleTMSFiducialEnd",
-              "RecoTrackPrimaryParticleTMSFiducialEnd", "yesno", "#N Particles")
-          ->Fill(truth.RecoTrackPrimaryParticleTMSFiducialEnd[ip] ? 0 : 1);
+          ->Fill(truth_spill.LArFiducialStart[ip] ? 0 : 1);
+      GetHist("basic__truth__TMSFiducialEnd",
+              "TMSFiducialEnd", "yesno", "#N Particles")
+          ->Fill(truth_spill.TMSFiducialEnd[ip] ? 0 : 1);
     }
   }
 }

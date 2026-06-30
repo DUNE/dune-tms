@@ -148,7 +148,7 @@
     cnt_mu_den = cnt_mu_num = cnt_pi_den = cnt_pi_num = 0;
 
     const int n_true_particles = std::max(
-        0, std::min(truth.nTrueParticles, Truth_Info::kMaxTrueParticles));
+        0, std::min<int>(truth_spill.nTrueParticles, Truth_Spill::kMaxTrueParticles));
     for (int ip = 0; ip < n_true_particles; ip++) {
       fill_labeled_bin("reco_eff__diagnostics__denominator_cutflow",
                        "Reco-eff denominator cutflow",
@@ -157,9 +157,9 @@
       GetHist("reco_eff__diagnostics__den_pdg",
               "Reco-eff denominator truth-particle PDG", "pdg",
               "# truth particles")
-          ->Fill(PDGtoIndex(truth.PDG[ip]));
-      const bool ismuon = abs(truth.PDG[ip]) == 13;
-      const bool ispion = abs(truth.PDG[ip]) == 211;
+          ->Fill(PDGtoIndex(truth_spill.PDG[ip]));
+      const bool ismuon = abs(truth_spill.PDG[ip]) == 13;
+      const bool ispion = abs(truth_spill.PDG[ip]) == 211;
       if (ismuon)
         fill_labeled_bin("reco_eff__diagnostics__denominator_cutflow",
                          "Reco-eff denominator cutflow",
@@ -171,7 +171,7 @@
                          "reco_eff_denominator_fail", denominator_fail_labels,
                          1, "# truth particles");
 
-      const bool tms_touch = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
+      const bool tms_touch = truth_spill.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
       if (!tms_touch) {
         if (ismuon || ispion)
           fill_labeled_bin("reco_eff__diagnostics__denominator_fail_reason",
@@ -186,11 +186,11 @@
                          "reco_eff_denominator_cut", denominator_cut_labels, 3,
                          "# truth particles");
 
-      const bool lar_start_branch = truth.LArFiducialStart[ip];
-      const bool lar_start = is_lar_start_position(truth.BirthPosition[ip]);
-      const bool tms_end = truth.TMSFiducialEnd[ip];
-      const double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
-      const double particle_ke = truth.BirthMomentum[ip][3] * GEV;
+      const bool lar_start_branch = truth_spill.LArFiducialStart[ip];
+      const bool lar_start = is_lar_start_position(truth_spill.BirthPosition[ip]);
+      const bool tms_end = truth_spill.TMSFiducialEnd[ip];
+      const double particle_starting_ke = truth_spill.MomentumTMSStart[ip][3] * GEV;
+      const double particle_ke = truth_spill.BirthMomentum[ip][3] * GEV;
       const bool ke_in_bounds = particle_starting_ke >= muon_ke_bins[0] &&
                                 particle_starting_ke <
                                     muon_ke_bins[n_muon_ke_bins];
@@ -202,7 +202,7 @@
         GetHist("reco_eff__diagnostics__den_muon_visible_energy",
                 "Denominator muon visible energy", "reco_eff_visible_energy",
                 "# muons")
-            ->Fill(truth.TrueVisibleEnergy[ip]);
+            ->Fill(truth_spill.TrueVisibleEnergy[ip]);
         GetHist("reco_eff__diagnostics__den_muon_ke_tms_enter",
                 "Denominator muon KE entering TMS", "ke_tms_enter")
             ->Fill(particle_starting_ke);
@@ -292,23 +292,23 @@
 
         GetHist("reco_eff__endpoint__muon_endpoint_x_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_endpoint_x")
-            ->Fill(truth.PositionTMSEnd[ip][0] * CM);
+            ->Fill(truth_spill.PositionTMSEnd[ip][0] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_y_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_endpoint_y")
-            ->Fill(truth.PositionTMSEnd[ip][1] * CM);
+            ->Fill(truth_spill.PositionTMSEnd[ip][1] * CM);
         GetHist("reco_eff__endpoint__muon_endpoint_z_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_endpoint_z")
-            ->Fill(truth.PositionTMSEnd[ip][2] * CM);
+            ->Fill(truth_spill.PositionTMSEnd[ip][2] * CM);
 
         GetHist("reco_eff__startpoint__muon_startpoint_x_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_startpoint_x")
-            ->Fill(truth.PositionTMSStart[ip][0] * CM);
+            ->Fill(truth_spill.PositionTMSStart[ip][0] * CM);
         GetHist("reco_eff__startpoint__muon_startpoint_y_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_startpoint_y")
-            ->Fill(truth.PositionTMSStart[ip][1] * CM);
+            ->Fill(truth_spill.PositionTMSStart[ip][1] * CM);
         GetHist("reco_eff__startpoint__muon_startpoint_z_denominator",
                 "Reconstruction Efficiency: Denominator", "muon_startpoint_z")
-            ->Fill(truth.PositionTMSStart[ip][2] * CM);
+            ->Fill(truth_spill.PositionTMSStart[ip][2] * CM);
       }
       if (ispion && should_include) {
         GetHist("reco_eff__no_lar_tms_cuts__all_pion_ke_tms_enter_denominator",
@@ -330,8 +330,8 @@
                 "Reco Efficiency vs True KE: Denominator", "ke_tms")
             ->Fill(particle_ke);
         double particle_starting_angle =
-            std::atan2(truth.MomentumTMSStart[ip][0],
-                       truth.MomentumTMSStart[ip][2]) *
+            std::atan2(truth_spill.MomentumTMSStart[ip][0],
+                       truth_spill.MomentumTMSStart[ip][2]) *
             DEG;
         GetHist("reco_eff__angle_tms_enter_denominator",
                 "Reconstruction Efficiency: Denominator", "angle_tms_enter")

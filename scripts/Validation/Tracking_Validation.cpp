@@ -32,6 +32,7 @@
 #include "Line_Candidates.h"
 #include "Reco_Tree.h"
 #include "Truth_Info.h"
+#include "Truth_Spill.h"
 
 #define IS_WITHIN(x, center, tolerance)                                        \
   (std::abs((x) - (center)) <= (tolerance))
@@ -473,7 +474,8 @@ bool NDPhysicsSlice(Truth_Info &truth, Reco_Tree &reco) {
   return out;
 }
 
-Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
+Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
+                     Reco_Tree &reco, Line_Candidates &lc,
                      int numEvents, TFile &outputFile) {
   // List all the hists here
   // Make sure to save them too
@@ -513,6 +515,17 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
   std::map<int, double> manually_calculated_shell_hadronic_energy_per_vertex;
 
   std::map<std::string, int> particle_fingerprints_reconstructed;
+  std::map<std::pair<int, int>, Long64_t> truth_spill_entry_by_tree_and_spill;
+  for (Long64_t spill_entry = 0; spill_entry < truth_spill.GetEntriesFast();
+       ++spill_entry) {
+    truth_spill.GetEntry(spill_entry);
+    const int spill_tree =
+        truth_spill.fChain ? truth_spill.fChain->GetTreeNumber() : -1;
+    truth_spill_entry_by_tree_and_spill.emplace(
+        std::make_pair(spill_tree, truth_spill.SpillNo), spill_entry);
+  }
+  std::cout << "Indexed " << truth_spill_entry_by_tree_and_spill.size()
+            << " Truth_Spill entries" << std::endl;
 
   Long64_t entry_number = 0;
   // Now loop over the ttree
@@ -537,13 +550,27 @@ Long64_t PrimaryLoop(Truth_Info &truth, Reco_Tree &reco, Line_Candidates &lc,
     bool on_new_spill = false;
     int current_tree = truth.fChain ? truth.fChain->GetTreeNumber() : -1;
     int current_spill = truth.SpillNo;
+    bool has_truth_spill = false;
+    const auto spill_entry = truth_spill_entry_by_tree_and_spill.find(
+        std::make_pair(current_tree, current_spill));
+    if (spill_entry != truth_spill_entry_by_tree_and_spill.end()) {
+      truth_spill.GetEntry(spill_entry->second);
+      has_truth_spill = true;
+    }
     if (last_tree_seen != current_tree || last_spill_seen != current_spill) {
       on_new_spill = true;
       last_tree_seen = current_tree;
       last_spill_seen = current_spill;
       // Empty on each new spill
       particle_fingerprints_reconstructed.clear();
+      if (!has_truth_spill) {
+        std::cout << "[Tracking_Validation] Missing Truth_Spill for tree "
+                  << current_tree << ", SpillNo " << current_spill
+                  << std::endl;
+      }
     }
+    if (!has_truth_spill)
+      continue;
 
 #include "Basic.cxx"
 
@@ -1309,7 +1336,8 @@ bool HasValidationTrees(const std::filesystem::path &path) {
   if (file.IsZombie())
     return false;
 
-  return file.Get("Truth_Info") && file.Get("Reco_Tree") &&
+  return file.Get("Truth_Info") && file.Get("Truth_Spill") &&
+         file.Get("Reco_Tree") &&
          file.Get("Line_Candidates");
 }
 
@@ -1407,8 +1435,8 @@ InputFiles ResolveInputFiles(const std::string &inputFilename) {
   std::sort(inputs.files.begin(), inputs.files.end());
 
   if (inputs.files.empty()) {
-    throw std::runtime_error("No ROOT files with Truth_Info, Reco_Tree, and "
-                             "Line_Candidates were found under: " +
+    throw std::runtime_error("No ROOT files with Truth_Info, Truth_Spill, "
+                             "Reco_Tree, and Line_Candidates were found under: " +
                              inputFilename);
   }
 
@@ -1452,16 +1480,24 @@ int main(int argc, char *argv[]) {
   if (argc > 3)
     DrawSliceN::max_slices = atoi(argv[3]);
 
-  // Load the tree and make the Truth_Info object
+  // Load the trees and make the MakeClass objects
   TChain *truth = new TChain("Truth_Info");
+  TChain *truth_spill = new TChain("Truth_Spill");
   TChain *reco = new TChain("Reco_Tree");
   TChain *line_candidates = new TChain("Line_Candidates");
   AddInputsToChain(*truth, inputFiles);
+  AddInputsToChain(*truth_spill, inputFiles);
   AddInputsToChain(*reco, inputFiles);
   AddInputsToChain(*line_candidates, inputFiles);
   bool missing_ttree = false;
   if (!truth || truth->GetEntriesFast() == 0) {
     std::string message = inputFiles.Description() + " doesn't contain Truth_Info";
+    std::cerr << message << std::endl;
+    missing_ttree = true;
+  }
+  if (!truth_spill || truth_spill->GetEntriesFast() == 0) {
+    std::string message =
+        inputFiles.Description() + " doesn't contain Truth_Spill";
     std::cerr << message << std::endl;
     missing_ttree = true;
   }
@@ -1485,6 +1521,7 @@ int main(int argc, char *argv[]) {
   // starts See
   // https://stackoverflow.com/questions/20253267/segmentation-fault-before-main
   static Truth_Info ti(truth);
+  static Truth_Spill tsi(truth_spill);
   static Reco_Tree ri(reco);
   std::cout << "About to load Line_Candidates" << std::endl;
   static Line_Candidates li(line_candidates);
@@ -1515,7 +1552,7 @@ int main(int argc, char *argv[]) {
   // Create TFile with the output filename
   TFile outputFile(outputFilename.c_str(), "RECREATE");
 
-  PrimaryLoop(ti, ri, li, numEvents, outputFile);
+  PrimaryLoop(ti, tsi, ri, li, numEvents, outputFile);
 
   // Close the output file
   outputFile.Close();

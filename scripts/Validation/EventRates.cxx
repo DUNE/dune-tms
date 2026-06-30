@@ -7,36 +7,38 @@
     std::map<int, double> vertices_with_visible_e;
     std::map<int, int> vertices_seen;
     std::map<int, double> vertices_with_visible_e_above_minimum;
-    for (int ip = 0; ip < truth.nTrueParticles; ip++) {
-      bool tms_energy = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
-      bool ismuon = abs(truth.PDG[ip]) == 13;
-      // bool ispion = abs(truth.PDG[ip]) == 211;
-      bool lar_end = truth.LArFiducialEnd[ip];
-      bool lar_start = truth.LArFiducialStart[ip];
-      TVector3 birth_position(truth.BirthPosition[ip][0] * CM,
-                              truth.BirthPosition[ip][1] * CM,
-                              truth.BirthPosition[ip][2] * CM);
+    const int n_true_particles =
+        std::max(0, std::min<int>(truth_spill.nTrueParticles, Truth_Spill::kMaxTrueParticles));
+    for (int ip = 0; ip < n_true_particles; ip++) {
+      bool tms_energy = truth_spill.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
+      bool ismuon = abs(truth_spill.PDG[ip]) == 13;
+      // bool ispion = abs(truth_spill.PDG[ip]) == 211;
+      bool lar_end = truth_spill.LArFiducialEnd[ip];
+      bool lar_start = truth_spill.LArFiducialStart[ip];
+      TVector3 birth_position(truth_spill.BirthPosition[ip][0] * CM,
+                              truth_spill.BirthPosition[ip][1] * CM,
+                              truth_spill.BirthPosition[ip][2] * CM);
       bool lar_fiducial_start = IsInLAr(birth_position, LArFiducial);
-      bool tms_touch = truth.TMSFiducialTouch[ip];
-      bool tms_end = truth.TMSFiducialEnd[ip];
+      bool tms_touch = truth_spill.TMSFiducialTouch[ip];
+      bool tms_end = truth_spill.TMSFiducialEnd[ip];
       bool is_rock_muon = false;
-      TVector3 birth(truth.BirthPosition[ip][0], truth.BirthPosition[ip][1],
-                     truth.BirthPosition[ip][2]);
+      TVector3 birth(truth_spill.BirthPosition[ip][0], truth_spill.BirthPosition[ip][1],
+                     truth_spill.BirthPosition[ip][2]);
       bool start_in_lar_full = IsInLAr(birth * CM, LArFull);
       bool start_in_tms_full = IsInTMSFull(birth);
       is_rock_muon = ismuon && !start_in_lar_full && !start_in_tms_full;
       // Check that this particle truly came from interaction added up in shell
       // cut
       bool particle_from_shell_cut_interaction =
-          truth.VertexIdOfMostEnergyInEvent == truth.VertexID[ip];
+          truth.VertexIdOfMostEnergyInEvent == truth_spill.VertexID[ip];
 
       if (on_new_spill) {
-        int vertex_id = truth.VertexID[ip];
-        if (truth.TrueVisibleEnergy[ip] > 0) {
-          vertices_with_visible_e[vertex_id] += truth.TrueVisibleEnergy[ip];
+        int vertex_id = truth_spill.VertexID[ip];
+        if (truth_spill.TrueVisibleEnergy[ip] > 0) {
+          vertices_with_visible_e[vertex_id] += truth_spill.TrueVisibleEnergy[ip];
           if (tms_energy)
             vertices_with_visible_e_above_minimum[vertex_id] +=
-                truth.TrueVisibleEnergy[ip];
+                truth_spill.TrueVisibleEnergy[ip];
         }
         vertices_seen[vertex_id] += 1;
       }

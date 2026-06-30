@@ -40,31 +40,32 @@
 
   if (on_new_spill) {
 
-    for (int ip = 0; ip < truth.nTrueParticles; ip++) {
+    const int n_true_particles =
+        std::max(0, std::min<int>(truth_spill.nTrueParticles, Truth_Spill::kMaxTrueParticles));
+    for (int ip = 0; ip < n_true_particles; ip++) {
       // Only consider those that have enough visible energy in the TMS to count
-      /*bool tms_touch = truth.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
+      /*bool tms_touch = truth_spill.TrueVisibleEnergy[ip] >= MINIMUM_VISIBLE_ENERGY;
       if (tms_touch) {
-        bool ismuon = abs(truth.PDG[ip]) == 13;
-        bool tms_end = truth.TMSFiducialEnd[ip];
-        double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
-        //double particle_ke = truth.BirthMomentum[ip][3] * GEV;
+        bool ismuon = abs(truth_spill.PDG[ip]) == 13;
+        bool tms_end = truth_spill.TMSFiducialEnd[ip];
+        double particle_starting_ke = truth_spill.MomentumTMSStart[ip][3] * GEV;
+        //double particle_ke = truth_spill.BirthMomentum[ip][3] * GEV;
         GetHist("energy_resolution__selection_eff__selection_eff_ke_tms_enter_denominator",
                 "Selection Efficiency vs True TMS-Entering KE: Denominator",
                 "ke_tms_enter")->Fill(particle_starting_ke);
       }*/
 
-      // TVector3 birth_pos(truth.BirthPosition[ip][0],
-      // truth.BirthPosition[ip][1], truth.BirthPosition[ip][2]); bool start_lar
+      // TVector3 birth_pos(truth_spill.BirthPosition[ip][0],
+      // truth_spill.BirthPosition[ip][1], truth_spill.BirthPosition[ip][2]); bool start_lar
       // = LArFiducialCut(birth_pos); TVector3
-      // end_pos(truth.DeathPosition[ip][0],
-      //                  truth.DeathPosition[ip][1],
-      //                  truth.DeathPosition[ip][2]);
-      bool start_lar = truth.LArFiducialStart[ip];
+      // end_pos(truth_spill.DeathPosition[ip][0],
+      //                  truth_spill.DeathPosition[ip][1],
+      //                  truth_spill.DeathPosition[ip][2]);
+      bool start_lar = truth_spill.LArFiducialStart[ip];
       // bool end_tms = true; // isTMSContained(end_pos) == 0;
-      bool end_tms = truth.TMSFiducialEnd[ip];
-      if (start_lar && end_tms &&
-          abs(truth.RecoTrackPrimaryParticlePDG[ip]) == 13) {
-        double particle_starting_ke = truth.MomentumTMSStart[ip][3] * GEV;
+      bool end_tms = truth_spill.TMSFiducialEnd[ip];
+      if (start_lar && end_tms && abs(truth_spill.PDG[ip]) == 13) {
+        double particle_starting_ke = truth_spill.MomentumTMSStart[ip][3] * GEV;
         GetHist("energy_resolution__selection_eff__selection_eff_ke_tms_enter_"
                 "denominator",
                 "Selection Efficiency vs True TMS-Entering KE: Denominator",

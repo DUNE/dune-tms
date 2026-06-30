@@ -592,7 +592,8 @@ int main(int argc, char **argv) {
     }
 
     const int n_tracks =
-        std::max(0, std::min(truth->RecoTrackN, Truth_Info::kMaxRecoTracks));
+        std::max(0, std::min<int>(truth->RecoTrackN,
+                                  Truth_Info::kMaxRecoTracks));
     for (int it = 0; it < n_tracks; ++it) {
       FillCut(h_num_cutflow, "all reco summaries");
       const bool is_muon = std::abs(truth->RecoTrackPrimaryParticlePDG[it]) == 13;
