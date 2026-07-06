@@ -385,7 +385,7 @@ class TMS_Kalman {
     //  - Large residual vs projection from previous smoothed state
     //  - High-frequency oscillation pattern across consecutive nodes
     void PruneInconsistentNodes();
-    void PruneNodesOutsideTMS();
+    int PruneNodesOutsideTMS();
 
     void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
     // Sorts so that first node is first node processed by RunKalman. ie. based on ForwardFitting flag.

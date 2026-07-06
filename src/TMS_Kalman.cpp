@@ -559,6 +559,10 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     PruneInconsistentNodes();
     // Perform backward → forward → backward triple refit and smoothing
     TripleRefitSmooth();
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      if (PruneNodesOutsideTMS() == 0) break;
+      TripleRefitSmooth();
+    }
   }
 
   // Restore the previous direction flag
@@ -894,6 +898,11 @@ void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
   PruneNodesOutsideTMS();
   TripleRefitSmooth();
   runRTSSmoother();
+  for (int attempt = 0; attempt < 2; ++attempt) {
+    if (PruneNodesOutsideTMS() == 0) break;
+    TripleRefitSmooth();
+    runRTSSmoother();
+  }
   BetheBloch();
   Runchi2();
   SignSelection();
@@ -1562,19 +1571,39 @@ void TMS_Kalman::PruneInconsistentNodes() {
   if (Talk) std::cout << "[Prune] Removed inconsistent nodes: " << removed << std::endl;
 }
 
-void TMS_Kalman::PruneNodesOutsideTMS() {
+int TMS_Kalman::PruneNodesOutsideTMS() {
   const size_t n = KalmanNodes.size();
-  if (n < 3) return;
+  if (n < 3) return 0;
 
   SortNodesByZ();
 
   std::vector<char> keep(n, 1);
 
+  auto valid_state = [](const TMS_KalmanState &state) {
+    return std::isfinite(state.x) && std::isfinite(state.y) && std::isfinite(state.z);
+  };
+  auto inside_state = [](const TMS_KalmanState &state) {
+    TVector3 pos(state.x, state.y, state.z);
+    return TMS_Geom::GetInstance().IsInsideTMS(pos);
+  };
+
   for (size_t i = 0; i < n; ++i) {
     auto node = KalmanNodes[i];
-    TVector3 pos(node.x, node.y, node.z);
-    if (!TMS_Geom::GetInstance().IsInsideTMS(pos)) keep[i] = 0;
-    else keep[i] = 1;
+    TVector3 meas_pos(node.x, node.y, node.z);
+    bool outside = !TMS_Geom::GetInstance().IsInsideTMS(meas_pos);
+    if (!outside && valid_state(node.CurrentState)) outside = !inside_state(node.CurrentState);
+    if (!outside && valid_state(node.SmoothState)) outside = !inside_state(node.SmoothState);
+
+    if (outside) {
+      keep[i] = 0;
+      if (Talk) {
+        std::cout << "[Prune] Removed outside-TMS node at z=" << node.z
+                  << " meas=(" << node.x << "," << node.y << "," << node.z << ")"
+                  << " current=(" << node.CurrentState.x << "," << node.CurrentState.y << "," << node.CurrentState.z << ")"
+                  << " smooth=(" << node.SmoothState.x << "," << node.SmoothState.y << "," << node.SmoothState.z << ")"
+                  << std::endl;
+      }
+    }
   }
 
   // Build pruned list
@@ -1584,11 +1613,12 @@ void TMS_Kalman::PruneNodesOutsideTMS() {
   for (size_t i = 0; i < n; ++i) {
     if (keep[i]) pruned.emplace_back(KalmanNodes[i]); else removed++;
   }
-  if (removed == 0) return;
+  if (removed == 0) return 0;
 
   KalmanNodes.swap(pruned);
   for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
   if (Talk) std::cout << "[Prune] Removed nodes outside TMS: " << removed << std::endl;
+  return removed;
 }
 
 // Predict the next step: propagate state/covariance from PreviousState to
