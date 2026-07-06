@@ -18,7 +18,7 @@ TMS_Manager::TMS_Manager() {
 
   // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
-  
+
   _RECO_TIME_RunTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunTimeSlicer");
   _RECO_TIME_RunSimpleTimeSlicer = toml::find<bool>(data, "Recon", "Time", "RunSimpleTimeSlicer");
   _RECO_TIME_TimeSlicerThresholdStart = toml::find<double>(data, "Recon", "Time", "TimeSlicerThresholdStart");
@@ -106,13 +106,13 @@ TMS_Manager::TMS_Manager() {
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR= toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxFactor");
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsX");
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsY");
-  
+
   _RECO_KALMAN_AUGMENT_RUN_AUGMENT = toml::find<bool>(data, "Recon", "Kalman", "Augment", "RunAugment");
   _RECO_KALMAN_AUGMENT_N_NODES_TO_REMOVE = toml::find<int>(data, "Recon", "Kalman", "Augment", "NNodesToRemove");
 
-  
+
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
-  
+
   _GEOMETRY_YMIDDLE = toml::find<double>(data, "Geometry", "YBarMiddle");
   _FIDUCIAL_TMS_START_X = toml::find<double>(data, "Fiducial", "TMS", "Start", "X");
   _FIDUCIAL_TMS_START_Y = toml::find<double>(data, "Fiducial", "TMS", "Start", "Y");
@@ -126,7 +126,7 @@ TMS_Manager::TMS_Manager() {
   _ACTIVE_LAR_END_X = toml::find<double>(data, "Active", "LAr", "End", "X");
   _ACTIVE_LAR_END_Y = toml::find<double>(data, "Active", "LAr", "End", "Y");
   _ACTIVE_LAR_END_Z = toml::find<double>(data, "Active", "LAr", "End", "Z");
-  
+
   _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT = toml::find<double>(data, "Fiducial", "LAr", "DownstreamZCut");
   _LAR_FIDUCIAL_XY_CUT = toml::find<double>(data, "Fiducial", "LAr", "XYCut");
   _LAR_OUTER_SHELL_THICKNESS = toml::find<double>(data, "Fiducial", "LAr", "OuterShellThickness");
@@ -135,9 +135,9 @@ TMS_Manager::TMS_Manager() {
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
 
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
-  
+
   _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
-  
+
   _NERSC_SPILL_PERIOD = 1.2e9;
 
   _GEOMETRY_git_tag = toml::find<std::string>(data, "Geometry", "GitTag");

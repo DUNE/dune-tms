@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <numeric>
 
-TMS_Kalman::TMS_Kalman() : 
+TMS_Kalman::TMS_Kalman() :
   Bethe(Material::kPolyStyrene),
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
@@ -17,6 +17,8 @@ TMS_Kalman::TMS_Kalman() :
   assumed_charge(0.0),
   AverageXSlope(0.0),
   AverageYSlope(0.0),
+  wasAugmented(false),
+  nAugmentedNodes(0),
   Talk(false) {
 }
 
@@ -74,11 +76,19 @@ namespace {
 }
 
 // Construct Kalman nodes from an initial set of hits.
-TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) : 
-  Bethe(Material::kPolyStyrene), 
+TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
+  Bethe(Material::kPolyStyrene),
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
+  total_en(0.0),
+  mass(0.0),
+  momentum(0.0),
+  charge_curvature(0.0),
   assumed_charge(charge),
+  AverageXSlope(0.0),
+  AverageYSlope(0.0),
+  wasAugmented(false),
+  nAugmentedNodes(0),
   Talk(false)
 {
 //  TRandom3* RNG = new TRandom3(1337); // TODO: Seed properly sometime
@@ -88,7 +98,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
   // Save the number of initial candidates
   int nCand = Candidates.size();
-  
+
   // And muon mass
   mass = BetheBloch_Utils::Mm;
 
@@ -210,7 +220,7 @@ void TMS_Kalman::InitializeMomentum(bool only_momentum) {
                     ? (KalmanNodes.front().RecoY - KalmanNodes.back().RecoY) / dz_y
                     : 0.0;
 
-  if (std::abs(mass) < 1e-3) { 
+  if (std::abs(mass) < 1e-3) {
     std::cout<<"Fatal: particle mass is zero"<<std::endl;
     exit(-1);
   }
@@ -417,7 +427,7 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     node.PlaneNumber      = hit.GetPlaneNumber();
     node.Hit              = &hit;
     node.StepIndex        = ++step_index;
-    
+
     // Skip if over a certain number of planes, but allow the very last pool plane
     bool is_last_plane = (std::abs(z - z_max_pool) < 1e-6);
     int maximum_n_planes = TMS_Manager::GetInstance().Get_Reco_Kalman_Augment_MaximumPlaneGap();
@@ -859,6 +869,8 @@ void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
 
   // Merge and refit
   KalmanNodes.insert(KalmanNodes.end(), new_nodes.begin(), new_nodes.end());
+  wasAugmented = true;
+  nAugmentedNodes += new_nodes.size();
   SortNodesByZ();
   for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
   RebuildRunOrderSteps();
@@ -1018,7 +1030,7 @@ double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
   if (Talk) std::cout << "[CalculateKEFromSteel] Checking for position(" << position.X()<<","<<position.Y()<<","<<position.Z() << ")" << std::endl;
   // Sanity checks
   bool bad = false;
-  if (std::abs(position.X()) > TMS_Const::TMS_Start[0]) { 
+  if (std::abs(position.X()) > TMS_Const::TMS_Start[0]) {
     position.SetX(0);
     bad = true;
   }
@@ -1041,8 +1053,8 @@ double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
     // Read these directly from a TGeoManager
     // If the geometry is in mm (CLHEP units), then want to scale density to g/cm3 and thickness to cm
     // Otherwise, assume it's like that and then fix it with geometry scaling functions
-    double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); 
-    double thickness = material.second/10.; 
+    double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3);
+    double thickness = material.second/10.;
     // Potentially need to scale from g/cm3 to g/mm3, so find the scale factor and scale by 1/that^3.
     double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
     density /= std::pow(scale_factor, 3);
@@ -1068,11 +1080,11 @@ double TMS_Kalman::CalculateKEFromSteel(TVector3 position) {
       b = 1;
     }
     en += b*density*thickness;
-    
+
 
     // Check that new energy is valid
     if (en < 0 || std::isnan(en) || std::isinf(en)) {
-      if (Talk) { 
+      if (Talk) {
         std::cout<<"[CalculateKEFromSteel] Got invalid energy "<<en<<" from thickness ";
         std::cout<<thickness<<" and density "<<density;
         std::cout<<" and Bethe.Calc_dEdx(en) "<<Bethe.Calc_dEdx(old_en);
@@ -1095,13 +1107,13 @@ double TMS_Kalman::GetKEEstimateFromLength(double startx, double endx, double st
   double dist = sqrt(distx*distx+distz*distz);
 
   /* pol0 fit to xz distance of start and death point using truth, for track ending in THICK (death > 739 cm in z)
-     p0                        =      101.506   +/-   4.05823     
-     p1                        =     0.132685   +/-   0.00354222  
+     p0                        =      101.506   +/-   4.05823
+     p1                        =     0.132685   +/-   0.00354222
      */
 
   /* pol0 fit to xz distance of start and death point using truth, for track ending in THIN (death < 739 cm in z)
-     p0                        =     -1.13305   +/-   0.129217    
-     p1                        =     0.234404   +/-   0.00218364  
+     p0                        =     -1.13305   +/-   0.129217
+     p1                        =     0.234404   +/-   0.00218364
      */
 
   double KEest = 0;
@@ -1117,7 +1129,7 @@ void TMS_Kalman::RunKalman() {
 
   // Ensure all measurements are inside bounds
   //RepairBadNodeMeasurements(false);
- 
+
   int nCand = KalmanNodes.size();
   if (nCand == 0) return;
   // Assume nodes already sorted for the chosen run direction
@@ -1324,7 +1336,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
   // Assume current order is fine (we already sorted earlier in the flow).
 
   auto in_bounds = [](double v, double lo, double hi){ return (v >= lo && v <= hi); };
-  
+
   bool check_initial = true;
   if (check_initial) {
     bool bad = false;
@@ -1339,7 +1351,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
       if (node.x > TMS_Const::TMS_End[0]) x_proj = TMS_Const::TMS_End[0];
       if (node.y < TMS_Const::TMS_Start[1]) y_proj = TMS_Const::TMS_Start[1];
       if (node.y > TMS_Const::TMS_End[1]) y_proj = TMS_Const::TMS_End[1];
-      
+
       // Now try to fix with bar information
       double mx = x_proj, my = y_proj;
       if (extrapolate) {
@@ -1375,7 +1387,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
                   << " updated to(x,y)=(" << mx << "," << my << ")"
                   << std::endl;
       }
-      
+
       node.x = mx;
       node.y = my;
     }
@@ -1392,7 +1404,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
     double dz = node.z - ps.z;
     double x_proj = ps.x + ps.dxdz * dz;
     double y_proj = ps.y + ps.dydz * dz;
-    
+
     if (x_proj < TMS_Const::TMS_Start[0]) x_proj = TMS_Const::TMS_Start[0];
     if (x_proj > TMS_Const::TMS_End[0]) x_proj = TMS_Const::TMS_End[0];
     if (y_proj < TMS_Const::TMS_Start[1]) y_proj = TMS_Const::TMS_Start[1];
@@ -1429,7 +1441,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
     }
 
     if (!bad) continue;
-    
+
     double mx = x_proj, my = y_proj;
     if (extrapolate) {
 
@@ -1461,7 +1473,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
 
       if (!std::isfinite(mx)) mx = x_proj;
       if (!std::isfinite(my)) my = y_proj;
-    
+
     }
 
     if (Talk) {
@@ -1477,7 +1489,7 @@ void TMS_Kalman::RepairBadNodeMeasurements(bool extrapolate) {
     node.y = my;
     repaired++;
   }
-  
+
   // Double check that everything is within bounds
   if (extrapolate) RepairBadNodeMeasurements(false);
 
@@ -1549,9 +1561,9 @@ void TMS_Kalman::PruneNodesOutsideTMS() {
   if (n < 3) return;
 
   SortNodesByZ();
-  
+
   std::vector<char> keep(n, 1);
-  
+
   for (size_t i = 0; i < n; ++i) {
     auto node = KalmanNodes[i];
     TVector3 pos(node.x, node.y, node.z);
@@ -1606,7 +1618,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
       PreviousState.dydz = AverageYSlope;
     }
   }
-  
+
 
    // Modification begins here: introduce magnetic field and deflection based on regions
   // Determine magnetic field based on x-position
@@ -1637,7 +1649,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     magnetic_deflection_tx = std::clamp(raw_defl, -max_dtx, max_dtx);
   }
   // Modification ends here
-  
+
 
   TVectorD PreviousVec(5);
   PreviousVec[0] = PreviousState.x;
@@ -1665,7 +1677,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   // The energy we'll be changing
   double en = en_initial;
   if (en < 0 || std::isnan(en) || std::isinf(en)) {
-    if (Talk) { 
+    if (Talk) {
       std::cout<<"Got invalid energy "<<en<<" from momentum ";
       std::cout<<mom<<" and mass "<<mass;
       std::cout<<". Switching to energy: 0.25"<<std::endl;
@@ -1713,8 +1725,8 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
     // Read these directly from a TGeoManager
     // If the geometry is in mm (CLHEP units), then want to scale density to g/cm3 and thickness to cm
     // Otherwise, assume it's like that and then fix it with geometry scaling functions
-    double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); 
-    double thickness = material.second/10.; 
+    double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3);
+    double thickness = material.second/10.;
     // Potentially need to scale from g/cm3 to g/mm3, so find the scale factor and scale by 1/that^3.
     double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
     density /= std::pow(scale_factor, 3);
@@ -1746,10 +1758,10 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
     // Calculate this before or after the energy subtraction/addition?
     MSC.Calc_MS(en, thickness*density);
-    
+
     // Check that new energy is valid
     if (en < 0 || std::isnan(en) || std::isinf(en)) {
-      if (Talk) { 
+      if (Talk) {
         std::cout<<"Got invalid energy "<<en<<" from thickness ";
         std::cout<<thickness<<" and density "<<density;
         std::cout<<". Switching to old energy: "<<old_en<<std::endl;
@@ -1808,14 +1820,14 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   TMatrixD &CovarianceMatrix = Node.CovarianceMatrix;
   TMatrixD &UpdatedCovarianceMatrix = Node.UpdatedCovarianceMatrix;
   TMatrixD &EstimatedCovarianceMatrix = Node.EstimatedCovarianceMatrix;//For smooth
-  
+
   if (Talk) std::cout << "Initial cov\n" << std::flush;
   if (Talk) CovarianceMatrix.Print();
 
   double sigma = MSC.Calc_MS_Sigma();
-  
+
   if (sigma < 0 || std::isnan(sigma) || std::isinf(sigma)) {
-    if (Talk) { 
+    if (Talk) {
       std::cout<<"Got invalid sigma "<<sigma<<", setting it to 0.0001"<<std::endl;
     }
     sigma = 0.0001;
@@ -2210,8 +2222,8 @@ void TMS_Kalman::BetheBloch() {
             // Read these directly from a TGeoManager
             // If the geometry is in mm (CLHEP units), then want to scale density to g/cm3 and thickness to cm
             // Otherwise, assume it's like that and then fix it with geometry scaling functions
-            double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3); 
-            double thickness = material.second/10.; 
+            double density = material.first->GetDensity()/(CLHEP::g/CLHEP::cm3);
+            double thickness = material.second/10.;
             // Potentially need to scale from g/cm3 to g/mm3, so find the scale factor and scale by 1/that^3.
             double scale_factor = TMS_Geom::GetInstance().Scale(1.0);
             density /= std::pow(scale_factor, 3);
@@ -2290,7 +2302,7 @@ void TMS_Kalman::SignSelection() {
         p2=p2.Unit();
         p1=p1*(1/PreviousState.qp);
         p2=p2*(1/CurrentState.qp);
-        TVector3 dp = p2 - p1;//It supposed to be p1-p2 but backword and keep the B-field, So p2-p1 is right, 
+        TVector3 dp = p2 - p1;//It supposed to be p1-p2 but backword and keep the B-field, So p2-p1 is right,
         TVector3 p_avg = 0.5 * (p1 + p2);
         TVector3 v_cross_B = p_avg.Cross(B);
 

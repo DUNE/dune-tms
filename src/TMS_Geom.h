@@ -28,7 +28,7 @@ class TMS_Geom {
       static TMS_Geom Instance;
       return Instance;
     }
-    
+
     // Positions are fidicual volume
     inline double GetXStartOfLAr() const { return TMS_Const::LAr_Start_Exact[0]; };
     inline double GetYStartOfLAr() const { return TMS_Const::LAr_Start_Exact[1]; };
@@ -59,23 +59,23 @@ class TMS_Geom {
     inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 130; }; // module 2 - module 0 = 13cm
     inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
 
-    inline TVector3 GetStartOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_X(), 
+    inline TVector3 GetStartOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_X(),
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_Z()); };
-    inline TVector3 GetEndOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_X(), 
+    inline TVector3 GetEndOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_X(),
         TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Y(), TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_END_Z()); };
-    inline TVector3 GetStartOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + thickness, 
+    inline TVector3 GetStartOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + thickness,
         TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + thickness); };
-    inline TVector3 GetEndOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - thickness, 
+    inline TVector3 GetEndOfLArActive(double thickness = 0) const { return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - thickness,
         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - thickness, TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - thickness); };
     inline TVector3 GetStartOfLArFiducial() const {
         double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
-        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + dxy, 
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_X() + dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Y() + dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_START_Z() + dxy); };
     inline TVector3 GetEndOfLArFiducial() const {
         double dxy = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_XY_CUT();
         double dz = TMS_Manager::GetInstance().Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT();
-        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
+        return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };
 
@@ -105,9 +105,9 @@ class TMS_Geom {
       if (position.Z() > end.Z()) return false;
       return true;
     };
-    bool IsInsideLAr(TVector3 position, double thickness = 0) const 
+    bool IsInsideLAr(TVector3 position, double thickness = 0) const
       { return IsInsideBox(position, GetStartOfLArActive(thickness), GetEndOfLArActive(thickness)); };
-    bool IsInsideLArShell(TVector3 position) const 
+    bool IsInsideLArShell(TVector3 position) const
       { double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS();
         return IsInsideLAr(position) && !IsInsideLAr(position, thickness); };
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
@@ -125,7 +125,7 @@ class TMS_Geom {
     static bool StaticIsInsideTMSMass(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSMass(position); };
 
     bool IsInsideNearDetectorVolume(TVector3 position) const
-    { 
+    {
       return (
               IsInsideBox(position, GetStartOfLAr(), GetEndOfLAr()) ||
               IsInsideBox(position, GetStartOfTMS(), GetEndOfTMS())
@@ -133,7 +133,7 @@ class TMS_Geom {
              );
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
-    
+
     // Readout on the +x side of the detector
     double XBarPosReadoutLocation() { return GetXEndOfTMS(); };
     // Readout on the -x side of the detector
@@ -144,7 +144,7 @@ class TMS_Geom {
     double XBarLength() { return GetXEndOfTMS(); };
     // Bar spans entire Y
     double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
-    
+
     std::string GetNameOfDetector(const TVector3 &point) {
       std::string out = "";
       if (out == "" && IsInsideLAr(point)) out += "LAr";
@@ -159,7 +159,7 @@ class TMS_Geom {
       out += ")";
       return out;
     };
-    
+
 
     // Get the geometry
     TGeoManager* GetGeometry() {
@@ -172,7 +172,7 @@ class TMS_Geom {
       return this->geom;
     }
 
-    const std::string & GetFileName() { 
+    const std::string & GetFileName() {
       return FileName;
     }
 
@@ -180,8 +180,8 @@ class TMS_Geom {
     void SetGeometry(TGeoManager *geometry) {
       geom = geometry;
       geom->LockGeometry();
-      
-      // There's an overall scale factor depending on if the gmdl was loaded with cm or mm. 
+
+      // There's an overall scale factor depending on if the gmdl was loaded with cm or mm.
       // So here we're trying to automatically figure out the scale factor
       // If the geometry changes too much, then this would not work and so we'd want to give up.
       TGeoBBox *box = dynamic_cast<TGeoBBox*>(geom->GetTopVolume()->GetShape());
@@ -205,17 +205,17 @@ class TMS_Geom {
     void SetFileName(std::string filename) {
       FileName = filename;
     }
-    
+
     inline void Scale(double &x, double &y, double &z) {
       x *= ScaleFactor;
       y *= ScaleFactor;
       z *= ScaleFactor;
     }
-    
+
     inline double Scale(double val) {
       return val * ScaleFactor;
     }
-    
+
     TVector3 Scale(TVector3 point) {
       double x = point.X();
       double y = point.Y();
@@ -224,17 +224,17 @@ class TMS_Geom {
       TVector3 out(x, y, z);
       return out;
     }
-    
+
     inline void Unscale(double &x, double &y, double &z) {
       x /= ScaleFactor;
       y /= ScaleFactor;
       z /= ScaleFactor;
     }
-    
+
     inline double Unscale(double val) {
       return val / ScaleFactor;
     }
-    
+
     TVector3 Unscale(TVector3 point) {
       double x = point.X();
       double y = point.Y();
@@ -243,7 +243,7 @@ class TMS_Geom {
       TVector3 out(x, y, z);
       return out;
     }
-    
+
     TGeoNode* FindNode(double x, double y, double z) {
       Unscale(x, y, z);
       TVector3 vec = TVector3(x,y,z);
@@ -266,9 +266,9 @@ class TMS_Geom {
 
       // The returned vector of materials
       // Also want how much of the material was passed through
-      std::vector<std::pair<TGeoMaterial*,double> > Materials;     
+      std::vector<std::pair<TGeoMaterial*,double> > Materials;
 
-      if ((point1 - point2).Mag() <= 1E-3) 
+      if ((point1 - point2).Mag() <= 1E-3)
         return Materials;
       if ((point1 - point2).Mag() > 1E6) {
         std::cout<<"[GetMaterials] Warning: Points are very far apart at "<<(point1 - point2).Mag()<<"mm. Returning blank materials list"<<std::endl;
@@ -282,8 +282,8 @@ class TMS_Geom {
       // Set the current point to be the current point
       geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
       // Set the direction
-      geom->SetCurrentDirection((point2-point1).Unit().X(), 
-          (point2-point1).Unit().Y(), 
+      geom->SetCurrentDirection((point2-point1).Unit().X(),
+          (point2-point1).Unit().Y(),
           (point2-point1).Unit().Z());
 
       // To step through the volumes, can't use IsSameLocation because the volume between LAr and TMS is same as the volume after/next to TMS and in front/beside LAr.
@@ -332,7 +332,7 @@ class TMS_Geom {
         std::pair<TGeoMaterial*, double> temp(mat, Scale(step));
         Materials.push_back(temp);
         total += step;
-        
+
         if (Materials.size() > 50) {
           std::cout<<"[GetMaterials] Warning: Have many materials at "<<Materials.size()<<". Returning incomplete materials list"<<std::endl;
           return Materials;
@@ -352,7 +352,7 @@ class TMS_Geom {
       // Get the last point
       geom->FindNode(point2.X(), point2.Y(), point2.Z());
       TVector3 temp(curpt[0], curpt[1], curpt[2]);
-      // The distance between the 
+      // The distance between the
       double extra = (temp-point2).Mag();
       // Change the point to get the material
       geom->SetCurrentPoint(point2.X(), point2.Y(), point2.Z());
@@ -378,7 +378,7 @@ class TMS_Geom {
       // Make vectors have geometry scale
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
-      
+
       // First cd the navigator to the starting point
       geom->FindNode(point1.X(), point1.Y(), point1.Z());
 
@@ -386,8 +386,8 @@ class TMS_Geom {
       // Set the current point to be the current point
       geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
       // Set the direction
-      geom->SetCurrentDirection((point2-point1).Unit().X(), 
-          (point2-point1).Unit().Y(), 
+      geom->SetCurrentDirection((point2-point1).Unit().X(),
+          (point2-point1).Unit().Y(),
           (point2-point1).Unit().Z());
 
       // The returned vector of materials
@@ -444,7 +444,7 @@ class TMS_Geom {
       // Make vectors have geometry scale
       TVector3 point1 = Unscale(point1_temp);
       TVector3 point2 = Unscale(point2_temp);
-      
+
       // Root's geometry has a bug that if you call a point outside the world (or maybe inside sand?)
       // then from then on we get no materials. Not sure what's going on, but we can avoid it
       // by completely avoiding locations outside "reasonable size"
@@ -478,12 +478,12 @@ class TMS_Geom {
       TotalPathLength = Scale(TotalPathLength);
       return TotalPathLength;
     };
-    
+
     // Walks through all the pairs of nodes and returns the total track length
     double GetTrackLength(std::vector<TVector3> nodes, bool ignore_y = false) {
       double out = 0;
       // for unsigned ints, 0-1 = MAX_UNSIGNED_INT, so need to verify that size > 0
-      if (nodes.size() > 1) { 
+      if (nodes.size() > 1) {
         // Loop over all pairs of vectors
         for (size_t i = 0; i < nodes.size() - 1; i++) {
           auto p1 = nodes.at(i);
@@ -523,8 +523,8 @@ class TMS_Geom {
       // Set the current point to be the current point
       geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
       // Set the direction
-      geom->SetCurrentDirection((point2-point1).Unit().X(), 
-          (point2-point1).Unit().Y(), 
+      geom->SetCurrentDirection((point2-point1).Unit().X(),
+          (point2-point1).Unit().Y(),
           (point2-point1).Unit().Z());
 
       std::vector<std::pair<std::string, TVector3> > Nodes;
@@ -594,8 +594,8 @@ class TMS_Geom {
       // Set the current point to be the current point
       geom->SetCurrentPoint(point1.X(), point1.Y(), point1.Z());
       // Set the direction
-      geom->SetCurrentDirection((point2-point1).Unit().X(), 
-          (point2-point1).Unit().Y(), 
+      geom->SetCurrentDirection((point2-point1).Unit().X(),
+          (point2-point1).Unit().Y(),
           (point2-point1).Unit().Z());
 
       std::vector<std::pair<int*, TVector3> > Nodes;
@@ -621,7 +621,7 @@ class TMS_Geom {
         dist = (pt_vec-point1).Mag();
 
         // cd up in the geometry to find the right name
-        while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && 
+        while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos &&
             NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
           // We've found the plane number
           if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {

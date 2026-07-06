@@ -31,7 +31,7 @@
 class TMS_KalmanState {
   public:
     TMS_KalmanState() = delete;
-    TMS_KalmanState(double xvar, double yvar, double zvar, double dxdzvar, double dydzvar, double qpvar) 
+    TMS_KalmanState(double xvar, double yvar, double zvar, double dxdzvar, double dydzvar, double qpvar)
       : x(xvar), y(yvar), dxdz(dxdzvar), dydz(dydzvar), qp(qpvar), z(zvar) {
     };
 
@@ -41,7 +41,7 @@ class TMS_KalmanState {
     double dydz;
     double qp;
     double z; // the dependent variable of the state vector
-    
+
     //TMatrixD &cov;//[KALMAN_DIM*KALMAN_DIM];
 
     void Print() {
@@ -60,6 +60,12 @@ class TMS_KalmanNode {
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     StepIndex(-1),
     RecoX(xvar), RecoY(yvar),
+    TrueX(-999999999.0), TrueY(-999999999.0),
+    LayerOrientation(TMS_Bar::kError),
+    LayerBarWidth(0.0),
+    LayerBarLength(0.0),
+    PlaneNumber(-1),
+    LayerNotZ(-999999999.0),
     Hit(NULL),
     PreviousState(x, y, zvar - dzvar, dxdzvar, dydzvar, 1./20.),
     CurrentState(x, y, zvar,          dxdzvar, dydzvar, 1./20.), // Initialise at plane z
@@ -72,7 +78,9 @@ class TMS_KalmanNode {
     EstimatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
     SmoothCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
     MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementVec(5)
+    MeasurementVec(5),
+    chi2(0.0),
+    Accepted(true)
 //    DeflectedVec(5)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
@@ -298,12 +306,12 @@ class TMS_Kalman {
     // Scan the node sequence for expected X-U-V view coverage. Reports windows
     // of 3 consecutive nodes that are missing one or more views. Only prints if Talk is true.
     void PrintMissingXUVTriplets(const char* tag = "XUVPattern");
-    
+
     double Start[3];
     double End[3];
     double StartDirection[3];
     double EndDirection[3];
-   
+
     void InitializeMomentum(bool only_momentum = true);
     double GetKEEstimateFromLength(double startx, double endx, double startz, double endz);
     double CalculateKEFromSteel(TVector3 position);
@@ -345,7 +353,7 @@ class TMS_Kalman {
     void   GetPreSnapEnd(double &x, double &y, double &z) const { x = preSnapEnd[0]; y = preSnapEnd[1]; z = preSnapEnd[2]; }
 
     TVectorD GetNoiseVector(TMS_KalmanNode Node);
-    
+
     void SetTalk(bool value) { Talk = value; };
 
   private:
@@ -379,10 +387,10 @@ class TMS_Kalman {
 
     void SortNodesByZ() { std::sort(KalmanNodes.begin(), KalmanNodes.end(), [](const TMS_KalmanNode &a, const TMS_KalmanNode &b){return a.z < b.z;}); };
     // Sorts so that first node is first node processed by RunKalman. ie. based on ForwardFitting flag.
-    void SortNodesByRunOrder() { 
+    void SortNodesByRunOrder() {
         const bool fit_direction = ForwardFitting;
         std::sort(KalmanNodes.begin(), KalmanNodes.end(), [fit_direction](const TMS_KalmanNode &a, const TMS_KalmanNode &b)
-        {return fit_direction ? a.z < b.z : a.z > b.z;}); 
+        {return fit_direction ? a.z < b.z : a.z > b.z;});
       };
 
     // After sorting in the current run order, rebuild each node's dz and
@@ -418,10 +426,10 @@ class TMS_Kalman {
     double assumed_charge;
     double AverageXSlope; // Seeding initial X slope in Kalman
     double AverageYSlope; // Seeding initial Y slope in Kalman
-    
+
     bool wasAugmented;
     int nAugmentedNodes;
-    
+
     bool Talk;
 
     // Diagnostics captured before snap augmentation

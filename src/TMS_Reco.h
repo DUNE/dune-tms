@@ -38,9 +38,9 @@ enum class TrackMethod {
   kUnknown
 };
 
-enum class HeuristicType { 
-  kManhattan, 
-  kEuclidean, 
+enum class HeuristicType {
+  kManhattan,
+  kEuclidean,
   kDetectorZ,
   kDetectorNotZ,
   kUnknown
@@ -50,7 +50,7 @@ enum class HeuristicType {
 class aNode {
   public:
 
-    //aNode(double xval, double yval, double ywval): 
+    //aNode(double xval, double yval, double ywval):
     aNode(double xval, double yval) :
       x(xval), y(yval),
       HeuristicCost(__LARGE_COST__), NodeID(-999),
@@ -231,7 +231,7 @@ class TMS_TrackFinder {
 
     double CalculateTrackLength(const std::vector<TMS_Hit> &Hits);
     double CalculateTrackEnergy(const std::vector<TMS_Hit> &Hits);
-    
+
     void CalculateTrackLengthU(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackEnergyU(const std::vector<std::vector<TMS_Hit> > &Hits);
     void CalculateTrackLengthV(const std::vector<std::vector<TMS_Hit> > &Hits);
@@ -304,13 +304,13 @@ class TMS_TrackFinder {
 
     TH1D* GetEfficiencyHist() { return Efficiency; };
     TH1D* GetTotalHist() { return Total; };
-    TH1D* GetEfficiency() { 
+    TH1D* GetEfficiency() {
       TH1D *eff = (TH1D*)Efficiency->Clone("Efficiency_ratio");
       eff->Divide(Total);
       return eff;
     }
-    
-    TMS_Kalman RunKalmanWithAugment(std::vector<TMS_Hit> &candidates, int assumed_charge, const std::vector<TMS_Hit> &candidate_pool);
+
+    TMS_Kalman RunKalmanWithAugment(std::vector<TMS_Hit> &candidates, double assumed_charge, const std::vector<TMS_Hit> &candidate_pool);
 
   private:
     TMS_TrackFinder();
@@ -417,7 +417,7 @@ class TMS_TrackFinder {
     std::vector<double> TrackLengthY;
 
     // xvalue is x-axis, y value is y-axis
-    void Accumulate(double xhit, double zhit); 
+    void Accumulate(double xhit, double zhit);
 };
 
 #endif

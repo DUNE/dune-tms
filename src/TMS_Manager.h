@@ -14,9 +14,9 @@ class TMS_Manager {
       return Instance;
     }
 
-    void SetFileName(std::string file) { 
+    void SetFileName(std::string file) {
       std::cout << "Setting global edep-sim filename to " << file << std::endl;
-      Filename = file; 
+      Filename = file;
     };
     std::string GetFileName() const { return Filename; };
 
@@ -66,7 +66,7 @@ class TMS_Manager {
 
     bool Get_Reco_Kalman_Run() const { return _RECO_KALMAN_RUN; };
     double Get_Reco_Kalman_Assumed_Charge() const { return _RECO_KALMAN_ASSUMED_CHARGE; };
-    double Get_Reco_Kalman_Use_Outlier_Rejection() const { return _RECO_KALMAN_USE_OUTLIER_REJECTION; };
+    bool Get_Reco_Kalman_Use_Outlier_Rejection() const { return _RECO_KALMAN_USE_OUTLIER_REJECTION; };
     double Get_Reco_Kalman_Outlier_Rejection_Chi2_Threshold() const { return _RECO_KALMAN_OUTLIER_REJECTION_CHI2_THRESHOLD; };
     // New: Outlier handling and adaptive gating
     double Get_Reco_Kalman_Outlier_EarlyStepMultiplier() const { return _RECO_KALMAN_OUTLIER_EARLYSTEP_MULTIPLIER; };
@@ -95,7 +95,7 @@ class TMS_Manager {
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxFactor() const { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR; };
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsX() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X; };
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsY() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y; };
-    
+
 
 
     bool Get_LightWeight_Truth() const { return _TRUTH_LIGHTWEIGHT; };
@@ -115,9 +115,9 @@ class TMS_Manager {
     int Get_RECO_TIME_TimeSlicerEnergyWindowInUnits() const { return _RECO_TIME_TimeSlicerEnergyWindowInUnits; };
     int Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits() const { return _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits; };
     double Get_RECO_TIME_TimeSlicerMaxTime() const { return _RECO_TIME_TimeSlicerMaxTime; };
-    
+
     double Get_RECO_CALIBRATION_EnergyCalibration() const { return _RECO_CALIBRATION_EnergyCalibration; };
-    
+
     double Get_FIDUCIAL_TMS_START_X() const { return _FIDUCIAL_TMS_START_X; };
     double Get_FIDUCIAL_TMS_START_Y() const { return _FIDUCIAL_TMS_START_Y; };
     double Get_FIDUCIAL_TMS_START_Z() const { return _FIDUCIAL_TMS_START_Z; };
@@ -140,14 +140,14 @@ class TMS_Manager {
     int Get_MaximumNEvents() const { return _APPLICATIONS_MaximumNEvents; };
 
     double Get_Geometry_YMIDDLE() const { return _GEOMETRY_YMIDDLE; };
-    
+
     double Get_Nersc_Spill_Period() const { return _NERSC_SPILL_PERIOD; };
     void Set_Nersc_Spill_Period(double value) { _NERSC_SPILL_PERIOD = value; };
-    
+
     std::string Get_GEOMETRY_GitTag() const { return _GEOMETRY_git_tag; };
     std::string Get_GEOMETRY_GitBranch() const { return _GEOMETRY_git_branch; };
     std::string Get_GEOMETRY_GitCommit() const { return _GEOMETRY_git_commit; };
-    
+
     int Get_GEOMETRY_NumberOfScintillatorPlanes() const { return _GEOMETRY_NumberOfScintillatorPlanes; };
     int Get_GEOMETRY_NumberOfSteelPlatesThin() const { return _GEOMETRY_NumberOfSteelPlatesThin; };
     int Get_GEOMETRY_NumberOfSteelPlatesThick() const { return _GEOMETRY_NumberOfSteelPlatesThick; };
@@ -215,7 +215,7 @@ class TMS_Manager {
 
     std::string _RECO_TRACK_METHOD;
     bool _RECO_CLUSTERING;
-    
+
     double _NERSC_SPILL_PERIOD;
 
     bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
@@ -237,7 +237,7 @@ class TMS_Manager {
     bool   _RECO_KALMAN_OUTLIER_EARLY_RAMP_ENABLE;
     int    _RECO_KALMAN_OUTLIER_EARLY_RAMP_STEPS;
 
-    // Augmentation tuning 
+    // Augmentation tuning
     bool   _RECO_KALMAN_AUGMENT_RUN_AUGMENT;
     int    _RECO_KALMAN_AUGMENT_N_NODES_TO_REMOVE;
     int    _RECO_KALMAN_AUGMENT_MAXIMUM_PLANE_GAP;
@@ -251,7 +251,7 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
-    
+
     bool _RECO_TIME_RunTimeSlicer;
     bool _RECO_TIME_RunSimpleTimeSlicer;
     double _RECO_TIME_TimeSlicerThresholdStart;
@@ -260,9 +260,9 @@ class TMS_Manager {
     int _RECO_TIME_TimeSlicerEnergyWindowInUnits;
     int _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits;
     double _RECO_TIME_TimeSlicerMaxTime;
-    
+
     double _RECO_CALIBRATION_EnergyCalibration;
-    
+
     double _FIDUCIAL_TMS_START_X;
     double _FIDUCIAL_TMS_START_Y;
     double _FIDUCIAL_TMS_START_Z;
@@ -275,7 +275,7 @@ class TMS_Manager {
     double _ACTIVE_LAR_END_X;
     double _ACTIVE_LAR_END_Y;
     double _ACTIVE_LAR_END_Z;
-    
+
     double _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT;
     double _LAR_FIDUCIAL_XY_CUT;
     double _LAR_OUTER_SHELL_THICKNESS;
@@ -285,7 +285,7 @@ class TMS_Manager {
     int _APPLICATIONS_MaximumNEvents;
 
     double _GEOMETRY_YMIDDLE;
-    
+
     std::string _GEOMETRY_git_tag;
     std::string _GEOMETRY_git_branch;
     std::string _GEOMETRY_git_commit;

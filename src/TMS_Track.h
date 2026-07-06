@@ -10,10 +10,35 @@
 class TMS_Track {
 
   public:
-    TMS_Track() //std::vector<TMS_Hit>& OneTrack, std::vector<TMS_Hit>& OtherTrack)
-    {
-      // TODO: Take first and last hits and do the maffs
-    };
+	    TMS_Track() //std::vector<TMS_Hit>& OneTrack, std::vector<TMS_Hit>& OtherTrack)
+	    {
+	      Charge = 0;
+	      Charge_Kalman = 0;
+	      Charge_Kalman_curvature = 0;
+	      Length = 0.0;
+	      Occupancy = 0.0;
+	      EnergyDeposit = 0.0;
+	      EnergyRange = 0.0;
+	      Momentum = 0.0;
+	      Time = 0.0;
+	      Chi2 = 0.0;
+	      Chi2_minus = 0.0;
+	      Chi2_plus = 0.0;
+	      nHits = 0;
+	      nKalmanNodes = 0;
+	      nKalmanNodes_minus = 0;
+	      nKalmanNodes_plus = 0;
+	      KalmanWasAugmented = false;
+	      nAugmentedNodesKalman = 0;
+	      for (int i = 0; i < 4; ++i) {
+	        Start[i] = 0.0;
+	        End[i] = 0.0;
+	      }
+	      for (int i = 0; i < 3; ++i) {
+	        StartDirection[i] = 0.0;
+	        EndDirection[i] = 0.0;
+	      }
+	    };
    // In TMS_Track.h, inside the class definition:
 TMS_Track(const TMS_Track& other) {
     // Copy simple types
@@ -29,14 +54,15 @@ TMS_Track(const TMS_Track& other) {
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
     nKalmanNodes    = other.nKalmanNodes;
-    nKalmanNodes    = other.nKalmanNodes;
     KalmanWasAugmented    = other.KalmanWasAugmented;
     nAugmentedNodesKalman = other.nAugmentedNodesKalman;
 
     // Copy arrays element by element
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         Start[i]          = other.Start[i];
         End[i]            = other.End[i];
+    }
+    for (int i = 0; i < 3; ++i) {
         StartDirection[i] = other.StartDirection[i];
         EndDirection[i]   = other.EndDirection[i];
     }
@@ -51,7 +77,7 @@ TMS_Track(const TMS_Track& other) {
     fTrueParticle = other.fTrueParticle;
 }
 
-    // define the assignment operator 
+    // define the assignment operator
    TMS_Track& operator=(const TMS_Track &other) {
     if (this != &other) {
         // Copy simple types
@@ -71,9 +97,11 @@ TMS_Track(const TMS_Track& other) {
         nAugmentedNodesKalman = other.nAugmentedNodesKalman;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             Start[i]          = other.Start[i];
             End[i]            = other.End[i];
+        }
+        for (int i = 0; i < 3; i++) {
             StartDirection[i] = other.StartDirection[i];
             EndDirection[i]   = other.EndDirection[i];
         }
@@ -91,7 +119,7 @@ TMS_Track(const TMS_Track& other) {
     return *this;
 }
 
-    
+
     void Print();
 
     int    Charge;
@@ -110,7 +138,7 @@ TMS_Track(const TMS_Track& other) {
     double Chi2;
     double Chi2_minus;
     double Chi2_plus;
-    
+
 
 
     double GetEnergyDeposit() {return EnergyDeposit;};
@@ -118,8 +146,8 @@ TMS_Track(const TMS_Track& other) {
     double GetMomentum()      {return Momentum;};
     double GetChi2_minus()          {return Chi2_minus;};
     double GetChi2_plus()          {return Chi2_plus;};
-    
-    
+
+
     TMS_TrueParticle GetTrueParticle() {return fTrueParticle;};
 
     // Manually set variables
@@ -128,7 +156,7 @@ TMS_Track(const TMS_Track& other) {
     void SetMomentum      (double val) {Momentum      = val;};
     void SetChi2_minus          (double val) {Chi2_minus          = val;};
     void SetChi2_plus          (double val) {Chi2_plus          = val;};
-   
+
 
     // Set direction unit vectors from only x and y slope
     void SetStartDirection(double ax, double ay, double az);// {StartDirection[0]=ax; StartDirection[1]=ay; StartDirection[2]=az;};
