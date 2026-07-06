@@ -333,10 +333,6 @@ class TMS_Geom {
         Materials.push_back(temp);
         total += step;
 
-        if (Materials.size() > 50) {
-          std::cout<<"[GetMaterials] Warning: Have many materials at "<<Materials.size()<<". Returning incomplete materials list"<<std::endl;
-          return Materials;
-        }
       }
 
       /*
