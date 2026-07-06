@@ -559,10 +559,10 @@ void TMS_Kalman::AugmentWithCandidates(const std::vector<TMS_Hit> &candidate_poo
     PruneInconsistentNodes();
     // Perform backward → forward → backward triple refit and smoothing
     TripleRefitSmooth();
-    for (int attempt = 0; attempt < 2; ++attempt) {
-      if (PruneNodesOutsideTMS() == 0) break;
+    if (PruneNodesOutsideTMS() > 0) {
       TripleRefitSmooth();
     }
+    RepairStatesOutsideTMS();
   }
 
   // Restore the previous direction flag
@@ -895,14 +895,11 @@ void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
   TripleRefitSmooth();
   runRTSSmoother();
   RepairBadNodeMeasurements();
-  PruneNodesOutsideTMS();
-  TripleRefitSmooth();
-  runRTSSmoother();
-  for (int attempt = 0; attempt < 2; ++attempt) {
-    if (PruneNodesOutsideTMS() == 0) break;
+  if (PruneNodesOutsideTMS() > 0) {
     TripleRefitSmooth();
     runRTSSmoother();
   }
+  RepairStatesOutsideTMS();
   BetheBloch();
   Runchi2();
   SignSelection();
@@ -1579,29 +1576,16 @@ int TMS_Kalman::PruneNodesOutsideTMS() {
 
   std::vector<char> keep(n, 1);
 
-  auto valid_state = [](const TMS_KalmanState &state) {
-    return std::isfinite(state.x) && std::isfinite(state.y) && std::isfinite(state.z);
-  };
-  auto inside_state = [](const TMS_KalmanState &state) {
-    TVector3 pos(state.x, state.y, state.z);
-    return TMS_Geom::GetInstance().IsInsideTMS(pos);
-  };
-
   for (size_t i = 0; i < n; ++i) {
     auto node = KalmanNodes[i];
     TVector3 meas_pos(node.x, node.y, node.z);
     bool outside = !TMS_Geom::GetInstance().IsInsideTMS(meas_pos);
-    if (!outside && valid_state(node.CurrentState)) outside = !inside_state(node.CurrentState);
-    if (!outside && valid_state(node.SmoothState)) outside = !inside_state(node.SmoothState);
 
     if (outside) {
       keep[i] = 0;
       if (Talk) {
-        std::cout << "[Prune] Removed outside-TMS node at z=" << node.z
-                  << " meas=(" << node.x << "," << node.y << "," << node.z << ")"
-                  << " current=(" << node.CurrentState.x << "," << node.CurrentState.y << "," << node.CurrentState.z << ")"
-                  << " smooth=(" << node.SmoothState.x << "," << node.SmoothState.y << "," << node.SmoothState.z << ")"
-                  << std::endl;
+        std::cout << "[Prune] Removed outside-TMS measurement at z=" << node.z
+                  << " meas=(" << node.x << "," << node.y << "," << node.z << ")" << std::endl;
       }
     }
   }
@@ -1619,6 +1603,95 @@ int TMS_Kalman::PruneNodesOutsideTMS() {
   for (size_t i = 0; i < KalmanNodes.size(); ++i) KalmanNodes[i].StepIndex = static_cast<int>(i);
   if (Talk) std::cout << "[Prune] Removed nodes outside TMS: " << removed << std::endl;
   return removed;
+}
+
+void TMS_Kalman::RepairStatesOutsideTMS() {
+  if (KalmanNodes.empty()) return;
+
+  auto clamp = [](double value, double lo, double hi) {
+    return std::min(std::max(value, lo), hi);
+  };
+  auto finite = [](double value) {
+    return std::isfinite(value);
+  };
+  auto estimate_slope = [&](size_t i, bool use_x, double max_abs_slope) {
+    auto coord = [&](const TMS_KalmanNode &node) { return use_x ? node.x : node.y; };
+    double slope = 0.0;
+    bool found = false;
+    if (i > 0 && i + 1 < KalmanNodes.size()) {
+      double dz = KalmanNodes[i + 1].z - KalmanNodes[i - 1].z;
+      if (std::abs(dz) > 1e-6) {
+        slope = (coord(KalmanNodes[i + 1]) - coord(KalmanNodes[i - 1])) / dz;
+        found = std::isfinite(slope);
+      }
+    }
+    if (!found && i > 0) {
+      double dz = KalmanNodes[i].z - KalmanNodes[i - 1].z;
+      if (std::abs(dz) > 1e-6) {
+        slope = (coord(KalmanNodes[i]) - coord(KalmanNodes[i - 1])) / dz;
+        found = std::isfinite(slope);
+      }
+    }
+    if (!found && i + 1 < KalmanNodes.size()) {
+      double dz = KalmanNodes[i + 1].z - KalmanNodes[i].z;
+      if (std::abs(dz) > 1e-6) {
+        slope = (coord(KalmanNodes[i + 1]) - coord(KalmanNodes[i])) / dz;
+        found = std::isfinite(slope);
+      }
+    }
+    if (!found) slope = 0.0;
+    return clamp(slope, -max_abs_slope, max_abs_slope);
+  };
+  auto repair_state = [&](TMS_KalmanState &state, const TMS_KalmanNode &node, size_t i, const char *label) {
+    bool repaired = false;
+    const double x_anchor = clamp(node.x, TMS_Const::TMS_Start[0], TMS_Const::TMS_End[0]);
+    const double y_anchor = clamp(node.y, TMS_Const::TMS_Start[1], TMS_Const::TMS_End[1]);
+
+    if (!finite(state.x) || state.x < TMS_Const::TMS_Start[0] || state.x > TMS_Const::TMS_End[0]) {
+      state.x = x_anchor;
+      repaired = true;
+    }
+    if (!finite(state.y) || state.y < TMS_Const::TMS_Start[1] || state.y > TMS_Const::TMS_End[1]) {
+      state.y = y_anchor;
+      repaired = true;
+    }
+    if (!finite(state.z)) {
+      state.z = node.z;
+      repaired = true;
+    }
+
+    const double max_dxdz = 2.0;
+    const double max_dydz = 1.5;
+    bool bad_dxdz = !finite(state.dxdz) || std::abs(state.dxdz) > max_dxdz;
+    bool bad_dydz = !finite(state.dydz) || std::abs(state.dydz) > max_dydz;
+    if (bad_dxdz) {
+      state.dxdz = estimate_slope(i, true, max_dxdz);
+      repaired = true;
+    }
+    if (bad_dydz) {
+      state.dydz = estimate_slope(i, false, max_dydz);
+      repaired = true;
+    }
+    if (!finite(state.qp) || std::abs(state.qp) < 1e-12) {
+      state.qp = 1.0 / 1000.0;
+      repaired = true;
+    }
+
+    if (Talk && repaired) {
+      std::cout << "[RepairState] " << label << " i=" << i
+                << " z=" << node.z
+                << " state=(" << state.x << "," << state.y
+                << ", dxdz=" << state.dxdz << ", dydz=" << state.dydz
+                << ", qp=" << state.qp << ")" << std::endl;
+    }
+  };
+
+  for (size_t i = 0; i < KalmanNodes.size(); ++i) {
+    auto &node = KalmanNodes[i];
+    repair_state(node.CurrentState, node, i, "current");
+    repair_state(node.SmoothState, node, i, "smooth");
+    node.SetRecoXY(node.SmoothState);
+  }
 }
 
 // Predict the next step: propagate state/covariance from PreviousState to
