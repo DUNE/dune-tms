@@ -297,7 +297,9 @@ class TMS_Kalman {
     // disabled during the refit, and duplicates at identical z are avoided
     // by nudging z slightly.
     void SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
-                                    double dz_mm = 500.0);
+                                    double dz_mm = 500.0,
+                                    int max_nodes = 0,
+                                    double max_axis_distance = -1.0);
 
     // Print a concise per-node diagnostic summary. Includes z, view, acceptance,
     // chi2, residuals, and measured vs filtered positions. Only prints if Talk is true.

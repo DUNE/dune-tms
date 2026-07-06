@@ -639,7 +639,9 @@ void TMS_Kalman::BuildMeasurementsFromBar() {
 // refit. Designed to recover the last 2–3 planes without relying on the final
 // state direction.
 void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
-                                            double dz_mm) {
+                                            double dz_mm,
+                                            int max_nodes,
+                                            double max_axis_distance) {
   if (KalmanNodes.empty() || pool.empty()) return;
 
   // Work with nodes sorted by z so back() is the highest-z node
@@ -739,6 +741,7 @@ void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
 
     double d = std::hypot(xm - x0, ym - y0);
     if (!std::isfinite(d)) d = 0.0; // accept all
+    if (max_axis_distance > 0.0 && d > max_axis_distance) continue;
 
     int view = static_cast<int>(hit.GetBar().GetBarType());
     long long zkey = QuantizeZKey(zh);
@@ -771,6 +774,9 @@ void TMS_Kalman::SnapDownstreamHitsAndRefit(const std::vector<TMS_Hit> &pool,
   for (auto &kv : best_per_layer_view) chosen.push_back(kv.second);
   // Ensure increasing z order for dz construction
   std::sort(chosen.begin(), chosen.end(), [](const Cand &a, const Cand &b){ return a.z < b.z; });
+  if (max_nodes > 0 && chosen.size() > static_cast<size_t>(max_nodes)) {
+    chosen.resize(static_cast<size_t>(max_nodes));
+  }
   if (Talk) {
     std::cout << "[SnapChosen] n_selected=" << chosen.size() << std::endl;
     for (auto &c : chosen) {

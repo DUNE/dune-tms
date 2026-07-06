@@ -95,6 +95,10 @@ class TMS_Manager {
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxFactor() const { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR; };
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsX() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X; };
     double Get_Reco_Kalman_Augment_FinalPlaneRelaxAbsY() const  { return _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y; };
+    bool   Get_Reco_Kalman_Augment_RunEndpointSnap() const      { return _RECO_KALMAN_AUGMENT_RUN_ENDPOINT_SNAP; };
+    double Get_Reco_Kalman_Augment_EndpointSnapWindowZ() const   { return _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_WINDOW_Z; };
+    int    Get_Reco_Kalman_Augment_EndpointSnapMaxNodes() const  { return _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_NODES; };
+    double Get_Reco_Kalman_Augment_EndpointSnapMaxAxisDistance() const { return _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_AXIS_DISTANCE; };
 
 
 
@@ -247,6 +251,10 @@ class TMS_Manager {
     double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR;
     double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X;
     double _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y;
+    bool   _RECO_KALMAN_AUGMENT_RUN_ENDPOINT_SNAP;
+    double _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_WINDOW_Z;
+    int    _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_NODES;
+    double _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_AXIS_DISTANCE;
 
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)

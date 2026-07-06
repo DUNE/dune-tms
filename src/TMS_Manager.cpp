@@ -106,6 +106,10 @@ TMS_Manager::TMS_Manager() {
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_FACTOR= toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxFactor");
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_X = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsX");
   _RECO_KALMAN_AUGMENT_FINAL_PLANE_RELAX_ABS_Y = toml::find<double>(data, "Recon", "Kalman", "Augment", "FinalPlaneRelaxAbsY");
+  _RECO_KALMAN_AUGMENT_RUN_ENDPOINT_SNAP       = toml::find<bool>(  data, "Recon", "Kalman", "Augment", "RunEndpointSnap");
+  _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_WINDOW_Z  = toml::find<double>(data, "Recon", "Kalman", "Augment", "EndpointSnapWindowZ");
+  _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_NODES = toml::find<int>(   data, "Recon", "Kalman", "Augment", "EndpointSnapMaxNodes");
+  _RECO_KALMAN_AUGMENT_ENDPOINT_SNAP_MAX_AXIS_DISTANCE = toml::find<double>(data, "Recon", "Kalman", "Augment", "EndpointSnapMaxAxisDistance");
 
   _RECO_KALMAN_AUGMENT_RUN_AUGMENT = toml::find<bool>(data, "Recon", "Kalman", "Augment", "RunAugment");
   _RECO_KALMAN_AUGMENT_N_NODES_TO_REMOVE = toml::find<int>(data, "Recon", "Kalman", "Augment", "NNodesToRemove");

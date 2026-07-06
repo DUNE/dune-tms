@@ -4514,8 +4514,13 @@ TMS_Kalman TMS_TrackFinder::RunKalmanWithAugment(std::vector<TMS_Hit> &candidate
   TMS_Kalman out(candidates, assumed_charge);
   const auto &mgr = TMS_Manager::GetInstance();
   if (mgr.Get_Reco_Kalman_Augment_RunAugment()) {
-  out.AugmentWithCandidates(candidate_pool, mgr.Get_Reco_Kalman_Augment_NNodesToRemove());
+    out.AugmentWithCandidates(candidate_pool, mgr.Get_Reco_Kalman_Augment_NNodesToRemove());
   }
-  out.SnapDownstreamHitsAndRefit(candidate_pool);
+  if (mgr.Get_Reco_Kalman_Augment_RunEndpointSnap()) {
+    out.SnapDownstreamHitsAndRefit(candidate_pool,
+                                   mgr.Get_Reco_Kalman_Augment_EndpointSnapWindowZ(),
+                                   mgr.Get_Reco_Kalman_Augment_EndpointSnapMaxNodes(),
+                                   mgr.Get_Reco_Kalman_Augment_EndpointSnapMaxAxisDistance());
+  }
   return out;
 }

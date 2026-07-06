@@ -138,6 +138,10 @@
     FinalPlaneRelaxFactor = 2.0
     FinalPlaneRelaxAbsX = 400.0 # mm
     FinalPlaneRelaxAbsY = 400.0 # mm
+    RunEndpointSnap = true
+    EndpointSnapWindowZ = 500.0 # mm
+    EndpointSnapMaxNodes = 0 # 0 means no limit
+    EndpointSnapMaxAxisDistance = -1.0 # mm; <= 0 disables this cut
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
