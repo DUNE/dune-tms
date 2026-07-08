@@ -122,6 +122,247 @@ void ConstrainMarkerY(float &mx, float &my) {
     my = BOUNDS_Y_START + buffer;
 }
 
+void AddStageGuide(std::vector<TLine> &lines, double y) {
+  TLine line(BOUNDS_Z_START, y, BOUNDS_Z_END, y);
+  line.SetLineColor(kGray + 1);
+  line.SetLineStyle(3);
+  line.SetLineWidth(1);
+  lines.push_back(line);
+}
+
+void DrawSliceReco3DStages(std::string outfilename, std::string reason,
+                           std::string message, Reco_Tree &reco,
+                           Line_Candidates &lc, Truth_Info &truth,
+                           DrawSliceN::max_prints max_n_prints =
+                               DrawSliceN::all) {
+  static std::map<std::string, int> nSlicesDrawn;
+  int nmax = GetMaxDrawSlicePrints(max_n_prints);
+  if (nmax >= 0 && nSlicesDrawn[reason] >= nmax)
+    return;
+  nSlicesDrawn[reason] += 1;
+
+  if (save_location == "") {
+    throw std::runtime_error("Do not have a save directory for the event "
+                             "displays in DrawSliceReco3DStages");
+  }
+
+  std::string directoryPath =
+      save_location + "EventDisplays/" + reason + "_reco3d/";
+  createDirectory(directoryPath);
+
+  static TCanvas *canvas;
+  if (canvas == NULL) {
+    gStyle->SetOptStat(0);
+    gROOT->SetBatch(kTRUE);
+    canvas = new TCanvas("draw_slice_reco3d_stages",
+                         "draw_slice_reco3d_stages", 1200, 900);
+    canvas->Divide(1, 2);
+    for (size_t i = 1; i <= 2; i++) {
+      auto pad = canvas->cd(i);
+      pad->SetLeftMargin(0.18);
+      pad->SetRightMargin(0.02);
+    }
+  }
+
+  const double raw_offset = -320;
+  const double track2d_offset = 0;
+  const double track3d_offset = 320;
+  const double zmin = BOUNDS_Z_START;
+  const double zmax = BOUNDS_Z_END;
+
+  TH2D hist_x("", "X vs Z Reconstruction Stages;Z (cm);X + stage offset (cm)",
+              100, zmin, zmax, 100, -760, 760);
+  TH2D hist_y("", "Y vs Z Reconstruction Stages;Z (cm);Y + stage offset (cm)",
+              100, zmin, zmax, 100, -720, 520);
+  ConfigureHist(hist_x);
+  ConfigureHist(hist_y);
+  gStyle->SetTitleH(0.09);
+
+  std::vector<TMarker> markers_x;
+  std::vector<TMarker> markers_y;
+  std::vector<TLine> lines_x;
+  std::vector<TLine> lines_y;
+
+  AddStageGuide(lines_x, raw_offset);
+  AddStageGuide(lines_x, track2d_offset);
+  AddStageGuide(lines_x, track3d_offset);
+  AddStageGuide(lines_y, raw_offset);
+  AddStageGuide(lines_y, track2d_offset);
+  AddStageGuide(lines_y, track3d_offset);
+
+  for (int ih = 0; ih < lc.nHits; ih++) {
+    {
+      TMarker marker(lc.RecoHitPos[ih][2] * CM,
+                     lc.RecoHitPos[ih][0] * CM + raw_offset, 20);
+      marker.SetMarkerColor(kGray + 1);
+      marker.SetMarkerSize(0.45);
+      markers_x.push_back(marker);
+    }
+    {
+      TMarker marker(lc.RecoHitPos[ih][2] * CM,
+                     lc.RecoHitPos[ih][1] * CM + raw_offset, 20);
+      marker.SetMarkerColor(kGray + 1);
+      marker.SetMarkerSize(0.45);
+      markers_y.push_back(marker);
+    }
+  }
+
+  int colors_2d[] = {kAzure + 1, kViolet - 1, kOrange + 7};
+  for (int it = 0; it < lc.nLinesU; it++) {
+    for (int ih = 0; ih < lc.nHitsInTrackU[it]; ih++) {
+      TMarker marker(lc.TrackHitPosU[it][ih][0] * CM,
+                     lc.TrackHitPosU[it][ih][1] * CM + track2d_offset, 21);
+      marker.SetMarkerColor(colors_2d[0]);
+      marker.SetMarkerSize(0.65);
+      markers_x.push_back(marker);
+    }
+  }
+  for (int it = 0; it < lc.nLinesV; it++) {
+    for (int ih = 0; ih < lc.nHitsInTrackV[it]; ih++) {
+      TMarker marker(lc.TrackHitPosV[it][ih][0] * CM,
+                     lc.TrackHitPosV[it][ih][1] * CM + track2d_offset, 25);
+      marker.SetMarkerColor(colors_2d[1]);
+      marker.SetMarkerSize(0.65);
+      markers_x.push_back(marker);
+    }
+  }
+  for (int it = 0; it < lc.nLinesX; it++) {
+    for (int ih = 0; ih < lc.nHitsInTrackX[it]; ih++) {
+      TMarker marker(lc.TrackHitPosX[it][ih][0] * CM,
+                     lc.TrackHitPosX[it][ih][1] * CM + track2d_offset, 21);
+      marker.SetMarkerColor(colors_2d[2]);
+      marker.SetMarkerSize(0.65);
+      markers_y.push_back(marker);
+    }
+  }
+
+  int track_colors[] = {kRed, kBlue, kGreen + 2, kMagenta - 6, kOrange - 3,
+                        kCyan + 1};
+  int n_track_colors = sizeof(track_colors) / sizeof(track_colors[0]);
+  int n_3d_hits = 0;
+  for (int it = 0; it < reco.nTracks; it++) {
+    int color_to_use = track_colors[it % n_track_colors];
+    n_3d_hits += reco.nHits[it];
+    for (int ih = 0; ih < reco.nHits[it]; ih++) {
+      {
+        TMarker marker(reco.TrackHitPos[it][ih][2] * CM,
+                       reco.TrackHitPos[it][ih][0] * CM + track3d_offset, 20);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(0.65);
+        markers_x.push_back(marker);
+      }
+      {
+        TMarker marker(reco.TrackHitPos[it][ih][2] * CM,
+                       reco.TrackHitPos[it][ih][1] * CM + track3d_offset, 20);
+        marker.SetMarkerColor(color_to_use);
+        marker.SetMarkerSize(0.65);
+        markers_y.push_back(marker);
+      }
+    }
+    for (int ih = 0; ih < reco.nHits[it] - 1; ih++) {
+      {
+        TLine line(reco.TrackHitPos[it][ih][2] * CM,
+                   reco.TrackHitPos[it][ih][0] * CM + track3d_offset,
+                   reco.TrackHitPos[it][ih + 1][2] * CM,
+                   reco.TrackHitPos[it][ih + 1][0] * CM + track3d_offset);
+        line.SetLineColor(color_to_use);
+        line.SetLineWidth(1);
+        lines_x.push_back(line);
+      }
+      {
+        TLine line(reco.TrackHitPos[it][ih][2] * CM,
+                   reco.TrackHitPos[it][ih][1] * CM + track3d_offset,
+                   reco.TrackHitPos[it][ih + 1][2] * CM,
+                   reco.TrackHitPos[it][ih + 1][1] * CM + track3d_offset);
+        line.SetLineColor(color_to_use);
+        line.SetLineWidth(1);
+        lines_y.push_back(line);
+      }
+    }
+    for (int ih = 0; ih < reco.nKalmanNodes[it] - 1; ih++) {
+      {
+        TLine line(reco.KalmanPos[it][ih][2] * CM,
+                   reco.KalmanPos[it][ih][0] * CM + track3d_offset,
+                   reco.KalmanPos[it][ih + 1][2] * CM,
+                   reco.KalmanPos[it][ih + 1][0] * CM + track3d_offset);
+        line.SetLineColor(color_to_use);
+        line.SetLineWidth(2);
+        lines_x.push_back(line);
+      }
+      {
+        TLine line(reco.KalmanPos[it][ih][2] * CM,
+                   reco.KalmanPos[it][ih][1] * CM + track3d_offset,
+                   reco.KalmanPos[it][ih + 1][2] * CM,
+                   reco.KalmanPos[it][ih + 1][1] * CM + track3d_offset);
+        line.SetLineColor(color_to_use);
+        line.SetLineWidth(2);
+        lines_y.push_back(line);
+      }
+    }
+  }
+
+  int n_2d_hits = 0;
+  for (int it = 0; it < lc.nLinesU; it++)
+    n_2d_hits += lc.nHitsInTrackU[it];
+  for (int it = 0; it < lc.nLinesV; it++)
+    n_2d_hits += lc.nHitsInTrackV[it];
+  for (int it = 0; it < lc.nLinesX; it++)
+    n_2d_hits += lc.nHitsInTrackX[it];
+
+  auto textBox = MakeTextBox(0.01, 0.15, 0.17, 0.90, 0.055, 12);
+  textBox.AddText("Reco stages");
+  textBox.AddText(
+      TString::Format("Entry: %d, Run: %d", reco.EventNo, truth.RunNo));
+  textBox.AddText(TString::Format("Spill: %d", reco.SpillNo));
+  textBox.AddText(TString::Format("Slice: %d", reco.SliceNo));
+  textBox.AddText(TString::Format("All hits: %d", lc.nHits));
+  textBox.AddText(TString::Format("2D hits: %d", n_2d_hits));
+  textBox.AddText(TString::Format("3D hits: %d", n_3d_hits));
+  textBox.AddText(TString::Format("U/V/X: %d/%d/%d", lc.nLinesU, lc.nLinesV,
+                                  lc.nLinesX));
+  textBox.AddText(TString::Format("3D tracks: %d", reco.nTracks));
+  if (message != "") {
+    for (auto foo : split(message.c_str(), ';')) {
+      textBox.AddText(foo.c_str());
+    }
+  }
+
+  auto labels_x = MakeTextBox(0.19, 0.02, 0.45, 0.18, 0.055, 12);
+  labels_x.AddText(TString::Format("3D tracks +%.0f cm", track3d_offset));
+  labels_x.AddText("2D candidates +0 cm");
+  labels_x.AddText(TString::Format("All slice hits %.0f cm", raw_offset));
+
+  TLegend leg(0.01, 0.00, 0.38, 0.15);
+  leg.SetFillStyle(0);
+  AddMarkerToLegend(leg, 20, 0.8, kGray + 1, "All slice reco hits");
+  AddMarkerToLegend(leg, 21, 0.8, colors_2d[0], "U 2D candidate hits");
+  AddMarkerToLegend(leg, 25, 0.8, colors_2d[1], "V 2D candidate hits");
+  AddMarkerToLegend(leg, 21, 0.8, colors_2d[2], "X 2D candidate hits");
+  auto track_entry = leg.AddEntry("", "3D track hits / Kalman", "lp");
+  track_entry->SetLineColor(kRed);
+  track_entry->SetMarkerColor(kRed);
+  track_entry->SetMarkerStyle(20);
+
+  canvas->cd(1);
+  hist_x.Draw("Axis");
+  for (auto &line : lines_x)
+    line.Draw();
+  for (auto &marker : markers_x)
+    marker.Draw();
+  textBox.Draw("same");
+  labels_x.Draw("same");
+
+  canvas->cd(2);
+  hist_y.Draw("Axis");
+  for (auto &line : lines_y)
+    line.Draw();
+  for (auto &marker : markers_y)
+    marker.Draw();
+  leg.Draw();
+
+  canvas->Print((directoryPath + outfilename + ".png").c_str());
+}
+
 void DrawSlice(std::string outfilename, std::string reason, std::string message,
                Reco_Tree &reco, Line_Candidates &lc, Truth_Info &truth,
                DrawSliceN::max_prints max_n_prints = DrawSliceN::all) {
