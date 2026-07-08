@@ -796,7 +796,7 @@ void TMS_TrackFinder::FindPseudoXTrack() {
         TMS_Hit UncheckedXHit = *helper;
         double distance_limit = 0;
         if (UncheckedXHit.GetZ() < TMS_Const::TMS_Thick_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Thin_gap;}
-        else if (UncheckedXHit.GetZ() >= TMS_Const::TMS_Thick_Start || UncheckedXHit.GetZ() < TMS_Const::TMS_Double_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Thick_gap;}
+        else if (UncheckedXHit.GetZ() >= TMS_Const::TMS_Thick_Start && UncheckedXHit.GetZ() < TMS_Const::TMS_Double_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Thick_gap;}
         else if (UncheckedXHit.GetZ() >= TMS_Const::TMS_Double_Start) {distance_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit() * TMS_Const::TMS_Double_gap;}
         
         if ((UncheckedXHit.GetZ() >= (Ufirst_z[u] - distance_limit) && UncheckedXHit.GetZ() >= (Vfirst_z[v] - distance_limit))
