@@ -1225,6 +1225,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
                     "single_muon/tms_end",
                     TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
                     lc, truth, DrawSliceN::tons);
+        if (truth.RecoTrackPrimaryParticleTMSFiducialEnd[0])
+          DrawSliceReco3DStages(TString::Format("entry_%lld", entry_number).Data(),
+                    "single_muon/tms_end",
+                    TString::Format("n tracks = %d", reco.nTracks).Data(), reco,
+                    lc, truth, DrawSliceN::tons);
 
         double muon_starting_angle =
             std::atan2(
