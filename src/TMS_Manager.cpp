@@ -59,6 +59,7 @@ TMS_Manager::TMS_Manager() {
   _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
   _RECO_EXTRAPOLATION_NumBarsEnd = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsEnd");
   _RECO_EXTRAPOLATION_NumBarsStart = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsStart");
+  _RECO_EXTRAPOLATION_XBarDistanceMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "XBarDistanceMultiplier");
 
   _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
   _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");
@@ -71,6 +72,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
+  _RECO_ASTAR_MergePlaneGap = toml::find<int>(data, "Recon", "AStar", "MergePlaneGap");
+  _RECO_ASTAR_MergeBarGap = toml::find<int>(data, "Recon", "AStar", "MergeBarGap");
 
   _RECO_STOPPING_nLastHits = toml::find<int>(data, "Recon", "Stopping", "nLastHits");
   _RECO_STOPPING_EnergyCut = toml::find<double>(data, "Recon", "Stopping", "EnergyCut");

@@ -56,7 +56,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
     // We've found the plane number
     if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
-      PlaneNumber = geom->GetCurrentNode()->GetNumber();
+      PlaneNumber = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
       if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
       else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
@@ -184,7 +184,7 @@ int TMS_Bar::FindBar(double x, double y, double z) {
     return -1;
   }
 
-  int Number = nav->GetCurrentNode()->GetNumber();
+  int Number = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
 
   return Number;
 }
@@ -241,8 +241,9 @@ bool TMS_Bar::CheckBar() {
     return false;
   }
 
-  if (PlaneNumber >= TMS_Const::nPlanes || PlaneNumber < 0) {
-    std::cerr << "Plane number does not agree with expectation of between 0 to " << TMS_Const::nPlanes << std::endl;
+  int expected_nplanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
+  if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
+    std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
     throw;
     return false;

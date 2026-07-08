@@ -19,11 +19,11 @@
     # The minimum points for the DBSCAN clustering algorithm
     MinPoints = 2
     # How far away can a bar/plane combination be to include in a cluster
-    Epsilon = 2.5
+    Epsilon = 4.5
     # Amount of neighbouring hits a hit needs to have for pre-clustering (DBSCAN)
     PreDBNeighbours = 9
     # Maximal distance to hits to count as neighbours for pre-clustering (DBSCAN)
-    PreDBDistance = 2.5
+    PreDBDistance = 4.5
 
   [Recon.Hough]
     # The highest number of Hough transforms we can run after each other
@@ -44,7 +44,7 @@
     HitMult = 0.2
     # Minimum distance for a Hough track (prevents overfinding) -- in bars and plane
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
-    MinDist = 4.0
+    MinDist = 8.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
     FirstCluster = false  #true
     # Do we merge adjacent tracks afterwards?
@@ -57,17 +57,19 @@
     # Whether extrapolation should be performed or not
     Extrapolation = true
     # Maximal distance from start/end hit to first added hit by extrapolation
-    ExtrapolateDist = 4
+    ExtrapolateDist = 8
     # Maximal distance from first added hit (by extrapolation) to last added hit
-    ExtrapolateLimit = 20
+    ExtrapolateLimit = 40
     # Distance in number of bars a hit can be away from the direction line at the end
     NumBarsEnd = 4
     # Distance in number of bars a hit can be away from the direction line at the start
     NumBarsStart = 2
+    # Extra allowance for X-bar candidate distances during extrapolation
+    XBarDistanceMultiplier = 2.0
 
   [Recon.TrackMatch3D]
     # How many plane layers can the ends/starts of the two simple tracks be away from each other?
-    PlaneLimit = 2
+    PlaneLimit = 4
     # How many bars can the ends/starts of the two simple tracks be away from each other?
     BarLimit = 12
     # How many ns can the ends/starts of the two simple tracks be away from each other?
@@ -81,7 +83,7 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 14
+    DirectionDistance = 28
 
   [Recon.TrackSmoothing]
     UseTrackSmoothing = true
@@ -105,6 +107,10 @@
     #CostMetric = "DetectorZ"
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
+    # Maximum plane gap allowed in local hit-merging logic
+    MergePlaneGap = 4
+    # Maximum bar gap allowed in local hit-merging logic
+    MergeBarGap = 2
 
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
