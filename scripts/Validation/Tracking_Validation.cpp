@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <math.h> /* atan2 */
 #include <stdexcept>
 #include <tuple>
@@ -473,6 +474,20 @@ bool NDPhysicsSlice(Truth_Info &truth, Reco_Tree &reco) {
   }
   return out;
 }
+
+struct ValidationContext {
+  Truth_Info &truth;
+  Truth_Spill &truth_spill;
+  Reco_Tree &reco;
+  Line_Candidates &lc;
+  bool on_new_spill;
+  int current_tree;
+  int current_spill;
+  Long64_t entry_number;
+  std::map<std::string, int> &particle_fingerprints_reconstructed;
+};
+
+#include "Reco_Eff.cxx"
 
 Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
                      Reco_Tree &reco, Line_Candidates &lc,
@@ -1254,7 +1269,11 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
 #include "EnergyResolution.cxx"
 #include "EventRates.cxx"
 #include "HitInformation.cxx"
-#include "Reco_Eff.cxx"
+    ValidationContext reco_eff_context{
+        truth,         truth_spill,        reco,
+        lc,            on_new_spill,       current_tree,
+        current_spill, entry_number,       particle_fingerprints_reconstructed};
+    FillRecoEff(reco_eff_context);
 #include "TimeSlicing.cxx"
 #include "Track_Resolution.cxx"
 #include "TruthVtx.cxx"

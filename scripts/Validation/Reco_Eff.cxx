@@ -1,5 +1,14 @@
-// Add scope to avoid cross talk with other scripts
-{
+void FillRecoEff(ValidationContext &ctx) {
+  auto &truth = ctx.truth;
+  auto &truth_spill = ctx.truth_spill;
+  auto &reco = ctx.reco;
+  auto &lc = ctx.lc;
+  const bool on_new_spill = ctx.on_new_spill;
+  const int current_tree = ctx.current_tree;
+  const int current_spill = ctx.current_spill;
+  const Long64_t entry_number = ctx.entry_number;
+  auto &particle_fingerprints_reconstructed =
+      ctx.particle_fingerprints_reconstructed;
   REGISTER_AXIS(ke_tms, std::make_tuple("True Muon KE (GeV)", 28, 0.0, 7.0));
   REGISTER_AXIS(
       pion_ke_tms_enter,
