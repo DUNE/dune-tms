@@ -1,9 +1,13 @@
 #ifndef _TMS_GEOM_H_SEEN_
 #define _TMS_GEOM_H_SEEN_
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "TGeoManager.h"
 
@@ -82,7 +86,11 @@ class TMS_Geom {
     std::string GetGeometryGitTag() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitTag(); };
     std::string GetGeometryGitBranch() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitBranch(); };
     std::string GetGeometryGitCommit() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitCommit(); };
-    int GetNumberOfScintillatorPlanes() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfScintillatorPlanes(); };
+    int GetNumberOfScintillatorPlanes() {
+      EnsurePlaneLookup();
+      if (PlaneCount > 0) return PlaneCount;
+      return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfScintillatorPlanes();
+    };
     int GetNumberOfSteelPlatesThin() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThin(); };
     int GetNumberOfSteelPlatesThick() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThick(); };
     int GetNumberOfSteelPlatesDouble() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesDouble(); };
@@ -171,6 +179,10 @@ class TMS_Geom {
     void SetGeometry(TGeoManager *geometry) {
       geom = geometry;
       geom->LockGeometry();
+      PlaneLookupBuilt = false;
+      PlaneIndexByNodeName.clear();
+      PlaneIndexByPath.clear();
+      PlaneCount = 0;
       
       // There's an overall scale factor depending on if the gmdl was loaded with cm or mm. 
       // So here we're trying to automatically figure out the scale factor
@@ -191,6 +203,21 @@ class TMS_Geom {
       std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
       std::cout << "Geometry scale factor: " << ScaleFactor;
       std::cout << ". Factor is 1 if 1 unit = 1mm (aka edep sim), 10 if 1 unit = 1cm (aka larsoft)." << std::endl;
+    }
+
+    int GetPlaneNumberForCurrentNode() {
+      EnsurePlaneLookup();
+      if (geom == NULL || geom->GetCurrentNode() == NULL) return -1;
+
+      std::string NodePath = std::string(geom->GetPath());
+      auto it_path = PlaneIndexByPath.find(NodePath);
+      if (it_path != PlaneIndexByPath.end()) return it_path->second;
+
+      std::string NodeName = std::string(geom->GetCurrentNode()->GetName());
+      auto it = PlaneIndexByNodeName.find(NodeName);
+      if (it != PlaneIndexByNodeName.end()) return it->second;
+
+      return geom->GetCurrentNode()->GetNumber();
     }
 
     void SetFileName(std::string filename) {
@@ -607,7 +634,7 @@ class TMS_Geom {
             NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
           // We've found the plane number
           if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
-            Plane[0] = geom->GetCurrentNode()->GetNumber();
+            Plane[0] = GetPlaneNumberForCurrentNode();
           } else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
             Plane[1] = geom->GetCurrentNode()->GetNumber();
           } else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
@@ -647,11 +674,75 @@ class TMS_Geom {
 
 
       private:
+    struct PlaneLookupRecord {
+      std::string NodePath;
+      std::string NodeName;
+      double ZCenter;
+    };
+
+    void BuildPlaneLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path, std::vector<PlaneLookupRecord> &records) {
+      if (node == NULL) return;
+
+      TGeoHMatrix current(parent);
+      if (node->GetMatrix() != NULL) current.Multiply(node->GetMatrix());
+
+      std::string NodeName = std::string(node->GetName());
+      std::string NodePath = parent_path + "/" + NodeName;
+      if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+        const Double_t local[3] = {0, 0, 0};
+        Double_t master[3] = {0, 0, 0};
+        current.LocalToMaster(local, master);
+        records.push_back({NodePath, NodeName, Scale(master[2])});
+      }
+
+      TObjArray *children = node->GetVolume() ? node->GetVolume()->GetNodes() : NULL;
+      if (children == NULL) return;
+      for (int i = 0; i < children->GetEntries(); ++i) {
+        BuildPlaneLookupRecursive((TGeoNode*)children->At(i), current, NodePath, records);
+      }
+    }
+
+    void EnsurePlaneLookup() {
+      if (PlaneLookupBuilt) return;
+      PlaneLookupBuilt = true;
+      PlaneIndexByNodeName.clear();
+      PlaneIndexByPath.clear();
+      PlaneCount = 0;
+
+      if (geom == NULL || geom->GetTopNode() == NULL) return;
+
+      std::vector<PlaneLookupRecord> records;
+      TGeoHMatrix identity;
+      BuildPlaneLookupRecursive(geom->GetTopNode(), identity, "", records);
+      if (records.empty()) return;
+
+      std::sort(records.begin(), records.end(), [](const PlaneLookupRecord &a, const PlaneLookupRecord &b) {
+        if (std::fabs(a.ZCenter - b.ZCenter) > 1e-3) return a.ZCenter < b.ZCenter;
+        return a.NodeName < b.NodeName;
+      });
+
+      int plane_index = -1;
+      double prev_z = 0.0;
+      bool have_prev_z = false;
+      for (auto const &record: records) {
+        if (!have_prev_z || std::fabs(record.ZCenter - prev_z) > 1e-3) {
+          plane_index += 1;
+          prev_z = record.ZCenter;
+          have_prev_z = true;
+        }
+        PlaneIndexByPath[record.NodePath] = plane_index;
+        PlaneIndexByNodeName[record.NodeName] = plane_index;
+      }
+      PlaneCount = plane_index + 1;
+    }
+
     // The empty constructor
     TMS_Geom() {
       FileName = TMS_Manager::GetInstance().GetFileName();
       geom = NULL;
       ScaleFactor = 1;
+      PlaneLookupBuilt = false;
+      PlaneCount = 0;
     };
 
     ~TMS_Geom() {};
@@ -663,6 +754,10 @@ class TMS_Geom {
     TGeoManager *geom;
     std::string FileName;
     double ScaleFactor;
+    bool PlaneLookupBuilt;
+    std::map<std::string, int> PlaneIndexByPath;
+    std::map<std::string, int> PlaneIndexByNodeName;
+    int PlaneCount;
     };
 
 #endif
