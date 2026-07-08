@@ -3402,8 +3402,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit());
         if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
-          MaxDistance = (candidate.HeuristicCost <= 2 * (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
-              TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
+          MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() *
+              (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
+               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
         }
         if (MaxDistance) {
           // Move hit now into candidate hits
@@ -4176,7 +4177,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       // This loop could probably be improved to just be included in the while?
       // Or do we even need a loop, doesn't look like it...
       PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
-      if (PlaneNumber - PlaneNumber_prev > 2) {
+      if (PlaneNumber - PlaneNumber_prev > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergePlaneGap()) {
         MoveOn = true;
         break;
       }
@@ -4212,13 +4213,13 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         continue;
       }
 
-      if (abs(BarNumber_cand - BarNumber) > 2) {
+      if (abs(BarNumber_cand - BarNumber) > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergeBarGap()) {
         ++it;
         continue;
       }
 
       // Since the candidates plane numbers are ordered in z, once we encounter a higher z, all the remaining ones also won't be mergeable, so save some time by not scanning them
-      if (PlaneNumber_cand - PlaneNumber > 2) break;
+      if (PlaneNumber_cand - PlaneNumber > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergePlaneGap()) break;
 
       // At this point we should have a Hough hit and an adjacent non-Hough hit
 
@@ -4320,7 +4321,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           break;
         }
         PlaneNumber_prev = vec[NeighbourIndex].GetPlaneNumber();
-        if (PlaneNumber_prev - PlaneNumber > 2) {
+        if (PlaneNumber_prev - PlaneNumber > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergePlaneGap()) {
           MoveOn = true;
           break;
         }
@@ -4351,7 +4352,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
           continue;
         }
 
-        if (abs(BarNumber_cand - BarNumber) > 2) {
+        if (abs(BarNumber_cand - BarNumber) > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergeBarGap()) {
           ++it;
           continue;
         }
@@ -4365,7 +4366,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         //}
 
         // Since the candidates plane numbers are ordered in z, once we encounter a lower z, all the remaining ones also won't be mergeable, so save some time by not scanning them
-        if (PlaneNumber - PlaneNumber_cand > 2) break;
+        if (PlaneNumber - PlaneNumber_cand > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergePlaneGap()) break;
 
         // Allow for broken track in z?
         //double xcand = hits.GetZ();
@@ -4495,4 +4496,3 @@ void TMS_TrackFinder::Accumulate(double xhit, double zhit) {
     if (i >= 0 && c_bin >= 0 && i < nSlope && c_bin < nIntercept) Accumulator[i][c_bin]++;
   }
 }
-

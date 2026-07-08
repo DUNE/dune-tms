@@ -45,6 +45,7 @@ class TMS_Manager {
     int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
     int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
     int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
+    double Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() { return _RECO_EXTRAPOLATION_XBarDistanceMultiplier; };
 
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
     int Get_Reco_TRACKMATCH_BarLimit() { return _RECO_TRACKMATCH_BarLimit; };
@@ -57,6 +58,8 @@ class TMS_Manager {
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
+    int Get_Reco_ASTAR_MergePlaneGap() { return _RECO_ASTAR_MergePlaneGap; };
+    int Get_Reco_ASTAR_MergeBarGap() { return _RECO_ASTAR_MergeBarGap; };
 
     int Get_Reco_STOPPING_nLastHits() { return _RECO_STOPPING_nLastHits; };
     double Get_Reco_STOPPING_EnergyCut() { return _RECO_STOPPING_EnergyCut; };
@@ -160,6 +163,7 @@ class TMS_Manager {
     int _RECO_EXTRAPOLATION_ExtrapolateLimit;
     int _RECO_EXTRAPOLATION_NumBarsEnd;
     int _RECO_EXTRAPOLATION_NumBarsStart;
+    double _RECO_EXTRAPOLATION_XBarDistanceMultiplier;
 
     int _RECO_TRACKMATCH_PlaneLimit;
     int _RECO_TRACKMATCH_BarLimit;
@@ -179,6 +183,8 @@ class TMS_Manager {
 
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;
+    int _RECO_ASTAR_MergePlaneGap;
+    int _RECO_ASTAR_MergeBarGap;
 
     bool _RECO_STOPPING_nLastHits;
     double _RECO_STOPPING_EnergyCut;
