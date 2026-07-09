@@ -73,6 +73,12 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
   
   bool RunTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
   bool RunSimpleTimeSlicer = TMS_Manager::GetInstance().Get_Reco_TIME_RunSimpleTimeSlicer();
+  const double SPILL_LENGTH = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMaxTime();
+  if (!RunTimeSlicer) {
+    event.SetNSlices(nslices);
+    event.AddTimeSliceInformation({std::make_pair(0.0, SPILL_LENGTH)});
+    return nslices;
+  }
   if (RunTimeSlicer && RunSimpleTimeSlicer) nslices = SimpleTimeSlicer(event);
   if (RunTimeSlicer && !RunSimpleTimeSlicer) {
     // Here are all the constants
@@ -80,7 +86,6 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     double threshold2 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdEnd();
     int sliding_window_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerEnergyWindowInUnits();
     int minimum_slice_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
-    const double SPILL_LENGTH = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMaxTime();
     const double DT = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerSliceUnit();
     const int NUMBER_OF_SLICES = std::ceil(SPILL_LENGTH / DT);
     
