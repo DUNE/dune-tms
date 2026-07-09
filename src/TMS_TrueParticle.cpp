@@ -198,6 +198,8 @@ TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInsi
 
 TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInside) {
   TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
+  if (isInside(GetDeathPosition().Vect())) return GetDeathPosition();
+
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -234,6 +236,11 @@ TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInsi
 
 TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
   TVector3 out(-99999999, -99999999, -99999999);
+  if (isInside(GetDeathPosition().Vect())) {
+    auto momentum = GetDeathMomentum();
+    return TLorentzVector(momentum.Px(), momentum.Py(), momentum.Pz(), GetDeathEnergy());
+  }
+
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
