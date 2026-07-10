@@ -181,15 +181,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
-    // Check if this is not pileup
-    if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
-      // Fill the info of the one and only true vertex in the spill
-      auto primary_vertex = event->Primaries[0];
-      int interaction_number = primary_vertex.GetInteractionNumber();
-      gRoo->GetEntry(interaction_number);
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-    }
-
     TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
     truth_info_entry_number += nslices;
     
