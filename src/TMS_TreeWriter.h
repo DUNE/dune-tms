@@ -364,6 +364,7 @@ class TMS_TreeWriter {
     Long64_t VertexGlobalID[__TMS_MAX_TRUE_PARTICLES__];
     int Parent[__TMS_MAX_TRUE_PARTICLES__];
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
+    int G4TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
     bool IsPrimary[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
@@ -424,10 +425,12 @@ class TMS_TreeWriter {
     float RecoTrackTrueVisibleEnergy[__TMS_MAX_LINES__];
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackPrimaryParticleIndex[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleG4TrackId[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__];
     int RecoTrackPrimaryParticleTrueNHits[__TMS_MAX_LINES__];
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackSecondaryParticleIndex[__TMS_MAX_LINES__];
+    int RecoTrackSecondaryParticleG4TrackId[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__]; 
     int RecoTrackSecondaryParticleTrueNHits[__TMS_MAX_LINES__]; 
     

@@ -363,6 +363,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("VertexGlobalID", VertexGlobalID, "VertexGlobalID[nTrueParticles]/L");
   Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
+  Truth_Spill->Branch("G4TrackId", G4TrackId, "G4TrackId[nTrueParticles]/I");
   Truth_Spill->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
   Truth_Spill->Branch("IsPrimary", IsPrimary, "IsPrimary[nTrueParticles]/O");
   Truth_Spill->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
@@ -472,11 +473,15 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackTrueVisibleEnergy", RecoTrackTrueVisibleEnergy,
                      "RecoTrackTrueVisibleEnergy[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleIndex", RecoTrackPrimaryParticleIndex, "RecoTrackPrimaryParticleIndex[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleG4TrackId", RecoTrackPrimaryParticleG4TrackId,
+                     "RecoTrackPrimaryParticleG4TrackId[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueVisibleEnergy", RecoTrackPrimaryParticleTrueVisibleEnergy,
                      "RecoTrackPrimaryParticleTrueVisibleEnergy[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueNHits", RecoTrackPrimaryParticleTrueNHits,
                      "RecoTrackPrimaryParticleTrueNHits[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleIndex", RecoTrackSecondaryParticleIndex, "RecoTrackSecondaryParticleIndex[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackSecondaryParticleG4TrackId", RecoTrackSecondaryParticleG4TrackId,
+                     "RecoTrackSecondaryParticleG4TrackId[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleTrueVisibleEnergy", RecoTrackSecondaryParticleTrueVisibleEnergy,
                      "RecoTrackSecondaryParticleTrueVisibleEnergy[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackSecondaryParticleTrueNHits", RecoTrackSecondaryParticleTrueNHits,
@@ -1643,10 +1648,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double true_secondary_visible_energy = -999;
     int true_primary_particle_index = -999;
     int true_secondary_particle_index = -999;
+    int true_primary_g4_track_id = -999;
+    int true_secondary_g4_track_id = -999;
     auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
+      true_primary_g4_track_id = particle_info.trackids[0];
       true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
@@ -1753,6 +1761,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
+      true_secondary_g4_track_id = particle_info.trackids[1];
       true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
@@ -1771,8 +1780,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     RecoTrackTrueVisibleEnergy[itTrack] = total_true_visible_energy;
     RecoTrackPrimaryParticleIndex[itTrack] = true_primary_particle_index;
+    RecoTrackPrimaryParticleG4TrackId[itTrack] = true_primary_g4_track_id;
     RecoTrackPrimaryParticleTrueVisibleEnergy[itTrack] = true_primary_visible_energy;
     RecoTrackSecondaryParticleIndex[itTrack] = true_secondary_particle_index;
+    RecoTrackSecondaryParticleG4TrackId[itTrack] = true_secondary_g4_track_id;
     RecoTrackSecondaryParticleTrueVisibleEnergy[itTrack] = true_secondary_visible_energy;
     
     
@@ -1948,6 +1959,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     VertexGlobalID[index] = makeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
+    G4TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
     IsPrimary[index] = (*it).IsPrimary();
     if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
@@ -2311,9 +2323,11 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleG4TrackId[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticleG4TrackId[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
 
@@ -2378,6 +2392,7 @@ void TMS_TreeWriter::Clear() {
     VertexGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
     Parent[i] = DEFAULT_CLEARING_FLOAT;
     TrackId[i] = DEFAULT_CLEARING_FLOAT;
+    G4TrackId[i] = DEFAULT_CLEARING_FLOAT;
     PDG[i] = DEFAULT_CLEARING_FLOAT;
     IsPrimary[i] = false;
     TrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
