@@ -21,10 +21,7 @@ TMS_Track::TMS_Track()
       Chi2(kInvalidTrackValue),
       Chi2_minus(kInvalidTrackValue),
       Chi2_plus(kInvalidTrackValue),
-      nHits(0),
-      nKalmanNodes(0),
-      nKalmanNodes_minus(0),
-      nKalmanNodes_plus(0) {
+      nHits(0) {
   for (int i = 0; i < 4; ++i) {
     Start[i] = kInvalidTrackValue;
     End[i] = kInvalidTrackValue;
@@ -298,4 +295,3 @@ void TMS_Track::ApplyTrackSmoothing() {
   std::cout<<",\ttrack smoothness final: "<<final_track_smoothness;
   std::cout<<",\tn hits: "<<Hits.size()<<std::endl;*/
 }
-

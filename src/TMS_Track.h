@@ -26,9 +26,6 @@ TMS_Track(const TMS_Track& other) {
     Chi2_minus      = other.Chi2_minus;
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
-    nKalmanNodes    = other.nKalmanNodes;
-    nKalmanNodes_minus = other.nKalmanNodes_minus;
-    nKalmanNodes_plus = other.nKalmanNodes_plus;
     Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
     // Copy arrays element by element
@@ -67,9 +64,6 @@ TMS_Track(const TMS_Track& other) {
         Chi2_minus      = other.Chi2_minus;
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
-        nKalmanNodes    = other.nKalmanNodes;
-        nKalmanNodes_minus = other.nKalmanNodes_minus;
-        nKalmanNodes_plus = other.nKalmanNodes_plus;
         Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
@@ -146,9 +140,6 @@ TMS_Track(const TMS_Track& other) {
     std::vector<TMS_Hit> Hits;
 
     // Kalman filter track info
-    int nKalmanNodes;
-    int nKalmanNodes_minus;
-    int nKalmanNodes_plus;
     std::vector<TMS_KalmanNode> KalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;
     std::vector<TMS_KalmanNode> KalmanNodes_plus;

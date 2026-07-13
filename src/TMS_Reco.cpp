@@ -713,7 +713,10 @@ for (auto Lines: HoughCandidatesY) {
       //for chi2 tracking
       trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
       trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
-      trk.Length = CalculateTrackLengthKalman(trk);
+      const double kalman_length = CalculateTrackLengthKalman(trk);
+      if (std::isfinite(kalman_length) && kalman_length > 0.0) {
+        trk.Length = kalman_length;
+      }
     }
   } 
   return;
@@ -721,7 +724,7 @@ for (auto Lines: HoughCandidatesY) {
 
 double TMS_TrackFinder::CalculateTrackLengthKalman(const TMS_Track &Track3D) {
   // Look at the reconstructed tracks
-  if (Track3D.nKalmanNodes == 0) return -999999999.;
+  if (Track3D.KalmanNodes.size() < 2) return -999999999.;
 
   double final_total = 0;
   int max_n_nodes_used = 0;
