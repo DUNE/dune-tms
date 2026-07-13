@@ -17,6 +17,8 @@
 using IsInsideFunctionType = std::function<bool(TVector3)>;
 //using IsInsideFunctionType = bool (TMS_Geom::*InInsideFunction)(Vector3);
 
+constexpr double TMS_INVALID_TRUTH_VALUE = -99999999;
+
 class TMS_TrueParticle {
   public:
 
@@ -164,6 +166,11 @@ class TMS_TrueParticle {
     bool EntersVolume(IsInsideFunctionType isInside);
     
     double GetEnergyFromMomentum(TVector3 momentum) {
+      if (momentum.X() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Y() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Z() == TMS_INVALID_TRUTH_VALUE) {
+        return TMS_INVALID_TRUTH_VALUE;
+      }
       double mass = TMS_KinConst::GetMass(PDG);
       return sqrt(momentum.Mag2()+mass*mass);
     }
@@ -191,11 +198,15 @@ class TMS_TrueParticle {
     std::vector<int> Process;
     std::vector<int> Subprocess;
 
-    TVector3 BirthMomentum;
-    TLorentzVector BirthPosition;
+    TVector3 BirthMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector BirthPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 
-    TVector3 DeathMomentum;
-    TLorentzVector DeathPosition;
+    TVector3 DeathMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector DeathPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 };
 
 #endif

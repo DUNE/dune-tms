@@ -43,7 +43,8 @@ TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   // the two closest points so that you get the exact x,y, and t position where the z was hit
   
   bool found_out = false;
-  TVector3 out(-99999999, -99999999, -99999999);
+  TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+               TMS_INVALID_TRUTH_VALUE);
   
   // Need at least one position point to check
   if (GetPositionPoints().size() > 0) {
@@ -97,7 +98,7 @@ TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   }
   else { std::cout<<"Found GetPositionPoints().size()==0 case"<<std::endl; }
   
-  double energy = -99999999; 
+  double energy = TMS_INVALID_TRUTH_VALUE;
   if (found_out) energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
@@ -130,7 +131,8 @@ TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   // If within the range of the particle, it does it lerp (linear interpolation) between 
   // the two closest points so that you get the exact x,y, and t position where the z was hit
   
-  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
+  TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                     TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   
   // Need at least one position point to check
   if (GetPositionPoints().size() > 0) {
@@ -185,7 +187,8 @@ TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInside) {
-  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
+  TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                     TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
     if (isInside(GetPositionPoints()[i].Vect())) {
@@ -197,7 +200,8 @@ TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInsi
 }
 
 TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInside) {
-  TLorentzVector out(-99999999, -99999999, -99999999, -99999999);
+  TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                     TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   bool areInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -220,8 +224,8 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
 }
 
 TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
-  constexpr double INVALID_MOMENTUM = -99999999;
-  TVector3 out(INVALID_MOMENTUM, INVALID_MOMENTUM, INVALID_MOMENTUM);
+  TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+               TMS_INVALID_TRUTH_VALUE);
   bool foundInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
@@ -232,16 +236,16 @@ TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInsi
     }
   } 
   if (!foundInside) {
-    return TLorentzVector(INVALID_MOMENTUM, INVALID_MOMENTUM,
-                          INVALID_MOMENTUM, INVALID_MOMENTUM);
+    return TLorentzVector(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                          TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   }
   double energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
 TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
-  constexpr double INVALID_MOMENTUM = -99999999;
-  TVector3 out(INVALID_MOMENTUM, INVALID_MOMENTUM, INVALID_MOMENTUM);
+  TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+               TMS_INVALID_TRUTH_VALUE);
   bool areInside = false;
   bool foundInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -264,8 +268,8 @@ TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInsid
     if (areInside) out = GetMomentumPoints()[i];
   } 
   if (!foundInside) {
-    return TLorentzVector(INVALID_MOMENTUM, INVALID_MOMENTUM,
-                          INVALID_MOMENTUM, INVALID_MOMENTUM);
+    return TLorentzVector(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                          TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   }
   double energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
