@@ -15,6 +15,11 @@ namespace {
     return std::isfinite(value) && value > 0.0f;
   }
 
+  float EstimateKEFromRange(float length) {
+    if (!IsUsableRecoLength(length)) return kInvalidRecoFloat;
+    return 82.0f + 1.75f * length;
+  }
+
 }
 
 TMS_TreeWriter::TMS_TreeWriter() {
@@ -1510,7 +1515,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
-    RecoTrackEnergyRange[itTrack]   = RecoTrack->EnergyRange;
     const float raw_3d_length = RecoTrack->Length;
     const float fallback_2d_length =
         TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
@@ -1530,6 +1534,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackLengthSource[itTrack] = kLengthSourceXY;
     }
 
+    RecoTrackEnergyRange[itTrack]   = EstimateKEFromRange(RecoTrackLength[itTrack]);
     RecoTrackLength_3D[itTrack]     = raw_3d_length;
     RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
