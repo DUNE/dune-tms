@@ -2058,10 +2058,12 @@ void TMS_TreeWriter::Clear() {
 
   // Reset line information
   TMSStart = false;
+  TMSStartTime = DEFAULT_CLEARING_FLOAT;
   nLinesU = DEFAULT_CLEARING_FLOAT;
   nLinesV = DEFAULT_CLEARING_FLOAT;
   nLinesX = DEFAULT_CLEARING_FLOAT;
   nLinesY = DEFAULT_CLEARING_FLOAT;
+  nLines3D = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     SlopeU[i] = DEFAULT_CLEARING_FLOAT;
     SlopeV[i] = DEFAULT_CLEARING_FLOAT;
@@ -2145,15 +2147,64 @@ void TMS_TreeWriter::Clear() {
     TrackStoppingX[i] = false;
     TrackStoppingY[i] = false;
 
+    for (int j = 0; j < 2; ++j) {
+      FirstHitU[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitV[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitX[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitY[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitU[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitV[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitX[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitY[i][j] = DEFAULT_CLEARING_FLOAT;
+    }
+    FirstHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+
+    for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
+      TrackHitEnergyU[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyV[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyX[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyY[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeU[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeV[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeX[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeY[i][j] = DEFAULT_CLEARING_FLOAT;
+      for (int k = 0; k < 2; ++k) {
+        TrackHitPosU[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosV[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosX[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosY[i][j][k] = DEFAULT_CLEARING_FLOAT;
+      }
+    }
+
     for (int k = 0; k < 3; k++) {
       RecoTrackKalmanFirstPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
       RecoTrackKalmanLastPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanFirstPlaneBarViewTrue[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanLastPlaneBarViewTrue[i][k] = DEFAULT_CLEARING_FLOAT;
       for (int j = 0; j < __TMS_MAX_LINE_HITS__; j++) {
         RecoTrackKalmanPlaneBarView[i][j][k] = DEFAULT_CLEARING_FLOAT;
         RecoTrackKalmanPlaneBarViewTrue[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos_plus_chi2[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos_minus_chi2[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanTruePos[i][j][k] = DEFAULT_CLEARING_FLOAT;
       }
     }
-    //TODO There is other Kalman stuff here, but seems to not be cleared properly!!!!
   }
 /*    Occupancy3D[i] = DEFAULT_CLEARING_FLOAT;
     TrackLength3D[i] = DEFAULT_CLEARING_FLOAT;
@@ -2210,6 +2261,10 @@ void TMS_TreeWriter::Clear() {
     ClusterEnergyV[i] = DEFAULT_CLEARING_FLOAT;
     ClusterEnergyX[i] = DEFAULT_CLEARING_FLOAT;
     ClusterEnergyY[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeY[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterU[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterV[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterX[i] = DEFAULT_CLEARING_FLOAT;
@@ -2243,6 +2298,15 @@ void TMS_TreeWriter::Clear() {
       ClusterHitPosY[i][j][0] = DEFAULT_CLEARING_FLOAT;
       ClusterHitPosY[i][j][1] = DEFAULT_CLEARING_FLOAT;
       ClusterHitEnergyY[i][j] = DEFAULT_CLEARING_FLOAT;
+
+      ClusterHitTimeU[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeV[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeX[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeY[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceU[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceV[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceX[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceY[i][j] = DEFAULT_CLEARING_FLOAT;
     }
   }
 
@@ -2251,6 +2315,8 @@ void TMS_TreeWriter::Clear() {
   TimeSliceStartTime = DEFAULT_CLEARING_FLOAT;
   TimeSliceEndTime = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
+    nHitsIn3DTrack[i] = DEFAULT_CLEARING_FLOAT;
+    nKalmanNodes[i] = DEFAULT_CLEARING_FLOAT;
     for (int j = 0; j < 4; ++j) {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
@@ -2269,11 +2335,14 @@ void TMS_TreeWriter::Clear() {
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackMomentum[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman_curvature[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;
@@ -2390,4 +2459,3 @@ void TMS_TreeWriter::Clear() {
 
 
 }
-
