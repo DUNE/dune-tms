@@ -220,26 +220,36 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
 }
 
 TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
-  TVector3 out(-99999999, -99999999, -99999999);
+  constexpr double INVALID_MOMENTUM = -99999999;
+  TVector3 out(INVALID_MOMENTUM, INVALID_MOMENTUM, INVALID_MOMENTUM);
+  bool foundInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
     if (isInside(GetPositionPoints()[i].Vect())) {
       out = GetMomentumPoints()[i];
+      foundInside = true;
       break;
     }
   } 
+  if (!foundInside) {
+    return TLorentzVector(INVALID_MOMENTUM, INVALID_MOMENTUM,
+                          INVALID_MOMENTUM, INVALID_MOMENTUM);
+  }
   double energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
 TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
-  TVector3 out(-99999999, -99999999, -99999999);
+  constexpr double INVALID_MOMENTUM = -99999999;
+  TVector3 out(INVALID_MOMENTUM, INVALID_MOMENTUM, INVALID_MOMENTUM);
   bool areInside = false;
+  bool foundInside = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     // First time this is true means we are inside the volume
     // but then the first time it's false means we left the volume
     if (isInside(GetPositionPoints()[i].Vect())) {
       areInside = true;
+      foundInside = true;
     }
     else {
       // Were we inside the volume yet?
@@ -253,6 +263,10 @@ TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInsid
     // Update the momentum as long as we're inside the volume
     if (areInside) out = GetMomentumPoints()[i];
   } 
+  if (!foundInside) {
+    return TLorentzVector(INVALID_MOMENTUM, INVALID_MOMENTUM,
+                          INVALID_MOMENTUM, INVALID_MOMENTUM);
+  }
   double energy = GetEnergyFromMomentum(out);
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
