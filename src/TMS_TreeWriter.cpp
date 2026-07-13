@@ -15,14 +15,6 @@ namespace {
     return std::isfinite(value) && value > 0.0f;
   }
 
-  float AverageUsableLengths(float first, float second) {
-    const bool first_valid = IsUsableRecoLength(first);
-    const bool second_valid = IsUsableRecoLength(second);
-    if (first_valid && second_valid) return 0.5f * (first + second);
-    if (first_valid) return first;
-    if (second_valid) return second;
-    return kInvalidRecoFloat;
-  }
 }
 
 TMS_TreeWriter::TMS_TreeWriter() {
@@ -1520,23 +1512,21 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
     RecoTrackEnergyRange[itTrack]   = RecoTrack->EnergyRange;
     const float raw_3d_length = RecoTrack->Length;
-    const float uv_length = AverageUsableLengths(
-        (itTrack < nLinesU) ? TrackLengthU[itTrack] : kInvalidRecoFloat,
-        (itTrack < nLinesV) ? TrackLengthV[itTrack] : kInvalidRecoFloat);
-    const float xy_length = AverageUsableLengths(
-        (itTrack < nLinesX) ? TrackLengthX[itTrack] : kInvalidRecoFloat,
-        (itTrack < nLinesY) ? TrackLengthY[itTrack] : kInvalidRecoFloat);
+    const float fallback_2d_length =
+        TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
+    const bool has_uv_view = nLinesU > 0 || nLinesV > 0;
+    const bool has_xy_view = nLinesX > 0 || nLinesY > 0;
 
     RecoTrackLength[itTrack] = kInvalidRecoFloat;
     RecoTrackLengthSource[itTrack] = kLengthSourceNone;
     if (IsUsableRecoLength(raw_3d_length)) {
       RecoTrackLength[itTrack] = raw_3d_length;
       RecoTrackLengthSource[itTrack] = kLengthSource3D;
-    } else if (IsUsableRecoLength(uv_length)) {
-      RecoTrackLength[itTrack] = uv_length;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_uv_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
       RecoTrackLengthSource[itTrack] = kLengthSourceUV;
-    } else if (IsUsableRecoLength(xy_length)) {
-      RecoTrackLength[itTrack] = xy_length;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_xy_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
       RecoTrackLengthSource[itTrack] = kLengthSourceXY;
     }
 
