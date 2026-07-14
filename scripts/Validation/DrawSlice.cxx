@@ -164,7 +164,7 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     gStyle->SetOptStat(0);
     gROOT->SetBatch(kTRUE);
     canvas = new TCanvas("draw_slice_reco3d_stages",
-                         "draw_slice_reco3d_stages", 1200, 900);
+                         "draw_slice_reco3d_stages", 1200, 1000);
     canvas->Divide(1, 2);
     for (size_t i = 1; i <= 2; i++) {
       auto pad = canvas->cd(i);
@@ -173,16 +173,21 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     }
   }
 
-  const double raw_offset = 320;
-  const double track2d_offset = 0;
-  const double track3d_offset = -320;
+  // Keep every reconstruction product in its own row.  In particular, the
+  // Kalman trajectory is a fit to a 3D track, not another 3D-track drawing.
+  // Overlaying the two made it difficult to tell whether a problem began in
+  // 3D matching or in the fit itself.
+  const double raw_offset = 480;
+  const double track2d_offset = 160;
+  const double track3d_offset = -160;
+  const double kalman_offset = -480;
   const double zmin = BOUNDS_Z_START;
   const double zmax = BOUNDS_Z_END;
 
   TH2D hist_x("", "X vs Z Reconstruction Stages;Z (cm);X + stage offset (cm)",
-              100, zmin, zmax, 100, -760, 760);
+              100, zmin, zmax, 100, -880, 880);
   TH2D hist_y("", "Y vs Z Reconstruction Stages;Z (cm);Y + stage offset (cm)",
-              100, zmin, zmax, 100, -860, 520);
+              100, zmin, zmax, 100, -980, 580);
   ConfigureHist(hist_x);
   ConfigureHist(hist_y);
   hist_x.GetYaxis()->SetTitleOffset(1.1);
@@ -197,9 +202,11 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
   AddStageGuide(lines_x, raw_offset);
   AddStageGuide(lines_x, track2d_offset);
   AddStageGuide(lines_x, track3d_offset);
+  AddStageGuide(lines_x, kalman_offset);
   AddStageGuide(lines_y, raw_offset);
   AddStageGuide(lines_y, track2d_offset);
   AddStageGuide(lines_y, track3d_offset);
+  AddStageGuide(lines_y, kalman_offset);
 
   int color_2d = kBlue + 1;
   int color_3d = kRed;
@@ -305,14 +312,14 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     for (int ih = 0; ih < reco.nKalmanNodes[it]; ih++) {
       {
         TMarker marker(reco.KalmanPos[it][ih][2] * CM,
-                       reco.KalmanPos[it][ih][0] * CM + track3d_offset, 20);
+                       reco.KalmanPos[it][ih][0] * CM + kalman_offset, 20);
         marker.SetMarkerColor(color_kalman_pale);
         marker.SetMarkerSize(1.35);
         markers_x.push_back(marker);
       }
       {
         TMarker marker(reco.KalmanPos[it][ih][2] * CM,
-                       reco.KalmanPos[it][ih][1] * CM + track3d_offset, 20);
+                       reco.KalmanPos[it][ih][1] * CM + kalman_offset, 20);
         marker.SetMarkerColor(color_kalman_pale);
         marker.SetMarkerSize(1.35);
         markers_y.push_back(marker);
@@ -359,18 +366,18 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     for (int ih = 0; ih < reco.nKalmanNodes[it] - 1; ih++) {
       {
         TLine line(reco.KalmanPos[it][ih][2] * CM,
-                   reco.KalmanPos[it][ih][0] * CM + track3d_offset,
+                   reco.KalmanPos[it][ih][0] * CM + kalman_offset,
                    reco.KalmanPos[it][ih + 1][2] * CM,
-                   reco.KalmanPos[it][ih + 1][0] * CM + track3d_offset);
+                   reco.KalmanPos[it][ih + 1][0] * CM + kalman_offset);
         line.SetLineColor(color_kalman);
         line.SetLineWidth(2);
         lines_x.push_back(line);
       }
       {
         TLine line(reco.KalmanPos[it][ih][2] * CM,
-                   reco.KalmanPos[it][ih][1] * CM + track3d_offset,
+                   reco.KalmanPos[it][ih][1] * CM + kalman_offset,
                    reco.KalmanPos[it][ih + 1][2] * CM,
-                   reco.KalmanPos[it][ih + 1][1] * CM + track3d_offset);
+                   reco.KalmanPos[it][ih + 1][1] * CM + kalman_offset);
         line.SetLineColor(color_kalman);
         line.SetLineWidth(2);
         lines_y.push_back(line);
@@ -378,14 +385,24 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     }
   }
 
-  int n_2d_hits = 0;
+  int n_2d_hits_u = 0;
   for (int it = 0; it < lc.nLinesU; it++)
-    n_2d_hits += lc.nHitsInTrackU[it];
+    n_2d_hits_u += lc.nHitsInTrackU[it];
+  int n_2d_hits_v = 0;
   for (int it = 0; it < lc.nLinesV; it++)
-    n_2d_hits += lc.nHitsInTrackV[it];
+    n_2d_hits_v += lc.nHitsInTrackV[it];
+  int n_2d_hits_x = 0;
   for (int it = 0; it < lc.nLinesX; it++)
-    n_2d_hits += lc.nHitsInTrackX[it];
+    n_2d_hits_x += lc.nHitsInTrackX[it];
+  int n_2d_hits = n_2d_hits_u + n_2d_hits_v + n_2d_hits_x;
   int n_2d_lines = lc.nLinesU + lc.nLinesV + lc.nLinesX;
+  int n_kalman_nodes = 0;
+  int n_tracks_with_kalman = 0;
+  for (int it = 0; it < reco.nTracks; it++) {
+    n_kalman_nodes += reco.nKalmanNodes[it];
+    if (reco.nKalmanNodes[it] > 0)
+      n_tracks_with_kalman++;
+  }
 
   auto textBox = MakeTextBox(0.01, 0.28, 0.28, 0.90, 0.045, 12);
   textBox.AddText("Reco stages");
@@ -395,9 +412,17 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
   textBox.AddText(TString::Format("Slice: %d", reco.SliceNo));
   textBox.AddText(TString::Format("All hits: %d", lc.nHits));
   textBox.AddText(TString::Format("2D hits: %d", n_2d_hits));
+  textBox.AddText(TString::Format("X-Z 2D: U %d/%d, V %d/%d",
+                                  lc.nLinesU, n_2d_hits_u, lc.nLinesV,
+                                  n_2d_hits_v));
+  textBox.AddText(TString::Format("Y-Z 2D: X %d/%d", lc.nLinesX,
+                                  n_2d_hits_x));
   textBox.AddText(TString::Format("3D hits: %d", n_3d_hits));
-  textBox.AddText(TString::Format("2D lines: %d", n_2d_lines));
-  textBox.AddText(TString::Format("3D tracks: %d", reco.nTracks));
+  textBox.AddText(TString::Format("2D lines: %d; 3D line candidates: %d",
+                                  n_2d_lines, lc.nLines3D));
+  textBox.AddText(TString::Format("3D tracks: %d; Kalman: %d tracks, %d nodes",
+                                  reco.nTracks, n_tracks_with_kalman,
+                                  n_kalman_nodes));
   int n_chi2_lines = reco.nTracks;
   if (n_chi2_lines > 4)
     n_chi2_lines = 4;
@@ -415,16 +440,18 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
     }
   }
 
-  auto labels_x = MakeTextBox(0.01, 0.06, 0.28, 0.24, 0.060, 12);
+  auto labels_x = MakeTextBox(0.01, 0.06, 0.28, 0.25, 0.052, 12);
   labels_x.AddText(TString::Format("All hits +%.0f cm", raw_offset));
-  labels_x.AddText("2D reco hits +0 cm");
+  labels_x.AddText(TString::Format("2D candidates +%.0f cm", track2d_offset));
   labels_x.AddText(TString::Format("3D reco hits %.0f cm", track3d_offset));
+  labels_x.AddText(TString::Format("Kalman fit %.0f cm", kalman_offset));
 
   TLegend leg(0.01, 0.00, 0.28, 0.27);
   leg.SetFillStyle(0);
   leg.SetTextSize(0.052);
   AddMarkerToLegend(leg, 20, 1.5, kBlack, "All hits");
-  AddMarkerToLegend(leg, 21, 1.5, color_2d, "2D reco hits");
+  AddMarkerToLegend(leg, 21, 1.5, color_2d, "2D U/X candidate hits");
+  AddMarkerToLegend(leg, 25, 1.5, color_2d, "2D V candidate hits");
   AddMarkerToLegend(leg, 20, 1.5, color_3d, "3D reco hits");
   AddLineToLegend(leg, 2, color_kalman, "Kalman fit");
 
