@@ -3849,8 +3849,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       // to make calculation much faster
       // This important can't be 1 though, because that would not connect split hits
       if (!ConnectAll) {
-        if (abs((*jt).x - (*it).x) > 3 || 
-            abs((*jt).y - (*it).y) > 3) continue; // (*jt).y - (*jt).y doesn't really make sense...
+        if (abs((*jt).x - (*it).x) > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergePlaneGap() || 
+            abs((*jt).y - (*it).y) > TMS_Manager::GetInstance().Get_Reco_ASTAR_MergeBarGap()) continue; // (*jt).y - (*jt).y doesn't really make sense...
       }
       double GroundCost = (*it).CalculateGroundCost(*jt);
 
