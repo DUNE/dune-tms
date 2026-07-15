@@ -637,7 +637,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
 }
 
-static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
+static void setMomentum(float *branch, TVector3 momentum, double energy) {
     branch[0] = momentum.Px();
     branch[1] = momentum.Py();
     branch[2] = momentum.Pz();
@@ -655,8 +655,10 @@ static void setPosition(float *branch, TLorentzVector position) {
     branch[0] = position.X();
     branch[1] = position.Y();
     branch[2] = position.Z();
-    // We're saving floats, so remove giant offset or else we'll have trouble
-    branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
+    // Preserve invalid times. Otherwise remove the giant spill offset before
+    // storing the value as a float.
+    if (position.T() == TMS_INVALID_TRUTH_VALUE) branch[3] = TMS_INVALID_TRUTH_VALUE;
+    else branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -1723,7 +1725,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
             
         RecoTrackPrimaryParticlePDG[itTrack] = tp.GetPDG();
         RecoTrackPrimaryParticleIsPrimary[itTrack] = tp.IsPrimary();
-        setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackPrimaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
         setMomentum(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
         
@@ -1771,7 +1773,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         TMS_TrueParticle tp = TrueParticles[true_secondary_particle_index];
         RecoTrackSecondaryParticlePDG[itTrack] = tp.GetPDG();
         RecoTrackSecondaryParticleIsPrimary[itTrack] = tp.IsPrimary();
-        setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackSecondaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
         setMomentum(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
       }
