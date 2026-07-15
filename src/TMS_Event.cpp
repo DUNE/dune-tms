@@ -1,14 +1,11 @@
 #include "TMS_Event.h"
 #include "TMS_Readout_Manager.h"
+#include "TMS_VertexId.h"
 #include "TDatabasePDG.h"
 #include <random>
 
 // Initialise the event counter to 0
 int TMS_Event::EventCounter = 0;
-
-static long long MakeGlobalVertexID(int run_id, int vertex_id) {
-  return static_cast<long long>(run_id) * 1000000ll + static_cast<long long>(vertex_id);
-}
 
 TMS_Event::TMS_Event() {
   EventNumber = -999;
@@ -77,7 +74,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     // Had issues with lorentz vectors before so best make a copy
     vtx_info.SetVtx(TLorentzVector(vtx.GetPosition().X(), vtx.GetPosition().Y(), vtx.GetPosition().Z(), vtx.GetPosition().T()));
     
-    const long long global_vertex_id = MakeGlobalVertexID(vtx_info.run_id, vtx_info.vtx_id);
+    const long long global_vertex_id = TMS_MakeGlobalVertexID(vtx_info.run_id, vtx_info.vtx_id);
     Reactions[global_vertex_id] = Reaction;
     auto inserted = info_about_vtx.emplace(global_vertex_id, vtx_info);
     if (!inserted.second) {
@@ -260,7 +257,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   // First create a mapping so we don't loop multiple times
   std::map<int, long long> mapping_track_to_vertex_global_id;
   const int vertex_index = event.EventId;
-  const long long vertex_global_index = MakeGlobalVertexID(RunNumber, vertex_index);
+  const long long vertex_global_index = TMS_MakeGlobalVertexID(RunNumber, vertex_index);
   for (auto vertex : event.Primaries) {
     for (auto particle : vertex.Particles) {
       int track_id = particle.GetTrackId();
@@ -274,7 +271,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
 
   std::map<std::pair<long long, int>, TMS_TrueParticle*> mapping_track_to_true_particle;
   for (auto& tp : TMS_TrueParticles) {
-    auto key = std::make_pair(MakeGlobalVertexID(tp.GetRunID(), tp.GetVertexID()), tp.GetTrackId());
+    auto key = std::make_pair(TMS_MakeGlobalVertexID(tp.GetRunID(), tp.GetVertexID()), tp.GetTrackId());
     mapping_track_to_true_particle[key] = &tp;
   }
   std::map<std::tuple<int, int, int, long long>, size_t> map_pos_nontms_hits;
@@ -357,7 +354,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
     double energy = 0;
     // If it's not in the map, don't create it
-    auto key = std::make_pair(MakeGlobalVertexID(TMS_TrueParticles[i].GetRunID(), TMS_TrueParticles[i].GetVertexID()), TMS_TrueParticles[i].GetTrackId());
+    auto key = std::make_pair(TMS_MakeGlobalVertexID(TMS_TrueParticles[i].GetRunID(), TMS_TrueParticles[i].GetVertexID()), TMS_TrueParticles[i].GetTrackId());
     auto it = TrueVisibleEnergyPerParticle.find(key);
     if (it != TrueVisibleEnergyPerParticle.end()) {
       energy = it->second;
@@ -1258,7 +1255,7 @@ int TMS_Event::GetTrueParticleIndex(long long vertexglobalid, int trackid) {
   if (vertexglobalid >= 0 && trackid >= 0) {
     for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
       auto& tp = TMS_TrueParticles.at(i);
-      if (MakeGlobalVertexID(tp.GetRunID(), tp.GetVertexID()) == vertexglobalid && tp.GetTrackId() == trackid) {
+      if (TMS_MakeGlobalVertexID(tp.GetRunID(), tp.GetVertexID()) == vertexglobalid && tp.GetTrackId() == trackid) {
         out = i;
         break;
       }
@@ -1279,7 +1276,7 @@ int TMS_Event::GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid) {
   int lepton_index = -999;
   int current_index = 0;
   for (auto& particle : TMS_TruePrimaryParticles) {
-    if (MakeGlobalVertexID(particle.GetRunID(), particle.GetVertexID()) == vertexglobalid) {
+    if (TMS_MakeGlobalVertexID(particle.GetRunID(), particle.GetVertexID()) == vertexglobalid) {
       int pdg = std::abs(particle.GetPDG());
       if (pdg >= 11 && pdg <= 16) {
         lepton_index = current_index;
@@ -1371,7 +1368,7 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
     int count = 0;
     double energy = 0;
     // If it's not in the map, don't create it
-    auto key = std::make_pair(MakeGlobalVertexID(TMS_TrueParticles[i].GetRunID(), TMS_TrueParticles[i].GetVertexID()), TMS_TrueParticles[i].GetTrackId());
+    auto key = std::make_pair(TMS_MakeGlobalVertexID(TMS_TrueParticles[i].GetRunID(), TMS_TrueParticles[i].GetVertexID()), TMS_TrueParticles[i].GetTrackId());
     if (NHitsPerParticle.find(key) != NHitsPerParticle.end()) {
       count = NHitsPerParticle[key];
       energy = EnergyPerParticle[key];
@@ -1395,7 +1392,7 @@ void TMS_Event::SaveKeyVertexInfo(const TMS_TrueHit& hit) {
 
 Vtx_Info* TMS_Event::GetVertexInfo(int run_id, int vertex_id) {
   Vtx_Info* out = NULL;
-  const long long global_vertex_id = MakeGlobalVertexID(run_id, vertex_id);
+  const long long global_vertex_id = TMS_MakeGlobalVertexID(run_id, vertex_id);
   if (info_about_vtx.find(global_vertex_id) != info_about_vtx.end())
     out = &info_about_vtx.at(global_vertex_id);
   return out;

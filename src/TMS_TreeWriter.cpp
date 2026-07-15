@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include "TMS_VertexId.h"
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
 
@@ -650,10 +651,6 @@ static void setPosition(float *branch, TLorentzVector position) {
 
 static int normalizeRunNumber(int run) {
     return run >= 1000000000 ? run - 1000000000 : run;
-}
-
-static Long64_t makeGlobalVertexID(int run, int vertex) {
-    return static_cast<Long64_t>(run) * 1000000ll + static_cast<Long64_t>(vertex);
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -1735,7 +1732,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleVtxId[itTrack] = tp.GetVertexID();
         RecoTrackPrimaryParticleVtxRunNo[itTrack] = tp.GetRunID();
         RecoTrackPrimaryParticleVtxGlobalID[itTrack] =
-            makeGlobalVertexID(RecoTrackPrimaryParticleVtxRunNo[itTrack], RecoTrackPrimaryParticleVtxId[itTrack]);
+            TMS_MakeGlobalVertexID(RecoTrackPrimaryParticleVtxRunNo[itTrack], RecoTrackPrimaryParticleVtxId[itTrack]);
 
         auto* vtx_info = event.GetVertexInfo(tp.GetRunID(), tp.GetVertexID());
         if (vtx_info != NULL) {
@@ -1945,7 +1942,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   
     VertexID[index] = (*it).GetVertexID();
     ParticleRunNo[index] = (*it).GetRunID();
-    VertexGlobalID[index] = makeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
+    VertexGlobalID[index] = TMS_MakeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
@@ -2030,7 +2027,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TrueVtxPDG[true_vtx_index] = vtx.pdg;
     TrueVtxID[true_vtx_index] = vtx.vtx_id;
     TrueVtxRunNo[true_vtx_index] = vtx.run_id;
-    TrueVtxGlobalID[true_vtx_index] = makeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
+    TrueVtxGlobalID[true_vtx_index] = TMS_MakeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
     TrueVtxReaction.push_back(vtx.reaction);
     // Hadronic E
     TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
