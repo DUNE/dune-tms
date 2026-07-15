@@ -2,6 +2,26 @@
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
 
+#include <cmath>
+
+namespace {
+  constexpr float kInvalidRecoFloat = -999999999.f;
+  constexpr int kLengthSourceNone = 0;
+  constexpr int kLengthSource3D = 1;
+  constexpr int kLengthSourceUV = 2;
+  constexpr int kLengthSourceXY = 3;
+
+  bool IsUsableRecoLength(float value) {
+    return std::isfinite(value) && value > 0.0f;
+  }
+
+  float EstimateKEFromRange(float length) {
+    if (!IsUsableRecoLength(length)) return kInvalidRecoFloat;
+    return 82.0f + 1.75f * length;
+  }
+
+}
+
 TMS_TreeWriter::TMS_TreeWriter() {
 
   // Check the lines
@@ -339,6 +359,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
   Reco_Tree->Branch("Length_3D",      RecoTrackLength_3D,       "Length_3D[nTracks]/F");
+  Reco_Tree->Branch("LengthSource",   RecoTrackLengthSource,    "LengthSource[nTracks]/I");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman",  RecoTrackCharge_Kalman,   "Charge_Kalman[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman_curvature",  RecoTrackCharge_Kalman_curvature, "Charge_Kalman_curvature[nTracks]/I");
@@ -1494,15 +1515,27 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
-    RecoTrackEnergyRange[itTrack]   = RecoTrack->EnergyRange;
-    if (nLinesU<=0){
-        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
-    }
-    else {
-        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); //RecoTrack->Length;// RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+    const float raw_3d_length = RecoTrack->Length;
+    const float fallback_2d_length =
+        TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
+    const bool has_uv_view = nLinesU > 0 || nLinesV > 0;
+    const bool has_xy_view = nLinesX > 0 || nLinesY > 0;
+
+    RecoTrackLength[itTrack] = kInvalidRecoFloat;
+    RecoTrackLengthSource[itTrack] = kLengthSourceNone;
+    if (IsUsableRecoLength(raw_3d_length)) {
+      RecoTrackLength[itTrack] = raw_3d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSource3D;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_uv_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSourceUV;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_xy_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSourceXY;
     }
 
-    RecoTrackLength_3D[itTrack]     = RecoTrack->Length; 
+    RecoTrackEnergyRange[itTrack]   = EstimateKEFromRange(RecoTrackLength[itTrack]);
+    RecoTrackLength_3D[itTrack]     = raw_3d_length;
     RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
     RecoTrackCharge[itTrack]        = RecoTrack->Charge;
@@ -2271,6 +2304,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLengthSource[i] = kLengthSourceNone;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman_curvature[i] = DEFAULT_CLEARING_FLOAT;
@@ -2390,4 +2424,3 @@ void TMS_TreeWriter::Clear() {
 
 
 }
-

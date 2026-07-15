@@ -1,6 +1,36 @@
 #include "TMS_Track.h"
 
+#include <cmath>
+
 #include "TMS_Bar.h"
+
+namespace {
+  constexpr double kInvalidTrackValue = -999999999.;
+}
+
+TMS_Track::TMS_Track()
+    : Charge(-999999999),
+      Charge_Kalman(-999999999),
+      Charge_Kalman_curvature(-999999999),
+      Length(kInvalidTrackValue),
+      Occupancy(kInvalidTrackValue),
+      EnergyDeposit(kInvalidTrackValue),
+      EnergyRange(kInvalidTrackValue),
+      Momentum(kInvalidTrackValue),
+      Time(kInvalidTrackValue),
+      Chi2(kInvalidTrackValue),
+      Chi2_minus(kInvalidTrackValue),
+      Chi2_plus(kInvalidTrackValue),
+      nHits(0) {
+  for (int i = 0; i < 4; ++i) {
+    Start[i] = kInvalidTrackValue;
+    End[i] = kInvalidTrackValue;
+  }
+  for (int i = 0; i < 3; ++i) {
+    StartDirection[i] = kInvalidTrackValue;
+    EndDirection[i] = kInvalidTrackValue;
+  }
+}
 
 void TMS_Track::Print()
 {
@@ -11,6 +41,12 @@ void TMS_Track::Print()
 // Set the start direction of the track object, normalised so magnitude == 1
 void TMS_Track::SetStartDirection(double ax, double ay, double az) {
   double mag = sqrt(ax*ax + ay*ay + az*az);
+  if (!std::isfinite(mag) || mag == 0.0) {
+    StartDirection[0] = kInvalidTrackValue;
+    StartDirection[1] = kInvalidTrackValue;
+    StartDirection[2] = kInvalidTrackValue;
+    return;
+  }
  
   StartDirection[0] = ax/mag;
   StartDirection[1] = ay/mag;
@@ -20,6 +56,12 @@ void TMS_Track::SetStartDirection(double ax, double ay, double az) {
 // Set the end direction of the track object, normalised so magnitude == 1
 void TMS_Track::SetEndDirection(double ax, double ay, double az) {
   double mag = sqrt(ax*ax + ay*ay + az*az);
+  if (!std::isfinite(mag) || mag == 0.0) {
+    EndDirection[0] = kInvalidTrackValue;
+    EndDirection[1] = kInvalidTrackValue;
+    EndDirection[2] = kInvalidTrackValue;
+    return;
+  }
 
   EndDirection[0] = ax/mag;
   EndDirection[1] = ay/mag;
@@ -253,5 +295,3 @@ void TMS_Track::ApplyTrackSmoothing() {
   std::cout<<",\ttrack smoothness final: "<<final_track_smoothness;
   std::cout<<",\tn hits: "<<Hits.size()<<std::endl;*/
 }
-
-

@@ -10,10 +10,7 @@
 class TMS_Track {
 
   public:
-    TMS_Track() //std::vector<TMS_Hit>& OneTrack, std::vector<TMS_Hit>& OtherTrack)
-    {
-      // TODO: Take first and last hits and do the maffs
-    };
+    TMS_Track();
    // In TMS_Track.h, inside the class definition:
 TMS_Track(const TMS_Track& other) {
     // Copy simple types
@@ -25,15 +22,18 @@ TMS_Track(const TMS_Track& other) {
     EnergyRange     = other.EnergyRange;
     Momentum        = other.Momentum;
     Time            = other.Time;
+    Chi2            = other.Chi2;
     Chi2_minus      = other.Chi2_minus;
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
-    nKalmanNodes    = other.nKalmanNodes;
+    Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
     // Copy arrays element by element
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         Start[i]          = other.Start[i];
         End[i]            = other.End[i];
+    }
+    for (int i = 0; i < 3; ++i) {
         StartDirection[i] = other.StartDirection[i];
         EndDirection[i]   = other.EndDirection[i];
     }
@@ -60,15 +60,18 @@ TMS_Track(const TMS_Track& other) {
         EnergyRange     = other.EnergyRange;
         Momentum        = other.Momentum;
         Time            = other.Time;
+        Chi2            = other.Chi2;
         Chi2_minus      = other.Chi2_minus;
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
-        nKalmanNodes    = other.nKalmanNodes;
+        Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             Start[i]          = other.Start[i];
             End[i]            = other.End[i];
+        }
+        for (int i = 0; i < 3; i++) {
             StartDirection[i] = other.StartDirection[i];
             EndDirection[i]   = other.EndDirection[i];
         }
@@ -137,9 +140,6 @@ TMS_Track(const TMS_Track& other) {
     std::vector<TMS_Hit> Hits;
 
     // Kalman filter track info
-    int nKalmanNodes;
-    int nKalmanNodes_minus;
-    int nKalmanNodes_plus;
     std::vector<TMS_KalmanNode> KalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;
     std::vector<TMS_KalmanNode> KalmanNodes_plus;
