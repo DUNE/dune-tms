@@ -1545,7 +1545,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackCharge[itTrack]        = RecoTrack->Charge;
     RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
     RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
-    RecoTrackChi2[itTrack]          = std::min(RecoTrack->Chi2_minus, RecoTrack->Chi2_plus);
+    // Chi2 is the raw chi2 of the fit selected as canonical in TMS_Reco.
+    RecoTrackChi2[itTrack] = RecoTrack->Charge_Kalman < 0
+                                 ? RecoTrack->Chi2_minus
+                                 : RecoTrack->Chi2_plus;
     RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
     
