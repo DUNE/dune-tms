@@ -2,6 +2,7 @@
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace {
@@ -363,6 +364,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman",  RecoTrackCharge_Kalman,   "Charge_Kalman[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman_curvature",  RecoTrackCharge_Kalman_curvature, "Charge_Kalman_curvature[nTracks]/I");
+  Reco_Tree->Branch("Chi2",           RecoTrackChi2,            "Chi2[nTracks]/F");
   Reco_Tree->Branch("Chi2_minus",     RecoTrackChi2_minus,      "Chi2_minus[nTracks]/F");
   Reco_Tree->Branch("Chi2_plus",      RecoTrackChi2_plus,       "Chi2_plus[nTracks]/F");
 
@@ -1543,6 +1545,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackCharge[itTrack]        = RecoTrack->Charge;
     RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
     RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
+    RecoTrackChi2[itTrack]          = std::min(RecoTrack->Chi2_minus, RecoTrack->Chi2_plus);
     RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
     
@@ -2377,6 +2380,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman_curvature[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
   }
