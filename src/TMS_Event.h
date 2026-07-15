@@ -9,6 +9,7 @@
 #include "TMS_Hit.h"
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
+#include <map>
 #include <random>
 #include "TMS_Track.h"
 
@@ -20,6 +21,7 @@ struct Vtx_Info {
   TLorentzVector p4;
   
   int pdg { -999 };
+  int run_id { -999 };
   int vtx_id { -999 };
   std::string reaction;
   double hadronic_energy_lar_shell {};
@@ -49,6 +51,8 @@ struct Vtx_Info {
     UpdateNDPhysicsCut(); // Update dirty cut
   };
 };
+
+using VertexInfoMap = std::map<long long, Vtx_Info>;
 
 // The general event class
 class TMS_Event {
@@ -118,10 +122,11 @@ class TMS_Event {
     
     std::pair<double, double> GetEventTimeRange();
     
-    std::map<int, double>& GetTrueVisibleEnergyPerVertex() { return TrueVisibleEnergyPerVertex; };
+    std::map<long long, double>& GetTrueVisibleEnergyPerVertex() { return TrueVisibleEnergyPerVertex; };
     
     void SetTotalVisibleEnergyFromVertex(double energy) { TotalVisibleEnergyFromVertex = energy; };
     int GetVertexIdOfMostVisibleEnergy();
+    long long GetVertexGlobalIdOfMostVisibleEnergy() { return VertexGlobalIdOfMostEnergyInEvent; };
     double GetVisibleEnergyFromVertexInSlice() { return VisibleEnergyFromVertexInSlice; };
     double GetTotalVisibleEnergyFromVertex() { return TotalVisibleEnergyFromVertex; };
 
@@ -135,24 +140,25 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
     
-    int GetTrueParticleIndex(int vertexid, int trackid);
+    int GetTrueParticleIndex(long long vertexglobalid, int trackid);
     
     void ApplyReconstructionEffects();
     
-    void SetLeptonInfoUsingVertexID(int vertexid);
+    void SetLeptonInfoUsingGlobalVertexID(long long vertexglobalid);
     
     void AddTimeSliceInformation(std::vector<std::pair<double, double>> time_slice_bounds) 
          { TimeSliceBounds.insert(TimeSliceBounds.end(), time_slice_bounds.begin(), time_slice_bounds.end()); };
      std::pair<double, double> GetTimeSliceBounds(int slice = -1);
          
-     double CalculateEnergyInLArOuterShell(double thickness, int vertexid = -1);
-     double CalculateEnergyInLAr(int vertexid = -1);
-     double CalculateTotalNonTMSEnergy(int vertexid = -1);
+     double CalculateEnergyInLArOuterShell(double thickness, long long vertexglobalid = -1);
+     double CalculateEnergyInLAr(long long vertexglobalid = -1);
+     double CalculateTotalNonTMSEnergy(long long vertexglobalid = -1);
      
      void ConnectTrueHitWithTrueParticle(bool slide);
      
-     std::map<int, Vtx_Info> GetVertexInfo() { return info_about_vtx; };
-     Vtx_Info* GetVertexInfo(int vertex_id);
+     VertexInfoMap GetVertexInfo() { return info_about_vtx; };
+     Vtx_Info* GetVertexInfo(int run_id, int vertex_id);
+     Vtx_Info* GetVertexInfoByGlobalID(long long vertex_global_id);
 
   private:
     bool LightWeight; // Don't save all true trajectories; only save significant ones
@@ -171,7 +177,7 @@ class TMS_Event {
 
     int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
     
-    int GetPrimaryLeptonOfVertexID(int vertexid);
+    int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
     
     void SaveKeyVertexInfo(const TMS_TrueHit& hit);
 
@@ -191,7 +197,7 @@ class TMS_Event {
     int nVertices;
 
     std::string Reaction;
-    std::map<int, std::string> Reactions;
+    std::map<long long, std::string> Reactions;
  
     // Counts how many times constructor has been called
     static int EventCounter;
@@ -211,10 +217,11 @@ class TMS_Event {
     int TrueLeptonVertexID;
     TLorentzVector TrueLeptonPosition;
     TLorentzVector TrueLeptonMomentum;
-    std::map<int, double> TrueVisibleEnergyPerVertex;
-    std::map<int, double> TrueVisibleEnergyPerParticle;
+    std::map<long long, double> TrueVisibleEnergyPerVertex;
+    std::map<std::pair<long long, int>, double> TrueVisibleEnergyPerParticle;
     
     int VertexIdOfMostEnergyInEvent;
+    long long VertexGlobalIdOfMostEnergyInEvent;
     double VisibleEnergyFromVertexInSlice;
     double TotalVisibleEnergyFromVertex;
     double VisibleEnergyFromOtherVerticesInSlice;
@@ -224,7 +231,7 @@ class TMS_Event {
     std::vector<std::pair<float, float>> ReadChannelTimes;
     std::vector<std::pair<double, double>> TimeSliceBounds;
     
-    std::map<int, Vtx_Info> info_about_vtx;
+    VertexInfoMap info_about_vtx;
 
     std::default_random_engine generator;
     

@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include "TMS_VertexId.h"
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
 
@@ -380,6 +381,8 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
   Truth_Spill->Branch("nTrueForgottenParticles", &nTrueForgottenParticles, "nTrueForgottenParticles/I");
   Truth_Spill->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
+  Truth_Spill->Branch("ParticleRunNo", ParticleRunNo, "ParticleRunNo[nTrueParticles]/I");
+  Truth_Spill->Branch("VertexGlobalID", VertexGlobalID, "VertexGlobalID[nTrueParticles]/L");
   Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
   Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
   Truth_Spill->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
@@ -443,6 +446,8 @@ void TMS_TreeWriter::MakeBranches() {
   // Other info
   Truth_Spill->Branch("TrueVtxPDG", TrueVtxPDG, "TrueVtxPDG[TrueVtxN]/I");
   Truth_Spill->Branch("TrueVtxID", TrueVtxID, "TrueVtxID[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxRunNo", TrueVtxRunNo, "TrueVtxRunNo[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxGlobalID", TrueVtxGlobalID, "TrueVtxGlobalID[TrueVtxN]/L");
   Truth_Spill->Branch("TrueVtxReaction", &TrueVtxReaction);
   // Hadronic E
   Truth_Spill->Branch("TrueVtxHadronicELarShell", TrueVtxHadronicELarShell, "TrueVtxHadronicELarShell[TrueVtxN]/F");
@@ -470,6 +475,8 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
   
   Truth_Info->Branch("VertexIdOfMostEnergyInEvent",    &VertexIdOfMostEnergyInEvent,    "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexRunNoOfMostEnergyInEvent", &VertexRunNoOfMostEnergyInEvent, "VertexRunNoOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexGlobalIDOfMostEnergyInEvent", &VertexGlobalIDOfMostEnergyInEvent, "VertexGlobalIDOfMostEnergyInEvent/L");
   Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
   Truth_Info->Branch("TotalVisibleEnergyFromVertex",   &TotalVisibleEnergyFromVertex,   "TotalVisibleEnergyFromVertex/F");
   Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
@@ -568,6 +575,10 @@ void TMS_TreeWriter::MakeBranches() {
 
   Truth_Info->Branch("RecoTrackPrimaryParticleVtxId", RecoTrackPrimaryParticleVtxId,
                      "RecoTrackPrimaryParticleVtxId[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxRunNo", RecoTrackPrimaryParticleVtxRunNo,
+                     "RecoTrackPrimaryParticleVtxRunNo[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxGlobalID", RecoTrackPrimaryParticleVtxGlobalID,
+                     "RecoTrackPrimaryParticleVtxGlobalID[RecoTrackN]/L");
   Truth_Info->Branch("RecoTrackPrimaryParticleVtxFiducialCut", RecoTrackPrimaryParticleVtxFiducialCut,
     "RecoTrackPrimaryParticleVtxFiducialCut[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleVtxShellEnergyCut", RecoTrackPrimaryParticleVtxShellEnergyCut,
@@ -661,6 +672,10 @@ static void setPosition(float *branch, TLorentzVector position) {
     else branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
 }
 
+static int normalizeRunNumber(int run) {
+    return run >= 1000000000 ? run - 1000000000 : run;
+}
+
 void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Clear old info
   Clear();
@@ -676,7 +691,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
-  RunNo = event.GetRunNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -702,6 +717,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   LeptonX4[3] = event.GetLeptonX4().T();
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
+  VertexGlobalIDOfMostEnergyInEvent = event.GetVertexGlobalIdOfMostVisibleEnergy();
+  if (auto* vtx_info = event.GetVertexInfoByGlobalID(VertexGlobalIDOfMostEnergyInEvent)) {
+    VertexRunNoOfMostEnergyInEvent = vtx_info->run_id;
+  }
   VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
   TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
   VisibleEnergyFromOtherVerticesInSlice = event.GetVisibleEnergyFromOtherVerticesInSlice();
@@ -717,11 +736,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
   double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS(); // mm
   LArOuterShellEnergy = event.CalculateEnergyInLArOuterShell(thickness);
-  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexIdOfMostEnergyInEvent);
+  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexGlobalIDOfMostEnergyInEvent);
   LArTotalEnergy = event.CalculateEnergyInLAr();
-  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexIdOfMostEnergyInEvent);
+  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexGlobalIDOfMostEnergyInEvent);
   TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
-  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexIdOfMostEnergyInEvent);
+  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexGlobalIDOfMostEnergyInEvent);
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
@@ -1660,7 +1679,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1744,16 +1763,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
         RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
         RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
-        
-        auto* vtx_info = event.GetVertexInfo(tp.GetVertexID());
+
+        RecoTrackPrimaryParticleVtxId[itTrack] = tp.GetVertexID();
+        RecoTrackPrimaryParticleVtxRunNo[itTrack] = tp.GetRunID();
+        RecoTrackPrimaryParticleVtxGlobalID[itTrack] =
+            TMS_MakeGlobalVertexID(RecoTrackPrimaryParticleVtxRunNo[itTrack], RecoTrackPrimaryParticleVtxId[itTrack]);
+
+        auto* vtx_info = event.GetVertexInfo(tp.GetRunID(), tp.GetVertexID());
         if (vtx_info != NULL) {
-          RecoTrackPrimaryParticleVtxId[itTrack] = vtx_info->vtx_id;
           RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = vtx_info->fiducial_cut;
           RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = vtx_info->shell_energy_cut;
           RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = vtx_info->nd_physics_cut;
         }
         else {
-          RecoTrackPrimaryParticleVtxId[itTrack] = -999999999.0;
           RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = false;
           RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = false;
           RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = false;
@@ -1763,7 +1785,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1788,18 +1810,18 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     
     RecoTrackPrimaryParticleTrueNHits[itTrack] = 0;
     RecoTrackSecondaryParticleTrueNHits[itTrack] = 0;
-    if (particle_info.vertexids.size() > 0) {
+    if (particle_info.vertexglobalids.size() > 0) {
       // Loop through all the hits, check if truth info matches primary (or secondary) particle, and then add to count
       for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
         auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
         for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-          if (true_hit.GetVertexIds(i) == particle_info.vertexids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
+          if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
             RecoTrackPrimaryParticleTrueNHits[itTrack] += 1;
             // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
             break; 
           }
-          if (particle_info.vertexids.size() > 1) {
-            if (true_hit.GetVertexIds(i) == particle_info.vertexids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
+          if (particle_info.vertexglobalids.size() > 1) {
+            if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
               RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
               // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
               break; 
@@ -1877,7 +1899,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
-  RunNo = event.GetRunNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
@@ -1954,6 +1976,8 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     }
   
     VertexID[index] = (*it).GetVertexID();
+    ParticleRunNo[index] = (*it).GetRunID();
+    VertexGlobalID[index] = TMS_MakeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
@@ -2037,6 +2061,8 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     // Pdg
     TrueVtxPDG[true_vtx_index] = vtx.pdg;
     TrueVtxID[true_vtx_index] = vtx.vtx_id;
+    TrueVtxRunNo[true_vtx_index] = vtx.run_id;
+    TrueVtxGlobalID[true_vtx_index] = TMS_MakeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
     TrueVtxReaction.push_back(vtx.reaction);
     // Hadronic E
     TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
@@ -2075,7 +2101,9 @@ void TMS_TreeWriter::Clear() {
   // Reset truth information
 
   EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
-  VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
+  VertexIdOfMostEnergyInEvent = VertexRunNoOfMostEnergyInEvent = -999;
+  VertexGlobalIDOfMostEnergyInEvent = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+  VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
   LArOuterShellEnergy = LArTotalEnergy = TotalNonTMSEnergy = DEFAULT_CLEARING_FLOAT;
   LArOuterShellEnergyFromVertex = LArTotalEnergyFromVertex = TotalNonTMSEnergyFromVertex = DEFAULT_CLEARING_FLOAT;
   Reaction = "";
@@ -2413,6 +2441,8 @@ void TMS_TreeWriter::Clear() {
     RecoTrackPrimaryParticleLArFiducialEnd[i] = false;
 
     RecoTrackPrimaryParticleVtxId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
     RecoTrackPrimaryParticleVtxFiducialCut[i] = false;
     RecoTrackPrimaryParticleVtxShellEnergyCut[i] = false;
     RecoTrackPrimaryParticleVtxNDPhysicsCut[i] = false;
@@ -2446,6 +2476,8 @@ void TMS_TreeWriter::Clear() {
   nTrueParticles = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
     VertexID[i] = DEFAULT_CLEARING_FLOAT;
+    ParticleRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    VertexGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
     Parent[i] = DEFAULT_CLEARING_FLOAT;
     TrackId[i] = DEFAULT_CLEARING_FLOAT;
     PDG[i] = DEFAULT_CLEARING_FLOAT;
@@ -2493,5 +2525,10 @@ void TMS_TreeWriter::Clear() {
     }
   }
 
+  for (int i = 0; i < __TMS_MAX_TRUE_VERTICES__; ++i) {
+    TrueVtxID[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+  }
 
 }

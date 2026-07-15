@@ -133,6 +133,8 @@ class TMS_TreeWriter {
     int SpillNo;
     
     int VertexIdOfMostEnergyInEvent;
+    int VertexRunNoOfMostEnergyInEvent;
+    Long64_t VertexGlobalIDOfMostEnergyInEvent;
     float VisibleEnergyFromVertexInSlice;
     float TotalVisibleEnergyFromVertex;
     float VisibleEnergyFromOtherVerticesInSlice;
@@ -359,6 +361,8 @@ class TMS_TreeWriter {
     int nTrueForgottenParticles;
     
     int VertexID[__TMS_MAX_TRUE_PARTICLES__];
+    int ParticleRunNo[__TMS_MAX_TRUE_PARTICLES__];
+    Long64_t VertexGlobalID[__TMS_MAX_TRUE_PARTICLES__];
     int Parent[__TMS_MAX_TRUE_PARTICLES__];
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
@@ -454,6 +458,8 @@ class TMS_TreeWriter {
     bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
 
     int RecoTrackPrimaryParticleVtxId[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleVtxRunNo[__TMS_MAX_LINES__];
+    Long64_t RecoTrackPrimaryParticleVtxGlobalID[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxFiducialCut[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxShellEnergyCut[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleVtxNDPhysicsCut[__TMS_MAX_LINES__];
@@ -533,6 +539,8 @@ class TMS_TreeWriter {
     float TrueVtxE[__TMS_MAX_TRUE_VERTICES__];
     int TrueVtxPDG[__TMS_MAX_TRUE_VERTICES__];
     int TrueVtxID[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxRunNo[__TMS_MAX_TRUE_VERTICES__];
+    Long64_t TrueVtxGlobalID[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELarShell[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELAr[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicETMS[__TMS_MAX_TRUE_VERTICES__];

@@ -23,6 +23,7 @@ class TMS_TrueParticle {
   public:
 
     TMS_TrueParticle() :
+      RunID(-999),
       VertexID(-999), 
       Parent(-999), 
       TrackId(-999), 
@@ -32,6 +33,7 @@ class TMS_TrueParticle {
 
     // Copy over the edep-sim info
     TMS_TrueParticle(TG4PrimaryParticle &edep_part) :
+      RunID(-999),
       VertexID(-999),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
@@ -40,7 +42,8 @@ class TMS_TrueParticle {
       BirthMomentum(edep_part.GetMomentum().Vect()) {
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle &edep_part, TG4PrimaryVertex &vtx) : 
+    TMS_TrueParticle(TG4PrimaryParticle &edep_part, TG4PrimaryVertex &vtx, int runID) :
+      RunID(runID),
       VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
@@ -55,7 +58,8 @@ class TMS_TrueParticle {
     }
 
     // Construct directly from edep-sim
-    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal) :
+    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal, int RunIDVal) :
+      RunID(RunIDVal),
       VertexID(VertexIDVal),
       Parent(ParentVal), 
       TrackId(TrackVal), 
@@ -99,6 +103,7 @@ class TMS_TrueParticle {
     bool IsPrimary() const { return Parent < 0; };
     int GetTrackId() const { return TrackId; };
     int GetVertexID() const { return VertexID; };
+    int GetRunID() const { return RunID; };
     double GetTrueVisibleEnergy(bool slice = false) const { if (slice) { return TrueVisibleEnergySlice; } else { return TrueVisibleEnergy; } };
     void SetTrueVisibleEnergy(double energy, bool slice) { if (slice) { TrueVisibleEnergySlice = energy; } else { TrueVisibleEnergy = energy; } };
     int GetNTrueHits(bool slice) const { if (slice) { return NTrueHitsSlice; } else { return NTrueHits; } };
@@ -112,6 +117,8 @@ class TMS_TrueParticle {
     void SetVertexID(int vtx) {
       VertexID = vtx;
     }
+
+    void SetRunID(int run) { RunID = run; }
 
     void SetBirthMomentum(TVector3 &birthmom) { BirthMomentum = birthmom; };
     void SetBirthPosition(TLorentzVector &birthpos) { BirthPosition = birthpos; };
@@ -184,6 +191,7 @@ class TMS_TrueParticle {
     }
 
   private:
+    int RunID;
     int VertexID;
     int Parent;
     int TrackId;
