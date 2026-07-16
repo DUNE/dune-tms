@@ -32,13 +32,13 @@
     MinInter = -50.0E3
     MaxInter = 50.0E3
     # Slopes
-    MinSlope = -5.0
-    MaxSlope = 5.0
+    MinSlope = -1.5
+    MaxSlope = 1.5
     # Number of Hough bins, resolution should be about 1cm
     #NSlope = 10000
     #NInter = 10000
     NSlope = 1000
-    NInter = 1000
+    NInter = 2000
     # Minimum distance for Hough
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
@@ -108,9 +108,9 @@
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
     # Maximum plane gap allowed in local hit-merging logic
-    MergePlaneGap = 4
+    MergePlaneGap = 6
     # Maximum bar gap allowed in local hit-merging logic
-    MergeBarGap = 2
+    MergeBarGap = 4
 
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
