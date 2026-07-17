@@ -152,7 +152,7 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                     if not -1548-4000 < y < -1548+4000: is_inside = False
                     if not 11000 < z < 18000: is_inside = False
                     return is_inside
-                '''mx = truth.Muon_Vertex[0]
+                mx = truth.Muon_Vertex[0]
                 my = truth.Muon_Vertex[1]
                 mz = truth.Muon_Vertex[2]
                 mdx = truth.Muon_Death[0]
