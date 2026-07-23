@@ -39,7 +39,7 @@ pad5.SetRightMargin(0.05)
 pad5.SetLeftMargin(0.15)
 pad5.SetTopMargin(0.05)
 
-def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons = False):
+def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, args):
     if not os.path.exists(input_filename): raise ValueError(f"Cannot find input_filename {input_filename}")
     if readout_filename != "" and not os.path.exists(readout_filename): raise ValueError(f"Cannot find readout_filename {readout_filename}")
     if spill_number < -1: raise ValueError(f"Got spill_number = {spill_number}")
@@ -142,7 +142,9 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
             # Sync up the readout info if it's there. Note that it has one entry per spill, not timeslice
             if readout != None: readout.GetEntry(current_spill_number)
             
-            if only_true_tms_muons:
+            #if only_true_tms_muons:
+            case = "unknown"
+            if True:
                 assert truth != None, "Truth shouldn't be None inside only_true_tms_muons"
                 def inside_tms(x, y, z):
                     is_inside = True
@@ -155,13 +157,50 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 mz = truth.Muon_Vertex[2]
                 mdx = truth.Muon_Death[0]
                 mdy = truth.Muon_Death[1]
-                mdz = truth.Muon_Death[2]
-                start_inside_tms = inside_tms(mx, my, mz)
-                end_inside_tms = inside_tms(mdx, mdy, mdz)
-                # Skip any events that don't start and stop inside the TMS
-                if not start_inside_tms: continue
-                if not end_inside_tms: continue
-                print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}")
+                mdz = truth.Muon_Death[2]'''
+                # Skip if no reco tracks for now
+                skip = False
+                if truth.RecoTrackN == 0: skip = True
+                has_muon = False
+                tms_contained = True
+                tms_first_few_planes = True
+                tms_start = True
+                first = True
+                vtx_id = truth.VertexIdOfMostEnergyInEvent
+                for j in range(truth.nTrueParticles):
+                    # Skip particles not associated with this particle
+                    if truth.VertexID[j] != vtx_id: continue
+                    mx = truth.BirthPosition[j*4 + 0]
+                    my = truth.BirthPosition[j*4 + 1]
+                    mz = truth.BirthPosition[j*4 + 2]
+                    t = truth.BirthPosition[j*4 + 3]
+                    if t > 4329.40+1 or t < 4329.40-1: first = False
+                    mdx = truth.DeathPosition[j*4 + 0]
+                    mdy = truth.DeathPosition[j*4 + 1]
+                    mdz = truth.DeathPosition[j*4 + 2]
+                    start_inside_tms = inside_tms(mx, my, mz)
+                    end_inside_tms = inside_tms(mdx, mdy, mdz)
+                    # Skip any events that don't start and stop inside the TMS
+                    if not start_inside_tms: 
+                        skip = True
+                        tms_start = False
+                    if mz > 13000: tms_first_few_planes = False
+                    if not end_inside_tms: 
+                        skip = True
+                        tms_contained = False
+                    has_muon = has_muon or abs(truth.PDG[j]) == 13
+                    print(f"Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}")
+                if not has_muon: skip = True
+                if args.only_true_tms_muons and skip: continue
+                #if not first: continue # TODO remove
+                if tms_start and tms_contained: case = "tms_contained"
+                elif tms_start and not tms_contained: 
+                    case = "tms_start" if not tms_first_few_planes else "tms_start_first_few_planes"
+                else: case = "not_tms"
+                if has_muon: case += "_with_muon"
+                if truth.PrimaryVertexVisibleEnergyFraction < 0.6: case += "_with_pileup"
+                if first:
+                    print(f"First Muon Start XYZ: ({mx:0.2f}, {my:0.2f}, {mz:0.2f})\tMuon End XYZ: ({mdx:0.2f}, {mdy:0.2f}, {mdz:0.2f})\tstart_inside_tms: {start_inside_tms}\tend_inside_tms: {end_inside_tms},\tPDG: {truth.LeptonPDG}\tt={t:0.2f}\t{case}\t{truth.PrimaryVertexVisibleEnergyFraction}")
             
             print(f"Event {i} has {event.nHits} hits, and {event.nLines3D} lines.")
             
@@ -192,7 +231,27 @@ def draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_
                 
                 marker = ROOT.TMarker(x, y, 21)
                 #color = ROOT.TColor.GetColor(e, 32, 32)
-                color = ROOT.kGray if reco_hit_slice == 0 else slice_colors[reco_hit_slice % len(slice_colors)] + reco_hit_slice // len(slice_colors) - 3
+                if args.tms_colors:
+                    color = ROOT.kGray
+                    if "tms_contained" in case:
+                        if "muon" in case:
+                            color = ROOT.kBlue
+                        else:
+                            color = ROOT.kCyan
+                    if "tms_start" in case:
+                        if "muon" in case:
+                            color = ROOT.kBlue + 2
+                        else:
+                            color = ROOT.kCyan + 2
+                    if "tms_start_first_few_planes" in case:
+                        if "muon" in case:
+                            color = ROOT.kBlue - 2
+                        else:
+                            color = ROOT.kCyan - 2
+                    if "pileup" in case:
+                        color = ROOT.kRed
+                else:
+                    color = ROOT.kGray if reco_hit_slice == 0 else slice_colors[reco_hit_slice % len(slice_colors)] + reco_hit_slice // len(slice_colors) - 3
                 marker.SetMarkerColor(color)
                 markers.append(marker)
                 
@@ -306,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument('--timeslice', "-t", type=int, help="The time slice to draw. -1 for all", default=-1)
     parser.add_argument('--readout_filename', "-r", type=str, help="(optional) A file with the raw readout.", default="")
     parser.add_argument('--only_true_tms_muons', help="Only draw events with true muons inside the TMS", action=argparse.BooleanOptionalAction)
+    parser.add_argument('--tms_colors', help="Draw TMS Contained Hits Different", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
 
@@ -316,6 +376,6 @@ if __name__ == "__main__":
     time_slice = args.timeslice
     readout_filename = args.readout_filename
     only_true_tms_muons = args.only_true_tms_muons
-    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, only_true_tms_muons)
+    draw_spill(out_dir, name, input_filename, spill_number, time_slice, readout_filename, args)
 
     
