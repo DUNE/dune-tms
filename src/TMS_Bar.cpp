@@ -237,19 +237,40 @@ bool TMS_Bar::CheckBar() {
     return false;
   }
 
-  if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
-    std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    throw;
-    return false;
-  }
+  // These two checks now validate against what the geometry survey actually found
+  // in the loaded GDML (TMS_Geom::SurveyGeometry()) rather than hardcoded expected
+  // counts, so they can't drift out of sync with a geometry change. If no survey is
+  // available (e.g. SetGeometry() wasn't called), TMS_Geom falls back to the
+  // TMS_Constants.h range instead of failing every bar.
+  TMS_Geom &tmsGeom = TMS_Geom::GetInstance();
+  if (tmsGeom.HasGeometrySurvey()) {
+    if (!tmsGeom.IsSurveyedModuleNumber(GlobalBarNumber)) {
+      std::cerr << "Global bar number " << GlobalBarNumber << " was not among the "
+        << tmsGeom.GetNModulesSurveyed() << " module numbers found by the geometry survey." << std::endl;
+      throw;
+      return false;
+    }
+    if (!tmsGeom.IsSurveyedPlaneNumber(PlaneNumber)) {
+      std::cerr << "Plane number " << PlaneNumber << " was not among the "
+        << tmsGeom.GetNPlanesSurveyed() << " plane numbers found by the geometry survey." << std::endl;
+      throw;
+      return false;
+    }
+  } else {
+    if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
+      std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
+      std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+      throw;
+      return false;
+    }
 
-  int expected_nplanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
-  if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
-    std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
-    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    throw;
-    return false;
+    int expected_nplanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
+    if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
+      std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
+      std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+      throw;
+      return false;
+    }
   }
 
   return true;

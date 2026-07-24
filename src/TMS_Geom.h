@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <set>
 
 #include "TGeoManager.h"
 
@@ -22,6 +23,41 @@
 #define __GEOM_LARGE_STEP__ 1E10
 #define __GEOM_SMALL_STEP__ 1E-4
 #define __GEOM_TINY_STEP__ 1E-5
+
+// Result of a one-time walk of the GDML node tree, done once by
+// TMS_Geom::SurveyGeometry() when SetGeometry() is called. Replaces several
+// TMS_Constants.h numbers that used to require a recompile whenever the geometry
+// changed, with numbers actually observed in the geometry that was loaded.
+//
+// NOT yet covered here (left on TMS_Const:: for now -- see the real-data
+// restructuring design proposal for why):
+//   - the steel-inclusive "TMS mass" bounding box: no steel volume is identified
+//     by name anywhere in this codebase yet, only scintillator bars are
+//   - the LAr active-volume bounding box
+//   - the thin/thick steel region z-boundary
+struct TMS_GeometryLayout {
+  bool valid = false;
+  std::set<int> planeNumbers;    // observed ModuleLayer node numbers
+  std::set<int> moduleNumbers;   // observed Module (GlobalBarNumber) node numbers
+  int nBars = 0;                 // total scintillator-bar nodes visited
+  bool truncated = false;        // hit the node-visit safety cap before finishing
+
+  // Bounding box of all scintillator-bar nodes found, in mm (already geometry-scaled)
+  double xMin = 0, xMax = 0, yMin = 0, yMax = 0, zMin = 0, zMax = 0;
+
+  void ExpandToInclude(double x, double y, double z) {
+    if (!valid) {
+      xMin = xMax = x;
+      yMin = yMax = y;
+      zMin = zMax = z;
+    } else {
+      xMin = std::min(xMin, x); xMax = std::max(xMax, x);
+      yMin = std::min(yMin, y); yMax = std::max(yMax, y);
+      zMin = std::min(zMin, z); zMax = std::max(zMax, z);
+    }
+    valid = true;
+  }
+};
 
 // Define the TMS geometry singleton
 class TMS_Geom {
@@ -42,14 +78,34 @@ class TMS_Geom {
     inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1]; };
     inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2]; };
     inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
-    inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[0]; };
-    inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[1]; };
-    inline double GetZStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[2]; };
+    // Bar-region bounding box: from the one-time geometry survey (SurveyGeometry())
+    // when available, falling back to the compiled TMS_Constants.h values (with a
+    // one-time warning) if no geometry has been surveyed yet.
+    inline void WarnIfNoSurvey() const {
+      if (!fLayout.valid && !fWarnedNoSurvey) {
+        std::cerr << "[TMS_Geom] WARNING: TMS bar-region bounding box requested before a geometry "
+          "survey has run (SetGeometry() not yet called, or the survey found no scintillator-bar "
+          "nodes). Falling back to the compiled TMS_Constants.h values." << std::endl;
+        fWarnedNoSurvey = true;
+      }
+    }
+    inline double GetXStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.xMin : TMS_Const::TMS_Start_Bars_Only[0]; };
+    inline double GetYStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.yMin : TMS_Const::TMS_Start_Bars_Only[1]; };
+    inline double GetZStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.zMin : TMS_Const::TMS_Start_Bars_Only[2]; };
     inline TVector3 GetStartOfTMS() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMS(), GetZStartOfTMS()); };
-    inline double GetXEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[0]; };
-    inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[1]; };
-    inline double GetZEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[2]; };
+    inline double GetXEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.xMax : TMS_Const::TMS_End_Bars_Only[0]; };
+    inline double GetYEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.yMax : TMS_Const::TMS_End_Bars_Only[1]; };
+    inline double GetZEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.zMax : TMS_Const::TMS_End_Bars_Only[2]; };
     inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
+
+    // Plane/module counts and identity, as actually observed in the surveyed geometry.
+    // Use these instead of TMS_Const::nPlanes / TMS_Const::nModules.
+    inline bool HasGeometrySurvey() const { return fLayout.valid; };
+    inline int GetNPlanesSurveyed() const { return (int)fLayout.planeNumbers.size(); };
+    inline int GetNModulesSurveyed() const { return (int)fLayout.moduleNumbers.size(); };
+    inline int GetNBarsSurveyed() const { return fLayout.nBars; };
+    inline bool IsSurveyedPlaneNumber(int n) const { return fLayout.planeNumbers.count(n) > 0; };
+    inline bool IsSurveyedModuleNumber(int n) const { return fLayout.moduleNumbers.count(n) > 0; };
     inline double GetXStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[0]; };
     inline double GetYStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[1]; };
     inline double GetZStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[2]; };
@@ -205,6 +261,11 @@ class TMS_Geom {
       std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
       std::cout << "Geometry scale factor: " << ScaleFactor;
       std::cout << ". Factor is 1 if 1 unit = 1mm (aka edep sim), 10 if 1 unit = 1cm (aka larsoft)." << std::endl;
+
+      // One-time survey of the node tree: derives plane/module counts and the
+      // scintillator-bar bounding box from this geometry instead of TMS_Constants.h.
+      // Needs ScaleFactor above to already be set. See SurveyGeometry() in TMS_Geom.cpp.
+      SurveyGeometry();
     }
 
     int GetPlaneNumberForCurrentNode() {
@@ -767,14 +828,14 @@ class TMS_Geom {
       std::string NodePath = parent_path + "/" + NodeName;
       std::string child_plane_path = plane_path;
       bool child_x_bar = x_bar;
-      if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+      if (NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
         child_plane_path = NodePath;
-        child_x_bar = NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos;
+        child_x_bar = NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayerX()) != std::string::npos;
       }
 
-      bool is_scintillator_bar = NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos ||
-          NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos ||
-          NodeName.find(TMS_Const::TMS_ScintLayerParallelName) != std::string::npos;
+      bool is_scintillator_bar = NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayer()) != std::string::npos ||
+          NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayerOrtho()) != std::string::npos ||
+          NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayerParallel()) != std::string::npos;
       if (is_scintillator_bar && !plane_path.empty()) {
         const Double_t local[3] = {0, 0, 0};
         Double_t master[3] = {0, 0, 0};
@@ -827,12 +888,22 @@ class TMS_Geom {
       PlaneLookupBuilt = false;
       PlaneCount = 0;
       BarLookupBuilt = false;
+      fWarnedNoSurvey = false;
     };
 
     ~TMS_Geom() {};
 
     TMS_Geom(TMS_Geom const &) = delete;
     void operator=(TMS_Geom const &) = delete;
+
+    // Walk the full node tree once, recording plane/module numbers and the
+    // scintillator-bar bounding box into fLayout. Defined in TMS_Geom.cpp since
+    // it's more involved than the rest of this (otherwise header-only) class.
+    void SurveyGeometry();
+    void SurveyNodeRecursive(TMS_GeometryLayout &layout, const std::string &ModuleLayerName,
+        const std::string &ModuleName, const std::string &ScintLayerName,
+        const std::string &ScintLayerOrthoName, const std::string &ScintLayerParallelName,
+        long &nodesVisited);
 
     // The actual geometry
     TGeoManager *geom;
@@ -844,6 +915,9 @@ class TMS_Geom {
     int PlaneCount;
     bool BarLookupBuilt;
     std::map<std::string, int> BarIndexByPath;
+
+    TMS_GeometryLayout fLayout;
+    mutable bool fWarnedNoSurvey;
     };
 
 #endif
