@@ -246,13 +246,13 @@ bool TMS_Bar::CheckBar() {
   if (tmsGeom.HasGeometrySurvey()) {
     if (!tmsGeom.IsSurveyedModuleNumber(GlobalBarNumber)) {
       std::cerr << "Global bar number " << GlobalBarNumber << " was not among the "
-        << tmsGeom.GetNModulesSurveyed() << " module numbers found by the geometry survey." << std::endl;
+        << tmsGeom.GetNDistinctModuleNumbers() << " distinct module numbers found by the geometry survey." << std::endl;
       throw;
       return false;
     }
     if (!tmsGeom.IsSurveyedPlaneNumber(PlaneNumber)) {
       std::cerr << "Plane number " << PlaneNumber << " was not among the "
-        << tmsGeom.GetNPlanesSurveyed() << " plane numbers found by the geometry survey." << std::endl;
+        << tmsGeom.GetNDistinctPlaneNumbers() << " distinct plane numbers found by the geometry survey." << std::endl;
       throw;
       return false;
     }

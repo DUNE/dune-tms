@@ -111,9 +111,20 @@ class TMS_Geom {
 
     // Plane/module counts and identity, as actually observed in the surveyed geometry.
     // Use these instead of TMS_Const::nPlanes / TMS_Const::nModules.
+    //
+    // GetNPlanesSurveyed()/GetNModulesSurveyed() count *matches of the name pattern*,
+    // which only equals the physical count if that volume type doesn't nest inside
+    // another matched type -- true for planes in every geometry seen so far, but NOT
+    // true for modules in at least one real geometry (module volumes nest once per
+    // plane there, see the nesting note SurveyGeometry() prints). GetNDistinctPlaneNumbers()/
+    // GetNDistinctModuleNumbers() count distinct raw node numbers instead, which is
+    // what actually matters for "is this a valid value" -- use those for anything
+    // that needs the count of legal values (e.g. an error message), not the match count.
     inline bool HasGeometrySurvey() const { return fLayout.valid; };
     inline int GetNPlanesSurveyed() const { return fLayout.nPlaneNodesVisited; };
     inline int GetNModulesSurveyed() const { return fLayout.nModuleNodesVisited; };
+    inline int GetNDistinctPlaneNumbers() const { return (int)fLayout.planeNumbers.size(); };
+    inline int GetNDistinctModuleNumbers() const { return (int)fLayout.moduleNumbers.size(); };
     inline int GetNBarsSurveyed() const { return fLayout.nBars; };
     inline bool IsSurveyedPlaneNumber(int n) const { return fLayout.planeNumbers.count(n) > 0; };
     inline bool IsSurveyedModuleNumber(int n) const { return fLayout.moduleNumbers.count(n) > 0; };
