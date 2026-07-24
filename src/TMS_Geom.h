@@ -37,8 +37,19 @@
 //   - the thin/thick steel region z-boundary
 struct TMS_GeometryLayout {
   bool valid = false;
-  std::set<int> planeNumbers;    // observed ModuleLayer node numbers
-  std::set<int> moduleNumbers;   // observed Module (GlobalBarNumber) node numbers
+  // Raw node numbers observed anywhere in the tree, used only for CheckBar()-style
+  // membership checks ("is this a value that occurs somewhere"). TGeoNode::GetNumber()
+  // is a copy number scoped to its parent volume, not a tree-wide unique id, so this
+  // set can under-COUNT distinct physical planes/modules if two different parents
+  // reuse the same local copy number -- see nPlaneNodesVisited/nModuleNodesVisited
+  // below for the actual count.
+  std::set<int> planeNumbers;
+  std::set<int> moduleNumbers;
+  // Plain visit counters: the traversal visits each node exactly once, so these are
+  // an exact count of distinct physical ModuleLayer/Module nodes, independent of
+  // whatever local numbering convention the GDML happens to use.
+  int nPlaneNodesVisited = 0;
+  int nModuleNodesVisited = 0;
   int nBars = 0;                 // total scintillator-bar nodes visited
   bool truncated = false;        // hit the node-visit safety cap before finishing
 
@@ -101,8 +112,8 @@ class TMS_Geom {
     // Plane/module counts and identity, as actually observed in the surveyed geometry.
     // Use these instead of TMS_Const::nPlanes / TMS_Const::nModules.
     inline bool HasGeometrySurvey() const { return fLayout.valid; };
-    inline int GetNPlanesSurveyed() const { return (int)fLayout.planeNumbers.size(); };
-    inline int GetNModulesSurveyed() const { return (int)fLayout.moduleNumbers.size(); };
+    inline int GetNPlanesSurveyed() const { return fLayout.nPlaneNodesVisited; };
+    inline int GetNModulesSurveyed() const { return fLayout.nModuleNodesVisited; };
     inline int GetNBarsSurveyed() const { return fLayout.nBars; };
     inline bool IsSurveyedPlaneNumber(int n) const { return fLayout.planeNumbers.count(n) > 0; };
     inline bool IsSurveyedModuleNumber(int n) const { return fLayout.moduleNumbers.count(n) > 0; };
