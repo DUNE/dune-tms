@@ -75,12 +75,23 @@ void TMS_Geom::SurveyGeometry() {
 
   std::cout << "[TMS_Geom] Geometry survey visited " << nodesVisited << " nodes and found "
     << fLayout.nPlaneNodesVisited << " planes, "
-    << fLayout.nModuleNodesVisited << " modules, "
+    << fLayout.nModuleNodesVisited << " module-name matches, "
     << fLayout.nBars << " scintillator-bar nodes." << std::endl;
-  std::cout << "[TMS_Geom]   (" << fLayout.planeNumbers.size() << " distinct raw plane-node numbers, "
-    << fLayout.moduleNumbers.size() << " distinct raw module-node numbers -- fewer than the counts "
-    << "above would mean TGeoNode::GetNumber() repeats across different parent volumes in this "
-    << "geometry, which is expected and fine for TMS_Bar::CheckBar()'s membership checks.)" << std::endl;
+  std::cout << "[TMS_Geom]   Of those, " << fLayout.planeNumbers.size() << " distinct raw plane-node numbers "
+    << "and " << fLayout.moduleNumbers.size() << " distinct raw module-node numbers appear. Neither of these "
+    << "affects TMS_Bar::CheckBar()'s pass/fail logic (that only checks set membership), but if the "
+    << "module-name match count isn't close to the distinct module-number count, it usually means the "
+    << "'Module' volume nests inside 'ModuleLayer' and gets revisited once per plane -- treat the distinct "
+    << "count as the physically meaningful one in that case, not the match count above." << std::endl;
+  if (fLayout.nModuleNodesVisited > 0 && !fLayout.moduleNumbers.empty()
+      && fLayout.nModuleNodesVisited % (int)fLayout.moduleNumbers.size() == 0
+      && fLayout.nModuleNodesVisited / (int)fLayout.moduleNumbers.size() == fLayout.nPlaneNodesVisited) {
+    std::cout << "[TMS_Geom]   NOTE: module-name match count (" << fLayout.nModuleNodesVisited
+      << ") is exactly plane count (" << fLayout.nPlaneNodesVisited << ") times distinct module count ("
+      << fLayout.moduleNumbers.size() << ") -- this is the nesting case above. This geometry most likely "
+      << "has " << fLayout.moduleNumbers.size() << " modules per plane, not " << fLayout.nModuleNodesVisited
+      << "." << std::endl;
+  }
   if (fLayout.valid) {
     std::cout << "[TMS_Geom]   Bar-region bounding box: x [" << fLayout.xMin << ", " << fLayout.xMax
       << "], y [" << fLayout.yMin << ", " << fLayout.yMax
