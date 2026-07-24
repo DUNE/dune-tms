@@ -145,7 +145,7 @@
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
-# Variables that have to do with the geometry or location of the detector 
+# Variables that have to do with the geometry or location of the detector
 [Geometry]
   YBarMiddle = -1.35  #m
   GitTag = "v2025.08.11"
@@ -155,6 +155,25 @@
   NumberOfSteelPlatesThin = 34
   NumberOfSteelPlatesThick = 22
   NumberOfSteelPlatesDouble = 24
+
+  # Volume-name substrings used to identify detector components while walking
+  # the geometry tree read from the input GDML (see TMS_Geom / TMS_Bar / TMS_Event).
+  # Update these -- not a compiled constant -- if a future GDML renames volumes.
+  [Geometry.VolumeNames]
+    ModuleLayer = "modulelayervol"
+    ModuleLayerU = "modulelayervol1" # +3 degree tilt from pure y orientation
+    ModuleLayerV = "modulelayervol2" # -3 degree tilt from pure y orientation
+    ModuleLayerX = "modulelayervol3" # 90 degree rotated/tilted from vertical
+    ModuleLayerY = "modulelayervol4" # pure y orientation
+    Module = "ModuleBoxvol"
+    ScintLayer = "scinBoxlvTMS"
+    ScintLayerOrtho = "scinBoxlv_orthoTMS"
+    ScintLayerParallel = "scinBoxlv_parallelTMS"
+    TopLayer = "volWorld"
+    DetEnclosure = "volDetEnclosure"
+    TMSVolume = "TMS"
+    TMSEDepSimVolume = "volTMS"
+    LArActive = "TPCActive"
   [Fiducial.TMS.Start]
     X = -3419.0 # mm  # TODO this is very preliminary
     Y = -2976.23 # mm # TODO this is very preliminary

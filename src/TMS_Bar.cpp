@@ -51,25 +51,40 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   if (node == NULL) return false;
   std::string NodeName = std::string(node->GetName());
 
+  // Volume-name substrings that identify each part of the tree; config-driven
+  // (config/TMS_Default_Config.toml [Geometry.VolumeNames]) rather than compiled,
+  // so a GDML renaming doesn't need a recompile.
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  const std::string &ModuleLayerName = manager.Get_GEOMETRY_VOLUME_ModuleLayer();
+  const std::string &ModuleLayerNameU = manager.Get_GEOMETRY_VOLUME_ModuleLayerU();
+  const std::string &ModuleLayerNameV = manager.Get_GEOMETRY_VOLUME_ModuleLayerV();
+  const std::string &ModuleLayerNameX = manager.Get_GEOMETRY_VOLUME_ModuleLayerX();
+  const std::string &ModuleLayerNameY = manager.Get_GEOMETRY_VOLUME_ModuleLayerY();
+  const std::string &ModuleName = manager.Get_GEOMETRY_VOLUME_Module();
+  const std::string &ScintLayerName = manager.Get_GEOMETRY_VOLUME_ScintLayer();
+  const std::string &ScintLayerOrthoName = manager.Get_GEOMETRY_VOLUME_ScintLayerOrtho();
+  const std::string &ScintLayerParallelName = manager.Get_GEOMETRY_VOLUME_ScintLayerParallel();
+  const std::string &TopLayerName = manager.Get_GEOMETRY_VOLUME_TopLayer();
+  const std::string &DetEnclosureName = manager.Get_GEOMETRY_VOLUME_DetEnclosure();
+
   // cd up in the geometry to find the right name
-  //while (NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-  while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+  while (NodeName.find(DetEnclosureName) == std::string::npos && NodeName.find(TopLayerName) == std::string::npos) {
     // We've found the plane number
-    if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+    if (NodeName.find(ModuleLayerName) != std::string::npos) {
       PlaneNumber = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
-      if (NodeName.find(TMS_Const::TMS_ModuleLayerName1) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName2) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos) BarOrient = kXBar;  // 90 degrees rotated/tiled from vertical
-      else if (NodeName.find(TMS_Const::TMS_ModuleLayerName4) != std::string::npos) BarOrient = kYBar;  // not yet implemented! Pure y orientation
+      if (NodeName.find(ModuleLayerNameU) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
+      else if (NodeName.find(ModuleLayerNameV) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
+      else if (NodeName.find(ModuleLayerNameX) != std::string::npos) BarOrient = kXBar;  // 90 degrees rotated/tiled from vertical
+      else if (NodeName.find(ModuleLayerNameY) != std::string::npos) BarOrient = kYBar;  // not yet implemented! Pure y orientation
       else {
-        std::cout<<"Error: Do not understand TMS_ModuleLayerName '"<<NodeName<<"'. This bar will have type kError."<<std::endl;
+        std::cout<<"Error: Do not understand ModuleLayer volume name '"<<NodeName<<"'. This bar will have type kError."<<std::endl;
         BarOrient = kError;
       }
     }
 
     // This is the furthest down hit we have: scintillator bar
-    else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerParallelName) != std::string::npos) {
+    else if (NodeName.find(ScintLayerName) != std::string::npos || NodeName.find(ScintLayerOrthoName) != std::string::npos || NodeName.find(ScintLayerParallelName) != std::string::npos) {
       BarNumber = TMS_Geom::GetInstance().GetBarNumberForCurrentNode();
 
       // Get the width
@@ -94,7 +109,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
     }
 
-    else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
+    else if (NodeName.find(ModuleName) != std::string::npos) {
       GlobalBarNumber = geom->GetCurrentNode()->GetNumber();
     }
    
@@ -152,21 +167,23 @@ int TMS_Bar::FindBar(double x, double y, double z) {
     return -1;
   }
 
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  const std::string &ModuleLayerName = manager.Get_GEOMETRY_VOLUME_ModuleLayer();
+  const std::string &DetEnclosureName = manager.Get_GEOMETRY_VOLUME_DetEnclosure();
+
   // Find which node this position is equivalent too
   TMS_Geom::GetInstance().FindNode(x,y,z);
   TGeoNavigator *nav = geom->GetCurrentNavigator();
   std::string NodeName = std::string(nav->GetCurrentNode()->GetName());
   // cd up in the geometry to find the right name
-  while (NodeName.find(TMS_Const::TMS_ModuleLayerName) == std::string::npos && 
-      //NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
-      NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
+  while (NodeName.find(ModuleLayerName) == std::string::npos &&
+      NodeName.find(DetEnclosureName) == std::string::npos) {
     nav->CdUp();
     NodeName = std::string(nav->GetCurrentNode()->GetName());
   }
 
   // If we've reached the world volume we don't have a scintillator hit -> return some mad bad value
-  //if (NodeName.find(TMS_Const::TMS_TopLayerName) != std::string::npos) {
-  if (NodeName.find(TMS_Const::TMS_DetEnclosure) != std::string::npos) {
+  if (NodeName.find(DetEnclosureName) != std::string::npos) {
     // Since the bar has already been created as a "error" in the above empty constructor we can just return
     std::cout << "Bar position not found in TMS_Bar::FindBar!" << std::endl;
     return -1;

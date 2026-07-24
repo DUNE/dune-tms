@@ -591,7 +591,7 @@ class TMS_Geom {
         }
         // Try cding around
         std::cout << "***" << nodename << std::endl;
-        while (nodename.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
+        while (nodename.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_DetEnclosure()) == std::string::npos) {
           geom->CdUp();
           nodename = std::string(geom->GetCurrentNode()->GetName());
           std::cout << nodename << std::endl;
@@ -643,14 +643,15 @@ class TMS_Geom {
         dist = (pt_vec-point1).Mag();
 
         // cd up in the geometry to find the right name
-        while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && 
-            NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+        TMS_Manager &manager = TMS_Manager::GetInstance();
+        while (NodeName.find(manager.Get_GEOMETRY_VOLUME_DetEnclosure()) == std::string::npos &&
+            NodeName.find(manager.Get_GEOMETRY_VOLUME_TopLayer()) == std::string::npos) {
           // We've found the plane number
-          if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+          if (NodeName.find(manager.Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
             Plane[0] = GetPlaneNumberForCurrentNode();
-          } else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
+          } else if (NodeName.find(manager.Get_GEOMETRY_VOLUME_ScintLayer()) != std::string::npos) {
             Plane[1] = geom->GetCurrentNode()->GetNumber();
-          } else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
+          } else if (NodeName.find(manager.Get_GEOMETRY_VOLUME_Module()) != std::string::npos) {
             Plane[2] = geom->GetCurrentNode()->GetNumber();
           }
 
