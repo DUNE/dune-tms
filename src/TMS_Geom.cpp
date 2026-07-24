@@ -24,8 +24,10 @@ void TMS_Geom::SurveyNodeRecursive(TMS_GeometryLayout &layout, const std::string
 
   if (name.find(ModuleLayerName) != std::string::npos) {
     layout.planeNumbers.insert(node->GetNumber());
+    layout.nPlaneNodesVisited += 1;
   } else if (name.find(ModuleName) != std::string::npos) {
     layout.moduleNumbers.insert(node->GetNumber());
+    layout.nModuleNodesVisited += 1;
   } else if (name.find(ScintLayerName) != std::string::npos ||
              name.find(ScintLayerOrthoName) != std::string::npos ||
              name.find(ScintLayerParallelName) != std::string::npos) {
@@ -72,9 +74,13 @@ void TMS_Geom::SurveyGeometry() {
   geom->CdTop();
 
   std::cout << "[TMS_Geom] Geometry survey visited " << nodesVisited << " nodes and found "
-    << fLayout.planeNumbers.size() << " planes, "
-    << fLayout.moduleNumbers.size() << " modules, "
+    << fLayout.nPlaneNodesVisited << " planes, "
+    << fLayout.nModuleNodesVisited << " modules, "
     << fLayout.nBars << " scintillator-bar nodes." << std::endl;
+  std::cout << "[TMS_Geom]   (" << fLayout.planeNumbers.size() << " distinct raw plane-node numbers, "
+    << fLayout.moduleNumbers.size() << " distinct raw module-node numbers -- fewer than the counts "
+    << "above would mean TGeoNode::GetNumber() repeats across different parent volumes in this "
+    << "geometry, which is expected and fine for TMS_Bar::CheckBar()'s membership checks.)" << std::endl;
   if (fLayout.valid) {
     std::cout << "[TMS_Geom]   Bar-region bounding box: x [" << fLayout.xMin << ", " << fLayout.xMax
       << "], y [" << fLayout.yMin << ", " << fLayout.yMax
