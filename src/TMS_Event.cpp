@@ -182,14 +182,15 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           // If asked to only look at LAr and TMS trajectories
           //
           if (TMSOnly || TMSLArOnly) {
+            TMS_Manager &manager = TMS_Manager::GetInstance();
             // Check the TMS volume first
-            if (VolumeName.find(TMS_Const::TMS_VolumeName) == std::string::npos && 
-                VolumeName.find(TMS_Const::TMS_ModuleLayerName) == std::string::npos &&
-                VolumeName.find(TMS_Const::TMS_EDepSim_VolumeName) == std::string::npos) continue;
+            if (VolumeName.find(manager.Get_GEOMETRY_VOLUME_TMSVolume()) == std::string::npos &&
+                VolumeName.find(manager.Get_GEOMETRY_VOLUME_ModuleLayer()) == std::string::npos &&
+                VolumeName.find(manager.Get_GEOMETRY_VOLUME_TMSEDepSimVolume()) == std::string::npos) continue;
 
             // check the LAr volume
             if (TMSLArOnly) {
-              if (VolumeName.find(TMS_Const::LAr_ActiveName) == std::string::npos) continue;
+              if (VolumeName.find(manager.Get_GEOMETRY_VOLUME_LArActive()) == std::string::npos) continue;
             }
           }
 
@@ -282,7 +283,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     std::string DetString = (*jt).first;
 
     // Skip hits outside of the TMS if running lightweight
-    if (TMSOnly && DetString != TMS_Const::TMS_EDepSim_VolumeName) continue;
+    if (TMSOnly && DetString != TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_TMSEDepSimVolume()) continue;
 
     TG4HitSegmentContainer tms_hits = (*jt).second;
     for (TG4HitSegmentContainer::iterator kt = tms_hits.begin(); kt != tms_hits.end(); ++kt) {
@@ -317,7 +318,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           TrueVisibleEnergyPerParticle[std::make_pair(hit.GetTrueHit().GetVertexGlobalIds(i), hit.GetTrueHit().GetPrimaryIds(i))] += hit.GetTrueHit().GetEnergyShare(i);
         }
       }
-      else if (DetString.find(TMS_Const::LAr_ActiveName) != std::string::npos) {
+      else if (DetString.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_LArActive()) != std::string::npos) {
         // Only care about LAr active volume
         // We only need it for truth info so just save truth info
         TMS_TrueHit t(edep_hit, vertex_global_id);
