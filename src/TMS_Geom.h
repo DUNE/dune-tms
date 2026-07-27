@@ -183,6 +183,8 @@ class TMS_Geom {
       PlaneIndexByNodeName.clear();
       PlaneIndexByPath.clear();
       PlaneCount = 0;
+      BarLookupBuilt = false;
+      BarIndexByPath.clear();
       
       // There's an overall scale factor depending on if the gmdl was loaded with cm or mm. 
       // So here we're trying to automatically figure out the scale factor
@@ -218,6 +220,17 @@ class TMS_Geom {
       if (it != PlaneIndexByNodeName.end()) return it->second;
 
       return geom->GetCurrentNode()->GetNumber();
+    }
+
+    // Bar copy numbers reset in each geometry module.  Build a contiguous
+    // transverse ordering from the actual bar placements instead.
+    int GetBarNumberForCurrentNode() {
+      EnsureBarLookup();
+      if (geom == NULL || geom->GetCurrentNode() == NULL) return -1;
+
+      auto it = BarIndexByPath.find(std::string(geom->GetPath()));
+      if (it == BarIndexByPath.end()) return -1;
+      return it->second;
     }
 
     void SetFileName(std::string filename) {
@@ -680,6 +693,12 @@ class TMS_Geom {
       double ZCenter;
     };
 
+    struct BarLookupRecord {
+      std::string NodePath;
+      std::string PlanePath;
+      double TransverseCenter;
+    };
+
     void BuildPlaneLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path, std::vector<PlaneLookupRecord> &records) {
       if (node == NULL) return;
 
@@ -736,6 +755,69 @@ class TMS_Geom {
       PlaneCount = plane_index + 1;
     }
 
+    void BuildBarLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path,
+        const std::string &plane_path, bool x_bar, std::vector<BarLookupRecord> &records) {
+      if (node == NULL) return;
+
+      TGeoHMatrix current(parent);
+      if (node->GetMatrix() != NULL) current.Multiply(node->GetMatrix());
+
+      std::string NodeName = std::string(node->GetName());
+      std::string NodePath = parent_path + "/" + NodeName;
+      std::string child_plane_path = plane_path;
+      bool child_x_bar = x_bar;
+      if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+        child_plane_path = NodePath;
+        child_x_bar = NodeName.find(TMS_Const::TMS_ModuleLayerName3) != std::string::npos;
+      }
+
+      bool is_scintillator_bar = NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos ||
+          NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos ||
+          NodeName.find(TMS_Const::TMS_ScintLayerParallelName) != std::string::npos;
+      if (is_scintillator_bar && !plane_path.empty()) {
+        const Double_t local[3] = {0, 0, 0};
+        Double_t master[3] = {0, 0, 0};
+        current.LocalToMaster(local, master);
+        records.push_back({NodePath, plane_path, Scale(child_x_bar ? master[1] : master[0])});
+      }
+
+      TObjArray *children = node->GetVolume() ? node->GetVolume()->GetNodes() : NULL;
+      if (children == NULL) return;
+      for (int i = 0; i < children->GetEntries(); ++i) {
+        BuildBarLookupRecursive((TGeoNode*)children->At(i), current, NodePath, child_plane_path, child_x_bar, records);
+      }
+    }
+
+    void EnsureBarLookup() {
+      if (BarLookupBuilt) return;
+      BarLookupBuilt = true;
+      BarIndexByPath.clear();
+      EnsurePlaneLookup();
+      if (geom == NULL || geom->GetTopNode() == NULL) return;
+
+      std::vector<BarLookupRecord> records;
+      TGeoHMatrix identity;
+      BuildBarLookupRecursive(geom->GetTopNode(), identity, "", "", false, records);
+
+      std::map<int, std::vector<BarLookupRecord> > records_by_plane;
+      for (auto const &record: records) {
+        auto plane_it = PlaneIndexByPath.find(record.PlanePath);
+        if (plane_it == PlaneIndexByPath.end()) continue;
+        records_by_plane[plane_it->second].push_back(record);
+      }
+
+      for (auto &entry: records_by_plane) {
+        auto &bars = entry.second;
+        std::sort(bars.begin(), bars.end(), [](const BarLookupRecord &a, const BarLookupRecord &b) {
+          if (std::fabs(a.TransverseCenter - b.TransverseCenter) > 1e-3) return a.TransverseCenter < b.TransverseCenter;
+          return a.NodePath < b.NodePath;
+        });
+        for (size_t index = 0; index < bars.size(); ++index) {
+          BarIndexByPath[bars[index].NodePath] = index;
+        }
+      }
+    }
+
     // The empty constructor
     TMS_Geom() {
       FileName = TMS_Manager::GetInstance().GetFileName();
@@ -743,6 +825,7 @@ class TMS_Geom {
       ScaleFactor = 1;
       PlaneLookupBuilt = false;
       PlaneCount = 0;
+      BarLookupBuilt = false;
     };
 
     ~TMS_Geom() {};
@@ -758,6 +841,8 @@ class TMS_Geom {
     std::map<std::string, int> PlaneIndexByPath;
     std::map<std::string, int> PlaneIndexByNodeName;
     int PlaneCount;
+    bool BarLookupBuilt;
+    std::map<std::string, int> BarIndexByPath;
     };
 
 #endif

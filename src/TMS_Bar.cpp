@@ -70,7 +70,7 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
     // This is the furthest down hit we have: scintillator bar
     else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerOrthoName) != std::string::npos || NodeName.find(TMS_Const::TMS_ScintLayerParallelName) != std::string::npos) {
-      BarNumber = geom->GetCurrentNode()->GetNumber();
+      BarNumber = TMS_Geom::GetInstance().GetBarNumberForCurrentNode();
 
       // Get the width
       TGeoBBox *box = dynamic_cast<TGeoBBox*>(geom->GetCurrentVolume()->GetShape());
@@ -132,18 +132,6 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // Reset the geom navigator node level in case it's used again
   TMS_Geom::GetInstance().FindNode(xval,yval,zval);
-
-  // Update the bar number
-  if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
-    BarNumber = (GetX() - TMS_Const::TMS_Start_Bars_Only[0]) / GetXw(); // Changed from TMS_Start_Exact to TMS_Start_Bars_Only
-  } else if (BarOrient == kXBar) {
-    BarNumber = 2 * (GetY() - TMS_Const::TMS_Start_Bars_Only[1]) / GetXw(); // Same here, use Xw here as need bar width and not length!
-    if (GlobalBarNumber % 2 == 1) {
-      BarNumber += 1;
-    }
-  } else {
-    BarNumber = -999;
-  }
 
   CheckBar();
 
@@ -224,10 +212,8 @@ double TMS_Bar::FindYbar(double yval) {
 bool TMS_Bar::CheckBar() {
 
   // Sanity check the global bar number
-  //if (BarNumber >= TMS_Const::nModulesPerSubModule || BarNumber < 0) {
-  //if (BarNumber >= (TMS_Const::TMS_End_Bars_Only[0]-TMS_Const::TMS_Start_Bars_Only[0])/GetXw() || BarNumber < 0) {  // Change from TMS_..._Exact to TMS_..._Bars_Only
-  if (BarNumber >= 32*6+3 || BarNumber < 0) {  // Change from TMS_..._Exact to TMS_..._Bars_Only
-    std::cerr << "Bar number does not agree with expectation of between 0 to " << TMS_Const::nModulesPerSubModule << std::endl;
+  if (BarNumber < 0) {
+    std::cerr << "Bar number was not found in the geometry bar lookup." << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
     std::cout << "Bar number: " << BarNumber << std::endl;
     throw;
