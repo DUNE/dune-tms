@@ -242,6 +242,15 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
       markers_y.push_back(marker);
     }
   }
+  for (int it = 0; it < lc.nLinesY; it++) {
+    for (int ih = 0; ih < lc.nHitsInTrackY[it]; ih++) {
+      TMarker marker(lc.TrackHitPosY[it][ih][0] * CM,
+                     lc.TrackHitPosY[it][ih][1] * CM + raw_offset, 21);
+      marker.SetMarkerColor(color_2d_pale);
+      marker.SetMarkerSize(1.35);
+      markers_x.push_back(marker);
+    }
+  }
 
   for (int ih = 0; ih < lc.nHits; ih++) {
     {
@@ -304,6 +313,15 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
       marker.SetMarkerColor(color_2d);
       marker.SetMarkerSize(0.75);
       markers_y.push_back(marker);
+    }
+  }
+  for (int it = 0; it < lc.nLinesY; it++) {
+    for (int ih = 0; ih < lc.nHitsInTrackY[it]; ih++) {
+      TMarker marker(lc.TrackHitPosY[it][ih][0] * CM,
+                     lc.TrackHitPosY[it][ih][1] * CM + track2d_offset, 21);
+      marker.SetMarkerColor(color_2d);
+      marker.SetMarkerSize(0.75);
+      markers_x.push_back(marker);
     }
   }
 
@@ -394,8 +412,11 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
   int n_2d_hits_x = 0;
   for (int it = 0; it < lc.nLinesX; it++)
     n_2d_hits_x += lc.nHitsInTrackX[it];
-  int n_2d_hits = n_2d_hits_u + n_2d_hits_v + n_2d_hits_x;
-  int n_2d_lines = lc.nLinesU + lc.nLinesV + lc.nLinesX;
+  int n_2d_hits_y = 0;
+  for (int it = 0; it < lc.nLinesY; it++)
+    n_2d_hits_y += lc.nHitsInTrackY[it];
+  int n_2d_hits = n_2d_hits_u + n_2d_hits_v + n_2d_hits_x + n_2d_hits_y;
+  int n_2d_lines = lc.nLinesU + lc.nLinesV + lc.nLinesX + lc.nLinesY;
   int n_kalman_nodes = 0;
   int n_tracks_with_kalman = 0;
   for (int it = 0; it < reco.nTracks; it++) {
@@ -412,9 +433,9 @@ void DrawSliceReco3DStages(std::string outfilename, std::string reason,
   textBox.AddText(TString::Format("Slice: %d", reco.SliceNo));
   textBox.AddText(TString::Format("All hits: %d", lc.nHits));
   textBox.AddText(TString::Format("2D hits: %d", n_2d_hits));
-  textBox.AddText(TString::Format("X-Z 2D: U %d/%d, V %d/%d",
+  textBox.AddText(TString::Format("X-Z 2D: U %d/%d, V %d/%d, Y %d/%d",
                                   lc.nLinesU, n_2d_hits_u, lc.nLinesV,
-                                  n_2d_hits_v));
+                                  n_2d_hits_v, lc.nLinesY, n_2d_hits_y));
   textBox.AddText(TString::Format("Y-Z 2D: X %d/%d", lc.nLinesX,
                                   n_2d_hits_x));
   textBox.AddText(TString::Format("3D hits: %d", n_3d_hits));
@@ -619,9 +640,11 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
   bool draw_2d_tracks_u = true;
   bool draw_2d_tracks_v = true;
   bool draw_2d_tracks_x = true;
+  bool draw_2d_tracks_y = true;
   int color_adjustment = -2;
   std::cout << "lc.nLinesU: " << lc.nLinesU << ", lc.nLinesV: " << lc.nLinesV
             << ", lc.nLinesX: " << lc.nLinesX
+            << ", lc.nLinesY: " << lc.nLinesY
             << ", reco.nTracks: " << reco.nTracks << std::endl;
   if (draw_2d_tracks_u) {
     for (int it = 0; it < lc.nLinesU; it++) {
@@ -703,6 +726,20 @@ void DrawSlice(std::string outfilename, std::string reason, std::string message,
           linesy.push_back(line);
         }
       }*/
+    }
+  }
+  if (draw_2d_tracks_y) {
+    for (int it = 0; it < lc.nLinesY; it++) {
+      auto color_to_use = track_colors[it % n_track_colors] - color_adjustment;
+      for (int ih = 0; ih < lc.nHitsInTrackY[it]; ih++) {
+        float mx = lc.TrackHitPosY[it][ih][0] * CM;
+        float my = lc.TrackHitPosY[it][ih][1] * CM;
+        ConstrainMarkerX(mx, my);
+        TMarker marker(mx, my, 21);
+        marker.SetMarkerStyle(21);
+        marker.SetMarkerColor(color_to_use);
+        markers.push_back(marker);
+      }
     }
   }
 

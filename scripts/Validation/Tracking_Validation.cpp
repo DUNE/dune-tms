@@ -1014,6 +1014,69 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
         }
       }
 
+      if (lc.nLinesY == 1) {
+        // Y-view candidates measure X, so audit them against the X component
+        // of the truth/reconstructed 3D hits just as X candidates are audited
+        // against Y above.
+        const double z_eps = 50;
+        double post_line_z = -1e9;
+        double pre_line_z = 1e9;
+        std::map<int, int> mapOfYLineIndices;
+        for (int iH = 0; iH < reco.nHits[0]; iH++) {
+          double true_z = truth.RecoTrackTrueHitPosition[0][iH][2];
+          mapOfYLineIndices[iH] = -1;
+          for (int ih = 0; ih < lc.nHitsInTrackY[0]; ih++) {
+            double reco_z = lc.TrackHitPosY[0][ih][0];
+            if (reco_z < pre_line_z)
+              pre_line_z = reco_z;
+            if (reco_z > post_line_z)
+              post_line_z = reco_z;
+            if (std::abs(reco_z - true_z) < z_eps) {
+              mapOfYLineIndices[iH] = ih;
+              break;
+            }
+          }
+        }
+
+        for (int iH = 0; iH < reco.nHits[0]; iH++) {
+          int ih = mapOfYLineIndices[iH];
+          double true_x = truth.RecoTrackTrueHitPosition[0][iH][0];
+          if (ih >= 0) {
+            double dx = lc.TrackHitPosY[0][ih][1] - true_x;
+            GetHist("resolution__reco_track__lines_2d__line_y_hit_resolution_x",
+                    "Reco Track Hit Resolution X", "hit_position_resolution_x",
+                    "#N Hits")
+                ->Fill(dx * CM);
+            GetHist("resolution__reco_track__lines_2d__line_y_hit_resolution_x_"
+                    "v2_nostack_1_has_y",
+                    "Reco Track Hit Resolution X: Has Y info",
+                    "hit_position_resolution_x", "#N Hits")
+                ->Fill(dx * CM);
+          } else {
+            double reco_z = reco.TrackHitPos[0][iH][2];
+            double dx = reco.TrackHitPos[0][iH][0] - true_x;
+            if (reco_z < pre_line_z)
+              GetHist("resolution__reco_track__lines_2d__line_y_hit_resolution_"
+                      "x_v2_nostack_3_pre_line",
+                      "Reco Track Hit Resolution X: Before Y Line",
+                      "hit_position_resolution_x", "#N Hits")
+                  ->Fill(dx * CM);
+            else if (reco_z > post_line_z)
+              GetHist("resolution__reco_track__lines_2d__line_y_hit_resolution_"
+                      "x_v2_nostack_4_post_line",
+                      "Reco Track Hit Resolution X: After Y Line",
+                      "hit_position_resolution_x", "#N Hits")
+                  ->Fill(dx * CM);
+            else
+              GetHist("resolution__reco_track__lines_2d__line_y_hit_resolution_"
+                      "x_v2_nostack_2_missing_y",
+                      "Reco Track Hit Resolution X: Missing Y info",
+                      "hit_position_resolution_x", "#N Hits")
+                  ->Fill(dx * CM);
+          }
+        }
+      }
+
       for (int ih = 0; ih < reco.nKalmanNodes[0]; ih++) {
         double dx =
             reco.KalmanPos[0][ih][0] - reco.KalmanTruePos[0][ih][0];
@@ -1197,6 +1260,12 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
     if (lc.nLinesX > 0)
       DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
                 "track_multiplicity/has_nonzero_nLinesX",
+                TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
+                truth, DrawSliceN::many);
+
+    if (lc.nLinesY > 0)
+      DrawSlice(TString::Format("entry_%lld", entry_number).Data(),
+                "track_multiplicity/has_nonzero_nLinesY",
                 TString::Format("n tracks = %d", reco.nTracks).Data(), reco, lc,
                 truth, DrawSliceN::many);
 
