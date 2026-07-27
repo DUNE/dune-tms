@@ -201,7 +201,7 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("FirstHoughHitTimeY", FirstHitTimeY, "FirstHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("LastHoughHitTimeU",  LastHitTimeU,  "LastHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("LastHoughHitTimeV",  LastHitTimeV,  "LastHoughHitTimeV[nLinesV]/F");
-  Branch_Lines->Branch("LastHoughHitTImeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("LastHoughHitTimeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
   Branch_Lines->Branch("LastHoughHitTimeY",  LastHitTimeY,  "LastHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeU", EarliestHitTimeU, "HoughEarliestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeV", EarliestHitTimeV, "HoughEarliestHitTimeV[nLinesV]/F");
@@ -278,7 +278,7 @@ void TMS_TreeWriter::MakeBranches() {
   // Cluster information
   Branch_Lines->Branch("nClustersU",        &nClustersU,       "nClustersU/I");
   Branch_Lines->Branch("nClustersV",        &nClustersV,       "nClustersV/I");
-  Branch_Lines->Branch("nClusterX",         &nClustersX,       "nClustersX/I");
+  Branch_Lines->Branch("nClustersX",        &nClustersX,       "nClustersX/I");
   Branch_Lines->Branch("nClustersY",        &nClustersY,       "nClustersY/I");
   Branch_Lines->Branch("ClusterEnergyU",    ClusterEnergyU,    "ClusterEnergyU[nClustersU]/F");
   Branch_Lines->Branch("ClusterEnergyV",    ClusterEnergyV,    "ClusterEnergyV[nClustersV]/F");

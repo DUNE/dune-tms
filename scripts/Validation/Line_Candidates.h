@@ -116,7 +116,7 @@ public :
    Float_t         FirstHoughHitTimeX[20];   //[nLinesX]
    Float_t         LastHoughHitTimeU[20];   //[nLinesU]
    Float_t         LastHoughHitTimeV[20];   //[nLinesV]
-   Float_t         LastHoughHitTImeX[20];   //[nLinesX]
+   Float_t         LastHoughHitTimeX[20];   //[nLinesX]
    Float_t         HoughEarliestHitTimeU[20];   //[nLinesU]
    Float_t         HoughEarliestHitTimeV[20];   //[nLinesV]
    Float_t         HoughEarliestHitTimeX[20];   //[nLinesX]
@@ -157,7 +157,7 @@ public :
    Float_t         TrackHitTimeX[10][500]; 
    /*Int_t           nClustersU;
    Int_t           nClustersV;
-   Int_t           nClusterX;
+   Int_t           nClustersX;
    Float_t         ClusterEnergyU[20];   //[nClustersU]
    Float_t         ClusterEnergyV[20];   //[nClustersV]
    Float_t         ClusterEnergyX[20];   //[nClustersX]
@@ -284,7 +284,7 @@ public :
    TBranch        *b_FirstHoughHitTimeX;   //!
    TBranch        *b_LastHoughHitTimeU;   //!
    TBranch        *b_LastHoughHitTimeV;   //!
-   TBranch        *b_LastHoughHitTImeX;   //!
+   TBranch        *b_LastHoughHitTimeX;   //!
    TBranch        *b_HoughEarliestHitTimeU;   //!
    TBranch        *b_HoughEarliestHitTimeV;   //!
    TBranch        *b_HoughEarliestHitTimeX;   //!
@@ -541,7 +541,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("FirstHoughHitTimeX", &FirstHoughHitTimeX, &b_FirstHoughHitTimeX);
    fChain->SetBranchAddress("LastHoughHitTimeU", LastHoughHitTimeU, &b_LastHoughHitTimeU);
    fChain->SetBranchAddress("LastHoughHitTimeV", LastHoughHitTimeV, &b_LastHoughHitTimeV);
-   fChain->SetBranchAddress("LastHoughHitTImeX", &LastHoughHitTImeX, &b_LastHoughHitTImeX);
+   fChain->SetBranchAddress("LastHoughHitTimeX", &LastHoughHitTimeX, &b_LastHoughHitTimeX);
    fChain->SetBranchAddress("HoughEarliestHitTimeU", HoughEarliestHitTimeU, &b_HoughEarliestHitTimeU);
    fChain->SetBranchAddress("HoughEarliestHitTimeV", HoughEarliestHitTimeV, &b_HoughEarliestHitTimeV);
    fChain->SetBranchAddress("HoughEarliestHitTimeX", &HoughEarliestHitTimeX, &b_HoughEarliestHitTimeX);
@@ -582,7 +582,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("TrackHitTimeX", TrackHitTimeX, &b_TrackHitTimeX);
    fChain->SetBranchAddress("nClustersU", &nClustersU, &b_nClustersU);
    fChain->SetBranchAddress("nClustersV", &nClustersV, &b_nClustersV);
-   fChain->SetBranchAddress("nClusterX", &nClusterX, &b_nClustersX);
+   fChain->SetBranchAddress("nClustersX", &nClustersX, &b_nClustersX);
    fChain->SetBranchAddress("ClusterEnergyU", ClusterEnergyU, &b_ClusterEnergyU);
    fChain->SetBranchAddress("ClusterEnergyV", ClusterEnergyV, &b_ClusterEnergyV);
    fChain->SetBranchAddress("ClusterEnergyX", &ClusterEnergyX, &b_ClusterEnergyX);
