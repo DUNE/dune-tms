@@ -43,6 +43,22 @@
       GetHist("basic__hit_information__occupancy_plane_bar",
               "Hit Plane vs Bar Number", "plane", "bar")
           ->Fill(truth.TrueHitPlane[hi], truth.TrueHitBar[hi]);
+          
+      if (truth.TrueHitView[hi] == 0) {
+        GetHist("basic__hit_information__occupancy_v0_plane", "Hit Plane Number, View 0 Only",
+                "plane")
+            ->Fill(truth.TrueHitPlane[hi]);
+        GetHist("basic__hit_information__occupancy_v0_bar", "Hit Bar Number, View 0 Only", "bar")
+            ->Fill(truth.TrueHitBar[hi]);
+      }
+          
+      if (truth.TrueHitView[hi] == 1) {
+        GetHist("basic__hit_information__occupancy_v1_plane", "Hit Plane Number, View 1 Only",
+                "plane")
+            ->Fill(truth.TrueHitPlane[hi]);
+        GetHist("basic__hit_information__occupancy_v1_bar", "Hit Bar Number, View 1 Only", "bar")
+            ->Fill(truth.TrueHitBar[hi]);
+      }
 
       GetHist("basic__hit_information__delta_t",
               "Hit #Delta T (Reco - True), All Hits", "hit_delta_t")
