@@ -9,8 +9,9 @@ Optional --event, --slice, --view, and --attempt filters select a subset.
 
 Each image has a physical Z/not-Z Hough panel with the fitted line and a
 plane/bar panel in the coordinates used by post-Hough DBSCAN. Grey points are
-all cleaned hits in the selected view; orange, green, and blue points are the
-Hough seed, post-walk candidate, and retained largest DBSCAN cluster.
+all cleaned hits in the selected view; orange points are the Hough seed, green
+points are hits added by walking, and blue points are the retained largest
+DBSCAN cluster.
 """
 
 import argparse
@@ -84,12 +85,14 @@ def draw_attempt(lines, diagnostic, seed_indices, walked_indices, post_dbscan_in
                  float(lines.RecoHitPos[index * 4 + not_z_component]) / 1000.0) for index in indices]
 
     seed_hits = hit_points(seed_indices, "plane_bar")
-    walked_hits = hit_points(walked_indices, "plane_bar")
+    seed_index_set = set(seed_indices)
+    walked_added_indices = [index for index in walked_indices if index not in seed_index_set]
+    walked_hits = hit_points(walked_added_indices, "plane_bar")
     post_dbscan_hits = hit_points(post_dbscan_indices, "plane_bar")
     all_plane_bar_hits = [(hit["plane"], hit["bar"]) for hit in all_hits]
     all_physical_hits = [(hit["z"] / 1000.0, hit["not_z"] / 1000.0) for hit in all_hits]
     seed_physical_hits = hit_points(seed_indices, "physical")
-    walked_physical_hits = hit_points(walked_indices, "physical")
+    walked_physical_hits = hit_points(walked_added_indices, "physical")
     post_dbscan_physical_hits = hit_points(post_dbscan_indices, "physical")
     if not all_hits:
         print("Skipping event {} slice {} {}{}: no cleaned view hits".format(
@@ -155,7 +158,7 @@ def draw_attempt(lines, diagnostic, seed_indices, walked_indices, post_dbscan_in
     legend.AddEntry(all_physical_graph, "all cleaned view hits", "p")
     legend.AddEntry(line_graph, "Hough line", "l")
     legend.AddEntry(seed_physical_graph, "Hough seed", "p")
-    legend.AddEntry(walked_physical_graph, "after walking", "p")
+    legend.AddEntry(walked_physical_graph, "added by walking", "p")
     legend.AddEntry(post_dbscan_physical_graph, "post-DBSCAN", "p")
     legend.Draw()
 
