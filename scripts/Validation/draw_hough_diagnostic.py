@@ -7,9 +7,10 @@ Example:
 
 Optional --event, --slice, --view, and --attempt filters select a subset.
 
-The plot is in the plane/bar coordinates used by the Hough post-processing
-DBSCAN.  Grey points are all cleaned hits in the selected view, orange points
-are the Hough seed, and blue points are the retained largest DBSCAN cluster.
+Each image has a physical Z/not-Z Hough panel with the fitted line and a
+plane/bar panel in the coordinates used by post-Hough DBSCAN. Grey points are
+all cleaned hits in the selected view; orange, green, and blue points are the
+Hough seed, post-walk candidate, and retained largest DBSCAN cluster.
 """
 
 import argparse
@@ -54,7 +55,7 @@ def graph(points, color, marker_style, marker_size):
     return result
 
 
-def draw_attempt(lines, diagnostic, seed_indices, post_dbscan_indices, output):
+def draw_attempt(lines, diagnostic, seed_indices, walked_indices, post_dbscan_indices, output):
     line_entry = matching_line_entry(lines, diagnostic["event"], diagnostic["slice"],
                                      diagnostic["spill"], diagnostic["run"])
     if line_entry is None:
@@ -67,55 +68,112 @@ def draw_attempt(lines, diagnostic, seed_indices, post_dbscan_indices, output):
     all_hits = []
     for index in range(int(lines.nHits)):
         if int(lines.RecoHitBarType[index]) == selected_bar_type:
-            all_hits.append((int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])))
+            not_z_component = 1 if selected_bar_type == 0 else 0
+            all_hits.append({
+                "plane": int(lines.RecoHitPlane[index]),
+                "bar": int(lines.RecoHitBar[index]),
+                "z": float(lines.RecoHitPos[index * 4 + 2]),
+                "not_z": float(lines.RecoHitPos[index * 4 + not_z_component]),
+            })
 
-    def hit_points(indices):
-        return [(int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])) for index in indices]
+    def hit_points(indices, coordinates):
+        if coordinates == "plane_bar":
+            return [(int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])) for index in indices]
+        not_z_component = 1 if selected_bar_type == 0 else 0
+        return [(float(lines.RecoHitPos[index * 4 + 2]) / 1000.0,
+                 float(lines.RecoHitPos[index * 4 + not_z_component]) / 1000.0) for index in indices]
 
-    seed_hits = hit_points(seed_indices)
-    post_dbscan_hits = hit_points(post_dbscan_indices)
+    seed_hits = hit_points(seed_indices, "plane_bar")
+    walked_hits = hit_points(walked_indices, "plane_bar")
+    post_dbscan_hits = hit_points(post_dbscan_indices, "plane_bar")
+    all_plane_bar_hits = [(hit["plane"], hit["bar"]) for hit in all_hits]
+    all_physical_hits = [(hit["z"] / 1000.0, hit["not_z"] / 1000.0) for hit in all_hits]
+    seed_physical_hits = hit_points(seed_indices, "physical")
+    walked_physical_hits = hit_points(walked_indices, "physical")
+    post_dbscan_physical_hits = hit_points(post_dbscan_indices, "physical")
     if not all_hits:
         print("Skipping event {} slice {} {}{}: no cleaned view hits".format(
             diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"]))
         return False
 
-    planes = [point[0] for point in all_hits]
-    bars = [point[1] for point in all_hits]
+    planes = [point[0] for point in all_plane_bar_hits]
+    bars = [point[1] for point in all_plane_bar_hits]
     x_padding = max(1.0, 0.05 * (max(planes) - min(planes) + 1))
     y_padding = max(1.0, 0.05 * (max(bars) - min(bars) + 1))
-    frame = ROOT.TH2D("frame", "", 10, min(planes) - x_padding, max(planes) + x_padding,
-                      10, min(bars) - y_padding, max(bars) + y_padding)
-    frame.SetDirectory(0)
-    frame.GetXaxis().SetTitle("TMS plane number")
-    frame.GetYaxis().SetTitle("TMS bar number")
+    z_values = [point[0] for point in all_physical_hits]
+    not_z_values = [point[1] for point in all_physical_hits]
+    z_padding = max(0.1, 0.05 * (max(z_values) - min(z_values) + 0.1))
+    not_z_padding = max(0.1, 0.05 * (max(not_z_values) - min(not_z_values) + 0.1))
 
-    canvas = ROOT.TCanvas("hough_diagnostic", "Hough diagnostic", 1100, 850)
-    frame.Draw()
-    all_graph = graph(all_hits, ROOT.kGray + 1, 20, 0.7)
-    seed_graph = graph(seed_hits, ROOT.kOrange + 7, 24, 1.25)
-    post_dbscan_graph = graph(post_dbscan_hits, ROOT.kAzure + 2, 21, 1.4)
-    all_graph.Draw("P SAME")
-    seed_graph.Draw("P SAME")
-    post_dbscan_graph.Draw("P SAME")
+    object_name = "hough_event{}_slice{}_{}{}".format(
+        diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"])
+    canvas = ROOT.TCanvas(object_name, "Hough diagnostic", 1700, 900)
+    canvas.Divide(2, 1)
+    canvas.cd(1)
+    physical_frame = ROOT.TH2D(object_name + "_physical", "", 10, min(z_values) - z_padding, max(z_values) + z_padding,
+                               10, min(not_z_values) - not_z_padding, max(not_z_values) + not_z_padding)
+    physical_frame.SetDirectory(0)
+    physical_frame.GetXaxis().SetTitle("Z (m)")
+    physical_frame.GetYaxis().SetTitle("not-Z coordinate (m)")
+    physical_frame.Draw()
+    all_physical_graph = graph(all_physical_hits, ROOT.kGray + 1, 20, 0.65)
+    seed_physical_graph = graph(seed_physical_hits, ROOT.kOrange + 7, 24, 1.1)
+    walked_physical_graph = graph(walked_physical_hits, ROOT.kGreen + 2, 25, 1.0)
+    post_dbscan_physical_graph = graph(post_dbscan_physical_hits, ROOT.kAzure + 2, 21, 1.3)
+    line_graph = ROOT.TGraph(2)
+    line_graph.SetPoint(0, min(z_values) - z_padding,
+                        (diagnostic["slope"] * (min(z_values) - z_padding) * 1000.0 + diagnostic["intercept"]) / 1000.0)
+    line_graph.SetPoint(1, max(z_values) + z_padding,
+                        (diagnostic["slope"] * (max(z_values) + z_padding) * 1000.0 + diagnostic["intercept"]) / 1000.0)
+    line_graph.SetLineColor(ROOT.kRed + 1)
+    line_graph.SetLineStyle(2)
+    line_graph.SetLineWidth(2)
+    all_physical_graph.Draw("P SAME")
+    line_graph.Draw("L SAME")
+    seed_physical_graph.Draw("P SAME")
+    walked_physical_graph.Draw("P SAME")
+    post_dbscan_physical_graph.Draw("P SAME")
 
     stage = diagnostic["stage"]
     title = "Event {} slice {} {} attempt {}: {}".format(
         diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"],
         STAGE_NAMES.get(stage, "unknown"))
-    label = ROOT.TPaveText(0.12, 0.83, 0.62, 0.92, "NDC")
+    label = ROOT.TPaveText(0.12, 0.72, 0.80, 0.92, "NDC")
     label.SetFillStyle(0)
     label.SetBorderSize(0)
     label.AddText(title)
-    label.AddText("seed={}  largest DBSCAN={}  final={}  endpoint distance={:.2f}".format(
-        diagnostic["n_seed"], diagnostic["largest_dbscan"],
-        diagnostic["n_final"], diagnostic["endpoint_distance"]))
+    label.AddText("input={}  clean={}  projected={}  seed={}  walked={}".format(
+        diagnostic["n_input"], diagnostic["n_after_clean"], diagnostic["n_projected"],
+        diagnostic["n_seed"], diagnostic["n_after_walk"]))
+    label.AddText("DBSCAN clusters={}  largest={}  retained={}  A*={}  extrapolation={}  final={}".format(
+        diagnostic["n_dbscan_clusters"], diagnostic["largest_dbscan"], diagnostic["n_after_dbscan"],
+        diagnostic["n_after_astar"], diagnostic["n_after_extrapolation"], diagnostic["n_final"]))
+    label.AddText("endpoint distance={:.2f}".format(diagnostic["endpoint_distance"]))
     label.Draw()
 
-    legend = ROOT.TLegend(0.68, 0.77, 0.90, 0.91)
-    legend.AddEntry(all_graph, "all cleaned view hits", "p")
-    legend.AddEntry(seed_graph, "Hough seed", "p")
-    legend.AddEntry(post_dbscan_graph, "post-DBSCAN", "p")
+    legend = ROOT.TLegend(0.61, 0.46, 0.90, 0.69)
+    legend.AddEntry(all_physical_graph, "all cleaned view hits", "p")
+    legend.AddEntry(line_graph, "Hough line", "l")
+    legend.AddEntry(seed_physical_graph, "Hough seed", "p")
+    legend.AddEntry(walked_physical_graph, "after walking", "p")
+    legend.AddEntry(post_dbscan_physical_graph, "post-DBSCAN", "p")
     legend.Draw()
+
+    canvas.cd(2)
+    frame = ROOT.TH2D(object_name + "_plane_bar", "", 10, min(planes) - x_padding, max(planes) + x_padding,
+                      10, min(bars) - y_padding, max(bars) + y_padding)
+    frame.SetDirectory(0)
+    frame.GetXaxis().SetTitle("TMS plane number")
+    frame.GetYaxis().SetTitle("TMS bar number")
+    frame.Draw()
+    all_graph = graph(all_plane_bar_hits, ROOT.kGray + 1, 20, 0.7)
+    seed_graph = graph(seed_hits, ROOT.kOrange + 7, 24, 1.25)
+    walked_graph = graph(walked_hits, ROOT.kGreen + 2, 25, 1.1)
+    post_dbscan_graph = graph(post_dbscan_hits, ROOT.kAzure + 2, 21, 1.4)
+    all_graph.Draw("P SAME")
+    seed_graph.Draw("P SAME")
+    walked_graph.Draw("P SAME")
+    post_dbscan_graph.Draw("P SAME")
     canvas.SaveAs(output)
     print("Wrote {}".format(output))
     return True
@@ -153,9 +211,19 @@ def main():
             "view": chr(int(diagnostics.View)),
             "attempt": int(diagnostics.Attempt),
             "stage": int(diagnostics.RejectStage),
+            "n_input": int(diagnostics.nInput),
+            "n_after_clean": int(diagnostics.nAfterClean),
+            "n_projected": int(diagnostics.nProjected),
             "n_seed": int(diagnostics.nSeed),
+            "n_after_walk": int(diagnostics.nAfterWalk),
+            "n_dbscan_clusters": int(diagnostics.nDBSCANClusters),
             "largest_dbscan": int(diagnostics.nLargestDBSCAN),
+            "n_after_dbscan": int(diagnostics.nAfterDBSCAN),
+            "n_after_astar": int(diagnostics.nAfterAStar),
+            "n_after_extrapolation": int(diagnostics.nAfterExtrapolation),
             "n_final": int(diagnostics.nFinal),
+            "slope": float(diagnostics.Slope),
+            "intercept": float(diagnostics.Intercept),
             "endpoint_distance": float(diagnostics.EndpointDistance),
         }
 
@@ -193,6 +261,7 @@ def main():
         output = os.path.join(output_dir, "event{:06d}_slice{:04d}_{}{:02d}_stage{:02d}.png".format(
             event, slice_no, view, attempt, diagnostic["stage"]))
         if draw_attempt(lines, diagnostic, list(snapshots.SeedHitIndices),
+                        list(snapshots.WalkedHitIndices),
                         list(snapshots.PostDBSCANHitIndices), output):
             rendered += 1
     print("Rendered {} of {} selected rejected attempts into {}".format(rendered, selected, output_dir))

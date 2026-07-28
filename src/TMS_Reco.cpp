@@ -3260,6 +3260,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   WalkDownStream(returned, HitPool);
   WalkUpStream(returned, HitPool);
   diagnostic.nAfterWalk = returned.size();
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) diagnostic.walkedHits = returned;
 
   // (Asa's understanding)
   // Run DB scan on returned (Hough track hits) and remove all hits that are not

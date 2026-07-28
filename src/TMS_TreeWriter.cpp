@@ -399,6 +399,7 @@ void TMS_TreeWriter::MakeBranches() {
     Hough_Diagnostic_Hits->Branch("Attempt", &HoughDiagnosticAttempt, "Attempt/I");
     Hough_Diagnostic_Hits->Branch("RejectStage", &HoughDiagnosticRejectStage, "RejectStage/I");
     Hough_Diagnostic_Hits->Branch("SeedHitIndices", &HoughDiagnosticSeedHitIndices);
+    Hough_Diagnostic_Hits->Branch("WalkedHitIndices", &HoughDiagnosticWalkedHitIndices);
     Hough_Diagnostic_Hits->Branch("PostDBSCANHitIndices", &HoughDiagnosticPostDBSCANHitIndices);
   }
 
@@ -794,6 +795,7 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
 
     if (Hough_Diagnostic_Hits && diagnostic.stage != HoughDiagnosticStage::kAccepted) {
       HoughDiagnosticSeedHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.seedHits);
+      HoughDiagnosticWalkedHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.walkedHits);
       HoughDiagnosticPostDBSCANHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.postDBSCANHits);
       Hough_Diagnostic_Hits->Fill();
     }

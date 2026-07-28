@@ -86,6 +86,7 @@ struct HoughDiagnostic {
   int lastBar = -1;
   double endpointDistance = -1.0;
   std::vector<TMS_Hit> seedHits;
+  std::vector<TMS_Hit> walkedHits;
   std::vector<TMS_Hit> postDBSCANHits;
 };
 

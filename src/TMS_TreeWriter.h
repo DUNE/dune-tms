@@ -132,6 +132,7 @@ class TMS_TreeWriter {
     int HoughDiagnosticLastBar;
     float HoughDiagnosticEndpointDistance;
     std::vector<int> HoughDiagnosticSeedHitIndices;
+    std::vector<int> HoughDiagnosticWalkedHitIndices;
     std::vector<int> HoughDiagnosticPostDBSCANHitIndices;
 
     int HoughDiagnosticMinHits;

@@ -55,7 +55,7 @@
     # Optional per-attempt diagnostic ROOT trees.  Off in production.
     # Hough_Diagnostics records compact counts and first rejection stage.
     WriteDiagnostics = false
-    # Also write seed/post-DBSCAN RecoHit indices for rejected-candidate overlays.
+    # Also write seed/walked/post-DBSCAN RecoHit indices for rejected-candidate overlays.
     # Requires WriteDiagnostics and can make files substantially larger.
     WriteDiagnosticHitSnapshots = false
 
