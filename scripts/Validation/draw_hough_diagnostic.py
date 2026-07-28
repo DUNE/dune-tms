@@ -104,10 +104,6 @@ def draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_
             diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"]))
         return False
 
-    planes = [point[0] for point in all_plane_bar_hits]
-    bars = [point[1] for point in all_plane_bar_hits]
-    x_padding = max(1.0, 0.05 * (max(planes) - min(planes) + 1))
-    y_padding = max(1.0, 0.05 * (max(bars) - min(bars) + 1))
     z_values = [point[0] for point in all_physical_hits]
     not_z_values = [point[1] for point in all_physical_hits]
     z_padding = max(0.1, 0.05 * (max(z_values) - min(z_values) + 0.1))
@@ -115,9 +111,17 @@ def draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_
 
     object_name = "hough_event{}_slice{}_{}{}".format(
         diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"])
-    canvas = ROOT.TCanvas(object_name, "Hough diagnostic", 1700, 900)
-    canvas.Divide(2, 1)
-    canvas.cd(1)
+    canvas = ROOT.TCanvas(object_name, "Hough diagnostic", 1800, 1000)
+    plot_pad = ROOT.TPad(object_name + "_plot", "", 0.0, 0.0, 0.68, 1.0)
+    info_pad = ROOT.TPad(object_name + "_info", "", 0.68, 0.0, 1.0, 1.0)
+    plot_pad.SetLeftMargin(0.11)
+    plot_pad.SetRightMargin(0.03)
+    plot_pad.SetBottomMargin(0.10)
+    info_pad.SetMargin(0.04, 0.04, 0.04, 0.04)
+    plot_pad.Draw()
+    info_pad.Draw()
+
+    plot_pad.cd()
     physical_frame = ROOT.TH2D(object_name + "_physical", "", 10, min(z_values) - z_padding, max(z_values) + z_padding,
                                10, min(not_z_values) - not_z_padding, max(not_z_values) + not_z_padding)
     physical_frame.SetDirectory(0)
@@ -142,46 +146,35 @@ def draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_
     walked_physical_graph.Draw("P SAME")
     post_dbscan_physical_graph.Draw("P SAME")
 
+    info_pad.cd()
     stage = diagnostic["stage"]
     title = "Event {} slice {} {} attempt {}: {}".format(
         diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"],
         STAGE_NAMES.get(stage, "unknown"))
-    label = ROOT.TPaveText(0.12, 0.72, 0.80, 0.92, "NDC")
+    label = ROOT.TPaveText(0.06, 0.48, 0.94, 0.94, "NDC")
     label.SetFillStyle(0)
     label.SetBorderSize(0)
+    label.SetTextAlign(12)
+    label.SetTextSize(0.037)
     label.AddText(title)
-    label.AddText("input={}  clean={}  projected={}  seed={}  walked={}".format(
-        diagnostic["n_input"], diagnostic["n_after_clean"], diagnostic["n_projected"],
+    label.AddText("input: {}    after cleaning: {}    projected: {}".format(
+        diagnostic["n_input"], diagnostic["n_after_clean"], diagnostic["n_projected"]))
+    label.AddText("Hough seed: {}    after walking: {}".format(
         diagnostic["n_seed"], diagnostic["n_after_walk"]))
-    label.AddText("DBSCAN clusters={}  largest={}  retained={}  A*={}  extrapolation={}  final={}".format(
-        diagnostic["n_dbscan_clusters"], diagnostic["largest_dbscan"], diagnostic["n_after_dbscan"],
+    label.AddText("DBSCAN: {} clusters, largest {}, retained {}".format(
+        diagnostic["n_dbscan_clusters"], diagnostic["largest_dbscan"], diagnostic["n_after_dbscan"]))
+    label.AddText("after A*: {}    after extrapolation: {}    final: {}".format(
         diagnostic["n_after_astar"], diagnostic["n_after_extrapolation"], diagnostic["n_final"]))
     label.AddText("endpoint distance={:.2f}".format(diagnostic["endpoint_distance"]))
     label.Draw()
 
-    legend = ROOT.TLegend(0.61, 0.46, 0.90, 0.69)
+    legend = ROOT.TLegend(0.08, 0.12, 0.92, 0.42)
     legend.AddEntry(all_physical_graph, "all cleaned view hits", "p")
     legend.AddEntry(line_graph, "Hough line", "l")
     legend.AddEntry(seed_physical_graph, "Hough seed", "p")
     legend.AddEntry(walked_physical_graph, "added by walking", "p")
     legend.AddEntry(post_dbscan_physical_graph, "post-DBSCAN", "p")
     legend.Draw()
-
-    canvas.cd(2)
-    frame = ROOT.TH2D(object_name + "_plane_bar", "", 10, min(planes) - x_padding, max(planes) + x_padding,
-                      10, min(bars) - y_padding, max(bars) + y_padding)
-    frame.SetDirectory(0)
-    frame.GetXaxis().SetTitle("TMS plane number")
-    frame.GetYaxis().SetTitle("TMS bar number")
-    frame.Draw()
-    all_graph = graph(all_plane_bar_hits, ROOT.kGray + 1, 20, 0.7)
-    seed_graph = graph(seed_hits, ROOT.kOrange + 7, 24, 1.25)
-    walked_graph = graph(walked_hits, ROOT.kGreen + 2, 25, 1.1)
-    post_dbscan_graph = graph(post_dbscan_hits, ROOT.kAzure + 2, 21, 1.4)
-    all_graph.Draw("P SAME")
-    seed_graph.Draw("P SAME")
-    walked_graph.Draw("P SAME")
-    post_dbscan_graph.Draw("P SAME")
     canvas.SaveAs(output)
     print("Wrote {}".format(output))
     return True
