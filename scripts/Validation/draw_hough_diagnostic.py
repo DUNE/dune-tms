@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Draw one rejected 2D Hough attempt from the optional diagnostic trees.
+"""Render rejected 2D Hough attempts from the optional diagnostic trees.
 
 Example:
   python scripts/Validation/draw_hough_diagnostic.py reco.root \
-      --event 0 --slice 0 --view X --attempt 0
+      --output-dir hough_diagnostic_plots
+
+Optional --event, --slice, --view, and --attempt filters select a subset.
 
 The plot is in the plane/bar coordinates used by the Hough post-processing
 DBSCAN.  Grey points are all cleaned hits in the selected view, orange points
@@ -33,15 +35,6 @@ STAGE_NAMES = {
 }
 
 
-def matching_entry(tree, event, slice_no, view, attempt):
-    for entry_number in range(tree.GetEntries()):
-        tree.GetEntry(entry_number)
-        if (int(tree.EventNo) == event and int(tree.SliceNo) == slice_no and
-                int(tree.View) == ord(view) and int(tree.Attempt) == attempt):
-            return entry_number
-    return None
-
-
 def matching_line_entry(tree, event, slice_no, spill_no, run_no):
     for entry_number in range(tree.GetEntries()):
         tree.GetEntry(entry_number)
@@ -61,14 +54,81 @@ def graph(points, color, marker_style, marker_size):
     return result
 
 
+def draw_attempt(lines, diagnostic, seed_indices, post_dbscan_indices, output):
+    line_entry = matching_line_entry(lines, diagnostic["event"], diagnostic["slice"],
+                                     diagnostic["spill"], diagnostic["run"])
+    if line_entry is None:
+        print("Skipping event {} slice {}: no Line_Candidates entry".format(
+            diagnostic["event"], diagnostic["slice"]))
+        return False
+    lines.GetEntry(line_entry)
+
+    selected_bar_type = VIEW_TO_BAR_TYPE[diagnostic["view"]]
+    all_hits = []
+    for index in range(int(lines.nHits)):
+        if int(lines.RecoHitBarType[index]) == selected_bar_type:
+            all_hits.append((int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])))
+
+    def hit_points(indices):
+        return [(int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])) for index in indices]
+
+    seed_hits = hit_points(seed_indices)
+    post_dbscan_hits = hit_points(post_dbscan_indices)
+    if not all_hits:
+        print("Skipping event {} slice {} {}{}: no cleaned view hits".format(
+            diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"]))
+        return False
+
+    planes = [point[0] for point in all_hits]
+    bars = [point[1] for point in all_hits]
+    x_padding = max(1.0, 0.05 * (max(planes) - min(planes) + 1))
+    y_padding = max(1.0, 0.05 * (max(bars) - min(bars) + 1))
+    frame = ROOT.TH2D("frame", "", 10, min(planes) - x_padding, max(planes) + x_padding,
+                      10, min(bars) - y_padding, max(bars) + y_padding)
+    frame.SetDirectory(0)
+    frame.GetXaxis().SetTitle("TMS plane number")
+    frame.GetYaxis().SetTitle("TMS bar number")
+
+    canvas = ROOT.TCanvas("hough_diagnostic", "Hough diagnostic", 1100, 850)
+    frame.Draw()
+    all_graph = graph(all_hits, ROOT.kGray + 1, 20, 0.7)
+    seed_graph = graph(seed_hits, ROOT.kOrange + 7, 24, 1.25)
+    post_dbscan_graph = graph(post_dbscan_hits, ROOT.kAzure + 2, 21, 1.4)
+    all_graph.Draw("P SAME")
+    seed_graph.Draw("P SAME")
+    post_dbscan_graph.Draw("P SAME")
+
+    stage = diagnostic["stage"]
+    title = "Event {} slice {} {} attempt {}: {}".format(
+        diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"],
+        STAGE_NAMES.get(stage, "unknown"))
+    label = ROOT.TPaveText(0.12, 0.83, 0.62, 0.92, "NDC")
+    label.SetFillStyle(0)
+    label.SetBorderSize(0)
+    label.AddText(title)
+    label.AddText("seed={}  largest DBSCAN={}  final={}  endpoint distance={:.2f}".format(
+        diagnostic["n_seed"], diagnostic["largest_dbscan"],
+        diagnostic["n_final"], diagnostic["endpoint_distance"]))
+    label.Draw()
+
+    legend = ROOT.TLegend(0.68, 0.77, 0.90, 0.91)
+    legend.AddEntry(all_graph, "all cleaned view hits", "p")
+    legend.AddEntry(seed_graph, "Hough seed", "p")
+    legend.AddEntry(post_dbscan_graph, "post-DBSCAN", "p")
+    legend.Draw()
+    canvas.SaveAs(output)
+    print("Wrote {}".format(output))
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", help="dune-tms reconstruction ROOT output")
-    parser.add_argument("--event", type=int, required=True, help="EventNo")
-    parser.add_argument("--slice", dest="slice_no", type=int, required=True, help="SliceNo")
-    parser.add_argument("--view", choices=sorted(VIEW_TO_BAR_TYPE), required=True, help="2D view")
-    parser.add_argument("--attempt", type=int, default=0, help="Hough attempt number (default: 0)")
-    parser.add_argument("--output", help="PNG output path (default: beside input)")
+    parser.add_argument("--event", type=int, help="only this EventNo")
+    parser.add_argument("--slice", dest="slice_no", type=int, help="only this SliceNo")
+    parser.add_argument("--view", choices=sorted(VIEW_TO_BAR_TYPE), help="only this 2D view")
+    parser.add_argument("--attempt", type=int, help="only this Hough attempt number")
+    parser.add_argument("--output-dir", help="directory for PNGs (default: beside input)")
     args = parser.parse_args()
 
     input_file = ROOT.TFile.Open(args.input)
@@ -81,85 +141,61 @@ def main():
     if not diagnostics or not snapshots or not lines:
         raise RuntimeError("Input needs Hough_Diagnostics, Hough_Diagnostic_Hits, and Line_Candidates")
 
-    diagnostic_entry = matching_entry(diagnostics, args.event, args.slice_no, args.view, args.attempt)
-    if diagnostic_entry is None:
-        raise RuntimeError("No matching diagnostic row")
-    diagnostics.GetEntry(diagnostic_entry)
-    if int(diagnostics.RejectStage) == 0:
-        raise RuntimeError("Selected attempt was accepted; it has no rejected-candidate snapshot")
+    diagnostic_rows = {}
+    for entry_number in range(diagnostics.GetEntries()):
+        diagnostics.GetEntry(entry_number)
+        key = (int(diagnostics.EventNo), int(diagnostics.SliceNo), int(diagnostics.View), int(diagnostics.Attempt))
+        diagnostic_rows[key] = {
+            "event": int(diagnostics.EventNo),
+            "slice": int(diagnostics.SliceNo),
+            "spill": int(diagnostics.SpillNo),
+            "run": int(diagnostics.RunNo),
+            "view": chr(int(diagnostics.View)),
+            "attempt": int(diagnostics.Attempt),
+            "stage": int(diagnostics.RejectStage),
+            "n_seed": int(diagnostics.nSeed),
+            "largest_dbscan": int(diagnostics.nLargestDBSCAN),
+            "n_final": int(diagnostics.nFinal),
+            "endpoint_distance": float(diagnostics.EndpointDistance),
+        }
 
-    snapshot_entry = matching_entry(snapshots, args.event, args.slice_no, args.view, args.attempt)
-    if snapshot_entry is None:
-        raise RuntimeError("No matching hit snapshot; rerun with WriteDiagnosticHitSnapshots = true")
-    snapshots.GetEntry(snapshot_entry)
-
-    line_entry = matching_line_entry(lines, args.event, args.slice_no,
-                                     int(diagnostics.SpillNo), int(diagnostics.RunNo))
-    if line_entry is None:
-        raise RuntimeError("Could not find the matching Line_Candidates entry")
-    lines.GetEntry(line_entry)
-
-    selected_bar_type = VIEW_TO_BAR_TYPE[args.view]
-    all_hits = []
-    for index in range(int(lines.nHits)):
-        if int(lines.RecoHitBarType[index]) == selected_bar_type:
-            all_hits.append((int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])))
-
-    def hit_points(indices):
-        return [(int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])) for index in indices]
-
-    seed_hits = hit_points(list(snapshots.SeedHitIndices))
-    post_dbscan_hits = hit_points(list(snapshots.PostDBSCANHitIndices))
-    if not all_hits:
-        raise RuntimeError("No cleaned hits found in {} view".format(args.view))
-
-    planes = [point[0] for point in all_hits]
-    bars = [point[1] for point in all_hits]
-    x_padding = max(1.0, 0.05 * (max(planes) - min(planes) + 1))
-    y_padding = max(1.0, 0.05 * (max(bars) - min(bars) + 1))
-    frame = ROOT.TH2D("frame", "", 10, min(planes) - x_padding, max(planes) + x_padding,
-                      10, min(bars) - y_padding, max(bars) + y_padding)
-    frame.SetDirectory(0)
-    frame.GetXaxis().SetTitle("TMS plane number")
-    frame.GetYaxis().SetTitle("TMS bar number")
-
-    output = args.output
-    if not output:
-        stem = os.path.splitext(os.path.basename(args.input))[0]
-        output = os.path.join(os.path.dirname(os.path.abspath(args.input)),
-                              "{}_event{}_slice{}_{}{}_hough_diagnostic.png".format(
-                                  stem, args.event, args.slice_no, args.view, args.attempt))
-
+    stem = os.path.splitext(os.path.basename(args.input))[0]
+    output_dir = args.output_dir or os.path.join(os.path.dirname(os.path.abspath(args.input)),
+                                                  stem + "_hough_diagnostic_plots")
+    os.makedirs(output_dir, exist_ok=True)
     ROOT.gROOT.SetBatch(True)
     ROOT.gStyle.SetOptStat(0)
-    canvas = ROOT.TCanvas("hough_diagnostic", "Hough diagnostic", 1100, 850)
-    frame.Draw()
-    all_graph = graph(all_hits, ROOT.kGray + 1, 20, 0.7)
-    seed_graph = graph(seed_hits, ROOT.kOrange + 7, 24, 1.25)
-    post_dbscan_graph = graph(post_dbscan_hits, ROOT.kAzure + 2, 21, 1.4)
-    all_graph.Draw("P SAME")
-    seed_graph.Draw("P SAME")
-    post_dbscan_graph.Draw("P SAME")
 
-    stage = int(diagnostics.RejectStage)
-    title = "Event {} slice {} {} attempt {}: {}".format(
-        args.event, args.slice_no, args.view, args.attempt, STAGE_NAMES.get(stage, "unknown"))
-    label = ROOT.TPaveText(0.12, 0.83, 0.62, 0.92, "NDC")
-    label.SetFillStyle(0)
-    label.SetBorderSize(0)
-    label.AddText(title)
-    label.AddText("seed={}  largest DBSCAN={}  final={}  endpoint distance={:.2f}".format(
-        int(diagnostics.nSeed), int(diagnostics.nLargestDBSCAN),
-        int(diagnostics.nFinal), float(diagnostics.EndpointDistance)))
-    label.Draw()
-
-    legend = ROOT.TLegend(0.68, 0.77, 0.90, 0.91)
-    legend.AddEntry(all_graph, "all cleaned view hits", "p")
-    legend.AddEntry(seed_graph, "Hough seed", "p")
-    legend.AddEntry(post_dbscan_graph, "post-DBSCAN", "p")
-    legend.Draw()
-    canvas.SaveAs(output)
-    print("Wrote {}".format(output))
+    rendered = 0
+    selected = 0
+    for entry_number in range(snapshots.GetEntries()):
+        snapshots.GetEntry(entry_number)
+        event = int(snapshots.EventNo)
+        slice_no = int(snapshots.SliceNo)
+        view = chr(int(snapshots.View))
+        attempt = int(snapshots.Attempt)
+        if ((args.event is not None and event != args.event) or
+                (args.slice_no is not None and slice_no != args.slice_no) or
+                (args.view is not None and view != args.view) or
+                (args.attempt is not None and attempt != args.attempt)):
+            continue
+        selected += 1
+        if view not in VIEW_TO_BAR_TYPE:
+            print("Skipping event {} slice {} view {}: no plane/bar projection".format(
+                event, slice_no, view))
+            continue
+        key = (event, slice_no, int(snapshots.View), attempt)
+        diagnostic = diagnostic_rows.get(key)
+        if not diagnostic:
+            print("Skipping event {} slice {} {}{}: no diagnostic row".format(
+                event, slice_no, view, attempt))
+            continue
+        output = os.path.join(output_dir, "event{:06d}_slice{:04d}_{}{:02d}_stage{:02d}.png".format(
+            event, slice_no, view, attempt, diagnostic["stage"]))
+        if draw_attempt(lines, diagnostic, list(snapshots.SeedHitIndices),
+                        list(snapshots.PostDBSCANHitIndices), output):
+            rendered += 1
+    print("Rendered {} of {} selected rejected attempts into {}".format(rendered, selected, output_dir))
 
 
 if __name__ == "__main__":

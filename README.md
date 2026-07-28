@@ -47,7 +47,7 @@ For reconstruction debugging, set `Recon.Hough.WriteDiagnostics = true`. This cr
 
 Set `Recon.Hough.WriteDiagnosticHitSnapshots = true` as well to write `Hough_Diagnostic_Hits`, with `RecoHit` indices for the seed and post-DBSCAN states of rejected attempts. This is intended for event-display overlays and can grow output files substantially, so it is off by default.
 
-`scripts/Validation/draw_hough_diagnostic.py` renders one rejected attempt in the same plane/bar coordinates used by Hough DBSCAN. For example: `python scripts/Validation/draw_hough_diagnostic.py reco.root --event 0 --slice 0 --view X --attempt 0`. It overlays all cleaned hits in that view, the Hough seed, and the retained post-DBSCAN hits.
+`scripts/Validation/draw_hough_diagnostic.py` renders rejected attempts in the same plane/bar coordinates used by Hough DBSCAN. For example: `python scripts/Validation/draw_hough_diagnostic.py reco.root --output-dir hough_diagnostic_plots` writes every view-level rejected attempt; optional `--event`, `--slice`, `--view`, and `--attempt` filters narrow the render. Each plot overlays all cleaned hits in that view, the Hough seed, and the retained post-DBSCAN hits.
 
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
