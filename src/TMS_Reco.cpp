@@ -135,6 +135,7 @@ void TMS_TrackFinder::ClearClass() {
   HoughCandidatesV.clear();
   HoughCandidatesX.clear();
   HoughCandidatesY.clear();
+  HoughDiagnostics.clear();
   SortedHoughCandidatesU.clear();
   SortedHoughCandidatesV.clear();
   SortedHoughCandidatesX.clear();
@@ -186,7 +187,17 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   CleanedHits = CleanHits(RawHits);
 
   // Require N hits after cleaning
-  if (CleanedHits.size() < nMinHits) return;
+  if (CleanedHits.size() < nMinHits) {
+    if (kTrackMethod == TrackMethod::kHough && TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnostics()) {
+      HoughDiagnostic diagnostic;
+      diagnostic.view = 'E'; // Event-level gate, before hits can be separated by view.
+      diagnostic.nInput = RawHits.size();
+      diagnostic.nAfterClean = CleanedHits.size();
+      diagnostic.stage = HoughDiagnosticStage::kEventBelowMinimumHits;
+      HoughDiagnostics.push_back(diagnostic);
+    }
+    return;
+  }
 
   double clean_min_time = 1e9;
   double clean_max_time = -1e9;
@@ -2575,13 +2586,30 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
 std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
+  const bool writeDiagnostics = TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnostics();
+  auto saveDiagnostic = [&](const HoughDiagnostic &diagnostic) {
+    if (writeDiagnostics) HoughDiagnostics.push_back(diagnostic);
+  };
 
   // Check it's not empty
-  if (TMS_Hits.empty()) return LineCandidates;
+  if (TMS_Hits.empty()) {
+    HoughDiagnostic diagnostic;
+    diagnostic.view = hitgroup;
+    diagnostic.stage = HoughDiagnosticStage::kInputEmpty;
+    saveDiagnostic(diagnostic);
+    return LineCandidates;
+  }
 
   // First remove duplicate hits
   std::vector<TMS_Hit> TMS_Hits_Cleaned = CleanHits(TMS_Hits);
-  if (TMS_Hits_Cleaned.empty()) return LineCandidates;
+  if (TMS_Hits_Cleaned.empty()) {
+    HoughDiagnostic diagnostic;
+    diagnostic.view = hitgroup;
+    diagnostic.nInput = TMS_Hits.size();
+    diagnostic.stage = HoughDiagnosticStage::kPostCleanEmpty;
+    saveDiagnostic(diagnostic);
+    return LineCandidates;
+  }
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
@@ -2606,13 +2634,32 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
 
+  // The same strict condition is used by the successive-Hough loop below.
+  if (TMS_xz.size() <= nMinHits) {
+    HoughDiagnostic diagnostic;
+    diagnostic.view = hitgroup;
+    diagnostic.nInput = TMS_Hits.size();
+    diagnostic.nAfterClean = TMS_Hits_Cleaned.size();
+    diagnostic.nProjected = TMS_xz.size();
+    diagnostic.stage = HoughDiagnosticStage::kBelowMinimumHits;
+    saveDiagnostic(diagnostic);
+    return LineCandidates;
+  }
+
   while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
       TMS_xz.size() > nMinHits && 
       nRuns < nMaxHough) {
 
     // The candidate vectors
+    HoughDiagnostic diagnostic;
+    diagnostic.view = hitgroup;
+    diagnostic.attempt = nRuns;
+    diagnostic.nInput = TMS_Hits.size();
+    diagnostic.nAfterClean = TMS_Hits_Cleaned.size();
+    diagnostic.nProjected = TMS_xz.size();
     std::vector<TMS_Hit> TMS_xz_cand;
-    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz, hitgroup);
+    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz, hitgroup, diagnostic);
+    saveDiagnostic(diagnostic);
 
     if (TMS_xz_cand.size() == 0) {
       nRuns++;
@@ -2852,6 +2899,16 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Can remove Hough hits if not big enough
       // Also remember to remove the line
       if (ncleaned < 1) {
+        if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnostics()) {
+          for (auto diagnostic = HoughDiagnostics.rbegin(); diagnostic != HoughDiagnostics.rend(); ++diagnostic) {
+            if (diagnostic->view == hitgroup && diagnostic->stage == HoughDiagnosticStage::kAccepted) {
+              diagnostic->stage = HoughDiagnosticStage::kPostHoughAStarEmpty;
+              diagnostic->nAfterAStar = 0;
+              diagnostic->nFinal = 0;
+              break;
+            }
+          }
+        }
         it = LineCandidates.erase(it);
 	      if (hitgroup == 'U') {
           HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
@@ -2949,7 +3006,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 }
 
 // Requires hits to be ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup, HoughDiagnostic &diagnostic) {
 //TODO new orientation
   // Check if we're in XZ view
   bool IsXZ = (TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kUBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kVBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kXBar|| TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kYBar);
@@ -2997,6 +3054,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double slope, intercept;
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
+  diagnostic.slope = slope;
+  diagnostic.intercept = intercept;
   if (hitgroup == 'U') {
     HoughLineU->SetParameter(0, intercept);
     HoughLineU->SetParameter(1, slope);
@@ -3094,7 +3153,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     }
   }
 
-  if (returned.empty()) return returned;
+  diagnostic.nSeed = returned.size();
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) diagnostic.seedHits = returned;
+  if (returned.empty()) {
+    diagnostic.stage = HoughDiagnosticStage::kSeedEmpty;
+    return returned;
+  }
 
   /*
   // Clean up tracks by asking that the first and last hit of a track has neighbours
@@ -3195,6 +3259,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   // Hough is most likely to find hits upstream due to bending being less there
   WalkDownStream(returned, HitPool);
   WalkUpStream(returned, HitPool);
+  diagnostic.nAfterWalk = returned.size();
 
   // (Asa's understanding)
   // Run DB scan on returned (Hough track hits) and remove all hits that are not
@@ -3222,7 +3287,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   TMS_DBScan LineDB(TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints(), TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon(), DB_Points);
   LineDB.RunDBScan();
   std::vector<std::vector<TMS_DBScan_Point> > ClusterPoints = LineDB.GetClusters();
+  diagnostic.nDBSCANClusters = ClusterPoints.size();
   if (ClusterPoints.empty()) {
+    diagnostic.stage = HoughDiagnosticStage::kNoDBSCANCluster;
     std::vector<TMS_Hit> emptyvec;
     return emptyvec;
   }
@@ -3261,6 +3328,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       else it++;
     }
   }
+  for (const auto &cluster : ClusterHits) {
+    if (static_cast<int>(cluster.size()) > diagnostic.nLargestDBSCAN) diagnostic.nLargestDBSCAN = cluster.size();
+  }
+  diagnostic.nAfterDBSCAN = returned.size();
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) diagnostic.postDBSCANHits = returned;
 
   // Finally run A* to find the shortest path from start to end
   // RunHough
@@ -3284,6 +3356,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
       returned = vec;
     }
   }
+  diagnostic.nAfterAStar = returned.size();
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar() && returned.empty()) {
+    diagnostic.stage = HoughDiagnosticStage::kAStarEmpty;
+    return returned;
+  }
 
   // Now finally check if any hough tracks are too short, or have too few hits
   // Makes sense to do this right at the end when all the merging and cleaning has been run
@@ -3294,8 +3371,10 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   if (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation()) {
     returned = Extrapolation(returned, HitPool);
   }
+  diagnostic.nAfterExtrapolation = returned.size();
 
   if (returned.empty()) {
+    diagnostic.stage = HoughDiagnosticStage::kPostExtrapolationEmpty;
     std::vector<TMS_Hit> emptyvec;
     return emptyvec;
   }
@@ -3309,12 +3388,25 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double zdist = zstart - zend;
   double dist = sqrt(xdist * xdist + zdist * zdist);
   unsigned int nhits = (returned).size();
+  diagnostic.firstPlane = returned.front().GetPlaneNumber();
+  diagnostic.firstBar = returned.front().GetBarNumber();
+  diagnostic.lastPlane = returned.back().GetPlaneNumber();
+  diagnostic.lastBar = returned.back().GetBarNumber();
+  diagnostic.endpointDistance = dist;
+  diagnostic.nFinal = nhits;
   // Calculate the minimum distance in planes and bars instead of physical distance
-  if (dist < MinDistHough || nhits < nMinHits) {
+  if (nhits < nMinHits) {
+    diagnostic.stage = HoughDiagnosticStage::kFinalTooFewHits;
+    std::vector<TMS_Hit> emptyvec;
+    return emptyvec;
+  }
+  if (dist < MinDistHough) {
+    diagnostic.stage = HoughDiagnosticStage::kFinalTooShort;
     std::vector<TMS_Hit> emptyvec;
     return emptyvec;
   }
 
+  diagnostic.stage = HoughDiagnosticStage::kAccepted;
   return returned;
 }
 

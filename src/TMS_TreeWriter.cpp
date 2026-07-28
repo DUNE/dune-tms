@@ -20,6 +20,20 @@ namespace {
     return 82.0f + 1.75f * length;
   }
 
+  std::vector<int> FindDiagnosticHitIndices(const std::vector<TMS_Hit> &cleanedHits,
+                                            const std::vector<TMS_Hit> &snapshotHits) {
+    std::vector<int> indices;
+    for (const auto &snapshotHit : snapshotHits) {
+      for (unsigned int i = 0; i < cleanedHits.size(); ++i) {
+        if (cleanedHits[i] == snapshotHit) {
+          indices.push_back(i);
+          break;
+        }
+      }
+    }
+    return indices;
+  }
+
 }
 
 TMS_TreeWriter::TMS_TreeWriter() {
@@ -78,9 +92,28 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Meta->SetDirectory(Output);
   Meta->SetAutoSave(__TMS_AUTOSAVE__);
 
+  Hough_Diagnostics = nullptr;
+  Hough_Diagnostic_Hits = nullptr;
+  Hough_Diagnostic_Metadata = nullptr;
+  if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnostics()) {
+    Hough_Diagnostics = new TTree("Hough_Diagnostics", "One row per 2D Hough attempt");
+    Hough_Diagnostics->SetDirectory(Output);
+    Hough_Diagnostics->SetAutoSave(__TMS_AUTOSAVE__);
+
+    Hough_Diagnostic_Metadata = new TTree("Hough_Diagnostic_Metadata", "Hough diagnostic configuration");
+    Hough_Diagnostic_Metadata->SetDirectory(Output);
+    Hough_Diagnostic_Metadata->SetAutoSave(__TMS_AUTOSAVE__);
+
+    if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) {
+      Hough_Diagnostic_Hits = new TTree("Hough_Diagnostic_Hits", "Optional rejected-candidate hit snapshots");
+      Hough_Diagnostic_Hits->SetDirectory(Output);
+      Hough_Diagnostic_Hits->SetAutoSave(__TMS_AUTOSAVE__);
+    }
+  }
 
   MakeBranches();
   FillMetadata();
+  if (Hough_Diagnostic_Metadata) FillHoughDiagnosticMetadata();
 }
 
 void TMS_TreeWriter::FillMetadata() {
@@ -328,6 +361,58 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
+
+  if (Hough_Diagnostics) {
+    Hough_Diagnostics->Branch("EventNo", &HoughDiagnosticEventNo, "EventNo/I");
+    Hough_Diagnostics->Branch("SliceNo", &HoughDiagnosticSliceNo, "SliceNo/I");
+    Hough_Diagnostics->Branch("SpillNo", &HoughDiagnosticSpillNo, "SpillNo/I");
+    Hough_Diagnostics->Branch("RunNo", &HoughDiagnosticRunNo, "RunNo/I");
+    Hough_Diagnostics->Branch("View", &HoughDiagnosticView, "View/I");
+    Hough_Diagnostics->Branch("Attempt", &HoughDiagnosticAttempt, "Attempt/I");
+    Hough_Diagnostics->Branch("RejectStage", &HoughDiagnosticRejectStage, "RejectStage/I");
+    Hough_Diagnostics->Branch("nInput", &HoughDiagnosticNInput, "nInput/I");
+    Hough_Diagnostics->Branch("nAfterClean", &HoughDiagnosticNAfterClean, "nAfterClean/I");
+    Hough_Diagnostics->Branch("nProjected", &HoughDiagnosticNProjected, "nProjected/I");
+    Hough_Diagnostics->Branch("nSeed", &HoughDiagnosticNSeed, "nSeed/I");
+    Hough_Diagnostics->Branch("nAfterWalk", &HoughDiagnosticNAfterWalk, "nAfterWalk/I");
+    Hough_Diagnostics->Branch("nDBSCANClusters", &HoughDiagnosticNDBSCANClusters, "nDBSCANClusters/I");
+    Hough_Diagnostics->Branch("nLargestDBSCAN", &HoughDiagnosticNLargestDBSCAN, "nLargestDBSCAN/I");
+    Hough_Diagnostics->Branch("nAfterDBSCAN", &HoughDiagnosticNAfterDBSCAN, "nAfterDBSCAN/I");
+    Hough_Diagnostics->Branch("nAfterAStar", &HoughDiagnosticNAfterAStar, "nAfterAStar/I");
+    Hough_Diagnostics->Branch("nAfterExtrapolation", &HoughDiagnosticNAfterExtrapolation, "nAfterExtrapolation/I");
+    Hough_Diagnostics->Branch("nFinal", &HoughDiagnosticNFinal, "nFinal/I");
+    Hough_Diagnostics->Branch("Slope", &HoughDiagnosticSlope, "Slope/F");
+    Hough_Diagnostics->Branch("Intercept", &HoughDiagnosticIntercept, "Intercept/F");
+    Hough_Diagnostics->Branch("FirstPlane", &HoughDiagnosticFirstPlane, "FirstPlane/I");
+    Hough_Diagnostics->Branch("FirstBar", &HoughDiagnosticFirstBar, "FirstBar/I");
+    Hough_Diagnostics->Branch("LastPlane", &HoughDiagnosticLastPlane, "LastPlane/I");
+    Hough_Diagnostics->Branch("LastBar", &HoughDiagnosticLastBar, "LastBar/I");
+    Hough_Diagnostics->Branch("EndpointDistance", &HoughDiagnosticEndpointDistance, "EndpointDistance/F");
+  }
+
+  if (Hough_Diagnostic_Hits) {
+    Hough_Diagnostic_Hits->Branch("EventNo", &HoughDiagnosticEventNo, "EventNo/I");
+    Hough_Diagnostic_Hits->Branch("SliceNo", &HoughDiagnosticSliceNo, "SliceNo/I");
+    Hough_Diagnostic_Hits->Branch("SpillNo", &HoughDiagnosticSpillNo, "SpillNo/I");
+    Hough_Diagnostic_Hits->Branch("RunNo", &HoughDiagnosticRunNo, "RunNo/I");
+    Hough_Diagnostic_Hits->Branch("View", &HoughDiagnosticView, "View/I");
+    Hough_Diagnostic_Hits->Branch("Attempt", &HoughDiagnosticAttempt, "Attempt/I");
+    Hough_Diagnostic_Hits->Branch("RejectStage", &HoughDiagnosticRejectStage, "RejectStage/I");
+    Hough_Diagnostic_Hits->Branch("SeedHitIndices", &HoughDiagnosticSeedHitIndices);
+    Hough_Diagnostic_Hits->Branch("PostDBSCANHitIndices", &HoughDiagnosticPostDBSCANHitIndices);
+  }
+
+  if (Hough_Diagnostic_Metadata) {
+    Hough_Diagnostic_Metadata->Branch("MinHits", &HoughDiagnosticMinHits, "MinHits/I");
+    Hough_Diagnostic_Metadata->Branch("MinDist", &HoughDiagnosticMinDist, "MinDist/F");
+    Hough_Diagnostic_Metadata->Branch("HitMult", &HoughDiagnosticHitMult, "HitMult/F");
+    Hough_Diagnostic_Metadata->Branch("MaxTrans", &HoughDiagnosticMaxTrans, "MaxTrans/I");
+    Hough_Diagnostic_Metadata->Branch("FirstCluster", &HoughDiagnosticFirstCluster, "FirstCluster/O");
+    Hough_Diagnostic_Metadata->Branch("RunAStarCleanup", &HoughDiagnosticRunAStar, "RunAStarCleanup/O");
+    Hough_Diagnostic_Metadata->Branch("Extrapolation", &HoughDiagnosticExtrapolation, "Extrapolation/O");
+    Hough_Diagnostic_Metadata->Branch("DBSCANMinPoints", &HoughDiagnosticDBSCANMinPoints, "DBSCANMinPoints/I");
+    Hough_Diagnostic_Metadata->Branch("DBSCANEpsilon", &HoughDiagnosticDBSCANEpsilon, "DBSCANEpsilon/F");
+  }
 
   // Track information
   // TODO: Fill these properly
@@ -659,6 +744,60 @@ static void setPosition(float *branch, TLorentzVector position) {
     // storing the value as a float.
     if (position.T() == TMS_INVALID_TRUTH_VALUE) branch[3] = TMS_INVALID_TRUTH_VALUE;
     else branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
+}
+
+void TMS_TreeWriter::FillHoughDiagnosticMetadata() {
+  HoughDiagnosticMinHits = TMS_Manager::GetInstance().Get_Reco_MinHits();
+  HoughDiagnosticMinDist = TMS_Manager::GetInstance().Get_Reco_HOUGH_MinDist();
+  HoughDiagnosticHitMult = TMS_Manager::GetInstance().Get_Reco_HOUGH_HitMult();
+  HoughDiagnosticMaxTrans = TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough();
+  HoughDiagnosticFirstCluster = TMS_Manager::GetInstance().Get_Reco_HOUGH_FirstCluster();
+  HoughDiagnosticRunAStar = TMS_Manager::GetInstance().Get_Reco_HOUGH_RunAStar();
+  HoughDiagnosticExtrapolation = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_Extrapolation();
+  HoughDiagnosticDBSCANMinPoints = TMS_Manager::GetInstance().Get_Reco_DBSCAN_MinPoints();
+  HoughDiagnosticDBSCANEpsilon = TMS_Manager::GetInstance().Get_Reco_DBSCAN_Epsilon();
+  Hough_Diagnostic_Metadata->Fill();
+}
+
+void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
+  if (!Hough_Diagnostics) return;
+
+  const auto &diagnostics = TMS_TrackFinder::GetFinder().GetHoughDiagnostics();
+  const auto &cleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
+  for (const auto &diagnostic : diagnostics) {
+    HoughDiagnosticEventNo = event.GetEventNumber();
+    HoughDiagnosticSliceNo = event.GetSliceNumber();
+    HoughDiagnosticSpillNo = event.GetSpillNumber();
+    HoughDiagnosticRunNo = event.GetRunNumber();
+    HoughDiagnosticView = diagnostic.view;
+    HoughDiagnosticAttempt = diagnostic.attempt;
+    HoughDiagnosticRejectStage = static_cast<int>(diagnostic.stage);
+    HoughDiagnosticNInput = diagnostic.nInput;
+    HoughDiagnosticNAfterClean = diagnostic.nAfterClean;
+    HoughDiagnosticNProjected = diagnostic.nProjected;
+    HoughDiagnosticNSeed = diagnostic.nSeed;
+    HoughDiagnosticNAfterWalk = diagnostic.nAfterWalk;
+    HoughDiagnosticNDBSCANClusters = diagnostic.nDBSCANClusters;
+    HoughDiagnosticNLargestDBSCAN = diagnostic.nLargestDBSCAN;
+    HoughDiagnosticNAfterDBSCAN = diagnostic.nAfterDBSCAN;
+    HoughDiagnosticNAfterAStar = diagnostic.nAfterAStar;
+    HoughDiagnosticNAfterExtrapolation = diagnostic.nAfterExtrapolation;
+    HoughDiagnosticNFinal = diagnostic.nFinal;
+    HoughDiagnosticSlope = diagnostic.slope;
+    HoughDiagnosticIntercept = diagnostic.intercept;
+    HoughDiagnosticFirstPlane = diagnostic.firstPlane;
+    HoughDiagnosticFirstBar = diagnostic.firstBar;
+    HoughDiagnosticLastPlane = diagnostic.lastPlane;
+    HoughDiagnosticLastBar = diagnostic.lastBar;
+    HoughDiagnosticEndpointDistance = diagnostic.endpointDistance;
+    Hough_Diagnostics->Fill();
+
+    if (Hough_Diagnostic_Hits && diagnostic.stage != HoughDiagnosticStage::kAccepted) {
+      HoughDiagnosticSeedHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.seedHits);
+      HoughDiagnosticPostDBSCANHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.postDBSCANHits);
+      Hough_Diagnostic_Hits->Fill();
+    }
+  }
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -1500,6 +1639,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill up the info only if all above has passed
   Branch_Lines->Fill();
+  FillHoughDiagnostics(event);
 
 
   // Fill the 3D Tracks

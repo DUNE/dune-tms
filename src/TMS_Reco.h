@@ -46,6 +46,49 @@ enum class HeuristicType {
   kUnknown
 };
 
+// A compact record for one view-level Hough attempt.  Integer stage values are
+// written to ROOT so validation code does not depend on C++ enum dictionaries.
+enum class HoughDiagnosticStage {
+  kAccepted = 0,
+  kInputEmpty = 1,
+  kPostCleanEmpty = 2,
+  kBelowMinimumHits = 3,
+  kSeedEmpty = 4,
+  kNoDBSCANCluster = 5,
+  kAStarEmpty = 6,
+  kFinalTooFewHits = 7,
+  kFinalTooShort = 8,
+  kPostExtrapolationEmpty = 9,
+  kPostHoughAStarEmpty = 10,
+  kEventBelowMinimumHits = 11
+};
+
+struct HoughDiagnostic {
+  char view = '?';
+  int attempt = -1;
+  HoughDiagnosticStage stage = HoughDiagnosticStage::kAccepted;
+  int nInput = 0;
+  int nAfterClean = 0;
+  int nProjected = 0;
+  int nSeed = 0;
+  int nAfterWalk = 0;
+  int nDBSCANClusters = 0;
+  int nLargestDBSCAN = 0;
+  int nAfterDBSCAN = 0;
+  int nAfterAStar = 0;
+  int nAfterExtrapolation = 0;
+  int nFinal = 0;
+  double slope = 0.0;
+  double intercept = 0.0;
+  int firstPlane = -1;
+  int firstBar = -1;
+  int lastPlane = -1;
+  int lastBar = -1;
+  double endpointDistance = -1.0;
+  std::vector<TMS_Hit> seedHits;
+  std::vector<TMS_Hit> postDBSCANHits;
+};
+
 // Utility class struct to store the node for track finding using A* or Best-First
 class aNode {
   public:
@@ -224,6 +267,7 @@ class TMS_TrackFinder {
     std::vector<std::vector<TMS_Hit> > &GetHoughCandidatesY() { return HoughCandidatesY; };
 
     std::vector<TMS_Track> &GetHoughTracks3D() { return HoughTracks3D; };
+    const std::vector<HoughDiagnostic> &GetHoughDiagnostics() { return HoughDiagnostics; };
 
     TH2D *AccumulatorToTH2D(bool zy);
 
@@ -259,7 +303,7 @@ class TMS_TrackFinder {
 
     //void HoughTransform(const std::vector<TMS_Hit> &Hits);
     std::vector<std::vector<TMS_Hit> > HoughTransform(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
-    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup);
+    std::vector<TMS_Hit> RunHough(const std::vector<TMS_Hit> &Hits, const char &hitgroup, HoughDiagnostic &diagnostic);
 
     std::vector<TMS_Hit> Extrapolation(const std::vector<TMS_Hit> &TrackHits, const std::vector<TMS_Hit> &Hits);
     std::vector<TMS_Track> TrackMatching3D();
@@ -361,6 +405,7 @@ class TMS_TrackFinder {
     std::vector<std::pair<double,double>> HoughLinesY_Upstream;
     std::vector<std::pair<double,double>> HoughLinesY_Downstream;
     std::vector<TMS_Track> HoughTracks3D;
+    std::vector<HoughDiagnostic> HoughDiagnostics;
 
     char hitgroup;
     int nIntercept;

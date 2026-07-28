@@ -39,6 +39,8 @@ class TMS_Manager {
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
+    bool Get_Reco_HOUGH_WriteDiagnostics() { return _RECO_HOUGH_WriteDiagnostics; };
+    bool Get_Reco_HOUGH_WriteDiagnosticHitSnapshots() { return _RECO_HOUGH_WriteDiagnostics && _RECO_HOUGH_WriteDiagnosticHitSnapshots; };
 
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
@@ -157,6 +159,8 @@ class TMS_Manager {
     bool _RECO_HOUGH_RunAStar;
     bool _RECO_HOUGH_FirstCluster;
     double _RECO_HOUGH_MinDist;
+    bool _RECO_HOUGH_WriteDiagnostics;
+    bool _RECO_HOUGH_WriteDiagnosticHitSnapshots;
 
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;

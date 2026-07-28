@@ -52,6 +52,12 @@
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    # Optional per-attempt diagnostic ROOT trees.  Off in production.
+    # Hough_Diagnostics records compact counts and first rejection stage.
+    WriteDiagnostics = false
+    # Also write seed/post-DBSCAN RecoHit indices for rejected-candidate overlays.
+    # Requires WriteDiagnostics and can make files substantially larger.
+    WriteDiagnosticHitSnapshots = false
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not

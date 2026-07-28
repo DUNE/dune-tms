@@ -42,6 +42,11 @@ In the `app` directory you can also find some test executables for the reconstru
 ## Configuration options
 All run-time configuration happens through `config/TMS_Default_Config.toml`. At time of writing, you can control reconstruction parameters (e.g. how many points do you need to form a "cluster" in DBSCAN, or what is the track reconstruction method), and application parameters (e.g. do we save detailed truth information, do we draw PDFs of hits) here. Have a look around and feel free to play!
 
+### Hough attempt diagnostics
+For reconstruction debugging, set `Recon.Hough.WriteDiagnostics = true`. This creates a compact `Hough_Diagnostics` tree with one row for each U/V/X/Y Hough attempt, including failures, and a one-row `Hough_Diagnostic_Metadata` tree containing the relevant configuration. `RejectStage` is an integer: `0` accepted, `1` input empty, `2` empty after cleaning, `3` below the per-view minimum hit count, `4` no Hough seed hits, `5` no DBSCAN cluster, `6` A* emptied the candidate, `7` too few final hits, `8` too short, `9` extrapolation emptied the candidate, `10` the final post-Hough A* cleanup emptied it, and `11` the event-level cleaned slice was below the minimum hit count. The event-level row has `View = 'E'`.
+
+Set `Recon.Hough.WriteDiagnosticHitSnapshots = true` as well to write `Hough_Diagnostic_Hits`, with `RecoHit` indices for the seed and post-DBSCAN states of rejected attempts. This is intended for event-display overlays and can grow output files substantially, so it is off by default.
+
 # Directory structure
 * `app` contains the example executables, linking to the TMS library
 * `src` contains the TMS source files, like the track finder, event classes, true particle classes, and so on

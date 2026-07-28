@@ -42,6 +42,9 @@ class TMS_TreeWriter {
       Truth_Info->Write();
       Truth_Spill->Write();
       Meta->Write();
+      if (Hough_Diagnostics) Hough_Diagnostics->Write();
+      if (Hough_Diagnostic_Hits) Hough_Diagnostic_Hits->Write();
+      if (Hough_Diagnostic_Metadata) Hough_Diagnostic_Metadata->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
@@ -93,10 +96,53 @@ class TMS_TreeWriter {
     TTree* Truth_Info; // Truth info
     TTree* Truth_Spill; // Truth spill
     TTree* Meta; // Metadata
+    TTree* Hough_Diagnostics; // Optional compact 2D Hough attempt diagnostics
+    TTree* Hough_Diagnostic_Hits; // Optional hit-index snapshots for diagnostics
+    TTree* Hough_Diagnostic_Metadata; // One configuration row per output file
 
     void Clear();
     void MakeBranches(); // Make the output branches
     void MakeTruthBranches(TTree* truth); // Make the output branches
+    void FillHoughDiagnostics(TMS_Event &event);
+    void FillHoughDiagnosticMetadata();
+
+    int HoughDiagnosticEventNo;
+    int HoughDiagnosticSliceNo;
+    int HoughDiagnosticSpillNo;
+    int HoughDiagnosticRunNo;
+    int HoughDiagnosticView;
+    int HoughDiagnosticAttempt;
+    int HoughDiagnosticRejectStage;
+    int HoughDiagnosticNInput;
+    int HoughDiagnosticNAfterClean;
+    int HoughDiagnosticNProjected;
+    int HoughDiagnosticNSeed;
+    int HoughDiagnosticNAfterWalk;
+    int HoughDiagnosticNDBSCANClusters;
+    int HoughDiagnosticNLargestDBSCAN;
+    int HoughDiagnosticNAfterDBSCAN;
+    int HoughDiagnosticNAfterAStar;
+    int HoughDiagnosticNAfterExtrapolation;
+    int HoughDiagnosticNFinal;
+    float HoughDiagnosticSlope;
+    float HoughDiagnosticIntercept;
+    int HoughDiagnosticFirstPlane;
+    int HoughDiagnosticFirstBar;
+    int HoughDiagnosticLastPlane;
+    int HoughDiagnosticLastBar;
+    float HoughDiagnosticEndpointDistance;
+    std::vector<int> HoughDiagnosticSeedHitIndices;
+    std::vector<int> HoughDiagnosticPostDBSCANHitIndices;
+
+    int HoughDiagnosticMinHits;
+    float HoughDiagnosticMinDist;
+    float HoughDiagnosticHitMult;
+    int HoughDiagnosticMaxTrans;
+    bool HoughDiagnosticFirstCluster;
+    bool HoughDiagnosticRunAStar;
+    bool HoughDiagnosticExtrapolation;
+    int HoughDiagnosticDBSCANMinPoints;
+    float HoughDiagnosticDBSCANEpsilon;
     
     float TimeSliceStartTime;
     float TimeSliceEndTime;

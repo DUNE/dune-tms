@@ -53,6 +53,19 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");
   _RECO_HOUGH_MinDist = toml::find<double>(data, "Recon", "Hough", "MinDist");
+  // Keep existing user TOMLs working: diagnostics are strictly opt-in.
+  _RECO_HOUGH_WriteDiagnostics = false;
+  _RECO_HOUGH_WriteDiagnosticHitSnapshots = false;
+  try {
+    _RECO_HOUGH_WriteDiagnostics = toml::find<bool>(data, "Recon", "Hough", "WriteDiagnostics");
+  } catch (const std::exception &) {
+    // Older config files do not contain diagnostic settings.
+  }
+  try {
+    _RECO_HOUGH_WriteDiagnosticHitSnapshots = toml::find<bool>(data, "Recon", "Hough", "WriteDiagnosticHitSnapshots");
+  } catch (const std::exception &) {
+    // Snapshot output was introduced after compact diagnostics.
+  }
 
   _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
   _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
