@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Render rejected 2D Hough attempts from the optional diagnostic trees.
+"""Render 2D Hough attempts from the optional diagnostic trees.
 
 Example:
   python scripts/Validation/draw_hough_diagnostic.py reco.root \
       --output-dir hough_diagnostic_plots
 
 Optional --event, --slice, --view, and --attempt filters select a subset.
+Use --failed-only to omit accepted candidates.
 
 Each image has a physical Z/not-Z Hough panel with the fitted line and a
 plane/bar panel in the coordinates used by post-Hough DBSCAN. Grey points are
@@ -193,6 +194,7 @@ def main():
     parser.add_argument("--slice", dest="slice_no", type=int, help="only this SliceNo")
     parser.add_argument("--view", choices=sorted(VIEW_TO_BAR_TYPE), help="only this 2D view")
     parser.add_argument("--attempt", type=int, help="only this Hough attempt number")
+    parser.add_argument("--failed-only", action="store_true", help="render rejected attempts only")
     parser.add_argument("--output-dir", help="directory for PNGs (default: beside input)")
     args = parser.parse_args()
 
@@ -256,7 +258,6 @@ def main():
                 (args.view is not None and view != args.view) or
                 (args.attempt is not None and attempt != args.attempt)):
             continue
-        selected += 1
         if view not in VIEW_TO_BAR_TYPE:
             print("Skipping event {} slice {} view {}: no plane/bar projection".format(
                 event, slice_no, view))
@@ -267,6 +268,9 @@ def main():
             print("Skipping event {} slice {} {}{}: no diagnostic row".format(
                 event, slice_no, view, attempt))
             continue
+        if args.failed_only and diagnostic["stage"] == 0:
+            continue
+        selected += 1
         output = os.path.join(output_dir, "event{:06d}_slice{:04d}_{}{:02d}_stage{:02d}.png".format(
             event, slice_no, view, attempt, diagnostic["stage"]))
         seed_snapshot = (list(snapshots.SeedPlaneBar), list(snapshots.SeedZNotZ))
@@ -274,7 +278,7 @@ def main():
         post_dbscan_snapshot = (list(snapshots.PostDBSCANPlaneBar), list(snapshots.PostDBSCANZNotZ))
         if draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_snapshot, output):
             rendered += 1
-    print("Rendered {} of {} selected rejected attempts into {}".format(rendered, selected, output_dir))
+    print("Rendered {} of {} selected attempts into {}".format(rendered, selected, output_dir))
 
 
 if __name__ == "__main__":

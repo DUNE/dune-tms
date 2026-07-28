@@ -106,7 +106,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
     Hough_Diagnostic_Metadata->SetAutoSave(__TMS_AUTOSAVE__);
 
     if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) {
-      Hough_Diagnostic_Hits = new TTree("Hough_Diagnostic_Hits", "Optional rejected-candidate hit snapshots");
+      Hough_Diagnostic_Hits = new TTree("Hough_Diagnostic_Hits", "Optional 2D Hough attempt hit snapshots");
       Hough_Diagnostic_Hits->SetDirectory(Output);
       Hough_Diagnostic_Hits->SetAutoSave(__TMS_AUTOSAVE__);
     }
@@ -796,7 +796,11 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
     HoughDiagnosticEndpointDistance = diagnostic.endpointDistance;
     Hough_Diagnostics->Fill();
 
-    if (Hough_Diagnostic_Hits && diagnostic.stage != HoughDiagnosticStage::kAccepted) {
+    // An attempt number is assigned only once a Hough line has actually been built.
+    // Keep snapshots for both accepted and rejected lines so visual validation has
+    // successful candidates as a comparison population.  The attempt=-1 early
+    // gates have no line or per-candidate hit collections to display.
+    if (Hough_Diagnostic_Hits && diagnostic.attempt >= 0) {
       FillDiagnosticHitSnapshot(diagnostic.seedHits, HoughDiagnosticSeedPlaneBar, HoughDiagnosticSeedZNotZ);
       FillDiagnosticHitSnapshot(diagnostic.walkedHits, HoughDiagnosticWalkedPlaneBar, HoughDiagnosticWalkedZNotZ);
       FillDiagnosticHitSnapshot(diagnostic.postDBSCANHits, HoughDiagnosticPostDBSCANPlaneBar, HoughDiagnosticPostDBSCANZNotZ);
