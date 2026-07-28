@@ -20,18 +20,19 @@ namespace {
     return 82.0f + 1.75f * length;
   }
 
-  std::vector<int> FindDiagnosticHitIndices(const std::vector<TMS_Hit> &cleanedHits,
-                                            const std::vector<TMS_Hit> &snapshotHits) {
-    std::vector<int> indices;
-    for (const auto &snapshotHit : snapshotHits) {
-      for (unsigned int i = 0; i < cleanedHits.size(); ++i) {
-        if (cleanedHits[i] == snapshotHit) {
-          indices.push_back(i);
-          break;
-        }
-      }
+  void FillDiagnosticHitSnapshot(const std::vector<TMS_Hit> &hits,
+                                 std::vector<int> &planeBar,
+                                 std::vector<float> &zNotZ) {
+    planeBar.clear();
+    zNotZ.clear();
+    planeBar.reserve(2 * hits.size());
+    zNotZ.reserve(2 * hits.size());
+    for (const auto &hit : hits) {
+      planeBar.push_back(hit.GetPlaneNumber());
+      planeBar.push_back(hit.GetBarNumber());
+      zNotZ.push_back(hit.GetZ());
+      zNotZ.push_back(hit.GetNotZ());
     }
-    return indices;
   }
 
 }
@@ -398,9 +399,12 @@ void TMS_TreeWriter::MakeBranches() {
     Hough_Diagnostic_Hits->Branch("View", &HoughDiagnosticView, "View/I");
     Hough_Diagnostic_Hits->Branch("Attempt", &HoughDiagnosticAttempt, "Attempt/I");
     Hough_Diagnostic_Hits->Branch("RejectStage", &HoughDiagnosticRejectStage, "RejectStage/I");
-    Hough_Diagnostic_Hits->Branch("SeedHitIndices", &HoughDiagnosticSeedHitIndices);
-    Hough_Diagnostic_Hits->Branch("WalkedHitIndices", &HoughDiagnosticWalkedHitIndices);
-    Hough_Diagnostic_Hits->Branch("PostDBSCANHitIndices", &HoughDiagnosticPostDBSCANHitIndices);
+    Hough_Diagnostic_Hits->Branch("SeedPlaneBar", &HoughDiagnosticSeedPlaneBar);
+    Hough_Diagnostic_Hits->Branch("SeedZNotZ", &HoughDiagnosticSeedZNotZ);
+    Hough_Diagnostic_Hits->Branch("WalkedPlaneBar", &HoughDiagnosticWalkedPlaneBar);
+    Hough_Diagnostic_Hits->Branch("WalkedZNotZ", &HoughDiagnosticWalkedZNotZ);
+    Hough_Diagnostic_Hits->Branch("PostDBSCANPlaneBar", &HoughDiagnosticPostDBSCANPlaneBar);
+    Hough_Diagnostic_Hits->Branch("PostDBSCANZNotZ", &HoughDiagnosticPostDBSCANZNotZ);
   }
 
   if (Hough_Diagnostic_Metadata) {
@@ -764,7 +768,6 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
   if (!Hough_Diagnostics) return;
 
   const auto &diagnostics = TMS_TrackFinder::GetFinder().GetHoughDiagnostics();
-  const auto &cleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
   for (const auto &diagnostic : diagnostics) {
     HoughDiagnosticEventNo = event.GetEventNumber();
     HoughDiagnosticSliceNo = event.GetSliceNumber();
@@ -794,9 +797,9 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
     Hough_Diagnostics->Fill();
 
     if (Hough_Diagnostic_Hits && diagnostic.stage != HoughDiagnosticStage::kAccepted) {
-      HoughDiagnosticSeedHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.seedHits);
-      HoughDiagnosticWalkedHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.walkedHits);
-      HoughDiagnosticPostDBSCANHitIndices = FindDiagnosticHitIndices(cleanedHits, diagnostic.postDBSCANHits);
+      FillDiagnosticHitSnapshot(diagnostic.seedHits, HoughDiagnosticSeedPlaneBar, HoughDiagnosticSeedZNotZ);
+      FillDiagnosticHitSnapshot(diagnostic.walkedHits, HoughDiagnosticWalkedPlaneBar, HoughDiagnosticWalkedZNotZ);
+      FillDiagnosticHitSnapshot(diagnostic.postDBSCANHits, HoughDiagnosticPostDBSCANPlaneBar, HoughDiagnosticPostDBSCANZNotZ);
       Hough_Diagnostic_Hits->Fill();
     }
   }

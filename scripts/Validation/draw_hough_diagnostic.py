@@ -56,7 +56,18 @@ def graph(points, color, marker_style, marker_size):
     return result
 
 
-def draw_attempt(lines, diagnostic, seed_indices, walked_indices, post_dbscan_indices, output):
+def snapshot_points(plane_bar, z_not_z):
+    if len(plane_bar) != len(z_not_z) or len(plane_bar) % 2:
+        raise RuntimeError("Malformed diagnostic hit snapshot")
+    plane_bar_points = []
+    physical_points = []
+    for index in range(0, len(plane_bar), 2):
+        plane_bar_points.append((int(plane_bar[index]), int(plane_bar[index + 1])))
+        physical_points.append((float(z_not_z[index]) / 1000.0, float(z_not_z[index + 1]) / 1000.0))
+    return plane_bar_points, physical_points
+
+
+def draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_snapshot, output):
     line_entry = matching_line_entry(lines, diagnostic["event"], diagnostic["slice"],
                                      diagnostic["spill"], diagnostic["run"])
     if line_entry is None:
@@ -77,23 +88,16 @@ def draw_attempt(lines, diagnostic, seed_indices, walked_indices, post_dbscan_in
                 "not_z": float(lines.RecoHitPos[index * 4 + not_z_component]),
             })
 
-    def hit_points(indices, coordinates):
-        if coordinates == "plane_bar":
-            return [(int(lines.RecoHitPlane[index]), int(lines.RecoHitBar[index])) for index in indices]
-        not_z_component = 1 if selected_bar_type == 0 else 0
-        return [(float(lines.RecoHitPos[index * 4 + 2]) / 1000.0,
-                 float(lines.RecoHitPos[index * 4 + not_z_component]) / 1000.0) for index in indices]
-
-    seed_hits = hit_points(seed_indices, "plane_bar")
-    seed_index_set = set(seed_indices)
-    walked_added_indices = [index for index in walked_indices if index not in seed_index_set]
-    walked_hits = hit_points(walked_added_indices, "plane_bar")
-    post_dbscan_hits = hit_points(post_dbscan_indices, "plane_bar")
+    seed_hits, seed_physical_hits = snapshot_points(*seed_snapshot)
+    walked_all_hits, walked_all_physical_hits = snapshot_points(*walked_snapshot)
+    post_dbscan_hits, post_dbscan_physical_hits = snapshot_points(*post_dbscan_snapshot)
+    seed_keys = set(zip(seed_hits, seed_physical_hits))
+    walked_pairs = list(zip(walked_all_hits, walked_all_physical_hits))
+    walked_added_pairs = [pair for pair in walked_pairs if pair not in seed_keys]
+    walked_hits = [pair[0] for pair in walked_added_pairs]
+    walked_physical_hits = [pair[1] for pair in walked_added_pairs]
     all_plane_bar_hits = [(hit["plane"], hit["bar"]) for hit in all_hits]
     all_physical_hits = [(hit["z"] / 1000.0, hit["not_z"] / 1000.0) for hit in all_hits]
-    seed_physical_hits = hit_points(seed_indices, "physical")
-    walked_physical_hits = hit_points(walked_added_indices, "physical")
-    post_dbscan_physical_hits = hit_points(post_dbscan_indices, "physical")
     if not all_hits:
         print("Skipping event {} slice {} {}{}: no cleaned view hits".format(
             diagnostic["event"], diagnostic["slice"], diagnostic["view"], diagnostic["attempt"]))
@@ -201,6 +205,8 @@ def main():
     lines = input_file.Get("Line_Candidates")
     if not diagnostics or not snapshots or not lines:
         raise RuntimeError("Input needs Hough_Diagnostics, Hough_Diagnostic_Hits, and Line_Candidates")
+    if not snapshots.GetBranch("SeedPlaneBar"):
+        raise RuntimeError("Input has an older diagnostic snapshot schema; rerun reconstruction")
 
     diagnostic_rows = {}
     for entry_number in range(diagnostics.GetEntries()):
@@ -263,9 +269,10 @@ def main():
             continue
         output = os.path.join(output_dir, "event{:06d}_slice{:04d}_{}{:02d}_stage{:02d}.png".format(
             event, slice_no, view, attempt, diagnostic["stage"]))
-        if draw_attempt(lines, diagnostic, list(snapshots.SeedHitIndices),
-                        list(snapshots.WalkedHitIndices),
-                        list(snapshots.PostDBSCANHitIndices), output):
+        seed_snapshot = (list(snapshots.SeedPlaneBar), list(snapshots.SeedZNotZ))
+        walked_snapshot = (list(snapshots.WalkedPlaneBar), list(snapshots.WalkedZNotZ))
+        post_dbscan_snapshot = (list(snapshots.PostDBSCANPlaneBar), list(snapshots.PostDBSCANZNotZ))
+        if draw_attempt(lines, diagnostic, seed_snapshot, walked_snapshot, post_dbscan_snapshot, output):
             rendered += 1
     print("Rendered {} of {} selected rejected attempts into {}".format(rendered, selected, output_dir))
 
