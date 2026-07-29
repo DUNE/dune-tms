@@ -96,6 +96,28 @@ void TMS_Geom::SurveyGeometry() {
     std::cout << "[TMS_Geom]   Bar-region bounding box: x [" << fLayout.xMin << ", " << fLayout.xMax
       << "], y [" << fLayout.yMin << ", " << fLayout.yMax
       << "], z [" << fLayout.zMin << ", " << fLayout.zMax << "] mm" << std::endl;
+
+    // config/TMS_Default_Config.toml's [Geometry.Fiducial.TMS] is a separately-maintained
+    // box (an analysis fiducial cut inset from the physical edge, not itself derived from
+    // this survey) read by GetStartOfTMSFiducial()/GetEndOfTMSFiducial() and used by
+    // IsInsideTMS() -- i.e. by everything except TMS_Kalman.cpp. We don't override it here
+    // (a fiducial cut is a deliberate analysis choice, not just geometry), but we do flag
+    // the case that can never be intentional: the configured fiducial box reaching outside
+    // the bar region this GDML actually has scintillator in.
+    const TVector3 fidStart = GetStartOfTMSFiducial();
+    const TVector3 fidEnd = GetEndOfTMSFiducial();
+    std::cout << "[TMS_Geom]   config/TMS_Default_Config.toml's fiducial TMS box (independent of this "
+      << "survey, used by IsInsideTMS()) is x [" << fidStart.X() << ", " << fidEnd.X()
+      << "], y [" << fidStart.Y() << ", " << fidEnd.Y()
+      << "], z [" << fidStart.Z() << ", " << fidEnd.Z() << "] mm." << std::endl;
+    if (fidStart.X() < fLayout.xMin || fidEnd.X() > fLayout.xMax ||
+        fidStart.Y() < fLayout.yMin || fidEnd.Y() > fLayout.yMax ||
+        fidStart.Z() < fLayout.zMin || fidEnd.Z() > fLayout.zMax) {
+      std::cerr << "[TMS_Geom]   WARNING: the configured fiducial TMS box above extends outside the "
+        << "surveyed bar-region bounding box -- IsInsideTMS() would accept positions where this GDML "
+        << "has no scintillator at all. Check [Geometry.Fiducial.TMS.Start/End] in "
+        << "config/TMS_Default_Config.toml against this GDML." << std::endl;
+    }
   }
   std::cout << "[TMS_Geom]   For comparison, TMS_Constants.h expects "
     << TMS_Const::nPlanes << " planes and " << TMS_Const::nModules << " modules, "

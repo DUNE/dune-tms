@@ -41,7 +41,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     TVector3 vecc = TVector3(x,y,z);
 
-    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
+    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Geom::GetInstance().GetStartOfTMS(), TMS_Geom::GetInstance().GetEndOfTMS())))
     {
       //std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
       //std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
@@ -434,9 +434,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
-  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+  if ( (CurrentState.x < TMS_Geom::GetInstance().GetXStartOfTMS()) || (CurrentState.x > TMS_Geom::GetInstance().GetXEndOfTMS()) ) // point outside x region
   {
-    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.x << "\tTMS: [" << TMS_Geom::GetInstance().GetXStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetXEndOfTMS() << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -444,9 +444,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
       CurrentState.Print();
     }
   }
-  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+  if ( (CurrentState.y < TMS_Geom::GetInstance().GetYStartOfTMS()) || (CurrentState.y > TMS_Geom::GetInstance().GetYEndOfTMS()) ) // point outside y region
   {
-    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Geom::GetInstance().GetYStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetYEndOfTMS() << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
