@@ -791,7 +791,7 @@ class TMS_Geom {
 
       std::string NodeName = std::string(node->GetName());
       std::string NodePath = parent_path + "/" + NodeName;
-      if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
+      if (NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
         const Double_t local[3] = {0, 0, 0};
         Double_t master[3] = {0, 0, 0};
         current.LocalToMaster(local, master);

@@ -71,7 +71,12 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   while (NodeName.find(DetEnclosureName) == std::string::npos && NodeName.find(TopLayerName) == std::string::npos) {
     // We've found the plane number
     if (NodeName.find(ModuleLayerName) != std::string::npos) {
-      PlaneNumber = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
+      // Raw node number, not GetPlaneNumberForCurrentNode()'s z-ordered sequential index --
+      // CheckBar() validates this against TMS_Geom's survey (fLayout.planeNumbers), which is
+      // built from raw node numbers too (see TMS_Geom.cpp). The two plane-numbering schemes
+      // are not interchangeable; mixing them throws "Plane number N was not among..." for
+      // perfectly legitimate planes.
+      PlaneNumber = geom->GetCurrentNode()->GetNumber();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
       if (NodeName.find(ModuleLayerNameU) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
       else if (NodeName.find(ModuleLayerNameV) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
