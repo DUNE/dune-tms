@@ -186,6 +186,9 @@ int main(int argc, char** argv) {
     }
 
     TMS_Event tms_event = TMS_Event(*event, true);
+    // Run the full detector-simulation pipeline (optical/timing/dark count/deadtime/merge/noise/pedsup),
+    // since this no longer happens implicitly inside the constructor.
+    tms_event.FinalizeEvent();
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
 
     int pdg = tms_event.GetNeutrinoPDG();
