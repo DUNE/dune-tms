@@ -1752,7 +1752,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleIsPrimary[itTrack] = tp.IsPrimary();
         setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackPrimaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
-        setMomentum(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+        setPosition(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
         
         setMomentum(RecoTrackPrimaryParticleTrueMomentumEnteringTMS[itTrack], tp.GetMomentumEnteringTMS());
         setPosition(RecoTrackPrimaryParticleTruePositionEnteringTMS[itTrack], tp.GetPositionEnteringTMS());
@@ -1803,7 +1803,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackSecondaryParticleIsPrimary[itTrack] = tp.IsPrimary();
         setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackSecondaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
-        setMomentum(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+        setPosition(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
       }
     }
     
