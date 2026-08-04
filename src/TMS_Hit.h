@@ -30,6 +30,12 @@ class TMS_Hit {
     // segment for reconstruction-level fields (Bar, EnergyDeposit, Time, PE).
     TMS_Hit(TG4HitSegment &edep_seg);
 
+    // Real-data construction path: no TG4HitSegment, no truth. Position determines the bar via
+    // TMS_Bar(x,y,z)'s geometry lookup (TMS_Geom::SetGeometry() must already have run); energy/
+    // time/pe are already-reconstructed reco-level quantities. Caller still needs SetHitId(),
+    // same as the MC constructor -- there's nothing to insert into TrueHitByHitId for this hit.
+    TMS_Hit(double x, double y, double z, double energy, double time, double pe);
+
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
 

@@ -60,5 +60,20 @@ void TMS_Hit::MergeWith(TMS_Hit& hit) {
 // GetTrueDistanceFromReadout()/GetTrueLongDistanceFromReadout()/GetTrueDistanceFromMiddle()/
 // GetTrueLongDistanceFromMiddle() moved to TMS_DetectorSimulation.cpp (their only caller).
 
+// Real-data construction path (Stage C): builds the bar from a raw position via
+// TMS_Bar(x,y,z)'s geometry lookup, no TG4HitSegment/truth involved at all.
+TMS_Hit::TMS_Hit(double x, double y, double z, double energy, double time, double pe) :
+  Bar(x, y, z),
+  EnergyDeposit(energy),
+  Time(time),
+  Slice(0),
+  #ifdef RECORD_HIT_DEADTIME
+  DeadtimeStart(-999.0),
+  DeadtimeStop(-999.0),
+  #endif
+  PedSuppressed(false),
+  PE(pe) {
+}
+
 
 
