@@ -545,8 +545,18 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   // Get the other hits
   std::vector<TMS_Hit> other_hits = Other_Event.GetHits(-1, true);
 
-  // And use them to expand on the original hits in the event
+  // And use them to expand on the original hits in the event. Each incoming hit's
+  // HitId was assigned by Other_Event's own independent, zero-based HitIdCounter, so
+  // it can collide with (or simply not exist in) this event's own TrueHitByHitId --
+  // reassign a fresh HitId from this event's counter and carry the hit's truth (if
+  // any) over under that new id, so the hit<->truth association survives event
+  // combination (used for pileup/spill overlay in ConvertToTMSTree.cpp).
   for (auto &hit: other_hits) {
+    int oldHitId = hit.GetHitId();
+    int newHitId = NextHitId();
+    const TMS_TrueHit* true_hit = Other_Event.GetTrueHit(oldHitId);
+    if (true_hit != nullptr) SetTrueHit(newHitId, *true_hit);
+    hit.SetHitId(newHitId);
     TMS_Hits.emplace_back(std::move(hit));
   }
   
