@@ -1681,7 +1681,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double true_secondary_visible_energy = -999;
     int true_primary_particle_index = -999;
     int true_secondary_particle_index = -999;
-    auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
+    auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits, event);
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
@@ -1715,10 +1715,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackNHits[itTrack] = RecoTrack->Hits.size();
         for (size_t h = 0; h <  RecoTrack->Hits.size() && h < __TMS_MAX_LINE_HITS__; h++) {
           auto& hit = RecoTrack->Hits[h];
-          RecoTrackTrueHitPosition[itTrack][h][0] = hit.GetTrueHit().GetX();
-          RecoTrackTrueHitPosition[itTrack][h][1] = hit.GetTrueHit().GetY();
-          RecoTrackTrueHitPosition[itTrack][h][2] = hit.GetTrueHit().GetZ();
-          RecoTrackTrueHitPosition[itTrack][h][3] = hit.GetTrueHit().GetT();
+          const TMS_TrueHit* true_hit_pos = event.GetTrueHit(hit.GetHitId());
+          if (true_hit_pos == nullptr) continue; // No truth for this hit (e.g. real data)
+          RecoTrackTrueHitPosition[itTrack][h][0] = true_hit_pos->GetX();
+          RecoTrackTrueHitPosition[itTrack][h][1] = true_hit_pos->GetY();
+          RecoTrackTrueHitPosition[itTrack][h][2] = true_hit_pos->GetZ();
+          RecoTrackTrueHitPosition[itTrack][h][3] = true_hit_pos->GetT();
         }
 
         // Now calulate the true track length from true start to true end
@@ -1819,18 +1821,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     if (particle_info.vertexglobalids.size() > 0) {
       // Loop through all the hits, check if truth info matches primary (or secondary) particle, and then add to count
       for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
-        auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
-        for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-          if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
+        const TMS_TrueHit* true_hit = event.GetTrueHit(RecoTrack->Hits[ih].GetHitId());
+        if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
+        for (size_t i = 0; i < true_hit->GetNTrueParticles(); i++) {
+          if (true_hit->GetVertexGlobalIds(i) == particle_info.vertexglobalids[0] && true_hit->GetPrimaryIds(i) == particle_info.trackids[0]) {
             RecoTrackPrimaryParticleTrueNHits[itTrack] += 1;
             // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
-            break; 
+            break;
           }
           if (particle_info.vertexglobalids.size() > 1) {
-            if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
+            if (true_hit->GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit->GetPrimaryIds(i) == particle_info.trackids[1]) {
               RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
               // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
-              break; 
+              break;
             }
           }
         }
@@ -1850,28 +1853,29 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     if (index < __MAX_TRUE_TREE_ARRAY_LENGTH__) {
       // In theory a reco hit should have many true hits based on how the merging worked
       // Plus true hits should have noise hits which don't have any parent info
-      auto true_hit = hit.GetTrueHit();
-      
+      const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+
       // Only save if more than 0.5 PE since reco hits are pedestal subtracted if < 3 PE currently
-      if (true_hit.GetPE() > 0.5) {
-      
+      // No truth for this hit (e.g. real data) is treated the same as "not enough PE" -- skip.
+      if (true_hit != nullptr && true_hit->GetPE() > 0.5) {
+
         // True info
         NTrueHits += 1;
-        TrueHitX[index] = true_hit.GetX();
-        TrueHitY[index] = true_hit.GetY();
-        TrueHitZ[index] = true_hit.GetZ();
-        TrueHitT[index] = true_hit.GetT();
-        TrueHitE[index] = true_hit.GetE();
-        TrueHitPE[index] = true_hit.GetPE();
-        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
-        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
-        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
+        TrueHitX[index] = true_hit->GetX();
+        TrueHitY[index] = true_hit->GetY();
+        TrueHitZ[index] = true_hit->GetZ();
+        TrueHitT[index] = true_hit->GetT();
+        TrueHitE[index] = true_hit->GetE();
+        TrueHitPE[index] = true_hit->GetPE();
+        TrueHitPEAfterFibers[index] = true_hit->GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[index] = true_hit->GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[index] = true_hit->GetPEAfterFibersShortPath();
         TrueHitBar[index] = hit.GetBarNumber();
         TrueHitPlane[index] = hit.GetPlaneNumber();
         TrueHitView[index] = hit.GetBar().GetBarTypeNumber();
-        TrueNTrueParticles[index] = true_hit.GetNTrueParticles();
-        TrueLeptonicEnergy[index] = true_hit.GetLeptonicEnergy();
-        TrueHadronicEnergy[index] = true_hit.GetHadronicEnergy();
+        TrueNTrueParticles[index] = true_hit->GetNTrueParticles();
+        TrueLeptonicEnergy[index] = true_hit->GetLeptonicEnergy();
+        TrueHadronicEnergy[index] = true_hit->GetHadronicEnergy();
         
         // Reco info
         TrueRecoHitX[index] = hit.GetX();

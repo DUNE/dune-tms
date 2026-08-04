@@ -120,18 +120,19 @@ caf::SRTMS ConvertEvent() {
 
 
 namespace TMS_Utils {
-  TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits) { 
+  TMS_Utils::ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits, const TMS_Event& event) {
       std::map<std::pair<long long, int>, double> totalMap;
 
       // Iterate through the list of hits
       int total_n_true_particles = 0;
       for (const auto& hit : hits) {
-        auto true_hit = hit.GetTrueHit();
-        total_n_true_particles += true_hit.GetNTrueParticles();
-        for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-          long long vertexglobalid = true_hit.GetVertexGlobalIds(i);
-          int pid = true_hit.GetPrimaryIds(i);
-          double energy = true_hit.GetEnergyShare(i);
+        const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+        if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
+        total_n_true_particles += true_hit->GetNTrueParticles();
+        for (size_t i = 0; i < true_hit->GetNTrueParticles(); i++) {
+          long long vertexglobalid = true_hit->GetVertexGlobalIds(i);
+          int pid = true_hit->GetPrimaryIds(i);
+          double energy = true_hit->GetEnergyShare(i);
           auto pair = std::make_pair(vertexglobalid, pid);
           // Add the utility to the corresponding pid in the map
           totalMap[pair] += energy;

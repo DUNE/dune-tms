@@ -65,11 +65,20 @@ class TMS_Hit {
     }
 
     // The true hit
+    // TODO(Phase III): superseded by TMS_Event::GetTrueHit(GetHitId()) -- kept during the
+    // migration so both the embedded member and the new side table stay populated and can
+    // be cross-checked; removed once all call sites are migrated.
     const TMS_TrueHit &GetTrueHit() const { return TrueHit; };
     TMS_TrueHit &GetAdjustableTrueHit() { return TrueHit; };
 
     // Over-riders (maybe delete in future)
     void SetTrueHit(TMS_TrueHit hit) {TrueHit = hit;};
+
+    // Stable, event-scoped identifier assigned once at construction by TMS_Event::NextHitId().
+    // Used to look up this hit's truth info (if any) in TMS_Event::TrueHitByHitId -- unlike a
+    // vector position, this survives sorting/merging/slicing unchanged.
+    int GetHitId() const { return HitId; };
+    void SetHitId(int id) { HitId = id; };
 
     void SetE(double E) {EnergyDeposit = E;};
     void SetEVis(double E) {EnergyDepositVisible = E;};
@@ -144,7 +153,11 @@ class TMS_Hit {
     double RecoXUncertainty, RecoYUncertainty;
     
     int Slice;
-    
+
+    // See GetHitId()/SetHitId(). -1 means "not yet assigned" (should not happen for a hit
+    // that's actually been added to a TMS_Event).
+    int HitId = -1;
+
     #ifdef RECORD_HIT_DEADTIME
     double DeadtimeStart;
     double DeadtimeStop;

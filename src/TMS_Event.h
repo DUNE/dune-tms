@@ -72,6 +72,39 @@ class TMS_Event {
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
     std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
     void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
+
+    // Phase III truth/reco decoupling: per-hit truth, keyed by TMS_Hit::GetHitId() rather than
+    // vector position, since hits get sorted/merged/sliced and a positional index wouldn't
+    // survive that. Absent for a hit with no truth (e.g. real data) -- callers must null-check.
+    int NextHitId() { return HitIdCounter++; };
+    const TMS_TrueHit* GetTrueHit(int hitId) const {
+      auto it = TrueHitByHitId.find(hitId);
+      return it == TrueHitByHitId.end() ? nullptr : &it->second;
+    };
+    TMS_TrueHit* GetAdjustableTrueHit(int hitId) {
+      auto it = TrueHitByHitId.find(hitId);
+      return it == TrueHitByHitId.end() ? nullptr : &it->second;
+    };
+    // Not std::map::operator[] -- TMS_TrueHit has no default constructor, so operator[]'s
+    // "default-construct then assign" on a missing key won't compile. find()+emplace/assign
+    // only ever uses the copy constructor/assignment, both of which TMS_TrueHit does have.
+    void SetTrueHit(int hitId, const TMS_TrueHit& hit) {
+      auto it = TrueHitByHitId.find(hitId);
+      if (it != TrueHitByHitId.end()) it->second = hit;
+      else TrueHitByHitId.emplace(hitId, hit);
+    };
+    void EraseTrueHit(int hitId) { TrueHitByHitId.erase(hitId); };
+    // For TMS_SignalProcessing::MergeCoincidentHits(): merge mergedAwayHitId's truth into
+    // survivingHitId's (TMS_TrueHit::MergeWith), then drop the merged-away entry. No-op if
+    // either hit has no truth (e.g. real data).
+    void MergeTrueHit(int survivingHitId, int mergedAwayHitId) {
+      auto itSurvive = TrueHitByHitId.find(survivingHitId);
+      auto itMerged = TrueHitByHitId.find(mergedAwayHitId);
+      if (itSurvive != TrueHitByHitId.end() && itMerged != TrueHitByHitId.end()) {
+        itSurvive->second.MergeWith(itMerged->second);
+      }
+      if (itMerged != TrueHitByHitId.end()) TrueHitByHitId.erase(itMerged);
+    };
     // Reference access for TMS_DetectorSimulation/TMS_SignalProcessing to mutate hits in place
     // without the copy cost of GetHitsRaw()/SetHitsRaw().
     std::vector<TMS_Hit>& GetHitsRawRef() { return TMS_Hits; };
@@ -175,7 +208,11 @@ class TMS_Event {
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
     std::vector<TMS_TrueHit> NonTMS_Hits;
-    
+
+    // See NextHitId()/GetTrueHit(int)/SetTrueHit(int, ...) above.
+    int HitIdCounter = 0;
+    std::map<int, TMS_TrueHit> TrueHitByHitId;
+
     int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
     
     void SaveKeyVertexInfo(const TMS_TrueHit& hit);

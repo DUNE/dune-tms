@@ -84,20 +84,20 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
     if (index < __MAX_READOUT_TREE_ARRAY_LENGTH__) {
       // In theory a reco hit should have many true hits based on how the merging worked
       // Plus true hits should have noise hits which don't have any parent info
-      auto true_hit = hit.GetTrueHit();
-      
-      if (hasTruth) {
+      const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+
+      if (hasTruth && true_hit != nullptr) {
         // True info
         NTrueHits += 1;
-        TrueHitX[index] = true_hit.GetX();
-        TrueHitY[index] = true_hit.GetY();
-        TrueHitZ[index] = true_hit.GetZ();
-        TrueHitT[index] = true_hit.GetT();
-        TrueHitE[index] = true_hit.GetE();
-        TrueHitPE[index] = true_hit.GetPE();
-        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
-        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
-        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
+        TrueHitX[index] = true_hit->GetX();
+        TrueHitY[index] = true_hit->GetY();
+        TrueHitZ[index] = true_hit->GetZ();
+        TrueHitT[index] = true_hit->GetT();
+        TrueHitE[index] = true_hit->GetE();
+        TrueHitPE[index] = true_hit->GetPE();
+        TrueHitPEAfterFibers[index] = true_hit->GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[index] = true_hit->GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[index] = true_hit->GetPEAfterFibersShortPath();
       }
       
       // Reco info

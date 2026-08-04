@@ -675,8 +675,8 @@ for (auto Lines: HoughCandidatesY) {
     double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
     for (auto &trk : HoughTracks3D) {
 
-      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
-      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
+      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge, event);
+      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge, event);
 
       kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
       trk.SetChi2_plus(kalman_chi2_plus);

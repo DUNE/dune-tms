@@ -38,8 +38,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     double pe = hit.GetPE();
 
     // Applies birk's suppression
-    double de = hit.GetTrueHit().GetE();
-    double dx = hit.GetTrueHit().GetdX();
+    // Guaranteed present: this stage only ever runs on MC input, where truth was just
+    // constructed for every hit in TMS_Event::ProcessTG4Event().
+    const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    double de = true_hit->GetE();
+    double dx = true_hit->GetdX();
     double dedx = 0;
     if (dx > 1e-8) dedx = de / dx;
     else dedx = de / 1.0;
@@ -99,9 +102,10 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
 
     // We want to save info right after fibers but before electronic conversion noise
     // This is particularly useful for timing information which cares about the first photon to be detected
-    hit.GetAdjustableTrueHit().SetPEAfterFibers(pe);
-    hit.GetAdjustableTrueHit().SetPEAfterFibersLongPath(pe_long);
-    hit.GetAdjustableTrueHit().SetPEAfterFibersShortPath(pe_short);
+    TMS_TrueHit* adjustable_true_hit = event.GetAdjustableTrueHit(hit.GetHitId());
+    adjustable_true_hit->SetPEAfterFibers(pe);
+    adjustable_true_hit->SetPEAfterFibersLongPath(pe_long);
+    adjustable_true_hit->SetPEAfterFibersShortPath(pe_short);
 
     // Now save the reconstructed information
     hit.SetPE(pe);
@@ -178,8 +182,11 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
 
     // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
-    double pe_short_path = hit.GetTrueHit().GetPEAfterFibersShortPath();
-    double pe_long_path = hit.GetTrueHit().GetPEAfterFibersLongPath();
+    // Guaranteed present: this stage only ever runs on MC input, right after
+    // SimulateOpticalModel() populated PEAfterFibers* for every hit.
+    const TMS_TrueHit* true_hit_timing = event.GetTrueHit(hit.GetHitId());
+    double pe_short_path = true_hit_timing->GetPEAfterFibersShortPath();
+    double pe_long_path = true_hit_timing->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
 
     #define USE_GAMMA_DISTRIBUTION
