@@ -297,13 +297,16 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         std::cout<<"WARNING: Didn't find track id in mapping_track_to_vertex_global_id! track_id = "<<track_id<<", mapping_track_to_vertex_global_id.size() = "<<mapping_track_to_vertex_global_id.size()<<", this shouldn't happen anymore\n\n\n"<<std::endl;
       }
       else vertex_global_id = value->second;
-      TMS_Hit hit = TMS_Hit(edep_hit, vertex_global_id);
+      TMS_Hit hit = TMS_Hit(edep_hit);
       hit.SetHitId(NextHitId());
       int barnum = hit.GetBarNumber();
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
       if (barnum >= 0) {
-        auto &t = hit.GetAdjustableTrueHit();
+        // Truth is constructed separately from the reco-level TMS_Hit above (Phase III --
+        // TMS_TrueHit is no longer embedded in TMS_Hit) and stored in the event-level side
+        // table, keyed by this hit's HitId.
+        TMS_TrueHit t(edep_hit, vertex_global_id);
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
           auto key = std::make_pair(t.GetVertexGlobalIds(i), t.GetPrimaryIds(i));
           if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
@@ -313,15 +316,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           }
         }
         SaveKeyVertexInfo(t);
-        // Phase III dual-write: mirror this hit's truth into the event-level side table,
-        // keyed by its HitId, alongside the still-present embedded TrueHit member.
         SetTrueHit(hit.GetHitId(), t);
         TMS_Hits.push_back(std::move(hit));
 
         // todo, maybe skip for michel electrons or late neutrons
-        for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
-          TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexGlobalIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
-          TrueVisibleEnergyPerParticle[std::make_pair(hit.GetTrueHit().GetVertexGlobalIds(i), hit.GetTrueHit().GetPrimaryIds(i))] += hit.GetTrueHit().GetEnergyShare(i);
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          TrueVisibleEnergyPerVertex[t.GetVertexGlobalIds(i)] += t.GetEnergyShare(i);
+          TrueVisibleEnergyPerParticle[std::make_pair(t.GetVertexGlobalIds(i), t.GetPrimaryIds(i))] += t.GetEnergyShare(i);
         }
       }
       else if (DetString.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_LArActive()) != std::string::npos) {

@@ -1,12 +1,61 @@
 #include "TMS_DetectorSimulation.h"
 #include "TMS_Readout_Manager.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <map>
-#include <utility>
-#include <vector>
+namespace {
+// Relocated from TMS_Hit.cpp (Phase III) -- these need the true hit position, which is no
+// longer embedded in TMS_Hit. Only ever called from this file, so kept file-local rather than
+// added to the TMS_DetectorSimulation public interface.
+
+double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  // Note that you want to do always do more positive - less positive, or else you get a sign error
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation();
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation() - true_hit.GetX();
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    return TMS_Geom::GetInstance().YBarReadoutLocation() - true_hit.GetY();
+  }
+}
+
+double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  double additional_length;
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    additional_length = 2 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    additional_length = 2 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return additional_length - GetTrueDistanceFromReadout(hit, true_hit);
+}
+
+double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  // Subtract out half a bar length
+  double additional_length;
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return GetTrueDistanceFromReadout(hit, true_hit) - additional_length;
+}
+
+double GetTrueLongDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  // Subtract out half a bar length
+  double additional_length;
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+  }
+  else {
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+  }
+  return GetTrueLongDistanceFromReadout(hit, true_hit) - additional_length;
+}
+} // namespace
 
 void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default_random_engine &generator) {
   // Steps:
@@ -74,8 +123,8 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
 #else
-      double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
-      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
+      double distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      double long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
 #endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
@@ -153,6 +202,9 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   //int n = 0;
   for (auto& hit : TMS_Hits) {
     double t = 0;
+    // Guaranteed present: this stage only ever runs on MC input, right after
+    // SimulateOpticalModel() populated PEAfterFibers* for every hit.
+    const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
     // Random electronic timing noise (~1ns or less)
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center)
@@ -168,8 +220,8 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799
     double long_way_distance = distance_from_middle + 8;
 #else
-    double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
-    double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+    double distance_from_middle = GetTrueDistanceFromMiddle(hit, *true_hit) * 1e-3; // m
+    double long_way_distance = GetTrueLongDistanceFromMiddle(hit, *true_hit) * 1e-3; // m
 #endif
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
@@ -182,11 +234,8 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
 
     // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
-    // Guaranteed present: this stage only ever runs on MC input, right after
-    // SimulateOpticalModel() populated PEAfterFibers* for every hit.
-    const TMS_TrueHit* true_hit_timing = event.GetTrueHit(hit.GetHitId());
-    double pe_short_path = true_hit_timing->GetPEAfterFibersShortPath();
-    double pe_long_path = true_hit_timing->GetPEAfterFibersLongPath();
+    double pe_short_path = true_hit->GetPEAfterFibersShortPath();
+    double pe_long_path = true_hit->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
 
     #define USE_GAMMA_DISTRIBUTION
@@ -209,7 +258,7 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double minimum_time_offset_long_path = minimum_time_gamma_scint_long_path + minimum_time_gamma_wsf_long_path + time_correction_long_way;
     minimum_time_offset = std::min(minimum_time_offset_long_path, minimum_time_offset);
 
-    #else
+    #elif
     // We don't have to do 1000s of throws. The time will be very close to zero.
     // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
     const double MAX_PE_THROWS = 300;
@@ -343,12 +392,11 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
         // Only relevant if we've seen this channel id before -- for a brand new channel, it_dead is
         // deadtime_map.end() (there's no prior zombie state to re-check against), so skip entirely
         // rather than dereferencing end().
-        auto it_has_zombie = has_zombie_map.find(id);
-        if (it_dead != deadtime_map.end() && it_has_zombie != has_zombie_map.end() && it_has_zombie->second == true) {
+        if (it_dead != deadtime_map.end() && has_zombie_map[id] == true) {
           double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
           if (t < deadtime_window_starting_from_end_of_deadtime) {
-            t = it_dead->second;
-            it_has_zombie->second = false;
+            t = deadtime_map[id];
+            has_zombie_map[id] = false;
             // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
             i--;
           }

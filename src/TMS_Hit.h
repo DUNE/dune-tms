@@ -25,8 +25,10 @@ class TMS_Hit {
 
   public:
     void Print() const;
-    // The constructor for the TMS hit
-    TMS_Hit(TG4HitSegment &edep_seg, long long vertex_global_id);
+    // The constructor for the TMS hit. Truth (TMS_TrueHit) is constructed separately by the
+    // caller and inserted into TMS_Event::TrueHitByHitId -- this constructor only needs the
+    // segment for reconstruction-level fields (Bar, EnergyDeposit, Time, PE).
+    TMS_Hit(TG4HitSegment &edep_seg);
 
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
@@ -64,15 +66,10 @@ class TMS_Hit {
       return ( a.GetBar().GetPlaneNumber() < b.GetBar().GetPlaneNumber() );
     }
 
-    // The true hit
-    // TODO(Phase III): superseded by TMS_Event::GetTrueHit(GetHitId()) -- kept during the
-    // migration so both the embedded member and the new side table stay populated and can
-    // be cross-checked; removed once all call sites are migrated.
-    const TMS_TrueHit &GetTrueHit() const { return TrueHit; };
-    TMS_TrueHit &GetAdjustableTrueHit() { return TrueHit; };
-
-    // Over-riders (maybe delete in future)
-    void SetTrueHit(TMS_TrueHit hit) {TrueHit = hit;};
+    // Truth info moved to TMS_Event::TrueHitByHitId (Phase III) -- use
+    // TMS_Event::GetTrueHit(GetHitId())/GetAdjustableTrueHit(GetHitId()) instead. TMS_TrueHit.h
+    // stays included above since TMS_Event.h and most of its consumers reach the type only
+    // transitively through this header.
 
     // Stable, event-scoped identifier assigned once at construction by TMS_Event::NextHitId().
     // Used to look up this hit's truth info (if any) in TMS_Event::TrueHitByHitId -- unlike a
@@ -131,16 +128,12 @@ class TMS_Hit {
     #endif
     
     void MergeWith(TMS_Hit& hit);
-    
-    double GetTrueDistanceFromReadout();
-    double GetTrueLongDistanceFromReadout();
-    double GetTrueDistanceFromMiddle();
-    double GetTrueLongDistanceFromMiddle(); 
+    // GetTrueDistanceFromReadout()/GetTrueLongDistanceFromReadout()/GetTrueDistanceFromMiddle()/
+    // GetTrueLongDistanceFromMiddle() moved to TMS_DetectorSimulation.cpp (their only caller),
+    // as free functions taking the true hit explicitly -- they needed the embedded TrueHit
+    // member that no longer exists.
 
   private:
-    // The true hit (x,y,z,t) --- does not quantise hit into bars
-    TMS_TrueHit TrueHit;
-    // The true particle that created this hit
     // The bar that registered the hit
     TMS_Bar Bar;
     // The energy deposited
