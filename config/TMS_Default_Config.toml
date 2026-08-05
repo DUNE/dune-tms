@@ -52,6 +52,24 @@
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    # Refit each endpoint using this fraction of track hits; use all hits below the minimum.
+    EndpointRescanFraction = 0.3
+    EndpointRescanMinimumHits = 5
+    # Replace a stored Hough line when its full-track refit differs by either amount.
+    RefitInterceptTolerance = 100.0 # mm
+    RefitSlopeTolerance = 0.01
+    # Compatibility required to merge two Hough candidates.
+    MergeEndpointPlaneGap = 2
+    MergeEndpointBarGap = 2
+    MergeInterceptDifference = 1000.0 # mm
+    MergeSlopeDifference = 0.1
+    # Half-width of the Hough line-containment window, in transverse bar widths.
+    # The defaults reproduce the current +/- 1.5-bar-width test.  X and Y are
+    # separate only to support controlled view-by-view studies; keep them equal
+    # for nominal reconstruction.  An X value near 116 reproduces the old
+    # length-sized X acceptance approximately, not a recommended operating point.
+    ContainmentHalfWidthX = 1.5
+    ContainmentHalfWidthY = 1.5
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
@@ -64,8 +82,16 @@
     NumBarsEnd = 4
     # Distance in number of bars a hit can be away from the direction line at the start
     NumBarsStart = 2
-    # Extra allowance for X-bar candidate distances during extrapolation
-    XBarDistanceMultiplier = 2.0
+    # Multiplies the transverse bar width in the extrapolation containment test.
+    # Defaults preserve the width-corrected behavior.  Keep X and Y equal for
+    # nominal reconstruction; vary one view only for diagnostic studies.
+    # An X value near 78 approximately restores the pre-#289 width scale here.
+    ContainmentWidthScaleX = 1.0
+    ContainmentWidthScaleY = 1.0
+    # Number of distinct-plane endpoint hits used to estimate a direction.
+    EndpointSeedHits = 3
+    # Use the multi-candidate extension path above this many candidates.
+    MultiCandidateThreshold = 2
 
   [Recon.TrackMatch3D]
     # How many plane layers can the ends/starts of the two simple tracks be away from each other?
@@ -82,6 +108,8 @@
     TiltAngle = 19.0811366877 #tan(90-3=87)
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
+    # UV separation (in scintillator-bar widths) at which reconstructed y is clamped.
+    UVMaxSeparationBars = 10.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
     DirectionDistance = 28
 
@@ -111,10 +139,31 @@
     MergePlaneGap = 4
     # Maximum bar gap allowed in local hit-merging logic
     MergeBarGap = 2
+    # Local A* neighbour-graph window, in plane and bar indices.
+    NeighbourPlaneWindow = 3
+    NeighbourBarWindow = 3
+    # Maximum gradient mismatch for downstream/upstream hit walking.
+    DownstreamGradientTolerance = 2.0
+    UpstreamGradientTolerance = 1.5
 
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
     Assumed_Charge = 0.5 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
+    # Initial fit seeds and numerical same-z criterion.
+    SlopeSeedLayers = 10
+    MaxSeedXSlope = 2.0
+    MaxSeedYSlope = 1.5
+    SameZToleranceMm = 1.0e-3
+    InitialMomentumSeed = 20.0 # Before any forward-fit range estimate
+    # Initial covariance diagonal for x, y, dx/dz, dy/dz, and q/p.
+    InitialCovariancePathLengthThresholdMm = 1.0
+    InitialCovarianceX = 200.0
+    InitialCovarianceY = 1000.0
+    InitialCovarianceXSlope = 1.5
+    InitialCovarianceYSlope = 2.5
+    InitialCovarianceQoverP = 1.0
+    # Measurement uncertainty for the coordinate not measured by a scintillator bar.
+    UnmeasuredCoordinateSigmaMm = 2000.0
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping

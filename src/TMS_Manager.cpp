@@ -1,5 +1,7 @@
 #include "TMS_Manager.h"
 
+#include <stdexcept>
+
 TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
@@ -53,13 +55,26 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");
   _RECO_HOUGH_MinDist = toml::find<double>(data, "Recon", "Hough", "MinDist");
+  _RECO_HOUGH_EndpointRescanFraction = toml::find<double>(data, "Recon", "Hough", "EndpointRescanFraction");
+  _RECO_HOUGH_EndpointRescanMinimumHits = toml::find<int>(data, "Recon", "Hough", "EndpointRescanMinimumHits");
+  _RECO_HOUGH_RefitInterceptTolerance = toml::find<double>(data, "Recon", "Hough", "RefitInterceptTolerance");
+  _RECO_HOUGH_RefitSlopeTolerance = toml::find<double>(data, "Recon", "Hough", "RefitSlopeTolerance");
+  _RECO_HOUGH_MergeEndpointPlaneGap = toml::find<int>(data, "Recon", "Hough", "MergeEndpointPlaneGap");
+  _RECO_HOUGH_MergeEndpointBarGap = toml::find<int>(data, "Recon", "Hough", "MergeEndpointBarGap");
+  _RECO_HOUGH_MergeInterceptDifference = toml::find<double>(data, "Recon", "Hough", "MergeInterceptDifference");
+  _RECO_HOUGH_MergeSlopeDifference = toml::find<double>(data, "Recon", "Hough", "MergeSlopeDifference");
+  _RECO_HOUGH_ContainmentHalfWidthX = toml::find<double>(data, "Recon", "Hough", "ContainmentHalfWidthX");
+  _RECO_HOUGH_ContainmentHalfWidthY = toml::find<double>(data, "Recon", "Hough", "ContainmentHalfWidthY");
 
   _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
   _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
   _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
   _RECO_EXTRAPOLATION_NumBarsEnd = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsEnd");
   _RECO_EXTRAPOLATION_NumBarsStart = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsStart");
-  _RECO_EXTRAPOLATION_XBarDistanceMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "XBarDistanceMultiplier");
+  _RECO_EXTRAPOLATION_ContainmentWidthScaleX = toml::find<double>(data, "Recon", "Extrapolation", "ContainmentWidthScaleX");
+  _RECO_EXTRAPOLATION_ContainmentWidthScaleY = toml::find<double>(data, "Recon", "Extrapolation", "ContainmentWidthScaleY");
+  _RECO_EXTRAPOLATION_EndpointSeedHits = toml::find<int>(data, "Recon", "Extrapolation", "EndpointSeedHits");
+  _RECO_EXTRAPOLATION_MultiCandidateThreshold = toml::find<int>(data, "Recon", "Extrapolation", "MultiCandidateThreshold");
 
   _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
   _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");
@@ -69,11 +84,16 @@ TMS_Manager::TMS_Manager() {
   _RECO_TRACKMATCH_TiltAngle = toml::find<double>(data, "Recon", "TrackMatch3D", "TiltAngle");
   _RECO_TRACKMATCH_YDifference = toml::find<float>(data, "Recon", "TrackMatch3D", "YDifference");
   _RECO_TRACKMATCH_DirectionDistance = toml::find<int>(data, "Recon", "TrackMatch3D", "DirectionDistance");
+  _RECO_TRACKMATCH_UVMaxSeparationBars = toml::find<double>(data, "Recon", "TrackMatch3D", "UVMaxSeparationBars");
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
   _RECO_ASTAR_MergePlaneGap = toml::find<int>(data, "Recon", "AStar", "MergePlaneGap");
   _RECO_ASTAR_MergeBarGap = toml::find<int>(data, "Recon", "AStar", "MergeBarGap");
+  _RECO_ASTAR_NeighbourPlaneWindow = toml::find<int>(data, "Recon", "AStar", "NeighbourPlaneWindow");
+  _RECO_ASTAR_NeighbourBarWindow = toml::find<int>(data, "Recon", "AStar", "NeighbourBarWindow");
+  _RECO_ASTAR_DownstreamGradientTolerance = toml::find<double>(data, "Recon", "AStar", "DownstreamGradientTolerance");
+  _RECO_ASTAR_UpstreamGradientTolerance = toml::find<double>(data, "Recon", "AStar", "UpstreamGradientTolerance");
 
   _RECO_STOPPING_nLastHits = toml::find<int>(data, "Recon", "Stopping", "nLastHits");
   _RECO_STOPPING_EnergyCut = toml::find<double>(data, "Recon", "Stopping", "EnergyCut");
@@ -83,6 +103,32 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   _RECO_KALMAN_ASSUMED_CHARGE = toml::find<double>(data, "Recon", "Kalman", "Assumed_Charge");
+  _RECO_KALMAN_SLOPE_SEED_LAYERS = toml::find<int>(data, "Recon", "Kalman", "SlopeSeedLayers");
+  _RECO_KALMAN_MAX_SEED_X_SLOPE = toml::find<double>(data, "Recon", "Kalman", "MaxSeedXSlope");
+  _RECO_KALMAN_MAX_SEED_Y_SLOPE = toml::find<double>(data, "Recon", "Kalman", "MaxSeedYSlope");
+  _RECO_KALMAN_SAME_Z_TOLERANCE_MM = toml::find<double>(data, "Recon", "Kalman", "SameZToleranceMm");
+  _RECO_KALMAN_INITIAL_MOMENTUM_SEED = toml::find<double>(data, "Recon", "Kalman", "InitialMomentumSeed");
+  _RECO_KALMAN_INITIAL_COVARIANCE_PATH_LENGTH_THRESHOLD_MM = toml::find<double>(data, "Recon", "Kalman", "InitialCovariancePathLengthThresholdMm");
+  _RECO_KALMAN_INITIAL_COVARIANCE_X = toml::find<double>(data, "Recon", "Kalman", "InitialCovarianceX");
+  _RECO_KALMAN_INITIAL_COVARIANCE_Y = toml::find<double>(data, "Recon", "Kalman", "InitialCovarianceY");
+  _RECO_KALMAN_INITIAL_COVARIANCE_X_SLOPE = toml::find<double>(data, "Recon", "Kalman", "InitialCovarianceXSlope");
+  _RECO_KALMAN_INITIAL_COVARIANCE_Y_SLOPE = toml::find<double>(data, "Recon", "Kalman", "InitialCovarianceYSlope");
+  _RECO_KALMAN_INITIAL_COVARIANCE_Q_OVER_P = toml::find<double>(data, "Recon", "Kalman", "InitialCovarianceQoverP");
+  _RECO_KALMAN_UNMEASURED_COORDINATE_SIGMA_MM = toml::find<double>(data, "Recon", "Kalman", "UnmeasuredCoordinateSigmaMm");
+
+  if (_RECO_EXTRAPOLATION_EndpointSeedHits < 2) {
+    throw std::runtime_error("Recon.Extrapolation.EndpointSeedHits must be at least 2");
+  }
+  if (_RECO_HOUGH_ContainmentHalfWidthX <= 0.0 || _RECO_HOUGH_ContainmentHalfWidthY <= 0.0 ||
+      _RECO_EXTRAPOLATION_ContainmentWidthScaleX <= 0.0 || _RECO_EXTRAPOLATION_ContainmentWidthScaleY <= 0.0) {
+    throw std::runtime_error("Reco containment-width settings must be positive");
+  }
+  if (_RECO_KALMAN_SLOPE_SEED_LAYERS < 1) {
+    throw std::runtime_error("Recon.Kalman.SlopeSeedLayers must be at least 1");
+  }
+  if (_RECO_KALMAN_INITIAL_MOMENTUM_SEED <= 0.0) {
+    throw std::runtime_error("Recon.Kalman.InitialMomentumSeed must be positive");
+  }
 
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
