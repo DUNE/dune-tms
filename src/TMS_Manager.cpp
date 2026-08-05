@@ -1,5 +1,7 @@
 #include "TMS_Manager.h"
 
+#include <stdexcept>
+
 TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
@@ -83,6 +85,19 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   _RECO_KALMAN_ASSUMED_CHARGE = toml::find<double>(data, "Recon", "Kalman", "Assumed_Charge");
+  _RECO_KALMAN_USE_TRUE_MEASUREMENTS = toml::find<bool>(data, "Recon", "Kalman", "UseTrueMeasurements");
+
+  _RECO_TRUTHBYPASS_MODE = toml::find<std::string>(data, "Recon", "TruthBypass", "Mode");
+  _RECO_TRUTHBYPASS_HIT_ASSIGNMENT = toml::find<std::string>(data, "Recon", "TruthBypass", "HitAssignment");
+  if (_RECO_TRUTHBYPASS_MODE != "none" &&
+      _RECO_TRUTHBYPASS_MODE != "truth_2d_candidates" &&
+      _RECO_TRUTHBYPASS_MODE != "truth_3d_tracks") {
+    throw std::runtime_error("Recon.TruthBypass.Mode must be none, truth_2d_candidates, or truth_3d_tracks");
+  }
+  if (_RECO_TRUTHBYPASS_HIT_ASSIGNMENT != "dominant" &&
+      _RECO_TRUTHBYPASS_HIT_ASSIGNMENT != "inclusive") {
+    throw std::runtime_error("Recon.TruthBypass.HitAssignment must be dominant or inclusive");
+  }
 
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <queue>
 #include <list>
+#include <map>
 #include <unordered_map>
 
 // For Hough line visualisation
@@ -321,6 +322,13 @@ class TMS_TrackFinder {
     TMS_Kalman KalmanFilter_minus;
     TMS_DBScan DBSCAN;
     TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
+
+    using TruthParticleKey = std::pair<long long, int>;
+    std::map<TruthParticleKey, std::vector<TMS_Hit>> GetTruthAssignedHits(
+        const std::vector<TMS_Hit> &hits) const;
+    void MakeTruth2DCandidates();
+    void MakeTruth3DTracks();
+    void RunKalmanFits(bool use_true_measurements);
 
     int FindBin(double Rho);
     // The candidates for each particle

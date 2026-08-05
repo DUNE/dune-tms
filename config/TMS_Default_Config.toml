@@ -115,6 +115,18 @@
   [Recon.Kalman]
     Run = true # Whether we run the Kalman filter or not
     Assumed_Charge = 0.5 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
+    # Replace the reconstructed x/y measurements with detector-level truth positions.
+    # This is useful on ordinary or TruthBypass "truth_2d_candidates" tracks.
+    UseTrueMeasurements = false
+
+  [Recon.TruthBypass]
+    # Oracle handoff point. Leave as "none" for ordinary reconstruction.
+    # truth_2d_candidates: perfect particle/view assignment, then normal 3D matching.
+    # truth_3d_tracks: perfect particle assignment and 3D assembly, then Kalman.
+    Mode = "none"
+    # dominant assigns a merged readout hit to its largest truth contributor.
+    # inclusive gives it to every truth contributor.
+    HitAssignment = "dominant"
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping

@@ -160,6 +160,141 @@ void TMS_TrackFinder::ClearClass() {
   HoughTracks3D.clear();
 }
 
+std::map<TMS_TrackFinder::TruthParticleKey, std::vector<TMS_Hit>>
+TMS_TrackFinder::GetTruthAssignedHits(const std::vector<TMS_Hit> &hits) const {
+  std::map<TruthParticleKey, std::vector<TMS_Hit>> assigned;
+  const bool inclusive =
+      TMS_Manager::GetInstance().Get_Reco_TruthBypass_HitAssignment() == "inclusive";
+
+  for (const auto &hit : hits) {
+    const auto &true_hit = hit.GetTrueHit();
+    std::map<TruthParticleKey, double> energy_by_particle;
+    for (size_t i = 0; i < true_hit.GetNTrueParticles(); ++i) {
+      const TruthParticleKey key(true_hit.GetVertexGlobalIds(i), true_hit.GetPrimaryIds(i));
+      energy_by_particle[key] += true_hit.GetEnergyShare(i);
+    }
+    if (energy_by_particle.empty()) continue;
+
+    if (inclusive) {
+      for (const auto &entry : energy_by_particle) assigned[entry.first].push_back(hit);
+    } else {
+      auto best = std::max_element(
+          energy_by_particle.begin(), energy_by_particle.end(),
+          [](const std::pair<const TruthParticleKey, double> &a,
+             const std::pair<const TruthParticleKey, double> &b) {
+            return a.second < b.second;
+          });
+      assigned[best->first].push_back(hit);
+    }
+  }
+  return assigned;
+}
+
+void TMS_TrackFinder::MakeTruth2DCandidates() {
+  const auto assigned = GetTruthAssignedHits(CleanedHits);
+  for (const auto &entry : assigned) {
+    std::vector<TMS_Hit> u, v, x, y;
+    for (const auto &hit : entry.second) {
+      switch (hit.GetBar().GetBarType()) {
+        case TMS_Bar::kUBar: u.push_back(hit); break;
+        case TMS_Bar::kVBar: v.push_back(hit); break;
+        case TMS_Bar::kXBar: x.push_back(hit); break;
+        case TMS_Bar::kYBar: y.push_back(hit); break;
+        default: break;
+      }
+    }
+    // Track matching needs an ordered line-like candidate in each participating view.
+    if (u.size() >= 2) { SpatialPrio(u); HoughCandidatesU.push_back(std::move(u)); }
+    if (v.size() >= 2) { SpatialPrio(v); HoughCandidatesV.push_back(std::move(v)); }
+    if (x.size() >= 2) { SpatialPrio(x); HoughCandidatesX.push_back(std::move(x)); }
+    if (y.size() >= 2) { SpatialPrio(y); HoughCandidatesY.push_back(std::move(y)); }
+  }
+}
+
+void TMS_TrackFinder::MakeTruth3DTracks() {
+  const auto assigned = GetTruthAssignedHits(CleanedHits);
+  for (auto entry : assigned) {
+    auto hits = std::move(entry.second);
+    if (hits.size() < 2) continue;
+
+    // A direct 3D truth handoff still uses real, post-detector-simulation readout
+    // hits.  Only their ownership and x/y measurement positions are made perfect.
+    for (auto &hit : hits) {
+      hit.SetRecoX(hit.GetTrueHit().GetX());
+      hit.SetRecoY(hit.GetTrueHit().GetY());
+    }
+    SpatialPrio(hits);
+    if (std::abs(hits.front().GetZ() - hits.back().GetZ()) < 1e-3) continue;
+
+    TMS_Track track;
+    track.Hits = std::move(hits);
+    track.nHits = track.Hits.size();
+    track.Start[0] = track.Hits.front().GetRecoX();
+    track.Start[1] = track.Hits.front().GetRecoY();
+    track.Start[2] = track.Hits.front().GetZ();
+    track.Start[3] = track.Hits.front().GetT();
+    track.End[0] = track.Hits.back().GetRecoX();
+    track.End[1] = track.Hits.back().GetRecoY();
+    track.End[2] = track.Hits.back().GetZ();
+    track.End[3] = track.Hits.back().GetT();
+    track.Charge = ChargeID.ID_Track_Charge(track.Hits);
+    track.Length = CalculateTrackLength3D(track);
+    track.EnergyDeposit = CalculateTrackEnergy3D(track);
+    HoughTracks3D.push_back(std::move(track));
+  }
+}
+
+void TMS_TrackFinder::RunKalmanFits(bool use_true_measurements) {
+  if (!TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) return;
+
+  const double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
+  for (auto &trk : HoughTracks3D) {
+    if (trk.Hits.size() < 2) continue;
+    // Preserve the historical output ordering: the Kalman constructor used to sort
+    // trk.Hits in place before fitting.
+    std::sort(trk.Hits.begin(), trk.Hits.end(), TMS_Hit::SortByZ);
+    size_t n_distinct_z = 1;
+    for (size_t i = 1; i < trk.Hits.size(); ++i) {
+      if (std::abs(trk.Hits[i].GetZ() - trk.Hits[i - 1].GetZ()) > 1e-3) ++n_distinct_z;
+    }
+    // The current smoother accesses node 1, while the constructor omits the
+    // final z layer.  Do not send it inputs that cannot make two nodes.
+    if (n_distinct_z < 3) continue;
+    std::vector<TMS_Hit> measurements = trk.Hits;
+    if (use_true_measurements) {
+      for (auto &hit : measurements) {
+        hit.SetRecoX(hit.GetTrueHit().GetX());
+        hit.SetRecoY(hit.GetTrueHit().GetY());
+      }
+    }
+
+    KalmanFilter_plus = TMS_Kalman(measurements, assumed_charge);
+    KalmanFilter_minus = TMS_Kalman(measurements, -assumed_charge);
+    const double chi2_plus = KalmanFilter_plus.GetTrackChi2();
+    const double chi2_minus = KalmanFilter_minus.GetTrackChi2();
+    trk.SetChi2_plus(chi2_plus);
+    trk.SetChi2_minus(chi2_minus);
+
+    const size_t n_plus = KalmanFilter_plus.GetKalmanNodes().size();
+    const size_t n_minus = KalmanFilter_minus.GetKalmanNodes().size();
+    const bool use_minus = n_minus > 0 &&
+        (n_plus == 0 || chi2_minus / n_minus < chi2_plus / n_plus);
+    TMS_Kalman &canonical = use_minus ? KalmanFilter_minus : KalmanFilter_plus;
+    trk.Charge_Kalman = use_minus ? -13 : 13;
+    trk.Charge_Kalman_curvature = canonical.GetCharge_curvature();
+    trk.SetMomentum(canonical.GetMomentum());
+    trk.SetStartPosition(canonical.Start[0], canonical.Start[1], canonical.Start[2]);
+    trk.SetEndPosition(canonical.End[0], canonical.End[1], canonical.End[2]);
+    trk.SetStartDirection(canonical.StartDirection[0], canonical.StartDirection[1], canonical.StartDirection[2]);
+    trk.SetEndDirection(canonical.EndDirection[0], canonical.EndDirection[1], canonical.EndDirection[2]);
+    trk.KalmanNodes = canonical.GetKalmanNodes();
+    trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
+    trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
+    const double kalman_length = CalculateTrackLengthKalman(trk);
+    if (std::isfinite(kalman_length) && kalman_length > 0.0) trk.Length = kalman_length;
+  }
+}
+
 // The generic track finder
 void TMS_TrackFinder::FindTracks(TMS_Event &event) {
 
@@ -238,6 +373,19 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
  
   if ( (UHitGroup.size() + VHitGroup.size() + XHitGroup.size() + YHitGroup.size()) != CleanedHits.size() ) {
     std::cout << "Not all hits in separated hit groups!" << std::endl;
+    return;
+  }
+
+  const std::string truth_bypass = TMS_Manager::GetInstance().Get_Reco_TruthBypass_Mode();
+  if (truth_bypass == "truth_2d_candidates") {
+    MakeTruth2DCandidates();
+    HoughTracks3D = UHitGroup.empty() ? TrackMatching3D_XY() : TrackMatching3D();
+    RunKalmanFits(TMS_Manager::GetInstance().Get_Reco_Kalman_UseTrueMeasurements());
+    return;
+  }
+  if (truth_bypass == "truth_3d_tracks") {
+    MakeTruth3DTracks();
+    RunKalmanFits(true);
     return;
   }
    
@@ -669,66 +817,7 @@ for (auto Lines: HoughCandidatesY) {
 
   //EvaluateTrackFinding(event);
 
-  // Run Kalman filter if requested
-  if (TMS_Manager::GetInstance().Get_Reco_Kalman_Run()) {
-    double kalman_reco_mom, kalman_chi2_plus, kalman_chi2_minus;
-    double assumed_charge = TMS_Manager::GetInstance().Get_Reco_Kalman_Assumed_Charge();
-    for (auto &trk : HoughTracks3D) {
-
-      KalmanFilter_plus = TMS_Kalman(trk.Hits, assumed_charge);
-      KalmanFilter_minus = TMS_Kalman(trk.Hits, -assumed_charge);
-
-      kalman_chi2_plus = KalmanFilter_plus.GetTrackChi2();
-      trk.SetChi2_plus(kalman_chi2_plus);
-      kalman_chi2_minus = KalmanFilter_minus.GetTrackChi2();
-      trk.SetChi2_minus(kalman_chi2_minus);
-
-      const size_t n_kalman_nodes_plus = KalmanFilter_plus.GetKalmanNodes().size();
-      const size_t n_kalman_nodes_minus = KalmanFilter_minus.GetKalmanNodes().size();
-      const bool use_minus =
-          n_kalman_nodes_minus > 0 &&
-          (n_kalman_nodes_plus == 0 ||
-           kalman_chi2_minus / n_kalman_nodes_minus <
-               kalman_chi2_plus / n_kalman_nodes_plus);
-
-      TMS_Kalman canonical;
-      if (use_minus) {
-        trk.Charge_Kalman = -13;
-        canonical = KalmanFilter_minus;
-      } else {
-        trk.Charge_Kalman = 13;
-        canonical = KalmanFilter_plus;
-      }
-
-      trk.Charge_Kalman_curvature = canonical.GetCharge_curvature();
-      kalman_reco_mom = canonical.GetMomentum();
-
-      bool verbose_kalman = false;
-      if (verbose_kalman) std::cout << "Kalman filter momentum: " << kalman_reco_mom << " MeV" << std::endl;
-      trk.SetMomentum(kalman_reco_mom); // Fill the momentum of the TMS_Track obj
-
-      if (verbose_kalman) std::cout << "Kalman filter start pos : " << canonical.Start[0] << ", " << canonical.Start[1] << ", "  << canonical.Start[2] << std::endl;
-      trk.SetStartPosition(canonical.Start[0], canonical.Start[1], canonical.Start[2]); // Fill the momentum of the TMS_Track obj
-
-      if (verbose_kalman) std::cout << "Kalman filter end pos : " << canonical.End[0] << ", " << canonical.End[1] << ", "  << canonical.End[2] << std::endl;
-      trk.SetEndPosition(canonical.End[0], canonical.End[1], canonical.End[2]); // Fill the momentum of the TMS_Track obj
-
-      if (verbose_kalman) std::cout << "Kalman filter start dir : " << canonical.StartDirection[0] << ", " << canonical.StartDirection[1] << ", "  << canonical.StartDirection[2] << std::endl;
-      trk.SetStartDirection(canonical.StartDirection[0], canonical.StartDirection[1], canonical.StartDirection[2]); // Fill the momentum of the TMS_Track obj
-
-      if (verbose_kalman) std::cout << "Kalman filter end dir : " << canonical.EndDirection[0] << ", " << canonical.EndDirection[1] << ", "  << canonical.EndDirection[2] << std::endl;
-      trk.SetEndDirection(canonical.EndDirection[0], canonical.EndDirection[1], canonical.EndDirection[2]); // Fill the momentum of the TMS_Track obj
-
-      trk.KalmanNodes = canonical.GetKalmanNodes();
-      //for chi2 tracking
-      trk.KalmanNodes_plus = KalmanFilter_plus.GetKalmanNodes();
-      trk.KalmanNodes_minus = KalmanFilter_minus.GetKalmanNodes();
-      const double kalman_length = CalculateTrackLengthKalman(trk);
-      if (std::isfinite(kalman_length) && kalman_length > 0.0) {
-        trk.Length = kalman_length;
-      }
-    }
-  } 
+  RunKalmanFits(TMS_Manager::GetInstance().Get_Reco_Kalman_UseTrueMeasurements());
   return;
 }
 

@@ -69,6 +69,10 @@ class TMS_Manager {
 
     bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
     double Get_Reco_Kalman_Assumed_Charge() { return _RECO_KALMAN_ASSUMED_CHARGE; };
+    bool Get_Reco_Kalman_UseTrueMeasurements() { return _RECO_KALMAN_USE_TRUE_MEASUREMENTS; };
+
+    std::string Get_Reco_TruthBypass_Mode() { return _RECO_TRUTHBYPASS_MODE; };
+    std::string Get_Reco_TruthBypass_HitAssignment() { return _RECO_TRUTHBYPASS_HIT_ASSIGNMENT; };
 
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
@@ -196,6 +200,10 @@ class TMS_Manager {
 
     bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
     double _RECO_KALMAN_ASSUMED_CHARGE; //set the assumed charge of the track in the kalman filter
+    bool _RECO_KALMAN_USE_TRUE_MEASUREMENTS;
+
+    std::string _RECO_TRUTHBYPASS_MODE;
+    std::string _RECO_TRUTHBYPASS_HIT_ASSIGNMENT;
 
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
