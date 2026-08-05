@@ -39,6 +39,14 @@ class TMS_Manager {
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
+    double Get_Reco_HOUGH_EndpointRescanFraction() { return _RECO_HOUGH_EndpointRescanFraction; };
+    int Get_Reco_HOUGH_EndpointRescanMinimumHits() { return _RECO_HOUGH_EndpointRescanMinimumHits; };
+    double Get_Reco_HOUGH_RefitInterceptTolerance() { return _RECO_HOUGH_RefitInterceptTolerance; };
+    double Get_Reco_HOUGH_RefitSlopeTolerance() { return _RECO_HOUGH_RefitSlopeTolerance; };
+    int Get_Reco_HOUGH_MergeEndpointPlaneGap() { return _RECO_HOUGH_MergeEndpointPlaneGap; };
+    int Get_Reco_HOUGH_MergeEndpointBarGap() { return _RECO_HOUGH_MergeEndpointBarGap; };
+    double Get_Reco_HOUGH_MergeInterceptDifference() { return _RECO_HOUGH_MergeInterceptDifference; };
+    double Get_Reco_HOUGH_MergeSlopeDifference() { return _RECO_HOUGH_MergeSlopeDifference; };
 
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
@@ -46,6 +54,9 @@ class TMS_Manager {
     int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
     int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
     double Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() { return _RECO_EXTRAPOLATION_XBarDistanceMultiplier; };
+    double Get_Reco_EXTRAPOLATION_XBarTransverseScale() { return _RECO_EXTRAPOLATION_XBarTransverseScale; };
+    int Get_Reco_EXTRAPOLATION_EndpointSeedHits() { return _RECO_EXTRAPOLATION_EndpointSeedHits; };
+    int Get_Reco_EXTRAPOLATION_MultiCandidateThreshold() { return _RECO_EXTRAPOLATION_MultiCandidateThreshold; };
 
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
     int Get_Reco_TRACKMATCH_BarLimit() { return _RECO_TRACKMATCH_BarLimit; };
@@ -55,11 +66,19 @@ class TMS_Manager {
     double Get_Reco_TRACKMATCH_TiltAngle() { return _RECO_TRACKMATCH_TiltAngle; };
     float Get_Reco_TRACKMATCH_YDifference() { return _RECO_TRACKMATCH_YDifference; };
     int Get_Reco_TRACKMATCH_DirectionDistance() { return _RECO_TRACKMATCH_DirectionDistance; };
+    double Get_Reco_TRACKMATCH_UVMaxSeparationBars() { return _RECO_TRACKMATCH_UVMaxSeparationBars; };
+    double Get_Reco_TRACKMATCH_XStereoInTrackGapScale() { return _RECO_TRACKMATCH_XStereoInTrackGapScale; };
+    double Get_Reco_TRACKMATCH_XStereoEndpointGapScale() { return _RECO_TRACKMATCH_XStereoEndpointGapScale; };
+    double Get_Reco_TRACKMATCH_XStereoZPaddingMm() { return _RECO_TRACKMATCH_XStereoZPaddingMm; };
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
     int Get_Reco_ASTAR_MergePlaneGap() { return _RECO_ASTAR_MergePlaneGap; };
     int Get_Reco_ASTAR_MergeBarGap() { return _RECO_ASTAR_MergeBarGap; };
+    int Get_Reco_ASTAR_NeighbourPlaneWindow() { return _RECO_ASTAR_NeighbourPlaneWindow; };
+    int Get_Reco_ASTAR_NeighbourBarWindow() { return _RECO_ASTAR_NeighbourBarWindow; };
+    double Get_Reco_ASTAR_DownstreamGradientTolerance() { return _RECO_ASTAR_DownstreamGradientTolerance; };
+    double Get_Reco_ASTAR_UpstreamGradientTolerance() { return _RECO_ASTAR_UpstreamGradientTolerance; };
 
     int Get_Reco_STOPPING_nLastHits() { return _RECO_STOPPING_nLastHits; };
     double Get_Reco_STOPPING_EnergyCut() { return _RECO_STOPPING_EnergyCut; };
@@ -69,6 +88,18 @@ class TMS_Manager {
 
     bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
     double Get_Reco_Kalman_Assumed_Charge() { return _RECO_KALMAN_ASSUMED_CHARGE; };
+    int Get_Reco_Kalman_SlopeSeedLayers() { return _RECO_KALMAN_SLOPE_SEED_LAYERS; };
+    double Get_Reco_Kalman_MaxSeedXSlope() { return _RECO_KALMAN_MAX_SEED_X_SLOPE; };
+    double Get_Reco_Kalman_MaxSeedYSlope() { return _RECO_KALMAN_MAX_SEED_Y_SLOPE; };
+    double Get_Reco_Kalman_SameZToleranceMm() { return _RECO_KALMAN_SAME_Z_TOLERANCE_MM; };
+    double Get_Reco_Kalman_InitialMomentumSeed() { return _RECO_KALMAN_INITIAL_MOMENTUM_SEED; };
+    double Get_Reco_Kalman_InitialCovariancePathLengthThresholdMm() { return _RECO_KALMAN_INITIAL_COVARIANCE_PATH_LENGTH_THRESHOLD_MM; };
+    double Get_Reco_Kalman_InitialCovarianceX() { return _RECO_KALMAN_INITIAL_COVARIANCE_X; };
+    double Get_Reco_Kalman_InitialCovarianceY() { return _RECO_KALMAN_INITIAL_COVARIANCE_Y; };
+    double Get_Reco_Kalman_InitialCovarianceXSlope() { return _RECO_KALMAN_INITIAL_COVARIANCE_X_SLOPE; };
+    double Get_Reco_Kalman_InitialCovarianceYSlope() { return _RECO_KALMAN_INITIAL_COVARIANCE_Y_SLOPE; };
+    double Get_Reco_Kalman_InitialCovarianceQoverP() { return _RECO_KALMAN_INITIAL_COVARIANCE_Q_OVER_P; };
+    double Get_Reco_Kalman_UnmeasuredCoordinateSigmaMm() { return _RECO_KALMAN_UNMEASURED_COORDINATE_SIGMA_MM; };
 
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
@@ -157,6 +188,14 @@ class TMS_Manager {
     bool _RECO_HOUGH_RunAStar;
     bool _RECO_HOUGH_FirstCluster;
     double _RECO_HOUGH_MinDist;
+    double _RECO_HOUGH_EndpointRescanFraction;
+    int _RECO_HOUGH_EndpointRescanMinimumHits;
+    double _RECO_HOUGH_RefitInterceptTolerance;
+    double _RECO_HOUGH_RefitSlopeTolerance;
+    int _RECO_HOUGH_MergeEndpointPlaneGap;
+    int _RECO_HOUGH_MergeEndpointBarGap;
+    double _RECO_HOUGH_MergeInterceptDifference;
+    double _RECO_HOUGH_MergeSlopeDifference;
 
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;
@@ -164,6 +203,9 @@ class TMS_Manager {
     int _RECO_EXTRAPOLATION_NumBarsEnd;
     int _RECO_EXTRAPOLATION_NumBarsStart;
     double _RECO_EXTRAPOLATION_XBarDistanceMultiplier;
+    double _RECO_EXTRAPOLATION_XBarTransverseScale;
+    int _RECO_EXTRAPOLATION_EndpointSeedHits;
+    int _RECO_EXTRAPOLATION_MultiCandidateThreshold;
 
     int _RECO_TRACKMATCH_PlaneLimit;
     int _RECO_TRACKMATCH_BarLimit;
@@ -173,6 +215,10 @@ class TMS_Manager {
     double _RECO_TRACKMATCH_TiltAngle;
     float _RECO_TRACKMATCH_YDifference;
     int _RECO_TRACKMATCH_DirectionDistance;
+    double _RECO_TRACKMATCH_UVMaxSeparationBars;
+    double _RECO_TRACKMATCH_XStereoInTrackGapScale;
+    double _RECO_TRACKMATCH_XStereoEndpointGapScale;
+    double _RECO_TRACKMATCH_XStereoZPaddingMm;
 
     bool _RECO_TRACKSMOOTHING_UseTrackSmoothing;
     std::string _RECO_TRACKSMOOTHING_TrackSmoothingStrategy;
@@ -185,6 +231,10 @@ class TMS_Manager {
     std::string _RECO_ASTAR_CostMetric;
     int _RECO_ASTAR_MergePlaneGap;
     int _RECO_ASTAR_MergeBarGap;
+    int _RECO_ASTAR_NeighbourPlaneWindow;
+    int _RECO_ASTAR_NeighbourBarWindow;
+    double _RECO_ASTAR_DownstreamGradientTolerance;
+    double _RECO_ASTAR_UpstreamGradientTolerance;
 
     bool _RECO_STOPPING_nLastHits;
     double _RECO_STOPPING_EnergyCut;
@@ -196,6 +246,18 @@ class TMS_Manager {
 
     bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
     double _RECO_KALMAN_ASSUMED_CHARGE; //set the assumed charge of the track in the kalman filter
+    int _RECO_KALMAN_SLOPE_SEED_LAYERS;
+    double _RECO_KALMAN_MAX_SEED_X_SLOPE;
+    double _RECO_KALMAN_MAX_SEED_Y_SLOPE;
+    double _RECO_KALMAN_SAME_Z_TOLERANCE_MM;
+    double _RECO_KALMAN_INITIAL_MOMENTUM_SEED;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_PATH_LENGTH_THRESHOLD_MM;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_X;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_Y;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_X_SLOPE;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_Y_SLOPE;
+    double _RECO_KALMAN_INITIAL_COVARIANCE_Q_OVER_P;
+    double _RECO_KALMAN_UNMEASURED_COORDINATE_SIGMA_MM;
 
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)

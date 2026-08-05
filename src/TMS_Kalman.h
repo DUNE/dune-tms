@@ -54,12 +54,12 @@ class TMS_KalmanNode {
   TMS_KalmanNode() = delete;
 
   // x,y,z, delta_z = distance from previous hit to current in z
-  TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar) :
+  TMS_KalmanNode(double xvar, double yvar, double zvar, double dzvar,double dxdzvar, double dydzvar, double momentum_seed) :
     x(xvar), y(yvar), z(zvar), dz(dzvar), dxdz(dxdzvar), dydz(dydzvar),
     RecoX(xvar), RecoY(yvar),
-    PreviousState(x, y, z, dxdzvar, dydzvar, 1./20.),
-    CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./20.), // Initialise the state vectors 
-    SmoothState(x, y, z+dz, -999.9, -999.9, -1./20.), // Initialise the state vectors
+    PreviousState(x, y, z, dxdzvar, dydzvar, 1./momentum_seed),
+    CurrentState(x, y, z+dz,dxdzvar, dydzvar, 1./momentum_seed), // Initialise the state vectors
+    SmoothState(x, y, z+dz, -999.9, -999.9, -1./momentum_seed), // Initialise the state vectors
     TransferMatrix(KALMAN_DIM,KALMAN_DIM),
     TransferMatrixT(KALMAN_DIM,KALMAN_DIM),
     NoiseMatrix(KALMAN_DIM,KALMAN_DIM),
@@ -175,12 +175,12 @@ class TMS_KalmanNode {
     std::cout << "True y: " << TrueY << ",\t" << "Reco y: " << RecoY << ",\t" << "True - Reco: " << TrueY - RecoY << std::endl;
   }
 
-  void FillNoiseMatrix()
+  void FillNoiseMatrix(double unmeasured_coordinate_sigma)
   {
     double H = 0.00274576; // ( tan(3 deg) )**2
     double A = LayerBarWidth; //10.0; //10.0 mm bar width based uncert
-    //double B = LayerBarLength;//4000.0; //4000.0 mm bar length based uncert
-    double B = 2000;//4000.0; //4000.0 mm bar length based uncert
+    // B is the configured uncertainty in the coordinate not measured by this bar.
+    double B = unmeasured_coordinate_sigma;
 
     int sign;
     if (       LayerOrientation == TMS_Bar::kUBar) {

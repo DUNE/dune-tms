@@ -50,7 +50,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     int j;
     for (j=i; j<nCand; j++)
-      if (abs(Candidates[j].GetZ() - z) > 1E-3)
+      if (abs(Candidates[j].GetZ() - z) > TMS_Manager::GetInstance().Get_Reco_Kalman_SameZToleranceMm())
       {
         break;
       }
@@ -66,10 +66,11 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
 
     // This also initialises the state vectors in each of the nodes
-    if (abs(DeltaZ) > 1E-3) // TODO: Only add one hit per z for now, noise breaks
+    if (abs(DeltaZ) > TMS_Manager::GetInstance().Get_Reco_Kalman_SameZToleranceMm()) // TODO: Only add one hit per z for now, noise breaks
     {
       // TODO: Combine multiple hits into a single 'node' <-> 'measurement'
-      TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ);
+      TMS_KalmanNode Node(x, y, z, DeltaZ, DeltaX/DeltaZ, DeltaY/DeltaZ,
+                          TMS_Manager::GetInstance().Get_Reco_Kalman_InitialMomentumSeed());
       Node.SetTrueXY(x_true, y_true); // Add truth to enable reco to truth comparison
       Node.LayerOrientation = hit.GetBar().GetBarType();
       Node.LayerBarWidth    = hit.GetBar().GetBarWidth();
@@ -81,7 +82,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
     }
   }
 
-  int N_LAYER_BACK = 10;
+  int N_LAYER_BACK = TMS_Manager::GetInstance().Get_Reco_Kalman_SlopeSeedLayers();
   // Can't look back further than the first element
   if (Candidates.size() < (unsigned)N_LAYER_BACK)
     N_LAYER_BACK = Candidates.size();
@@ -194,7 +195,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   if (PreviousState.dxdz ==  -999.9) // Only on initialisation?
   {
     //PreviousState.dxdz = TMS_Kalman::AverageXSlope;
-    if ( abs(TMS_Kalman::AverageXSlope) > 2.0 )
+    if ( abs(TMS_Kalman::AverageXSlope) > TMS_Manager::GetInstance().Get_Reco_Kalman_MaxSeedXSlope() )
     {
       //std::cerr << "[TMS_Kalman.cpp] Excessive average X slope = " << TMS_Kalman::AverageXSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dxdz = 0.0;
@@ -204,7 +205,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
   if (PreviousState.dydz ==  -999.9) // Only on initialisation?
   {
-    if ( abs(TMS_Kalman::AverageYSlope) > 1.5 )
+    if ( abs(TMS_Kalman::AverageYSlope) > TMS_Manager::GetInstance().Get_Reco_Kalman_MaxSeedYSlope() )
     {
       //std::cerr << "[TMS_Kalman.cpp] Excessive average Y slope = " << TMS_Kalman::AverageYSlope << " of track (first to last hit), setting to 0" << std::endl;
       PreviousState.dydz = 0.0;
@@ -378,19 +379,19 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
   double sigma = MSC.Calc_MS_Sigma();
 
-  if (TotalPathLength >= 1.0) { // If path is 0 we're in the first Node, set initial cov
+  if (TotalPathLength >= TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovariancePathLengthThresholdMm()) { // If path is 0 we're in the first Node, set initial cov
     Node.FillUpdatedCovarianceMatrix(TotalPathLength, UpdateVec[2], UpdateVec[3], CurrentState.qp, sigma, false); // Fill the matrix for multiple scattering
   } else { // Initialise cov to something 'sane'-ish
     UpdatedCovarianceMatrix.Zero(); // zero this out to be sure
-    CovarianceMatrix(0,0) = 200.0; // TODO: enable swapping the x and y for z layers, should rarely happen
-    CovarianceMatrix(1,1) = 1.0E3;
-    CovarianceMatrix(2,2) = 1.50;
-    CovarianceMatrix(3,3) = 2.50;
-    CovarianceMatrix(4,4) = 1.0;
+    CovarianceMatrix(0,0) = TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovarianceX(); // TODO: enable swapping the x and y for z layers, should rarely happen
+    CovarianceMatrix(1,1) = TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovarianceY();
+    CovarianceMatrix(2,2) = TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovarianceXSlope();
+    CovarianceMatrix(3,3) = TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovarianceYSlope();
+    CovarianceMatrix(4,4) = TMS_Manager::GetInstance().Get_Reco_Kalman_InitialCovarianceQoverP();
     if (Talk) std::cout << "Initialising covariance!" << std::endl;
   }
 
-  Node.FillNoiseMatrix(); // Full the matrix for multiple scattering
+  Node.FillNoiseMatrix(TMS_Manager::GetInstance().Get_Reco_Kalman_UnmeasuredCoordinateSigmaMm()); // Fill the measurement-noise matrix
 
   CovarianceMatrix = Transfer*CovarianceMatrix*TransferT;
 

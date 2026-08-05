@@ -465,8 +465,8 @@ for (auto Lines: HoughCandidatesY) {
     std::pair<bool, TF1*> houghline = HoughLinesU[linenoU];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-        fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+    if (fabs(houghline.second->GetParameter(0) - intercept) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitInterceptTolerance() ||
+        fabs(houghline.second->GetParameter(1) - slope) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitSlopeTolerance()) {
       //std::cout << "Old slope: " << houghline.second->GetParameter(1) << std::endl;
       //std::cout << "New slope: " << slope << std::endl;
       //std::cout << "Old intercept: " << houghline.second->GetParameter(0) << std::endl;
@@ -477,9 +477,9 @@ for (auto Lines: HoughCandidatesY) {
     }
 
     // The number of hits in this track, take 20% and call upstream and dowstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
+    int nrescanhits = TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanFraction()*Lines.size()+1;
     // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
+    if (nrescanhits < TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanMinimumHits()) nrescanhits = Lines.size();
     std::vector<TMS_Hit> upstream;
     std::vector<TMS_Hit> downstream;
     for (int i = 0; i < nrescanhits; ++i) {
@@ -506,16 +506,16 @@ for (auto Lines: HoughCandidatesY) {
     std::pair<bool, TF1*> houghline = HoughLinesV[linenoV];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+    if (fabs(houghline.second->GetParameter(0) - intercept) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitInterceptTolerance() ||
+	      fabs(houghline.second->GetParameter(1) - slope) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitSlopeTolerance()) {
       HoughLinesV[linenoV].second->SetParameter(0, intercept);
       HoughLinesV[linenoV].second->SetParameter(1, slope);
     }
     
     // The number of hits in this track, trake 20% and call upstream and downstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
+    int nrescanhits = TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanFraction()*Lines.size()+1;
     // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
+    if (nrescanhits < TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanMinimumHits()) nrescanhits = Lines.size();
     std::vector<TMS_Hit> upstream;
     std::vector<TMS_Hit> downstream;
     for (int i = 0; i < nrescanhits; ++i) {
@@ -542,16 +542,16 @@ for (auto Lines: HoughCandidatesY) {
     std::pair<bool, TF1*> houghline = HoughLinesX[linenoX];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+    if (fabs(houghline.second->GetParameter(0) - intercept) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitInterceptTolerance() ||
+	      fabs(houghline.second->GetParameter(1) - slope) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitSlopeTolerance()) {
       HoughLinesX[linenoX].second->SetParameter(0, intercept);
       HoughLinesX[linenoX].second->SetParameter(1, slope);
     }
     
     // The number of hits in this track, trake 20% and call upstream and downstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
+    int nrescanhits = TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanFraction()*Lines.size()+1;
     // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
+    if (nrescanhits < TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanMinimumHits()) nrescanhits = Lines.size();
     std::vector<TMS_Hit> upstream;
     std::vector<TMS_Hit> downstream;
     for (int i = 0; i < nrescanhits; ++i) {
@@ -578,16 +578,16 @@ for (auto Lines: HoughCandidatesY) {
     std::pair<bool, TF1*> houghline = HoughLinesY[linenoY];
     double slope, intercept = 0;
     GetHoughLine(Lines, slope, intercept);
-    if (fabs(houghline.second->GetParameter(0) - intercept) > 1E2 ||
-	      fabs(houghline.second->GetParameter(1) - slope) > 1E-2) {
+    if (fabs(houghline.second->GetParameter(0) - intercept) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitInterceptTolerance() ||
+	      fabs(houghline.second->GetParameter(1) - slope) > TMS_Manager::GetInstance().Get_Reco_HOUGH_RefitSlopeTolerance()) {
       HoughLinesY[linenoY].second->SetParameter(0, intercept);
       HoughLinesY[linenoY].second->SetParameter(1, slope);
     }
     
     // The number of hits in this track, trake 20% and call upstream and downstream segments
-    int nrescanhits = 0.3*Lines.size()+1;
+    int nrescanhits = TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanFraction()*Lines.size()+1;
     // If there are only a few hits, use all of them
-    if (nrescanhits < 5) nrescanhits = Lines.size();
+    if (nrescanhits < TMS_Manager::GetInstance().Get_Reco_HOUGH_EndpointRescanMinimumHits()) nrescanhits = Lines.size();
     std::vector<TMS_Hit> upstream;
     std::vector<TMS_Hit> downstream;
     for (int i = 0; i < nrescanhits; ++i) {
@@ -1327,14 +1327,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         bool stereo_view = true;
 
         if (Xrun && Xback_match && Xfront_match) {
-          if (((UTracks[itU].GetZ() <= TMS_Const::TMS_Thick_Start && XTracks[itX].GetZ() <= TMS_Const::TMS_Thick_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thin_gap * 2 + 10))
-              || ((VTracks[itV].GetZ() <= TMS_Const::TMS_Thick_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thin_gap * 2 + 10))) {
+          if (((UTracks[itU].GetZ() <= TMS_Const::TMS_Thick_Start && XTracks[itX].GetZ() <= TMS_Const::TMS_Thick_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thin_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
+              || ((VTracks[itV].GetZ() <= TMS_Const::TMS_Thick_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thin_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))) {
             stereo_view = false;
-          } else if (((UTracks[itU].GetZ() <= TMS_Const::TMS_Double_Start && XTracks[itX].GetZ() <= TMS_Const::TMS_Double_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thick_gap * 2 + 10))
-              || ((VTracks[itV].GetZ() <= TMS_Const::TMS_Double_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thick_gap * 2 + 10))) {
+          } else if (((UTracks[itU].GetZ() <= TMS_Const::TMS_Double_Start && XTracks[itX].GetZ() <= TMS_Const::TMS_Double_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thick_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
+              || ((VTracks[itV].GetZ() <= TMS_Const::TMS_Double_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Thick_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))) {
             stereo_view = false;
-          } else if (((UTracks[itU].GetZ() >= TMS_Const::TMS_Double_Start && XTracks[itX].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * 2 + 10))
-              || ((VTracks[itV].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * 2 + 10))) {
+          } else if (((UTracks[itU].GetZ() >= TMS_Const::TMS_Double_Start && XTracks[itX].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(UTracks[itU].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
+              || ((VTracks[itV].GetZ() >= TMS_Const::TMS_Double_Start) && (std::abs(VTracks[itV].GetZ() - XTracks[itX].GetZ()) < TMS_Const::TMS_Double_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoInTrackGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))) {
             stereo_view = false;
           } 
           if (itX > 0 && itU == 0 && itV == 0) stereo_view = false;
@@ -1747,13 +1747,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         bool stereo_view = true;
         if (Xrun && Xback_match && Xfront_match) {
           if ((UTracks.front().GetZ() <= TMS_Const::TMS_Thick_Start && XTracks.front().GetZ() <= TMS_Const::TMS_Thick_Start) 
-              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Thin_gap * 4 + 10)) 
+              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Thin_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
           else if ((UTracks.front().GetZ() <= TMS_Const::TMS_Double_Start && XTracks.front().GetZ() <= TMS_Const::TMS_Double_Start) 
-              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Thick_gap * 4 + 10)) 
+              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Thick_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
           else if ((UTracks.front().GetZ() <= TMS_Const::TMS_Double_End && XTracks.front().GetZ() <= TMS_Const::TMS_Double_End) 
-              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Double_gap * 4 + 10))
+              && (std::abs(UTracks.front().GetZ() - XTracks.front().GetZ()) < TMS_Const::TMS_Double_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
         }
         if (stereo_view) {
@@ -1782,13 +1782,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
         bool stereo_view = true;
         if (Xrun && Xback_match && Xfront_match) {
           if ((UTracks.back().GetZ() <= TMS_Const::TMS_Thick_Start && XTracks.back().GetZ() <= TMS_Const::TMS_Thick_Start) 
-              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Thin_gap * 4 + 10))
+              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Thin_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
           else if ((UTracks.back().GetZ() <= TMS_Const::TMS_Double_Start && XTracks.back().GetZ() <= TMS_Const::TMS_Double_Start) 
-              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Thick_gap * 4 + 10)) 
+              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Thick_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
           else if ((UTracks.back().GetZ() <= TMS_Const::TMS_Double_End && XTracks.back().GetZ() <= TMS_Const::TMS_Double_End)
-              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Double_gap * 4 + 10))
+              && (std::abs(UTracks.back().GetZ() - XTracks.back().GetZ()) < TMS_Const::TMS_Double_gap * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoEndpointGapScale() + TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_XStereoZPaddingMm()))
             stereo_view = false;
         }
         if (stereo_view) {
@@ -2359,13 +2359,13 @@ void TMS_TrackFinder::CalculateRecoY(TMS_Hit &OneHit, TMS_Hit &UHit, TMS_Hit &VH
   else if (UHit.GetNotZ() < 0 && VHit.GetNotZ() > 0) above = false;
 
   if (above) {
-    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 10 * TMS_Const::TMS_Scint_Width) { //167.0) {
+    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_UVMaxSeparationBars() * TMS_Const::TMS_Scint_Width) { //167.0) {
       OneHit.SetRecoY(TMS_Const::TMS_End_Bars_Only[1]);//244.0);
     } else {
       OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 + 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
     }
   } else {
-    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > 10 * TMS_Const::TMS_Scint_Width) { //167.0) {
+    if (std::abs(UHit.GetNotZ() - VHit.GetNotZ()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_UVMaxSeparationBars() * TMS_Const::TMS_Scint_Width) { //167.0) {
       OneHit.SetRecoY(TMS_Const::TMS_Start_Bars_Only[1]);//-2949.0);
     } else {
       OneHit.SetRecoY(TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() * 1000 - 0.5 * TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TiltAngle() * std::abs(UHit.GetNotZ() - VHit.GetNotZ()));
@@ -2748,8 +2748,8 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         //std::cout << "First hit (t.b.del. track): " << first_hit_z_2 << ", " << first_hit_notz_2 << std::endl;
 
         // Now check how far away the hits are
-        bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= 2 && 
-                          abs(first_hit_notz_2 - last_hit_notz) <= 2);
+        bool mergehits = (abs(first_hit_z_2 - last_hit_z) <= TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeEndpointPlaneGap() &&
+                          abs(first_hit_notz_2 - last_hit_notz) <= TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeEndpointBarGap());
 
         double HoughUInter_2 = 0.000;
         double HoughUSlope_2 = 0.000;
@@ -2777,17 +2777,17 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         // Now check how similar the Hough lines are
         bool mergehough = false;
       	if (hitgroup == 'U') {
-      	  mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < 1000 &&   // 100 -> 1000
-                       fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
+          mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeInterceptDifference() &&
+                       fabs(HoughUSlope_2 - HoughUSlope_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeSlopeDifference());
       	} else if (hitgroup == 'V') {
-      	  mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < 1000 && // 100 -> 1000
-			                 fabs(HoughVSlope_2 - HoughVSlope_1) < 0.1);    // 0.01 -> 0.1
+          mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeInterceptDifference() &&
+			                 fabs(HoughVSlope_2 - HoughVSlope_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeSlopeDifference());
       	} else if (hitgroup == 'X') {
-          mergehough = (fabs(HoughXInter_2 - HoughXInter_1) < 1000 &&
-                       fabs(HoughXSlope_2 - HoughXSlope_1) < 0.1);
+          mergehough = (fabs(HoughXInter_2 - HoughXInter_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeInterceptDifference() &&
+                       fabs(HoughXSlope_2 - HoughXSlope_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeSlopeDifference());
       	} else if (hitgroup == 'Y') {
-          mergehough = (fabs(HoughYInter_2 - HoughYInter_1) < 1000 &&
-                       fabs(HoughYSlope_2 - HoughYSlope_1) < 0.1);
+          mergehough = (fabs(HoughYInter_2 - HoughYInter_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeInterceptDifference() &&
+                       fabs(HoughYSlope_2 - HoughYSlope_1) < TMS_Manager::GetInstance().Get_Reco_HOUGH_MergeSlopeDifference());
         }
 
         // Check if we should merge or not
@@ -3328,7 +3328,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   std::vector<TMS_Hit> front_three;
   std::vector<TMS_Hit>::const_iterator it = TrackHits.begin();
   int loop_iterator = 0;
-  while (loop_iterator < 3 && it != TrackHits.end()) {
+  const int endpoint_seed_hits = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_EndpointSeedHits();
+  while (loop_iterator < endpoint_seed_hits && it != TrackHits.end()) {
     if (front_three.size() >= 1 && (*it).GetZ() == front_three[loop_iterator-1].GetZ()) {
       ++it;
       continue;
@@ -3339,14 +3340,14 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   };
   
   // Not enough hits to do the extrapolation
-  if (front_three.size() < 3) return returned;
+  if ((int)front_three.size() < endpoint_seed_hits) return returned;
 
   // TODO Shorten this with an external function that uses a flag for last/three hits
   // Get last three hits
   std::vector<TMS_Hit> last_three;
   loop_iterator = 0;
   std::vector<TMS_Hit>::const_reverse_iterator ir = TrackHits.rbegin();
-  while (loop_iterator < 3 && ir != TrackHits.rend()) {
+  while (loop_iterator < endpoint_seed_hits && ir != TrackHits.rend()) {
     if (last_three.size() >= 1 && (*ir).GetZ() == last_three[loop_iterator-1].GetZ()) {
       ++ir;
       continue;
@@ -3357,23 +3358,24 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   }
   
   // Not enough hits to do the extrapolation
-  if (last_three.size() < 3) return returned;
+  if ((int)last_three.size() < endpoint_seed_hits) return returned;
 
-  // Calculate slopes and intercepts of connecting lines of last/first hits
-  double slopes_front[2], slopes_end[2], intercepts_front[2], intercepts_end[2];
-  for (int i = 0; i < 2; ++i) {
-    slopes_front[i] = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) / (front_three[i+1].GetZ() - front_three[i].GetZ());
-    slopes_end[i] = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) / (last_three[i+1].GetZ() - last_three[i].GetZ());
-    intercepts_front[i] = front_three[i].GetNotZ() - front_three[i].GetZ() * slopes_front[i];
-    intercepts_end[i] = last_three[i].GetNotZ() - last_three[i].GetZ() * slopes_end[i];
+  // Average adjacent-segment directions across the endpoint seed.
+  front.slope = front.intercept = end.slope = end.intercept = 0.0;
+  for (int i = 0; i + 1 < endpoint_seed_hits; ++i) {
+    const double front_slope = (front_three[i+1].GetNotZ() - front_three[i].GetNotZ()) /
+                               (front_three[i+1].GetZ() - front_three[i].GetZ());
+    const double end_slope = (last_three[i+1].GetNotZ() - last_three[i].GetNotZ()) /
+                             (last_three[i+1].GetZ() - last_three[i].GetZ());
+    front.slope += front_slope;
+    front.intercept += front_three[i].GetNotZ() - front_three[i].GetZ() * front_slope;
+    end.slope += end_slope;
+    end.intercept += last_three[i].GetNotZ() - last_three[i].GetZ() * end_slope;
   }
-
-  // Take average of connecting lines as direction
-  front.slope = (slopes_front[0] + slopes_front[1]) / 2;
-  front.intercept = (intercepts_front[0] + intercepts_front[1]) / 2;
-
-  end.slope = (slopes_end[0] + slopes_end[1]) / 2;
-  end.intercept = (intercepts_end[0] + intercepts_end[1]) / 2;
+  front.slope /= endpoint_seed_hits - 1;
+  front.intercept /= endpoint_seed_hits - 1;
+  end.slope /= endpoint_seed_hits - 1;
+  end.intercept /= endpoint_seed_hits - 1;
 
   // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from end of track away (heuristic cost)
   // and with a higher z at most +/- 2 bar widths away from the direction line
@@ -3384,9 +3386,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       // Check if within 4 bar widths above or below the direction line
       bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
             (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
-      if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
-        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
+      if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // Use the configured X transverse scale.
+        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarTransverseScale() * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
+            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarTransverseScale() * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
       }
       if (CloseBars) {
         // Calculate temporary node to check for distance
@@ -3418,7 +3420,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   }
 
   // If more than 2 candidate hits, run A* algorithm to connect the correct ones
-  if (end_extrapolation_cand.size() > 2) {
+  if ((int)end_extrapolation_cand.size() > TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_MultiCandidateThreshold()) {
 #ifdef DEBUG
     std::cout << "more than 2 candidates: " << end_extrapolation_cand.size() << std::endl;
     std::cout << "track initial size: " << TrackHits.size() << std::endl;
@@ -3486,8 +3488,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
         bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
               (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
         if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
-          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
+          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarTransverseScale() * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
+              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarTransverseScale() * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
         }
         if (CloseBars) {
           // Calculate temporary node to check for distance
@@ -3513,7 +3515,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     }
 
     // If more than 2 candidate hits, run A* algorithm to connect the correct ones
-    if (front_extrapolation_cand.size() > 2 ) {
+    if ((int)front_extrapolation_cand.size() > TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_MultiCandidateThreshold()) {
 #ifdef DEBUG
       std::cout << "more than 2 candidates: " << front_extrapolation_cand.size() << std::endl;
       std::cout << "track initial size: " << returned.size() << std::endl;
@@ -3849,8 +3851,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunAstar(const std::vector<TMS_Hit> &TMS_x
       // to make calculation much faster
       // This important can't be 1 though, because that would not connect split hits
       if (!ConnectAll) {
-        if (abs((*jt).x - (*it).x) > 3 || 
-            abs((*jt).y - (*it).y) > 3) continue; // (*jt).y - (*jt).y doesn't really make sense...
+        if (abs((*jt).x - (*it).x) > TMS_Manager::GetInstance().Get_Reco_ASTAR_NeighbourPlaneWindow() ||
+            abs((*jt).y - (*it).y) > TMS_Manager::GetInstance().Get_Reco_ASTAR_NeighbourBarWindow()) continue;
       }
       double GroundCost = (*it).CalculateGroundCost(*jt);
 
@@ -4237,7 +4239,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
       //std::cout << "and new gradient: " << grad_new << std::endl;
 
       // If gradient is within 0.6 and the correct sign, accept
-      if (fabs(grad_new - grad_exp) <= 2.0) { 
+      if (fabs(grad_new - grad_exp) <= TMS_Manager::GetInstance().Get_Reco_ASTAR_DownstreamGradientTolerance()) {
         // If the gradient is zero we shouldn't do a sign check
         // But if it's not, check the sign of the gradient doesn't flip
         if (fabs(grad_new) > TMS_Const::TMS_Small_Num && 
@@ -4381,7 +4383,7 @@ void TMS_TrackFinder::WalkDownStream(std::vector<TMS_Hit> &vec, std::vector<TMS_
         //std::cout << "and new gradient: " << grad_new << std::endl;
 
         // If gradient is within 1 and the correct sign, accept
-        if (fabs(grad_new - grad_exp) <= 1.5) {
+        if (fabs(grad_new - grad_exp) <= TMS_Manager::GetInstance().Get_Reco_ASTAR_UpstreamGradientTolerance()) {
           // If the gradient is zero we shouldn't do a sign check
           // But if it's not, check the sign of the gradient doesn't flip
           if (fabs(grad_new) > TMS_Const::TMS_Small_Num &&
