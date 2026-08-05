@@ -1529,15 +1529,26 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   int itTrack= 0;
   std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
-  nTracks = Reco_Tracks.size();
-  RecoTrackN = Reco_Tracks.size();
+  const size_t n_output_tracks = std::min(Reco_Tracks.size(), static_cast<size_t>(__TMS_MAX_TRACKS__));
+  if (Reco_Tracks.size() > n_output_tracks) {
+    std::cout << "TMS_TreeWriter WARNING: " << Reco_Tracks.size()
+              << " reconstructed tracks exceed the output limit of "
+              << __TMS_MAX_TRACKS__ << ". Saving the first "
+              << n_output_tracks << " tracks." << std::endl;
+  }
+  nTracks = static_cast<int>(n_output_tracks);
+  RecoTrackN = static_cast<int>(n_output_tracks);
   
   TimeSliceStartTime = event.GetTimeSliceBounds().first;
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
-  for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+  for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end() && itTrack < nTracks; ++RecoTrack, ++itTrack) {
+    const size_t n_output_hits = std::min(RecoTrack->Hits.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
+    size_t n_output_kalman_nodes = std::min(RecoTrack->KalmanNodes.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
+    n_output_kalman_nodes = std::min(n_output_kalman_nodes, RecoTrack->KalmanNodes_plus.size());
+    n_output_kalman_nodes = std::min(n_output_kalman_nodes, RecoTrack->KalmanNodes_minus.size());
+    nHitsIn3DTrack[itTrack]         = static_cast<int>(n_output_hits);
+    nKalmanNodes[itTrack]           = static_cast<int>(n_output_kalman_nodes);
     const float raw_3d_length = RecoTrack->Length;
     const float fallback_2d_length =
         TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
@@ -1580,8 +1591,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
     } 
 
-    if (RecoTrack->KalmanNodes.size() > 0) {
-      size_t last_index = RecoTrack->KalmanNodes.size() - 1;
+    if (n_output_kalman_nodes > 0) {
+      size_t last_index = n_output_kalman_nodes - 1;
       TMS_Bar first_bar(RecoTrack->KalmanNodes[0].RecoX, RecoTrack->KalmanNodes[0].RecoY,
                         RecoTrack->KalmanNodes[0].z);
       TMS_Bar last_bar(RecoTrack->KalmanNodes[last_index].RecoX, RecoTrack->KalmanNodes[last_index].RecoY,
@@ -1607,7 +1618,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
 
-    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+    for (size_t j = 0; j < n_output_kalman_nodes; ++j) {
       //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
       //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
@@ -1644,7 +1655,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanPlaneBarViewTrue[itTrack][j][2] = current_bar_true.GetBarTypeNumber();
     }
  
-    for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
+    for (size_t j = 0; j < n_output_hits; ++j) {
       RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
       RecoTrackHitBarType[itTrack][j] = RecoTrack->Hits[j].GetBar().GetBarType();
 
@@ -1712,8 +1723,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         
         // TODO needs fixing
         //if ( RecoTrack->Hits.size() !=  RecoTrack->nHits) std::cout<<"N hits mismatch: "<< RecoTrack->Hits.size() << " vs "<< RecoTrack->nHits<<std::endl;
-        RecoTrackNHits[itTrack] = RecoTrack->Hits.size();
-        for (size_t h = 0; h <  RecoTrack->Hits.size() && h < __TMS_MAX_LINE_HITS__; h++) {
+        RecoTrackNHits[itTrack] = n_output_hits;
+        for (size_t h = 0; h < n_output_hits; h++) {
           auto& hit = RecoTrack->Hits[h];
           RecoTrackTrueHitPosition[itTrack][h][0] = hit.GetTrueHit().GetX();
           RecoTrackTrueHitPosition[itTrack][h][1] = hit.GetTrueHit().GetY();
