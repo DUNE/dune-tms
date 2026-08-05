@@ -1,5 +1,30 @@
 #include "TMS_Reco.h"
 
+namespace {
+  // The existing validation readers reserve ten truth-associated track slots.
+  // Keep the oracle modes within that established output contract.
+  const size_t kTruthBypassMaxTracks = 10;
+
+  double CandidateZSpan(const std::vector<TMS_Hit> &candidate) {
+    if (candidate.size() < 2) return 0.0;
+    return std::abs(candidate.back().GetZ() - candidate.front().GetZ());
+  }
+
+  void KeepLongestCandidates(std::vector<std::vector<TMS_Hit>> &candidates) {
+    std::stable_sort(candidates.begin(), candidates.end(),
+        [](const std::vector<TMS_Hit> &a, const std::vector<TMS_Hit> &b) {
+          return CandidateZSpan(a) > CandidateZSpan(b);
+        });
+    if (candidates.size() > kTruthBypassMaxTracks) candidates.resize(kTruthBypassMaxTracks);
+  }
+
+  void KeepLongestTracks(std::vector<TMS_Track> &tracks) {
+    std::stable_sort(tracks.begin(), tracks.end(),
+        [](const TMS_Track &a, const TMS_Track &b) { return a.Length > b.Length; });
+    if (tracks.size() > kTruthBypassMaxTracks) tracks.resize(kTruthBypassMaxTracks);
+  }
+}
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -209,6 +234,10 @@ void TMS_TrackFinder::MakeTruth2DCandidates() {
     if (x.size() >= 2) { SpatialPrio(x); HoughCandidatesX.push_back(std::move(x)); }
     if (y.size() >= 2) { SpatialPrio(y); HoughCandidatesY.push_back(std::move(y)); }
   }
+  KeepLongestCandidates(HoughCandidatesU);
+  KeepLongestCandidates(HoughCandidatesV);
+  KeepLongestCandidates(HoughCandidatesX);
+  KeepLongestCandidates(HoughCandidatesY);
 }
 
 void TMS_TrackFinder::MakeTruth3DTracks() {
@@ -242,6 +271,7 @@ void TMS_TrackFinder::MakeTruth3DTracks() {
     track.EnergyDeposit = CalculateTrackEnergy3D(track);
     HoughTracks3D.push_back(std::move(track));
   }
+  KeepLongestTracks(HoughTracks3D);
 }
 
 void TMS_TrackFinder::RunKalmanFits(bool use_true_measurements) {
@@ -380,6 +410,7 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   if (truth_bypass == "truth_2d_candidates") {
     MakeTruth2DCandidates();
     HoughTracks3D = UHitGroup.empty() ? TrackMatching3D_XY() : TrackMatching3D();
+    KeepLongestTracks(HoughTracks3D);
     // Keep the 2-D candidate bookkeeping that the normal path performs below.
     // TMS_TreeWriter serializes these values alongside the candidates.
     for (const auto &candidate : HoughCandidatesU) {
