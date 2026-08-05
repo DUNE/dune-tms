@@ -221,9 +221,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         }
       }
         
-      for (int itrack = 0; itrack < reco.nTracks && itrack < 100; itrack++) {
-        const int n_track_hits = has_kalman ? reco.nKalmanNodes[itrack] : reco.nHits[itrack];
-        if (n_track_hits <= 0 || n_track_hits > 200) continue;
+      for (int itrack = 0; itrack < reco.nTracks; itrack++) {
         /*for (int ihit = 0; ihit < lc.nHits; ihit++) {
           double xs = lc.RecoHitPos[ihit][0] - reco.KalmanTruePos[itrack][0][0];
           double xe = lc.RecoHitPos[ihit][0] - reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][0];
@@ -234,14 +232,14 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         }*/
       
         hist_track_length.Fill(reco.Length[itrack]);
-        hist_track_n_hits.Fill(n_track_hits);
+        hist_track_n_hits.Fill(reco.nHits[itrack]);
         
         hist_track_hit_dy_start.Fill(reco.KalmanPos[itrack][0][1] - reco.KalmanTruePos[itrack][0][1]);
-        hist_track_hit_dy_end.Fill(reco.KalmanPos[itrack][n_track_hits-1][1] - reco.KalmanTruePos[itrack][n_track_hits-1][1]);
-        hist_track_hit_dy_relative_start_end.Fill((reco.KalmanPos[itrack][n_track_hits-1][1] - reco.KalmanPos[itrack][0][1]) -\
-             (reco.KalmanTruePos[itrack][n_track_hits-1][1] - reco.KalmanTruePos[itrack][0][1]));
+        hist_track_hit_dy_end.Fill(reco.KalmanPos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][1]);
+        hist_track_hit_dy_relative_start_end.Fill((reco.KalmanPos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanPos[itrack][0][1]) -\
+             (reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][1] - reco.KalmanTruePos[itrack][0][1]));
         std::cout<<"\n\nLooping over hits for track "<<itrack<<std::endl;
-        for (int ihit = 0; ihit < n_track_hits; ihit++) {
+        for (int ihit = 0; ihit < reco.nHits[itrack]; ihit++) {
           if (reco.KalmanPos[itrack][ihit][2] < 11000) continue;
           
           std::cout<<"(x, y, z)=("<<reco.KalmanPos[itrack][ihit][0]<<", "<<reco.KalmanPos[itrack][ihit][1]<<", "<<reco.KalmanPos[itrack][ihit][2]<<")";
@@ -260,19 +258,19 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
           
           hist_track_hit_xz_relative_start.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][0][2], 
                                                 reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][0][0]);
-          hist_track_hit_xz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][n_track_hits-1][2],
-                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][n_track_hits-1][0]);
-          if (n_track_hits > 2)
-            hist_track_hit_xz_relative_end_m1.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][n_track_hits-2][2],
-                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][n_track_hits-2][0]);
-          if (n_track_hits > 3)
-            hist_track_hit_xz_relative_end_m2.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][n_track_hits-3][2],
-                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][n_track_hits-3][0]);
-          if (n_track_hits > 5)
-            hist_track_hit_xz_relative_end_m4.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][n_track_hits-5][2],
-                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][n_track_hits-5][0]);
-          hist_track_hit_xz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(n_track_hits-1) / 2][2],
-                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][(n_track_hits-1) / 2][0]);
+          hist_track_hit_xz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][0]);
+          if (reco.nHits[itrack] > 2) 
+            hist_track_hit_xz_relative_end_m1.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-2][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-2][0]);
+          if (reco.nHits[itrack] > 3) 
+            hist_track_hit_xz_relative_end_m2.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-3][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-3][0]);
+          if (reco.nHits[itrack] > 5) 
+            hist_track_hit_xz_relative_end_m4.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-5][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][reco.nHits[itrack]-5][0]);
+          hist_track_hit_xz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][2], 
+                                                reco.KalmanPos[itrack][ihit][0] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][0]);
                                                 
                                                 
           if (reco.nHits[itrack] > 2) 
@@ -288,10 +286,10 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
 
           hist_track_hit_yz_relative_start.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][1][2], 
                                                 reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][1][1]);
-          hist_track_hit_yz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][n_track_hits-1][2],
-                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][n_track_hits-1][1]);
-          hist_track_hit_yz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(n_track_hits-1) / 2][2],
-                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][(n_track_hits-1) / 2][1]);
+          hist_track_hit_yz_relative_end.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][2], 
+                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][reco.nHits[itrack]-1][1]);
+          hist_track_hit_yz_relative_center.Fill(reco.KalmanPos[itrack][ihit][2] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][2], 
+                                                reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][(reco.nHits[itrack]-1) / 2][1]);
           
           // Same but subtract a relative offset
           if (ihit > 0)
@@ -310,8 +308,8 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
             hist_track_hit_dy_relative_50.Fill((reco.KalmanPos[itrack][ihit][1] - reco.KalmanPos[itrack][ihit-50][1]) -\
                (reco.KalmanTruePos[itrack][ihit][1] - reco.KalmanTruePos[itrack][ihit-50][1]));
                
-          int hlcex = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][n_track_hits-1][0], true);
-          int hlcez = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][n_track_hits-1][2], false);
+          int hlcex = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][0], true);
+          int hlcez = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][reco.nHits[itrack]-1][2], false);
           int hlcsx = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][0][0], true);
           int hlcsz = GetHitLocationCodeSingle(reco.KalmanTruePos[itrack][0][2], false);
           hist_track_end_hit_location_x.Fill(hlcex);
@@ -321,7 +319,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
         }
       }
       
-      for (int itrack = 0; itrack < truth.RecoTrackN && itrack < 100; itrack++) {
+      for (int itrack = 0; itrack < truth.RecoTrackN; itrack++) {
         int particle_index = truth.RecoTrackPrimaryParticleIndex[itrack];
         int pdg = -999999999;
         if (particle_index >= 0 && particle_index < truth.nTrueParticles) pdg = truth.PDG[particle_index];
@@ -354,7 +352,7 @@ Long64_t PrimaryLoop(Truth_Info& truth, Reco_Tree& reco, int numEvents, TFile& o
           hist_true_track_y.Fill(truth.RecoTrackPrimaryParticleTruePositionTrackStart[itrack][1]);
           hist_diff_track_y.Fill(reco.StartPos[itrack][1] - truth.RecoTrackPrimaryParticleTruePositionTrackStart[itrack][1]);
           
-          double reco_direction = reco.StartDirection[itrack][0] / reco.StartDirection[itrack][2];
+          double reco_direction = reco.Direction[itrack][0] / reco.Direction[itrack][2];
           hist_reco_track_direction.Fill(reco_direction);
           double true_direction = truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[itrack][0] / truth.RecoTrackPrimaryParticleTrueMomentumTrackStart[itrack][2];
           hist_true_track_direction.Fill(true_direction);
