@@ -380,6 +380,24 @@ void TMS_TrackFinder::FindTracks(TMS_Event &event) {
   if (truth_bypass == "truth_2d_candidates") {
     MakeTruth2DCandidates();
     HoughTracks3D = UHitGroup.empty() ? TrackMatching3D_XY() : TrackMatching3D();
+    // Keep the 2-D candidate bookkeeping that the normal path performs below.
+    // TMS_TreeWriter serializes these values alongside the candidates.
+    for (const auto &candidate : HoughCandidatesU) {
+      TrackEnergyU.push_back(CalculateTrackEnergy(candidate));
+      TrackLengthU.push_back(CalculateTrackLength(candidate));
+    }
+    for (const auto &candidate : HoughCandidatesV) {
+      TrackEnergyV.push_back(CalculateTrackEnergy(candidate));
+      TrackLengthV.push_back(CalculateTrackLength(candidate));
+    }
+    for (const auto &candidate : HoughCandidatesX) {
+      TrackEnergyX.push_back(CalculateTrackEnergy(candidate));
+      TrackLengthX.push_back(CalculateTrackLength(candidate));
+    }
+    for (const auto &candidate : HoughCandidatesY) {
+      TrackEnergyY.push_back(CalculateTrackEnergy(candidate));
+      TrackLengthY.push_back(CalculateTrackLength(candidate));
+    }
     RunKalmanFits(TMS_Manager::GetInstance().Get_Reco_Kalman_UseTrueMeasurements());
     return;
   }
