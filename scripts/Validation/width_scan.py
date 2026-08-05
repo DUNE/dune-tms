@@ -83,6 +83,17 @@ def get_branch(tree, name):
         raise RuntimeError("missing " + name + " branch in " + tree.GetName())
 
 
+def fixed_array_value(entry, branch_name, row, column, row_width):
+    """Read a fixed-size 2-D ROOT leaf across PyROOT array representations."""
+    values = getattr(entry, branch_name)
+    try:
+        return values[row][column]
+    except TypeError:
+        # Some PyROOT versions expose TrackHitBarType[nTracks][200] as one
+        # flat buffer rather than an array of 200-element rows.
+        return values[row * row_width + column]
+
+
 def summarise_output(path):
     try:
         import ROOT
@@ -148,7 +159,7 @@ def summarise_output(path):
             has_x = False
             has_y = False
             for hit in range(n_hits):
-                bar_type = int(entry.TrackHitBarType[track][hit])
+                bar_type = int(fixed_array_value(entry, "TrackHitBarType", track, hit, 200))
                 if bar_type == 0:  # TMS_Bar::kXBar
                     summary["reco_track_hits_x"] += 1
                     has_x = True
@@ -198,6 +209,14 @@ def run_reconstruction(executable, repo, config, input_file, output_file):
     subprocess.run(command, check=True, env=environment)
 
 
+def default_reco_executable(repo):
+    candidates = [repo / "bin" / "ConvertToTMSTree.exe", repo / "bin" / "ConvertToTMSTree"]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]
+
+
 def print_report(results):
     columns = [
         ("point", "point"),
@@ -236,7 +255,7 @@ def main():
     parser.add_argument("--output-dir", required=True, type=Path,
                         help="directory for generated configs, ROOT outputs, and summary files")
     parser.add_argument("--reco-exe", type=Path,
-                        help="ConvertToTMSTree executable (default: <repo>/bin/ConvertToTMSTree)")
+                        help="ConvertToTMSTree executable (default: detect .exe or bare binary in <repo>/bin)")
     parser.add_argument("--config", type=Path,
                         help="base TOML (default: <repo>/config/TMS_Default_Config.toml)")
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2],
@@ -254,7 +273,7 @@ def main():
 
     repo = arguments.repo.resolve()
     template = (arguments.config or repo / "config" / "TMS_Default_Config.toml").resolve()
-    executable = (arguments.reco_exe or repo / "bin" / "ConvertToTMSTree").resolve()
+    executable = (arguments.reco_exe or default_reco_executable(repo)).resolve()
     inputs = [path.resolve() for path in arguments.input]
     if not template.is_file():
         parser.error("base config does not exist: " + str(template))

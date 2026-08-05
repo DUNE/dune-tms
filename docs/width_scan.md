@@ -18,6 +18,10 @@ python3 scripts/Validation/width_scan.py \
   --point widen_both_4x,6,6,4,4
 ```
 
+The helper automatically detects either `bin/ConvertToTMSTree.exe` (the Make
+build) or `bin/ConvertToTMSTree` (the CMake-style name). Use `--reco-exe` only
+to select another binary.
+
 The automatic `default` point is `Hough X/Y = 1.5/1.5` and extrapolation X/Y
 scales `1/1`.  `legacy_x` approximately recovers the pre-PR-289 X acceptance:
 the Hough half-window needs about `1.5 * (bar length / bar width)`, while the
