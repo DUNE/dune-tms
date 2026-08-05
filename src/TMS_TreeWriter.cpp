@@ -986,9 +986,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    const size_t n_output_candidate_hits = std::min(Candidates.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
-    if (Candidates.size() > n_output_candidate_hits) std::cout << "TMS_TreeWriter WARNING: truncating U candidate hits to " << __TMS_MAX_LINE_HITS__ << std::endl;
-    nHitsInTrackU[it] = static_cast<int>(n_output_candidate_hits);
+    nHitsInTrackU[it] = Candidates.size();
 
     // Then save the hit info
     FirstPlaneU[it] = Candidates.front().GetPlaneNumber();
@@ -1008,7 +1006,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
-    for (size_t j = 0; j < n_output_candidate_hits; ++j) {
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergyU[it][j] = Candidates[j].GetE();
       TrackHitTimeU[it][j] = Candidates[j].GetT();
       TrackHitPosU[it][j][0] = Candidates[j].GetZ();
@@ -1047,9 +1045,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    const size_t n_output_candidate_hits = std::min(Candidates.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
-    if (Candidates.size() > n_output_candidate_hits) std::cout << "TMS_TreeWriter WARNING: truncating V candidate hits to " << __TMS_MAX_LINE_HITS__ << std::endl;
-    nHitsInTrackV[it] = static_cast<int>(n_output_candidate_hits);
+    nHitsInTrackV[it] = Candidates.size();
 
     // then save the hit info
     FirstPlaneV[it] = Candidates.front().GetPlaneNumber();
@@ -1069,7 +1065,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
-    for (size_t j = 0; j < n_output_candidate_hits; ++j) {
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergyV[it][j] = Candidates[j].GetE();
       TrackHitTimeV[it][j] = Candidates[j].GetT();
       TrackHitPosV[it][j][0] = Candidates[j].GetZ();
@@ -1107,9 +1103,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    const size_t n_output_candidate_hits = std::min(Candidates.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
-    if (Candidates.size() > n_output_candidate_hits) std::cout << "TMS_TreeWriter WARNING: truncating X candidate hits to " << __TMS_MAX_LINE_HITS__ << std::endl;
-    nHitsInTrackX[it] = static_cast<int>(n_output_candidate_hits);
+    nHitsInTrackX[it] = Candidates.size();
 
     // Then save the hit info
     FirstPlaneX[it] = Candidates.front().GetPlaneNumber();
@@ -1129,7 +1123,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
-    for (size_t j = 0; j < n_output_candidate_hits; ++j) {
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergyX[it][j] = Candidates[j].GetE();
       TrackHitTimeX[it][j] = Candidates[j].GetT();
       TrackHitPosX[it][j][0] = Candidates[j].GetZ();
@@ -1168,9 +1162,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         FirstTrack = &hit;
       }
     }
-    const size_t n_output_candidate_hits = std::min(Candidates.size(), static_cast<size_t>(__TMS_MAX_LINE_HITS__));
-    if (Candidates.size() > n_output_candidate_hits) std::cout << "TMS_TreeWriter WARNING: truncating Y candidate hits to " << __TMS_MAX_LINE_HITS__ << std::endl;
-    nHitsInTrackY[it] = static_cast<int>(n_output_candidate_hits);
+    nHitsInTrackY[it] = Candidates.size();
 
     // Then save the hit info
     FirstPlaneY[it] = Candidates.front().GetPlaneNumber();
@@ -1190,7 +1182,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
     // Get each hit in the track and save its energy
-    for (size_t j = 0; j < n_output_candidate_hits; ++j) {
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
       TrackHitEnergyY[it][j] = Candidates[j].GetE();
       TrackHitTimeY[it][j] = Candidates[j].GetT();
       TrackHitPosY[it][j][0] = Candidates[j].GetZ();
