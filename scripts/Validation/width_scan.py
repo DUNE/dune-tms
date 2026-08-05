@@ -107,7 +107,7 @@ def summarise_output(path):
     lines = get_required_tree(root_file, "Line_Candidates")
     reco = get_required_tree(root_file, "Reco_Tree")
     truth_spill = root_file.Get("Truth_Spill")
-    for branch in ("nLinesX", "nLinesY", "nLines3D", "nHitsInTrackX", "nHitsInTrackY"):
+    for branch in ("nLinesX", "nLinesY", "nHitsInTrackX", "nHitsInTrackY"):
         get_branch(lines, branch)
     for branch in ("nTracks", "nHits", "TrackHitBarType"):
         get_branch(reco, branch)
@@ -116,12 +116,10 @@ def summarise_output(path):
         "line_entries": int(lines.GetEntries()),
         "lines_x": 0,
         "lines_y": 0,
-        "lines_3d": 0,
         "line_hits_x": 0,
         "line_hits_y": 0,
         "slices_with_x_line": 0,
         "slices_with_y_line": 0,
-        "slices_with_3d_line": 0,
         "reco_slices": int(reco.GetEntries()),
         "slices_with_tracks": 0,
         "reco_tracks": 0,
@@ -139,15 +137,12 @@ def summarise_output(path):
     for entry in lines:
         n_x = int(entry.nLinesX)
         n_y = int(entry.nLinesY)
-        n_3d = int(entry.nLines3D)
         summary["lines_x"] += n_x
         summary["lines_y"] += n_y
-        summary["lines_3d"] += n_3d
         summary["line_hits_x"] += sum(int(entry.nHitsInTrackX[index]) for index in range(n_x))
         summary["line_hits_y"] += sum(int(entry.nHitsInTrackY[index]) for index in range(n_y))
         summary["slices_with_x_line"] += n_x > 0
         summary["slices_with_y_line"] += n_y > 0
-        summary["slices_with_3d_line"] += n_3d > 0
 
     for entry in reco:
         n_tracks = int(entry.nTracks)
@@ -224,7 +219,6 @@ def print_report(results):
         ("slices_with_tracks", "track slices"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
-        ("lines_3d", "3D lines"),
         ("reco_track_hits_x", "X track hits"),
         ("reco_track_hits_y", "Y track hits"),
         ("truth_primary_muons_touching_tms", "truth #mu touch"),
