@@ -3080,9 +3080,11 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     }
     // Hough point is inside bar -> start clustering around bar
     // (Check if 'x'-point is inside hit bar)
+    double HoughContainmentOffset =
+      (TMS_Manager::GetInstance().Get_Reco_HOUGH_ContainmentHalfWidth() - 0.5) * bar.GetNotZw();
     if (( bar.Contains(HoughPoint, zhit) ||
-          bar.Contains(HoughPoint-bar.GetNotZw(), zhit) ||
-          bar.Contains(HoughPoint+bar.GetNotZw(), zhit) )) {
+          bar.Contains(HoughPoint-HoughContainmentOffset, zhit) ||
+          bar.Contains(HoughPoint+HoughContainmentOffset, zhit) )) {
       // Move into line vector and remove from pool
       returned.push_back(std::move(hit));
       it = HitPool.erase(it);
@@ -3382,11 +3384,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     // Check if hit is after the end of the track
     if ((*it).GetZ() > TrackHits.back().GetZ()) {
       // Check if within 4 bar widths above or below the direction line
-      bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
+      double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
+      bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
       if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
-        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * (*it).GetBar().GetNotZw()));
+        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
       }
       if (CloseBars) {
         // Calculate temporary node to check for distance
@@ -3483,11 +3486,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
       // Check if hit is before the start of the track
       if ((*it).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
-        bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
+        double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
+        bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
         if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
-          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * (*it).GetBar().GetNotZw()));
+          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
         }
         if (CloseBars) {
           // Calculate temporary node to check for distance
