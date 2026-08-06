@@ -597,6 +597,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionEnd", RecoTrackSecondaryParticleTruePositionEnd,
                      "RecoTrackSecondaryParticleTruePositionEnd[RecoTrackN][4]/F"); 
                      
+  Truth_Info->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
   Truth_Info->Branch("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, "TrueVisibleEnergyInSlice[nTrueParticles]/F");
   Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
   
