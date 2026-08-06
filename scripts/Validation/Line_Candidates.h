@@ -28,6 +28,7 @@ public :
    Int_t           nLinesU;
    Int_t           nLinesV;
    Int_t           nLinesX;
+   Int_t           nLinesY;
    Int_t           nLines3D;
    Float_t         SlopeU[20];   //[nLinesU]
    Float_t         InterceptU[20];   //[nLinesU]
@@ -47,6 +48,45 @@ public :
    Float_t         Intercept_DownstreamX[20];   //[nLinesX]
    Float_t         Slope_UpstreamX[20];   //[nLinesX]
    Float_t         Intercept_UpstreamX[20];   //[nLinesX]
+   // Y-view candidates use Z and measured X as their two coordinates.
+   Float_t         SlopeY[20];   //[nLinesY]
+   Float_t         InterceptY[20];   //[nLinesY]
+   Float_t         Slope_DownstreamY[20];   //[nLinesY]
+   Float_t         Intercept_DownstreamY[20];   //[nLinesY]
+   Float_t         Slope_UpstreamY[20];   //[nLinesY]
+   Float_t         Intercept_UpstreamY[20];   //[nLinesY]
+   Float_t         DirectionZY[20];   //[nLinesY]
+   Float_t         DirectionXY[20];   //[nLinesY]
+   Float_t         DirectionZY_Upstream[20];   //[nLinesY]
+   Float_t         DirectionXY_Upstream[20];   //[nLinesY]
+   Float_t         DirectionZY_Downstream[20];   //[nLinesY]
+   Float_t         DirectionXY_Downstream[20];   //[nLinesY]
+   Float_t         FirstHoughHitY[25][2];   //[nLinesY]
+   Float_t         LastHoughHitY[25][2];   //[nLinesY]
+   Float_t         FirstHoughHitTimeY[20];   //[nLinesY]
+   Float_t         LastHoughHitTimeY[20];   //[nLinesY]
+   Float_t         HoughEarliestHitTimeY[20];   //[nLinesY]
+   Float_t         HoughLatestHitTimeY[20];   //[nLinesY]
+   Int_t           FirstHoughPlaneY[20];   //[nLinesY]
+   Int_t           LastHoughPlaneY[20];   //[nLinesY]
+   Float_t         OccupancyY[20];   //[nLinesY]
+   Float_t         TrackLengthY[20];   //[nLinesY]
+   Float_t         TotalTrackEnergyY[20];   //[nLinesY]
+   Bool_t          TrackStoppingY[20];   //[nLinesY]
+   Int_t           nHitsInTrackY[20];   //[nLinesY]
+   Float_t         TrackHitEnergyY[10][200];
+   Float_t         TrackHitPosY[10][200][2];
+   Float_t         TrackHitTimeY[10][200];
+   Int_t           nClustersY;
+   Float_t         ClusterEnergyY[25];   //[nClustersY]
+   Float_t         ClusterTimeY[25];   //[nClustersY]
+   Float_t         ClusterPosMeanY[25][2];
+   Float_t         ClusterPosStdDevY[25][2];
+   Int_t           nHitsInClusterY[25];   //[nClustersY]
+   Float_t         ClusterHitPosY[25][200][2];
+   Float_t         ClusterHitEnergyY[25][200];
+   Float_t         ClusterHitTimeY[25][200];
+   Int_t           ClusterHitSliceY[25][200];
    /*Float_t         DirectionZU[20];   //[nLinesU]
    Float_t         DirectionZV[20];   //[nLinesV]
    Float_t         DirectionZX[20];   //[nLinesX]
@@ -76,7 +116,7 @@ public :
    Float_t         FirstHoughHitTimeX[20];   //[nLinesX]
    Float_t         LastHoughHitTimeU[20];   //[nLinesU]
    Float_t         LastHoughHitTimeV[20];   //[nLinesV]
-   Float_t         LastHoughHitTImeX[20];   //[nLinesX]
+   Float_t         LastHoughHitTimeX[20];   //[nLinesX]
    Float_t         HoughEarliestHitTimeU[20];   //[nLinesU]
    Float_t         HoughEarliestHitTimeV[20];   //[nLinesV]
    Float_t         HoughEarliestHitTimeX[20];   //[nLinesX]
@@ -117,7 +157,7 @@ public :
    Float_t         TrackHitTimeX[10][500]; 
    /*Int_t           nClustersU;
    Int_t           nClustersV;
-   Int_t           nClusterX;
+   Int_t           nClustersX;
    Float_t         ClusterEnergyU[20];   //[nClustersU]
    Float_t         ClusterEnergyV[20];   //[nClustersV]
    Float_t         ClusterEnergyX[20];   //[nClustersX]
@@ -157,6 +197,7 @@ public :
    TBranch        *b_nLinesU;   //!
    TBranch        *b_nLinesV;   //!
    TBranch        *b_nLinesX;   //!
+   TBranch        *b_nLinesY;   //!
    TBranch        *b_nLines3D;   //!
    TBranch        *b_SlopeU;   //!
    TBranch        *b_InterceptU;   //!
@@ -176,6 +217,44 @@ public :
    TBranch        *b_Intercept_DownstreamX;   //!
    TBranch        *b_Slope_UpstreamX;   //!
    TBranch        *b_Intercept_UpstreamX;   //!
+   TBranch        *b_SlopeY;   //!
+   TBranch        *b_InterceptY;   //!
+   TBranch        *b_Slope_DownstreamY;   //!
+   TBranch        *b_Intercept_DownstreamY;   //!
+   TBranch        *b_Slope_UpstreamY;   //!
+   TBranch        *b_Intercept_UpstreamY;   //!
+   TBranch        *b_DirectionZY;   //!
+   TBranch        *b_DirectionXY;   //!
+   TBranch        *b_DirectionZY_Upstream;   //!
+   TBranch        *b_DirectionXY_Upstream;   //!
+   TBranch        *b_DirectionZY_Downstream;   //!
+   TBranch        *b_DirectionXY_Downstream;   //!
+   TBranch        *b_FirstHoughHitY;   //!
+   TBranch        *b_LastHoughHitY;   //!
+   TBranch        *b_FirstHoughHitTimeY;   //!
+   TBranch        *b_LastHoughHitTimeY;   //!
+   TBranch        *b_HoughEarliestHitTimeY;   //!
+   TBranch        *b_HoughLatestHitTimeY;   //!
+   TBranch        *b_FirstHoughPlaneY;   //!
+   TBranch        *b_LastHoughPlaneY;   //!
+   TBranch        *b_OccupancyY;   //!
+   TBranch        *b_TrackLengthY;   //!
+   TBranch        *b_TotalTrackEnergyY;   //!
+   TBranch        *b_TrackStoppingY;   //!
+   TBranch        *b_nHitsInTrackY;   //!
+   TBranch        *b_TrackHitEnergyY;   //!
+   TBranch        *b_TrackHitPosY;   //!
+   TBranch        *b_TrackHitTimeY;   //!
+   TBranch        *b_nClustersY;   //!
+   TBranch        *b_ClusterEnergyY;   //!
+   TBranch        *b_ClusterTimeY;   //!
+   TBranch        *b_ClusterPosMeanY;   //!
+   TBranch        *b_ClusterPosStdDevY;   //!
+   TBranch        *b_nHitsInClusterY;   //!
+   TBranch        *b_ClusterHitPosY;   //!
+   TBranch        *b_ClusterHitEnergyY;   //!
+   TBranch        *b_ClusterHitTimeY;   //!
+   TBranch        *b_ClusterHitSliceY;   //!
    /*TBranch        *b_DirectionZU;   //!
    TBranch        *b_DirectionZV;   //!
    TBranch        *b_DirectionZX;   //!
@@ -205,7 +284,7 @@ public :
    TBranch        *b_FirstHoughHitTimeX;   //!
    TBranch        *b_LastHoughHitTimeU;   //!
    TBranch        *b_LastHoughHitTimeV;   //!
-   TBranch        *b_LastHoughHitTImeX;   //!
+   TBranch        *b_LastHoughHitTimeX;   //!
    TBranch        *b_HoughEarliestHitTimeU;   //!
    TBranch        *b_HoughEarliestHitTimeV;   //!
    TBranch        *b_HoughEarliestHitTimeX;   //!
@@ -375,6 +454,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("nLinesU", &nLinesU, &b_nLinesU);
    fChain->SetBranchAddress("nLinesV", &nLinesV, &b_nLinesV);
    fChain->SetBranchAddress("nLinesX", &nLinesX, &b_nLinesX);
+   fChain->SetBranchAddress("nLinesY", &nLinesY, &b_nLinesY);
    fChain->SetBranchAddress("nLines3D", &nLines3D, &b_nLines3D);
    fChain->SetBranchAddress("SlopeU", SlopeU, &b_SlopeU);
    fChain->SetBranchAddress("InterceptU", InterceptU, &b_InterceptU);
@@ -394,6 +474,44 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("Intercept_DownstreamX", &Intercept_DownstreamX, &b_Intercept_DownstreamX);
    fChain->SetBranchAddress("Slope_UpstreamX", &Slope_UpstreamX, &b_Slope_UpstreamX);
    fChain->SetBranchAddress("Intercept_UpstreamX", &Intercept_UpstreamX, &b_Intercept_UpstreamX);
+   fChain->SetBranchAddress("SlopeY", SlopeY, &b_SlopeY);
+   fChain->SetBranchAddress("InterceptY", InterceptY, &b_InterceptY);
+   fChain->SetBranchAddress("Slope_DownstreamY", Slope_DownstreamY, &b_Slope_DownstreamY);
+   fChain->SetBranchAddress("Intercept_DownstreamY", Intercept_DownstreamY, &b_Intercept_DownstreamY);
+   fChain->SetBranchAddress("Slope_UpstreamY", Slope_UpstreamY, &b_Slope_UpstreamY);
+   fChain->SetBranchAddress("Intercept_UpstreamY", Intercept_UpstreamY, &b_Intercept_UpstreamY);
+   fChain->SetBranchAddress("DirectionZY", DirectionZY, &b_DirectionZY);
+   fChain->SetBranchAddress("DirectionXY", DirectionXY, &b_DirectionXY);
+   fChain->SetBranchAddress("DirectionZY_Upstream", DirectionZY_Upstream, &b_DirectionZY_Upstream);
+   fChain->SetBranchAddress("DirectionXY_Upstream", DirectionXY_Upstream, &b_DirectionXY_Upstream);
+   fChain->SetBranchAddress("DirectionZY_Downstream", DirectionZY_Downstream, &b_DirectionZY_Downstream);
+   fChain->SetBranchAddress("DirectionXY_Downstream", DirectionXY_Downstream, &b_DirectionXY_Downstream);
+   fChain->SetBranchAddress("FirstHoughHitY", FirstHoughHitY, &b_FirstHoughHitY);
+   fChain->SetBranchAddress("LastHoughHitY", LastHoughHitY, &b_LastHoughHitY);
+   fChain->SetBranchAddress("FirstHoughHitTimeY", FirstHoughHitTimeY, &b_FirstHoughHitTimeY);
+   fChain->SetBranchAddress("LastHoughHitTimeY", LastHoughHitTimeY, &b_LastHoughHitTimeY);
+   fChain->SetBranchAddress("HoughEarliestHitTimeY", HoughEarliestHitTimeY, &b_HoughEarliestHitTimeY);
+   fChain->SetBranchAddress("HoughLatestHitTimeY", HoughLatestHitTimeY, &b_HoughLatestHitTimeY);
+   fChain->SetBranchAddress("FirstHoughPlaneY", FirstHoughPlaneY, &b_FirstHoughPlaneY);
+   fChain->SetBranchAddress("LastHoughPlaneY", LastHoughPlaneY, &b_LastHoughPlaneY);
+   fChain->SetBranchAddress("OccupancyY", OccupancyY, &b_OccupancyY);
+   fChain->SetBranchAddress("TrackLengthY", TrackLengthY, &b_TrackLengthY);
+   fChain->SetBranchAddress("TotalTrackEnergyY", TotalTrackEnergyY, &b_TotalTrackEnergyY);
+   fChain->SetBranchAddress("TrackStoppingY", TrackStoppingY, &b_TrackStoppingY);
+   fChain->SetBranchAddress("nHitsInTrackY", nHitsInTrackY, &b_nHitsInTrackY);
+   fChain->SetBranchAddress("TrackHitEnergyY", TrackHitEnergyY, &b_TrackHitEnergyY);
+   fChain->SetBranchAddress("TrackHitPosY", TrackHitPosY, &b_TrackHitPosY);
+   fChain->SetBranchAddress("TrackHitTimeY", TrackHitTimeY, &b_TrackHitTimeY);
+   fChain->SetBranchAddress("nClustersY", &nClustersY, &b_nClustersY);
+   fChain->SetBranchAddress("ClusterEnergyY", ClusterEnergyY, &b_ClusterEnergyY);
+   fChain->SetBranchAddress("ClusterTimeY", ClusterTimeY, &b_ClusterTimeY);
+   fChain->SetBranchAddress("ClusterPosMeanY", ClusterPosMeanY, &b_ClusterPosMeanY);
+   fChain->SetBranchAddress("ClusterPosStdDevY", ClusterPosStdDevY, &b_ClusterPosStdDevY);
+   fChain->SetBranchAddress("nHitsInClusterY", nHitsInClusterY, &b_nHitsInClusterY);
+   fChain->SetBranchAddress("ClusterHitPosY", ClusterHitPosY, &b_ClusterHitPosY);
+   fChain->SetBranchAddress("ClusterHitEnergyY", ClusterHitEnergyY, &b_ClusterHitEnergyY);
+   fChain->SetBranchAddress("ClusterHitTimeY", ClusterHitTimeY, &b_ClusterHitTimeY);
+   fChain->SetBranchAddress("ClusterHitSliceY", ClusterHitSliceY, &b_ClusterHitSliceY);
    /*fChain->SetBranchAddress("DirectionZU", DirectionZU, &b_DirectionZU);
    fChain->SetBranchAddress("DirectionZV", DirectionZV, &b_DirectionZV);
    fChain->SetBranchAddress("DirectionZX", &DirectionZX, &b_DirectionZX);
@@ -423,7 +541,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("FirstHoughHitTimeX", &FirstHoughHitTimeX, &b_FirstHoughHitTimeX);
    fChain->SetBranchAddress("LastHoughHitTimeU", LastHoughHitTimeU, &b_LastHoughHitTimeU);
    fChain->SetBranchAddress("LastHoughHitTimeV", LastHoughHitTimeV, &b_LastHoughHitTimeV);
-   fChain->SetBranchAddress("LastHoughHitTImeX", &LastHoughHitTImeX, &b_LastHoughHitTImeX);
+   fChain->SetBranchAddress("LastHoughHitTimeX", &LastHoughHitTimeX, &b_LastHoughHitTimeX);
    fChain->SetBranchAddress("HoughEarliestHitTimeU", HoughEarliestHitTimeU, &b_HoughEarliestHitTimeU);
    fChain->SetBranchAddress("HoughEarliestHitTimeV", HoughEarliestHitTimeV, &b_HoughEarliestHitTimeV);
    fChain->SetBranchAddress("HoughEarliestHitTimeX", &HoughEarliestHitTimeX, &b_HoughEarliestHitTimeX);
@@ -464,7 +582,7 @@ void Line_Candidates::Init(TTree *tree)
    fChain->SetBranchAddress("TrackHitTimeX", TrackHitTimeX, &b_TrackHitTimeX);
    fChain->SetBranchAddress("nClustersU", &nClustersU, &b_nClustersU);
    fChain->SetBranchAddress("nClustersV", &nClustersV, &b_nClustersV);
-   fChain->SetBranchAddress("nClusterX", &nClusterX, &b_nClustersX);
+   fChain->SetBranchAddress("nClustersX", &nClustersX, &b_nClustersX);
    fChain->SetBranchAddress("ClusterEnergyU", ClusterEnergyU, &b_ClusterEnergyU);
    fChain->SetBranchAddress("ClusterEnergyV", ClusterEnergyV, &b_ClusterEnergyV);
    fChain->SetBranchAddress("ClusterEnergyX", &ClusterEnergyX, &b_ClusterEnergyX);

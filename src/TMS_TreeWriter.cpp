@@ -184,7 +184,6 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionZX_Downstream",  DirectionZX_Downstream, "DirectionZX_Downstream[nLinesX]/F");
   Branch_Lines->Branch("DirectionYX_Downstream",  DirectionYX_Downstream, "DirectionYX_Downstream[nLinesX]/F");
   Branch_Lines->Branch("DirectionZX_Upstream",    DirectionZX_Upstream,   "DirectionZX_Upstream[nLinesX]/F");
-  Branch_Lines->Branch("DirectionZY_Upstream",    DirectionZY_Upstream,   "DirectionZY_Upstream[nLinesY]/F");
   Branch_Lines->Branch("DirectionZY_Downstream",  DirectionZY_Downstream, "DirectionZY_Downstream[nLinesY]/F");
   Branch_Lines->Branch("DirectionXY_Downstream",  DirectionXY_Downstream, "DirectionXY_Downstream[nLinesY]/F");
   Branch_Lines->Branch("DirectionZY_Upstream",  DirectionZY_Upstream, "DirectionZY_Upstream[nLinesY]/F");
@@ -204,8 +203,8 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("FirstHoughHitTimeY", FirstHitTimeY, "FirstHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("LastHoughHitTimeU",  LastHitTimeU,  "LastHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("LastHoughHitTimeV",  LastHitTimeV,  "LastHoughHitTimeV[nLinesV]/F");
-  Branch_Lines->Branch("LastHoughHitTImeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
-  Branch_Lines->Branch("LastHoughHitTImeY",  LastHitTimeY,  "LastHoughHitTimeY[nLinesY]/F");
+  Branch_Lines->Branch("LastHoughHitTimeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("LastHoughHitTimeY",  LastHitTimeY,  "LastHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeU", EarliestHitTimeU, "HoughEarliestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeV", EarliestHitTimeV, "HoughEarliestHitTimeV[nLinesV]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeX", EarliestHitTimeX, "HoughEarliestHitTimeX[nLinesX]/F");
@@ -281,8 +280,8 @@ void TMS_TreeWriter::MakeBranches() {
   // Cluster information
   Branch_Lines->Branch("nClustersU",        &nClustersU,       "nClustersU/I");
   Branch_Lines->Branch("nClustersV",        &nClustersV,       "nClustersV/I");
-  Branch_Lines->Branch("nClusterX",         &nClustersX,       "nClustersX/I");
-  Branch_Lines->Branch("nClusterY",         &nClustersY,       "nClustersY/I");
+  Branch_Lines->Branch("nClustersX",        &nClustersX,       "nClustersX/I");
+  Branch_Lines->Branch("nClustersY",        &nClustersY,       "nClustersY/I");
   Branch_Lines->Branch("ClusterEnergyU",    ClusterEnergyU,    "ClusterEnergyU[nClustersU]/F");
   Branch_Lines->Branch("ClusterEnergyV",    ClusterEnergyV,    "ClusterEnergyV[nClustersV]/F");
   Branch_Lines->Branch("ClusterEnergyX",    ClusterEnergyX,    "ClusterEnergyX[nClustersX]/F");
@@ -789,7 +788,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   if (nLinesY > __TMS_MAX_LINES__) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
-    std::cerr << "Number of lines in event (x): " << nLinesY << std::endl;
+    std::cerr << "Number of lines in event (y): " << nLinesY << std::endl;
     std::cerr << "Not writing evet" << std::endl;
     return;
   }
@@ -1306,7 +1305,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   if (nClustersY > __TMS_MAX_CLUSTERS__) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
-    std::cerr << "nClustersX in event: " << nClustersY << std::endl;
+    std::cerr << "nClustersY in event: " << nClustersY << std::endl;
     return;
   }
 
