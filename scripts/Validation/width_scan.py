@@ -437,13 +437,10 @@ def merge_summaries(summaries):
                 continue
             merged[key] = merged.get(key, 0) + value
 
-    # This is the deliberately reconstruction-defined denominator: an ID is
-    # eligible if it was the energy-leading primary of at least one object at
-    # any recorded stage.  There is no Truth_Spill population or truth-match.
-    denominator_ids = set()
-    for counts in stage_counts.values():
-        denominator_ids.update(counts)
-    merged["reconstruction_primary_denominator"] = len(denominator_ids)
+    # Keep identities until every scan point has been analysed.  The shared
+    # denominator must be made across configurations, not separately per
+    # point: identical inputs must yield one identical primary-ID universe.
+    merged["_stage_primary_counts"] = stage_counts
     for view in ("x", "y"):
         prefix = "candidate_" + view + "_"
         count = merged[prefix + "count"]
@@ -453,29 +450,46 @@ def merge_summaries(summaries):
         merged[prefix + "cleanliness_mean"] = (
             merged[prefix + "cleanliness_sum"] / count if count else None
         )
-    for stage, views in (("seed", ("x", "y")), ("dbscan", ("x", "y")),
-                         ("hough_final", ("x", "y")), ("final_2d", ("x", "y")),
-                         ("final_3d", ("xy",))):
-        for view in views:
-            prefix = "stage_" + stage + "_" + view + "_"
-            counts = stage_counts.get(stage + ":" + view.upper(), Counter())
-            found = len(counts)
-            quality_count = merged.get(prefix + "quality_count", 0)
-            candidates = sum(counts.values())
-            merged[prefix + "truth"] = len(denominator_ids)
-            merged[prefix + "found"] = found
-            merged[prefix + "candidates"] = candidates
-            merged[prefix + "reco_efficiency"] = found / len(denominator_ids) if denominator_ids else None
-            # Fraction of represented primary IDs that appear in more than one
-            # object at this stage.  The raw object count remains printed too.
-            merged[prefix + "multi_reco_rate"] = (
-                sum(count > 1 for count in counts.values()) / found if found else None
-            )
-            merged[prefix + "completeness"] = merged.get(prefix + "completeness_sum", 0) / quality_count if quality_count else None
-            merged[prefix + "cleanliness"] = merged.get(prefix + "cleanliness_sum", 0) / quality_count if quality_count else None
     paired_truth = merged.get("xy_source_pairs_with_truth", 0)
     merged["xy_pair_same_primary_rate"] = merged.get("xy_source_pairs_same_primary", 0) / paired_truth if paired_truth else None
     return merged
+
+
+def finalise_stage_metrics(results):
+    """Apply one shared reconstructed-primary denominator to every scan point."""
+    denominator_ids = set()
+    for result in results:
+        for counts in result["_stage_primary_counts"].values():
+            denominator_ids.update(counts)
+
+    for result in results:
+        result["reconstruction_primary_denominator"] = len(denominator_ids)
+        for stage, views in (("seed", ("x", "y")), ("dbscan", ("x", "y")),
+                             ("hough_final", ("x", "y")), ("final_2d", ("x", "y")),
+                             ("final_3d", ("xy",))):
+            for view in views:
+                prefix = "stage_" + stage + "_" + view + "_"
+                counts = result["_stage_primary_counts"].get(
+                    stage + ":" + view.upper(), Counter())
+                found = len(counts)
+                quality_count = result.get(prefix + "quality_count", 0)
+                result[prefix + "truth"] = len(denominator_ids)
+                result[prefix + "found"] = found
+                result[prefix + "candidates"] = sum(counts.values())
+                result[prefix + "reco_efficiency"] = (
+                    found / len(denominator_ids) if denominator_ids else None
+                )
+                result[prefix + "multi_reco_rate"] = (
+                    sum(count > 1 for count in counts.values()) / found if found else None
+                )
+                result[prefix + "completeness"] = (
+                    result.get(prefix + "completeness_sum", 0) / quality_count
+                    if quality_count else None
+                )
+                result[prefix + "cleanliness"] = (
+                    result.get(prefix + "cleanliness_sum", 0) / quality_count
+                    if quality_count else None
+                )
 
 
 def run_reconstruction(executable, repo, config, input_file, output_file):
@@ -657,6 +671,11 @@ def main():
         row.update(merge_summaries(summaries))
         report_rows.append(row)
 
+    finalise_stage_metrics(report_rows)
+    print_report(report_rows)
+    for row in report_rows:
+        row.pop("_stage_primary_counts", None)
+
     (output_dir / "summary.json").write_text(json.dumps(report_rows, indent=2) + "\n")
     csv_fields = [key for key in report_rows[0] if key != "outputs"]
     with (output_dir / "summary.csv").open("w", newline="") as output:
@@ -664,7 +683,6 @@ def main():
         writer.writeheader()
         for row in report_rows:
             writer.writerow({key: row[key] for key in csv_fields})
-    print_report(report_rows)
     print("\nWrote", output_dir / "summary.csv")
     print("Wrote", output_dir / "summary.json")
 
