@@ -332,6 +332,7 @@ def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
     for branch in required:
         get_branch(truth_spill, branch)
     targets = set()
+    primary_ids = set()
     for entry in truth_spill:
         base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
         particles = {}
@@ -355,6 +356,7 @@ def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
         for (vertex, track), particle in particles.items():
             if not particle["is_primary"]:
                 continue
+            primary_ids.add(base + (vertex, track))
             birth = particle["birth"]
             death = particle["death"]
             passes = {
@@ -369,7 +371,34 @@ def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
             }
             if all(passes[name] for name in filters):
                 targets.add(base + (vertex, track))
-    return targets
+    return targets, primary_ids
+
+
+def add_truth_id_overlap_audit(root_file, selected_ids, primary_ids, summary):
+    """Audit the exact primary-ID join used by the Hough seed diagnostics."""
+    diagnostics = root_file.Get("Hough_Diagnostics")
+    if not diagnostics:
+        return
+    for branch in ("RunNo", "SpillNo", "EventNo", "SliceNo", "View",
+                   "PrimaryVertexId", "PrimaryTrackId"):
+        get_branch(diagnostics, branch)
+    candidate_ids = {"X": set(), "Y": set()}
+    for entry in diagnostics:
+        view = chr(int(entry.View))
+        if view not in candidate_ids:
+            continue
+        vertex = int(entry.PrimaryVertexId[0])
+        track = int(entry.PrimaryTrackId[0])
+        if vertex >= 0 and track >= 0:
+            candidate_ids[view].add((int(entry.RunNo), int(entry.SpillNo),
+                                     int(entry.EventNo), vertex, track))
+    summary["truth_selection_primary_ids"] = len(primary_ids)
+    summary["truth_selection_selected_ids"] = len(selected_ids)
+    for view, identifiers in candidate_ids.items():
+        prefix = "truth_id_audit_" + view.lower() + "_"
+        summary[prefix + "seed_ids"] = len(identifiers)
+        summary[prefix + "seed_ids_known_primary"] = len(identifiers & primary_ids)
+        summary[prefix + "seed_ids_selected"] = len(identifiers & selected_ids)
 
 
 def summarise_output(path, filters, lar_bounds, tms_bounds):
@@ -449,13 +478,16 @@ def summarise_output(path, filters, lar_bounds, tms_bounds):
         summary["slices_with_y_line"] += n_y > 0
 
     target_muons = set()
+    primary_ids = set()
     if truth_spill:
-        target_muons = selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds)
+        target_muons, primary_ids = selected_truth_particles(
+            truth_spill, filters, lar_bounds, tms_bounds)
     summary["truth_primary_muons_started_lar_touching_tms"] = len(target_muons)
 
     add_view_truth_metrics(lines, summary, "X", str(path))
     add_view_truth_metrics(lines, summary, "Y", str(path))
     derive_stage_metrics(root_file, lines, summary, target_muons)
+    add_truth_id_overlap_audit(root_file, target_muons, primary_ids, summary)
 
     used_x_candidates = set()
     used_y_candidates = set()
@@ -629,6 +661,7 @@ def print_report(results, target_description):
                          ("final_2d", "Final 2-D candidates"),
                          ("final_3d", "Final XY 3-D tracks")):
         print_stage_table(results, stage, title)
+    print_truth_id_overlap_table(results)
     print_xy_pairing_table(results)
 
 
@@ -670,6 +703,28 @@ def print_xy_pairing_table(results):
     print("  ".join("-" * width for width in widths))
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width) for (key, _), width in zip(columns, widths)))
+
+
+def print_truth_id_overlap_table(results):
+    print("\nTruth/candidate primary-ID overlap (Hough seed)")
+    columns = [("point", "point"), ("truth_selection_primary_ids", "truth roots"),
+               ("truth_selection_selected_ids", "selected"),
+               ("truth_id_audit_x_seed_ids", "X seed IDs"),
+               ("truth_id_audit_x_seed_ids_known_primary", "X known"),
+               ("truth_id_audit_x_seed_ids_selected", "X selected"),
+               ("truth_id_audit_y_seed_ids", "Y seed IDs"),
+               ("truth_id_audit_y_seed_ids_known_primary", "Y known"),
+               ("truth_id_audit_y_seed_ids_selected", "Y selected")]
+    if not any(key in result for result in results for key, _ in columns[1:]):
+        print("(requires Hough_Diagnostics)")
+        return
+    widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
+              for key, title in columns]
+    print("  ".join(title.ljust(width) for (_, title), width in zip(columns, widths)))
+    print("  ".join("-" * width for width in widths))
+    for row in results:
+        print("  ".join(format_value(row.get(key)).ljust(width)
+                        for (key, _), width in zip(columns, widths)))
 
 
 def format_value(value):

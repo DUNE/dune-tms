@@ -85,6 +85,13 @@ primary ancestor; selecting an arbitrary secondary would otherwise never match
 the leading truth particle of a candidate.  Consequently `primary` is a
 self-documenting no-op in these stage tables.
 
+Every report also includes a `Truth/candidate primary-ID overlap` table.  It
+compares unique primary IDs from `Truth_Spill` with leading primary IDs from
+the X/Y Hough seeds.  `X known`/`Y known` diagnose an ID-join problem; `X
+selected`/`Y selected` show how many seed primaries survive the requested
+truth filters.  This separates a broken truth selection from a genuinely low
+reconstruction numerator.
+
 Truth summaries de-duplicate repeated copies of an identical reconstructed hit
 (view, plane, bar, energy, time) before adding its truth-energy shares.  This
 keeps completeness and cleanliness bounded by one when a reconstruction
