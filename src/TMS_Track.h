@@ -27,6 +27,10 @@ TMS_Track(const TMS_Track& other) {
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
     Charge_Kalman_curvature = other.Charge_Kalman_curvature;
+    MatchedCandidateU = other.MatchedCandidateU;
+    MatchedCandidateV = other.MatchedCandidateV;
+    MatchedCandidateX = other.MatchedCandidateX;
+    MatchedCandidateY = other.MatchedCandidateY;
 
     // Copy arrays element by element
     for (int i = 0; i < 4; ++i) {
@@ -65,6 +69,10 @@ TMS_Track(const TMS_Track& other) {
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
         Charge_Kalman_curvature = other.Charge_Kalman_curvature;
+        MatchedCandidateU = other.MatchedCandidateU;
+        MatchedCandidateV = other.MatchedCandidateV;
+        MatchedCandidateX = other.MatchedCandidateX;
+        MatchedCandidateY = other.MatchedCandidateY;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
         for (int i = 0; i < 4; i++) {
