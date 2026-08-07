@@ -174,7 +174,8 @@ def summarise_output(path):
     truth_spill = root_file.Get("Truth_Spill")
     for branch in ("nLinesX", "nLinesY", "nHitsInTrackX", "nHitsInTrackY"):
         get_branch(lines, branch)
-    for branch in ("nTracks", "nHits", "TrackHitBarType"):
+    for branch in ("nTracks", "nHits", "TrackHitBarType", "MatchedCandidateU",
+                   "MatchedCandidateV", "MatchedCandidateX", "MatchedCandidateY"):
         get_branch(reco, branch)
 
     summary = {
@@ -194,6 +195,10 @@ def summarise_output(path):
         "tracks_with_x_hits": 0,
         "tracks_with_y_hits": 0,
         "tracks_with_xy_hits": 0,
+        "reco_tracks_from_uvx_match": 0,
+        "reco_tracks_from_xy_match": 0,
+        "reco_tracks_without_x_candidate": 0,
+        "reco_tracks_without_y_candidate": 0,
         "truth_spills": 0,
         "truth_primary_muons_touching_tms": 0,
         "truth_spills_with_primary_muon_touching_tms": 0,
@@ -232,6 +237,14 @@ def summarise_output(path):
             summary["tracks_with_x_hits"] += has_x
             summary["tracks_with_y_hits"] += has_y
             summary["tracks_with_xy_hits"] += has_x and has_y
+            source_u = int(entry.MatchedCandidateU[track]) >= 0
+            source_v = int(entry.MatchedCandidateV[track]) >= 0
+            source_x = int(entry.MatchedCandidateX[track]) >= 0
+            source_y = int(entry.MatchedCandidateY[track]) >= 0
+            summary["reco_tracks_from_uvx_match"] += source_u and source_v and source_x
+            summary["reco_tracks_from_xy_match"] += source_x and source_y
+            summary["reco_tracks_without_x_candidate"] += not source_x
+            summary["reco_tracks_without_y_candidate"] += not source_y
 
     diagnostics = root_file.Get("Hough_Diagnostics")
     if diagnostics:
@@ -335,6 +348,9 @@ def print_report(results):
         ("candidate_y_cleanliness_mean", "Y cleanliness"),
         ("candidate_y_multiplicity_mean", "Y primary multiplicity"),
         ("candidate_y_from_multi_reco_fraction", "Y multi-reco fraction"),
+        ("reco_tracks_from_uvx_match", "3D UVX tracks"),
+        ("reco_tracks_from_xy_match", "3D XY tracks"),
+        ("reco_tracks_without_x_candidate", "3D no X source"),
         ("reco_track_hits_x", "X track hits"),
         ("reco_track_hits_y", "Y track hits"),
         ("truth_primary_muons_touching_tms", "truth #mu touch"),

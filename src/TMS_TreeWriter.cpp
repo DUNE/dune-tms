@@ -468,6 +468,10 @@ void TMS_TreeWriter::MakeBranches() {
 
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
+  Reco_Tree->Branch("MatchedCandidateU", RecoTrackMatchedCandidateU, "MatchedCandidateU[nTracks]/I");
+  Reco_Tree->Branch("MatchedCandidateV", RecoTrackMatchedCandidateV, "MatchedCandidateV[nTracks]/I");
+  Reco_Tree->Branch("MatchedCandidateX", RecoTrackMatchedCandidateX, "MatchedCandidateX[nTracks]/I");
+  Reco_Tree->Branch("MatchedCandidateY", RecoTrackMatchedCandidateY, "MatchedCandidateY[nTracks]/I");
 
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
@@ -1720,6 +1724,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
+    RecoTrackMatchedCandidateU[itTrack] = RecoTrack->MatchedCandidateU;
+    RecoTrackMatchedCandidateV[itTrack] = RecoTrack->MatchedCandidateV;
+    RecoTrackMatchedCandidateX[itTrack] = RecoTrack->MatchedCandidateX;
+    RecoTrackMatchedCandidateY[itTrack] = RecoTrack->MatchedCandidateY;
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
     const float raw_3d_length = RecoTrack->Length;
@@ -2583,6 +2591,10 @@ void TMS_TreeWriter::Clear() {
       RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitBarType[i][k] = DEFAULT_CLEARING_FLOAT;
     }
+    RecoTrackMatchedCandidateU[i] = -1;
+    RecoTrackMatchedCandidateV[i] = -1;
+    RecoTrackMatchedCandidateX[i] = -1;
+    RecoTrackMatchedCandidateY[i] = -1;
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackMomentum[i] = DEFAULT_CLEARING_FLOAT;

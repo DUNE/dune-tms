@@ -913,6 +913,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   }
 
   std::vector<TMS_Track> returned;
+  auto written_candidate_index = [](const std::vector<std::vector<TMS_Hit> > &candidates,
+                                    const std::vector<TMS_Hit> &selected) {
+    for (size_t index = 0; index < candidates.size(); ++index) {
+      if (candidates[index] == selected) return static_cast<int>(index);
+    }
+    return -1;
+  };
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
@@ -931,6 +938,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 
     std::vector<TMS_Hit> UTracks = *Uhelper;
     std::vector<TMS_Hit> VTracks = *Vhelper;
+    const int candidate_u = written_candidate_index(HoughCandidatesU, UTracks);
+    const int candidate_v = written_candidate_index(HoughCandidatesV, VTracks);
 
     // Run with matching of X tracks, if X tracks exist. Otherwise match without
     bool Xrun = true;
@@ -944,6 +953,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       XTracks = *helper;
       if (XTracks.empty()) Xrun = false;
     }
+    const int candidate_x = Xrun ? written_candidate_index(HoughCandidatesX, XTracks) : -1;
         
 
     // Run spatial prio just because one last time
@@ -1086,6 +1096,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
     if (back_match && front_match) { 
       // end condition THIS IS ACTUALLY THE START CONDITION
       TMS_Track aTrack;
+      aTrack.MatchedCandidateU = candidate_u;
+      aTrack.MatchedCandidateV = candidate_v;
+      aTrack.MatchedCandidateX = candidate_x;
 
       // Make sure that the hits are in the correct order
       if (UTracks.back().GetZ() > UTracks.front().GetZ()) std::reverse(UTracks.begin(), UTracks.end());
@@ -1954,6 +1967,13 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
   } else SortedHoughCandidatesX = HoughCandidatesX;
 
   std::vector<TMS_Track> returned;
+  auto written_candidate_index = [](const std::vector<std::vector<TMS_Hit> > &candidates,
+                                    const std::vector<TMS_Hit> &selected) {
+    for (size_t index = 0; index < candidates.size(); ++index) {
+      if (candidates[index] == selected) return static_cast<int>(index);
+    }
+    return -1;
+  };
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
@@ -1970,6 +1990,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
     }
     std::vector<TMS_Hit> YTracks = *Yhelper;
     std::vector<TMS_Hit> XTracks = *Xhelper;
+    const int candidate_y = written_candidate_index(HoughCandidatesY, YTracks);
+    const int candidate_x = written_candidate_index(HoughCandidatesX, XTracks);
         
     SpatialPrio(XTracks);
     SpatialPrio(YTracks);
@@ -2025,6 +2047,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 
         if (back_match&&front_match) { 
             TMS_Track aTrack;
+            aTrack.MatchedCandidateX = candidate_x;
+            aTrack.MatchedCandidateY = candidate_y;
 
             // Make sure that the hits are in the correct order
             if (XTracks.back().GetZ() > XTracks.front().GetZ()) std::reverse(XTracks.begin(), XTracks.end());

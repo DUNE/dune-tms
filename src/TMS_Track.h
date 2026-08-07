@@ -139,6 +139,13 @@ TMS_Track(const TMS_Track& other) {
     int nHits;
     std::vector<TMS_Hit> Hits;
 
+    // Indices into the final, written Hough-candidate arrays.  These make the
+    // 3D matcher choice auditable without trying to re-match floating points.
+    int MatchedCandidateU = -1;
+    int MatchedCandidateV = -1;
+    int MatchedCandidateX = -1;
+    int MatchedCandidateY = -1;
+
     // Kalman filter track info
     std::vector<TMS_KalmanNode> KalmanNodes;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;

@@ -66,6 +66,10 @@ class TMS_TreeWriter {
     float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][4]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackHitEnergies[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     int RecoTrackHitBarType[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__];
+    int RecoTrackMatchedCandidateU[__TMS_MAX_TRACKS__];
+    int RecoTrackMatchedCandidateV[__TMS_MAX_TRACKS__];
+    int RecoTrackMatchedCandidateX[__TMS_MAX_TRACKS__];
+    int RecoTrackMatchedCandidateY[__TMS_MAX_TRACKS__];
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][4];
     float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][4];
