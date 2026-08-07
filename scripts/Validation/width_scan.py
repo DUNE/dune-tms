@@ -114,6 +114,11 @@ def entry_key(entry):
                  for name in ("RunNo", "SpillNo", "EventNo", "SliceNo"))
 
 
+def muon_key(key):
+    """Drop slice number: reco efficiency is per truth muon over a spill."""
+    return key[0], key[1], key[2], key[4], key[5]
+
+
 def candidate_primary(line_data, view, index):
     """Return the leading truth-particle identity for one 2-D candidate."""
     candidates = line_data[view]
@@ -173,13 +178,16 @@ def add_view_truth_metrics(lines, summary, view, source_id):
     )
 
 
-def add_stage_metrics(summary, stage, view, candidates, truth_energy):
+def add_stage_metrics(summary, stage, view, candidates, truth_energy,
+                      prefix="stage_", target_muons=None):
     """Add the four requested truth metrics for one reconstruction stage/view."""
-    prefix = "stage_" + stage + "_" + view.lower() + "_"
+    prefix = prefix + stage + "_" + view.lower() + "_"
     multiplicities = {}
     completeness = []
     cleanliness = []
     for key, primary_energy, total_energy in candidates:
+        if target_muons is not None and muon_key(key) not in target_muons:
+            continue
         if primary_energy <= 0:
             continue
         multiplicities[key] = multiplicities.get(key, 0) + 1
@@ -188,9 +196,12 @@ def add_stage_metrics(summary, stage, view, candidates, truth_energy):
             completeness.append(primary_energy / denominator)
         if total_energy > 0:
             cleanliness.append(primary_energy / total_energy)
-    eligible = {key for key, energy in truth_energy.items() if energy > 0}
+    eligible = ({key for key, energy in truth_energy.items() if energy > 0}
+                if target_muons is None else target_muons)
+    found = (set(multiplicities) & eligible if target_muons is None
+             else {muon_key(key) for key in multiplicities} & eligible)
     summary[prefix + "truth"] = len(eligible)
-    summary[prefix + "found"] = len(set(multiplicities) & eligible)
+    summary[prefix + "found"] = len(found)
     summary[prefix + "candidates"] = sum(multiplicities.values())
     summary[prefix + "completeness_sum"] = sum(completeness)
     summary[prefix + "cleanliness_sum"] = sum(cleanliness)
@@ -198,7 +209,7 @@ def add_stage_metrics(summary, stage, view, candidates, truth_energy):
     summary[prefix + "multi_candidates"] = sum(count for count in multiplicities.values() if count > 1)
 
 
-def derive_stage_metrics(root_file, lines, summary):
+def derive_stage_metrics(root_file, lines, summary, target_muons):
     truth = root_file.Get("Hough_View_Truth")
     diagnostics = root_file.Get("Hough_Diagnostics")
     if not truth or not diagnostics:
@@ -230,6 +241,8 @@ def derive_stage_metrics(root_file, lines, summary):
     for stage, _ in stage_indices:
         for view in ("X", "Y"):
             add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view])
+            add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view],
+                              prefix="target_stage_", target_muons=target_muons)
     final_candidates = {"X": [], "Y": []}
     for entry in lines:
         base = entry_key(entry)
@@ -244,6 +257,8 @@ def derive_stage_metrics(root_file, lines, summary):
     for view in energies:
         if view in final_candidates:
             add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view])
+            add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view],
+                              prefix="target_stage_", target_muons=target_muons)
     reco = get_required_tree(root_file, "Reco_Tree")
     for branch in ("nTracks", "PrimaryVertexId", "PrimaryTrackId", "PrimaryVisibleEnergy", "TotalVisibleEnergy"):
         get_branch(reco, branch)
@@ -256,6 +271,25 @@ def derive_stage_metrics(root_file, lines, summary):
             if vertex >= 0 and track >= 0:
                 final_tracks.append((base + (vertex, track), float(entry.PrimaryVisibleEnergy[index]), float(entry.TotalVisibleEnergy[index])))
     add_stage_metrics(summary, "final_3d", "XY", final_tracks, energies["XY"])
+    add_stage_metrics(summary, "final_3d", "XY", final_tracks, energies["XY"],
+                      prefix="target_stage_", target_muons=target_muons)
+
+
+def target_muons_started_in_lar(truth_spill):
+    """Primary muons that start in ND-LAr and enter the fiducial TMS."""
+    required = ("RunNo", "SpillNo", "EventNo", "nTrueParticles", "VertexID", "TrackId",
+                "PDG", "IsPrimary", "TMSFiducialTouch", "LArFiducialStart")
+    for branch in required:
+        get_branch(truth_spill, branch)
+    targets = set()
+    for entry in truth_spill:
+        base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
+        for particle in range(int(entry.nTrueParticles)):
+            if (abs(int(entry.PDG[particle])) == 13 and bool(entry.IsPrimary[particle])
+                    and bool(entry.TMSFiducialTouch[particle])
+                    and bool(entry.LArFiducialStart[particle])):
+                targets.add(base + (int(entry.VertexID[particle]), int(entry.TrackId[particle])))
+    return targets
 
 
 def summarise_output(path):
@@ -334,9 +368,14 @@ def summarise_output(path):
         summary["slices_with_x_line"] += n_x > 0
         summary["slices_with_y_line"] += n_y > 0
 
+    target_muons = set()
+    if truth_spill:
+        target_muons = target_muons_started_in_lar(truth_spill)
+    summary["truth_primary_muons_started_lar_touching_tms"] = len(target_muons)
+
     add_view_truth_metrics(lines, summary, "X", str(path))
     add_view_truth_metrics(lines, summary, "Y", str(path))
-    derive_stage_metrics(root_file, lines, summary)
+    derive_stage_metrics(root_file, lines, summary, target_muons)
 
     used_x_candidates = set()
     used_y_candidates = set()
@@ -456,15 +495,16 @@ def merge_summaries(summaries):
                          ("hough_final", ("x", "y")), ("final_2d", ("x", "y")),
                          ("final_3d", ("xy",))):
         for view in views:
-            prefix = "stage_" + stage + "_" + view + "_"
-            if prefix + "truth" not in merged:
-                continue
-            quality_count = merged[prefix + "quality_count"]
-            candidates = merged[prefix + "candidates"]
-            merged[prefix + "reco_efficiency"] = merged[prefix + "found"] / merged[prefix + "truth"] if merged[prefix + "truth"] else None
-            merged[prefix + "multi_reco_rate"] = merged[prefix + "multi_candidates"] / candidates if candidates else None
-            merged[prefix + "completeness"] = merged[prefix + "completeness_sum"] / quality_count if quality_count else None
-            merged[prefix + "cleanliness"] = merged[prefix + "cleanliness_sum"] / quality_count if quality_count else None
+            for family in ("stage_", "target_stage_"):
+                prefix = family + stage + "_" + view + "_"
+                if prefix + "truth" not in merged:
+                    continue
+                quality_count = merged[prefix + "quality_count"]
+                candidates = merged[prefix + "candidates"]
+                merged[prefix + "reco_efficiency"] = merged[prefix + "found"] / merged[prefix + "truth"] if merged[prefix + "truth"] else None
+                merged[prefix + "multi_reco_rate"] = merged[prefix + "multi_candidates"] / candidates if candidates else None
+                merged[prefix + "completeness"] = merged[prefix + "completeness_sum"] / quality_count if quality_count else None
+                merged[prefix + "cleanliness"] = merged[prefix + "cleanliness_sum"] / quality_count if quality_count else None
     paired_truth = merged.get("xy_source_pairs_with_truth", 0)
     merged["xy_pair_same_primary_rate"] = merged.get("xy_source_pairs_same_primary", 0) / paired_truth if paired_truth else None
     return merged
@@ -494,7 +534,7 @@ def print_report(results):
         ("reco_tracks", "tracks"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
-        ("truth_primary_muons_touching_tms", "truth #mu touch"),
+        ("truth_primary_muons_started_lar_touching_tms", "truth #mu LAr→TMS"),
     ]
     widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
               for key, title in columns]
@@ -503,6 +543,7 @@ def print_report(results):
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width)
                         for (key, _), width in zip(columns, widths)))
+    print("\nAll stage metrics below are for primary muons that start in ND-LAr and touch the TMS.")
     for stage, title in (("seed", "Hough seed"), ("dbscan", "Post-DBSCAN"),
                          ("hough_final", "Post-Hough/A*/extrapolation"),
                          ("final_2d", "Final 2-D candidates"),
@@ -520,7 +561,7 @@ def print_stage_table(results, stage, title):
     rows = []
     for result in results:
         for view in (("xy",) if stage == "final_3d" else ("x", "y")):
-            prefix = "stage_" + stage + "_" + view + "_"
+            prefix = "target_stage_" + stage + "_" + view + "_"
             if prefix + "truth" not in result:
                 continue
             rows.append({"point": result["point"], "view": view.upper(),

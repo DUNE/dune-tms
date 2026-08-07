@@ -866,7 +866,7 @@ void TMS_TreeWriter::FillHoughViewTruth(TMS_Event &event) {
   for (const auto &view : views) {
     std::vector<TMS_Hit> hits;
     for (const auto &hit : cleaned) if (hit.GetBar().GetBarType() == view.second) hits.push_back(hit);
-    const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(hits);
+    const auto particles = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(hits);
     for (size_t index = 0; index < particles.energies.size(); ++index) {
       HoughViewTruthEventNo = event.GetEventNumber();
       HoughViewTruthSliceNo = event.GetSliceNumber();
@@ -884,7 +884,7 @@ void TMS_TreeWriter::FillHoughViewTruth(TMS_Event &event) {
     const auto type = hit.GetBar().GetBarType();
     if (type == TMS_Bar::kXBar || type == TMS_Bar::kYBar) xy_hits.push_back(hit);
   }
-  const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(xy_hits);
+  const auto particles = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(xy_hits);
   for (size_t index = 0; index < particles.energies.size(); ++index) {
     HoughViewTruthEventNo = event.GetEventNumber();
     HoughViewTruthSliceNo = event.GetSliceNumber();
@@ -982,7 +982,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     for (const auto &hit : TMS_TrackFinder::GetFinder().GetCleanedHits()) {
       if (hit.GetBar().GetBarType() == view) view_hits.push_back(hit);
     }
-    return TMS_Utils::GetPrimaryIdsByEnergy(view_hits);
+    return TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(view_hits);
   };
   const auto truth_energy_x = truth_energy_in_view(TMS_Bar::kXBar);
   const auto truth_energy_y = truth_energy_in_view(TMS_Bar::kYBar);
@@ -1355,7 +1355,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackLengthX[it] = TMS_TrackFinder::GetFinder().GetTrackLengthX()[it];
     TotalTrackEnergyX[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyX()[it];
     OccupancyX[it] = double(HoughCandsX[it].size())/TotalHits;
-    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergy(Candidates);
+    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(Candidates);
     TotalTrueVisibleEnergyX[it] = candidate_truth.total_energy;
     PrimaryVertexIdX[it] = -1;
     PrimaryTrackIdX[it] = -1;
@@ -1427,7 +1427,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackLengthY[it] = TMS_TrackFinder::GetFinder().GetTrackLengthY()[it];
     TotalTrackEnergyY[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyY()[it];
     OccupancyY[it] = double(HoughCandsY[it].size())/TotalHits;
-    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergy(Candidates);
+    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(Candidates);
     TotalTrueVisibleEnergyY[it] = candidate_truth.total_energy;
     PrimaryVertexIdY[it] = -1;
     PrimaryTrackIdY[it] = -1;
@@ -1804,7 +1804,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackMatchedCandidateV[itTrack] = RecoTrack->MatchedCandidateV;
     RecoTrackMatchedCandidateX[itTrack] = RecoTrack->MatchedCandidateX;
     RecoTrackMatchedCandidateY[itTrack] = RecoTrack->MatchedCandidateY;
-    const auto track_truth = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
+    const auto track_truth = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(RecoTrack->Hits);
     RecoTrackPrimaryVertexId[itTrack] = -1;
     RecoTrackPrimaryTrackId[itTrack] = -1;
     RecoTrackPrimaryVisibleEnergy[itTrack] = 0;

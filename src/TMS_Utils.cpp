@@ -2,6 +2,7 @@
 
 #include "TMS_Reco.h"
 
+#include <algorithm>
 
 
 //caf::SRTMS TMS_CAF_converter::ConvertEvent(TMS_Event &event) {
@@ -152,6 +153,23 @@ namespace TMS_Utils {
       return out;
   }
 
+  TMS_Utils::ParticleInfo GetPrimaryIdsByEnergyUniqueHits(const std::vector<TMS_Hit>& hits) {
+      std::vector<TMS_Hit> unique_hits;
+      unique_hits.reserve(hits.size());
+      for (const auto &hit : hits) {
+        const auto duplicate = std::find_if(unique_hits.begin(), unique_hits.end(),
+          [&hit](const TMS_Hit &kept) {
+            return kept.GetBar().GetBarType() == hit.GetBar().GetBarType()
+              && kept.GetPlaneNumber() == hit.GetPlaneNumber()
+              && kept.GetBarNumber() == hit.GetBarNumber()
+              && kept.GetE() == hit.GetE()
+              && kept.GetT() == hit.GetT();
+          });
+        if (duplicate == unique_hits.end()) unique_hits.push_back(hit);
+      }
+      return GetPrimaryIdsByEnergy(unique_hits);
+  }
+
   struct ParticlePair {
     int vertexid;
     int trackid;
@@ -185,7 +203,6 @@ namespace TMS_Utils {
   }
 
 }
-
 
 
 

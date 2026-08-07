@@ -52,7 +52,14 @@ The most useful comparisons are:
   view balance;
 - truth primary muons touching the TMS: a stable denominator for a fixed input.
 
-`tracks / truth #mu` is deliberately labeled as a relative scan diagnostic,
-not a one-to-one matched efficiency.  A physics efficiency requires an explicit
-reco-to-truth matching definition, which this lightweight validation does not
-invent.
+The stage tables use a physics-facing denominator: primary muons that both
+start in the ND-LAr fiducial volume and touch the TMS fiducial volume.  A muon
+is reconstructed at a stage only when it is the leading truth-energy
+contributor to at least one candidate at that stage; the denominator is counted
+once per spill, not once per time slice.  Completeness and cleanliness are
+averaged over those target-muon candidates.
+
+Truth summaries de-duplicate repeated copies of an identical reconstructed hit
+(view, plane, bar, energy, time) before adding its truth-energy shares.  This
+keeps completeness and cleanliness bounded by one when a reconstruction
+working vector has carried the same hit more than once.

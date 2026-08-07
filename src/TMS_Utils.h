@@ -45,6 +45,10 @@ namespace TMS_Utils {
   }
   
   ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits);
+  // As above, but ignore repeated copies of the same reconstructed hit.  Track
+  // finding may carry a hit through more than one intermediate container;
+  // counting a copied hit twice makes truth completeness exceed one.
+  ParticleInfo GetPrimaryIdsByEnergyUniqueHits(const std::vector<TMS_Hit>& hits);
   ParticleInfo GetSumAndHighest(const std::map<std::pair<int, int>, double>& map);
 
 // Can only run this if we have linkage to CAF format

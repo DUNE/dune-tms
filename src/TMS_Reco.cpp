@@ -5,7 +5,7 @@
 namespace {
 HoughTruthSummary SummariseHoughTruth(const std::vector<TMS_Hit> &hits) {
   HoughTruthSummary summary;
-  const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(hits);
+  const auto particles = TMS_Utils::GetPrimaryIdsByEnergyUniqueHits(hits);
   summary.totalEnergy = particles.total_energy;
   if (!particles.energies.empty()) {
     summary.vertexId = particles.vertexids[0];
