@@ -20,30 +20,43 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-DEFAULT_POINT = ("default", 1.5, 1.5, 1.0, 1.0)
+DEFAULT_POINT = ("corrected_nominal", 1.5, 1.0, False)
+PR289_SUITE = [
+    ("legacy_ab", 1.5, 1.0, True),
+    ("corrected_nominal", 1.5, 1.0, False),
+    ("hough_4x", 6.0, 1.0, False),
+    ("extrapolation_4x", 1.5, 4.0, False),
+    ("retuned_4x", 6.0, 4.0, False),
+]
+STAGE_NAMES = {
+    0: "accepted", 1: "input_empty", 2: "post_clean_empty",
+    3: "below_minimum_hits", 4: "seed_empty", 5: "no_dbscan_cluster",
+    6: "astar_empty", 7: "final_too_few_hits", 8: "final_too_short",
+    9: "post_extrapolation_empty", 10: "post_hough_astar_empty",
+    11: "event_below_minimum_hits",
+}
 
 
 @dataclass
 class Point:
     name: str
-    hough_x: float
-    hough_y: float
-    extrapolation_x: float
-    extrapolation_y: float
+    hough_half_width: float
+    extrapolation_multiplier: float
+    legacy_x: bool
 
 
 def parse_point(value):
     fields = value.split(",")
-    if len(fields) != 5:
+    if len(fields) not in (3, 4):
         raise argparse.ArgumentTypeError(
-            "point must be NAME,HOUGH_X,HOUGH_Y,EXTRAPOLATION_X,EXTRAPOLATION_Y"
+            "point must be NAME,HOUGH_HALF_WIDTH,EXTRAPOLATION_MULTIPLIER[,LEGACY_X]"
         )
     try:
-        point = Point(fields[0], *[float(field) for field in fields[1:]])
+        point = Point(fields[0], float(fields[1]), float(fields[2]),
+                      len(fields) == 4 and fields[3].lower() in ("1", "true", "yes"))
     except ValueError as error:
         raise argparse.ArgumentTypeError(str(error))
-    if not point.name or min(point.hough_x, point.hough_y,
-                             point.extrapolation_x, point.extrapolation_y) <= 0:
+    if not point.name or min(point.hough_half_width, point.extrapolation_multiplier) <= 0:
         raise argparse.ArgumentTypeError("point values must all be positive")
     return point
 
@@ -56,13 +69,14 @@ def replace_toml_value(text, key, value):
     return text
 
 
-def write_config(template, destination, point, max_events):
+def write_config(template, destination, point, max_events, diagnostics):
     text = template.read_text()
     values = {
-        "ContainmentHalfWidthX": point.hough_x,
-        "ContainmentHalfWidthY": point.hough_y,
-        "ContainmentWidthScaleX": point.extrapolation_x,
-        "ContainmentWidthScaleY": point.extrapolation_y,
+        "ContainmentHalfWidth": point.hough_half_width,
+        "ContainmentWidthMultiplier": point.extrapolation_multiplier,
+        "UseLegacyXBarContainment": str(point.legacy_x).lower(),
+        "WriteDiagnostics": str(diagnostics).lower(),
+        "WriteDiagnosticHitSnapshots": "false",
     }
     if max_events is not None:
         values["MaximumNEvents"] = max_events
@@ -165,6 +179,31 @@ def summarise_output(path):
             summary["tracks_with_y_hits"] += has_y
             summary["tracks_with_xy_hits"] += has_x and has_y
 
+    diagnostics = root_file.Get("Hough_Diagnostics")
+    if diagnostics:
+        for branch in ("View", "RejectStage", "nSeed", "nAfterDBSCAN", "nFinal"):
+            get_branch(diagnostics, branch)
+        summary["hough_attempts"] = int(diagnostics.GetEntries())
+        summary["hough_attempts_x"] = 0
+        summary["hough_accepted_x"] = 0
+        summary["hough_seed_hits_x"] = 0
+        summary["hough_post_dbscan_hits_x"] = 0
+        summary["hough_final_hits_x"] = 0
+        for stage_name in STAGE_NAMES.values():
+            summary["hough_x_" + stage_name] = 0
+        for entry in diagnostics:
+            if chr(int(entry.View)) != "X":
+                continue
+            summary["hough_attempts_x"] += 1
+            stage = int(entry.RejectStage)
+            stage_name = STAGE_NAMES.get(stage, "unknown_" + str(stage))
+            summary.setdefault("hough_x_" + stage_name, 0)
+            summary["hough_x_" + stage_name] += 1
+            summary["hough_accepted_x"] += stage == 0
+            summary["hough_seed_hits_x"] += int(entry.nSeed)
+            summary["hough_post_dbscan_hits_x"] += int(entry.nAfterDBSCAN)
+            summary["hough_final_hits_x"] += int(entry.nFinal)
+
     if truth_spill:
         for branch in ("nTrueParticles", "PDG", "IsPrimary", "TMSFiducialTouch"):
             get_branch(truth_spill, branch)
@@ -219,6 +258,12 @@ def print_report(results):
         ("slices_with_tracks", "track slices"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
+        ("hough_attempts_x", "X attempts"),
+        ("hough_accepted_x", "X accepted"),
+        ("hough_x_seed_empty", "X no seed"),
+        ("hough_x_no_dbscan_cluster", "X no DBSCAN"),
+        ("hough_x_astar_empty", "X A* empty"),
+        ("hough_x_final_too_short", "X too short"),
         ("reco_track_hits_x", "X track hits"),
         ("reco_track_hits_y", "Y track hits"),
         ("truth_primary_muons_touching_tms", "truth #mu touch"),
@@ -254,10 +299,14 @@ def main():
                         help="base TOML (default: <repo>/config/TMS_Default_Config.toml)")
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2],
                         help="dune-tms checkout containing the executable and config")
-    parser.add_argument("--point", type=parse_point, action="append", default=[], metavar="NAME,HX,HY,EX,EY",
-                        help="additional point: Hough half-widths and extrapolation width scales")
+    parser.add_argument("--point", type=parse_point, action="append", default=[], metavar="NAME,H,E[,LEGACY]",
+                        help="additional point: common Hough half-width, extrapolation multiplier, optional legacy-X true/false")
+    parser.add_argument("--suite", choices=("pr289",),
+                        help="run the diagnostic PR-289 A/B suite (legacy, nominal, Hough-only, extrapolation-only, retuned)")
+    parser.add_argument("--no-diagnostics", action="store_true",
+                        help="do not enable compact Hough_Diagnostics output in generated TOMLs")
     parser.add_argument("--skip-default", action="store_true",
-                        help="do not add default,1.5,1.5,1,1 automatically")
+                        help="do not add corrected_nominal,1.5,1 automatically")
     parser.add_argument("--max-events", type=int,
                         help="override Applications.MaximumNEvents in generated TOMLs")
     parser.add_argument("--force", action="store_true", help="replace existing output ROOT files")
@@ -280,6 +329,8 @@ def main():
         parser.error("--max-events must be positive")
 
     points = [] if arguments.skip_default else [Point(*DEFAULT_POINT)]
+    if arguments.suite == "pr289":
+        points = [Point(*values) for values in PR289_SUITE]
     points.extend(arguments.point)
     if not points:
         parser.error("provide at least one --point or omit --skip-default")
@@ -296,7 +347,8 @@ def main():
     report_rows = []
     for point in points:
         config_path = config_dir / (point.name + ".toml")
-        write_config(template, config_path, point, arguments.max_events)
+        write_config(template, config_path, point, arguments.max_events,
+                     diagnostics=not arguments.no_diagnostics)
         summaries = []
         output_paths = []
         for input_index, input_file in enumerate(inputs):
@@ -315,10 +367,9 @@ def main():
 
         row = {
             "point": point.name,
-            "hough_half_width_x": point.hough_x,
-            "hough_half_width_y": point.hough_y,
-            "extrapolation_width_scale_x": point.extrapolation_x,
-            "extrapolation_width_scale_y": point.extrapolation_y,
+            "hough_half_width": point.hough_half_width,
+            "extrapolation_width_multiplier": point.extrapolation_multiplier,
+            "legacy_x_bar_containment": point.legacy_x,
             "config": str(config_path),
             "outputs": output_paths,
         }
