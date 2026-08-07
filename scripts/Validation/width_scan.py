@@ -5,8 +5,8 @@ Each configuration is run over the same input ROOT files.  The script keeps
 the produced ROOT files, generated TOMLs, machine-readable summary, and a
 compact CSV together under one output directory.
 
-The reported track-per-truth-muon number is a scan diagnostic, not a matched
-physics efficiency: one truth muon can produce zero, one, or several tracks.
+The reported stage efficiencies are reconstruction-defined: their denominator
+is the union of hit-truth primary IDs seen in any reconstructed object.
 """
 
 import argparse
@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -85,51 +86,6 @@ def write_config(template, destination, point, max_events, diagnostics):
     destination.write_text(text)
 
 
-def config_sections(config):
-    """Read the small numeric TOML subset needed for truth-volume selections."""
-    sections = {}
-    current = None
-    for line in config.read_text().splitlines():
-        section = re.match(r"\s*\[([^]]+)\]", line)
-        if section:
-            current = section.group(1)
-            sections.setdefault(current, {})
-            continue
-        value = re.match(r"\s*([XYZ])\s*=\s*([-+0-9.eE]+)", line)
-        if value and current is not None:
-            sections[current][value.group(1)] = float(value.group(2))
-        value = re.match(r"\s*(XYCut|DownstreamZCut)\s*=\s*([-+0-9.eE]+)", line)
-        if value and current == "Fiducial.LAr":
-            sections[current][value.group(1)] = float(value.group(2))
-    return sections
-
-
-def lar_fiducial_bounds(config):
-    """Read the configured ND-LAr fiducial box in the ROOT position units (mm)."""
-    sections = config_sections(config)
-    try:
-        active_start = sections["Active.LAr.Start"]
-        active_end = sections["Active.LAr.End"]
-        cuts = sections["Fiducial.LAr"]
-        xy_cut = cuts["XYCut"]
-        return ((active_start["X"] + xy_cut, active_end["X"] - xy_cut),
-                (active_start["Y"] + xy_cut, active_end["Y"] - xy_cut),
-                (active_start["Z"] + xy_cut, active_end["Z"] - cuts["DownstreamZCut"]))
-    except KeyError as error:
-        raise RuntimeError("could not read ND-LAr fiducial bounds from " + str(config)) from error
-
-
-def tms_fiducial_bounds(config):
-    """Read the configured TMS fiducial box in the ROOT position units (mm)."""
-    sections = config_sections(config)
-    try:
-        start = sections["Fiducial.TMS.Start"]
-        end = sections["Fiducial.TMS.End"]
-        return tuple((start[axis], end[axis]) for axis in "XYZ")
-    except KeyError as error:
-        raise RuntimeError("could not read TMS fiducial bounds from " + str(config)) from error
-
-
 def get_required_tree(root_file, name):
     tree = root_file.Get(name)
     if not tree:
@@ -159,8 +115,8 @@ def entry_key(entry):
                  for name in ("RunNo", "SpillNo", "EventNo", "SliceNo"))
 
 
-def muon_key(key):
-    """Drop slice number: reco efficiency is per truth muon over a spill."""
+def global_particle_key(key):
+    """Identity of a hit-truth primary, independent of reconstruction slice."""
     return key[0], key[1], key[2], key[4], key[5]
 
 
@@ -223,38 +179,35 @@ def add_view_truth_metrics(lines, summary, view, source_id):
     )
 
 
-def add_stage_metrics(summary, stage, view, candidates, truth_energy,
-                      prefix="stage_", target_muons=None):
-    """Add the four requested truth metrics for one reconstruction stage/view."""
-    prefix = prefix + stage + "_" + view.lower() + "_"
-    multiplicities = {}
+def add_stage_metrics(summary, stage, view, candidates, truth_energy):
+    """Record object truth summaries for one reconstruction stage/view.
+
+    The scan's denominator is intentionally not a Truth_Spill selection.  It
+    is built later from the union of primary IDs observed in *any* recorded
+    reconstruction object.  Keep the per-object primary-energy information
+    here, and make that union only after all stages have been seen.
+    """
+    prefix = "stage_" + stage + "_" + view.lower() + "_"
+    counts = summary.setdefault("_stage_primary_counts", {}).setdefault(
+        stage + ":" + view.upper(), Counter())
     completeness = []
     cleanliness = []
     for key, primary_energy, total_energy in candidates:
-        if target_muons is not None and muon_key(key) not in target_muons:
-            continue
         if primary_energy <= 0:
             continue
-        multiplicities[key] = multiplicities.get(key, 0) + 1
+        counts[global_particle_key(key)] += 1
         denominator = truth_energy.get(key, 0.0)
         if denominator > 0:
             completeness.append(primary_energy / denominator)
         if total_energy > 0:
             cleanliness.append(primary_energy / total_energy)
-    eligible = ({key for key, energy in truth_energy.items() if energy > 0}
-                if target_muons is None else target_muons)
-    found = (set(multiplicities) & eligible if target_muons is None
-             else {muon_key(key) for key in multiplicities} & eligible)
-    summary[prefix + "truth"] = len(eligible)
-    summary[prefix + "found"] = len(found)
-    summary[prefix + "candidates"] = sum(multiplicities.values())
+    summary[prefix + "candidates"] = sum(counts.values())
     summary[prefix + "completeness_sum"] = sum(completeness)
     summary[prefix + "cleanliness_sum"] = sum(cleanliness)
     summary[prefix + "quality_count"] = len(completeness)
-    summary[prefix + "multi_candidates"] = sum(count for count in multiplicities.values() if count > 1)
 
 
-def derive_stage_metrics(root_file, lines, summary, target_muons):
+def derive_stage_metrics(root_file, lines, summary):
     truth = root_file.Get("Hough_View_Truth")
     diagnostics = root_file.Get("Hough_Diagnostics")
     if not truth or not diagnostics:
@@ -286,8 +239,6 @@ def derive_stage_metrics(root_file, lines, summary, target_muons):
     for stage, _ in stage_indices:
         for view in ("X", "Y"):
             add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view])
-            add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view],
-                              prefix="target_stage_", target_muons=target_muons)
     final_candidates = {"X": [], "Y": []}
     for entry in lines:
         base = entry_key(entry)
@@ -302,8 +253,6 @@ def derive_stage_metrics(root_file, lines, summary, target_muons):
     for view in energies:
         if view in final_candidates:
             add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view])
-            add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view],
-                              prefix="target_stage_", target_muons=target_muons)
     reco = get_required_tree(root_file, "Reco_Tree")
     for branch in ("nTracks", "PrimaryVertexId", "PrimaryTrackId", "PrimaryVisibleEnergy", "TotalVisibleEnergy"):
         get_branch(reco, branch)
@@ -316,92 +265,9 @@ def derive_stage_metrics(root_file, lines, summary, target_muons):
             if vertex >= 0 and track >= 0:
                 final_tracks.append((base + (vertex, track), float(entry.PrimaryVisibleEnergy[index]), float(entry.TotalVisibleEnergy[index])))
     add_stage_metrics(summary, "final_3d", "XY", final_tracks, energies["XY"])
-    add_stage_metrics(summary, "final_3d", "XY", final_tracks, energies["XY"],
-                      prefix="target_stage_", target_muons=target_muons)
 
 
-def inside_bounds(position, bounds):
-    return all(lower <= value <= upper for value, (lower, upper) in zip(position, bounds))
-
-
-def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
-    """Select the primary-ancestor IDs used by all candidate truth summaries."""
-    required = ("RunNo", "SpillNo", "EventNo", "nTrueParticles", "VertexID", "TrackId",
-                "PDG", "IsPrimary", "TMSFiducialTouch", "LArFiducialTouch",
-                "BirthPosition", "DeathPosition")
-    for branch in required:
-        get_branch(truth_spill, branch)
-    targets = set()
-    primary_ids = set()
-    for entry in truth_spill:
-        base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
-        particles = {}
-        for particle in range(int(entry.nTrueParticles)):
-            vertex = int(entry.VertexID[particle])
-            track = int(entry.TrackId[particle])
-            particles[(vertex, track)] = {
-                "parent": int(entry.Parent[particle]),
-                "pdg": int(entry.PDG[particle]),
-                "is_primary": bool(entry.IsPrimary[particle]),
-                "tms_touch": bool(entry.TMSFiducialTouch[particle]),
-                "lar_touch": bool(entry.LArFiducialTouch[particle]),
-                "birth": tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
-                               for axis in range(3)),
-                "death": tuple(float(fixed_array_value(entry, "DeathPosition", particle, axis, 4))
-                               for axis in range(3)),
-            }
-        # GetPrimaryIdsByEnergy() labels candidates with TG4HitSegment::GetPrimaryId(),
-        # not with an arbitrary descendant's TrackId.  Evaluate filters on these
-        # roots, otherwise a candidate can never match a selected secondary.
-        for (vertex, track), particle in particles.items():
-            if not particle["is_primary"]:
-                continue
-            primary_ids.add(base + (vertex, track))
-            birth = particle["birth"]
-            death = particle["death"]
-            passes = {
-                "muon": abs(particle["pdg"]) == 13,
-                "primary": True,
-                "tms-touch": particle["tms_touch"],
-                "tms-start": inside_bounds(birth, tms_bounds),
-                "tms-end": inside_bounds(death, tms_bounds),
-                "ndlar-start": inside_bounds(birth, lar_bounds),
-                "ndlar-touch": particle["lar_touch"],
-                "ndlar-end": inside_bounds(death, lar_bounds),
-            }
-            if all(passes[name] for name in filters):
-                targets.add(base + (vertex, track))
-    return targets, primary_ids
-
-
-def add_truth_id_overlap_audit(root_file, selected_ids, primary_ids, summary):
-    """Audit the exact primary-ID join used by the Hough seed diagnostics."""
-    diagnostics = root_file.Get("Hough_Diagnostics")
-    if not diagnostics:
-        return
-    for branch in ("RunNo", "SpillNo", "EventNo", "SliceNo", "View",
-                   "PrimaryVertexId", "PrimaryTrackId"):
-        get_branch(diagnostics, branch)
-    candidate_ids = {"X": set(), "Y": set()}
-    for entry in diagnostics:
-        view = chr(int(entry.View))
-        if view not in candidate_ids:
-            continue
-        vertex = int(entry.PrimaryVertexId[0])
-        track = int(entry.PrimaryTrackId[0])
-        if vertex >= 0 and track >= 0:
-            candidate_ids[view].add((int(entry.RunNo), int(entry.SpillNo),
-                                     int(entry.EventNo), vertex, track))
-    summary["truth_selection_primary_ids"] = len(primary_ids)
-    summary["truth_selection_selected_ids"] = len(selected_ids)
-    for view, identifiers in candidate_ids.items():
-        prefix = "truth_id_audit_" + view.lower() + "_"
-        summary[prefix + "seed_ids"] = len(identifiers)
-        summary[prefix + "seed_ids_known_primary"] = len(identifiers & primary_ids)
-        summary[prefix + "seed_ids_selected"] = len(identifiers & selected_ids)
-
-
-def summarise_output(path, filters, lar_bounds, tms_bounds):
+def summarise_output(path):
     try:
         import ROOT
     except ImportError as error:
@@ -413,7 +279,6 @@ def summarise_output(path, filters, lar_bounds, tms_bounds):
 
     lines = get_required_tree(root_file, "Line_Candidates")
     reco = get_required_tree(root_file, "Reco_Tree")
-    truth_spill = root_file.Get("Truth_Spill")
     for branch in ("nLinesX", "nLinesY", "nHitsInTrackX", "nHitsInTrackY"):
         get_branch(lines, branch)
     for branch in ("RunNo", "SpillNo", "EventNo", "SliceNo",
@@ -451,9 +316,6 @@ def summarise_output(path, filters, lar_bounds, tms_bounds):
         "y_candidates_used_in_xy_match": 0,
         "reco_tracks_without_x_candidate": 0,
         "reco_tracks_without_y_candidate": 0,
-        "truth_spills": 0,
-        "truth_primary_muons_touching_tms": 0,
-        "truth_spills_with_primary_muon_touching_tms": 0,
     }
 
     line_entries = {}
@@ -477,17 +339,9 @@ def summarise_output(path, filters, lar_bounds, tms_bounds):
         summary["slices_with_x_line"] += n_x > 0
         summary["slices_with_y_line"] += n_y > 0
 
-    target_muons = set()
-    primary_ids = set()
-    if truth_spill:
-        target_muons, primary_ids = selected_truth_particles(
-            truth_spill, filters, lar_bounds, tms_bounds)
-    summary["truth_primary_muons_started_lar_touching_tms"] = len(target_muons)
-
     add_view_truth_metrics(lines, summary, "X", str(path))
     add_view_truth_metrics(lines, summary, "Y", str(path))
-    derive_stage_metrics(root_file, lines, summary, target_muons)
-    add_truth_id_overlap_audit(root_file, target_muons, primary_ids, summary)
+    derive_stage_metrics(root_file, lines, summary)
 
     used_x_candidates = set()
     used_y_candidates = set()
@@ -568,32 +422,28 @@ def summarise_output(path, filters, lar_bounds, tms_bounds):
             summary["hough_post_dbscan_hits_x"] += int(entry.nAfterDBSCAN)
             summary["hough_final_hits_x"] += int(entry.nFinal)
 
-    if truth_spill:
-        for branch in ("nTrueParticles", "PDG", "IsPrimary", "TMSFiducialTouch"):
-            get_branch(truth_spill, branch)
-        summary["truth_spills"] = int(truth_spill.GetEntries())
-        for entry in truth_spill:
-            n_target_muons = 0
-            for particle in range(int(entry.nTrueParticles)):
-                if (abs(int(entry.PDG[particle])) == 13 and bool(entry.IsPrimary[particle])
-                        and bool(entry.TMSFiducialTouch[particle])):
-                    n_target_muons += 1
-            summary["truth_primary_muons_touching_tms"] += n_target_muons
-            summary["truth_spills_with_primary_muon_touching_tms"] += n_target_muons > 0
-
     root_file.Close()
     return summary
 
 
 def merge_summaries(summaries):
     merged = {}
+    stage_counts = {}
     for summary in summaries:
         for key, value in summary.items():
+            if key == "_stage_primary_counts":
+                for stage, counts in value.items():
+                    stage_counts.setdefault(stage, Counter()).update(counts)
+                continue
             merged[key] = merged.get(key, 0) + value
-    denominator = merged["truth_primary_muons_touching_tms"]
-    merged["tracks_per_truth_primary_muon_touching_tms"] = (
-        merged["reco_tracks"] / denominator if denominator else None
-    )
+
+    # This is the deliberately reconstruction-defined denominator: an ID is
+    # eligible if it was the energy-leading primary of at least one object at
+    # any recorded stage.  There is no Truth_Spill population or truth-match.
+    denominator_ids = set()
+    for counts in stage_counts.values():
+        denominator_ids.update(counts)
+    merged["reconstruction_primary_denominator"] = len(denominator_ids)
     for view in ("x", "y"):
         prefix = "candidate_" + view + "_"
         count = merged[prefix + "count"]
@@ -607,16 +457,22 @@ def merge_summaries(summaries):
                          ("hough_final", ("x", "y")), ("final_2d", ("x", "y")),
                          ("final_3d", ("xy",))):
         for view in views:
-            for family in ("stage_", "target_stage_"):
-                prefix = family + stage + "_" + view + "_"
-                if prefix + "truth" not in merged:
-                    continue
-                quality_count = merged[prefix + "quality_count"]
-                candidates = merged[prefix + "candidates"]
-                merged[prefix + "reco_efficiency"] = merged[prefix + "found"] / merged[prefix + "truth"] if merged[prefix + "truth"] else None
-                merged[prefix + "multi_reco_rate"] = merged[prefix + "multi_candidates"] / candidates if candidates else None
-                merged[prefix + "completeness"] = merged[prefix + "completeness_sum"] / quality_count if quality_count else None
-                merged[prefix + "cleanliness"] = merged[prefix + "cleanliness_sum"] / quality_count if quality_count else None
+            prefix = "stage_" + stage + "_" + view + "_"
+            counts = stage_counts.get(stage + ":" + view.upper(), Counter())
+            found = len(counts)
+            quality_count = merged.get(prefix + "quality_count", 0)
+            candidates = sum(counts.values())
+            merged[prefix + "truth"] = len(denominator_ids)
+            merged[prefix + "found"] = found
+            merged[prefix + "candidates"] = candidates
+            merged[prefix + "reco_efficiency"] = found / len(denominator_ids) if denominator_ids else None
+            # Fraction of represented primary IDs that appear in more than one
+            # object at this stage.  The raw object count remains printed too.
+            merged[prefix + "multi_reco_rate"] = (
+                sum(count > 1 for count in counts.values()) / found if found else None
+            )
+            merged[prefix + "completeness"] = merged.get(prefix + "completeness_sum", 0) / quality_count if quality_count else None
+            merged[prefix + "cleanliness"] = merged.get(prefix + "cleanliness_sum", 0) / quality_count if quality_count else None
     paired_truth = merged.get("xy_source_pairs_with_truth", 0)
     merged["xy_pair_same_primary_rate"] = merged.get("xy_source_pairs_same_primary", 0) / paired_truth if paired_truth else None
     return merged
@@ -640,13 +496,13 @@ def default_reco_executable(repo):
     return candidates[0]
 
 
-def print_report(results, target_description):
+def print_report(results):
     columns = [
         ("point", "point"),
         ("reco_tracks", "tracks"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
-        ("truth_primary_muons_started_lar_touching_tms", "truth selected"),
+        ("reconstruction_primary_denominator", "primary-ID union"),
     ]
     widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
               for key, title in columns]
@@ -655,13 +511,13 @@ def print_report(results, target_description):
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width)
                         for (key, _), width in zip(columns, widths)))
-    print("\nAll stage metrics below use truth filters: " + target_description)
+    print("\nAll stage rows use the same reconstruction-defined denominator: "
+          "the union of global primary IDs leading any object in any recorded stage.")
     for stage, title in (("seed", "Hough seed"), ("dbscan", "Post-DBSCAN"),
                          ("hough_final", "Post-Hough/A*/extrapolation"),
                          ("final_2d", "Final 2-D candidates"),
                          ("final_3d", "Final XY 3-D tracks")):
         print_stage_table(results, stage, title)
-    print_truth_id_overlap_table(results)
     print_xy_pairing_table(results)
 
 
@@ -674,7 +530,7 @@ def print_stage_table(results, stage, title):
     rows = []
     for result in results:
         for view in (("xy",) if stage == "final_3d" else ("x", "y")):
-            prefix = "target_stage_" + stage + "_" + view + "_"
+            prefix = "stage_" + stage + "_" + view + "_"
             if prefix + "truth" not in result:
                 continue
             rows.append({"point": result["point"], "view": view.upper(),
@@ -703,28 +559,6 @@ def print_xy_pairing_table(results):
     print("  ".join("-" * width for width in widths))
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width) for (key, _), width in zip(columns, widths)))
-
-
-def print_truth_id_overlap_table(results):
-    print("\nTruth/candidate primary-ID overlap (Hough seed)")
-    columns = [("point", "point"), ("truth_selection_primary_ids", "truth roots"),
-               ("truth_selection_selected_ids", "selected"),
-               ("truth_id_audit_x_seed_ids", "X seed IDs"),
-               ("truth_id_audit_x_seed_ids_known_primary", "X known"),
-               ("truth_id_audit_x_seed_ids_selected", "X selected"),
-               ("truth_id_audit_y_seed_ids", "Y seed IDs"),
-               ("truth_id_audit_y_seed_ids_known_primary", "Y known"),
-               ("truth_id_audit_y_seed_ids_selected", "Y selected")]
-    if not any(key in result for result in results for key, _ in columns[1:]):
-        print("(requires Hough_Diagnostics)")
-        return
-    widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
-              for key, title in columns]
-    print("  ".join(title.ljust(width) for (_, title), width in zip(columns, widths)))
-    print("  ".join("-" * width for width in widths))
-    for row in results:
-        print("  ".join(format_value(row.get(key)).ljust(width)
-                        for (key, _), width in zip(columns, widths)))
 
 
 def format_value(value):
@@ -760,11 +594,6 @@ def main():
     parser.add_argument("--force", action="store_true", help="replace existing output ROOT files")
     parser.add_argument("--analyze-only", action="store_true",
                         help="do not run reconstruction; summarise existing ROOT outputs")
-    parser.add_argument("--target-filter", action="append", choices=(
-                        "muon", "primary", "tms-touch", "tms-start", "tms-end",
-                        "ndlar-start", "ndlar-touch", "ndlar-end"),
-                        help="truth requirement for stage tables; repeat to intersect filters. "
-                             "If supplied, replaces the default muon+primary+tms-touch+ndlar-start selection")
     arguments = parser.parse_args()
 
     repo = arguments.repo.resolve()
@@ -780,10 +609,6 @@ def main():
             parser.error("input does not exist: " + str(input_file))
     if arguments.max_events is not None and arguments.max_events < 1:
         parser.error("--max-events must be positive")
-    filters = frozenset(arguments.target_filter or
-                        ("muon", "primary", "tms-touch", "ndlar-start"))
-    target_description = " + ".join(sorted(filters))
-
     points = [] if arguments.skip_default else [Point(*DEFAULT_POINT)]
     if arguments.suite == "pr289":
         points = [Point(*values) for values in PR289_SUITE]
@@ -805,8 +630,6 @@ def main():
         config_path = config_dir / (point.name + ".toml")
         write_config(template, config_path, point, arguments.max_events,
                      diagnostics=not arguments.no_diagnostics)
-        lar_bounds = lar_fiducial_bounds(config_path)
-        tms_bounds = tms_fiducial_bounds(config_path)
         summaries = []
         output_paths = []
         for input_index, input_file in enumerate(inputs):
@@ -820,7 +643,7 @@ def main():
                 run_reconstruction(executable, repo, config_path, input_file, output_path)
             if not output_path.is_file():
                 raise RuntimeError("expected reconstruction output was not created: " + str(output_path))
-            summaries.append(summarise_output(output_path, filters, lar_bounds, tms_bounds))
+            summaries.append(summarise_output(output_path))
             output_paths.append(str(output_path))
 
         row = {
@@ -841,7 +664,7 @@ def main():
         writer.writeheader()
         for row in report_rows:
             writer.writerow({key: row[key] for key in csv_fields})
-    print_report(report_rows, target_description)
+    print_report(report_rows)
     print("\nWrote", output_dir / "summary.csv")
     print("Wrote", output_dir / "summary.json")
 
