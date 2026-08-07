@@ -52,9 +52,11 @@ The most useful comparisons are:
   view balance;
 - truth primary muons touching the TMS: a stable denominator for a fixed input.
 
-The stage tables use a physics-facing denominator: primary muons that both
-start in the ND-LAr fiducial volume and touch the TMS fiducial volume.  A muon
-is reconstructed at a stage only when it is the leading truth-energy
+The stage tables use a physics-facing denominator: primary muons whose actual
+`Truth_Spill.BirthPosition` is inside the configured ND-LAr fiducial box and
+that touch the TMS fiducial volume.  The scan deliberately does not use the
+`LArFiducialStart` output branch for this selection.  A muon is reconstructed
+at a stage only when it is the leading truth-energy
 contributor to at least one candidate at that stage; the denominator is counted
 once per spill, not once per time slice.  Completeness and cleanliness are
 averaged over those target-muon candidates.

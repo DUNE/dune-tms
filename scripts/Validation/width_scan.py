@@ -85,6 +85,34 @@ def write_config(template, destination, point, max_events, diagnostics):
     destination.write_text(text)
 
 
+def lar_fiducial_bounds(config):
+    """Read the configured ND-LAr fiducial box in the ROOT position units (mm)."""
+    sections = {}
+    current = None
+    for line in config.read_text().splitlines():
+        section = re.match(r"\s*\[([^]]+)\]", line)
+        if section:
+            current = section.group(1)
+            sections.setdefault(current, {})
+            continue
+        value = re.match(r"\s*([XYZ])\s*=\s*([-+0-9.eE]+)", line)
+        if value and current is not None:
+            sections[current][value.group(1)] = float(value.group(2))
+        value = re.match(r"\s*(XYCut|DownstreamZCut)\s*=\s*([-+0-9.eE]+)", line)
+        if value and current == "Fiducial.LAr":
+            sections[current][value.group(1)] = float(value.group(2))
+    try:
+        active_start = sections["Active.LAr.Start"]
+        active_end = sections["Active.LAr.End"]
+        cuts = sections["Fiducial.LAr"]
+        xy_cut = cuts["XYCut"]
+        return ((active_start["X"] + xy_cut, active_end["X"] - xy_cut),
+                (active_start["Y"] + xy_cut, active_end["Y"] - xy_cut),
+                (active_start["Z"] + xy_cut, active_end["Z"] - cuts["DownstreamZCut"]))
+    except KeyError as error:
+        raise RuntimeError("could not read ND-LAr fiducial bounds from " + str(config)) from error
+
+
 def get_required_tree(root_file, name):
     tree = root_file.Get(name)
     if not tree:
@@ -275,24 +303,28 @@ def derive_stage_metrics(root_file, lines, summary, target_muons):
                       prefix="target_stage_", target_muons=target_muons)
 
 
-def target_muons_started_in_lar(truth_spill):
+def target_muons_started_in_lar(truth_spill, lar_bounds):
     """Primary muons that start in ND-LAr and enter the fiducial TMS."""
     required = ("RunNo", "SpillNo", "EventNo", "nTrueParticles", "VertexID", "TrackId",
-                "PDG", "IsPrimary", "TMSFiducialTouch", "LArFiducialStart")
+                "PDG", "IsPrimary", "TMSFiducialTouch", "BirthPosition")
     for branch in required:
         get_branch(truth_spill, branch)
     targets = set()
     for entry in truth_spill:
         base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
         for particle in range(int(entry.nTrueParticles)):
+            position = tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
+                             for axis in range(3))
+            starts_in_lar = all(lower <= value <= upper
+                                for value, (lower, upper) in zip(position, lar_bounds))
             if (abs(int(entry.PDG[particle])) == 13 and bool(entry.IsPrimary[particle])
                     and bool(entry.TMSFiducialTouch[particle])
-                    and bool(entry.LArFiducialStart[particle])):
+                    and starts_in_lar):
                 targets.add(base + (int(entry.VertexID[particle]), int(entry.TrackId[particle])))
     return targets
 
 
-def summarise_output(path):
+def summarise_output(path, lar_bounds):
     try:
         import ROOT
     except ImportError as error:
@@ -370,7 +402,7 @@ def summarise_output(path):
 
     target_muons = set()
     if truth_spill:
-        target_muons = target_muons_started_in_lar(truth_spill)
+        target_muons = target_muons_started_in_lar(truth_spill, lar_bounds)
     summary["truth_primary_muons_started_lar_touching_tms"] = len(target_muons)
 
     add_view_truth_metrics(lines, summary, "X", str(path))
@@ -662,6 +694,7 @@ def main():
         config_path = config_dir / (point.name + ".toml")
         write_config(template, config_path, point, arguments.max_events,
                      diagnostics=not arguments.no_diagnostics)
+        lar_bounds = lar_fiducial_bounds(config_path)
         summaries = []
         output_paths = []
         for input_index, input_file in enumerate(inputs):
@@ -675,7 +708,7 @@ def main():
                 run_reconstruction(executable, repo, config_path, input_file, output_path)
             if not output_path.is_file():
                 raise RuntimeError("expected reconstruction output was not created: " + str(output_path))
-            summaries.append(summarise_output(output_path))
+            summaries.append(summarise_output(output_path, lar_bounds))
             output_paths.append(str(output_path))
 
         row = {
