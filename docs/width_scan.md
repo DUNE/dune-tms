@@ -61,6 +61,26 @@ contributor to at least one candidate at that stage; the denominator is counted
 once per spill, not once per time slice.  Completeness and cleanliness are
 averaged over those target-muon candidates.
 
+To audit a suspect truth selection, repeat `--target-filter` for every
+requirement you want to intersect.  Supplying at least one filter replaces the
+default selection, so each filter can also be tested by itself without a
+reconstruction rerun:
+
+```bash
+# Only muons, regardless of primary/volume flags.
+python3 scripts/Validation/width_scan.py ... --analyze-only --target-filter muon
+
+# Primary muons whose true birth position is inside ND-LAr and which touch TMS.
+python3 scripts/Validation/width_scan.py ... --analyze-only \
+  --target-filter muon --target-filter primary \
+  --target-filter ndlar-start --target-filter tms-touch
+```
+
+Available filters are `muon`, `primary`, `tms-touch`, `tms-start`, `tms-end`,
+`ndlar-start`, `ndlar-touch`, and `ndlar-end`.  Start/end filters use actual
+`BirthPosition`/`DeathPosition` and the configured fiducial boxes; touch uses
+the existing trajectory-derived touch branch.
+
 Truth summaries de-duplicate repeated copies of an identical reconstructed hit
 (view, plane, bar, energy, time) before adding its truth-energy shares.  This
 keeps completeness and cleanliness bounded by one when a reconstruction

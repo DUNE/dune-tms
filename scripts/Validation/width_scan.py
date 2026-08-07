@@ -85,8 +85,8 @@ def write_config(template, destination, point, max_events, diagnostics):
     destination.write_text(text)
 
 
-def lar_fiducial_bounds(config):
-    """Read the configured ND-LAr fiducial box in the ROOT position units (mm)."""
+def config_sections(config):
+    """Read the small numeric TOML subset needed for truth-volume selections."""
     sections = {}
     current = None
     for line in config.read_text().splitlines():
@@ -101,6 +101,12 @@ def lar_fiducial_bounds(config):
         value = re.match(r"\s*(XYCut|DownstreamZCut)\s*=\s*([-+0-9.eE]+)", line)
         if value and current == "Fiducial.LAr":
             sections[current][value.group(1)] = float(value.group(2))
+    return sections
+
+
+def lar_fiducial_bounds(config):
+    """Read the configured ND-LAr fiducial box in the ROOT position units (mm)."""
+    sections = config_sections(config)
     try:
         active_start = sections["Active.LAr.Start"]
         active_end = sections["Active.LAr.End"]
@@ -111,6 +117,17 @@ def lar_fiducial_bounds(config):
                 (active_start["Z"] + xy_cut, active_end["Z"] - cuts["DownstreamZCut"]))
     except KeyError as error:
         raise RuntimeError("could not read ND-LAr fiducial bounds from " + str(config)) from error
+
+
+def tms_fiducial_bounds(config):
+    """Read the configured TMS fiducial box in the ROOT position units (mm)."""
+    sections = config_sections(config)
+    try:
+        start = sections["Fiducial.TMS.Start"]
+        end = sections["Fiducial.TMS.End"]
+        return tuple((start[axis], end[axis]) for axis in "XYZ")
+    except KeyError as error:
+        raise RuntimeError("could not read TMS fiducial bounds from " + str(config)) from error
 
 
 def get_required_tree(root_file, name):
@@ -303,28 +320,41 @@ def derive_stage_metrics(root_file, lines, summary, target_muons):
                       prefix="target_stage_", target_muons=target_muons)
 
 
-def target_muons_started_in_lar(truth_spill, lar_bounds):
-    """Primary muons that start in ND-LAr and enter the fiducial TMS."""
+def inside_bounds(position, bounds):
+    return all(lower <= value <= upper for value, (lower, upper) in zip(position, bounds))
+
+
+def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
+    """Return truth IDs satisfying every explicitly requested selection filter."""
     required = ("RunNo", "SpillNo", "EventNo", "nTrueParticles", "VertexID", "TrackId",
-                "PDG", "IsPrimary", "TMSFiducialTouch", "BirthPosition")
+                "PDG", "IsPrimary", "TMSFiducialTouch", "LArFiducialTouch",
+                "BirthPosition", "DeathPosition")
     for branch in required:
         get_branch(truth_spill, branch)
     targets = set()
     for entry in truth_spill:
         base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
         for particle in range(int(entry.nTrueParticles)):
-            position = tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
-                             for axis in range(3))
-            starts_in_lar = all(lower <= value <= upper
-                                for value, (lower, upper) in zip(position, lar_bounds))
-            if (abs(int(entry.PDG[particle])) == 13 and bool(entry.IsPrimary[particle])
-                    and bool(entry.TMSFiducialTouch[particle])
-                    and starts_in_lar):
+            birth = tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
+                          for axis in range(3))
+            death = tuple(float(fixed_array_value(entry, "DeathPosition", particle, axis, 4))
+                          for axis in range(3))
+            passes = {
+                "muon": abs(int(entry.PDG[particle])) == 13,
+                "primary": bool(entry.IsPrimary[particle]),
+                "tms-touch": bool(entry.TMSFiducialTouch[particle]),
+                "tms-start": inside_bounds(birth, tms_bounds),
+                "tms-end": inside_bounds(death, tms_bounds),
+                "ndlar-start": inside_bounds(birth, lar_bounds),
+                "ndlar-touch": bool(entry.LArFiducialTouch[particle]),
+                "ndlar-end": inside_bounds(death, lar_bounds),
+            }
+            if all(passes[name] for name in filters):
                 targets.add(base + (int(entry.VertexID[particle]), int(entry.TrackId[particle])))
     return targets
 
 
-def summarise_output(path, lar_bounds):
+def summarise_output(path, filters, lar_bounds, tms_bounds):
     try:
         import ROOT
     except ImportError as error:
@@ -402,7 +432,7 @@ def summarise_output(path, lar_bounds):
 
     target_muons = set()
     if truth_spill:
-        target_muons = target_muons_started_in_lar(truth_spill, lar_bounds)
+        target_muons = selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds)
     summary["truth_primary_muons_started_lar_touching_tms"] = len(target_muons)
 
     add_view_truth_metrics(lines, summary, "X", str(path))
@@ -560,13 +590,13 @@ def default_reco_executable(repo):
     return candidates[0]
 
 
-def print_report(results):
+def print_report(results, target_description):
     columns = [
         ("point", "point"),
         ("reco_tracks", "tracks"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
-        ("truth_primary_muons_started_lar_touching_tms", "truth #mu LAr→TMS"),
+        ("truth_primary_muons_started_lar_touching_tms", "truth selected"),
     ]
     widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
               for key, title in columns]
@@ -575,7 +605,7 @@ def print_report(results):
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width)
                         for (key, _), width in zip(columns, widths)))
-    print("\nAll stage metrics below are for primary muons that start in ND-LAr and touch the TMS.")
+    print("\nAll stage metrics below use truth filters: " + target_description)
     for stage, title in (("seed", "Hough seed"), ("dbscan", "Post-DBSCAN"),
                          ("hough_final", "Post-Hough/A*/extrapolation"),
                          ("final_2d", "Final 2-D candidates"),
@@ -657,6 +687,11 @@ def main():
     parser.add_argument("--force", action="store_true", help="replace existing output ROOT files")
     parser.add_argument("--analyze-only", action="store_true",
                         help="do not run reconstruction; summarise existing ROOT outputs")
+    parser.add_argument("--target-filter", action="append", choices=(
+                        "muon", "primary", "tms-touch", "tms-start", "tms-end",
+                        "ndlar-start", "ndlar-touch", "ndlar-end"),
+                        help="truth requirement for stage tables; repeat to intersect filters. "
+                             "If supplied, replaces the default muon+primary+tms-touch+ndlar-start selection")
     arguments = parser.parse_args()
 
     repo = arguments.repo.resolve()
@@ -672,6 +707,9 @@ def main():
             parser.error("input does not exist: " + str(input_file))
     if arguments.max_events is not None and arguments.max_events < 1:
         parser.error("--max-events must be positive")
+    filters = frozenset(arguments.target_filter or
+                        ("muon", "primary", "tms-touch", "ndlar-start"))
+    target_description = " + ".join(sorted(filters))
 
     points = [] if arguments.skip_default else [Point(*DEFAULT_POINT)]
     if arguments.suite == "pr289":
@@ -695,6 +733,7 @@ def main():
         write_config(template, config_path, point, arguments.max_events,
                      diagnostics=not arguments.no_diagnostics)
         lar_bounds = lar_fiducial_bounds(config_path)
+        tms_bounds = tms_fiducial_bounds(config_path)
         summaries = []
         output_paths = []
         for input_index, input_file in enumerate(inputs):
@@ -708,7 +747,7 @@ def main():
                 run_reconstruction(executable, repo, config_path, input_file, output_path)
             if not output_path.is_file():
                 raise RuntimeError("expected reconstruction output was not created: " + str(output_path))
-            summaries.append(summarise_output(output_path, lar_bounds))
+            summaries.append(summarise_output(output_path, filters, lar_bounds, tms_bounds))
             output_paths.append(str(output_path))
 
         row = {
@@ -729,7 +768,7 @@ def main():
         writer.writeheader()
         for row in report_rows:
             writer.writerow({key: row[key] for key in csv_fields})
-    print_report(report_rows)
+    print_report(report_rows, target_description)
     print("\nWrote", output_dir / "summary.csv")
     print("Wrote", output_dir / "summary.json")
 
