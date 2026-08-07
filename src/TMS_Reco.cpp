@@ -2366,7 +2366,10 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
             // If match was made, remove the candidate (simple) track from candidate list
             SortedHoughCandidateYIndices.erase(SortedHoughCandidateYIndices.begin() + y_working_index);
             SortedHoughCandidatesY.erase(Yhelper);
-            if (SortedHoughCandidatesY.size() > 1) Yhelper = SortedHoughCandidatesY.begin();
+            // erase invalidates Yhelper.  Reset it even when exactly one
+            // candidate remains; otherwise the next while iteration can
+            // dereference the invalidated iterator.
+            if (!SortedHoughCandidatesY.empty()) Yhelper = SortedHoughCandidatesY.begin();
             // Set iterator for X tracks to next track
             ++Xhelper;
         } else {
