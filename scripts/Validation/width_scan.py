@@ -108,6 +108,20 @@ def fixed_array_value(entry, branch_name, row, column, row_width):
         return values[row * row_width + column]
 
 
+def entry_key(entry):
+    """Identity shared by the Line_Candidates and Reco_Tree slice entries."""
+    return tuple(int(getattr(entry, name))
+                 for name in ("RunNo", "SpillNo", "EventNo", "SliceNo"))
+
+
+def candidate_primary(line_data, view, index):
+    """Return the leading truth-particle identity for one 2-D candidate."""
+    candidates = line_data[view]
+    if index < 0 or index >= len(candidates):
+        return None
+    return candidates[index]
+
+
 def add_view_truth_metrics(lines, summary, view, source_id):
     """Summarise completeness, cleanliness, and primary-particle duplication."""
     suffix = view
@@ -174,6 +188,10 @@ def summarise_output(path):
     truth_spill = root_file.Get("Truth_Spill")
     for branch in ("nLinesX", "nLinesY", "nHitsInTrackX", "nHitsInTrackY"):
         get_branch(lines, branch)
+    for branch in ("RunNo", "SpillNo", "EventNo", "SliceNo",
+                   "PrimaryVertexIdX", "PrimaryTrackIdX",
+                   "PrimaryVertexIdY", "PrimaryTrackIdY"):
+        get_branch(lines, branch)
     for branch in ("nTracks", "nHits", "TrackHitBarType", "MatchedCandidateU",
                    "MatchedCandidateV", "MatchedCandidateX", "MatchedCandidateY"):
         get_branch(reco, branch)
@@ -197,6 +215,12 @@ def summarise_output(path):
         "tracks_with_xy_hits": 0,
         "reco_tracks_from_uvx_match": 0,
         "reco_tracks_from_xy_match": 0,
+        "xy_source_pairs_with_truth": 0,
+        "xy_source_pairs_same_primary": 0,
+        "xy_source_pairs_different_primary": 0,
+        "xy_source_pairs_missing_truth": 0,
+        "x_candidates_used_in_xy_match": 0,
+        "y_candidates_used_in_xy_match": 0,
         "reco_tracks_without_x_candidate": 0,
         "reco_tracks_without_y_candidate": 0,
         "truth_spills": 0,
@@ -204,9 +228,20 @@ def summarise_output(path):
         "truth_spills_with_primary_muon_touching_tms": 0,
     }
 
+    line_entries = {}
     for entry in lines:
         n_x = int(entry.nLinesX)
         n_y = int(entry.nLinesY)
+        line_entries[entry_key(entry)] = {
+            view: [
+                (int(getattr(entry, "PrimaryVertexId" + view)[index]),
+                 int(getattr(entry, "PrimaryTrackId" + view)[index]))
+                if int(getattr(entry, "PrimaryVertexId" + view)[index]) >= 0
+                and int(getattr(entry, "PrimaryTrackId" + view)[index]) >= 0 else None
+                for index in range(int(getattr(entry, "nLines" + view)))
+            ]
+            for view in ("X", "Y")
+        }
         summary["lines_x"] += n_x
         summary["lines_y"] += n_y
         summary["line_hits_x"] += sum(int(entry.nHitsInTrackX[index]) for index in range(n_x))
@@ -217,7 +252,14 @@ def summarise_output(path):
     add_view_truth_metrics(lines, summary, "X", str(path))
     add_view_truth_metrics(lines, summary, "Y", str(path))
 
+    used_x_candidates = set()
+    used_y_candidates = set()
     for entry in reco:
+        key = entry_key(entry)
+        line_entry = line_entries.get(key)
+        if line_entry is None:
+            raise RuntimeError("Reco_Tree entry has no matching Line_Candidates entry: "
+                               + repr(key))
         n_tracks = int(entry.nTracks)
         summary["reco_tracks"] += n_tracks
         summary["slices_with_tracks"] += n_tracks > 0
@@ -243,8 +285,26 @@ def summarise_output(path):
             source_y = int(entry.MatchedCandidateY[track]) >= 0
             summary["reco_tracks_from_uvx_match"] += source_u and source_v and source_x
             summary["reco_tracks_from_xy_match"] += source_x and source_y
+            if source_x and source_y:
+                x_index = int(entry.MatchedCandidateX[track])
+                y_index = int(entry.MatchedCandidateY[track])
+                used_x_candidates.add((key, x_index))
+                used_y_candidates.add((key, y_index))
+                x_primary = candidate_primary(line_entry, "X", x_index)
+                y_primary = candidate_primary(line_entry, "Y", y_index)
+                if x_primary is None or y_primary is None:
+                    summary["xy_source_pairs_missing_truth"] += 1
+                else:
+                    summary["xy_source_pairs_with_truth"] += 1
+                    if x_primary == y_primary:
+                        summary["xy_source_pairs_same_primary"] += 1
+                    else:
+                        summary["xy_source_pairs_different_primary"] += 1
             summary["reco_tracks_without_x_candidate"] += not source_x
             summary["reco_tracks_without_y_candidate"] += not source_y
+
+    summary["x_candidates_used_in_xy_match"] = len(used_x_candidates)
+    summary["y_candidates_used_in_xy_match"] = len(used_y_candidates)
 
     diagnostics = root_file.Get("Hough_Diagnostics")
     if diagnostics:
@@ -348,8 +408,13 @@ def print_report(results):
         ("candidate_y_cleanliness_mean", "Y cleanliness"),
         ("candidate_y_multiplicity_mean", "Y primary multiplicity"),
         ("candidate_y_from_multi_reco_fraction", "Y multi-reco fraction"),
-        ("reco_tracks_from_uvx_match", "3D UVX tracks"),
-        ("reco_tracks_from_xy_match", "3D XY tracks"),
+        ("reco_tracks_from_uvx_match", "UVX tracks"),
+        ("reco_tracks_from_xy_match", "XY tracks"),
+        ("xy_source_pairs_same_primary", "XY same primary"),
+        ("xy_source_pairs_different_primary", "XY wrong primary"),
+        ("xy_source_pairs_missing_truth", "XY no primary"),
+        ("x_candidates_used_in_xy_match", "X candidates paired"),
+        ("y_candidates_used_in_xy_match", "Y candidates paired"),
         ("reco_tracks_without_x_candidate", "3D no X source"),
         ("reco_track_hits_x", "X track hits"),
         ("reco_track_hits_y", "Y track hits"),
