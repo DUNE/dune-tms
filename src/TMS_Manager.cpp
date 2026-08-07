@@ -1,5 +1,7 @@
 #include "TMS_Manager.h"
 
+#include <stdexcept>
+
 TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
@@ -66,13 +68,23 @@ TMS_Manager::TMS_Manager() {
   } catch (const std::exception &) {
     // Snapshot output was introduced after compact diagnostics.
   }
+  _RECO_HOUGH_ContainmentHalfWidth = toml::find<double>(data, "Recon", "Hough", "ContainmentHalfWidth");
+  _RECO_HOUGH_UseLegacyXBarContainment = toml::find<bool>(data, "Recon", "Hough", "UseLegacyXBarContainment");
 
   _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
   _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
   _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
   _RECO_EXTRAPOLATION_NumBarsEnd = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsEnd");
   _RECO_EXTRAPOLATION_NumBarsStart = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsStart");
+  _RECO_EXTRAPOLATION_ContainmentWidthMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "ContainmentWidthMultiplier");
   _RECO_EXTRAPOLATION_XBarDistanceMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "XBarDistanceMultiplier");
+
+  if (_RECO_HOUGH_ContainmentHalfWidth < 0.5) {
+    throw std::runtime_error("Recon.Hough.ContainmentHalfWidth must be at least 0.5");
+  }
+  if (_RECO_EXTRAPOLATION_ContainmentWidthMultiplier <= 0.0) {
+    throw std::runtime_error("Recon.Extrapolation.ContainmentWidthMultiplier must be positive");
+  }
 
   _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
   _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");

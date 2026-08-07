@@ -58,6 +58,16 @@
     # Also write seed/walked/post-DBSCAN plane/bar and Z/not-Z snapshots for overlays.
     # Requires WriteDiagnostics and can make files substantially larger.
     WriteDiagnosticHitSnapshots = false
+    # Half-width of the Hough line-containment window, in transverse bar widths.
+    # The prior three-point test had an effective half-width of 1.5.  A value
+    # of 6.0 is the nominal 4x retuning after the X-bar transverse-width fix.
+    # This is deliberately shared by X and Y; change it only for a global
+    # reconstruction study, not as a view-specific geometry correction.
+    ContainmentHalfWidth = 6.0
+    # Reproduce the pre-#289 X-only containment bug for A/B diagnostic runs.
+    # This uses the X-bar long dimension with the original Hough and
+    # extrapolation windows; leave false for all normal reconstruction.
+    UseLegacyXBarContainment = false
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
@@ -70,7 +80,13 @@
     NumBarsEnd = 4
     # Distance in number of bars a hit can be away from the direction line at the start
     NumBarsStart = 2
-    # Extra allowance for X-bar candidate distances during extrapolation
+    # Shared multiplier on the transverse-width extrapolation windows.  1.0
+    # reproduces the original code; 4.0 is the nominal retuning after the
+    # X-bar transverse-width fix.  It applies to both X and Y.
+    ContainmentWidthMultiplier = 4.0
+    # Extra allowance for X-bar candidate distances during extrapolation's
+    # heuristic-distance stage.  This is independent of the transverse-width
+    # containment multiplier above.
     XBarDistanceMultiplier = 2.0
 
   [Recon.TrackMatch3D]

@@ -41,12 +41,15 @@ class TMS_Manager {
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
     bool Get_Reco_HOUGH_WriteDiagnostics() { return _RECO_HOUGH_WriteDiagnostics; };
     bool Get_Reco_HOUGH_WriteDiagnosticHitSnapshots() { return _RECO_HOUGH_WriteDiagnostics && _RECO_HOUGH_WriteDiagnosticHitSnapshots; };
+    double Get_Reco_HOUGH_ContainmentHalfWidth() { return _RECO_HOUGH_ContainmentHalfWidth; };
+    bool Get_Reco_HOUGH_UseLegacyXBarContainment() { return _RECO_HOUGH_UseLegacyXBarContainment; };
 
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
     int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
     int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
+    double Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() { return _RECO_EXTRAPOLATION_ContainmentWidthMultiplier; };
     double Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() { return _RECO_EXTRAPOLATION_XBarDistanceMultiplier; };
 
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
@@ -161,12 +164,15 @@ class TMS_Manager {
     double _RECO_HOUGH_MinDist;
     bool _RECO_HOUGH_WriteDiagnostics;
     bool _RECO_HOUGH_WriteDiagnosticHitSnapshots;
+    double _RECO_HOUGH_ContainmentHalfWidth;
+    bool _RECO_HOUGH_UseLegacyXBarContainment;
 
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;
     int _RECO_EXTRAPOLATION_ExtrapolateLimit;
     int _RECO_EXTRAPOLATION_NumBarsEnd;
     int _RECO_EXTRAPOLATION_NumBarsStart;
+    double _RECO_EXTRAPOLATION_ContainmentWidthMultiplier;
     double _RECO_EXTRAPOLATION_XBarDistanceMultiplier;
 
     int _RECO_TRACKMATCH_PlaneLimit;
