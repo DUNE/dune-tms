@@ -1,5 +1,7 @@
 #include "TMS_Reco.h"
 
+#include <iterator>
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -1967,13 +1969,14 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
   } else SortedHoughCandidatesX = HoughCandidatesX;
 
   std::vector<TMS_Track> returned;
-  auto written_candidate_index = [](const std::vector<std::vector<TMS_Hit> > &candidates,
-                                    const std::vector<TMS_Hit> &selected) {
-    for (size_t index = 0; index < candidates.size(); ++index) {
-      if (candidates[index] == selected) return static_cast<int>(index);
-    }
-    return -1;
-  };
+  // HoughCandidates{X,Y} are the arrays written to Line_Candidates.  The
+  // working Y list is shortened below as candidates are consumed, so retain
+  // its original, written-array index explicitly instead of trying to recover
+  // it by comparing copied hit vectors.
+  std::vector<int> SortedHoughCandidateYIndices;
+  for (size_t index = 0; index < SortedHoughCandidatesY.size(); ++index) {
+    SortedHoughCandidateYIndices.push_back(static_cast<int>(index));
+  }
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
@@ -1990,8 +1993,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
     }
     std::vector<TMS_Hit> YTracks = *Yhelper;
     std::vector<TMS_Hit> XTracks = *Xhelper;
-    const int candidate_y = written_candidate_index(HoughCandidatesY, YTracks);
-    const int candidate_x = written_candidate_index(HoughCandidatesX, XTracks);
+    const size_t y_working_index = std::distance(SortedHoughCandidatesY.begin(), Yhelper);
+    const int candidate_y = SortedHoughCandidateYIndices[y_working_index];
+    const int candidate_x = static_cast<int>(std::distance(SortedHoughCandidatesX.begin(), Xhelper));
         
     SpatialPrio(XTracks);
     SpatialPrio(YTracks);
@@ -2360,6 +2364,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
             if (HoughCandidatesY.size() == 1) break;
 
             // If match was made, remove the candidate (simple) track from candidate list
+            SortedHoughCandidateYIndices.erase(SortedHoughCandidateYIndices.begin() + y_working_index);
             SortedHoughCandidatesY.erase(Yhelper);
             if (SortedHoughCandidatesY.size() > 1) Yhelper = SortedHoughCandidatesY.begin();
             // Set iterator for X tracks to next track
