@@ -79,7 +79,11 @@ python3 scripts/Validation/width_scan.py ... --analyze-only \
 Available filters are `muon`, `primary`, `tms-touch`, `tms-start`, `tms-end`,
 `ndlar-start`, `ndlar-touch`, and `ndlar-end`.  Start/end filters use actual
 `BirthPosition`/`DeathPosition` and the configured fiducial boxes; touch uses
-the existing trajectory-derived touch branch.
+the existing trajectory-derived touch branch.  Candidate truth labels are
+`GetPrimaryId()` ancestry labels, so the scan always evaluates filters on that
+primary ancestor; selecting an arbitrary secondary would otherwise never match
+the leading truth particle of a candidate.  Consequently `primary` is a
+self-documenting no-op in these stage tables.
 
 Truth summaries de-duplicate repeated copies of an identical reconstructed hit
 (view, plane, bar, energy, time) before adding its truth-energy shares.  This

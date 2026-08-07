@@ -325,7 +325,7 @@ def inside_bounds(position, bounds):
 
 
 def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
-    """Return truth IDs satisfying every explicitly requested selection filter."""
+    """Select the primary-ancestor IDs used by all candidate truth summaries."""
     required = ("RunNo", "SpillNo", "EventNo", "nTrueParticles", "VertexID", "TrackId",
                 "PDG", "IsPrimary", "TMSFiducialTouch", "LArFiducialTouch",
                 "BirthPosition", "DeathPosition")
@@ -334,23 +334,41 @@ def selected_truth_particles(truth_spill, filters, lar_bounds, tms_bounds):
     targets = set()
     for entry in truth_spill:
         base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo))
+        particles = {}
         for particle in range(int(entry.nTrueParticles)):
-            birth = tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
-                          for axis in range(3))
-            death = tuple(float(fixed_array_value(entry, "DeathPosition", particle, axis, 4))
-                          for axis in range(3))
+            vertex = int(entry.VertexID[particle])
+            track = int(entry.TrackId[particle])
+            particles[(vertex, track)] = {
+                "parent": int(entry.Parent[particle]),
+                "pdg": int(entry.PDG[particle]),
+                "is_primary": bool(entry.IsPrimary[particle]),
+                "tms_touch": bool(entry.TMSFiducialTouch[particle]),
+                "lar_touch": bool(entry.LArFiducialTouch[particle]),
+                "birth": tuple(float(fixed_array_value(entry, "BirthPosition", particle, axis, 4))
+                               for axis in range(3)),
+                "death": tuple(float(fixed_array_value(entry, "DeathPosition", particle, axis, 4))
+                               for axis in range(3)),
+            }
+        # GetPrimaryIdsByEnergy() labels candidates with TG4HitSegment::GetPrimaryId(),
+        # not with an arbitrary descendant's TrackId.  Evaluate filters on these
+        # roots, otherwise a candidate can never match a selected secondary.
+        for (vertex, track), particle in particles.items():
+            if not particle["is_primary"]:
+                continue
+            birth = particle["birth"]
+            death = particle["death"]
             passes = {
-                "muon": abs(int(entry.PDG[particle])) == 13,
-                "primary": bool(entry.IsPrimary[particle]),
-                "tms-touch": bool(entry.TMSFiducialTouch[particle]),
+                "muon": abs(particle["pdg"]) == 13,
+                "primary": True,
+                "tms-touch": particle["tms_touch"],
                 "tms-start": inside_bounds(birth, tms_bounds),
                 "tms-end": inside_bounds(death, tms_bounds),
                 "ndlar-start": inside_bounds(birth, lar_bounds),
-                "ndlar-touch": bool(entry.LArFiducialTouch[particle]),
+                "ndlar-touch": particle["lar_touch"],
                 "ndlar-end": inside_bounds(death, lar_bounds),
             }
             if all(passes[name] for name in filters):
-                targets.add(base + (int(entry.VertexID[particle]), int(entry.TrackId[particle])))
+                targets.add(base + (vertex, track))
     return targets
 
 
