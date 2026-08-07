@@ -492,6 +492,10 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("MatchedCandidateV", RecoTrackMatchedCandidateV, "MatchedCandidateV[nTracks]/I");
   Reco_Tree->Branch("MatchedCandidateX", RecoTrackMatchedCandidateX, "MatchedCandidateX[nTracks]/I");
   Reco_Tree->Branch("MatchedCandidateY", RecoTrackMatchedCandidateY, "MatchedCandidateY[nTracks]/I");
+  Reco_Tree->Branch("PrimaryVertexId", RecoTrackPrimaryVertexId, "PrimaryVertexId[nTracks]/I");
+  Reco_Tree->Branch("PrimaryTrackId", RecoTrackPrimaryTrackId, "PrimaryTrackId[nTracks]/I");
+  Reco_Tree->Branch("PrimaryVisibleEnergy", RecoTrackPrimaryVisibleEnergy, "PrimaryVisibleEnergy[nTracks]/F");
+  Reco_Tree->Branch("TotalVisibleEnergy", RecoTrackTotalVisibleEnergy, "TotalVisibleEnergy[nTracks]/F");
 
   
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
@@ -874,6 +878,23 @@ void TMS_TreeWriter::FillHoughViewTruth(TMS_Event &event) {
       HoughViewTruthEnergy = particles.energies[index];
       Hough_View_Truth->Fill();
     }
+  }
+  std::vector<TMS_Hit> xy_hits;
+  for (const auto &hit : cleaned) {
+    const auto type = hit.GetBar().GetBarType();
+    if (type == TMS_Bar::kXBar || type == TMS_Bar::kYBar) xy_hits.push_back(hit);
+  }
+  const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(xy_hits);
+  for (size_t index = 0; index < particles.energies.size(); ++index) {
+    HoughViewTruthEventNo = event.GetEventNumber();
+    HoughViewTruthSliceNo = event.GetSliceNumber();
+    HoughViewTruthSpillNo = event.GetSpillNumber();
+    HoughViewTruthRunNo = event.GetRunNumber();
+    HoughViewTruthView = 3; // Combined X/Y denominator for the fallback's final 3-D tracks.
+    HoughViewTruthVertexId = particles.vertexids[index];
+    HoughViewTruthTrackId = particles.trackids[index];
+    HoughViewTruthEnergy = particles.energies[index];
+    Hough_View_Truth->Fill();
   }
 }
 
@@ -1783,6 +1804,16 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackMatchedCandidateV[itTrack] = RecoTrack->MatchedCandidateV;
     RecoTrackMatchedCandidateX[itTrack] = RecoTrack->MatchedCandidateX;
     RecoTrackMatchedCandidateY[itTrack] = RecoTrack->MatchedCandidateY;
+    const auto track_truth = TMS_Utils::GetPrimaryIdsByEnergy(RecoTrack->Hits);
+    RecoTrackPrimaryVertexId[itTrack] = -1;
+    RecoTrackPrimaryTrackId[itTrack] = -1;
+    RecoTrackPrimaryVisibleEnergy[itTrack] = 0;
+    RecoTrackTotalVisibleEnergy[itTrack] = track_truth.total_energy;
+    if (!track_truth.energies.empty()) {
+      RecoTrackPrimaryVertexId[itTrack] = track_truth.vertexids[0];
+      RecoTrackPrimaryTrackId[itTrack] = track_truth.trackids[0];
+      RecoTrackPrimaryVisibleEnergy[itTrack] = track_truth.energies[0];
+    }
     nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
     nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
     const float raw_3d_length = RecoTrack->Length;
@@ -2650,6 +2681,10 @@ void TMS_TreeWriter::Clear() {
     RecoTrackMatchedCandidateV[i] = -1;
     RecoTrackMatchedCandidateX[i] = -1;
     RecoTrackMatchedCandidateY[i] = -1;
+    RecoTrackPrimaryVertexId[i] = -1;
+    RecoTrackPrimaryTrackId[i] = -1;
+    RecoTrackPrimaryVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackTotalVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackMomentum[i] = DEFAULT_CLEARING_FLOAT;

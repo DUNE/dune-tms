@@ -70,6 +70,10 @@ class TMS_TreeWriter {
     int RecoTrackMatchedCandidateV[__TMS_MAX_TRACKS__];
     int RecoTrackMatchedCandidateX[__TMS_MAX_TRACKS__];
     int RecoTrackMatchedCandidateY[__TMS_MAX_TRACKS__];
+    int RecoTrackPrimaryVertexId[__TMS_MAX_TRACKS__];
+    int RecoTrackPrimaryTrackId[__TMS_MAX_TRACKS__];
+    float RecoTrackPrimaryVisibleEnergy[__TMS_MAX_TRACKS__];
+    float RecoTrackTotalVisibleEnergy[__TMS_MAX_TRACKS__];
     float RecoTrackStartPos[__TMS_MAX_TRACKS__][4];
     float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEndPos[__TMS_MAX_TRACKS__][4];

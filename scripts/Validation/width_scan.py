@@ -207,15 +207,15 @@ def derive_stage_metrics(root_file, lines, summary):
                         (diagnostics, ("EventNo", "SliceNo", "SpillNo", "RunNo", "View", "PrimaryVertexId", "PrimaryTrackId", "PrimaryEnergy", "TotalEnergy"))):
         for name in names:
             get_branch(tree, name)
-    energies = {"X": {}, "Y": {}}
+    energies = {"X": {}, "Y": {}, "XY": {}}
     for entry in truth:
-        view = chr(int(entry.View))
+        view = "XY" if int(entry.View) == 3 else chr(int(entry.View))
         if view in energies:
             key = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo), int(entry.SliceNo),
                    int(entry.VertexId), int(entry.TrackId))
             energies[view][key] = float(entry.VisibleEnergy)
     stage_indices = (("seed", 0), ("dbscan", 1), ("hough_final", 2))
-    stage_candidates = {(stage, view): [] for stage, _ in stage_indices for view in energies}
+    stage_candidates = {(stage, view): [] for stage, _ in stage_indices for view in ("X", "Y")}
     for entry in diagnostics:
         view = chr(int(entry.View))
         if view not in energies:
@@ -228,7 +228,7 @@ def derive_stage_metrics(root_file, lines, summary):
                 stage_candidates[(stage, view)].append(
                     (base + (vertex, track), float(entry.PrimaryEnergy[index]), float(entry.TotalEnergy[index])))
     for stage, _ in stage_indices:
-        for view in energies:
+        for view in ("X", "Y"):
             add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view])
     final_candidates = {"X": [], "Y": []}
     for entry in lines:
@@ -242,7 +242,20 @@ def derive_stage_metrics(root_file, lines, summary):
                         float(getattr(entry, "PrimaryTrueVisibleEnergy" + view)[index]),
                         float(getattr(entry, "TotalTrueVisibleEnergy" + view)[index])))
     for view in energies:
-        add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view])
+        if view in final_candidates:
+            add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view])
+    reco = get_required_tree(root_file, "Reco_Tree")
+    for branch in ("nTracks", "PrimaryVertexId", "PrimaryTrackId", "PrimaryVisibleEnergy", "TotalVisibleEnergy"):
+        get_branch(reco, branch)
+    final_tracks = []
+    for entry in reco:
+        base = entry_key(entry)
+        for index in range(int(entry.nTracks)):
+            vertex = int(entry.PrimaryVertexId[index])
+            track = int(entry.PrimaryTrackId[index])
+            if vertex >= 0 and track >= 0:
+                final_tracks.append((base + (vertex, track), float(entry.PrimaryVisibleEnergy[index]), float(entry.TotalVisibleEnergy[index])))
+    add_stage_metrics(summary, "final_3d", "XY", final_tracks, energies["XY"])
 
 
 def summarise_output(path):
@@ -439,8 +452,10 @@ def merge_summaries(summaries):
         merged[prefix + "cleanliness_mean"] = (
             merged[prefix + "cleanliness_sum"] / count if count else None
         )
-    for stage in ("seed", "dbscan", "hough_final", "final_2d"):
-        for view in ("x", "y"):
+    for stage, views in (("seed", ("x", "y")), ("dbscan", ("x", "y")),
+                         ("hough_final", ("x", "y")), ("final_2d", ("x", "y")),
+                         ("final_3d", ("xy",))):
+        for view in views:
             prefix = "stage_" + stage + "_" + view + "_"
             if prefix + "truth" not in merged:
                 continue
@@ -450,6 +465,8 @@ def merge_summaries(summaries):
             merged[prefix + "multi_reco_rate"] = merged[prefix + "multi_candidates"] / candidates if candidates else None
             merged[prefix + "completeness"] = merged[prefix + "completeness_sum"] / quality_count if quality_count else None
             merged[prefix + "cleanliness"] = merged[prefix + "cleanliness_sum"] / quality_count if quality_count else None
+    paired_truth = merged.get("xy_source_pairs_with_truth", 0)
+    merged["xy_pair_same_primary_rate"] = merged.get("xy_source_pairs_same_primary", 0) / paired_truth if paired_truth else None
     return merged
 
 
@@ -488,8 +505,10 @@ def print_report(results):
                         for (key, _), width in zip(columns, widths)))
     for stage, title in (("seed", "Hough seed"), ("dbscan", "Post-DBSCAN"),
                          ("hough_final", "Post-Hough/A*/extrapolation"),
-                         ("final_2d", "Final 2-D candidates")):
+                         ("final_2d", "Final 2-D candidates"),
+                         ("final_3d", "Final XY 3-D tracks")):
         print_stage_table(results, stage, title)
+    print_xy_pairing_table(results)
 
 
 def print_stage_table(results, stage, title):
@@ -500,7 +519,7 @@ def print_stage_table(results, stage, title):
                ("cleanliness", "cleanliness")]
     rows = []
     for result in results:
-        for view in ("x", "y"):
+        for view in (("xy",) if stage == "final_3d" else ("x", "y")):
             prefix = "stage_" + stage + "_" + view + "_"
             if prefix + "truth" not in result:
                 continue
@@ -513,6 +532,22 @@ def print_stage_table(results, stage, title):
     print("  ".join(title.ljust(width) for (_, title), width in zip(columns, widths)))
     print("  ".join("-" * width for width in widths))
     for row in rows:
+        print("  ".join(format_value(row.get(key)).ljust(width) for (key, _), width in zip(columns, widths)))
+
+
+def print_xy_pairing_table(results):
+    print("\nXY pairing")
+    columns = [("point", "point"), ("reco_tracks_from_xy_match", "pairs"),
+               ("xy_source_pairs_same_primary", "same primary"),
+               ("xy_source_pairs_different_primary", "wrong primary"),
+               ("xy_source_pairs_missing_truth", "no truth"),
+               ("xy_pair_same_primary_rate", "same-primary rate"),
+               ("x_candidates_used_in_xy_match", "X paired"),
+               ("y_candidates_used_in_xy_match", "Y paired")]
+    widths = [max(len(title), *(len(format_value(row.get(key))) for row in results)) for key, title in columns]
+    print("  ".join(title.ljust(width) for (_, title), width in zip(columns, widths)))
+    print("  ".join("-" * width for width in widths))
+    for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width) for (key, _), width in zip(columns, widths)))
 
 
