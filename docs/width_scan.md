@@ -6,6 +6,15 @@ TOML and ROOT output for each point, then writes `summary.csv` and
 `summary.json` with candidate, track, hit, truth-denominator, and X-view Hough
 rejection-stage counts.
 
+The branch also writes compact truth-energy summaries for every X/Y 2-D Hough
+candidate. The scan reports per-candidate mean completeness (the candidate
+primary's energy divided by that particle's total cleaned energy in the same
+view/slice), mean cleanliness (that primary energy divided by all truth energy
+in the candidate), and primary-particle multiplicity. The latter is keyed by
+run/spill/event/slice plus truth vertex and track ID, so a primary appearing in
+two candidates is counted as a genuine duplicate reconstruction rather than a
+cross-event coincidence.
+
 After setting up the normal DUNE-TMS/ROOT environment and building this branch,
 a 5,000-event single-file scan can be launched with:
 

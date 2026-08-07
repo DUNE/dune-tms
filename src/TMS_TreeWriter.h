@@ -296,6 +296,18 @@ class TMS_TreeWriter {
     float TotalTrackEnergyV[__TMS_MAX_LINES__];
     float TotalTrackEnergyX[__TMS_MAX_LINES__];
     float TotalTrackEnergyY[__TMS_MAX_LINES__];
+    // Truth-energy summaries for 2D candidates.  The primary is the particle
+    // with the greatest summed visible energy in that candidate.
+    int PrimaryVertexIdX[__TMS_MAX_LINES__];
+    int PrimaryTrackIdX[__TMS_MAX_LINES__];
+    float PrimaryTrueVisibleEnergyX[__TMS_MAX_LINES__];
+    float PrimaryTrueVisibleEnergyInViewX[__TMS_MAX_LINES__];
+    float TotalTrueVisibleEnergyX[__TMS_MAX_LINES__];
+    int PrimaryVertexIdY[__TMS_MAX_LINES__];
+    int PrimaryTrackIdY[__TMS_MAX_LINES__];
+    float PrimaryTrueVisibleEnergyY[__TMS_MAX_LINES__];
+    float PrimaryTrueVisibleEnergyInViewY[__TMS_MAX_LINES__];
+    float TotalTrueVisibleEnergyY[__TMS_MAX_LINES__];
     bool TrackStoppingU[__TMS_MAX_LINES__];
     bool TrackStoppingV[__TMS_MAX_LINES__];
     bool TrackStoppingX[__TMS_MAX_LINES__];

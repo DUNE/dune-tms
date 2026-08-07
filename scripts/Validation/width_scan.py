@@ -108,6 +108,57 @@ def fixed_array_value(entry, branch_name, row, column, row_width):
         return values[row * row_width + column]
 
 
+def add_view_truth_metrics(lines, summary, view, source_id):
+    """Summarise completeness, cleanliness, and primary-particle duplication."""
+    suffix = view
+    count_branch = "nLines" + suffix
+    branches = (
+        count_branch, "PrimaryVertexId" + suffix, "PrimaryTrackId" + suffix,
+        "PrimaryTrueVisibleEnergy" + suffix,
+        "PrimaryTrueVisibleEnergyInView" + suffix,
+        "TotalTrueVisibleEnergy" + suffix,
+    )
+    for branch in branches:
+        get_branch(lines, branch)
+
+    prefix = "candidate_" + view.lower() + "_"
+    completeness = []
+    cleanliness = []
+    primary_counts = {}
+    for entry in lines:
+        for index in range(int(getattr(entry, count_branch))):
+            vertex = int(getattr(entry, "PrimaryVertexId" + suffix)[index])
+            track = int(getattr(entry, "PrimaryTrackId" + suffix)[index])
+            primary_energy = float(getattr(entry, "PrimaryTrueVisibleEnergy" + suffix)[index])
+            view_energy = float(getattr(entry, "PrimaryTrueVisibleEnergyInView" + suffix)[index])
+            total_energy = float(getattr(entry, "TotalTrueVisibleEnergy" + suffix)[index])
+            if vertex < 0 or track < 0 or primary_energy < 0:
+                continue
+            if view_energy > 0:
+                completeness.append(primary_energy / view_energy)
+            if total_energy > 0:
+                cleanliness.append(primary_energy / total_energy)
+            primary_counts[(source_id, int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo),
+                            int(entry.SliceNo), vertex, track)] = (
+                primary_counts.get((source_id, int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo),
+                                    int(entry.SliceNo), vertex, track), 0) + 1
+            )
+
+    multiplicities = list(primary_counts.values())
+    summary[prefix + "count"] = len(completeness)
+    summary[prefix + "completeness_sum"] = sum(completeness)
+    summary[prefix + "cleanliness_sum"] = sum(cleanliness)
+    summary[prefix + "unique_primaries"] = len(multiplicities)
+    summary[prefix + "multi_reco_primaries"] = sum(count > 1 for count in multiplicities)
+    summary[prefix + "multiplicity_mean"] = (
+        sum(multiplicities) / len(multiplicities) if multiplicities else None
+    )
+    summary[prefix + "from_multi_reco_fraction"] = (
+        sum(count for count in multiplicities if count > 1) / sum(multiplicities)
+        if multiplicities else None
+    )
+
+
 def summarise_output(path):
     try:
         import ROOT
@@ -157,6 +208,9 @@ def summarise_output(path):
         summary["line_hits_y"] += sum(int(entry.nHitsInTrackY[index]) for index in range(n_y))
         summary["slices_with_x_line"] += n_x > 0
         summary["slices_with_y_line"] += n_y > 0
+
+    add_view_truth_metrics(lines, summary, "X", str(path))
+    add_view_truth_metrics(lines, summary, "Y", str(path))
 
     for entry in reco:
         n_tracks = int(entry.nTracks)
@@ -230,6 +284,15 @@ def merge_summaries(summaries):
     merged["tracks_per_truth_primary_muon_touching_tms"] = (
         merged["reco_tracks"] / denominator if denominator else None
     )
+    for view in ("x", "y"):
+        prefix = "candidate_" + view + "_"
+        count = merged[prefix + "count"]
+        merged[prefix + "completeness_mean"] = (
+            merged[prefix + "completeness_sum"] / count if count else None
+        )
+        merged[prefix + "cleanliness_mean"] = (
+            merged[prefix + "cleanliness_sum"] / count if count else None
+        )
     return merged
 
 
@@ -264,6 +327,10 @@ def print_report(results):
         ("hough_x_no_dbscan_cluster", "X no DBSCAN"),
         ("hough_x_astar_empty", "X A* empty"),
         ("hough_x_final_too_short", "X too short"),
+        ("candidate_x_completeness_mean", "X completeness"),
+        ("candidate_x_cleanliness_mean", "X cleanliness"),
+        ("candidate_x_multiplicity_mean", "X primary multiplicity"),
+        ("candidate_x_from_multi_reco_fraction", "X multi-reco fraction"),
         ("reco_track_hits_x", "X track hits"),
         ("reco_track_hits_y", "Y track hits"),
         ("truth_primary_muons_touching_tms", "truth #mu touch"),

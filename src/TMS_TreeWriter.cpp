@@ -268,6 +268,16 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("TotalTrackEnergyV", TotalTrackEnergyV, "TotalTrackEnergyV[nLinesV]/F");
   Branch_Lines->Branch("TotalTrackEnergyX", TotalTrackEnergyX, "TotalTrackEnergyX[nLinesX]/F");
   Branch_Lines->Branch("TotalTrackEnergyY", TotalTrackEnergyY, "TotalTrackEnergyY[nLinesY]/F");
+  Branch_Lines->Branch("PrimaryVertexIdX", PrimaryVertexIdX, "PrimaryVertexIdX[nLinesX]/I");
+  Branch_Lines->Branch("PrimaryTrackIdX", PrimaryTrackIdX, "PrimaryTrackIdX[nLinesX]/I");
+  Branch_Lines->Branch("PrimaryTrueVisibleEnergyX", PrimaryTrueVisibleEnergyX, "PrimaryTrueVisibleEnergyX[nLinesX]/F");
+  Branch_Lines->Branch("PrimaryTrueVisibleEnergyInViewX", PrimaryTrueVisibleEnergyInViewX, "PrimaryTrueVisibleEnergyInViewX[nLinesX]/F");
+  Branch_Lines->Branch("TotalTrueVisibleEnergyX", TotalTrueVisibleEnergyX, "TotalTrueVisibleEnergyX[nLinesX]/F");
+  Branch_Lines->Branch("PrimaryVertexIdY", PrimaryVertexIdY, "PrimaryVertexIdY[nLinesY]/I");
+  Branch_Lines->Branch("PrimaryTrackIdY", PrimaryTrackIdY, "PrimaryTrackIdY[nLinesY]/I");
+  Branch_Lines->Branch("PrimaryTrueVisibleEnergyY", PrimaryTrueVisibleEnergyY, "PrimaryTrueVisibleEnergyY[nLinesY]/F");
+  Branch_Lines->Branch("PrimaryTrueVisibleEnergyInViewY", PrimaryTrueVisibleEnergyInViewY, "PrimaryTrueVisibleEnergyInViewY[nLinesY]/F");
+  Branch_Lines->Branch("TotalTrueVisibleEnergyY", TotalTrueVisibleEnergyY, "TotalTrueVisibleEnergyY[nLinesY]/F");
   Branch_Lines->Branch("TrackStoppingU",    TrackStoppingU,    "TrackStoppingU[nLinesU]/O");
   Branch_Lines->Branch("TrackStoppingV",    TrackStoppingV,    "TrackStoppingV[nLinesV]/O");
   Branch_Lines->Branch("TrackStoppingX",    TrackStoppingX,    "TrackStoppingX[nLinesX]/O");
@@ -886,6 +896,26 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   nLinesX = HoughCandidatesX.size();
   nLinesY = HoughCandidatesY.size();
 
+  // The denominator for 2D completeness is all cleaned energy from a truth
+  // particle in the same view/slice, not its energy in the selected candidate.
+  auto truth_energy_in_view = [](TMS_Bar::BarType view) {
+    std::vector<TMS_Hit> view_hits;
+    for (const auto &hit : TMS_TrackFinder::GetFinder().GetCleanedHits()) {
+      if (hit.GetBar().GetBarType() == view) view_hits.push_back(hit);
+    }
+    return TMS_Utils::GetPrimaryIdsByEnergy(view_hits);
+  };
+  const auto truth_energy_x = truth_energy_in_view(TMS_Bar::kXBar);
+  const auto truth_energy_y = truth_energy_in_view(TMS_Bar::kYBar);
+  auto primary_energy_in_view = [](const TMS_Utils::ParticleInfo &view_energy,
+                                    int vertex_id, int track_id) {
+    for (size_t index = 0; index < view_energy.energies.size(); ++index) {
+      if (view_energy.vertexids[index] == vertex_id && view_energy.trackids[index] == track_id)
+        return view_energy.energies[index];
+    }
+    return 0.0;
+  };
+
 
   // Skip the event if there aren't any Hough Lines
   if (nLinesU > __TMS_MAX_LINES__) {
@@ -1246,6 +1276,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackLengthX[it] = TMS_TrackFinder::GetFinder().GetTrackLengthX()[it];
     TotalTrackEnergyX[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyX()[it];
     OccupancyX[it] = double(HoughCandsX[it].size())/TotalHits;
+    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergy(Candidates);
+    TotalTrueVisibleEnergyX[it] = candidate_truth.total_energy;
+    PrimaryVertexIdX[it] = -1;
+    PrimaryTrackIdX[it] = -1;
+    PrimaryTrueVisibleEnergyX[it] = 0;
+    PrimaryTrueVisibleEnergyInViewX[it] = 0;
+    if (!candidate_truth.energies.empty()) {
+      PrimaryVertexIdX[it] = candidate_truth.vertexids[0];
+      PrimaryTrackIdX[it] = candidate_truth.trackids[0];
+      PrimaryTrueVisibleEnergyX[it] = candidate_truth.energies[0];
+      PrimaryTrueVisibleEnergyInViewX[it] = primary_energy_in_view(
+          truth_energy_x, PrimaryVertexIdX[it], PrimaryTrackIdX[it]);
+    }
     
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
@@ -1305,6 +1348,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     TrackLengthY[it] = TMS_TrackFinder::GetFinder().GetTrackLengthY()[it];
     TotalTrackEnergyY[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyY()[it];
     OccupancyY[it] = double(HoughCandsY[it].size())/TotalHits;
+    const auto candidate_truth = TMS_Utils::GetPrimaryIdsByEnergy(Candidates);
+    TotalTrueVisibleEnergyY[it] = candidate_truth.total_energy;
+    PrimaryVertexIdY[it] = -1;
+    PrimaryTrackIdY[it] = -1;
+    PrimaryTrueVisibleEnergyY[it] = 0;
+    PrimaryTrueVisibleEnergyInViewY[it] = 0;
+    if (!candidate_truth.energies.empty()) {
+      PrimaryVertexIdY[it] = candidate_truth.vertexids[0];
+      PrimaryTrackIdY[it] = candidate_truth.trackids[0];
+      PrimaryTrueVisibleEnergyY[it] = candidate_truth.energies[0];
+      PrimaryTrueVisibleEnergyInViewY[it] = primary_energy_in_view(
+          truth_energy_y, PrimaryVertexIdY[it], PrimaryTrackIdY[it]);
+    }
     
     float earliest_hit_time = 1e32;
     float latest_hit_time = -1e32;
@@ -2314,6 +2370,16 @@ void TMS_TreeWriter::Clear() {
     TotalTrackEnergyV[i] = DEFAULT_CLEARING_FLOAT;
     TotalTrackEnergyX[i] = DEFAULT_CLEARING_FLOAT;
     TotalTrackEnergyY[i] = DEFAULT_CLEARING_FLOAT;
+    PrimaryVertexIdX[i] = -1;
+    PrimaryTrackIdX[i] = -1;
+    PrimaryTrueVisibleEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    PrimaryTrueVisibleEnergyInViewX[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrueVisibleEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    PrimaryVertexIdY[i] = -1;
+    PrimaryTrackIdY[i] = -1;
+    PrimaryTrueVisibleEnergyY[i] = DEFAULT_CLEARING_FLOAT;
+    PrimaryTrueVisibleEnergyInViewY[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrueVisibleEnergyY[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneU[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneV[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneX[i] = DEFAULT_CLEARING_FLOAT;
