@@ -21,7 +21,7 @@ class TMS_Bar {
     std::string BarType_ToString(BarType bar) const;
 
     // Getter functions
-    int GetBarNumber() const { return BarNumber; }; // Number of bar (start counting from -3520mm onwards)
+    int GetBarNumber() const { return BarNumber; }; // Contiguous transverse bar index within its plane, from TMS_Geom's node-path lookup (not a coordinate offset)
     int GetBarWidth() const { return BarWidth; }; // Get Bar width in mm
     int GetBarLength() const { return BarLength; }; // Get Bar length in mm
     int GetPlaneNumber() const { return PlaneNumber; }; // Plane or layer number through the detector starting at smallest z
