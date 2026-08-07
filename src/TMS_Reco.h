@@ -63,6 +63,13 @@ enum class HoughDiagnosticStage {
   kEventBelowMinimumHits = 11
 };
 
+struct HoughTruthSummary {
+  int vertexId = -1;
+  int trackId = -1;
+  float primaryEnergy = 0.0f;
+  float totalEnergy = 0.0f;
+};
+
 struct HoughDiagnostic {
   char view = '?';
   int attempt = -1;
@@ -85,6 +92,9 @@ struct HoughDiagnostic {
   int lastPlane = -1;
   int lastBar = -1;
   double endpointDistance = -1.0;
+  HoughTruthSummary seedTruth;
+  HoughTruthSummary dbscanTruth;
+  HoughTruthSummary finalTruth;
   std::vector<TMS_Hit> seedHits;
   std::vector<TMS_Hit> walkedHits;
   std::vector<TMS_Hit> postDBSCANHits;

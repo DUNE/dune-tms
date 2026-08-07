@@ -103,11 +103,13 @@ class TMS_TreeWriter {
     TTree* Hough_Diagnostics; // Optional compact 2D Hough attempt diagnostics
     TTree* Hough_Diagnostic_Hits; // Optional hit-index snapshots for diagnostics
     TTree* Hough_Diagnostic_Metadata; // One configuration row per output file
+    TTree* Hough_View_Truth; // Truth-energy denominator per diagnostic view/slice
 
     void Clear();
     void MakeBranches(); // Make the output branches
     void MakeTruthBranches(TTree* truth); // Make the output branches
     void FillHoughDiagnostics(TMS_Event &event);
+    void FillHoughViewTruth(TMS_Event &event);
     void FillHoughDiagnosticMetadata();
 
     int HoughDiagnosticEventNo;
@@ -135,6 +137,18 @@ class TMS_TreeWriter {
     int HoughDiagnosticLastPlane;
     int HoughDiagnosticLastBar;
     float HoughDiagnosticEndpointDistance;
+    int HoughDiagnosticPrimaryVertexId[3];
+    int HoughDiagnosticPrimaryTrackId[3];
+    float HoughDiagnosticPrimaryEnergy[3];
+    float HoughDiagnosticTotalEnergy[3];
+    int HoughViewTruthEventNo;
+    int HoughViewTruthSliceNo;
+    int HoughViewTruthSpillNo;
+    int HoughViewTruthRunNo;
+    int HoughViewTruthView;
+    int HoughViewTruthVertexId;
+    int HoughViewTruthTrackId;
+    float HoughViewTruthEnergy;
     std::vector<int> HoughDiagnosticSeedPlaneBar;
     std::vector<float> HoughDiagnosticSeedZNotZ;
     std::vector<int> HoughDiagnosticWalkedPlaneBar;

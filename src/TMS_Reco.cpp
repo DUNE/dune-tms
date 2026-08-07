@@ -2,6 +2,20 @@
 
 #include <iterator>
 
+namespace {
+HoughTruthSummary SummariseHoughTruth(const std::vector<TMS_Hit> &hits) {
+  HoughTruthSummary summary;
+  const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(hits);
+  summary.totalEnergy = particles.total_energy;
+  if (!particles.energies.empty()) {
+    summary.vertexId = particles.vertexids[0];
+    summary.trackId = particles.trackids[0];
+    summary.primaryEnergy = particles.energies[0];
+  }
+  return summary;
+}
+}
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -3190,6 +3204,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   }
 
   diagnostic.nSeed = returned.size();
+  diagnostic.seedTruth = SummariseHoughTruth(returned);
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) diagnostic.seedHits = returned;
   if (returned.empty()) {
     diagnostic.stage = HoughDiagnosticStage::kSeedEmpty;
@@ -3369,6 +3384,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     if (static_cast<int>(cluster.size()) > diagnostic.nLargestDBSCAN) diagnostic.nLargestDBSCAN = cluster.size();
   }
   diagnostic.nAfterDBSCAN = returned.size();
+  diagnostic.dbscanTruth = SummariseHoughTruth(returned);
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) diagnostic.postDBSCANHits = returned;
 
   // Finally run A* to find the shortest path from start to end
@@ -3431,6 +3447,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   diagnostic.lastBar = returned.back().GetBarNumber();
   diagnostic.endpointDistance = dist;
   diagnostic.nFinal = nhits;
+  diagnostic.finalTruth = SummariseHoughTruth(returned);
   // Calculate the minimum distance in planes and bars instead of physical distance
   if (nhits < nMinHits) {
     diagnostic.stage = HoughDiagnosticStage::kFinalTooFewHits;

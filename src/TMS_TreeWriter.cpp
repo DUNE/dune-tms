@@ -96,6 +96,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Hough_Diagnostics = nullptr;
   Hough_Diagnostic_Hits = nullptr;
   Hough_Diagnostic_Metadata = nullptr;
+  Hough_View_Truth = nullptr;
   if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnostics()) {
     Hough_Diagnostics = new TTree("Hough_Diagnostics", "One row per 2D Hough attempt");
     Hough_Diagnostics->SetDirectory(Output);
@@ -104,6 +105,10 @@ TMS_TreeWriter::TMS_TreeWriter() {
     Hough_Diagnostic_Metadata = new TTree("Hough_Diagnostic_Metadata", "Hough diagnostic configuration");
     Hough_Diagnostic_Metadata->SetDirectory(Output);
     Hough_Diagnostic_Metadata->SetAutoSave(__TMS_AUTOSAVE__);
+
+    Hough_View_Truth = new TTree("Hough_View_Truth", "Truth visible energy per diagnostic view/slice");
+    Hough_View_Truth->SetDirectory(Output);
+    Hough_View_Truth->SetAutoSave(__TMS_AUTOSAVE__);
 
     if (TMS_Manager::GetInstance().Get_Reco_HOUGH_WriteDiagnosticHitSnapshots()) {
       Hough_Diagnostic_Hits = new TTree("Hough_Diagnostic_Hits", "Optional 2D Hough attempt hit snapshots");
@@ -399,6 +404,21 @@ void TMS_TreeWriter::MakeBranches() {
     Hough_Diagnostics->Branch("LastPlane", &HoughDiagnosticLastPlane, "LastPlane/I");
     Hough_Diagnostics->Branch("LastBar", &HoughDiagnosticLastBar, "LastBar/I");
     Hough_Diagnostics->Branch("EndpointDistance", &HoughDiagnosticEndpointDistance, "EndpointDistance/F");
+    Hough_Diagnostics->Branch("PrimaryVertexId", HoughDiagnosticPrimaryVertexId, "PrimaryVertexId[3]/I");
+    Hough_Diagnostics->Branch("PrimaryTrackId", HoughDiagnosticPrimaryTrackId, "PrimaryTrackId[3]/I");
+    Hough_Diagnostics->Branch("PrimaryEnergy", HoughDiagnosticPrimaryEnergy, "PrimaryEnergy[3]/F");
+    Hough_Diagnostics->Branch("TotalEnergy", HoughDiagnosticTotalEnergy, "TotalEnergy[3]/F");
+  }
+
+  if (Hough_View_Truth) {
+    Hough_View_Truth->Branch("EventNo", &HoughViewTruthEventNo, "EventNo/I");
+    Hough_View_Truth->Branch("SliceNo", &HoughViewTruthSliceNo, "SliceNo/I");
+    Hough_View_Truth->Branch("SpillNo", &HoughViewTruthSpillNo, "SpillNo/I");
+    Hough_View_Truth->Branch("RunNo", &HoughViewTruthRunNo, "RunNo/I");
+    Hough_View_Truth->Branch("View", &HoughViewTruthView, "View/I");
+    Hough_View_Truth->Branch("VertexId", &HoughViewTruthVertexId, "VertexId/I");
+    Hough_View_Truth->Branch("TrackId", &HoughViewTruthTrackId, "TrackId/I");
+    Hough_View_Truth->Branch("VisibleEnergy", &HoughViewTruthEnergy, "VisibleEnergy/F");
   }
 
   if (Hough_Diagnostic_Hits) {
@@ -808,6 +828,15 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
     HoughDiagnosticLastPlane = diagnostic.lastPlane;
     HoughDiagnosticLastBar = diagnostic.lastBar;
     HoughDiagnosticEndpointDistance = diagnostic.endpointDistance;
+    const HoughTruthSummary *truth_summaries[] = {
+      &diagnostic.seedTruth, &diagnostic.dbscanTruth, &diagnostic.finalTruth
+    };
+    for (int index = 0; index < 3; ++index) {
+      HoughDiagnosticPrimaryVertexId[index] = truth_summaries[index]->vertexId;
+      HoughDiagnosticPrimaryTrackId[index] = truth_summaries[index]->trackId;
+      HoughDiagnosticPrimaryEnergy[index] = truth_summaries[index]->primaryEnergy;
+      HoughDiagnosticTotalEnergy[index] = truth_summaries[index]->totalEnergy;
+    }
     Hough_Diagnostics->Fill();
 
     // An attempt number is assigned only once a Hough line has actually been built.
@@ -819,6 +848,31 @@ void TMS_TreeWriter::FillHoughDiagnostics(TMS_Event &event) {
       FillDiagnosticHitSnapshot(diagnostic.walkedHits, HoughDiagnosticWalkedPlaneBar, HoughDiagnosticWalkedZNotZ);
       FillDiagnosticHitSnapshot(diagnostic.postDBSCANHits, HoughDiagnosticPostDBSCANPlaneBar, HoughDiagnosticPostDBSCANZNotZ);
       Hough_Diagnostic_Hits->Fill();
+    }
+  }
+}
+
+void TMS_TreeWriter::FillHoughViewTruth(TMS_Event &event) {
+  if (!Hough_View_Truth) return;
+  const auto &cleaned = TMS_TrackFinder::GetFinder().GetCleanedHits();
+  const std::pair<int, TMS_Bar::BarType> views[] = {
+    std::make_pair(static_cast<int>('X'), TMS_Bar::kXBar),
+    std::make_pair(static_cast<int>('Y'), TMS_Bar::kYBar)
+  };
+  for (const auto &view : views) {
+    std::vector<TMS_Hit> hits;
+    for (const auto &hit : cleaned) if (hit.GetBar().GetBarType() == view.second) hits.push_back(hit);
+    const auto particles = TMS_Utils::GetPrimaryIdsByEnergy(hits);
+    for (size_t index = 0; index < particles.energies.size(); ++index) {
+      HoughViewTruthEventNo = event.GetEventNumber();
+      HoughViewTruthSliceNo = event.GetSliceNumber();
+      HoughViewTruthSpillNo = event.GetSpillNumber();
+      HoughViewTruthRunNo = event.GetRunNumber();
+      HoughViewTruthView = view.first;
+      HoughViewTruthVertexId = particles.vertexids[index];
+      HoughViewTruthTrackId = particles.trackids[index];
+      HoughViewTruthEnergy = particles.energies[index];
+      Hough_View_Truth->Fill();
     }
   }
 }
@@ -1709,6 +1763,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Fill up the info only if all above has passed
   Branch_Lines->Fill();
   FillHoughDiagnostics(event);
+  FillHoughViewTruth(event);
 
 
   // Fill the 3D Tracks

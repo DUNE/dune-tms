@@ -173,6 +173,78 @@ def add_view_truth_metrics(lines, summary, view, source_id):
     )
 
 
+def add_stage_metrics(summary, stage, view, candidates, truth_energy):
+    """Add the four requested truth metrics for one reconstruction stage/view."""
+    prefix = "stage_" + stage + "_" + view.lower() + "_"
+    multiplicities = {}
+    completeness = []
+    cleanliness = []
+    for key, primary_energy, total_energy in candidates:
+        if primary_energy <= 0:
+            continue
+        multiplicities[key] = multiplicities.get(key, 0) + 1
+        denominator = truth_energy.get(key, 0.0)
+        if denominator > 0:
+            completeness.append(primary_energy / denominator)
+        if total_energy > 0:
+            cleanliness.append(primary_energy / total_energy)
+    eligible = {key for key, energy in truth_energy.items() if energy > 0}
+    summary[prefix + "truth"] = len(eligible)
+    summary[prefix + "found"] = len(set(multiplicities) & eligible)
+    summary[prefix + "candidates"] = sum(multiplicities.values())
+    summary[prefix + "completeness_sum"] = sum(completeness)
+    summary[prefix + "cleanliness_sum"] = sum(cleanliness)
+    summary[prefix + "quality_count"] = len(completeness)
+    summary[prefix + "multi_candidates"] = sum(count for count in multiplicities.values() if count > 1)
+
+
+def derive_stage_metrics(root_file, lines, summary):
+    truth = root_file.Get("Hough_View_Truth")
+    diagnostics = root_file.Get("Hough_Diagnostics")
+    if not truth or not diagnostics:
+        return
+    for tree, names in ((truth, ("EventNo", "SliceNo", "SpillNo", "RunNo", "View", "VertexId", "TrackId", "VisibleEnergy")),
+                        (diagnostics, ("EventNo", "SliceNo", "SpillNo", "RunNo", "View", "PrimaryVertexId", "PrimaryTrackId", "PrimaryEnergy", "TotalEnergy"))):
+        for name in names:
+            get_branch(tree, name)
+    energies = {"X": {}, "Y": {}}
+    for entry in truth:
+        view = chr(int(entry.View))
+        if view in energies:
+            key = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo), int(entry.SliceNo),
+                   int(entry.VertexId), int(entry.TrackId))
+            energies[view][key] = float(entry.VisibleEnergy)
+    stage_indices = (("seed", 0), ("dbscan", 1), ("hough_final", 2))
+    stage_candidates = {(stage, view): [] for stage, _ in stage_indices for view in energies}
+    for entry in diagnostics:
+        view = chr(int(entry.View))
+        if view not in energies:
+            continue
+        base = (int(entry.RunNo), int(entry.SpillNo), int(entry.EventNo), int(entry.SliceNo))
+        for stage, index in stage_indices:
+            vertex = int(entry.PrimaryVertexId[index])
+            track = int(entry.PrimaryTrackId[index])
+            if vertex >= 0 and track >= 0:
+                stage_candidates[(stage, view)].append(
+                    (base + (vertex, track), float(entry.PrimaryEnergy[index]), float(entry.TotalEnergy[index])))
+    for stage, _ in stage_indices:
+        for view in energies:
+            add_stage_metrics(summary, stage, view, stage_candidates[(stage, view)], energies[view])
+    final_candidates = {"X": [], "Y": []}
+    for entry in lines:
+        base = entry_key(entry)
+        for view in final_candidates:
+            for index in range(int(getattr(entry, "nLines" + view))):
+                vertex = int(getattr(entry, "PrimaryVertexId" + view)[index])
+                track = int(getattr(entry, "PrimaryTrackId" + view)[index])
+                if vertex >= 0 and track >= 0:
+                    final_candidates[view].append((base + (vertex, track),
+                        float(getattr(entry, "PrimaryTrueVisibleEnergy" + view)[index]),
+                        float(getattr(entry, "TotalTrueVisibleEnergy" + view)[index])))
+    for view in energies:
+        add_stage_metrics(summary, "final_2d", view, final_candidates[view], energies[view])
+
+
 def summarise_output(path):
     try:
         import ROOT
@@ -251,6 +323,7 @@ def summarise_output(path):
 
     add_view_truth_metrics(lines, summary, "X", str(path))
     add_view_truth_metrics(lines, summary, "Y", str(path))
+    derive_stage_metrics(root_file, lines, summary)
 
     used_x_candidates = set()
     used_y_candidates = set()
@@ -366,6 +439,17 @@ def merge_summaries(summaries):
         merged[prefix + "cleanliness_mean"] = (
             merged[prefix + "cleanliness_sum"] / count if count else None
         )
+    for stage in ("seed", "dbscan", "hough_final", "final_2d"):
+        for view in ("x", "y"):
+            prefix = "stage_" + stage + "_" + view + "_"
+            if prefix + "truth" not in merged:
+                continue
+            quality_count = merged[prefix + "quality_count"]
+            candidates = merged[prefix + "candidates"]
+            merged[prefix + "reco_efficiency"] = merged[prefix + "found"] / merged[prefix + "truth"] if merged[prefix + "truth"] else None
+            merged[prefix + "multi_reco_rate"] = merged[prefix + "multi_candidates"] / candidates if candidates else None
+            merged[prefix + "completeness"] = merged[prefix + "completeness_sum"] / quality_count if quality_count else None
+            merged[prefix + "cleanliness"] = merged[prefix + "cleanliness_sum"] / quality_count if quality_count else None
     return merged
 
 
@@ -391,35 +475,9 @@ def print_report(results):
     columns = [
         ("point", "point"),
         ("reco_tracks", "tracks"),
-        ("slices_with_tracks", "track slices"),
         ("lines_x", "X lines"),
         ("lines_y", "Y lines"),
-        ("hough_attempts_x", "X attempts"),
-        ("hough_accepted_x", "X accepted"),
-        ("hough_x_seed_empty", "X no seed"),
-        ("hough_x_no_dbscan_cluster", "X no DBSCAN"),
-        ("hough_x_astar_empty", "X A* empty"),
-        ("hough_x_final_too_short", "X too short"),
-        ("candidate_x_completeness_mean", "X completeness"),
-        ("candidate_x_cleanliness_mean", "X cleanliness"),
-        ("candidate_x_multiplicity_mean", "X primary multiplicity"),
-        ("candidate_x_from_multi_reco_fraction", "X multi-reco fraction"),
-        ("candidate_y_completeness_mean", "Y completeness"),
-        ("candidate_y_cleanliness_mean", "Y cleanliness"),
-        ("candidate_y_multiplicity_mean", "Y primary multiplicity"),
-        ("candidate_y_from_multi_reco_fraction", "Y multi-reco fraction"),
-        ("reco_tracks_from_uvx_match", "UVX tracks"),
-        ("reco_tracks_from_xy_match", "XY tracks"),
-        ("xy_source_pairs_same_primary", "XY same primary"),
-        ("xy_source_pairs_different_primary", "XY wrong primary"),
-        ("xy_source_pairs_missing_truth", "XY no primary"),
-        ("x_candidates_used_in_xy_match", "X candidates paired"),
-        ("y_candidates_used_in_xy_match", "Y candidates paired"),
-        ("reco_tracks_without_x_candidate", "3D no X source"),
-        ("reco_track_hits_x", "X track hits"),
-        ("reco_track_hits_y", "Y track hits"),
         ("truth_primary_muons_touching_tms", "truth #mu touch"),
-        ("tracks_per_truth_primary_muon_touching_tms", "tracks / truth #mu"),
     ]
     widths = [max(len(title), *(len(format_value(row.get(key))) for row in results))
               for key, title in columns]
@@ -428,7 +486,34 @@ def print_report(results):
     for row in results:
         print("  ".join(format_value(row.get(key)).ljust(width)
                         for (key, _), width in zip(columns, widths)))
-    print("\n'tracks / truth #mu' is a relative scan diagnostic, not a matched efficiency.")
+    for stage, title in (("seed", "Hough seed"), ("dbscan", "Post-DBSCAN"),
+                         ("hough_final", "Post-Hough/A*/extrapolation"),
+                         ("final_2d", "Final 2-D candidates")):
+        print_stage_table(results, stage, title)
+
+
+def print_stage_table(results, stage, title):
+    print("\n" + title)
+    columns = [("point", "point"), ("view", "view"), ("truth", "truth"),
+               ("candidates", "candidates"), ("reco_efficiency", "reco eff"),
+               ("multi_reco_rate", "multi-reco"), ("completeness", "completeness"),
+               ("cleanliness", "cleanliness")]
+    rows = []
+    for result in results:
+        for view in ("x", "y"):
+            prefix = "stage_" + stage + "_" + view + "_"
+            if prefix + "truth" not in result:
+                continue
+            rows.append({"point": result["point"], "view": view.upper(),
+                         **{name: result.get(prefix + name) for name in ("truth", "candidates", "reco_efficiency", "multi_reco_rate", "completeness", "cleanliness")}})
+    if not rows:
+        print("(requires fresh outputs with Hough_View_Truth)")
+        return
+    widths = [max(len(title), *(len(format_value(row.get(key))) for row in rows)) for key, title in columns]
+    print("  ".join(title.ljust(width) for (_, title), width in zip(columns, widths)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(format_value(row.get(key)).ljust(width) for (key, _), width in zip(columns, widths)))
 
 
 def format_value(value):
