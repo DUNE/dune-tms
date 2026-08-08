@@ -71,12 +71,17 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
   while (NodeName.find(DetEnclosureName) == std::string::npos && NodeName.find(TopLayerName) == std::string::npos) {
     // We've found the plane number
     if (NodeName.find(ModuleLayerName) != std::string::npos) {
-      // Raw node number, not GetPlaneNumberForCurrentNode()'s z-ordered sequential index --
-      // CheckBar() validates this against TMS_Geom's survey (fLayout.planeNumbers), which is
-      // built from raw node numbers too (see TMS_Geom.cpp). The two plane-numbering schemes
-      // are not interchangeable; mixing them throws "Plane number N was not among..." for
-      // perfectly legitimate planes.
-      PlaneNumber = geom->GetCurrentNode()->GetNumber();
+      // z-ordered sequential index (TMS_Geom::GetPlaneNumberForCurrentNode(), built from real
+      // node z-positions), not the raw ROOT copy number -- raw node numbers reset per parent
+      // volume and are NOT globally unique across planes (confirmed via the geometry survey:
+      // one real geometry has 82 physically distinct planes but only 52 distinct raw plane-node
+      // numbers). PlaneNumber is used as a literal z-ordered coordinate elsewhere in
+      // reconstruction (e.g. TMS_Reco.cpp's A* merge candidate search assumes monotonically
+      // increasing z order to early-exit its scan), so it must be collision-free and monotonic
+      // with z, which only the lookup-table scheme guarantees. CheckBar() validates this
+      // against TMS_Geom::GetNumberOfScintillatorPlanes() (also lookup-table-based), not the
+      // raw-node-based geometry survey set, to keep both sides consistent.
+      PlaneNumber = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
       // There are two rotations of bars, and their names are literally "modulelayervol1" and "modulelayervol2"
       if (NodeName.find(ModuleLayerNameU) != std::string::npos) BarOrient = kUBar;       // +3 degrees tilt from pure y orientation
       else if (NodeName.find(ModuleLayerNameV) != std::string::npos) BarOrient = kVBar;  // -3 degrees rotated/tilted from kYBar orientation
@@ -242,22 +247,16 @@ bool TMS_Bar::CheckBar() {
     return false;
   }
 
-  // These two checks now validate against what the geometry survey actually found
-  // in the loaded GDML (TMS_Geom::SurveyGeometry()) rather than hardcoded expected
-  // counts, so they can't drift out of sync with a geometry change. If no survey is
-  // available (e.g. SetGeometry() wasn't called), TMS_Geom falls back to the
-  // TMS_Constants.h range instead of failing every bar.
+  // This check validates GlobalBarNumber against what the geometry survey actually found
+  // in the loaded GDML (TMS_Geom::SurveyGeometry()) rather than hardcoded expected counts,
+  // so it can't drift out of sync with a geometry change. If no survey is available (e.g.
+  // SetGeometry() wasn't called), TMS_Geom falls back to the TMS_Constants.h range instead
+  // of failing every bar.
   TMS_Geom &tmsGeom = TMS_Geom::GetInstance();
   if (tmsGeom.HasGeometrySurvey()) {
     if (!tmsGeom.IsSurveyedModuleNumber(GlobalBarNumber)) {
       std::cerr << "Global bar number " << GlobalBarNumber << " was not among the "
         << tmsGeom.GetNDistinctModuleNumbers() << " distinct module numbers found by the geometry survey." << std::endl;
-      throw;
-      return false;
-    }
-    if (!tmsGeom.IsSurveyedPlaneNumber(PlaneNumber)) {
-      std::cerr << "Plane number " << PlaneNumber << " was not among the "
-        << tmsGeom.GetNDistinctPlaneNumbers() << " distinct plane numbers found by the geometry survey." << std::endl;
       throw;
       return false;
     }
@@ -268,14 +267,20 @@ bool TMS_Bar::CheckBar() {
       throw;
       return false;
     }
+  }
 
-    int expected_nplanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
-    if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
-      std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
-      std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-      throw;
-      return false;
-    }
+  // PlaneNumber comes from TMS_Geom's z-ordered lookup table (GetPlaneNumberForCurrentNode()),
+  // not the geometry survey's raw-node-number set -- those two schemes are not interchangeable
+  // (see the comment in FindModules() above). The lookup table assigns a contiguous 0..count-1
+  // index by construction, whether or not a bbox survey has run, so a simple range check against
+  // GetNumberOfScintillatorPlanes() (itself lookup-table-based, with a config fallback) applies
+  // uniformly here -- no HasGeometrySurvey() split needed, unlike GlobalBarNumber above.
+  int expected_nplanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
+  if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
+    std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
+    std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
+    throw;
+    return false;
   }
 
   return true;
