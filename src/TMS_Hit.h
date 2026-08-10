@@ -86,7 +86,7 @@ class TMS_Hit {
     double GetT() const {return Time;};
     
     void SetSlice(int slice) { Slice = slice; };
-    int GetSlice() { return Slice; };
+    int GetSlice() const { return Slice; };
     
     double GetX() const { return Bar.GetX(); };
     double GetY() const { return Bar.GetY(); };
