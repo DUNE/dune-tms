@@ -3078,13 +3078,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     } else if (hitgroup == 'Y') {
       HoughPoint = HoughLineY->Eval(zhit);   
     }
-    // Hough point is inside bar -> start clustering around bar
-    // (Check if 'x'-point is inside hit bar)
-    double HoughContainmentOffset =
-      (TMS_Manager::GetInstance().Get_Reco_HOUGH_ContainmentHalfWidth() - 0.5) * bar.GetNotZw();
-    if (( bar.Contains(HoughPoint, zhit) ||
-          bar.Contains(HoughPoint-HoughContainmentOffset, zhit) ||
-          bar.Contains(HoughPoint+HoughContainmentOffset, zhit) )) {
+    // Accept one continuous transverse window around the fitted Hough line.
+    // The old three-point Contains() test was continuous only at 1.5 widths;
+    // larger settings accidentally produced three disjoint acceptance bands.
+    const double HoughContainmentHalfWidth =
+      TMS_Manager::GetInstance().Get_Reco_HOUGH_ContainmentHalfWidth() * bar.GetNotZw();
+    if (std::abs(HoughPoint - bar.GetNotZ()) <= HoughContainmentHalfWidth) {
       // Move into line vector and remove from pool
       returned.push_back(std::move(hit));
       it = HitPool.erase(it);
