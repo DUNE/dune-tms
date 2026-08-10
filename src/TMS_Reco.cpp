@@ -77,19 +77,19 @@ std::vector<int> MaximumWeightAssignment(const std::vector<std::vector<double> >
   return assignment;
 }
 
-double XYMatchWeight(const std::vector<TMS_Hit> &xtrack,
-                     const std::vector<TMS_Hit> &ytrack,
-                     bool time_slicing) {
-  if (xtrack.empty() || ytrack.empty()) return 0.;
+double XYMatchQuality(const std::vector<TMS_Hit> &xtrack,
+                      const std::vector<TMS_Hit> &ytrack,
+                      bool time_slicing) {
+  if (xtrack.empty() || ytrack.empty()) return -1.;
 
   const double plane_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit();
-  if (plane_limit <= 0.) return 0.;
+  if (plane_limit <= 0.) return -1.;
   const double back_difference = std::abs(xtrack.front().GetPlaneNumber() - ytrack.front().GetPlaneNumber());
   const double front_difference = std::abs(xtrack.back().GetPlaneNumber() - ytrack.back().GetPlaneNumber());
 
   if (time_slicing) {
     if (xtrack.front().GetSlice() != ytrack.front().GetSlice() ||
-        xtrack.back().GetSlice() != ytrack.back().GetSlice()) return 0.;
+        xtrack.back().GetSlice() != ytrack.back().GetSlice()) return -1.;
 
     const double time_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit();
     const bool bad_back = back_difference > plane_limit ||
@@ -98,13 +98,13 @@ double XYMatchWeight(const std::vector<TMS_Hit> &xtrack,
         std::abs(xtrack.back().GetT() - ytrack.back().GetT()) > time_limit;
     // Preserve the old matcher's one-endpoint exemption. Two bad endpoints
     // are incompatible; if only one is bad, the other must pass normally.
-    if (bad_back && bad_front) return 0.;
+    if (bad_back && bad_front) return -1.;
   } else if (back_difference >= plane_limit || front_difference >= plane_limit) {
-    return 0.;
+    return -1.;
   }
 
-  // Prefer pairs whose upstream and downstream endpoints agree. A zero-weight
-  // edge is deliberately equivalent to leaving both candidates unmatched.
+  // Among compatible pairs, prefer upstream and downstream endpoints that
+  // agree. Compatibility is returned separately from quality via the sign.
   return 2. - (std::min(back_difference, plane_limit) +
                std::min(front_difference, plane_limit)) / plane_limit;
 }
@@ -2060,10 +2060,16 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
   std::vector<std::vector<double> > match_weights(
       SortedHoughCandidatesX.size(),
       std::vector<double>(SortedHoughCandidatesY.size(), 0.));
+  // One additional compatible match must outweigh every possible endpoint-
+  // quality improvement. This makes the objective lexicographic: maximize
+  // matched-track count first, then endpoint agreement.
+  const double match_bonus =
+      2. * std::min(SortedHoughCandidatesX.size(), SortedHoughCandidatesY.size()) + 1.;
   for (size_t x = 0; x < SortedHoughCandidatesX.size(); ++x) {
     for (size_t y = 0; y < SortedHoughCandidatesY.size(); ++y) {
-      match_weights[x][y] = XYMatchWeight(
+      const double quality = XYMatchQuality(
           SortedHoughCandidatesX[x], SortedHoughCandidatesY[y], TimeSlicing);
+      if (quality >= 0.) match_weights[x][y] = match_bonus + quality;
     }
   }
   const std::vector<int> matched_y = MaximumWeightAssignment(match_weights);
@@ -3133,13 +3139,12 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     } else if (hitgroup == 'Y') {
       HoughPoint = HoughLineY->Eval(zhit);   
     }
-    // Hough point is inside bar -> start clustering around bar
-    // (Check if 'x'-point is inside hit bar)
-    double HoughContainmentOffset =
-      (TMS_Manager::GetInstance().Get_Reco_HOUGH_ContainmentHalfWidth() - 0.5) * bar.GetNotZw();
-    if (( bar.Contains(HoughPoint, zhit) ||
-          bar.Contains(HoughPoint-HoughContainmentOffset, zhit) ||
-          bar.Contains(HoughPoint+HoughContainmentOffset, zhit) )) {
+    // Accept one continuous transverse window around the fitted Hough line.
+    // The old three-point Contains() test was continuous only at 1.5 widths;
+    // larger settings accidentally produced three disjoint acceptance bands.
+    const double HoughContainmentHalfWidth =
+      TMS_Manager::GetInstance().Get_Reco_HOUGH_ContainmentHalfWidth() * bar.GetNotZw();
+    if (std::abs(HoughPoint - bar.GetNotZ()) <= HoughContainmentHalfWidth) {
       // Move into line vector and remove from pool
       returned.push_back(std::move(hit));
       it = HitPool.erase(it);
