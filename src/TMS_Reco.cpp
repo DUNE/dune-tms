@@ -1,5 +1,116 @@
 #include "TMS_Reco.h"
 
+#include <limits>
+
+namespace {
+
+// Return the maximum-weight one-to-one assignment. Rows or columns may be
+// unmatched: the square matrix includes a dummy row and column for every real
+// candidate, both with zero weight.
+std::vector<int> MaximumWeightAssignment(const std::vector<std::vector<double> > &weights) {
+  const size_t nrows = weights.size();
+  const size_t ncols = nrows == 0 ? 0 : weights.front().size();
+  const size_t size = nrows + ncols;
+  if (size == 0) return std::vector<int>();
+
+  double maximum_weight = 0.;
+  for (const auto &row : weights) {
+    for (double weight : row) maximum_weight = std::max(maximum_weight, weight);
+  }
+
+  // Hungarian algorithm for a square minimum-cost assignment. Turning each
+  // weight into maximum_weight - weight makes its minimum the maximum-weight
+  // solution while the dummy entries allow either side to remain unmatched.
+  std::vector<double> u(size + 1, 0.);
+  std::vector<double> v(size + 1, 0.);
+  std::vector<size_t> p(size + 1, 0);
+  std::vector<size_t> way(size + 1, 0);
+  for (size_t row = 1; row <= size; ++row) {
+    p[0] = row;
+    size_t column0 = 0;
+    std::vector<double> minimum(size + 1, std::numeric_limits<double>::max());
+    std::vector<bool> used(size + 1, false);
+    do {
+      used[column0] = true;
+      const size_t row0 = p[column0];
+      double delta = std::numeric_limits<double>::max();
+      size_t column1 = 0;
+      for (size_t column = 1; column <= size; ++column) {
+        if (used[column]) continue;
+        double weight = 0.;
+        if (row0 <= nrows && column <= ncols) weight = weights[row0 - 1][column - 1];
+        const double current = maximum_weight - weight - u[row0] - v[column];
+        if (current < minimum[column]) {
+          minimum[column] = current;
+          way[column] = column0;
+        }
+        if (minimum[column] < delta) {
+          delta = minimum[column];
+          column1 = column;
+        }
+      }
+      for (size_t column = 0; column <= size; ++column) {
+        if (used[column]) {
+          u[p[column]] += delta;
+          v[column] -= delta;
+        } else {
+          minimum[column] -= delta;
+        }
+      }
+      column0 = column1;
+    } while (p[column0] != 0);
+
+    do {
+      const size_t column1 = way[column0];
+      p[column0] = p[column1];
+      column0 = column1;
+    } while (column0 != 0);
+  }
+
+  std::vector<int> assignment(nrows, -1);
+  for (size_t column = 1; column <= size; ++column) {
+    if (p[column] > 0 && p[column] <= nrows && column <= ncols &&
+        weights[p[column] - 1][column - 1] > 0.) {
+      assignment[p[column] - 1] = static_cast<int>(column - 1);
+    }
+  }
+  return assignment;
+}
+
+double XYMatchWeight(const std::vector<TMS_Hit> &xtrack,
+                     const std::vector<TMS_Hit> &ytrack,
+                     bool time_slicing) {
+  if (xtrack.empty() || ytrack.empty()) return 0.;
+
+  const double plane_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit();
+  if (plane_limit <= 0.) return 0.;
+  const double back_difference = std::abs(xtrack.front().GetPlaneNumber() - ytrack.front().GetPlaneNumber());
+  const double front_difference = std::abs(xtrack.back().GetPlaneNumber() - ytrack.back().GetPlaneNumber());
+
+  if (time_slicing) {
+    if (xtrack.front().GetSlice() != ytrack.front().GetSlice() ||
+        xtrack.back().GetSlice() != ytrack.back().GetSlice()) return 0.;
+
+    const double time_limit = TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit();
+    const bool bad_back = back_difference > plane_limit ||
+        std::abs(xtrack.front().GetT() - ytrack.front().GetT()) > time_limit;
+    const bool bad_front = front_difference > plane_limit ||
+        std::abs(xtrack.back().GetT() - ytrack.back().GetT()) > time_limit;
+    // Preserve the old matcher's one-endpoint exemption. Two bad endpoints
+    // are incompatible; if only one is bad, the other must pass normally.
+    if (bad_back && bad_front) return 0.;
+  } else if (back_difference >= plane_limit || front_difference >= plane_limit) {
+    return 0.;
+  }
+
+  // Prefer pairs whose upstream and downstream endpoints agree. A zero-weight
+  // edge is deliberately equivalent to leaving both candidates unmatched.
+  return 2. - (std::min(back_difference, plane_limit) +
+               std::min(front_difference, plane_limit)) / plane_limit;
+}
+
+} // namespace
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -1943,73 +2054,32 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 
   bool TimeSlicing = TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer();
 
-  // 3D matching of tracks
-  std::vector<std::vector<TMS_Hit> >::iterator Yhelper = SortedHoughCandidatesY.begin();
-  std::vector<std::vector<TMS_Hit> >::iterator Xhelper = SortedHoughCandidatesX.begin();
+  for (auto &track : SortedHoughCandidatesX) SpatialPrio(track);
+  for (auto &track : SortedHoughCandidatesY) SpatialPrio(track);
 
-  while (Xhelper != SortedHoughCandidatesX.end()) {
-    if (SortedHoughCandidatesY.empty()) {
-#ifdef DEBUG
-      std::cout << "Not enough Y tracks" << std::endl;
-#endif
-      break;
+  std::vector<std::vector<double> > match_weights(
+      SortedHoughCandidatesX.size(),
+      std::vector<double>(SortedHoughCandidatesY.size(), 0.));
+  for (size_t x = 0; x < SortedHoughCandidatesX.size(); ++x) {
+    for (size_t y = 0; y < SortedHoughCandidatesY.size(); ++y) {
+      match_weights[x][y] = XYMatchWeight(
+          SortedHoughCandidatesX[x], SortedHoughCandidatesY[y], TimeSlicing);
     }
-    std::vector<TMS_Hit> YTracks = *Yhelper;
-    std::vector<TMS_Hit> XTracks = *Xhelper;
-        
-    SpatialPrio(XTracks);
-    SpatialPrio(YTracks);
+  }
+  const std::vector<int> matched_y = MaximumWeightAssignment(match_weights);
+
+  // Construct 3-D tracks only after choosing the best set of X/Y pairs over
+  // the entire time slice. This avoids consuming a good Y candidate merely
+  // because a longer, weakly compatible X candidate happened to be first.
+  for (size_t x = 0; x < matched_y.size(); ++x) {
+    if (matched_y[x] < 0) continue;
+    std::vector<TMS_Hit> XTracks = SortedHoughCandidatesX[x];
+    std::vector<TMS_Hit> YTracks = SortedHoughCandidatesY[matched_y[x]];
 #ifdef DEBUG
         std::cout << "XTrack back: " << XTracks.front().GetPlaneNumber() << " | " << XTracks.front().GetBarNumber() << " | " << XTracks.front().GetT() << " front: " << XTracks.back().GetPlaneNumber() << " | " << XTracks.back().GetBarNumber() << " | " << XTracks.back().GetT() << std::endl;
         std::cout << "YTrack back: " << YTracks.front().GetPlaneNumber() << " | " << YTracks.front().GetBarNumber() << " | " << YTracks.front().GetT() << " front: " << YTracks.back().GetPlaneNumber() << " | " << YTracks.back().GetBarNumber() << " | " << YTracks.back().GetT() << std::endl;
 #endif
- 
-        // Conditions for close enough tracks: within +/-3 plane numbers, +/-12 bar numbers and in same time slice within 30ns (Asa note: changed to 15 ns for now and just one of time and plane number condition needs to be met)
-        bool back_match = false;
-        bool front_match = false;
-        int strike = 0;
-        // Check for the front and back whether both conditions (plane limit and time limit) are met or not
-        if (TimeSlicing) {
-          // front of simple tracks: set strike to 1
-          if (std::abs(XTracks.front().GetPlaneNumber() - YTracks.front().GetPlaneNumber()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit()
-              || std::abs(XTracks.front().GetT() - YTracks.front().GetT()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit()) strike = 1;
-          // end of simple tracks: add 2 to strike
-          if (std::abs(XTracks.back().GetPlaneNumber() - YTracks.back().GetPlaneNumber()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit()
-              || std::abs(XTracks.back().GetT() - YTracks.back().GetT()) > TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit()) strike += 2;
-        }  
-        if (TimeSlicing) {
-            //unlike UV, it is hard to compare bar number directly in XY, ignore it.
-//          bool bar_front = (std::abs(XTracks.front().GetBarNumber() - YTracks.front().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit());
-//          bool bar_back = (std::abs(XTracks.back().GetBarNumber() - YTracks.back().GetBarNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_BarLimit());
-          bool slice_front = (XTracks.front().GetSlice() == YTracks.front().GetSlice());
-          bool slice_back = (XTracks.back().GetSlice() == YTracks.back().GetSlice());
-          //ignore time matching for XY for now.
-//          bool time_front = (std::abs(XTracks.front().GetT() - YTracks.front().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
-//          bool time_back = (std::abs(XTracks.back().GetT() - YTracks.back().GetT()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_TimeLimit());
-          bool time_front = true;
-          bool time_back = true;
-          bool plane_front = (std::abs(XTracks.front().GetPlaneNumber() - YTracks.front().GetPlaneNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
-          bool plane_back = (std::abs(XTracks.back().GetPlaneNumber() - YTracks.back().GetPlaneNumber()) <= TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
-          if (strike == 0) {
-            // front and end match
-            back_match =  (slice_back && time_back && plane_back);
-            front_match = (slice_front && time_front && plane_front);
-          } else if (strike == 1) {
-            // front needs exemption, end matches
-            back_match =  (slice_back && time_back && plane_back);
-            front_match = (slice_front && (time_front || plane_front));
-          } else if (strike == 2) {
-            // front matches, end needs exemption
-            back_match =  (slice_back && (time_back || plane_back));
-            front_match = (slice_front && time_front && plane_front);
-          }
-        }
-        else {
-          back_match = (std::abs(XTracks.front().GetPlaneNumber() - YTracks.front().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
-          front_match = (std::abs(XTracks.back().GetPlaneNumber() - YTracks.back().GetPlaneNumber()) < TMS_Manager::GetInstance().Get_Reco_TRACKMATCH_PlaneLimit());
-        } 
-
-        if (back_match&&front_match) { 
+        {
             TMS_Track aTrack;
 
             // Make sure that the hits are in the correct order
@@ -2317,22 +2387,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 #endif          
 
             returned.push_back(aTrack);
-
-            if (HoughCandidatesX.size() == 1) break;
-            if (HoughCandidatesY.size() == 1) break;
-
-            // If match was made, remove the candidate (simple) track from candidate list
-            SortedHoughCandidatesY.erase(Yhelper);
-            if (SortedHoughCandidatesY.size() > 1) Yhelper = SortedHoughCandidatesY.begin();
-            // Set iterator for X tracks to next track
-            ++Xhelper;
-        } else {
-            if (Yhelper == SortedHoughCandidatesY.end()-1) {
-                ++Xhelper;
-                Yhelper = SortedHoughCandidatesY.begin();
-            } else ++Yhelper;
-            if (SortedHoughCandidatesY.size() < 2) break;
-        }   
+        }
   }
   return returned;
 }
