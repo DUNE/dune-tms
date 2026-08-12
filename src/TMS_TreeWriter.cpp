@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 namespace {
   constexpr float kInvalidRecoFloat = -999999999.f;
@@ -1514,6 +1515,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
   stdit = 0;
   const auto TrueParticles = event.GetTrueParticles();
+  std::map<std::pair<long long, int>, int> true_particle_indices;
+  for (size_t i = 0; i < TrueParticles.size(); ++i) {
+    const auto &particle = TrueParticles[i];
+    const auto key = std::make_pair(
+      TMS_MakeGlobalVertexID(particle.GetRunID(), particle.GetVertexID()),
+      particle.GetTrackId());
+    true_particle_indices[key] = i;
+  }
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
     RecoHitPos[stdit][0] = (*it).GetX();
     RecoHitPos[stdit][1] = (*it).GetY();
@@ -1530,7 +1539,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     if (!particle_info.energies.empty()) {
       const long long vertex_global_id = particle_info.vertexglobalids[0];
       const int track_id = particle_info.trackids[0];
-      const int particle_index = event.GetTrueParticleIndex(vertex_global_id, track_id);
+      int particle_index = -1;
+      const auto index_it = true_particle_indices.find(std::make_pair(vertex_global_id, track_id));
+      if (index_it != true_particle_indices.end()) particle_index = index_it->second;
 
       RecoHitPrimaryVertexGlobalId[stdit] = vertex_global_id;
       RecoHitPrimaryRunId[stdit] = vertex_global_id / TMS_VertexIdScale;
@@ -1540,8 +1551,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoHitPrimaryTrueEnergy[stdit] = particle_info.energies[0];
       RecoHitOtherTrueEnergy[stdit] = particle_info.total_energy - particle_info.energies[0];
 
-      // The decoded IDs remain available even if the corresponding particle
-      // was omitted from the reduced Truth_Spill particle table.
+      // A missing index is expected when the contributor was omitted from the
+      // reduced Truth_Spill particle table (for example, lightweight truth
+      // skips photons and neutrons and removes low-visible-energy secondaries).
+      // The contributor IDs and energy remain valid in that case.
       if (particle_index >= 0 && static_cast<size_t>(particle_index) < TrueParticles.size() &&
           (RecoHitPrimaryRunId[stdit] != TrueParticles[particle_index].GetRunID() ||
            RecoHitPrimaryVertexId[stdit] != TrueParticles[particle_index].GetVertexID()))
