@@ -39,12 +39,14 @@ class TMS_Manager {
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
+    double Get_Reco_HOUGH_ContainmentHalfWidth() { return _RECO_HOUGH_ContainmentHalfWidth; };
 
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
     int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
     int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
+    double Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() { return _RECO_EXTRAPOLATION_ContainmentWidthMultiplier; };
     double Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() { return _RECO_EXTRAPOLATION_XBarDistanceMultiplier; };
 
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
@@ -157,12 +159,14 @@ class TMS_Manager {
     bool _RECO_HOUGH_RunAStar;
     bool _RECO_HOUGH_FirstCluster;
     double _RECO_HOUGH_MinDist;
+    double _RECO_HOUGH_ContainmentHalfWidth;
 
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;
     int _RECO_EXTRAPOLATION_ExtrapolateLimit;
     int _RECO_EXTRAPOLATION_NumBarsEnd;
     int _RECO_EXTRAPOLATION_NumBarsStart;
+    double _RECO_EXTRAPOLATION_ContainmentWidthMultiplier;
     double _RECO_EXTRAPOLATION_XBarDistanceMultiplier;
 
     int _RECO_TRACKMATCH_PlaneLimit;

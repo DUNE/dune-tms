@@ -48,7 +48,10 @@ class TMS_Bar {
     double GetZw() const { return zw; };
 
     double GetNotZw() const {
-      if (BarOrient == kXBar) return yw;
+      // FindModules swaps xw/yw for X bars so xw remains the transverse
+      // (Y) width used by their bar-numbering convention.  The X-bar
+      // not-Z coordinate is Y, so use that transverse width here too.
+      if (BarOrient == kXBar) return xw;
       else if (BarOrient == kYBar) return xw;
       else if (BarOrient == kVBar) return xw;
       else if (BarOrient == kUBar) return xw;
