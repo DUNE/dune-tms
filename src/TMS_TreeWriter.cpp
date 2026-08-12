@@ -329,6 +329,13 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryRunId", RecoHitPrimaryRunId, "RecoHitPrimaryRunId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexId", RecoHitPrimaryVertexId, "RecoHitPrimaryVertexId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexGlobalId", RecoHitPrimaryVertexGlobalId, "RecoHitPrimaryVertexGlobalId[nHits]/L");
+  Branch_Lines->Branch("RecoHitPrimaryTrackId", RecoHitPrimaryTrackId, "RecoHitPrimaryTrackId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryParticleIndex", RecoHitPrimaryParticleIndex, "RecoHitPrimaryParticleIndex[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryTrueEnergy", RecoHitPrimaryTrueEnergy, "RecoHitPrimaryTrueEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitOtherTrueEnergy", RecoHitOtherTrueEnergy, "RecoHitOtherTrueEnergy[nHits]/F");
 
   // Track information
   // TODO: Fill these properly
@@ -1506,6 +1513,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     return;
   }
   stdit = 0;
+  const auto TrueParticles = event.GetTrueParticles();
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
     RecoHitPos[stdit][0] = (*it).GetX();
     RecoHitPos[stdit][1] = (*it).GetY();
@@ -1517,6 +1525,28 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitBarType[stdit] = (*it).GetBar().GetBarTypeNumber();
     RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
+
+    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*it});
+    if (!particle_info.energies.empty()) {
+      const long long vertex_global_id = particle_info.vertexglobalids[0];
+      const int track_id = particle_info.trackids[0];
+      const int particle_index = event.GetTrueParticleIndex(vertex_global_id, track_id);
+
+      RecoHitPrimaryVertexGlobalId[stdit] = vertex_global_id;
+      RecoHitPrimaryRunId[stdit] = vertex_global_id / TMS_VertexIdScale;
+      RecoHitPrimaryVertexId[stdit] = vertex_global_id % TMS_VertexIdScale;
+      RecoHitPrimaryTrackId[stdit] = track_id;
+      RecoHitPrimaryParticleIndex[stdit] = particle_index;
+      RecoHitPrimaryTrueEnergy[stdit] = particle_info.energies[0];
+      RecoHitOtherTrueEnergy[stdit] = particle_info.total_energy - particle_info.energies[0];
+
+      // The decoded IDs remain available even if the corresponding particle
+      // was omitted from the reduced Truth_Spill particle table.
+      if (particle_index >= 0 && static_cast<size_t>(particle_index) < TrueParticles.size() &&
+          (RecoHitPrimaryRunId[stdit] != TrueParticles[particle_index].GetRunID() ||
+           RecoHitPrimaryVertexId[stdit] != TrueParticles[particle_index].GetVertexID()))
+        std::cerr << "Reco hit truth vertex ID does not match Truth_Spill particle index" << std::endl;
+    }
   }
 
   // Fill up the info only if all above has passed
@@ -2318,6 +2348,13 @@ void TMS_TreeWriter::Clear() {
     RecoHitBarType[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryRunId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexGlobalId[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    RecoHitPrimaryTrackId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitOtherTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
