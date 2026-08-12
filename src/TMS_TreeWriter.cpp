@@ -1766,9 +1766,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTMSFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
         RecoTrackPrimaryParticleTMSFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideTMS);
         RecoTrackPrimaryParticleTMSFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
-        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
 
         RecoTrackPrimaryParticleVtxId[itTrack] = tp.GetVertexID();
         RecoTrackPrimaryParticleVtxRunNo[itTrack] = tp.GetRunID();
@@ -1925,7 +1925,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
   
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
@@ -1999,9 +1999,9 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
     TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
     TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
