@@ -63,7 +63,7 @@ find_package(Doxygen)
 #endif(DOXYGEN_FOUND)
 
 # Make sure that ROOT is available.  ROOT is absolutely required.
-find_package(ROOT REQUIRED COMPONENTS Geom Physics Matrix MathCore Tree RIO)
+find_package(ROOT REQUIRED COMPONENTS EG Geom Physics Matrix MathCore Tree RIO )
 message(${ROOT_USE_FILE})
 if(ROOT_FOUND)
   include(${ROOT_USE_FILE})
@@ -95,7 +95,6 @@ if(TMS_EVENT_DISPLAY)
   message("Building dune-tms event display")
   add_subdirectory(display)
 endif(TMS_EVENT_DISPLAY)
-
 
 add_subdirectory(src)
 add_subdirectory(app)
