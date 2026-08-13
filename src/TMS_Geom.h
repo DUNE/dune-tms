@@ -37,6 +37,13 @@
 //   - the thin/thick steel region z-boundary
 struct TMS_GeometryLayout {
   bool valid = false;
+  // Set once SurveyGeometry() has completed a traversal that wasn't cut short by the
+  // safety cap -- true whenever the survey found *any* usable data (plane/module
+  // identity sets, bar-region bbox, or both), even a geometry with plane/module
+  // structure but zero bar nodes. Distinct from `valid`, which only tracks whether
+  // the bar-region bbox specifically has data (see GetStartOfTMS()/ExpandToInclude());
+  // HasGeometrySurvey() reports `surveyed`, not `valid`.
+  bool surveyed = false;
   // Raw node numbers observed anywhere in the tree, used only for CheckBar()-style
   // membership checks ("is this a value that occurs somewhere"). TGeoNode::GetNumber()
   // is a copy number scoped to its parent volume, not a tree-wide unique id, so this
@@ -120,7 +127,7 @@ class TMS_Geom {
     // GetNDistinctModuleNumbers() count distinct raw node numbers instead, which is
     // what actually matters for "is this a valid value" -- use those for anything
     // that needs the count of legal values (e.g. an error message), not the match count.
-    inline bool HasGeometrySurvey() const { return fLayout.valid; };
+    inline bool HasGeometrySurvey() const { return fLayout.surveyed; };
     inline int GetNPlanesSurveyed() const { return fLayout.nPlaneNodesVisited; };
     inline int GetNModulesSurveyed() const { return fLayout.nModuleNodesVisited; };
     inline int GetNDistinctPlaneNumbers() const { return (int)fLayout.planeNumbers.size(); };
@@ -131,11 +138,11 @@ class TMS_Geom {
     inline double GetXStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[0]; };
     inline double GetYStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[1]; };
     inline double GetZStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[2]; };
-    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
+    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMSMass(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
     inline double GetXEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[0]; };
     inline double GetYEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[1]; };
     inline double GetZEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[2]; };
-    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
+    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMSMass(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
     inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
     inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 130; }; // module 2 - module 0 = 13cm

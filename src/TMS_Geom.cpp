@@ -72,6 +72,10 @@ void TMS_Geom::SurveyGeometry() {
       ScintLayerOrthoName, ScintLayerParallelName, nodesVisited);
   // Leave the navigator back where SetGeometry() found it
   geom->CdTop();
+  // The survey produced *some* usable data (plane/module identity sets and/or the
+  // bar-region bbox) -- reset to false below if the traversal was cut short, matching
+  // the existing fallback-to-TMS_Constants.h treatment for `valid` in that case.
+  fLayout.surveyed = true;
 
   std::cout << "[TMS_Geom] Geometry survey visited " << nodesVisited << " nodes and found "
     << fLayout.nPlaneNodesVisited << " planes, "
@@ -132,6 +136,7 @@ void TMS_Geom::SurveyGeometry() {
       << "falling back to TMS_Constants.h for anything the survey would otherwise provide."
       << std::endl;
     fLayout.valid = false;
+    fLayout.surveyed = false;
   } else if (fLayout.nBars == 0) {
     std::cerr << "[TMS_Geom] WARNING: Geometry survey found no scintillator-bar nodes. Check "
       << "config/TMS_Default_Config.toml [Geometry.VolumeNames] against this geometry's actual "

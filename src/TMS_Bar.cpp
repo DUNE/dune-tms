@@ -1,5 +1,7 @@
 #include "TMS_Bar.h"
 
+#include <stdexcept>
+
 // Construct a bar from a hit
 TMS_Bar::TMS_Bar(TG4HitSegment &edep_seg) {
 
@@ -243,8 +245,7 @@ bool TMS_Bar::CheckBar() {
     std::cerr << "Bar number was not found in the geometry bar lookup." << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
     std::cout << "Bar number: " << BarNumber << std::endl;
-    throw;
-    return false;
+    throw std::runtime_error("TMS_Bar::CheckBar(): bar number not found in the geometry bar lookup");
   }
 
   // This check validates GlobalBarNumber against what the geometry survey actually found
@@ -257,15 +258,13 @@ bool TMS_Bar::CheckBar() {
     if (!tmsGeom.IsSurveyedModuleNumber(GlobalBarNumber)) {
       std::cerr << "Global bar number " << GlobalBarNumber << " was not among the "
         << tmsGeom.GetNDistinctModuleNumbers() << " distinct module numbers found by the geometry survey." << std::endl;
-      throw;
-      return false;
+      throw std::runtime_error("TMS_Bar::CheckBar(): global bar number not among the surveyed module numbers");
     }
   } else {
     if (GlobalBarNumber >= TMS_Const::nModules || GlobalBarNumber < 0) {
       std::cerr << "Global bar number does not agree with expectation of between 0 to " << TMS_Const::nModules << std::endl;
       std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-      throw;
-      return false;
+      throw std::runtime_error("TMS_Bar::CheckBar(): global bar number out of the TMS_Constants.h expected range");
     }
   }
 
@@ -279,8 +278,7 @@ bool TMS_Bar::CheckBar() {
   if (PlaneNumber >= expected_nplanes || PlaneNumber < 0) {
     std::cerr << "Plane number does not agree with expectation of between 0 to " << expected_nplanes << std::endl;
     std::cerr << "Has the geometry been updated without updating the geometry constants in TMS_Constants.h?" << std::endl;
-    throw;
-    return false;
+    throw std::runtime_error("TMS_Bar::CheckBar(): plane number out of the expected range");
   }
 
   return true;
