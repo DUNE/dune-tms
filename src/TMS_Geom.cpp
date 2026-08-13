@@ -33,15 +33,31 @@ void TMS_Geom::SurveyNodeRecursive(TMS_GeometryLayout &layout, const std::string
              name.find(ScintLayerParallelName) != std::string::npos) {
     layout.nBars += 1;
 
-    // Same local-to-master pattern already used in TMS_Bar::FindModules()
+    // Expand the bar-region bbox to include this bar's full extent, not just its
+    // center: transform all 8 corners of its TGeoBBox to master and fold each one
+    // in. A center-only bbox (transforming just the local origin, as TMS_Bar::
+    // FindModules() correctly does for its own purpose -- getting a bar's centroid
+    // for indexing) would underestimate the true detector bounds by about half a
+    // bar's dimensions on every face, which matters here since this bbox backs
+    // GetStartOfTMS()/GetEndOfTMS() -- used directly by the Kalman fit bounds and
+    // TMS_Reco.cpp's hit-rejection filter, both of which would then misclassify
+    // genuinely-in-bar hits near the physical edge as outside the TMS.
     TGeoBBox *box = dynamic_cast<TGeoBBox*>(node->GetVolume()->GetShape());
     if (box) {
-      const double local[3] = {0, 0, 0};
-      double master[3];
-      geom->GetCurrentMatrix()->LocalToMaster(local, master);
-      double x = master[0], y = master[1], z = master[2];
-      Scale(x, y, z);
-      layout.ExpandToInclude(x, y, z);
+      const double *origin = box->GetOrigin();
+      const double dx = box->GetDX(), dy = box->GetDY(), dz = box->GetDZ();
+      for (int sx = -1; sx <= 1; sx += 2) {
+        for (int sy = -1; sy <= 1; sy += 2) {
+          for (int sz = -1; sz <= 1; sz += 2) {
+            const double local[3] = {origin[0] + sx * dx, origin[1] + sy * dy, origin[2] + sz * dz};
+            double master[3];
+            geom->GetCurrentMatrix()->LocalToMaster(local, master);
+            double x = master[0], y = master[1], z = master[2];
+            Scale(x, y, z);
+            layout.ExpandToInclude(x, y, z);
+          }
+        }
+      }
     }
     // A scintillator bar node has no daughters worth descending into
     return;
