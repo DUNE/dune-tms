@@ -68,8 +68,12 @@ class TMS_KalmanNode {
     EstimatedCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
     SmoothCovarianceMatrix(KALMAN_DIM, KALMAN_DIM),
     MeasurementMatrix(KALMAN_DIM,KALMAN_DIM),
-    MeasurementVec(5)
+    MeasurementVec(5),
 //    DeflectedVec(5)
+    // Runchi2() deliberately skips nodes 0 and 1 ("too sensitive at the end"), so those nodes'
+    // chi2 must default to 0 -- otherwise GetTrackChi2()'s unconditional sum over all nodes reads
+    // uninitialised stack memory for every track (confirmed via valgrind --track-origins=yes).
+    chi2(0.0)
   {
     TransferMatrix.ResizeTo(KALMAN_DIM, KALMAN_DIM);
     TransferMatrixT.ResizeTo(KALMAN_DIM, KALMAN_DIM);
