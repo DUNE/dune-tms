@@ -7,51 +7,55 @@ namespace {
 // added to the TMS_DetectorSimulation public interface.
 
 double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
   // Note that you want to do always do more positive - less positive, or else you get a sign error
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
     // Readout from sides
-    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation();
-    else return TMS_Geom::GetInstance().XBarPosReadoutLocation() - true_hit.GetX();
+    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation(barLength);
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barLength) - true_hit.GetX();
   }
   else {
     // Readout from top. Assuming U ~ V ~ Y for now
-    return TMS_Geom::GetInstance().YBarReadoutLocation() - true_hit.GetY();
+    return TMS_Geom::GetInstance().YBarReadoutLocation(barLength) - true_hit.GetY();
   }
 }
 
 double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
   double additional_length;
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
     // Readout from sides
-    additional_length = 2 * TMS_Geom::GetInstance().XBarLength();
+    additional_length = 2 * TMS_Geom::GetInstance().XBarLength(barLength);
   }
   else {
     // Readout from top. Assuming U ~ V ~ Y for now
-    additional_length = 2 * TMS_Geom::GetInstance().YBarLength();
+    additional_length = 2 * TMS_Geom::GetInstance().YBarLength(barLength);
   }
   return additional_length - GetTrueDistanceFromReadout(hit, true_hit);
 }
 
 double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
   // Subtract out half a bar length
   double additional_length;
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
-    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength(barLength);
   }
   else {
-    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength(barLength);
   }
   return GetTrueDistanceFromReadout(hit, true_hit) - additional_length;
 }
 
 double GetTrueLongDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
   // Subtract out half a bar length
   double additional_length;
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
-    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength();
+    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength(barLength);
   }
   else {
-    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength();
+    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength(barLength);
   }
   return GetTrueLongDistanceFromReadout(hit, true_hit) - additional_length;
 }

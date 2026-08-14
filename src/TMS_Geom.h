@@ -218,16 +218,23 @@ class TMS_Geom {
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
+    // These take the specific hit's own bar length (TMS_Bar::GetBarLength(), mm) rather than
+    // deriving a length from the detector-wide survey bbox: bars are assumed symmetric about the
+    // detector's coordinate origin along their long axis, so a bar's own length is what determines
+    // where its readout ends physically sit, not the extent of the whole TMS. Using the survey bbox
+    // here previously meant every bar was treated as if it were as long as the entire detector, and
+    // that value shifted whenever the survey's bar-region bbox was refined -- entangling the optical
+    // model with unrelated geometry-survey precision.
     // Readout on the +x side of the detector
-    double XBarPosReadoutLocation() { return GetXEndOfTMS(); };
+    double XBarPosReadoutLocation(double barLength) const { return 0.5 * barLength; };
     // Readout on the -x side of the detector
-    double XBarNegReadoutLocation() { return GetXStartOfTMS(); };
+    double XBarNegReadoutLocation(double barLength) const { return -0.5 * barLength; };
     // Readout on the top of the detector
-    double YBarReadoutLocation() { return GetYEndOfTMS(); };
+    double YBarReadoutLocation(double barLength) const { return 0.5 * barLength; };
     // Bar goes from edge of x to x = 0
-    double XBarLength() { return GetXEndOfTMS(); };
-    // Bar spans entire Y
-    double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
+    double XBarLength(double barLength) const { return 0.5 * barLength; };
+    // Bar spans its own full length
+    double YBarLength(double barLength) const { return barLength; };
     
     std::string GetNameOfDetector(const TVector3 &point) {
       std::string out = "";
