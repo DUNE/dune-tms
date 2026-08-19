@@ -371,6 +371,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
     size_t end = TMS_TrueParticles.size();
     nTrueForgottenParticles = initial - end;
   }
+  RebuildTrueParticleIndex();
 }
 
 // Start the relatively tedious process of converting into TMS products!
@@ -406,7 +407,8 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
-      TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
+      TMS_TrueParticles(event.TMS_TrueParticles), TrueParticleIndices(event.TrueParticleIndices),
+      nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
       TrueNeutrino(event.TrueNeutrino), 
@@ -1014,6 +1016,7 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   for (auto &part: other_truepart) {
     TMS_TrueParticles.emplace_back(std::move(part));
   }
+  RebuildTrueParticleIndex();
   // And true primary particles
   std::vector<TMS_TrueParticle> other_trueprimpart = Other_Event.TMS_TruePrimaryParticles;
   for (auto &part: other_trueprimpart) {
@@ -1250,26 +1253,30 @@ double TMS_Event::GetMuonTrueTrackLength() {
   return total;
 }
 
-int TMS_Event::GetTrueParticleIndex(long long vertexglobalid, int trackid) {
-  int out = -1;
-  if (vertexglobalid >= 0 && trackid >= 0) {
-    for (size_t i = 0; i < TMS_TrueParticles.size(); i++) {
-      auto& tp = TMS_TrueParticles.at(i);
-      if (TMS_MakeGlobalVertexID(tp.GetRunID(), tp.GetVertexID()) == vertexglobalid && tp.GetTrackId() == trackid) {
-        out = i;
-        break;
-      }
-    }
+void TMS_Event::RebuildTrueParticleIndex() {
+  TrueParticleIndices.clear();
+  for (size_t i = 0; i < TMS_TrueParticles.size(); ++i) {
+    const auto &particle = TMS_TrueParticles[i];
+    const auto key = std::make_pair(
+      TMS_MakeGlobalVertexID(particle.GetRunID(), particle.GetVertexID()),
+      particle.GetTrackId());
+    TrueParticleIndices[key] = static_cast<int>(i);
   }
-  else {
+}
+
+int TMS_Event::GetTrueParticleIndex(long long vertexglobalid, int trackid) {
+  if (vertexglobalid < 0 || trackid < 0) {
     std::cout<<"GetTrueParticleIndex: Case of global vertex < 0 or trackid < 0. Global vertex id: "
              <<vertexglobalid<<", track id: "<<trackid
              <<", n TMS_TrueParticles: "<<TMS_TrueParticles.size()<<std::endl;
+    return -1;
   }
-  if (out < 0) std::cout<<"GetTrueParticleIndex: Case where out < 0. Global vertex id: "
-                         <<vertexglobalid<<", track id: "<<trackid
-                         <<", n TMS_TrueParticles: "<<TMS_TrueParticles.size()<<std::endl;
-  return out;
+
+  const auto it = TrueParticleIndices.find(std::make_pair(vertexglobalid, trackid));
+  // A valid contributor may be absent from this reduced index when lightweight
+  // truth omits photons/neutrons or low-visible-energy secondary particles.
+  // That is expected; callers use -1 to mean "not saved in Truth_Spill".
+  return it == TrueParticleIndices.end() ? -1 : it->second;
 }
 
 int TMS_Event::GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid) {

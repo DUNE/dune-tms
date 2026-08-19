@@ -340,6 +340,15 @@ class TMS_TreeWriter {
     int RecoHitBarType[__TMS_MAX_HITS__];
     int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
+    // "Primary" here means the existing PrimaryId with the largest energy
+    // contribution to this hit, not necessarily a generator-primary particle.
+    int RecoHitPrimaryRunId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryVertexId[__TMS_MAX_HITS__];
+    Long64_t RecoHitPrimaryVertexGlobalId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryTrackId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryParticleIndex[__TMS_MAX_HITS__];
+    float RecoHitPrimaryTrueEnergy[__TMS_MAX_HITS__];
+    float RecoHitOtherTrueEnergy[__TMS_MAX_HITS__];
 
     // Truth information
     float MuonP4[4];
