@@ -10,6 +10,7 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 ## [MAIN] - Unreleased
 - Changed MergeTracks default to True.
 - Hits trailing the end of a Hough Track can now be added to the track they 'should' correspond to. ON by default, switchable in config.
+- Prevent 3D track matching from looping indefinitely when the last hit in a required view lies outside the detector bounds.
 
 ## [Version 0.2] - 2023-12-13
 - Areal density calculation fixed, affected Muon KE reconstruction
