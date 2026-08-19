@@ -693,10 +693,13 @@ for (auto Lines: HoughCandidatesY) {
 
       TMS_Kalman canonical;
       if (use_minus) {
-        trk.Charge_Kalman = -13;
+        // PDG 13 is mu- and -13 is mu+.
+        trk.Charge_Kalman = 13;
+        trk.SetChi2(kalman_chi2_minus);
         canonical = KalmanFilter_minus;
       } else {
-        trk.Charge_Kalman = 13;
+        trk.Charge_Kalman = -13;
+        trk.SetChi2(kalman_chi2_plus);
         canonical = KalmanFilter_plus;
       }
 

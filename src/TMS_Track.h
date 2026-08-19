@@ -126,6 +126,7 @@ TMS_Track(const TMS_Track& other) {
     void SetMomentum      (double val) {Momentum      = val;};
     void SetChi2_minus          (double val) {Chi2_minus          = val;};
     void SetChi2_plus          (double val) {Chi2_plus          = val;};
+    void SetChi2               (double val) {Chi2               = val;};
    
 
     // Set direction unit vectors from only x and y slope
