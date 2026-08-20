@@ -218,20 +218,23 @@ class TMS_Geom {
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
-    // These take the specific hit's own bar length (TMS_Bar::GetBarLength(), mm) rather than
-    // deriving a length from the detector-wide survey bbox: bars are assumed symmetric about the
-    // detector's coordinate origin along their long axis, so a bar's own length is what determines
-    // where its readout ends physically sit, not the extent of the whole TMS. Using the survey bbox
-    // here previously meant every bar was treated as if it were as long as the entire detector, and
-    // that value shifted whenever the survey's bar-region bbox was refined -- entangling the optical
-    // model with unrelated geometry-survey precision.
+    // The three ReadoutLocation functions below place a bar's readout end in the *global*
+    // frame, so they need both the specific hit's own bar length (TMS_Bar::GetBarLength(), mm)
+    // and that bar's own global-frame center along its readout axis
+    // (TMS_Bar::GetAxisReadoutCenter()) -- bars are NOT centered on the detector's coordinate
+    // origin (e.g. an X-bar runs from the detector edge in to x=0, not from -halfLength to
+    // +halfLength about x=0), so barLength alone can't locate a readout end. Previously this
+    // derived a length from the detector-wide survey bbox (treating every bar as if it spanned
+    // the entire TMS, entangling the optical model with unrelated geometry-survey precision);
+    // a later attempt used barLength alone assuming origin-centered bars, which was also wrong
+    // for the same reason (bug found in PR #301 review, see GitHub issue/PR discussion).
     // Readout on the +x side of the detector
-    double XBarPosReadoutLocation(double barLength) const { return 0.5 * barLength; };
+    double XBarPosReadoutLocation(double barCenterX, double barLength) const { return barCenterX + 0.5 * barLength; };
     // Readout on the -x side of the detector
-    double XBarNegReadoutLocation(double barLength) const { return -0.5 * barLength; };
+    double XBarNegReadoutLocation(double barCenterX, double barLength) const { return barCenterX - 0.5 * barLength; };
     // Readout on the top of the detector
-    double YBarReadoutLocation(double barLength) const { return 0.5 * barLength; };
-    // Bar goes from edge of x to x = 0
+    double YBarReadoutLocation(double barCenterY, double barLength) const { return barCenterY + 0.5 * barLength; };
+    // Bar goes from edge of x to x = 0 -- pure length quantities, no global anchor needed
     double XBarLength(double barLength) const { return 0.5 * barLength; };
     // Bar spans its own full length
     double YBarLength(double barLength) const { return barLength; };

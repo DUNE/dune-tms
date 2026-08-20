@@ -8,15 +8,16 @@ namespace {
 
 double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
   const double barLength = hit.GetBar().GetBarLength();
+  const double barCenter = hit.GetBar().GetAxisReadoutCenter();
   // Note that you want to do always do more positive - less positive, or else you get a sign error
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
     // Readout from sides
-    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation(barLength);
-    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barLength) - true_hit.GetX();
+    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation(barCenter, barLength);
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barCenter, barLength) - true_hit.GetX();
   }
   else {
     // Readout from top. Assuming U ~ V ~ Y for now
-    return TMS_Geom::GetInstance().YBarReadoutLocation(barLength) - true_hit.GetY();
+    return TMS_Geom::GetInstance().YBarReadoutLocation(barCenter, barLength) - true_hit.GetY();
   }
 }
 
