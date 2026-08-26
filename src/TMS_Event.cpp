@@ -743,10 +743,11 @@ void TMS_Event::SimulateDeadtime() {
         // Only relevant if we've seen this channel id before -- for a brand new channel, it_dead is
         // deadtime_map.end() (there's no prior zombie state to re-check against), so skip entirely
         // rather than dereferencing end().
-        if (it_dead != deadtime_map.end() && has_zombie_map[id] == true) {
+        auto it_has_zombie = has_zombie_map.find(id);
+        if (it_dead != deadtime_map.end() && it_has_zombie != has_zombie_map.end() && it_has_zombie->second == true) {
           double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
           if (t < deadtime_window_starting_from_end_of_deadtime) {
-            t = deadtime_map[id];
+            t = it_dead->second;
             has_zombie_map[id] = false;
             // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
             i--;
