@@ -69,7 +69,7 @@ std::vector<std::array<double, 3>> FindRepresentativeBarPositions(TGeoManager *g
     std::string name(node->GetName());
 
     if (name.find(moduleLayerName) != std::string::npos) {
-      int planeNum = node->GetNumber();
+      int planeNum = TMS_Geom::GetInstance().GetPlaneNumberForCurrentNode();
       if (seenPlanes.insert(planeNum).second && node->GetNdaughters() > 0) {
         g->CdDown(0); // first module
         TGeoNode *moduleNode = g->GetCurrentNode();

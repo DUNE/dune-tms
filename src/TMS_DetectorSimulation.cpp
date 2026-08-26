@@ -45,28 +45,21 @@ double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &tru
 
 double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
   const double barLength = hit.GetBar().GetBarLength();
-  // Subtract out half a bar length
-  double additional_length;
-  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
-    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength(barLength);
-  }
-  else {
-    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength(barLength);
-  }
-  return GetTrueDistanceFromReadout(hit, true_hit) - additional_length;
+  // Distance from a bar's own readout end to its own geometric center is half its length,
+  // for both bar types -- X-bars and Y-bars are both defined symmetrically about their own
+  // center (readout locations are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/
+  // XBarNegReadoutLocation/YBarReadoutLocation). Deliberately NOT routed through
+  // XBarLength()/YBarLength(): those represent the bar-type-specific far-readout distance
+  // used by GetTrueLongDistanceFromReadout() below (direct for X's two independent
+  // readouts vs a round trip for Y's single reflecting readout), a different quantity that
+  // happens to also be barLength-derived but isn't the center offset.
+  return GetTrueDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
 }
 
 double GetTrueLongDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
   const double barLength = hit.GetBar().GetBarLength();
-  // Subtract out half a bar length
-  double additional_length;
-  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
-    additional_length = 0.5 * TMS_Geom::GetInstance().XBarLength(barLength);
-  }
-  else {
-    additional_length = 0.5 * TMS_Geom::GetInstance().YBarLength(barLength);
-  }
-  return GetTrueLongDistanceFromReadout(hit, true_hit) - additional_length;
+  // Same bar-type-independent center offset as GetTrueDistanceFromMiddle() above.
+  return GetTrueLongDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
 }
 } // namespace
 
