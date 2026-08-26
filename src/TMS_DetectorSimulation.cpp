@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -99,9 +100,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     double pe = hit.GetPE();
 
     // Applies birk's suppression
-    // Guaranteed present: this stage only ever runs on MC input, where truth was just
-    // constructed for every hit in TMS_Event::ProcessTG4Event().
+    // Expected present: this stage only ever runs on MC input, where truth was just
+    // constructed for every hit in TMS_Event::ProcessTG4Event(). Fail fast rather than
+    // segfault if that invariant is ever violated (e.g. this stage invoked on a truthless event).
     const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    if (true_hit == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no truth -- this stage is MC-only");
     double de = true_hit->GetE();
     double dx = true_hit->GetdX();
     double dedx = 0;
@@ -164,6 +167,7 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     // We want to save info right after fibers but before electronic conversion noise
     // This is particularly useful for timing information which cares about the first photon to be detected
     TMS_TrueHit* adjustable_true_hit = event.GetAdjustableTrueHit(hit.GetHitId());
+    if (adjustable_true_hit == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no truth -- this stage is MC-only");
     adjustable_true_hit->SetPEAfterFibers(pe);
     adjustable_true_hit->SetPEAfterFibersLongPath(pe_long);
     adjustable_true_hit->SetPEAfterFibersShortPath(pe_short);

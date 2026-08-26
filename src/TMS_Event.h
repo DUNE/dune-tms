@@ -96,14 +96,19 @@ class TMS_Event {
     void EraseTrueHit(int hitId) { TrueHitByHitId.erase(hitId); };
     // For TMS_SignalProcessing::MergeCoincidentHits(): merge mergedAwayHitId's truth into
     // survivingHitId's (TMS_TrueHit::MergeWith), then drop the merged-away entry. No-op if
-    // either hit has no truth (e.g. real data).
+    // mergedAwayHitId has no truth (e.g. real data). If survivingHitId has no truth but
+    // mergedAwayHitId does, the merged-away truth is moved under survivingHitId rather than
+    // silently dropped.
     void MergeTrueHit(int survivingHitId, int mergedAwayHitId) {
-      auto itSurvive = TrueHitByHitId.find(survivingHitId);
       auto itMerged = TrueHitByHitId.find(mergedAwayHitId);
-      if (itSurvive != TrueHitByHitId.end() && itMerged != TrueHitByHitId.end()) {
+      if (itMerged == TrueHitByHitId.end()) return;
+      auto itSurvive = TrueHitByHitId.find(survivingHitId);
+      if (itSurvive != TrueHitByHitId.end()) {
         itSurvive->second.MergeWith(itMerged->second);
+      } else {
+        TrueHitByHitId.emplace(survivingHitId, itMerged->second);
       }
-      if (itMerged != TrueHitByHitId.end()) TrueHitByHitId.erase(itMerged);
+      TrueHitByHitId.erase(itMerged);
     };
     // Reference access for TMS_DetectorSimulation/TMS_SignalProcessing to mutate hits in place
     // without the copy cost of GetHitsRaw()/SetHitsRaw().

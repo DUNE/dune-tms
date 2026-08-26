@@ -37,8 +37,8 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Even
     // Diagnostic only (reco-to-truth comparison output), never fed into the fit itself --
     // guard since this is a real reconstruction-path file and truth may be absent (real data).
     const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
-    double x_true = true_hit == nullptr ? 0 : true_hit->GetX();
-    double y_true = true_hit == nullptr ? 0 : true_hit->GetY();
+    double x_true = true_hit == nullptr ? -99999000 : true_hit->GetX();
+    double y_true = true_hit == nullptr ? -99999000 : true_hit->GetY();
     double x = hit.GetRecoX();
     double y = hit.GetRecoY();
     double z = hit.GetZ();
