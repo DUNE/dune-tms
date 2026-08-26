@@ -1689,10 +1689,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
-      // Do nothing, this means we didn't find a true particle associated with a reco track
-      // This can't happen unless dark noise existed which is currently doesn't
-      std::cout<<"Warning: Found true_primary_particle_index < 0. There should be at least one true particle creating energy but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
-      std::cout<<"This can happen with dark noise or if TMS_Event.OnlyPrimaryOrVisibleEnergy is false"<<std::endl;
+      // Do nothing, this means we didn't find a true particle associated with a reco track.
+      // On a truthless (real-data) track this is expected for every hit, so only warn when
+      // there actually was truth energy but no matching particle index came back -- that's
+      // the genuine anomaly this warning is meant to catch.
+      if (total_true_visible_energy > 0) {
+        std::cout<<"Warning: Found true_primary_particle_index < 0. There should be at least one true particle creating energy but instead the index is: "<<true_primary_particle_index<<", with energy: "<<true_primary_visible_energy<<std::endl;
+        std::cout<<"This can happen with dark noise or if TMS_Event.OnlyPrimaryOrVisibleEnergy is false"<<std::endl;
+      }
     }
     else if ((size_t)true_primary_particle_index >= TrueParticles.size()) {
       // This can happen if TMS_Event.OnlyPrimaryOrVisibleEnergy is false

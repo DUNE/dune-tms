@@ -128,9 +128,9 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
 
       // Calculate the long and short path lengths
 #ifdef USE_OLD_CODE
-      double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+      double true_y = true_hit->GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
-      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
+      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = true_hit->GetX() / 1000.0;
       // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
@@ -218,17 +218,19 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   //int n = 0;
   for (auto& hit : TMS_Hits) {
     double t = 0;
-    // Guaranteed present: this stage only ever runs on MC input, right after
-    // SimulateOpticalModel() populated PEAfterFibers* for every hit.
+    // Expected present: this stage only ever runs on MC input, right after
+    // SimulateOpticalModel() populated PEAfterFibers* for every hit. Fail fast rather than
+    // segfault if that invariant is ever violated (e.g. this stage invoked on a truthless event).
     const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    if (true_hit == nullptr) throw std::runtime_error("Fatal: SimulateTimingModel() found a hit with no truth -- this stage is MC-only");
     // Random electronic timing noise (~1ns or less)
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center)
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
 #ifdef USE_OLD_CODE
-    double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    double true_y = true_hit->GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
-    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
+    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = true_hit->GetX() / 1000.0;
     //miny = std::min(miny, true_y);
     //maxy = std::max(maxy, true_y);
     // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.

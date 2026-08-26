@@ -124,10 +124,14 @@ namespace TMS_Utils {
       std::map<std::pair<long long, int>, double> totalMap;
 
       // Iterate through the list of hits
-      int total_n_true_particles = 0;
+      // Sentinel (-1) distinguishes "no truth-bearing hit seen at all" (e.g. a truthless
+      // real-data event, where the warning below shouldn't fire) from "truth was present but
+      // recorded zero particles" (the actual anomaly the warning below is meant to catch).
+      int total_n_true_particles = -1;
       for (const auto& hit : hits) {
         const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
         if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
+        if (total_n_true_particles < 0) total_n_true_particles = 0;
         total_n_true_particles += true_hit->GetNTrueParticles();
         for (size_t i = 0; i < true_hit->GetNTrueParticles(); i++) {
           long long vertexglobalid = true_hit->GetVertexGlobalIds(i);
