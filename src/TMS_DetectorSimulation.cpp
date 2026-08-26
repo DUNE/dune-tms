@@ -195,7 +195,7 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double minimum_time_offset_long_path = minimum_time_gamma_scint_long_path + minimum_time_gamma_wsf_long_path + time_correction_long_way;
     minimum_time_offset = std::min(minimum_time_offset_long_path, minimum_time_offset);
 
-    #elif
+    #else
     // We don't have to do 1000s of throws. The time will be very close to zero.
     // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
     const double MAX_PE_THROWS = 300;
