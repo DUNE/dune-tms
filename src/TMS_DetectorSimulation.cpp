@@ -341,7 +341,7 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
           double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
           if (t < deadtime_window_starting_from_end_of_deadtime) {
             t = it_dead->second;
-            has_zombie_map[id] = false;
+            it_has_zombie->second = false;
             // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
             i--;
           }
