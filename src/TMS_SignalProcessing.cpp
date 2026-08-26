@@ -1,6 +1,11 @@
 #include "TMS_SignalProcessing.h"
 #include "TMS_Readout_Manager.h"
 
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vector>
+
 void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
@@ -37,8 +42,8 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
       }
     }
     // Now flag the duplicates for removal
-    for (int i = duplicates.size() - 1; i >= 0; i--) {
-      auto hit_to_erase = duplicates[i];
+    for (auto rit = duplicates.rbegin(); rit != duplicates.rend(); ++rit) {
+      auto hit_to_erase = *rit;
       hit_to_erase->SetPedSup(true);
     }
   }
