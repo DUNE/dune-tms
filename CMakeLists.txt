@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 
 # Set the project name and version.  The project name will be used to
 # import this into other CMAKE files.
-project(dune-tms VERSION 0.2.2)
+project(dune-tms VERSION 1.1.0)
 
 message("-- DUNE TMS Detector Sim and Reconstruction -- ${VERSION}")
 
