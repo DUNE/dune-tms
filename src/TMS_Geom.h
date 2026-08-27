@@ -234,8 +234,13 @@ class TMS_Geom {
     double XBarNegReadoutLocation(double barCenterX, double barLength) const { return barCenterX - 0.5 * barLength; };
     // Readout on the top of the detector
     double YBarReadoutLocation(double barCenterY, double barLength) const { return barCenterY + 0.5 * barLength; };
-    // Bar goes from edge of x to x = 0 -- pure length quantities, no global anchor needed
-    double XBarLength(double barLength) const { return 0.5 * barLength; };
+    // X-bars are single-ended readout with a reflecting far end at the detector's central
+    // split (x=0), same topology as Y-bars -- just split into two mirror-image halves by
+    // the physical gap. barLength is already that bar's own full length (readout edge to
+    // the split), so this needs no extra factor, same as YBarLength() below (bug found in
+    // PR #301 review: this previously halved barLength again, understating the long-path
+    // light-travel distance used for PE attenuation by 2x for X-bars).
+    double XBarLength(double barLength) const { return barLength; };
     // Bar spans its own full length
     double YBarLength(double barLength) const { return barLength; };
     

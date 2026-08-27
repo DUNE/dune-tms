@@ -46,13 +46,12 @@ double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &tru
 double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
   const double barLength = hit.GetBar().GetBarLength();
   // Distance from a bar's own readout end to its own geometric center is half its length,
-  // for both bar types -- X-bars and Y-bars are both defined symmetrically about their own
-  // center (readout locations are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/
-  // XBarNegReadoutLocation/YBarReadoutLocation). Deliberately NOT routed through
-  // XBarLength()/YBarLength(): those represent the bar-type-specific far-readout distance
-  // used by GetTrueLongDistanceFromReadout() below (direct for X's two independent
-  // readouts vs a round trip for Y's single reflecting readout), a different quantity that
-  // happens to also be barLength-derived but isn't the center offset.
+  // for both bar types -- X-bars and Y-bars are both single-ended readout with a reflecting
+  // far end (X-bars split into two mirror-image halves at the detector's central gap, Y-bars
+  // not split), so both are defined symmetrically about their own center (readout locations
+  // are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/XBarNegReadoutLocation/
+  // YBarReadoutLocation). Written directly rather than routed through XBarLength()/
+  // YBarLength() since those two are now identical (both just return barLength).
   return GetTrueDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
 }
 
