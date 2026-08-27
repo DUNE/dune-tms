@@ -392,16 +392,6 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   //CheckIntegrity();
 
   ProcessTG4Event(event, FillEvent);
-  
-  // Now apply optical and timing models
-  //ApplyReconstructionEffects();
-  // TODO figure out why SimulateOpticalModel/MergeCoincidentHits are needed here to avoid crash
-  // Simulate an optical model 
-  SimulateOpticalModel();
-  // Simulate a timing model
-  SimulateTimingModel();
-  // Merge hits that happened in the same scintillator strip and within the same readout time window
-  MergeCoincidentHits();
 
   EventCounter++;
 }
@@ -750,13 +740,18 @@ void TMS_Event::SimulateDeadtime() {
         // But we don't need to do this check if this hit is outside the deadtime window of the next hit
         // So calculate that window first
         // But also this hit now needs to be checked against the zombie times's windows, so redo this hit
-        double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
-        if (deadtime_map.find(id) != deadtime_map.end() && has_zombie_map[id] == true && 
-          t < deadtime_window_starting_from_end_of_deadtime) { 
-          t = deadtime_map[id];
-          has_zombie_map[id] = false;
-          // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
-          i--;
+        // Only relevant if we've seen this channel id before -- for a brand new channel, it_dead is
+        // deadtime_map.end() (there's no prior zombie state to re-check against), so skip entirely
+        // rather than dereferencing end().
+        auto it_has_zombie = has_zombie_map.find(id);
+        if (it_dead != deadtime_map.end() && it_has_zombie != has_zombie_map.end() && it_has_zombie->second == true) {
+          double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
+          if (t < deadtime_window_starting_from_end_of_deadtime) {
+            t = it_dead->second;
+            it_has_zombie->second = false;
+            // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
+            i--;
+          }
         }
         // Since this is the first hit for an id, the end of the readout window is t + readout_time
         double t_read = t + readout_time;
@@ -919,12 +914,12 @@ void TMS_Event::SimulateTimingModel() {
 
 void TMS_Event::ApplyReconstructionEffects() {
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
-  // Simulate an optical model 
-  //SimulateOpticalModel();
+  // Simulate an optical model
+  SimulateOpticalModel();
   // Noise hits can simulate hits
   SimulateDarkCount();
   // Simulate a timing model
-  //SimulateTimingModel();
+  SimulateTimingModel();
   // Simulate deadtime if needed
   SimulateDeadtime();
   // Merge hits that happened in the same scintillator strip and within the same readout time window
