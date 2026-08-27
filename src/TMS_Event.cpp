@@ -297,12 +297,16 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         std::cout<<"WARNING: Didn't find track id in mapping_track_to_vertex_global_id! track_id = "<<track_id<<", mapping_track_to_vertex_global_id.size() = "<<mapping_track_to_vertex_global_id.size()<<", this shouldn't happen anymore\n\n\n"<<std::endl;
       }
       else vertex_global_id = value->second;
-      TMS_Hit hit = TMS_Hit(edep_hit, vertex_global_id);
+      TMS_Hit hit = TMS_Hit(edep_hit);
+      hit.SetHitId(NextHitId());
       int barnum = hit.GetBarNumber();
       // Only add if within the TMS
       // Can't use x,y or z because geometry might change. But we know things aren't set if there's no bar number
       if (barnum >= 0) {
-        auto &t = hit.GetAdjustableTrueHit();
+        // Truth is constructed separately from the reco-level TMS_Hit above (Phase III --
+        // TMS_TrueHit is no longer embedded in TMS_Hit) and stored in the event-level side
+        // table, keyed by this hit's HitId.
+        TMS_TrueHit t(edep_hit, vertex_global_id);
         for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
           auto key = std::make_pair(t.GetVertexGlobalIds(i), t.GetPrimaryIds(i));
           if (mapping_track_to_true_particle.find(key) != mapping_track_to_true_particle.end()) {
@@ -312,12 +316,13 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
           }
         }
         SaveKeyVertexInfo(t);
+        SetTrueHit(hit.GetHitId(), t);
         TMS_Hits.push_back(std::move(hit));
 
         // todo, maybe skip for michel electrons or late neutrons
-        for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
-          TrueVisibleEnergyPerVertex[hit.GetTrueHit().GetVertexGlobalIds(i)] += hit.GetTrueHit().GetEnergyShare(i);
-          TrueVisibleEnergyPerParticle[std::make_pair(hit.GetTrueHit().GetVertexGlobalIds(i), hit.GetTrueHit().GetPrimaryIds(i))] += hit.GetTrueHit().GetEnergyShare(i);
+        for (size_t i = 0; i < t.GetNTrueParticles(); i++) {
+          TrueVisibleEnergyPerVertex[t.GetVertexGlobalIds(i)] += t.GetEnergyShare(i);
+          TrueVisibleEnergyPerParticle[std::make_pair(t.GetVertexGlobalIds(i), t.GetPrimaryIds(i))] += t.GetEnergyShare(i);
         }
       }
       else if (DetString.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_LArActive()) != std::string::npos) {
@@ -399,6 +404,10 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
+      // Phase III: carry the truth side table over wholesale (simpler than filtering to just
+      // this slice's hit IDs, and harmless -- lookups are still by HitId, which travels with
+      // each TMS_Hit regardless of which subset ends up in this sliced event's TMS_Hits).
+      HitIdCounter(event.HitIdCounter), TrueHitByHitId(event.TrueHitByHitId),
       TMS_TrueParticles(event.TMS_TrueParticles), nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
       TMS_Tracks(event.TMS_Tracks), Reaction(event.Reaction), Reactions(event.Reactions),
@@ -536,8 +545,18 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
   // Get the other hits
   std::vector<TMS_Hit> other_hits = Other_Event.GetHits(-1, true);
 
-  // And use them to expand on the original hits in the event
+  // And use them to expand on the original hits in the event. Each incoming hit's
+  // HitId was assigned by Other_Event's own independent, zero-based HitIdCounter, so
+  // it can collide with (or simply not exist in) this event's own TrueHitByHitId --
+  // reassign a fresh HitId from this event's counter and carry the hit's truth (if
+  // any) over under that new id, so the hit<->truth association survives event
+  // combination (used for pileup/spill overlay in ConvertToTMSTree.cpp).
   for (auto &hit: other_hits) {
+    int oldHitId = hit.GetHitId();
+    int newHitId = NextHitId();
+    const TMS_TrueHit* true_hit = Other_Event.GetTrueHit(oldHitId);
+    if (true_hit != nullptr) SetTrueHit(newHitId, *true_hit);
+    hit.SetHitId(newHitId);
     TMS_Hits.emplace_back(std::move(hit));
   }
   
@@ -653,10 +672,12 @@ int TMS_Event::GetVertexIdOfMostVisibleEnergy() {
   TrueVisibleEnergyPerVertex.clear();
   // First find how much energy is in each variable
   for (auto& hit : TMS_Hits) {
-    for (size_t i = 0; i < hit.GetTrueHit().GetNTrueParticles(); i++) {
-      long long vertex_global_id = hit.GetTrueHit().GetVertexGlobalIds(i);
+    const TMS_TrueHit* true_hit = GetTrueHit(hit.GetHitId());
+    if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
+    for (size_t i = 0; i < true_hit->GetNTrueParticles(); i++) {
+      long long vertex_global_id = true_hit->GetVertexGlobalIds(i);
       // todo, true or reco energy?
-      double energy = hit.GetTrueHit().GetEnergyShare(i);
+      double energy = true_hit->GetEnergyShare(i);
       TrueVisibleEnergyPerVertex[vertex_global_id] += energy;
     }
   }
@@ -888,16 +909,17 @@ void TMS_Event::ConnectTrueHitWithTrueParticle(bool slice) {
   for (auto& hit : TMS_Hits) {
     // Only count hits that are not ped subtracted
     if (!hit.GetPedSup()) {
-      auto true_hit = hit.GetTrueHit();
+      const TMS_TrueHit* true_hit = GetTrueHit(hit.GetHitId());
+      if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
       // Only add 1 hit for each key once, so track if we saw a key already
       std::map<std::pair<long long, int>, int> key_seen;
-      for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
-        auto key = std::make_pair(true_hit.GetVertexGlobalIds(i), true_hit.GetPrimaryIds(i));
-        if (key_seen.find(key) == key_seen.end()) { 
+      for (size_t i = 0; i < true_hit->GetNTrueParticles(); i++) {
+        auto key = std::make_pair(true_hit->GetVertexGlobalIds(i), true_hit->GetPrimaryIds(i));
+        if (key_seen.find(key) == key_seen.end()) {
           NHitsPerParticle[key] += 1;
           key_seen[key] = 1;
         }
-        EnergyPerParticle[key] += true_hit.GetEnergyShare(i);
+        EnergyPerParticle[key] += true_hit->GetEnergyShare(i);
       }
     }
   }

@@ -37,6 +37,11 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
       // Merge
       if (z == z2 && y == y2 && fabs(t2-t) < readout_time) {
         (*it).MergeWith(hit2);
+        // Phase III: parallel by-ID merge of the new truth side table, alongside the still-
+        // present embedded-TrueHit merge that MergeWith() above already does -- lets Stage A
+        // cross-check that the two produce identical results before the embedded member is
+        // removed in Stage B.
+        event.MergeTrueHit((*it).GetHitId(), hit2.GetHitId());
         // todo, we may want to store an array of true hits. One way would be to move the merging code within the hit class
         duplicates.push_back(jt);
       }

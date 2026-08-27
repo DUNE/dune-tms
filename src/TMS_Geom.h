@@ -218,16 +218,31 @@ class TMS_Geom {
     };
     bool IsInsideTMSMass(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSMass(), GetEndOfTMSMass()); };
     
+    // The three ReadoutLocation functions below place a bar's readout end in the *global*
+    // frame, so they need both the specific hit's own bar length (TMS_Bar::GetBarLength(), mm)
+    // and that bar's own global-frame center along its readout axis
+    // (TMS_Bar::GetAxisReadoutCenter()) -- bars are NOT centered on the detector's coordinate
+    // origin (e.g. an X-bar runs from the detector edge in to x=0, not from -halfLength to
+    // +halfLength about x=0), so barLength alone can't locate a readout end. Previously this
+    // derived a length from the detector-wide survey bbox (treating every bar as if it spanned
+    // the entire TMS, entangling the optical model with unrelated geometry-survey precision);
+    // a later attempt used barLength alone assuming origin-centered bars, which was also wrong
+    // for the same reason (bug found in PR #301 review, see GitHub issue/PR discussion).
     // Readout on the +x side of the detector
-    double XBarPosReadoutLocation() { return GetXEndOfTMS(); };
+    double XBarPosReadoutLocation(double barCenterX, double barLength) const { return barCenterX + 0.5 * barLength; };
     // Readout on the -x side of the detector
-    double XBarNegReadoutLocation() { return GetXStartOfTMS(); };
+    double XBarNegReadoutLocation(double barCenterX, double barLength) const { return barCenterX - 0.5 * barLength; };
     // Readout on the top of the detector
-    double YBarReadoutLocation() { return GetYEndOfTMS(); };
-    // Bar goes from edge of x to x = 0
-    double XBarLength() { return GetXEndOfTMS(); };
-    // Bar spans entire Y
-    double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
+    double YBarReadoutLocation(double barCenterY, double barLength) const { return barCenterY + 0.5 * barLength; };
+    // X-bars are single-ended readout with a reflecting far end at the detector's central
+    // split (x=0), same topology as Y-bars -- just split into two mirror-image halves by
+    // the physical gap. barLength is already that bar's own full length (readout edge to
+    // the split), so this needs no extra factor, same as YBarLength() below (bug found in
+    // PR #301 review: this previously halved barLength again, understating the long-path
+    // light-travel distance used for PE attenuation by 2x for X-bars).
+    double XBarLength(double barLength) const { return barLength; };
+    // Bar spans its own full length
+    double YBarLength(double barLength) const { return barLength; };
     
     std::string GetNameOfDetector(const TVector3 &point) {
       std::string out = "";

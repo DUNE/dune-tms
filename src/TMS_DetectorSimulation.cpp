@@ -5,8 +5,62 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <utility>
 #include <vector>
+
+namespace {
+// Relocated from TMS_Hit.cpp (Phase III) -- these need the true hit position, which is no
+// longer embedded in TMS_Hit. Only ever called from this file, so kept file-local rather than
+// added to the TMS_DetectorSimulation public interface.
+
+double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
+  const double barCenter = hit.GetBar().GetAxisReadoutCenter();
+  // Note that you want to do always do more positive - less positive, or else you get a sign error
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation(barCenter, barLength);
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barCenter, barLength) - true_hit.GetX();
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    return TMS_Geom::GetInstance().YBarReadoutLocation(barCenter, barLength) - true_hit.GetY();
+  }
+}
+
+double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
+  double additional_length;
+  if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
+    // Readout from sides
+    additional_length = 2 * TMS_Geom::GetInstance().XBarLength(barLength);
+  }
+  else {
+    // Readout from top. Assuming U ~ V ~ Y for now
+    additional_length = 2 * TMS_Geom::GetInstance().YBarLength(barLength);
+  }
+  return additional_length - GetTrueDistanceFromReadout(hit, true_hit);
+}
+
+double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
+  // Distance from a bar's own readout end to its own geometric center is half its length,
+  // for both bar types -- X-bars and Y-bars are both single-ended readout with a reflecting
+  // far end (X-bars split into two mirror-image halves at the detector's central gap, Y-bars
+  // not split), so both are defined symmetrically about their own center (readout locations
+  // are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/XBarNegReadoutLocation/
+  // YBarReadoutLocation). Written directly rather than routed through XBarLength()/
+  // YBarLength() since those two are now identical (both just return barLength).
+  return GetTrueDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
+}
+
+double GetTrueLongDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  const double barLength = hit.GetBar().GetBarLength();
+  // Same bar-type-independent center offset as GetTrueDistanceFromMiddle() above.
+  return GetTrueLongDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
+}
+} // namespace
 
 void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default_random_engine &generator) {
   // Steps:
@@ -38,8 +92,13 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     double pe = hit.GetPE();
 
     // Applies birk's suppression
-    double de = hit.GetTrueHit().GetE();
-    double dx = hit.GetTrueHit().GetdX();
+    // Expected present: this stage only ever runs on MC input, where truth was just
+    // constructed for every hit in TMS_Event::ProcessTG4Event(). Fail fast rather than
+    // segfault if that invariant is ever violated (e.g. this stage invoked on a truthless event).
+    const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    if (true_hit == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no truth -- this stage is MC-only");
+    double de = true_hit->GetE();
+    double dx = true_hit->GetdX();
     double dedx = 0;
     if (dx > 1e-8) dedx = de / dx;
     else dedx = de / 1.0;
@@ -61,9 +120,9 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
 
       // Calculate the long and short path lengths
 #ifdef USE_OLD_CODE
-      double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+      double true_y = true_hit->GetY() / 1000.0; // m
       // In case of orthogonal (X) layers change to GetX()
-      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
+      if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = true_hit->GetX() / 1000.0;
       // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
@@ -71,8 +130,8 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       double distance_from_end = distance_from_middle + 2;
       double long_way_distance_from_end = 4 + (4 - distance_from_end);
 #else
-      double distance_from_end = hit.GetTrueDistanceFromReadout() * 1e-3; // m
-      double long_way_distance_from_end = hit.GetTrueLongDistanceFromReadout() * 1e-3; // m
+      double distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      double long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
 #endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
@@ -99,9 +158,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
 
     // We want to save info right after fibers but before electronic conversion noise
     // This is particularly useful for timing information which cares about the first photon to be detected
-    hit.GetAdjustableTrueHit().SetPEAfterFibers(pe);
-    hit.GetAdjustableTrueHit().SetPEAfterFibersLongPath(pe_long);
-    hit.GetAdjustableTrueHit().SetPEAfterFibersShortPath(pe_short);
+    TMS_TrueHit* adjustable_true_hit = event.GetAdjustableTrueHit(hit.GetHitId());
+    if (adjustable_true_hit == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no truth -- this stage is MC-only");
+    adjustable_true_hit->SetPEAfterFibers(pe);
+    adjustable_true_hit->SetPEAfterFibersLongPath(pe_long);
+    adjustable_true_hit->SetPEAfterFibersShortPath(pe_short);
 
     // Now save the reconstructed information
     hit.SetPE(pe);
@@ -149,14 +210,19 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   //int n = 0;
   for (auto& hit : TMS_Hits) {
     double t = 0;
+    // Expected present: this stage only ever runs on MC input, right after
+    // SimulateOpticalModel() populated PEAfterFibers* for every hit. Fail fast rather than
+    // segfault if that invariant is ever violated (e.g. this stage invoked on a truthless event).
+    const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    if (true_hit == nullptr) throw std::runtime_error("Fatal: SimulateTimingModel() found a hit with no truth -- this stage is MC-only");
     // Random electronic timing noise (~1ns or less)
     t += noise_distribution(generator);
     // Optical fiber length delay (corrected to strip center)
     // (up to 13.4ns assuming 4m from edge, but correlated with y position. If delta y = 1m spread, than relative error is only 3.3ns)
 #ifdef USE_OLD_CODE
-    double true_y = hit.GetTrueHit().GetY() / 1000.0; // m
+    double true_y = true_hit->GetY() / 1000.0; // m
     // Making sure this gets changed for orthogonal (X) layers
-    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = hit.GetTrueHit().GetX() / 1000.0;
+    if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) true_y = true_hit->GetX() / 1000.0;
     //miny = std::min(miny, true_y);
     //maxy = std::max(maxy, true_y);
     // assuming 0 is center, and assume we're reading out from top, then top would be biased negative and bottom positive, so -true_y.
@@ -164,8 +230,8 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  //-1.54799
     double long_way_distance = distance_from_middle + 8;
 #else
-    double distance_from_middle = hit.GetTrueDistanceFromMiddle() * 1e-3; // m
-    double long_way_distance = hit.GetTrueLongDistanceFromMiddle() * 1e-3; // m
+    double distance_from_middle = GetTrueDistanceFromMiddle(hit, *true_hit) * 1e-3; // m
+    double long_way_distance = GetTrueLongDistanceFromMiddle(hit, *true_hit) * 1e-3; // m
 #endif
     // In reality, light bounces so there's a multiplier to the distance
     // todo, it may be more realistic to make this non-linear
@@ -178,8 +244,8 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
 
     // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
-    double pe_short_path = hit.GetTrueHit().GetPEAfterFibersShortPath();
-    double pe_long_path = hit.GetTrueHit().GetPEAfterFibersLongPath();
+    double pe_short_path = true_hit->GetPEAfterFibersShortPath();
+    double pe_long_path = true_hit->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
 
     #define USE_GAMMA_DISTRIBUTION
@@ -341,7 +407,7 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
           double deadtime_window_starting_from_end_of_deadtime = it_dead->second + deadtime;
           if (t < deadtime_window_starting_from_end_of_deadtime) {
             t = it_dead->second;
-            it_has_zombie->second = false;
+            has_zombie_map[id] = false;
             // Need to redo this hit to check that it isn't in the deadtime of the zombie hit
             i--;
           }
