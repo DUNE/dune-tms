@@ -99,6 +99,34 @@ TMS_Manager::TMS_Manager() {
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   
   _GEOMETRY_YMIDDLE = toml::find<double>(data, "Geometry", "YBarMiddle");
+
+  // [Geometry.VolumeNames] is new as of the geometry-survey restructuring -- an older
+  // or hand-trimmed TOML config won't have it. toml::find() would throw a low-level
+  // toml11 parse/lookup exception here that gives no hint what's actually wrong, so
+  // catch it and rethrow something a user can act on.
+  try {
+    _GEOMETRY_VOLUME_ModuleLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayer");
+    _GEOMETRY_VOLUME_ModuleLayerU = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerU");
+    _GEOMETRY_VOLUME_ModuleLayerV = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerV");
+    _GEOMETRY_VOLUME_ModuleLayerX = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerX");
+    _GEOMETRY_VOLUME_ModuleLayerY = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerY");
+    _GEOMETRY_VOLUME_Module = toml::find<std::string>(data, "Geometry", "VolumeNames", "Module");
+    _GEOMETRY_VOLUME_ScintLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayer");
+    _GEOMETRY_VOLUME_ScintLayerOrtho = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayerOrtho");
+    _GEOMETRY_VOLUME_ScintLayerParallel = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayerParallel");
+    _GEOMETRY_VOLUME_TopLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "TopLayer");
+    _GEOMETRY_VOLUME_DetEnclosure = toml::find<std::string>(data, "Geometry", "VolumeNames", "DetEnclosure");
+    _GEOMETRY_VOLUME_TMSVolume = toml::find<std::string>(data, "Geometry", "VolumeNames", "TMSVolume");
+    _GEOMETRY_VOLUME_TMSEDepSimVolume = toml::find<std::string>(data, "Geometry", "VolumeNames", "TMSEDepSimVolume");
+    _GEOMETRY_VOLUME_LArActive = toml::find<std::string>(data, "Geometry", "VolumeNames", "LArActive");
+  } catch (const toml::exception &e) {
+    throw std::runtime_error(
+        "TMS_Manager: config '" + filename + "' is missing (or has a malformed) "
+        "[Geometry.VolumeNames] section. This section was added by the geometry-survey "
+        "restructuring -- copy it from config/TMS_Default_Config.toml into your config. "
+        "Underlying error: " + std::string(e.what()));
+  }
+
   _FIDUCIAL_TMS_START_X = toml::find<double>(data, "Fiducial", "TMS", "Start", "X");
   _FIDUCIAL_TMS_START_Y = toml::find<double>(data, "Fiducial", "TMS", "Start", "Y");
   _FIDUCIAL_TMS_START_Z = toml::find<double>(data, "Fiducial", "TMS", "Start", "Z");

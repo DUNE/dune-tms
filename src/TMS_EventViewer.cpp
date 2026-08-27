@@ -8,12 +8,12 @@ DrawTrackFinding(false) {
   gStyle->SetOptStat(0);
   gStyle->SetNumberContours(255);
 
-  const double zmin = TMS_Const::TMS_Start[2]/1.E3;
-  const double zmax = TMS_Const::TMS_End[2]/1.E3;
-  const double xmin = TMS_Const::TMS_Start[0]/1.E3;
-  const double xmax = TMS_Const::TMS_End[0]/1.E3;
-  const double ymin = TMS_Const::TMS_Start[1]/1.E3;
-  const double ymax = TMS_Const::TMS_End[1]/1.E3;
+  const double zmin = TMS_Geom::GetInstance().GetZStartOfTMS()/1.E3;
+  const double zmax = TMS_Geom::GetInstance().GetZEndOfTMS()/1.E3;
+  const double xmin = TMS_Geom::GetInstance().GetXStartOfTMS()/1.E3;
+  const double xmax = TMS_Geom::GetInstance().GetXEndOfTMS()/1.E3;
+  const double ymin = TMS_Geom::GetInstance().GetYStartOfTMS()/1.E3;
+  const double ymax = TMS_Geom::GetInstance().GetYEndOfTMS()/1.E3;
   // Scint bars are 4 by 1 cm
   //const int nbinsz = ((zmax-zmin)/10)/5;
   const int nbinsz = ((zmax-zmin)/0.1)*2;
@@ -101,16 +101,16 @@ DrawTrackFinding(false) {
   
   // And a line at the thin/thick divide
   xz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start/1E3,
-      TMS_Const::TMS_Start_Exact[0]/1E3,
+      TMS_Geom::GetInstance().GetXStartOfTMS()/1E3,
       TMS_Const::TMS_Thick_Start/1E3,
-      TMS_Const::TMS_End_Exact[0]/1E3);
+      TMS_Geom::GetInstance().GetXEndOfTMS()/1E3);
   xz_Thin_Thick->SetLineColor(kGray);
   xz_Thin_Thick->SetLineStyle(kDashed);
 
   yz_Thin_Thick = new TLine(TMS_Const::TMS_Thick_Start/1E3,
-      TMS_Const::TMS_Start_Exact[1]/1E3,
+      TMS_Geom::GetInstance().GetYStartOfTMS()/1E3,
       TMS_Const::TMS_Thick_Start/1E3,
-      TMS_Const::TMS_End_Exact[1]/1E3);
+      TMS_Geom::GetInstance().GetYEndOfTMS()/1E3);
   yz_Thin_Thick->SetLineColor(kGray);
   yz_Thin_Thick->SetLineStyle(kDashed);
 
