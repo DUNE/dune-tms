@@ -693,10 +693,13 @@ for (auto Lines: HoughCandidatesY) {
 
       TMS_Kalman canonical;
       if (use_minus) {
-        trk.Charge_Kalman = -13;
+        // PDG 13 is mu- and -13 is mu+.
+        trk.Charge_Kalman = 13;
+        trk.SetChi2(kalman_chi2_minus);
         canonical = KalmanFilter_minus;
       } else {
-        trk.Charge_Kalman = 13;
+        trk.Charge_Kalman = -13;
+        trk.SetChi2(kalman_chi2_plus);
         canonical = KalmanFilter_plus;
       }
 
@@ -2994,8 +2997,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Hits are ordered in z already
     double maxz = TMS_Const::TMS_Thin_Start;
     double minz = TMS_Const::TMS_Double_End;
-    double min_notz = TMS_Const::TMS_End_Exact[0];
-    double max_notz =  TMS_Const::TMS_Start_Exact[0];
+    double min_notz = TMS_Geom::GetInstance().GetXEndOfTMS();  //TODO adapt to X layers
+    double max_notz =  TMS_Geom::GetInstance().GetXStartOfTMS(); //TODO adapt to X layers
     bool print = true;
     for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
       double z = (*it).GetZ();
@@ -3788,8 +3791,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
   for (std::vector<TMS_Hit>::iterator jt = TMS_Hits_Cleaned.begin(); 
       jt != TMS_Hits_Cleaned.end(); ) {
 
-    if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
-        (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
+    if ( (*jt).GetZ() > TMS_Geom::GetInstance().GetZEndOfTMS() ||  // Sometimes a hit downstream of the end geometry
+        (*jt).GetZ() < TMS_Geom::GetInstance().GetZStartOfTMS()) { // Or upstream of the start...
       jt = TMS_Hits_Cleaned.erase(jt);
     } else {
       jt++;

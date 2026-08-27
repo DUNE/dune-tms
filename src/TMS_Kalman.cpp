@@ -41,7 +41,7 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
 
     TVector3 vecc = TVector3(x,y,z);
 
-    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Const::TMS_Start_Exact, TMS_Const::TMS_End_Exact)))
+    if (! (TMS_Geom::GetInstance().IsInsideBox(vecc, TMS_Geom::GetInstance().GetStartOfTMS(), TMS_Geom::GetInstance().GetEndOfTMS())))
     {
       //std::cerr << "[TMS_Kalman.cpp] Hit " << i << "/" << nCand << " position not within TMS before Kalman filter, (x,y,z) = (" << x << ", " << y << ", " << z << ")" << std::endl;
       //std::cerr << "[TMS_Kalman.cpp] Were reco x and y values set before running Kalman?" << std::endl;
@@ -434,9 +434,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
-  if ( (CurrentState.x < TMS_Const::TMS_Start[0]) || (CurrentState.x > TMS_Const::TMS_End[0]) ) // point outside x region
+  if ( (CurrentState.x < TMS_Geom::GetInstance().GetXStartOfTMS()) || (CurrentState.x > TMS_Geom::GetInstance().GetXEndOfTMS()) ) // point outside x region
   {
-    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[0] << ", "<< TMS_Const::TMS_End[0] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.x << "\tTMS: [" << TMS_Geom::GetInstance().GetXStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetXEndOfTMS() << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -444,9 +444,9 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
       CurrentState.Print();
     }
   }
-  if ( (CurrentState.y < TMS_Const::TMS_Start[1]) || (CurrentState.y > TMS_Const::TMS_End[1]) ) // point outside y region
+  if ( (CurrentState.y < TMS_Geom::GetInstance().GetYStartOfTMS()) || (CurrentState.y > TMS_Geom::GetInstance().GetYEndOfTMS()) ) // point outside y region
   {
-    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Const::TMS_Start[1] << ", "<< TMS_Const::TMS_End[1] << "]" << std::endl;
+    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Geom::GetInstance().GetYStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetYEndOfTMS() << "]" << std::endl;
     if (Talk)
     {
       Node.PrintTrueReco();
@@ -768,9 +768,21 @@ void TMS_Kalman::Runchi2() {
         //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
         //KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
 
-        //Just ignore the noise.
-        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*KalmanNodes[i].rVec; // Calc chi^2
-        //KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
+        // Weight the position residual by the measurement covariance.  The
+        // previous implementation stored r^T r, which has units of mm^2 and
+        // is not a chi-squared statistic.
+        const double var_x = KalmanNodes[i].NoiseMatrix(0,0);
+        const double var_y = KalmanNodes[i].NoiseMatrix(1,1);
+        const double cov_xy = KalmanNodes[i].NoiseMatrix(0,1);
+        const double determinant = var_x*var_y - cov_xy*cov_xy;
+        if (determinant > 0.0 && std::isfinite(determinant)) {
+            const double residual_x = KalmanNodes[i].rVec[0];
+            const double residual_y = KalmanNodes[i].rVec[1];
+            KalmanNodes[i].chi2 =
+                (var_y*residual_x*residual_x
+                 - 2.0*cov_xy*residual_x*residual_y
+                 + var_x*residual_y*residual_y) / determinant;
+        }
 
     }
 }
