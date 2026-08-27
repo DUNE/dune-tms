@@ -72,6 +72,9 @@ class TMS_Event {
     const std::vector<TMS_Hit> GetHits(int slice = -1, bool include_ped_sup = false);
     std::vector<TMS_Hit> GetHitsRaw() { return TMS_Hits; };
     void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
+    // Reference access for TMS_DetectorSimulation/TMS_SignalProcessing to mutate hits in place
+    // without the copy cost of GetHitsRaw()/SetHitsRaw().
+    std::vector<TMS_Hit>& GetHitsRawRef() { return TMS_Hits; };
     // Reconstructed tracks
     std::vector<TMS_Track> GetTracks() {return TMS_Tracks;}; // Needs filled
     // The true particles
@@ -139,6 +142,12 @@ class TMS_Event {
     std::vector<std::pair<float, float>> GetDeadChannelTimes() { return DeadChannelTimes; };
     std::vector<std::pair<float, float>> GetReadChannelPositions() { return ChannelPositions; };
     std::vector<std::pair<float, float>> GetReadChannelTimes() { return ReadChannelTimes; };
+    // For TMS_DetectorSimulation::SimulateDeadtime() to record a channel's readout/deadtime window
+    void AddDeadtimeChannelRecord(std::pair<float, float> position, std::pair<float, float> deadtime_range, std::pair<float, float> readout_range) {
+      ChannelPositions.push_back(position);
+      DeadChannelTimes.push_back(deadtime_range);
+      ReadChannelTimes.push_back(readout_range);
+    };
     
     int GetTrueParticleIndex(long long vertexglobalid, int trackid);
     
@@ -166,16 +175,6 @@ class TMS_Event {
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
     std::vector<TMS_TrueHit> NonTMS_Hits;
-    
-    void MergeCoincidentHits();
-    void SimulateOpticalModel();
-    void SimulateDeadtime();
-    void SimulatePedestalSubtraction();
-    void SimulateTimingModel();
-    void SimulateDarkCount();
-    void SimulateReadoutNoise();
-
-    int GetUniqIDForDeadtime(const TMS_Hit& hit) const;
     
     int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
     
