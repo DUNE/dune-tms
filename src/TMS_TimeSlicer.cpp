@@ -88,14 +88,10 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     int minimum_slice_width = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
     const double DT = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerSliceUnit();
     const int NUMBER_OF_SLICES = std::ceil(SPILL_LENGTH / DT);
-    
+
     // First initialize an array of energy and slice labels
-    double energy_slices[NUMBER_OF_SLICES];
-    int time_slices[NUMBER_OF_SLICES];
-    for (int i = 0; i < NUMBER_OF_SLICES; i++) {
-      energy_slices[i] = 0;
-      time_slices[i] = 0;
-    }
+    std::vector<double> energy_slices(NUMBER_OF_SLICES, 0.0);
+    std::vector<int> time_slices(NUMBER_OF_SLICES, 0);
     
     // Add all hit energy to array
     auto hits = event.GetHitsRaw();

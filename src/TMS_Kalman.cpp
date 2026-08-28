@@ -227,13 +227,13 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   }
 
   // Calculate Lorentz force (deflection in x only)
-  double p = 1.0 / PreviousState.qp;  // Total momentum
+  [[maybe_unused]] double p = 1.0 / PreviousState.qp;  // Total momentum
   //double px = p * PreviousState.dxdz; // Momentum in the x direction (proportional to slope dxdz)
                       
 
-  // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer 
+  // a crude calculation. delta px(momentum increase in the x direction)= f*delta_t = q*v*B*delta_z/ v, roughly 30 MeV per layer
   // in natural unit, q= 0.303, 1T = 1.95*10^-10 MeV^2, 1mm = 5*10^9MeV^-1
-  double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
+  [[maybe_unused]] double magnetic_deflection_px = 0.303*assumed_charge*MagneticField*1.95*(CurrentState.z -PreviousState.z)*0.5;
   // Modification ends here
   
 
@@ -359,7 +359,7 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
 
 
   double p_var = (2*en/p_up)*(2*en/p_up) * total_en_var;
-  double qp_var = 1./(p_up*p_up*p_up*p_up) * p_var;
+  [[maybe_unused]] double qp_var = 1./(p_up*p_up*p_up*p_up) * p_var;
 
 
   // Set pointers to the noise matrix

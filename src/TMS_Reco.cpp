@@ -770,10 +770,10 @@ void TMS_TrackFinder::FindPseudoXTrack() {
   if (XHitGroup.empty()) return;
 
   // Find first and last hit of U/V track to compare X hits to
-  int Ufirst_z[HoughCandidatesU.size()] = {100000};
-  int Ulast_z[HoughCandidatesU.size()] = {0};
-  double Ufirst_t[HoughCandidatesU.size()] = {20000};
-  double Ulast_t[HoughCandidatesU.size()] = {-999};
+  std::vector<int> Ufirst_z(HoughCandidatesU.size(), 100000);
+  std::vector<int> Ulast_z(HoughCandidatesU.size(), 0);
+  std::vector<double> Ufirst_t(HoughCandidatesU.size(), 20000);
+  std::vector<double> Ulast_t(HoughCandidatesU.size(), -999);
   int i = 0;
   for (auto UTracks: HoughCandidatesU) {
     // Sort to make it computational less expensive
@@ -788,10 +788,10 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     ++i;
   }
   i = 0;
-  int Vfirst_z[HoughCandidatesV.size()] = {100000};
-  int Vlast_z[HoughCandidatesV.size()] = {0};
-  double Vfirst_t[HoughCandidatesV.size()] = {20000};
-  double Vlast_t[HoughCandidatesV.size()] = {-999};
+  std::vector<int> Vfirst_z(HoughCandidatesV.size(), 100000);
+  std::vector<int> Vlast_z(HoughCandidatesV.size(), 0);
+  std::vector<double> Vfirst_t(HoughCandidatesV.size(), 20000);
+  std::vector<double> Vlast_t(HoughCandidatesV.size(), -999);
   for (auto VTracks: HoughCandidatesV) {
     // Sort to make it computational less expensive
     SpatialPrio(VTracks);
@@ -3420,20 +3420,20 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from end of track away (heuristic cost)
   // and with a higher z at most +/- 2 bar widths away from the direction line
   std::vector<TMS_Hit> end_extrapolation_cand;
-  for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
+  for (std::vector<TMS_Hit>::const_iterator it_pool = Hitpool.begin(); it_pool != Hitpool.end(); ++it_pool) {
     // Check if hit is after the end of the track
-    if ((*it).GetZ() > TrackHits.back().GetZ()) {
+    if ((*it_pool).GetZ() > TrackHits.back().GetZ()) {
       // Check if within 4 bar widths above or below the direction line
-      double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
-      bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
-      if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
-        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
+      double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it_pool).GetBar().GetNotZw();
+      bool CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
+      if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
+        CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
       }
       if (CloseBars) {
         // Calculate temporary node to check for distance
-        aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+        aNode candidate((*it_pool).GetPlaneNumber(), (*it_pool).GetBarNumber());
         aNode track_end(TrackHits.back().GetPlaneNumber(), TrackHits.back().GetBarNumber());
         candidate.SetHeuristic(kHeuristic);
         candidate.SetHeuristicCost(track_end);
@@ -3442,9 +3442,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << std::endl;
 #endif
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
-        bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
+        bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit());
-        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
+        if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) {
           MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() *
               (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
                TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
@@ -3454,7 +3454,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
           std::cout << "Added to candidates" << std::endl;
 #endif
-          end_extrapolation_cand.push_back((*it));
+          end_extrapolation_cand.push_back((*it_pool));
         }
       }
     }
@@ -3519,29 +3519,29 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from start of track away (Heuristic cost)
     // and with a smaller z at most +/- 2 bar widths away from the direction line
     std::vector<TMS_Hit> front_extrapolation_cand;
-    for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
+    for (std::vector<TMS_Hit>::const_iterator it_pool = Hitpool.begin(); it_pool != Hitpool.end(); ++it_pool) {
       if (returned.empty()) {
         break;
       }
       // Check if hit is before the start of the track
-      if ((*it).GetZ() < returned.front().GetZ()) {
+      if ((*it_pool).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
-        double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
-        bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
-        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
-          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
+        double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it_pool).GetBar().GetNotZw();
+        bool CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
+        if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) {
+          CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
         }
         if (CloseBars) {
           // Calculate temporary node to check for distance
-          aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+          aNode candidate((*it_pool).GetPlaneNumber(), (*it_pool).GetBarNumber());
           aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNumber());
           candidate.SetHeuristic(kHeuristic);
           candidate.SetHeuristicCost(track_start);
 #ifdef DEBUG
           std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()
-            << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << " (" << (*it).GetNotZ() << "|" << (*it).GetZ() << ")" << std::endl;
+            << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << " (" << (*it_pool).GetNotZ() << "|" << (*it_pool).GetZ() << ")" << std::endl;
 #endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from start of track
           if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
@@ -3550,7 +3550,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
               std::cout << "Added to candidates" << std::endl;
 #endif
-            front_extrapolation_cand.push_back((*it));
+            front_extrapolation_cand.push_back((*it_pool));
           }
         }
       }
