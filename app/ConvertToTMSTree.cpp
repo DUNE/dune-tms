@@ -299,6 +299,10 @@ int main(int argc, char **argv) {
         std::cerr << "Error: --gdml-file requires a path argument" << std::endl;
         return -1;
       }
+    } else if (std::string(argv[i]).substr(0, 2) == "--") {
+      // Reject unknown flags
+      std::cerr << "Error: Unknown option '" << argv[i] << "'" << std::endl;
+      return -1;
     } else {
       positional_args.push_back(std::string(argv[i]));
     }
@@ -307,6 +311,12 @@ int main(int argc, char **argv) {
   // Parse positional arguments: first is input, second (if exists) is output
   if (positional_args.empty()) {
     std::cerr << "Error: Missing input file" << std::endl;
+    return -1;
+  }
+
+  if (positional_args.size() > 2) {
+    std::cerr << "Error: Too many positional arguments. Expected at most 2 (input, output), got "
+              << positional_args.size() << std::endl;
     return -1;
   }
 
