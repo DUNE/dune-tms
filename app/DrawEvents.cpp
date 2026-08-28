@@ -289,8 +289,8 @@ int main(int argc, char** argv) {
 
     // Go from back to front to have muon draw on top
     if (DrawTraj) {
-      for (int i = trajgraphs.size()-1; i >= 0; --i) {
-        if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+      for (int idx = trajgraphs.size()-1; idx >= 0; --idx) {
+        if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
       trajgraphs[muonindex]->Draw("P,same");
@@ -330,8 +330,8 @@ int main(int argc, char** argv) {
       canv->Print(Outputname);
 
       if (DrawTraj) {
-      for (int i = trajgraphs.size()-1; i >= 0; --i) {
-        if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+      for (int idx = trajgraphs.size()-1; idx >= 0; --idx) {
+        if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
       trajgraphs[muonindex]->Draw("P,same");
@@ -342,8 +342,8 @@ int main(int argc, char** argv) {
       }
     }
 
-    for (int i = 0; i < int(trajgraphs.size()); ++i) {
-      delete trajgraphs[i];
+    for (int idx = 0; idx < int(trajgraphs.size()); ++idx) {
+      delete trajgraphs[idx];
     }
     outfile->cd();
     canv->Write(Form("Event_%i", i));

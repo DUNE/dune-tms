@@ -60,24 +60,24 @@ class TMS_Bar {
 
     void Print() const;
 
-    int FindBar(double x, double y, double z);
-    bool FindModules(double x, double y, double z);
+    int FindBar(double x_pos, double y_pos, double z_pos);
+    bool FindModules(double x_pos, double y_pos, double z_pos);
 
     double FindYbar(double yval);
 
     bool CheckBar();
 
     // Find if a 2D point is inside the bar
-    // x here denotes the other view than z
+    // x_pos here denotes the other view than z
     // can be both x and y views (depending on bar type)!
-    bool Contains(double x, double z) {
+    bool Contains(double x_pos, double z_pos) {
 
       // Get the maxium and minimum of the bar
       double zmin = GetZ()-GetZw()/2;
       double zmax = GetZ()+GetZw()/2;
 
       // Check the 2D point is inside in z
-      if (z > zmax || z < zmin) return false;
+      if (z_pos > zmax || z_pos < zmin) return false;
 
       // Now check 2D point is inside in not z
       double xmin = -9999999999999;
@@ -92,7 +92,7 @@ class TMS_Bar {
       xmin = GetNotZ() - GetNotZw() / 2;
       xmax = GetNotZ() + GetNotZw() / 2;
 
-      if (x > xmax || x < xmin) return false;
+      if (x_pos > xmax || x_pos < xmin) return false;
 
       return true;
     }
