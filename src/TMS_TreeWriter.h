@@ -17,6 +17,7 @@
 #define __TMS_MAX_HITS__ 20000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
+#define __TMS_MAX_SPACEPOINTS__ 10000 // Maximum number of 3D space points in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
 #define __TMS_MAX_TRUE_VERTICES__ 5000 // Maximum number of true vertices to save info about, a spill has 400-2500 (not 100% sure right now), but 5k should be okay
@@ -80,6 +81,15 @@ class TMS_TreeWriter {
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
+
+    // 3D Space Point Info
+    int nSpacePoints;
+    float SpacePointX[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointY[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointZ[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointTime[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointXHitIndex[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointYHitIndex[__TMS_MAX_SPACEPOINTS__];
 
   private:
     TMS_TreeWriter();
