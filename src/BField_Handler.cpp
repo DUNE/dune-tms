@@ -1,4 +1,5 @@
 #include "BField_Handler.h"
+#include <stdexcept>
 
 void BField_Handler::SetFile(std::string filename) {
   std::cout << "BField handler loading file " << filename << "..." << std::endl;
@@ -37,12 +38,12 @@ void BField_Handler::SetFile(std::string filename) {
       if (nentries != 3) {
         std::cerr << "Found more than four entries (three spaces) in B field map " << InputFileName << std::endl;
         std::cerr << "Exiting..." << std::endl;
-        throw;
+        throw std::runtime_error("BField_Handler: invalid B-field map format");
       }
     }
   } else {
     std::cout << "Unable to open B-field file " << filename << std::endl;
-    throw;
+    throw std::runtime_error("BField_Handler: could not open B-field file");
   }
 
 }

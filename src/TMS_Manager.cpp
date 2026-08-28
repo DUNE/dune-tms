@@ -6,7 +6,7 @@ TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
     std::cerr << "Need ${TMS_DIR} environment set for reconstruction, please export TMS_DIR" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_DIR environment variable not set");
   }
 
   std::string filename;

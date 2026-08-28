@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include <stdexcept>
 #include "TMS_VertexId.h"
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
@@ -33,7 +34,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
     std::cerr << "Max lines in output: " << __TMS_MAX_LINES__ << std::endl;
     std::cerr << "Max lines in reconstruction: " << TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough() << std::endl;
     std::cerr << "Please reconfigure!" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_TreeWriter: max Hough lines exceeds output limit");
   }
 
   // Make the output file
@@ -56,7 +57,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
   if (!Output->IsOpen()) {
     std::cerr << "Could not write to file " << Outputname << std::endl;
     std::cerr << "Are you sure you have write access to the directory?" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_TreeWriter: could not open output file");
   }
   Output->cd();
 

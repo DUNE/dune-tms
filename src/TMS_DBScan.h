@@ -1,4 +1,5 @@
 #ifndef __TMS_DBSCAN_H__
+#include <stdexcept>
 #define __TMS_DBSCAN_H__
 
 #include <cmath>
@@ -52,19 +53,19 @@ class TMS_DBScan {
 
     // Some setters for the privates
     void SetPoints(std::vector<TMS_DBScan_Point> &Points) { _Points = Points; };
-    void SetEpsilon(double eps) { 
+    void SetEpsilon(double eps) {
       if (eps <= 0) {
         std::cerr << "Can't set epsilon in DBSCAN to negative or zero value!" << std::endl;
-        throw;
+        throw std::runtime_error("DBSCAN: epsilon must be positive");
       }
-      _Epsilon = eps; 
+      _Epsilon = eps;
     };
-    void SetMinPoints(unsigned int minpts) { 
+    void SetMinPoints(unsigned int minpts) {
       if (minpts <= 0) {
         std::cerr << "Can't set minpts in DBSCAN to negative or zero value!" << std::endl;
-        throw;
+        throw std::runtime_error("DBSCAN: minpts must be positive");
       }
-      _MinPoints = minpts; 
+      _MinPoints = minpts;
     };
 
     // Return the points

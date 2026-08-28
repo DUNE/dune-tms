@@ -1,5 +1,7 @@
 #include "TMS_Reco.h"
 
+#include <stdexcept>
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -65,7 +67,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
     std::cerr << "You provided: " << trackname << std::endl;
     std::cerr << "Options are: Hough, AStar, DBSCAN" << std::endl;
     kTrackMethod = TrackMethod::kUnknown;
-    throw;
+    throw std::runtime_error("TMS_Reco: invalid track reconstruction method");
   }
 
   std::string heuristicname = TMS_Manager::GetInstance().Get_Reco_ASTAR_CostMetric();
@@ -78,7 +80,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
     std::cerr << "You provided: " << heuristicname << std::endl;
     std::cerr << "Options are: Euclidean, Manhattan, DetectorZ, DetectorNotZ" << std::endl;
     kHeuristic = HeuristicType::kUnknown;
-    throw;
+    throw std::runtime_error("TMS_Reco: invalid AStar heuristic method");
   }
 
   std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;

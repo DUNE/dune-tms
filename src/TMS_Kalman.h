@@ -2,6 +2,7 @@
 #define _TMS_KALMAN_H_SEEN_
 
 #include <iostream>
+#include <stdexcept>
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -202,7 +203,7 @@ class TMS_KalmanNode {
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
     } else {
-      throw; // xd haha TODO tho
+      throw std::runtime_error("TMS_Kalman: invalid noise matrix state");
     }
     H *= sign;
 

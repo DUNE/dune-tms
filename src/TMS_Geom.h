@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -249,11 +250,10 @@ class TMS_Geom {
 
     // Get the geometry
     TGeoManager* GetGeometry() {
-      // Shout if the geometry isn't set
       if (this->geom == NULL) {
         std::cerr << "Geometry not set!" << std::endl;
         std::cerr << "Call TMS_Geom.SetGeometry(TGeoManager *) first!" << std::endl;
-        throw;
+        throw std::runtime_error("TMS_Geom: geometry not set");
       }
       return this->geom;
     }
@@ -285,7 +285,7 @@ class TMS_Geom {
       else {
         std::cout << "DX: " << box->GetDX() << std::endl;
         std::cerr << "Fatal: Unable to guess geometry's scale factor based on Shape for geometry " << geometry->GetName() << std::endl;
-        throw;
+        throw std::runtime_error("TMS_Geom: unable to determine geometry scale factor");
       }
       // set ScaleFactor temporarilty to 10
       //ScaleFactor = 10;
