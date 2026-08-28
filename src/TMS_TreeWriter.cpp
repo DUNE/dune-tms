@@ -379,7 +379,15 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
 
-  
+  // Space point branches
+  Reco_Tree->Branch("nSpacePoints", &nSpacePoints, "nSpacePoints/I");
+  Reco_Tree->Branch("SpacePointX", SpacePointX, "SpacePointX[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointY", SpacePointY, "SpacePointY[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointZ", SpacePointZ, "SpacePointZ[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointTime", SpacePointTime, "SpacePointTime[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointXHitIndex", SpacePointXHitIndex, "SpacePointXHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointYHitIndex", SpacePointYHitIndex, "SpacePointYHitIndex[nSpacePoints]/I");
+
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
 
@@ -1923,6 +1931,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
   }
 
+  // Fill space point information
+  const std::vector<TMS_SpacePoint>& space_points = event.GetSpacePoints();
+  nSpacePoints = (int)space_points.size();
+  for (int i_sp = 0; i_sp < nSpacePoints && i_sp < __TMS_MAX_SPACEPOINTS__; ++i_sp) {
+    SpacePointX[i_sp] = space_points[i_sp].GetX();
+    SpacePointY[i_sp] = space_points[i_sp].GetY();
+    SpacePointZ[i_sp] = space_points[i_sp].GetZ();
+    SpacePointTime[i_sp] = space_points[i_sp].GetTime();
+    SpacePointXHitIndex[i_sp] = space_points[i_sp].GetXHitIndex();
+    SpacePointYHitIndex[i_sp] = space_points[i_sp].GetYHitIndex();
+  }
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
@@ -2452,7 +2471,18 @@ void TMS_TreeWriter::Clear() {
     RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
   }
-  
+
+  // Reset space point information
+  nSpacePoints = DEFAULT_CLEARING_FLOAT;
+  for (int i = 0; i < __TMS_MAX_SPACEPOINTS__; ++i) {
+    SpacePointX[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointY[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointZ[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointTime[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXHitIndex[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYHitIndex[i] = DEFAULT_CLEARING_FLOAT;
+  }
+
   RecoTrackN = 0;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
