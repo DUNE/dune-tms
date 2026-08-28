@@ -1,6 +1,7 @@
 // python code was very slow...
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 #include "TFile.h"
 #include "TTree.h"
 #include "TGeoManager.h"
@@ -30,7 +31,12 @@
 #include "TMS_Manager.h"
 
 TGeoManager* LoadGeometry(TFile *input, bool useGDML, const std::string &gdmlPath) {
-  if (useGDML && !gdmlPath.empty()) {
+  // If GDML loading is enabled, the path must not be empty
+  if (useGDML) {
+    if (gdmlPath.empty()) {
+      throw std::runtime_error("Geometry loading from GDML is enabled (UseGDMLFile=true) but GDMLFilePath is empty. "
+                               "Please set GDMLFilePath in config or use --gdml-file flag.");
+    }
     std::cout << "Loading geometry from GDML file: " << gdmlPath << std::endl;
     TGeoManager *geom = TGeoManager::Import(gdmlPath.c_str());
     if (!geom) {
@@ -282,31 +288,36 @@ int main(int argc, char **argv) {
   std::string OutputFile;
   std::string gdmlFileOverride = "";
 
-  // Parse positional and optional arguments
-  if (argc >= 2) {
-    // Check if argv[2] is the output file or a flag
-    if (argc >= 3 && std::string(argv[2]) != "--gdml-file") {
-      // argv[2] is output filename
-      OutputFile = std::string(argv[2]);
-    } else {
-      // Generate default output filename
-      std::string filename = std::string(argv[1]);
-      OutputFile = filename.substr(0, filename.find(".root"));
-      OutputFile += "_output.root";
-    }
-  }
-
-  // Parse optional --gdml-file flag (can appear at any position after input file)
-  for (int i = 2; i < argc; i++) {
+  // Collect positional arguments (input, output) and extract --gdml-file flag
+  std::vector<std::string> positional_args;
+  for (int i = 1; i < argc; i++) {
     if (std::string(argv[i]) == "--gdml-file") {
       if (i + 1 < argc) {
         gdmlFileOverride = std::string(argv[i + 1]);
-        i++; // skip next argument
+        i++; // skip the path argument
       } else {
         std::cerr << "Error: --gdml-file requires a path argument" << std::endl;
         return -1;
       }
+    } else {
+      positional_args.push_back(std::string(argv[i]));
     }
+  }
+
+  // Parse positional arguments: first is input, second (if exists) is output
+  if (positional_args.empty()) {
+    std::cerr << "Error: Missing input file" << std::endl;
+    return -1;
+  }
+
+  EDepSimFile = positional_args[0];
+
+  if (positional_args.size() >= 2) {
+    OutputFile = positional_args[1];
+  } else {
+    // Generate default output filename
+    OutputFile = EDepSimFile.substr(0, EDepSimFile.find(".root"));
+    OutputFile += "_output.root";
   }
 
   bool ok = ConvertToTMSTree(EDepSimFile, OutputFile, gdmlFileOverride);
