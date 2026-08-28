@@ -18,6 +18,10 @@ TMS_Manager::TMS_Manager() {
   // Read the TOML file
   const auto data = toml::parse(filename);
 
+  // Geometry configuration
+  _GEOMETRY_UseGDMLFile = toml::find<bool>(data, "Geometry", "UseGDMLFile");
+  _GEOMETRY_GDMLFilePath = toml::find<std::string>(data, "Geometry", "GDMLFilePath");
+
   // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
   

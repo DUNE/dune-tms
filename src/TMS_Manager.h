@@ -14,11 +14,15 @@ class TMS_Manager {
       return Instance;
     }
 
-    void SetFileName(std::string file) { 
+    void SetFileName(std::string file) {
       std::cout << "Setting global edep-sim filename to " << file << std::endl;
-      Filename = file; 
+      Filename = file;
     };
     std::string GetFileName() { return Filename; };
+
+    // Geometry loading configuration
+    bool Get_Geometry_UseGDMLFile() { return _GEOMETRY_UseGDMLFile; };
+    std::string Get_Geometry_GDMLFilePath() { return _GEOMETRY_GDMLFilePath; };
 
     int Get_Reco_MinHits() { return _RECO_MinHits; };
 
@@ -156,6 +160,10 @@ class TMS_Manager {
     ~TMS_Manager() {};
 
     std::string Filename;
+
+    // Geometry loading options
+    bool _GEOMETRY_UseGDMLFile;
+    std::string _GEOMETRY_GDMLFilePath;
 
     int _RECO_MinHits;
 
