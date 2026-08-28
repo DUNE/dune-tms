@@ -1,5 +1,6 @@
 // python code was very slow...
 #include <iostream>
+#include <stdexcept>
 #include "TFile.h"
 #include "TTree.h"
 #include "TGeoManager.h"
@@ -28,7 +29,25 @@
 // General manager
 #include "TMS_Manager.h"
 
-bool ConvertToTMSTree(std::string filename, std::string output_filename) {
+TGeoManager* LoadGeometry(TFile *input, bool useGDML, const std::string &gdmlPath) {
+  if (useGDML && !gdmlPath.empty()) {
+    std::cout << "Loading geometry from GDML file: " << gdmlPath << std::endl;
+    TGeoManager *geom = TGeoManager::Import(gdmlPath.c_str());
+    if (!geom) {
+      throw std::runtime_error("Failed to load GDML file: " + gdmlPath);
+    }
+    return geom;
+  } else {
+    std::cout << "Loading geometry from input file" << std::endl;
+    TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
+    if (!geom) {
+      throw std::runtime_error("Failed to load geometry from input file");
+    }
+    return geom;
+  }
+}
+
+bool ConvertToTMSTree(std::string filename, std::string output_filename, const std::string &gdmlPath = "") {
   std::cout << "Got " << filename << ", writing to " << output_filename << std::endl;
 
   // The input file
@@ -40,8 +59,20 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
   TTree *gRoo = (TTree*) (input->Get("DetSimPassThru/gRooTracker"));
   if (gRoo)
     gRoo = (TTree*) (gRoo->Clone("gRoo"));
+
+  // The global manager
+  TMS_Manager::GetInstance().SetFileName(filename);
+
+  // Determine geometry loading source: CLI override takes precedence over config
+  bool useGDML = TMS_Manager::GetInstance().Get_Geometry_UseGDMLFile();
+  std::string gdmlPathToUse = TMS_Manager::GetInstance().Get_Geometry_GDMLFilePath();
+  if (!gdmlPath.empty()) {
+    useGDML = true;
+    gdmlPathToUse = gdmlPath;
+  }
+
   // Get the detector geometry
-  TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
+  TGeoManager *geom = LoadGeometry(input, useGDML, gdmlPathToUse);
 
   // Get the event
   TG4Event *event = NULL;
@@ -61,8 +92,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     gRoo->SetBranchAddress("StdHepP4", StdHepP4);
     gRoo->SetBranchAddress("EvtVtx", EvtVtx);
   }
-  // The global manager
-  TMS_Manager::GetInstance().SetFileName(filename);
 
   // Load up the geometry
   TMS_Geom::GetInstance().SetGeometry(geom);
@@ -244,24 +273,43 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2 && argc != 3) {
-    std::cerr << "Need one or two arguments: [EDepSim output file] [Output filename]" << std::endl;
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <input_file> [<output_file>] [--gdml-file <path>]" << std::endl;
     return -1;
   }
 
   std::string EDepSimFile = std::string(argv[1]);
   std::string OutputFile;
+  std::string gdmlFileOverride = "";
 
-  // If two arguments are given
-  if (argc == 2) {
-    std::string filename = std::string(argv[1]);
-    OutputFile = filename.substr(0, filename.find(".root"));
-    OutputFile += "_output.root";
-  } else {
-    OutputFile = std::string(argv[2]);
+  // Parse positional and optional arguments
+  if (argc >= 2) {
+    // Check if argv[2] is the output file or a flag
+    if (argc >= 3 && std::string(argv[2]) != "--gdml-file") {
+      // argv[2] is output filename
+      OutputFile = std::string(argv[2]);
+    } else {
+      // Generate default output filename
+      std::string filename = std::string(argv[1]);
+      OutputFile = filename.substr(0, filename.find(".root"));
+      OutputFile += "_output.root";
+    }
   }
 
-  bool ok = ConvertToTMSTree(EDepSimFile, OutputFile);
+  // Parse optional --gdml-file flag (can appear at any position after input file)
+  for (int i = 2; i < argc; i++) {
+    if (std::string(argv[i]) == "--gdml-file") {
+      if (i + 1 < argc) {
+        gdmlFileOverride = std::string(argv[i + 1]);
+        i++; // skip next argument
+      } else {
+        std::cerr << "Error: --gdml-file requires a path argument" << std::endl;
+        return -1;
+      }
+    }
+  }
+
+  bool ok = ConvertToTMSTree(EDepSimFile, OutputFile, gdmlFileOverride);
   if (ok) return 0;
   else return -1;
 }
