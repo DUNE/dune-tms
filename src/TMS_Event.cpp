@@ -1440,3 +1440,66 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
     true_visible_energy_tms += energy;
   }
 }
+
+void TMS_Event::BuildSpacePoints() {
+  TMS_SpacePoints.clear();
+
+  // Get timing window from config (in nanoseconds)
+  double timing_window = TMS_Manager::GetInstance().Get_RECO_SPACEPOINTS_TimingWindow();
+
+  // Separate hits by bar type and layer
+  std::map<int, std::vector<int>> x_hits_by_layer;  // layer -> indices of X hits
+  std::map<int, std::vector<int>> y_hits_by_layer;  // layer -> indices of Y hits
+
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    const TMS_Hit& hit = TMS_Hits[i];
+    int layer = hit.GetBar().GetPlaneNumber();
+    TMS_Bar::BarType bar_type = hit.GetBar().GetBarType();
+
+    if (bar_type == TMS_Bar::kXBar) {
+      x_hits_by_layer[layer].push_back(i);
+    } else if (bar_type == TMS_Bar::kYBar) {
+      y_hits_by_layer[layer].push_back(i);
+    }
+  }
+
+  // Create space points by pairing adjacent X and Y layers
+  for (const auto& x_layer_entry : x_hits_by_layer) {
+    int x_layer = x_layer_entry.first;
+    const std::vector<int>& x_indices = x_layer_entry.second;
+
+    // Check adjacent layers (N-1 and N+1)
+    for (int y_layer : {x_layer - 1, x_layer + 1}) {
+      if (y_hits_by_layer.find(y_layer) == y_hits_by_layer.end()) {
+        continue;  // No Y hits in this adjacent layer
+      }
+
+      const std::vector<int>& y_indices = y_hits_by_layer[y_layer];
+
+      // Pair X and Y hits based on timing coincidence
+      for (int x_idx : x_indices) {
+        const TMS_Hit& x_hit = TMS_Hits[x_idx];
+        double x_time = x_hit.GetT();
+        double x_pos = x_hit.GetX();
+        double z_pos = x_hit.GetZ();
+
+        for (int y_idx : y_indices) {
+          const TMS_Hit& y_hit = TMS_Hits[y_idx];
+          double y_time = y_hit.GetT();
+          double y_pos = y_hit.GetY();
+
+          // Check timing coincidence
+          double time_diff = std::fabs(x_time - y_time);
+          if (time_diff > timing_window) {
+            continue;  // Outside timing window
+          }
+
+          // Create space point with combined position and time
+          double combined_time = (x_time + y_time) / 2.0;
+          TMS_SpacePoint sp(x_pos, y_pos, z_pos, x_idx, y_idx, combined_time);
+          TMS_SpacePoints.push_back(sp);
+        }
+      }
+    }
+  }
+}

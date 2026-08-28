@@ -40,6 +40,8 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
   _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
 
+  _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
+
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
   _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints =

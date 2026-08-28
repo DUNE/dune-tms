@@ -94,7 +94,9 @@ class TMS_Manager {
     int Get_RECO_TIME_TimeSlicerEnergyWindowInUnits() { return _RECO_TIME_TimeSlicerEnergyWindowInUnits; };
     int Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits() { return _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits; };
     double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
-    
+
+    double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
+
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
     double Get_FIDUCIAL_TMS_START_X() { return _FIDUCIAL_TMS_START_X; };
@@ -238,7 +240,9 @@ class TMS_Manager {
     int _RECO_TIME_TimeSlicerEnergyWindowInUnits;
     int _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits;
     double _RECO_TIME_TimeSlicerMaxTime;
-    
+
+    double _RECO_SPACEPOINTS_TimingWindow;
+
     double _RECO_CALIBRATION_EnergyCalibration;
     
     double _FIDUCIAL_TMS_START_X;

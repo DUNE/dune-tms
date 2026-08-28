@@ -9,6 +9,7 @@
 #include "TMS_Hit.h"
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
+#include "TMS_SpacePoint.h"
 #include <map>
 #include <random>
 #include "TMS_Track.h"
@@ -74,6 +75,9 @@ class TMS_Event {
     void SetHitsRaw(std::vector<TMS_Hit> hits) { TMS_Hits = hits; };
     // Reconstructed tracks
     std::vector<TMS_Track> GetTracks() {return TMS_Tracks;}; // Needs filled
+    // Reconstructed 3D space points
+    const std::vector<TMS_SpacePoint>& GetSpacePoints() const { return TMS_SpacePoints; };
+    void SetSpacePoints(const std::vector<TMS_SpacePoint>& spacepoints) { TMS_SpacePoints = spacepoints; };
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
     
@@ -143,6 +147,8 @@ class TMS_Event {
     int GetTrueParticleIndex(long long vertexglobalid, int trackid);
     
     void ApplyReconstructionEffects();
+
+    void BuildSpacePoints();
     
     void SetLeptonInfoUsingGlobalVertexID(long long vertexglobalid);
     
@@ -192,6 +198,9 @@ class TMS_Event {
 
     // Reconstructed tracks
     std::vector<TMS_Track> TMS_Tracks;
+
+    // Reconstructed 3D space points from X-Y hit pairs
+    std::vector<TMS_SpacePoint> TMS_SpacePoints;
 
     // The number of true trajectories right out of edep-sim
     // No energy cuts, or number of deposits etc checked
