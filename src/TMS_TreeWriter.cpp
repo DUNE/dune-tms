@@ -1367,7 +1367,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevU[stdit][1] = std_dev_notz;
   }
   stdit = 0;
-  for (auto itV = ClustersV.begin(); itV != ClustersV.end(); ++itU, ++stdit) {
+  for (auto itV = ClustersV.begin(); itV != ClustersV.end(); ++itV, ++stdit) {
     double total_energy = 0;
     double mean_z = 0;
     double mean_notz = 0;
@@ -1411,7 +1411,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevV[stdit][1] = std_dev_notz;
   }
   stdit = 0;
-  for (auto itX = ClustersX.begin(); itX != ClustersX.end(); ++itU, ++stdit) {
+  for (auto itX = ClustersX.begin(); itX != ClustersX.end(); ++itX, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -1457,7 +1457,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevX[stdit][1] = std_dev_notz;
   } 
   stdit = 0;
-  for (auto itY = ClustersY.begin(); itY != ClustersY.end(); ++itU, ++stdit) {
+  for (auto itY = ClustersY.begin(); itY != ClustersY.end(); ++itY, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -1515,7 +1515,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
   stdit = 0;
   const auto TrueParticles = event.GetTrueParticles();
-  for (auto itH = CleanedHits.begin(); itH != CleanedHits.end(); ++itU, ++stdit) {
+  for (auto itH = CleanedHits.begin(); itH != CleanedHits.end(); ++itH, ++stdit) {
     RecoHitPos[stdit][0] = (*itH).GetX();
     RecoHitPos[stdit][1] = (*itH).GetY();
     RecoHitPos[stdit][2] = (*itH).GetZ();
@@ -1527,7 +1527,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitPlane[stdit] = (*itH).GetPlaneNumber();
     RecoHitSlice[stdit] = (*itH).GetSlice();
 
-    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*it});
+    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*itH});
     if (!particle_info.energies.empty()) {
       const long long vertex_global_id = particle_info.vertexglobalids[0];
       const int track_id = particle_info.trackids[0];
@@ -1964,24 +1964,24 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
 
     // Only save muon info for now
-    if (abs((*itH).GetPDG()) != 13) continue;
+    if (abs((*it).GetPDG()) != 13) continue;
     // Also make sure it's a fundamental muon
-    if ((*itH).GetParent() != -1) continue;
+    if ((*it).GetParent() != -1) continue;
 
-    MuonP4[0] = (*itH).GetBirthMomentum().Px();
-    MuonP4[1] = (*itH).GetBirthMomentum().Py();
-    MuonP4[2] = (*itH).GetBirthMomentum().Pz();
-    MuonP4[3] = (*itH).GetBirthEnergy();
+    MuonP4[0] = (*it).GetBirthMomentum().Px();
+    MuonP4[1] = (*it).GetBirthMomentum().Py();
+    MuonP4[2] = (*it).GetBirthMomentum().Pz();
+    MuonP4[3] = (*it).GetBirthEnergy();
 
-    Muon_Vertex[0] = (*itH).GetBirthPosition().X();
-    Muon_Vertex[1] = (*itH).GetBirthPosition().Y();
-    Muon_Vertex[2] = (*itH).GetBirthPosition().Z();
-    Muon_Vertex[3] = (*itH).GetBirthPosition().T();
+    Muon_Vertex[0] = (*it).GetBirthPosition().X();
+    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
+    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
+    Muon_Vertex[3] = (*it).GetBirthPosition().T();
 
-    Muon_Death[0] = (*itH).GetDeathPosition().X();
-    Muon_Death[1] = (*itH).GetDeathPosition().Y();
-    Muon_Death[2] = (*itH).GetDeathPosition().Z();
-    Muon_Death[3] = (*itH).GetDeathPosition().T();
+    Muon_Death[0] = (*it).GetDeathPosition().X();
+    Muon_Death[1] = (*it).GetDeathPosition().Y();
+    Muon_Death[2] = (*it).GetDeathPosition().Z();
+    Muon_Death[3] = (*it).GetDeathPosition().T();
   }
     
   nTrueParticles = TrueParticles.size();
@@ -2011,20 +2011,20 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
       break;
     }
   
-    VertexID[index] = (*itH).GetVertexID();
-    ParticleRunNo[index] = (*itH).GetRunID();
+    VertexID[index] = ((*it).GetVertexID();
+    ParticleRunNo[index] = ((*it).GetRunID();
     VertexGlobalID[index] = TMS_MakeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
-    Parent[index] = (*itH).GetParent();
-    TrackId[index] = (*itH).GetTrackId();
-    PDG[index] = (*itH).GetPDG();
-    IsPrimary[index] = (*itH).IsPrimary();
-    if ((*itH).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*itH).GetTrueVisibleEnergy(false);
-    TrueNHits[index] = (*itH).GetNTrueHits(false);
-    TrueVisibleEnergyInSlice[index] = (*itH).GetTrueVisibleEnergy(true);
-    TrueNHitsInSlice[index] = (*itH).GetNTrueHits(true);
+    Parent[index] = ((*it).GetParent();
+    TrackId[index] = ((*it).GetTrackId();
+    PDG[index] = ((*it).GetPDG();
+    IsPrimary[index] = ((*it).IsPrimary();
+    if (((*it).IsPrimary()) nTruePrimaryParticles += 1;
+    TrueVisibleEnergy[index] = ((*it).GetTrueVisibleEnergy(false);
+    TrueNHits[index] = ((*it).GetNTrueHits(false);
+    TrueVisibleEnergyInSlice[index] = ((*it).GetTrueVisibleEnergy(true);
+    TrueNHitsInSlice[index] = ((*it).GetNTrueHits(true);
 
-    TVector3 location_birth = (*itH).GetBirthPosition().Vect();
+    TVector3 location_birth = ((*it).GetBirthPosition().Vect();
     TVector3 location_death = (*itH).GetDeathPosition().Vect();
     TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
     TMSFiducialTouch[index] = (*itH).EntersVolume(TMS_Geom::StaticIsInsideTMS);
@@ -2034,7 +2034,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
     setMomentum(BirthMomentum[index], (*itH).GetBirthMomentum(), (*itH).GetBirthEnergy());
-    setPosition(BirthPosition[index], (*itH).GetBirthPosition());
+    setPosition(BirthPosition[index], ((*it).GetBirthPosition());
     
     setMomentum(DeathMomentum[index], (*itH).GetDeathMomentum(), (*itH).GetDeathEnergy());
     setPosition(DeathPosition[index], (*itH).GetDeathPosition());
