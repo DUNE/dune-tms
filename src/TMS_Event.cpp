@@ -493,7 +493,7 @@ void TMS_Event::MergeCoincidentHits() {
       }
     }
     // Now flag the duplicates for removal
-    for (int i = duplicates.size() - 1; i >= 0; i--) {
+    for (int i = (int)duplicates.size() - 1; i >= 0; i--) {
       auto hit_to_erase = duplicates[i];
       hit_to_erase->SetPedSup(true);
     }
