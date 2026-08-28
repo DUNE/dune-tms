@@ -2047,32 +2047,32 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TruePathLengthInTMSIgnoreY[index] =
         TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
 
-    setMomentum(MomentumZIsLArEnd[index], (*itH).GetMomentumZIsLArEnd());
-    setPosition(PositionZIsLArEnd[index], (*itH).GetPositionZIsLArEnd());
+    setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
+    setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
     
-    setMomentum(MomentumZIsTMSStart[index], (*itH).GetMomentumZIsTMSStart());
-    setPosition(PositionZIsTMSStart[index], (*itH).GetPositionZIsTMSStart());
+    setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
+    setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
     
-    setMomentum(MomentumZIsTMSEnd[index], (*itH).GetMomentumZIsTMSEnd());
-    setPosition(PositionZIsTMSEnd[index], (*itH).GetPositionZIsTMSEnd());
+    setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
+    setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
     
-    setMomentum(MomentumLArStart[index], (*itH).GetMomentumEnteringLAr());
-    setPosition(PositionLArStart[index], (*itH).GetPositionEnteringLAr());
+    setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
+    setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
     
-    setMomentum(MomentumLArEnd[index], (*itH).GetMomentumLeavingLAr());
-    setPosition(PositionLArEnd[index], (*itH).GetPositionLeavingLAr());
+    setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
+    setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
     
-    setMomentum(MomentumTMSStart[index], (*itH).GetMomentumEnteringTMS());
-    setPosition(PositionTMSStart[index], (*itH).GetPositionEnteringTMS());
+    setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
+    setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
     
-    setMomentum(MomentumTMSEnd[index], (*itH).GetMomentumLeavingTMS());
-    setPosition(PositionTMSEnd[index], (*itH).GetPositionLeavingTMS());
+    setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
+    setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
     
-    setMomentum(MomentumTMSThinEnd[index], (*itH).GetMomentumLeavingTMSThin());
-    setPosition(PositionTMSThinEnd[index], (*itH).GetPositionLeavingTMSThin());
+    setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
+    setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
     
-    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*itH).GetMomentumLeavingTMSFirstTwoModules());
-    setPosition(PositionTMSFirstTwoModulesEnd[index], (*itH).GetPositionLeavingTMSFirstTwoModules());
+    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
+    setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
   }
 
   auto vtx_info = event.GetVertexInfo();
