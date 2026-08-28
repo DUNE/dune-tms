@@ -2011,41 +2011,41 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
       break;
     }
   
-    VertexID[index] = ((*it).GetVertexID();
-    ParticleRunNo[index] = ((*it).GetRunID();
+    VertexID[index] = (*it).GetVertexID();
+    ParticleRunNo[index] = (*it).GetRunID();
     VertexGlobalID[index] = TMS_MakeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
-    Parent[index] = ((*it).GetParent();
-    TrackId[index] = ((*it).GetTrackId();
-    PDG[index] = ((*it).GetPDG();
-    IsPrimary[index] = ((*it).IsPrimary();
-    if (((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = ((*it).GetTrueVisibleEnergy(false);
-    TrueNHits[index] = ((*it).GetNTrueHits(false);
-    TrueVisibleEnergyInSlice[index] = ((*it).GetTrueVisibleEnergy(true);
-    TrueNHitsInSlice[index] = ((*it).GetNTrueHits(true);
+    Parent[index] = (*it).GetParent();
+    TrackId[index] = (*it).GetTrackId();
+    PDG[index] = (*it).GetPDG();
+    IsPrimary[index] = (*it).IsPrimary();
+    if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
+    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
+    TrueNHits[index] = (*it).GetNTrueHits(false);
+    TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
+    TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
 
-    TVector3 location_birth = ((*it).GetBirthPosition().Vect();
-    TVector3 location_death = (*itH).GetDeathPosition().Vect();
+    TVector3 location_birth = (*it).GetBirthPosition().Vect();
+    TVector3 location_death = (*it).GetDeathPosition().Vect();
     TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
-    TMSFiducialTouch[index] = (*itH).EntersVolume(TMS_Geom::StaticIsInsideTMS);
+    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
     TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
     LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
-    LArFiducialTouch[index] = (*itH).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
     LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
-    setMomentum(BirthMomentum[index], (*itH).GetBirthMomentum(), (*itH).GetBirthEnergy());
-    setPosition(BirthPosition[index], ((*it).GetBirthPosition());
+    setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
+    setPosition(BirthPosition[index], (*it).GetBirthPosition());
     
-    setMomentum(DeathMomentum[index], (*itH).GetDeathMomentum(), (*itH).GetDeathEnergy());
-    setPosition(DeathPosition[index], (*itH).GetDeathPosition());
+    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
+    setPosition(DeathPosition[index], (*it).GetDeathPosition());
 
-    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*itH).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
+    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
     TruePathLengthIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*itH).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
     TruePathLengthInTMS[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*itH).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
     TruePathLengthInTMSIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*itH).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
+        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
 
     setMomentum(MomentumZIsLArEnd[index], (*itH).GetMomentumZIsLArEnd());
     setPosition(PositionZIsLArEnd[index], (*itH).GetPositionZIsLArEnd());
