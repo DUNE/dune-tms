@@ -141,7 +141,11 @@
     TimeSlicerMinimumSliceWidthInUnits = 19 # units, the minimum width of a slice in time
     TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
-    
+
+  [Recon.SpacePoints]
+    # Timing window for pairing X and Y hits (in nanoseconds)
+    # Based on DUNE RF bucket spacing (19 ns) + transit time margin
+    TimingWindow = 30.0 # ns
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
