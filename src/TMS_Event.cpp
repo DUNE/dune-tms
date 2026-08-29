@@ -1463,6 +1463,20 @@ void TMS_Event::BuildSpacePoints() {
     }
   }
 
+  // Sort Y hits by time for efficient matching
+  std::map<int, std::vector<std::pair<double, int>>> y_hits_by_layer_sorted;  // layer -> (time, index) pairs
+  for (const auto& y_layer_entry : y_hits_by_layer) {
+    int y_layer = y_layer_entry.first;
+    const std::vector<int>& y_indices = y_layer_entry.second;
+
+    std::vector<std::pair<double, int>> time_index_pairs;
+    for (int y_idx : y_indices) {
+      time_index_pairs.push_back({TMS_Hits[y_idx].GetT(), y_idx});
+    }
+    std::sort(time_index_pairs.begin(), time_index_pairs.end());
+    y_hits_by_layer_sorted[y_layer] = time_index_pairs;
+  }
+
   // Create space points by pairing adjacent X and Y layers
   for (const auto& x_layer_entry : x_hits_by_layer) {
     int x_layer = x_layer_entry.first;
@@ -1470,29 +1484,41 @@ void TMS_Event::BuildSpacePoints() {
 
     // Check adjacent layers (N-1 and N+1)
     for (int y_layer : {x_layer - 1, x_layer + 1}) {
-      if (y_hits_by_layer.find(y_layer) == y_hits_by_layer.end()) {
+      if (y_hits_by_layer_sorted.find(y_layer) == y_hits_by_layer_sorted.end()) {
         continue;  // No Y hits in this adjacent layer
       }
 
-      const std::vector<int>& y_indices = y_hits_by_layer[y_layer];
+      const auto& y_time_indices = y_hits_by_layer_sorted[y_layer];
 
-      // Pair X and Y hits based on timing coincidence
+      // Pair X and Y hits based on timing coincidence with optimized search
       for (int x_idx : x_indices) {
         const TMS_Hit& x_hit = TMS_Hits[x_idx];
         double x_time = x_hit.GetT();
         double x_pos = x_hit.GetX();
         double z_pos = x_hit.GetZ();
 
-        for (int y_idx : y_indices) {
-          const TMS_Hit& y_hit = TMS_Hits[y_idx];
-          double y_time = y_hit.GetT();
-          double y_pos = y_hit.GetY();
+        // Find Y hits within timing window using sorted time ordering
+        // Start from first hit and skip those that are too early
+        bool found_first = false;
+        for (const auto& y_time_idx : y_time_indices) {
+          double y_time = y_time_idx.first;
+          int y_idx = y_time_idx.second;
+          double time_diff = y_time - x_time;
 
-          // Check timing coincidence
-          double time_diff = std::fabs(x_time - y_time);
-          if (time_diff > timing_window) {
-            continue;  // Outside timing window
+          // Skip hits that are too early
+          if (time_diff < -timing_window) {
+            continue;
           }
+
+          // Stop once hits become too late
+          if (time_diff > timing_window) {
+            break;
+          }
+
+          // Hit is within timing window
+          found_first = true;
+          const TMS_Hit& y_hit = TMS_Hits[y_idx];
+          double y_pos = y_hit.GetY();
 
           // Create space point with combined position and time
           double combined_time = (x_time + y_time) / 2.0;
