@@ -20,6 +20,8 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Added `nTrueParticles` back to `Truth_Info` ([#282](https://github.com/DUNE/dune-tms/pull/282)).
 - Added the missing Y-view line-candidate output and corrected X/Y branch names ([#284](https://github.com/DUNE/dune-tms/pull/284)).
 - Added leading truth-contributor information for reconstructed hits ([#303](https://github.com/DUNE/dune-tms/pull/303)).
+- Added a geometry survey that derives detector bounds, planes, modules, and configurable volume names from the loaded GDML ([#298](https://github.com/DUNE/dune-tms/pull/298)).
+- Added a truth side table and truthless reconstructed-hit construction to separate simulation truth from reconstructed detector data ([#301](https://github.com/DUNE/dune-tms/pull/301)).
 
 ### Changed
 
@@ -32,6 +34,8 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Built contiguous bar numbers from the detector geometry instead of coordinate assumptions ([#280](https://github.com/DUNE/dune-tms/pull/280)).
 - Increased plane-matching limits to recover reconstruction efficiency ([#295](https://github.com/DUNE/dune-tms/pull/295)).
 - Used the transverse X-bar width for Hough containment and made the widened window continuous ([#289](https://github.com/DUNE/dune-tms/pull/289)).
+- Split detector simulation from signal processing to provide a reconstruction entry point for real detector data ([#300](https://github.com/DUNE/dune-tms/pull/300)).
+- Updated the DUNE UPS product versions, build paths, and ROOT linking for the current build environment ([#302](https://github.com/DUNE/dune-tms/pull/302)).
 - Aligned the CMake package version and ROOT output metadata version at `1.1.0`.
 - Changed `MergeTracks` to default to true.
 - Enabled adding trailing Hough-track hits to their corresponding track by default, with a configuration switch.
@@ -49,7 +53,10 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Fixed signed/unsigned comparisons in track-direction calculations ([#283](https://github.com/DUNE/dune-tms/pull/283)).
 - Avoided repeatedly fetching the same single-interaction gRoo entry ([#276](https://github.com/DUNE/dune-tms/pull/276)).
 - Corrected LAr fiducial truth flags using the shared geometry predicates ([#297](https://github.com/DUNE/dune-tms/pull/297)).
-- Prevented 3D track matching from looping indefinitely when the last hit in a required view lies outside the detector bounds ([#310](https://github.com/DUNE/dune-tms/pull/310)).
+- Removed an invalid deadtime-map access and the duplicate hit-merging workaround it had motivated ([#299](https://github.com/DUNE/dune-tms/pull/299)).
+- Preserved per-hit truth during event overlays and derived optical-model bar lengths and readout positions from each bar's geometry ([#301](https://github.com/DUNE/dune-tms/pull/301)).
+- Initialized the Kalman-node chi-squared values, recorded a covariance-weighted chi-squared, and corrected the muon/antimuon fit association ([#305](https://github.com/DUNE/dune-tms/pull/305), [#309](https://github.com/DUNE/dune-tms/pull/309)).
+- Prevented index underflow and infinite loops while matching X/Y and U/V(/X) track candidates ([#310](https://github.com/DUNE/dune-tms/pull/310)).
 
 ## [0.2] - 2023-12-13
 
