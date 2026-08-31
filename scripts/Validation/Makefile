@@ -2,7 +2,7 @@ CXX = g++
 ROOTCONFIG := $(shell which root-config)
 ROOTCFLAGS := $(shell $(ROOTCONFIG) --cflags)
 ROOTLIBS := $(shell $(ROOTCONFIG) --libs)
-CXXFLAGS := -g -Wall -Wextra -DNDEBUG -O0
+CXXFLAGS := -g -Wall -Wextra -DNDEBUG -O0 -std=c++17 -I $(DUNE_PLOT_STYLE_INC)
 
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
@@ -24,6 +24,13 @@ $(EXEC): %: %.o
 
  %.o: %.cpp
 	$(CXX) $(ROOTCFLAGS) $(CXXFLAGS) -c $< -o $@
+	
+# Generate dependency files
+%.d: %.cpp
+	$(CXX) -MM -MP -MF $@ $<
+
+# Include dependency files
+-include $(SRCS:.cpp=.d)
 
 clean:
 	rm -f $(OBJS) $(EXEC)
