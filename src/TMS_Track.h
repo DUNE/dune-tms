@@ -10,10 +10,7 @@
 class TMS_Track {
 
   public:
-    TMS_Track() //std::vector<TMS_Hit>& OneTrack, std::vector<TMS_Hit>& OtherTrack)
-    {
-      // TODO: Take first and last hits and do the maffs
-    };
+    TMS_Track();
    // In TMS_Track.h, inside the class definition:
 TMS_Track(const TMS_Track& other) {
     // Copy simple types
@@ -29,12 +26,14 @@ TMS_Track(const TMS_Track& other) {
     Chi2_minus      = other.Chi2_minus;
     Chi2_plus       = other.Chi2_plus;
     nHits           = other.nHits;
-    nKalmanNodes    = other.nKalmanNodes;
+    Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
     // Copy arrays element by element
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         Start[i]          = other.Start[i];
         End[i]            = other.End[i];
+    }
+    for (int i = 0; i < 3; ++i) {
         StartDirection[i] = other.StartDirection[i];
         EndDirection[i]   = other.EndDirection[i];
     }
@@ -65,12 +64,14 @@ TMS_Track(const TMS_Track& other) {
         Chi2_minus      = other.Chi2_minus;
         Chi2_plus       = other.Chi2_plus;
         nHits           = other.nHits;
-        nKalmanNodes    = other.nKalmanNodes;
+        Charge_Kalman_curvature = other.Charge_Kalman_curvature;
 
         // Copy arrays (for Start, End, StartDirection, EndDirection)
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             Start[i]          = other.Start[i];
             End[i]            = other.End[i];
+        }
+        for (int i = 0; i < 3; i++) {
             StartDirection[i] = other.StartDirection[i];
             EndDirection[i]   = other.EndDirection[i];
         }
@@ -93,8 +94,9 @@ TMS_Track(const TMS_Track& other) {
 
     int    Charge;
     int    Charge_Kalman;
-    double Start[3];     // Start point in x,y,z
-    double End[3];       // End point in x,y,z
+    int    Charge_Kalman_curvature;
+    double Start[4];     // Start point in x,y,z,t
+    double End[4];       // End point in x,y,z,t
     double StartDirection[3]; // Unit vector in track direction at start
     double EndDirection[3]; // Unit vector in track direction at end
     double Length;
@@ -105,15 +107,13 @@ TMS_Track(const TMS_Track& other) {
     double Time;         // TODO: Fill this in a sensible way
     double Chi2;
     double Chi2_minus;
-    double Chi2_plus ;
+    double Chi2_plus;
     
 
 
     double GetEnergyDeposit() {return EnergyDeposit;};
     double GetEnergyRange()   {return EnergyRange;};
     double GetMomentum()      {return Momentum;};
-    double GetChi2()          {return Chi2;};
-
     double GetChi2_minus()          {return Chi2_minus;};
     double GetChi2_plus()          {return Chi2_plus;};
     
@@ -124,9 +124,9 @@ TMS_Track(const TMS_Track& other) {
     void SetEnergyDeposit (double val) {EnergyDeposit = val;};
     void SetEnergyRange   (double val) {EnergyRange   = val;};
     void SetMomentum      (double val) {Momentum      = val;};
-    void SetChi2          (double val) {Chi2          = val;};
     void SetChi2_minus          (double val) {Chi2_minus          = val;};
     void SetChi2_plus          (double val) {Chi2_plus          = val;};
+    void SetChi2               (double val) {Chi2               = val;};
    
 
     // Set direction unit vectors from only x and y slope
@@ -141,15 +141,9 @@ TMS_Track(const TMS_Track& other) {
     std::vector<TMS_Hit> Hits;
 
     // Kalman filter track info
-    int nKalmanNodes;
-
-    int KalmanErrorDetVol = 0;
-    int nKalmanNodes_plus;
-    int nKalmanNodes_minus;
-
     std::vector<TMS_KalmanNode> KalmanNodes;
-    std::vector<TMS_KalmanNode> KalmanNodes_plus;
     std::vector<TMS_KalmanNode> KalmanNodes_minus;
+    std::vector<TMS_KalmanNode> KalmanNodes_plus;
 
     void Compare()
     {

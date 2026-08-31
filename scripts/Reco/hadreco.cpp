@@ -96,10 +96,10 @@ void hadreco() {
     if (Muon_Death[1] > 1159 || Muon_Death[1] < -3864) continue;
 
     // Check that the longest track stops in the detector, and starts in the detector FV
-    //if (FirstHoughHit[longtrack][0] < 11362+55*2) continue;
-    if (FirstHoughHit[longtrack][0] < 11362+55*2 || FirstHoughHit[longtrack][0] > 13600) continue;
-    if (LastHoughHit[longtrack][0] > 18294-80*2) continue;
-    //if (LastHoughHit[longtrack][0] > 13600) continue;
+    //if (FirstHoughHit[longtrack][0] < 11134+55*2) continue;
+    if (FirstHoughHit[longtrack][0] < 11134+55*2 || FirstHoughHit[longtrack][0] > 14435) continue;  // Changed here to the new TMS_Thick_Start
+    if (LastHoughHit[longtrack][0] > 18535-80*2) continue;
+    //if (LastHoughHit[longtrack][0] > 14435) continue; // Same here
 
     // 10 cm inwards
     if (fabs(FirstHoughHit[longtrack][1]) > 3520-200) continue;

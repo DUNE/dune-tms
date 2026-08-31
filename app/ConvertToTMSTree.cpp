@@ -33,6 +33,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 
   // The input file
   TFile *input = new TFile(filename.c_str(), "open");
+
   // The EDepSim events
   TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
   // The generator pass-through information
@@ -180,15 +181,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
     std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
-    // Check if this is not pileup
-    if (gRoo && event->Primaries.size() == 1 && tms_event.GetNVertices() == 1) {
-      // Fill the info of the one and only true vertex in the spill
-      auto primary_vertex = event->Primaries[0];
-      int interaction_number = primary_vertex.GetInteractionNumber();
-      gRoo->GetEntry(interaction_number);
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-    }
-
     TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
     truth_info_entry_number += nslices;
     
@@ -210,9 +202,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
         if (primary_vertex_id >= 0) {
           // Now find out how much that true vertex contributed in general
           auto map = tms_event.GetTrueVisibleEnergyPerVertex();
-          if (map.find(primary_vertex_id) == map.end()) 
-              std::cout<<"Warning: Didn't find primary_vertex_id "<<primary_vertex_id<<" inside map of size "<<map.size()<<std::endl;
-          double visible_energy_from_vertex = map[primary_vertex_id];
+          long long primary_vertex_global_id = tms_event_slice.GetVertexGlobalIdOfMostVisibleEnergy();
+          if (map.find(primary_vertex_global_id) == map.end())
+              std::cout<<"Warning: Didn't find primary_vertex_global_id "<<primary_vertex_global_id<<" inside map of size "<<map.size()<<std::endl;
+          double visible_energy_from_vertex = map[primary_vertex_global_id];
           tms_event_slice.SetTotalVisibleEnergyFromVertex(visible_energy_from_vertex);
           gRoo->GetEntry(primary_vertex_id);
           tms_event_slice.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);

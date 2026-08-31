@@ -17,10 +17,13 @@
 using IsInsideFunctionType = std::function<bool(TVector3)>;
 //using IsInsideFunctionType = bool (TMS_Geom::*InInsideFunction)(Vector3);
 
+constexpr double TMS_INVALID_TRUTH_VALUE = -99999999;
+
 class TMS_TrueParticle {
   public:
 
     TMS_TrueParticle() :
+      RunID(-999),
       VertexID(-999), 
       Parent(-999), 
       TrackId(-999), 
@@ -29,31 +32,28 @@ class TMS_TrueParticle {
     }
 
     // Copy over the edep-sim info
-    TMS_TrueParticle(TG4PrimaryParticle &edep_part) :
+    TMS_TrueParticle(TG4PrimaryParticle edep_part) :
       VertexID(-999),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
       TrueVisibleEnergy(-999),
-      BirthMomentum(edep_part.GetMomentum().Vect()) {
+      BirthMomentum(TVector3(edep_part.GetMomentum().Vect())) {
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle &edep_part, TG4PrimaryVertex &vtx) : 
+    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx) : 
       VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
       PDG(edep_part.GetPDGCode()),
       TrueVisibleEnergy(-999),
-      BirthMomentum(edep_part.GetMomentum().Vect()),
-      BirthPosition(vtx.GetPosition()) {
-      if (VertexID < 0) {
-        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
-        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
-      }
+      BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
+      BirthPosition(TLorentzVector(vtx.GetPosition())) {
     }
 
     // Construct directly from edep-sim
-    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal) :
+    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal, int RunIDVal) :
+      RunID(RunIDVal),
       VertexID(VertexIDVal),
       Parent(ParentVal), 
       TrackId(TrackVal), 
@@ -64,23 +64,25 @@ class TMS_TrueParticle {
         throw std::runtime_error("Fatal: Get a vertex id < 0");
       }
     }
+    
+    ~TMS_TrueParticle();
 
     // Print
     void Print(bool small = false);
 
     // Add a point in for this true particle
-    void AddPoint(TLorentzVector &Position, TVector3 &Momentum) {
-      PositionPoints.emplace_back(Position);
-      MomentumPoints.emplace_back(Momentum);
+    void AddPoint(TLorentzVector Position, TVector3 Momentum) {
+      PositionPoints.emplace_back(TLorentzVector(Position));
+      MomentumPoints.emplace_back(TVector3(Momentum));
     }
 
-    void AddPoint(TLorentzVector &Position) {
-      PositionPoints.emplace_back(Position);
+    void AddPoint(TLorentzVector Position) {
+      PositionPoints.emplace_back(TLorentzVector(Position));
     }
 
-    void AddPoint(TLorentzVector &Position, TVector3 &Momentum, int &G4Process, int &G4Subprocess)  {
-      PositionPoints.emplace_back(Position);
-      MomentumPoints.emplace_back(Momentum);
+    void AddPoint(TLorentzVector Position, TVector3 Momentum, int G4Process, int G4Subprocess)  {
+      PositionPoints.emplace_back(TLorentzVector(Position));
+      MomentumPoints.emplace_back(TVector3(Momentum));
       Process.emplace_back(G4Process);
       Subprocess.emplace_back(G4Subprocess);
     }
@@ -97,6 +99,7 @@ class TMS_TrueParticle {
     bool IsPrimary() const { return Parent < 0; };
     int GetTrackId() const { return TrackId; };
     int GetVertexID() const { return VertexID; };
+    int GetRunID() const { return RunID; };
     double GetTrueVisibleEnergy(bool slice = false) const { if (slice) { return TrueVisibleEnergySlice; } else { return TrueVisibleEnergy; } };
     void SetTrueVisibleEnergy(double energy, bool slice) { if (slice) { TrueVisibleEnergySlice = energy; } else { TrueVisibleEnergy = energy; } };
     int GetNTrueHits(bool slice) const { if (slice) { return NTrueHitsSlice; } else { return NTrueHits; } };
@@ -111,11 +114,11 @@ class TMS_TrueParticle {
       VertexID = vtx;
     }
 
-    void SetBirthMomentum(TVector3 &birthmom) { BirthMomentum = birthmom; };
-    void SetBirthPosition(TLorentzVector &birthpos) { BirthPosition = birthpos; };
+    void SetBirthMomentum(TVector3 birthmom) { BirthMomentum = TVector3(birthmom); };
+    void SetBirthPosition(TLorentzVector birthpos) { BirthPosition = TLorentzVector(birthpos); };
 
-    void SetDeathMomentum(TVector3 &deathmom) { DeathMomentum = deathmom; };
-    void SetDeathPosition(TLorentzVector &deathpos) { DeathPosition = deathpos; };
+    void SetDeathMomentum(TVector3 deathmom) { DeathMomentum = TVector3(deathmom); };
+    void SetDeathPosition(TLorentzVector deathpos) { DeathPosition = TLorentzVector(deathpos); };
 
     TVector3       &GetBirthMomentum() { return BirthMomentum; };
     TLorentzVector GetBirthMomentumAsLorentz() 
@@ -164,6 +167,11 @@ class TMS_TrueParticle {
     bool EntersVolume(IsInsideFunctionType isInside);
     
     double GetEnergyFromMomentum(TVector3 momentum) {
+      if (momentum.X() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Y() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Z() == TMS_INVALID_TRUTH_VALUE) {
+        return TMS_INVALID_TRUTH_VALUE;
+      }
       double mass = TMS_KinConst::GetMass(PDG);
       return sqrt(momentum.Mag2()+mass*mass);
     }
@@ -177,6 +185,7 @@ class TMS_TrueParticle {
     }
 
   private:
+    int RunID;
     int VertexID;
     int Parent;
     int TrackId;
@@ -191,11 +200,15 @@ class TMS_TrueParticle {
     std::vector<int> Process;
     std::vector<int> Subprocess;
 
-    TVector3 BirthMomentum;
-    TLorentzVector BirthPosition;
+    TVector3 BirthMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector BirthPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 
-    TVector3 DeathMomentum;
-    TLorentzVector DeathPosition;
+    TVector3 DeathMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector DeathPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 };
 
 #endif

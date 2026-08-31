@@ -58,7 +58,6 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
   TMS_Readout->Branch("RecoHitPE", &RecoHitPE, "RecoHitPE[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitIsPedSupped", &RecoHitIsPedSupped, "RecoHitIsPedSupped[NRecoHits]/O");
   TMS_Readout->Branch("RecoHitBar", &RecoHitBar, "RecoHitBar[NRecoHits]/I");
-  TMS_Readout->Branch("RecoHitBarType", &RecoHitBarType, "RecoHitBarType[NRecoHits]/I"); //enum BarType { kXBar, kYBar, kUBar, kVBar, kError }; from TMS_Bar.h
   TMS_Readout->Branch("RecoHitPlane", &RecoHitPlane, "RecoHitPlane[NRecoHits]/I");
   #ifdef RECORD_HIT_DEADTIME
   TMS_Readout->Branch("RecoHitDeadtimeStart", &RecoHitDeadtimeStart, "RecoHitDeadtimeStart[NRecoHits]/F");
@@ -112,7 +111,6 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
       RecoHitPE[index] = hit.GetPE();
       RecoHitIsPedSupped[index] = hit.GetPedSup();
       RecoHitBar[index] = hit.GetBarNumber();
-      RecoHitBarType[index] = hit.GetBar().GetBarType();
       RecoHitPlane[index] = hit.GetPlaneNumber();
       #ifdef RECORD_HIT_DEADTIME
       RecoHitDeadtimeStart[index] = hit.GetDeadtimeStart();

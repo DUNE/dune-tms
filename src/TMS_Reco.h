@@ -317,9 +317,8 @@ class TMS_TrackFinder {
     ~TMS_TrackFinder() {};
 
     TMS_Kalman KalmanFilter;
-    TMS_Kalman KalmanFilter1;
-    TMS_Kalman KalmanFilter2;
-
+    TMS_Kalman KalmanFilter_plus;
+    TMS_Kalman KalmanFilter_minus;
     TMS_DBScan DBSCAN;
     TMS_ChargeID ChargeID;//ID_Track_Charge(const std::vector<TMS_Hit> &Hits);
 

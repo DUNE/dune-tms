@@ -26,7 +26,7 @@ class TMS_Hit {
   public:
     void Print() const;
     // The constructor for the TMS hit
-    TMS_Hit(TG4HitSegment &edep_seg, int vertex_id);
+    TMS_Hit(TG4HitSegment &edep_seg, long long vertex_global_id);
 
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
@@ -126,7 +126,7 @@ class TMS_Hit {
     double GetTrueDistanceFromReadout();
     double GetTrueLongDistanceFromReadout();
     double GetTrueDistanceFromMiddle();
-    double GetTrueLongDistanceFromMiddle();
+    double GetTrueLongDistanceFromMiddle(); 
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars

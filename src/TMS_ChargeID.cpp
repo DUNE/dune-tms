@@ -1,4 +1,5 @@
 #include "TMS_ChargeID.h"
+#include "TMS_Constants.h"
 
 TMS_ChargeID::TMS_ChargeID() {
 
@@ -7,21 +8,21 @@ TMS_ChargeID::TMS_ChargeID() {
 // Check if hit is in the far negative region of x (detector)
 bool TMS_ChargeID::region1(const TMS_Hit &Hit) {
   bool is_region1 = true;
-  if (Hit.GetRecoX() < -3520.0 || Hit.GetRecoX() > -1750.0) is_region1 = false; //TODO these numbers should be called in from TMS_Constants.h once they exist there
+  if (Hit.GetRecoX() < TMS_Const::TMS_Magnetic_region_1_outer_edge || Hit.GetRecoX() > TMS_Const::TMS_Magnetic_region_1_and_2_border) is_region1 = false; // these numbers are from TMS_Constants.h 
   return is_region1;
 }
 
 // Check if hit is in the middle region of x (detector)
 bool TMS_ChargeID::region2(const TMS_Hit &Hit) {
   bool is_region2 = true;
-  if (Hit.GetRecoX() < -1750.0 || Hit.GetRecoX() > 1750.0) is_region2 = false;  //TODO these numbers should be called in from TMS_Constants.h once they exist there
+  if (Hit.GetRecoX() < TMS_Const::TMS_Magnetic_region_1_and_2_border || Hit.GetRecoX() > TMS_Const::TMS_Magnetic_region_2_and_3_border) is_region2 = false;  // these numbers are from TMS_Constants.h 
   return is_region2;
 }
 
 // Check if hit is in the far positive region of x (detector)
 bool TMS_ChargeID::region3(const TMS_Hit &Hit) {
   bool is_region3 = true;
-  if (Hit.GetRecoX() < 1750.0 || Hit.GetRecoX() > 3520.0) is_region3 = false;   //TODO these numbers should be called in from TMS_Constants.h once they exist there
+  if (Hit.GetRecoX() < TMS_Const::TMS_Magnetic_region_2_and_3_border || Hit.GetRecoX() > TMS_Const::TMS_Magnetic_region_3_outer_edge) is_region3 = false;   // these numbers are from TMS_Constants.h 
   return is_region3;
 }
 
