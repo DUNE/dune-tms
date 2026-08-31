@@ -1323,21 +1323,32 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 //        if (Xrun) std::cout <<"itX:"<<itX<<" ,Y: " << XTracks[itX].GetNotZ() <<  ", Z: " << XTracks[itX].GetZ() <<", PlaneNumber: " << XTracks[itX].GetPlaneNumber()<< std::endl;
         // Sanity check for hits being in the detector volume (x and z)
         bool hit_outside = false;
+        bool view_exhausted = false;
         if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) {
-          --itU;
+          if (itU == 0) view_exhausted = true;
+          else --itU;
           hit_outside = true;
         }
         if (std::abs(VTracks[itV].GetNotZ()) > 4000.0 || VTracks[itV].GetZ() < 11000 || VTracks[itV].GetZ() > 20000) {
-          --itV;
+          if (itV == 0) view_exhausted = true;
+          else --itV;
           hit_outside = true;
         }
         if (Xrun && Xback_match && Xfront_match) {
           if (XTracks[itX].GetNotZ() > 400. || XTracks[itX].GetNotZ() < -4000. || XTracks[itX].GetZ() < 11000 || XTracks[itX].GetZ() > 20000) {
-            --itX;
+            if (itX == 0) view_exhausted = true;
+            else --itX;
             hit_outside = true;
           }
         }
-        if (hit_outside) continue;
+        // There is no valid hit left in at least one required view. Continuing
+        // would decrement its index below zero and read outside the vector.
+        if (view_exhausted) break;
+        if (hit_outside) {
+          sane = (itU > 0 || itV > 0);
+          if (Xrun && Xback_match && Xfront_match) sane = sane || itX > 0;
+          continue;
+        }
 
         // Stereo check
         bool stereo_view = true;
@@ -2140,17 +2151,27 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 //                std::cout <<"itX:"<<itX<<" ,Y: " << XTracks[itX].GetNotZ() <<  ", Z: " << XTracks[itX].GetZ() <<", PlaneNumber: " << XTracks[itX].GetPlaneNumber()<< std::endl;
                 // Sanity check for hits being in the detector volume (x and z)
                 bool hit_outside = false;
+                bool view_exhausted = false;
                 if (XTracks[itX].GetNotZ() > 500.0 || XTracks[itX].GetNotZ() == 0. || XTracks[itX].GetNotZ() < -4000.0
                         || XTracks[itX].GetZ() < 11000 || XTracks[itX].GetZ() > 20000) {
-                    --itX;
+                    if (itX == 0) view_exhausted = true;
+                    else --itX;
                     hit_outside = true;
                 }
                 if (std::abs(YTracks[itY].GetNotZ()) > 4000.0 or YTracks[itY].GetNotZ() == 0.
                         || YTracks[itY].GetZ() < 11000 || YTracks[itY].GetZ() > 20000) {
-                    --itY;
+                    if (itY == 0) view_exhausted = true;
+                    else --itY;
                     hit_outside = true;
                 }
-                if (hit_outside) continue;
+                // There is no valid hit left in at least one required view.
+                // Continuing would decrement its index below zero, skip the
+                // loop-condition update, and repeatedly read outside the vector.
+                if (view_exhausted) break;
+                if (hit_outside) {
+                    sane = (itX > 0 || itY > 0);
+                    continue;
+                }
 
                 // Stereo check
                 bool stereo_view = true;
@@ -2976,8 +2997,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     // Hits are ordered in z already
     double maxz = TMS_Const::TMS_Thin_Start;
     double minz = TMS_Const::TMS_Double_End;
-    double min_notz = TMS_Const::TMS_End_Exact[0];
-    double max_notz =  TMS_Const::TMS_Start_Exact[0];
+    double min_notz = TMS_Geom::GetInstance().GetXEndOfTMS();  //TODO adapt to X layers
+    double max_notz =  TMS_Geom::GetInstance().GetXStartOfTMS(); //TODO adapt to X layers
     bool print = true;
     for (std::vector<TMS_Hit>::const_iterator it = TMS_Hits.begin(); it != TMS_Hits.end(); ++it) {
       double z = (*it).GetZ();
@@ -3770,8 +3791,8 @@ std::vector<TMS_Hit> TMS_TrackFinder::CleanHits(const std::vector<TMS_Hit> &TMS_
   for (std::vector<TMS_Hit>::iterator jt = TMS_Hits_Cleaned.begin(); 
       jt != TMS_Hits_Cleaned.end(); ) {
 
-    if ( (*jt).GetZ() > TMS_Const::TMS_End[2] ||  // Sometimes a hit downstream of the end geometry
-        (*jt).GetZ() < TMS_Const::TMS_Start[2]) { // Or upstream of the start...
+    if ( (*jt).GetZ() > TMS_Geom::GetInstance().GetZEndOfTMS() ||  // Sometimes a hit downstream of the end geometry
+        (*jt).GetZ() < TMS_Geom::GetInstance().GetZStartOfTMS()) { // Or upstream of the start...
       jt = TMS_Hits_Cleaned.erase(jt);
     } else {
       jt++;

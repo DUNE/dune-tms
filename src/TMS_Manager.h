@@ -115,7 +115,24 @@ class TMS_Manager {
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
     double Get_Geometry_YMIDDLE() { return _GEOMETRY_YMIDDLE; };
-    
+
+    // Volume-name substrings used to walk the geometry tree; see
+    // config/TMS_Default_Config.toml [Geometry.VolumeNames] for what each one matches.
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayer() { return _GEOMETRY_VOLUME_ModuleLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerU() { return _GEOMETRY_VOLUME_ModuleLayerU; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerV() { return _GEOMETRY_VOLUME_ModuleLayerV; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerX() { return _GEOMETRY_VOLUME_ModuleLayerX; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerY() { return _GEOMETRY_VOLUME_ModuleLayerY; };
+    const std::string& Get_GEOMETRY_VOLUME_Module() { return _GEOMETRY_VOLUME_Module; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayer() { return _GEOMETRY_VOLUME_ScintLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayerOrtho() { return _GEOMETRY_VOLUME_ScintLayerOrtho; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayerParallel() { return _GEOMETRY_VOLUME_ScintLayerParallel; };
+    const std::string& Get_GEOMETRY_VOLUME_TopLayer() { return _GEOMETRY_VOLUME_TopLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_DetEnclosure() { return _GEOMETRY_VOLUME_DetEnclosure; };
+    const std::string& Get_GEOMETRY_VOLUME_TMSVolume() { return _GEOMETRY_VOLUME_TMSVolume; };
+    const std::string& Get_GEOMETRY_VOLUME_TMSEDepSimVolume() { return _GEOMETRY_VOLUME_TMSEDepSimVolume; };
+    const std::string& Get_GEOMETRY_VOLUME_LArActive() { return _GEOMETRY_VOLUME_LArActive; };
+
     double Get_Nersc_Spill_Period() { return _NERSC_SPILL_PERIOD; };
     void Set_Nersc_Spill_Period(double value) { _NERSC_SPILL_PERIOD = value; };
     
@@ -238,7 +255,7 @@ class TMS_Manager {
     int _APPLICATIONS_MaximumNEvents;
 
     double _GEOMETRY_YMIDDLE;
-    
+
     std::string _GEOMETRY_git_tag;
     std::string _GEOMETRY_git_branch;
     std::string _GEOMETRY_git_commit;
@@ -249,6 +266,21 @@ class TMS_Manager {
     int _META_version_major;
     int _META_version_minor;
     int _META_version_patch;
+
+    std::string _GEOMETRY_VOLUME_ModuleLayer;
+    std::string _GEOMETRY_VOLUME_ModuleLayerU;
+    std::string _GEOMETRY_VOLUME_ModuleLayerV;
+    std::string _GEOMETRY_VOLUME_ModuleLayerX;
+    std::string _GEOMETRY_VOLUME_ModuleLayerY;
+    std::string _GEOMETRY_VOLUME_Module;
+    std::string _GEOMETRY_VOLUME_ScintLayer;
+    std::string _GEOMETRY_VOLUME_ScintLayerOrtho;
+    std::string _GEOMETRY_VOLUME_ScintLayerParallel;
+    std::string _GEOMETRY_VOLUME_TopLayer;
+    std::string _GEOMETRY_VOLUME_DetEnclosure;
+    std::string _GEOMETRY_VOLUME_TMSVolume;
+    std::string _GEOMETRY_VOLUME_TMSEDepSimVolume;
+    std::string _GEOMETRY_VOLUME_LArActive;
 };
 
 #endif

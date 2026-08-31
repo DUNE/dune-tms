@@ -8,6 +8,11 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 
 ## [1.1.0] - Unreleased
 
+## [MAIN] - Unreleased
+- Changed MergeTracks default to True.
+- Hits trailing the end of a Hough Track can now be added to the track they 'should' correspond to. ON by default, switchable in config.
+- Prevent 3D track matching from looping indefinitely when the last hit in a required view lies outside the detector bounds.
+
 ### Added
 
 - Added run-aware global vertex identifiers for truth tracking ([#247](https://github.com/DUNE/dune-tms/pull/247)).

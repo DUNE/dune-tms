@@ -132,30 +132,13 @@ namespace TMS_Const {
   // Some distance after the end of the TMS
   const double TMS_End_z = TMS_Double_End+200;
 
-  // Volume name of TMS related hits
-  const std::string TMS_VolumeName = "TMS";
-  // Volume name for edep-sim SegmentDetectors
-  const std::string TMS_EDepSim_VolumeName = "volTMS";
-  // To find in z
-  const std::string TMS_ModuleLayerName = "modulelayervol";
-  const std::string TMS_ModuleLayerName1 = "modulelayervol1"; // u orientation
-  const std::string TMS_ModuleLayerName2 = "modulelayervol2"; // v orientation
-  const std::string TMS_ModuleLayerName3 = "modulelayervol3"; // x orientation
-  const std::string TMS_ModuleLayerName4 = "modulelayervol4"; // y orientation
-  // To find scintillator "box"
-  const std::string TMS_ModuleName = "ModuleBoxvol";
-  // To find scintillator "box"
-  const std::string TMS_ScintLayerName = "scinBoxlvTMS";
-  const std::string TMS_ScintLayerOrthoName = "scinBoxlv_orthoTMS";
-  const std::string TMS_ScintLayerParallelName = "scinBoxlv_parallelTMS";
-  // The top layer name
-  const std::string TMS_TopLayerName = "volWorld";
-  // The detector enclosure
-  const std::string TMS_DetEnclosure = "volDetEnclosure";
-  // The rock volume
+  // Volume-name strings used to walk the geometry tree used to live here, but that meant
+  // a GDML naming change needed a recompile. They now live in
+  // config/TMS_Default_Config.toml under [Geometry.VolumeNames], read via
+  // TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_*() -- see TMS_Manager.h.
+
+  // The rock volume (currently unused by any call site)
   const std::string TMS_Rock = "rockBox_lv";
-  // LAr active region
-  const std::string LAr_ActiveName = "TPCActive";
 
   const double TMS_Small_Num = 1.E-5;
 
