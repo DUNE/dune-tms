@@ -19,6 +19,7 @@
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
+#define __TMS_MAX_TRUE_VERTICES__ 5000 // Maximum number of true vertices to save info about, a spill has 400-2500 (not 100% sure right now), but 5k should be okay
 
 // Just a simple tree writer for the output tree
 class TMS_TreeWriter {
@@ -31,6 +32,8 @@ class TMS_TreeWriter {
 
     void Fill(TMS_Event &event);
     void FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices);
+    void FillTruthInfo(TMS_Event &event);
+    void FillMetadata();
 
     void Write() {
       Output->cd();
@@ -38,6 +41,7 @@ class TMS_TreeWriter {
       Reco_Tree->Write();
       Truth_Info->Write();
       Truth_Spill->Write();
+      Meta->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
       Output->Close();
     }
@@ -45,15 +49,37 @@ class TMS_TreeWriter {
     // 3D Track Object Info
     int nTracks;
     int nHitsIn3DTrack[__TMS_MAX_TRACKS__];
-    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
+    int nKalmanNodes[__TMS_MAX_TRACKS__];
+    float RecoTrackKalmanPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; //TODO?
+    float RecoTrackKalmanPos_plus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackKalmanPos_minus_chi2[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    int RecoTrackKalmanFirstPlaneBarView[__TMS_MAX_TRACKS__][3];
+    int RecoTrackKalmanLastPlaneBarView[__TMS_MAX_TRACKS__][3];
+    int RecoTrackKalmanPlaneBarView[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackKalmanTruePos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3]; //TODO?
+    int RecoTrackKalmanFirstPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
+    int RecoTrackKalmanLastPlaneBarViewTrue[__TMS_MAX_TRACKS__][3];
+    int RecoTrackKalmanPlaneBarViewTrue[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][3];
+    float RecoTrackHitPos[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__][4]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
     float RecoTrackHitEnergies[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__]; // Due to a lack of variables, but as this is taken from line hits, it would make sense (maybe times 2?)
-    float RecoTrackStartPos[__TMS_MAX_TRACKS__][3];
-    float RecoTrackDirection[__TMS_MAX_TRACKS__][3];
-    float RecoTrackEndPos[__TMS_MAX_TRACKS__][3];
+    int RecoTrackHitBarType[__TMS_MAX_TRACKS__][__TMS_MAX_LINE_HITS__];
+    float RecoTrackStartPos[__TMS_MAX_TRACKS__][4];
+    float RecoTrackStartDirection[__TMS_MAX_TRACKS__][3];
+    float RecoTrackEndPos[__TMS_MAX_TRACKS__][4];
+    float RecoTrackEndDirection[__TMS_MAX_TRACKS__][3];
     float RecoTrackEnergyRange[__TMS_MAX_TRACKS__];
     float RecoTrackEnergyDeposit[__TMS_MAX_TRACKS__];
+    float RecoTrackMomentum[__TMS_MAX_TRACKS__];
+    float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
+    float RecoTrackLength_3D[__TMS_MAX_TRACKS__];
+    int RecoTrackLengthSource[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
+    float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
+    int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
+    int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
 
   private:
     TMS_TreeWriter();
@@ -67,16 +93,40 @@ class TMS_TreeWriter {
     TTree* Reco_Tree; // The TTree 
     TTree* Truth_Info; // Truth info
     TTree* Truth_Spill; // Truth spill
+    TTree* Meta; // Metadata
 
     void Clear();
     void MakeBranches(); // Make the output branches
     void MakeTruthBranches(TTree* truth); // Make the output branches
+    
+    float TimeSliceStartTime;
+    float TimeSliceEndTime;
+
+    // Meta variables
+    int DuneTMSVersionMajor;
+    int DuneTMSVersionMinor;
+    int DuneTMSVersionPatch;
+    std::string GeometryGitTag;
+    std::string GeometryGitBranch;
+    std::string GeometryGitCommit;
+    int NumberOfScintillatorPlanes;
+    int NumberOfSteelPlatesThin;
+    int NumberOfSteelPlatesThick;
+    int NumberOfSteelPlatesDouble;
+    double TMSFiducialStartX;
+    double TMSFiducialStartY;
+    double TMSFiducialStartZ;
+    double TMSFiducialEndX;
+    double TMSFiducialEndY;
+    double TMSFiducialEndZ;
 
     // The variables
     int EventNo;
+    int RunNo;
     int nLinesU;
     int nLinesV;
     int nLinesX;
+    int nLinesY;
 
     int nLines3D;
     
@@ -84,92 +134,125 @@ class TMS_TreeWriter {
     int SpillNo;
     
     int VertexIdOfMostEnergyInEvent;
+    int VertexRunNoOfMostEnergyInEvent;
+    Long64_t VertexGlobalIDOfMostEnergyInEvent;
     float VisibleEnergyFromVertexInSlice;
     float TotalVisibleEnergyFromVertex;
     float VisibleEnergyFromOtherVerticesInSlice;
     float VertexVisibleEnergyFractionInSlice;
     float PrimaryVertexVisibleEnergyFraction;
 
+    float LArOuterShellEnergy;
+    float LArOuterShellEnergyFromVertex;
+    float LArTotalEnergy;
+    float LArTotalEnergyFromVertex;
+    float TotalNonTMSEnergy;
+    float TotalNonTMSEnergyFromVertex;
+
     float SlopeU[__TMS_MAX_LINES__];
     float SlopeV[__TMS_MAX_LINES__];
     float SlopeX[__TMS_MAX_LINES__];
+    float SlopeY[__TMS_MAX_LINES__];
     float InterceptU[__TMS_MAX_LINES__];
     float InterceptV[__TMS_MAX_LINES__];
     float InterceptX[__TMS_MAX_LINES__];
+    float InterceptY[__TMS_MAX_LINES__];
 
     float Slope_DownstreamU[__TMS_MAX_LINES__];
     float Slope_DownstreamV[__TMS_MAX_LINES__];
     float Slope_DownstreamX[__TMS_MAX_LINES__];
+    float Slope_DownstreamY[__TMS_MAX_LINES__];
     float Intercept_DownstreamU[__TMS_MAX_LINES__];
     float Intercept_DownstreamV[__TMS_MAX_LINES__];
     float Intercept_DownstreamX[__TMS_MAX_LINES__];
+    float Intercept_DownstreamY[__TMS_MAX_LINES__];
 
     float Slope_UpstreamU[__TMS_MAX_LINES__];
     float Slope_UpstreamV[__TMS_MAX_LINES__];
     float Slope_UpstreamX[__TMS_MAX_LINES__];
+    float Slope_UpstreamY[__TMS_MAX_LINES__];
     float Intercept_UpstreamU[__TMS_MAX_LINES__];
     float Intercept_UpstreamV[__TMS_MAX_LINES__];
     float Intercept_UpstreamX[__TMS_MAX_LINES__];
+    float Intercept_UpstreamY[__TMS_MAX_LINES__];
 
     float DirectionZU[__TMS_MAX_LINES__];
     float DirectionZV[__TMS_MAX_LINES__];
     float DirectionZX[__TMS_MAX_LINES__];
+    float DirectionZY[__TMS_MAX_LINES__];
     float DirectionXU[__TMS_MAX_LINES__];
     float DirectionXV[__TMS_MAX_LINES__];
     float DirectionYX[__TMS_MAX_LINES__];
+    float DirectionXY[__TMS_MAX_LINES__];
 
     float DirectionZU_Upstream[__TMS_MAX_LINES__];
     float DirectionZV_Upstream[__TMS_MAX_LINES__];
     float DirectionZX_Upstream[__TMS_MAX_LINES__];
+    float DirectionZY_Upstream[__TMS_MAX_LINES__];
     float DirectionXU_Upstream[__TMS_MAX_LINES__];
     float DirectionXV_Upstream[__TMS_MAX_LINES__];
     float DirectionYX_Upstream[__TMS_MAX_LINES__];
+    float DirectionXY_Upstream[__TMS_MAX_LINES__];
 
     float DirectionZU_Downstream[__TMS_MAX_LINES__];
     float DirectionZV_Downstream[__TMS_MAX_LINES__];
     float DirectionZX_Downstream[__TMS_MAX_LINES__];
+    float DirectionZY_Downstream[__TMS_MAX_LINES__];
     float DirectionXU_Downstream[__TMS_MAX_LINES__];
     float DirectionXV_Downstream[__TMS_MAX_LINES__];
     float DirectionYX_Downstream[__TMS_MAX_LINES__];
+    float DirectionXY_Downstream[__TMS_MAX_LINES__];
 
     float FirstHitU[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     float FirstHitV[__TMS_MAX_LINES__][2];
     float FirstHitX[__TMS_MAX_LINES__][2];
+    float FirstHitY[__TMS_MAX_LINES__][2];
     float LastHitU[__TMS_MAX_LINES__][2]; // [0] is Z, [1] is NotZ
     float LastHitV[__TMS_MAX_LINES__][2];
     float LastHitX[__TMS_MAX_LINES__][2];
+    float LastHitY[__TMS_MAX_LINES__][2];
     float FirstHitTimeU[__TMS_MAX_LINES__]; 
     float FirstHitTimeV[__TMS_MAX_LINES__];
     float FirstHitTimeX[__TMS_MAX_LINES__];
+    float FirstHitTimeY[__TMS_MAX_LINES__];
     float LastHitTimeU[__TMS_MAX_LINES__];
     float LastHitTimeV[__TMS_MAX_LINES__];
     float LastHitTimeX[__TMS_MAX_LINES__];
+    float LastHitTimeY[__TMS_MAX_LINES__];
     float EarliestHitTimeU[__TMS_MAX_LINES__]; 
     float EarliestHitTimeV[__TMS_MAX_LINES__];
     float EarliestHitTimeX[__TMS_MAX_LINES__];
+    float EarliestHitTimeY[__TMS_MAX_LINES__];
     float LatestHitTimeU[__TMS_MAX_LINES__];
     float LatestHitTimeV[__TMS_MAX_LINES__];
     float LatestHitTimeX[__TMS_MAX_LINES__];
+    float LatestHitTimeY[__TMS_MAX_LINES__];
     int FirstPlaneU[__TMS_MAX_LINES__];
     int FirstPlaneV[__TMS_MAX_LINES__];
     int FirstPlaneX[__TMS_MAX_LINES__];
+    int FirstPlaneY[__TMS_MAX_LINES__];
     int LastPlaneU[__TMS_MAX_LINES__];
     int LastPlaneV[__TMS_MAX_LINES__];
     int LastPlaneX[__TMS_MAX_LINES__];
+    int LastPlaneY[__TMS_MAX_LINES__];
     bool TMSStart;
     float TMSStartTime;
     float OccupancyU[__TMS_MAX_LINES__];
     float OccupancyV[__TMS_MAX_LINES__];
     float OccupancyX[__TMS_MAX_LINES__];
+    float OccupancyY[__TMS_MAX_LINES__];
     float TrackLengthU[__TMS_MAX_LINES__];
     float TrackLengthV[__TMS_MAX_LINES__];
     float TrackLengthX[__TMS_MAX_LINES__];
+    float TrackLengthY[__TMS_MAX_LINES__];
     float TotalTrackEnergyU[__TMS_MAX_LINES__];
     float TotalTrackEnergyV[__TMS_MAX_LINES__];
     float TotalTrackEnergyX[__TMS_MAX_LINES__];
+    float TotalTrackEnergyY[__TMS_MAX_LINES__];
     bool TrackStoppingU[__TMS_MAX_LINES__];
     bool TrackStoppingV[__TMS_MAX_LINES__];
     bool TrackStoppingX[__TMS_MAX_LINES__];
+    bool TrackStoppingY[__TMS_MAX_LINES__];
 
     /*float FirstHit3D[__TMS_MAX_LINES__][3]; // [0] is Z, [1] is 'X', [2] is Y
     float LastHit3D[__TMS_MAX_LINES__][3];
@@ -191,54 +274,81 @@ class TMS_TreeWriter {
     float TrackHitEnergyU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__]; // Energy per track hit
     float TrackHitEnergyV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitEnergyX[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitEnergyY[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitTimeU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitTimeV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitTimeX[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
+    float TrackHitTimeY[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__];
     float TrackHitPosU[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2]; // [0] is Z, [1] is NotZ
     float TrackHitPosV[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
     float TrackHitPosX[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
+    float TrackHitPosY[__TMS_MAX_LINES__][__TMS_MAX_LINE_HITS__][2];
     int nHitsInTrackU[__TMS_MAX_LINES__];
     int nHitsInTrackV[__TMS_MAX_LINES__];
     int nHitsInTrackX[__TMS_MAX_LINES__];
+    int nHitsInTrackY[__TMS_MAX_LINES__];
 
     // Cluster information
     int nClustersU; // Number of clusters
     int nClustersV;
     int nClustersX;
+    int nClustersY;
     float ClusterEnergyU[__TMS_MAX_CLUSTERS__]; // Energy in cluster
     float ClusterEnergyV[__TMS_MAX_CLUSTERS__];
     float ClusterEnergyX[__TMS_MAX_CLUSTERS__];
+    float ClusterEnergyY[__TMS_MAX_CLUSTERS__];
 
     float ClusterTimeU[__TMS_MAX_CLUSTERS__]; // Time in cluster
     float ClusterTimeV[__TMS_MAX_CLUSTERS__];
     float ClusterTimeX[__TMS_MAX_CLUSTERS__];
+    float ClusterTimeY[__TMS_MAX_CLUSTERS__];
     int nHitsInClusterU[__TMS_MAX_CLUSTERS__]; // Number of hits in cluster
     int nHitsInClusterV[__TMS_MAX_CLUSTERS__];
     int nHitsInClusterX[__TMS_MAX_CLUSTERS__];
+    int nHitsInClusterY[__TMS_MAX_CLUSTERS__];
     float ClusterPosMeanU[__TMS_MAX_CLUSTERS__][2]; // Mean cluster position, [0] is Z, [1] is NotZ
     float ClusterPosMeanV[__TMS_MAX_CLUSTERS__][2];
     float ClusterPosMeanX[__TMS_MAX_CLUSTERS__][2];
+    float ClusterPosMeanY[__TMS_MAX_CLUSTERS__][2];
     float ClusterPosStdDevU[__TMS_MAX_CLUSTERS__][2]; // Cluster standard deviation, [0] is Z, [1] is NotZ
     float ClusterPosStdDevV[__TMS_MAX_CLUSTERS__][2];
     float ClusterPosStdDevX[__TMS_MAX_CLUSTERS__][2];
+    float ClusterPosStdDevY[__TMS_MAX_CLUSTERS__][2];
     float ClusterHitPosU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2]; // Cluster hit position
     float ClusterHitPosV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2];
     float ClusterHitPosX[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2];
+    float ClusterHitPosY[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__][2];
     float ClusterHitEnergyU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
     float ClusterHitEnergyV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
     float ClusterHitEnergyX[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    float ClusterHitEnergyY[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
     float ClusterHitTimeU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit energy
     float ClusterHitTimeV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
     float ClusterHitTimeX[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    float ClusterHitTimeY[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
     int ClusterHitSliceU[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__]; // Cluster hit slice
     int ClusterHitSliceV[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
     int ClusterHitSliceX[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
+    int ClusterHitSliceY[__TMS_MAX_CLUSTERS__][__TMS_MAX_LINE_HITS__];
 
     // Reco information
     int nHits; // How many hits in event
     float RecoHitPos[__TMS_MAX_HITS__][4]; // Position of hit; [0] is x, [1] is y, [2] is z, [3] is time
     float RecoHitEnergy[__TMS_MAX_HITS__]; // Energy in hit
+    float RecoHitPE[__TMS_MAX_HITS__];
+    int RecoHitBar[__TMS_MAX_HITS__];
+    int RecoHitBarType[__TMS_MAX_HITS__];
+    int RecoHitPlane[__TMS_MAX_HITS__];
     int RecoHitSlice[__TMS_MAX_HITS__];
+    // "Primary" here means the existing PrimaryId with the largest energy
+    // contribution to this hit, not necessarily a generator-primary particle.
+    int RecoHitPrimaryRunId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryVertexId[__TMS_MAX_HITS__];
+    Long64_t RecoHitPrimaryVertexGlobalId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryTrackId[__TMS_MAX_HITS__];
+    int RecoHitPrimaryParticleIndex[__TMS_MAX_HITS__];
+    float RecoHitPrimaryTrueEnergy[__TMS_MAX_HITS__];
+    float RecoHitOtherTrueEnergy[__TMS_MAX_HITS__];
 
     // Truth information
     float MuonP4[4];
@@ -261,11 +371,16 @@ class TMS_TreeWriter {
     int nTrueForgottenParticles;
     
     int VertexID[__TMS_MAX_TRUE_PARTICLES__];
+    int ParticleRunNo[__TMS_MAX_TRUE_PARTICLES__];
+    Long64_t VertexGlobalID[__TMS_MAX_TRUE_PARTICLES__];
     int Parent[__TMS_MAX_TRUE_PARTICLES__];
     int TrackId[__TMS_MAX_TRUE_PARTICLES__];
     int PDG[__TMS_MAX_TRUE_PARTICLES__];
     bool IsPrimary[__TMS_MAX_TRUE_PARTICLES__];
     float TrueVisibleEnergy[__TMS_MAX_TRUE_PARTICLES__];
+    int TrueNHits[__TMS_MAX_TRUE_PARTICLES__];
+    float TrueVisibleEnergyInSlice[__TMS_MAX_TRUE_PARTICLES__];
+    int TrueNHitsInSlice[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLength[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthIgnoreY[__TMS_MAX_TRUE_PARTICLES__];
     float TruePathLengthInTMS[__TMS_MAX_TRUE_PARTICLES__];
@@ -321,13 +436,15 @@ class TMS_TreeWriter {
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackPrimaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleTrueNHits[__TMS_MAX_LINES__];
     // deprecated, with pileup we can't guarentee a 1-1 relationship
     int RecoTrackSecondaryParticleIndex[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueVisibleEnergy[__TMS_MAX_LINES__]; 
+    int RecoTrackSecondaryParticleTrueNHits[__TMS_MAX_LINES__]; 
     
     // Save truth info about primary particle
     int RecoTrackPrimaryParticlePDG[__TMS_MAX_LINES__];
-    int RecoTrackPrimaryParticleIsPrimary[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleIsPrimary[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];
@@ -349,10 +466,17 @@ class TMS_TreeWriter {
     bool RecoTrackPrimaryParticleLArFiducialStart[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialTouch[__TMS_MAX_LINES__];
     bool RecoTrackPrimaryParticleLArFiducialEnd[__TMS_MAX_LINES__];
+
+    int RecoTrackPrimaryParticleVtxId[__TMS_MAX_LINES__];
+    int RecoTrackPrimaryParticleVtxRunNo[__TMS_MAX_LINES__];
+    Long64_t RecoTrackPrimaryParticleVtxGlobalID[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxFiducialCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxShellEnergyCut[__TMS_MAX_LINES__];
+    bool RecoTrackPrimaryParticleVtxNDPhysicsCut[__TMS_MAX_LINES__];
     
     // Save truth info about secondary particle
     int RecoTrackSecondaryParticlePDG[__TMS_MAX_LINES__];
-    int RecoTrackSecondaryParticleIsPrimary[__TMS_MAX_LINES__];
+    bool RecoTrackSecondaryParticleIsPrimary[__TMS_MAX_LINES__];
     float RecoTrackSecondaryParticleTrueMomentum[__TMS_MAX_LINES__][4];
     float RecoTrackSecondaryParticleTruePositionStart[__TMS_MAX_LINES__][4];
     float RecoTrackSecondaryParticleTruePositionEnd[__TMS_MAX_LINES__][4];
@@ -374,6 +498,70 @@ class TMS_TreeWriter {
     
     int nPrimaryVertices;
     bool HasPileup;
+    
+    // Ideally I'd use std::vector<Float_t> but they don't fill with the right info
+    #define __MAX_TRUE_TREE_ARRAY_LENGTH__ 100000
+    #define MYVAR(x) float x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    #define INTMYVAR(x) int x[__MAX_TRUE_TREE_ARRAY_LENGTH__]
+    
+    // True hit branches
+    int NTrueHits;
+    MYVAR(TrueHitX);
+    MYVAR(TrueHitY);
+    MYVAR(TrueHitZ);
+    MYVAR(TrueHitT);
+    MYVAR(TrueHitE);
+    MYVAR(TrueHitPE);
+    MYVAR(TrueHitPEAfterFibers);
+    MYVAR(TrueHitPEAfterFibersLongPath);
+    MYVAR(TrueHitPEAfterFibersShortPath);
+    INTMYVAR(TrueHitBar);
+    INTMYVAR(TrueHitView);
+    INTMYVAR(TrueHitPlane);
+    INTMYVAR(TrueNTrueParticles);
+    MYVAR(TrueLeptonicEnergy);
+    MYVAR(TrueHadronicEnergy);
+    
+    
+    // Reco info saved in truth tree to make comparisons easier
+    MYVAR(TrueRecoHitX);
+    MYVAR(TrueRecoHitY);
+    MYVAR(TrueRecoHitZ);
+    MYVAR(TrueRecoHitTrackX);
+    MYVAR(TrueRecoHitTrackY);
+    MYVAR(TrueRecoHitTrackXUncertainty);
+    MYVAR(TrueRecoHitTrackYUncertainty);
+    MYVAR(TrueRecoHitNotZ);
+    MYVAR(TrueRecoHitT);
+    MYVAR(TrueRecoHitE);
+    MYVAR(TrueRecoHitPE);
+    MYVAR(TrueRecoHitEVis);
+    bool TrueRecoHitIsPedSupped[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    
+    int TrueVtxN;
+    float TrueVtxX[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxY[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxZ[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxT[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPx[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPy[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxPz[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxE[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxPDG[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxID[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxRunNo[__TMS_MAX_TRUE_VERTICES__];
+    Long64_t TrueVtxGlobalID[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicELarShell[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicELAr[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicETMS[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxHadronicE[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleETMS[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleELAr[__TMS_MAX_TRUE_VERTICES__];
+    float TrueVtxVisibleE[__TMS_MAX_TRUE_VERTICES__];
+    std::vector<std::string> TrueVtxReaction;
+    bool TrueVtxFiducialCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxShellEnergyCut[__TMS_MAX_TRUE_VERTICES__];
+    bool TrueVtxNDPhysicsCut[__TMS_MAX_TRUE_VERTICES__];
 };
 
 

@@ -23,10 +23,10 @@ class TMS_DBScan_Point {
 
     // Calculate the distance between two points
     double Distance(const TMS_DBScan_Point& PointTarget) {
-      double xdist = x-PointTarget.x;
-      double ydist = y-PointTarget.y;
-      double zdist = z-PointTarget.z;
-      return sqrt(xdist*xdist+ydist*ydist+zdist*zdist);
+      double xdist = x - PointTarget.x;
+      double ydist = y - PointTarget.y;
+      double zdist = z - PointTarget.z;
+      return sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
     }
 
     void Print() {
@@ -179,7 +179,7 @@ class TMS_DBScan {
       }
 
       // Remove the core point from the cluster
-      Neighbours.erase(Neighbours.begin()+CorePointIndex);
+      Neighbours.erase(Neighbours.begin() + CorePointIndex);
 
       // Get the size of the neighbours of this point
       std::vector<int>::size_type n = Neighbours.size();

@@ -26,18 +26,28 @@ class TMS_Hit {
   public:
     void Print() const;
     // The constructor for the TMS hit
-    TMS_Hit(TG4HitSegment &edep_seg, int vertex_id);
+    TMS_Hit(TG4HitSegment &edep_seg, long long vertex_global_id);
 
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
 
     // Sort by decreasing Z
     static bool SortByZ(TMS_Hit &a, TMS_Hit &b) {
-      return ( a.GetBar().GetPlaneNumber() > b.GetBar().GetPlaneNumber() );
+      return ( a.GetZ() > b.GetZ() );
     }
 
     // Sort by increasing Z
     static bool SortByZInc(TMS_Hit &a, TMS_Hit &b) {
+      return ( a.GetZ() < b.GetZ() );
+    }
+
+    // Sort by decreasing plane number
+    static bool SortByPlane(TMS_Hit &a, TMS_Hit &b) {
+      return ( a.GetBar().GetPlaneNumber() > b.GetBar().GetPlaneNumber() );
+    }
+
+    // Sort by increasing plane number
+    static bool SortByPlaneInc(TMS_Hit &a, TMS_Hit &b) {
       return ( a.GetBar().GetPlaneNumber() < b.GetBar().GetPlaneNumber() );
     }
 
@@ -66,10 +76,10 @@ class TMS_Hit {
     void SetT(double t) {Time = t;};
     
     void SetPedSup(bool isPedSup) { PedSuppressed = isPedSup;};
-    bool GetPedSup() { return PedSuppressed; };
+    bool GetPedSup() const { return PedSuppressed; };
     
     void SetPE(double pe) { PE = pe; };
-    double GetPE() { return PE; };
+    double GetPE() const { return PE; };
 
     double GetE() const {return EnergyDeposit;};
     double GetEVis() const {return EnergyDepositVisible;};
@@ -95,6 +105,12 @@ class TMS_Hit {
     double GetRecoX() const { return RecoX; };
     double GetRecoY() const { return RecoY; };
 
+    void SetRecoXUncertainty(double x_uncertainty) { RecoXUncertainty = x_uncertainty; };
+    void SetRecoYUncertainty(double y_uncertainty) { RecoYUncertainty = y_uncertainty; };
+
+    double GetRecoXUncertainty() const { return RecoXUncertainty; };
+    double GetRecoYUncertainty() const { return RecoYUncertainty; };
+
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
     
@@ -106,6 +122,11 @@ class TMS_Hit {
     #endif
     
     void MergeWith(TMS_Hit& hit);
+    
+    double GetTrueDistanceFromReadout();
+    double GetTrueLongDistanceFromReadout();
+    double GetTrueDistanceFromMiddle();
+    double GetTrueLongDistanceFromMiddle(); 
 
   private:
     // The true hit (x,y,z,t) --- does not quantise hit into bars
@@ -120,6 +141,7 @@ class TMS_Hit {
     double Time;
     // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
     double RecoX, RecoY; // Only to be filled after tracking performed
+    double RecoXUncertainty, RecoYUncertainty;
     
     int Slice;
     

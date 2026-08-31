@@ -23,9 +23,9 @@ int GetHitLocationCodeSingle(float x, bool isx) {
                IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) ||
                IS_WITHIN(x, -999999, 1);
   bool crazy_small = x < -4000;
-  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11362.0);
-  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18314.0);
-  bool xlooksz = (isx) ? IS_WITHIN(x, 18314, 10) : false;
+  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11134.0);
+  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18535.0);
+  bool xlooksz = (isx) ? IS_WITHIN(x, 18535, 10) : false;
   int out = -99999;
   if (zero)
     out = 0;
@@ -52,7 +52,7 @@ bool isTMSContained(TVector3 position, bool thin_only = false) {
   // before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Double_End = 18535;
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
   const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
   if (position.X() < TMS_Start_Bars_Only[0])

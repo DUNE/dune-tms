@@ -24,6 +24,8 @@ class TMS_Manager {
 
     int Get_Reco_DBSCAN_MinPoints() { return _RECO_DBSCAN_MinPoints; };
     double Get_Reco_DBSCAN_Epsilon() { return _RECO_DBSCAN_Epsilon; };
+    int Get_Reco_DBSCAN_PreDBNeighbours() { return _RECO_DBSCAN_PreDBNeighbours; };
+    double Get_Reco_DBSCAN_PreDBDistance() { return _RECO_DBSCAN_PreDBDistance; };
 
     int Get_Reco_HOUGH_MaxHough() { return _RECO_HOUGH_MaxHough; };
     double Get_Reco_HOUGH_MinInterp() { return _RECO_HOUGH_MinInterp; };
@@ -37,12 +39,15 @@ class TMS_Manager {
     bool Get_Reco_HOUGH_RunAStar() { return _RECO_HOUGH_RunAStar; };
     bool Get_Reco_HOUGH_FirstCluster() { return _RECO_HOUGH_FirstCluster; };
     double Get_Reco_HOUGH_MinDist() { return _RECO_HOUGH_MinDist; };
+    double Get_Reco_HOUGH_ContainmentHalfWidth() { return _RECO_HOUGH_ContainmentHalfWidth; };
 
     bool Get_Reco_EXTRAPOLATION_Extrapolation() { return _RECO_EXTRAPOLATION_Extrapolation; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateDist() { return _RECO_EXTRAPOLATION_ExtrapolateDist; };
     int Get_Reco_EXTRAPOLATION_ExtrapolateLimit() { return _RECO_EXTRAPOLATION_ExtrapolateLimit; };
     int Get_Reco_EXTRAPOLATION_NumBarsEnd() { return _RECO_EXTRAPOLATION_NumBarsEnd; };
     int Get_Reco_EXTRAPOLATION_NumBarsStart() { return _RECO_EXTRAPOLATION_NumBarsStart; };
+    double Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() { return _RECO_EXTRAPOLATION_ContainmentWidthMultiplier; };
+    double Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() { return _RECO_EXTRAPOLATION_XBarDistanceMultiplier; };
 
     int Get_Reco_TRACKMATCH_PlaneLimit() { return _RECO_TRACKMATCH_PlaneLimit; };
     int Get_Reco_TRACKMATCH_BarLimit() { return _RECO_TRACKMATCH_BarLimit; };
@@ -55,6 +60,8 @@ class TMS_Manager {
 
     bool Get_Reco_ASTAR_IsGreedy() { return _RECO_ASTAR_IsGreedy; };
     std::string Get_Reco_ASTAR_CostMetric() { return _RECO_ASTAR_CostMetric; };
+    int Get_Reco_ASTAR_MergePlaneGap() { return _RECO_ASTAR_MergePlaneGap; };
+    int Get_Reco_ASTAR_MergeBarGap() { return _RECO_ASTAR_MergeBarGap; };
 
     int Get_Reco_STOPPING_nLastHits() { return _RECO_STOPPING_nLastHits; };
     double Get_Reco_STOPPING_EnergyCut() { return _RECO_STOPPING_EnergyCut; };
@@ -62,8 +69,19 @@ class TMS_Manager {
     std::string Get_Reco_TrackMethod() { return _RECO_TRACK_METHOD; };
     bool Get_Reco_Clustering() { return _RECO_CLUSTERING; };
 
+    bool Get_Reco_Kalman_Run() { return _RECO_KALMAN_RUN; };
+    double Get_Reco_Kalman_Assumed_Charge() { return _RECO_KALMAN_ASSUMED_CHARGE; };
+
+
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
-    
+
+    bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
+    std::string Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy() { return _RECO_TRACKSMOOTHING_TrackSmoothingStrategy; };
+    double Get_Reco_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints() { return _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyGoodDirection() { return _RECO_TRACKSMOOTHING_UncertaintyGoodDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyBadDirection() { return _RECO_TRACKSMOOTHING_UncertaintyBadDirection; };
+    double Get_Reco_TRACKSMOOTHING_UncertaintyForUVTransitionPoints() { return _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints; };
+
     bool Get_Reco_TIME_RunTimeSlicer() { return _RECO_TIME_RunTimeSlicer; };
     bool Get_Reco_TIME_RunSimpleTimeSlicer() { return _RECO_TIME_RunSimpleTimeSlicer; };
     double Get_RECO_TIME_TimeSlicerThresholdStart() { return _RECO_TIME_TimeSlicerThresholdStart; };
@@ -81,20 +99,55 @@ class TMS_Manager {
     double Get_FIDUCIAL_TMS_END_X() { return _FIDUCIAL_TMS_END_X; };
     double Get_FIDUCIAL_TMS_END_Y() { return _FIDUCIAL_TMS_END_Y; };
     double Get_FIDUCIAL_TMS_END_Z() { return _FIDUCIAL_TMS_END_Z; };
-    double Get_FIDUCIAL_LAR_START_X() { return _FIDUCIAL_LAR_START_X; };
-    double Get_FIDUCIAL_LAR_START_Y() { return _FIDUCIAL_LAR_START_Y; };
-    double Get_FIDUCIAL_LAR_START_Z() { return _FIDUCIAL_LAR_START_Z; };
-    double Get_FIDUCIAL_LAR_END_X() { return _FIDUCIAL_LAR_END_X; };
-    double Get_FIDUCIAL_LAR_END_Y() { return _FIDUCIAL_LAR_END_Y; };
-    double Get_FIDUCIAL_LAR_END_Z() { return _FIDUCIAL_LAR_END_Z; };
+    double Get_ACTIVE_LAR_START_X() { return _ACTIVE_LAR_START_X; };
+    double Get_ACTIVE_LAR_START_Y() { return _ACTIVE_LAR_START_Y; };
+    double Get_ACTIVE_LAR_START_Z() { return _ACTIVE_LAR_START_Z; };
+    double Get_ACTIVE_LAR_END_X() { return _ACTIVE_LAR_END_X; };
+    double Get_ACTIVE_LAR_END_Y() { return _ACTIVE_LAR_END_Y; };
+    double Get_ACTIVE_LAR_END_Z() { return _ACTIVE_LAR_END_Z; };
+
+    double Get_LAR_FIDUCIAL_DOWNSTREAM_Z_CUT() { return _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT; };
+    double Get_LAR_FIDUCIAL_XY_CUT() { return _LAR_FIDUCIAL_XY_CUT; };
+    double Get_LAR_OUTER_SHELL_THICKNESS() { return _LAR_OUTER_SHELL_THICKNESS; };
+    double Get_ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY() { return _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY; };
 
     bool Get_DrawPDF() { return _APPLICATIONS_DrawPDF; };
     int Get_MaximumNEvents() { return _APPLICATIONS_MaximumNEvents; };
 
     double Get_Geometry_YMIDDLE() { return _GEOMETRY_YMIDDLE; };
-    
+
+    // Volume-name substrings used to walk the geometry tree; see
+    // config/TMS_Default_Config.toml [Geometry.VolumeNames] for what each one matches.
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayer() { return _GEOMETRY_VOLUME_ModuleLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerU() { return _GEOMETRY_VOLUME_ModuleLayerU; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerV() { return _GEOMETRY_VOLUME_ModuleLayerV; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerX() { return _GEOMETRY_VOLUME_ModuleLayerX; };
+    const std::string& Get_GEOMETRY_VOLUME_ModuleLayerY() { return _GEOMETRY_VOLUME_ModuleLayerY; };
+    const std::string& Get_GEOMETRY_VOLUME_Module() { return _GEOMETRY_VOLUME_Module; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayer() { return _GEOMETRY_VOLUME_ScintLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayerOrtho() { return _GEOMETRY_VOLUME_ScintLayerOrtho; };
+    const std::string& Get_GEOMETRY_VOLUME_ScintLayerParallel() { return _GEOMETRY_VOLUME_ScintLayerParallel; };
+    const std::string& Get_GEOMETRY_VOLUME_TopLayer() { return _GEOMETRY_VOLUME_TopLayer; };
+    const std::string& Get_GEOMETRY_VOLUME_DetEnclosure() { return _GEOMETRY_VOLUME_DetEnclosure; };
+    const std::string& Get_GEOMETRY_VOLUME_TMSVolume() { return _GEOMETRY_VOLUME_TMSVolume; };
+    const std::string& Get_GEOMETRY_VOLUME_TMSEDepSimVolume() { return _GEOMETRY_VOLUME_TMSEDepSimVolume; };
+    const std::string& Get_GEOMETRY_VOLUME_LArActive() { return _GEOMETRY_VOLUME_LArActive; };
+
     double Get_Nersc_Spill_Period() { return _NERSC_SPILL_PERIOD; };
     void Set_Nersc_Spill_Period(double value) { _NERSC_SPILL_PERIOD = value; };
+    
+    std::string Get_GEOMETRY_GitTag() { return _GEOMETRY_git_tag; };
+    std::string Get_GEOMETRY_GitBranch() { return _GEOMETRY_git_branch; };
+    std::string Get_GEOMETRY_GitCommit() { return _GEOMETRY_git_commit; };
+    
+    int Get_GEOMETRY_NumberOfScintillatorPlanes() { return _GEOMETRY_NumberOfScintillatorPlanes; };
+    int Get_GEOMETRY_NumberOfSteelPlatesThin() { return _GEOMETRY_NumberOfSteelPlatesThin; };
+    int Get_GEOMETRY_NumberOfSteelPlatesThick() { return _GEOMETRY_NumberOfSteelPlatesThick; };
+    int Get_GEOMETRY_NumberOfSteelPlatesDouble() { return _GEOMETRY_NumberOfSteelPlatesDouble; };
+
+    int Get_Meta_Version_Major() { return _META_version_major; };
+    int Get_Meta_Version_Minor() { return _META_version_minor; };
+    int Get_Meta_Version_Patch() { return _META_version_patch; };
 
   private:
     TMS_Manager();
@@ -108,6 +161,8 @@ class TMS_Manager {
 
     int _RECO_DBSCAN_MinPoints;
     double _RECO_DBSCAN_Epsilon;
+    int _RECO_DBSCAN_PreDBNeighbours;
+    double _RECO_DBSCAN_PreDBDistance;
 
     int _RECO_HOUGH_MaxHough;
     double _RECO_HOUGH_MinInterp;
@@ -121,12 +176,15 @@ class TMS_Manager {
     bool _RECO_HOUGH_RunAStar;
     bool _RECO_HOUGH_FirstCluster;
     double _RECO_HOUGH_MinDist;
+    double _RECO_HOUGH_ContainmentHalfWidth;
 
     bool _RECO_EXTRAPOLATION_Extrapolation;
     int _RECO_EXTRAPOLATION_ExtrapolateDist;
     int _RECO_EXTRAPOLATION_ExtrapolateLimit;
     int _RECO_EXTRAPOLATION_NumBarsEnd;
     int _RECO_EXTRAPOLATION_NumBarsStart;
+    double _RECO_EXTRAPOLATION_ContainmentWidthMultiplier;
+    double _RECO_EXTRAPOLATION_XBarDistanceMultiplier;
 
     int _RECO_TRACKMATCH_PlaneLimit;
     int _RECO_TRACKMATCH_BarLimit;
@@ -137,8 +195,17 @@ class TMS_Manager {
     float _RECO_TRACKMATCH_YDifference;
     int _RECO_TRACKMATCH_DirectionDistance;
 
+    bool _RECO_TRACKSMOOTHING_UseTrackSmoothing;
+    std::string _RECO_TRACKSMOOTHING_TrackSmoothingStrategy;
+    double _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints;
+    double _RECO_TRACKSMOOTHING_UncertaintyGoodDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyBadDirection;
+    double _RECO_TRACKSMOOTHING_UncertaintyForUVTransitionPoints;
+
     bool _RECO_ASTAR_IsGreedy;
     std::string _RECO_ASTAR_CostMetric;
+    int _RECO_ASTAR_MergePlaneGap;
+    int _RECO_ASTAR_MergeBarGap;
 
     bool _RECO_STOPPING_nLastHits;
     double _RECO_STOPPING_EnergyCut;
@@ -147,6 +214,10 @@ class TMS_Manager {
     bool _RECO_CLUSTERING;
     
     double _NERSC_SPILL_PERIOD;
+
+    bool _RECO_KALMAN_RUN; // Whether we run Kalman filter or no
+    double _RECO_KALMAN_ASSUMED_CHARGE; //set the assumed charge of the track in the kalman filter
+
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
@@ -168,17 +239,48 @@ class TMS_Manager {
     double _FIDUCIAL_TMS_END_X;
     double _FIDUCIAL_TMS_END_Y;
     double _FIDUCIAL_TMS_END_Z;
-    double _FIDUCIAL_LAR_START_X;
-    double _FIDUCIAL_LAR_START_Y;
-    double _FIDUCIAL_LAR_START_Z;
-    double _FIDUCIAL_LAR_END_X;
-    double _FIDUCIAL_LAR_END_Y;
-    double _FIDUCIAL_LAR_END_Z;
+    double _ACTIVE_LAR_START_X;
+    double _ACTIVE_LAR_START_Y;
+    double _ACTIVE_LAR_START_Z;
+    double _ACTIVE_LAR_END_X;
+    double _ACTIVE_LAR_END_Y;
+    double _ACTIVE_LAR_END_Z;
+    
+    double _LAR_FIDUCIAL_DOWNSTREAM_Z_CUT;
+    double _LAR_FIDUCIAL_XY_CUT;
+    double _LAR_OUTER_SHELL_THICKNESS;
+    double _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY;
 
     bool _APPLICATIONS_DrawPDF;
     int _APPLICATIONS_MaximumNEvents;
 
     double _GEOMETRY_YMIDDLE;
+
+    std::string _GEOMETRY_git_tag;
+    std::string _GEOMETRY_git_branch;
+    std::string _GEOMETRY_git_commit;
+    int _GEOMETRY_NumberOfScintillatorPlanes;
+    int _GEOMETRY_NumberOfSteelPlatesThin;
+    int _GEOMETRY_NumberOfSteelPlatesThick;
+    int _GEOMETRY_NumberOfSteelPlatesDouble;
+    int _META_version_major;
+    int _META_version_minor;
+    int _META_version_patch;
+
+    std::string _GEOMETRY_VOLUME_ModuleLayer;
+    std::string _GEOMETRY_VOLUME_ModuleLayerU;
+    std::string _GEOMETRY_VOLUME_ModuleLayerV;
+    std::string _GEOMETRY_VOLUME_ModuleLayerX;
+    std::string _GEOMETRY_VOLUME_ModuleLayerY;
+    std::string _GEOMETRY_VOLUME_Module;
+    std::string _GEOMETRY_VOLUME_ScintLayer;
+    std::string _GEOMETRY_VOLUME_ScintLayerOrtho;
+    std::string _GEOMETRY_VOLUME_ScintLayerParallel;
+    std::string _GEOMETRY_VOLUME_TopLayer;
+    std::string _GEOMETRY_VOLUME_DetEnclosure;
+    std::string _GEOMETRY_VOLUME_TMSVolume;
+    std::string _GEOMETRY_VOLUME_TMSEDepSimVolume;
+    std::string _GEOMETRY_VOLUME_LArActive;
 };
 
 #endif

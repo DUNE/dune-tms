@@ -153,9 +153,9 @@ int GetHitLocationCodeSingle(float x, bool isx) {
                IS_WITHIN(x, -99999, 1) || IS_WITHIN(x, -999999, 1) ||
                IS_WITHIN(x, -999999, 1);
   bool crazy_small = x < -4000;
-  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11362.0);
-  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18314.0);
-  bool xlooksz = (isx) ? IS_WITHIN(x, 18314, 10) : false;
+  bool ltTMS = (isx) ? (x < -3300.0) : (x < 11134.0);
+  bool gtTMS = (isx) ? (x > 3300.0) : (x > 18535.0);
+  bool xlooksz = (isx) ? IS_WITHIN(x, 18535, 10) : false;
   int out = -99999;
   if (zero)
     out = 0;

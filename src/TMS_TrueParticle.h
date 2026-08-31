@@ -17,10 +17,13 @@
 using IsInsideFunctionType = std::function<bool(TVector3)>;
 //using IsInsideFunctionType = bool (TMS_Geom::*InInsideFunction)(Vector3);
 
+constexpr double TMS_INVALID_TRUTH_VALUE = -99999999;
+
 class TMS_TrueParticle {
   public:
 
     TMS_TrueParticle() :
+      RunID(-999),
       VertexID(-999), 
       Parent(-999), 
       TrackId(-999), 
@@ -49,12 +52,17 @@ class TMS_TrueParticle {
     }
 
     // Construct directly from edep-sim
-    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal) :
+    TMS_TrueParticle(int ParentVal, int TrackVal, int PDGVal, int VertexIDVal, int RunIDVal) :
+      RunID(RunIDVal),
       VertexID(VertexIDVal),
       Parent(ParentVal), 
       TrackId(TrackVal), 
       PDG(PDGVal), 
       TrueVisibleEnergy(-999) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal: Get a vertex id < 0");
+      }
     }
     
     ~TMS_TrueParticle();
@@ -83,13 +91,19 @@ class TMS_TrueParticle {
     void SetTrackId(int num) { TrackId = num; };
     void SetPDG(int num) { PDG = num; };
 
-    int GetPDG() { return PDG; };
-    int GetParent() { return Parent; };
-    bool IsPrimary() { return Parent < 0; };
-    int GetTrackId() { return TrackId; };
-    int GetVertexID() { return VertexID; };
-    double GetTrueVisibleEnergy() { return TrueVisibleEnergy; };
-    void SetTrueVisibleEnergy(double energy) { TrueVisibleEnergy = energy; };
+    int GetPDG() const { return PDG; };
+    // Hadronic is anything that isn't electron, muon, tau, or photon
+    bool IsHadronic() { return (std::abs(PDG) != 11 && std::abs(PDG) != 13 && std::abs(PDG) != 16 && std::abs(PDG) != 22); };
+    bool IsLeptonic() { return !IsHadronic(); };
+    int GetParent() const { return Parent; };
+    bool IsPrimary() const { return Parent < 0; };
+    int GetTrackId() const { return TrackId; };
+    int GetVertexID() const { return VertexID; };
+    int GetRunID() const { return RunID; };
+    double GetTrueVisibleEnergy(bool slice = false) const { if (slice) { return TrueVisibleEnergySlice; } else { return TrueVisibleEnergy; } };
+    void SetTrueVisibleEnergy(double energy, bool slice) { if (slice) { TrueVisibleEnergySlice = energy; } else { TrueVisibleEnergy = energy; } };
+    int GetNTrueHits(bool slice) const { if (slice) { return NTrueHitsSlice; } else { return NTrueHits; } };
+    void SetNTrueHits(int n, bool slice) { if (slice) { NTrueHitsSlice = n; } else { NTrueHits = n; } };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
@@ -153,6 +167,11 @@ class TMS_TrueParticle {
     bool EntersVolume(IsInsideFunctionType isInside);
     
     double GetEnergyFromMomentum(TVector3 momentum) {
+      if (momentum.X() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Y() == TMS_INVALID_TRUTH_VALUE &&
+          momentum.Z() == TMS_INVALID_TRUTH_VALUE) {
+        return TMS_INVALID_TRUTH_VALUE;
+      }
       double mass = TMS_KinConst::GetMass(PDG);
       return sqrt(momentum.Mag2()+mass*mass);
     }
@@ -166,22 +185,30 @@ class TMS_TrueParticle {
     }
 
   private:
+    int RunID;
     int VertexID;
     int Parent;
     int TrackId;
     int PDG;
     double TrueVisibleEnergy;
+    int NTrueHits;
+    double TrueVisibleEnergySlice;
+    int NTrueHitsSlice;
 
     std::vector<TLorentzVector> PositionPoints;
     std::vector<TVector3> MomentumPoints;
     std::vector<int> Process;
     std::vector<int> Subprocess;
 
-    TVector3 BirthMomentum;
-    TLorentzVector BirthPosition;
+    TVector3 BirthMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector BirthPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 
-    TVector3 DeathMomentum;
-    TLorentzVector DeathPosition;
+    TVector3 DeathMomentum{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                           TMS_INVALID_TRUTH_VALUE};
+    TLorentzVector DeathPosition{TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                                 TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE};
 };
 
 #endif

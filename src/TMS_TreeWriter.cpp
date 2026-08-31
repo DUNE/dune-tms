@@ -1,6 +1,28 @@
 #include "TMS_TreeWriter.h"
+#include "TMS_VertexId.h"
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
+
+#include <algorithm>
+#include <cmath>
+
+namespace {
+  constexpr float kInvalidRecoFloat = -999999999.f;
+  constexpr int kLengthSourceNone = 0;
+  constexpr int kLengthSource3D = 1;
+  constexpr int kLengthSourceUV = 2;
+  constexpr int kLengthSourceXY = 3;
+
+  bool IsUsableRecoLength(float value) {
+    return std::isfinite(value) && value > 0.0f;
+  }
+
+  float EstimateKEFromRange(float length) {
+    if (!IsUsableRecoLength(length)) return kInvalidRecoFloat;
+    return 82.0f + 1.75f * length;
+  }
+
+}
 
 TMS_TreeWriter::TMS_TreeWriter() {
 
@@ -54,21 +76,65 @@ TMS_TreeWriter::TMS_TreeWriter() {
   Truth_Spill->SetDirectory(Output);
   Truth_Spill->SetAutoSave(__TMS_AUTOSAVE__);
 
-  // Make a metadata branch
-  //TTree *MetaData = new TTree("Meta_Data", "Meta_Data");
+  Meta = new TTree("Metadata", "Metadata");
+  Meta->SetDirectory(Output);
+  Meta->SetAutoSave(__TMS_AUTOSAVE__);
+
 
   MakeBranches();
+  FillMetadata();
+}
+
+void TMS_TreeWriter::FillMetadata() {
+  auto start = TMS_Geom::GetInstance().GetStartOfTMSFiducial();
+  TMSFiducialStartX = start.X();
+  TMSFiducialStartY = start.Y();
+  TMSFiducialStartZ = start.Z();
+  auto end = TMS_Geom::GetInstance().GetEndOfTMSFiducial();
+  TMSFiducialEndX = end.X();
+  TMSFiducialEndY = end.Y();
+  TMSFiducialEndZ = end.Z();
+  GeometryGitTag = TMS_Geom::GetInstance().GetGeometryGitTag();
+  GeometryGitBranch = TMS_Geom::GetInstance().GetGeometryGitBranch();
+  GeometryGitCommit = TMS_Geom::GetInstance().GetGeometryGitCommit();
+  NumberOfScintillatorPlanes = TMS_Geom::GetInstance().GetNumberOfScintillatorPlanes();
+  NumberOfSteelPlatesThin = TMS_Geom::GetInstance().GetNumberOfSteelPlatesThin();
+  NumberOfSteelPlatesThick = TMS_Geom::GetInstance().GetNumberOfSteelPlatesThick();
+  NumberOfSteelPlatesDouble = TMS_Geom::GetInstance().GetNumberOfSteelPlatesDouble();
+  DuneTMSVersionMajor = TMS_Manager::GetInstance().Get_Meta_Version_Major();
+  DuneTMSVersionMinor = TMS_Manager::GetInstance().Get_Meta_Version_Minor();
+  DuneTMSVersionPatch = TMS_Manager::GetInstance().Get_Meta_Version_Patch();
+  Meta->Fill();
 }
 
 // Create the branches
 void TMS_TreeWriter::MakeBranches() {
+  Meta->Branch("DuneTMSVersionMajor", &DuneTMSVersionMajor);
+  Meta->Branch("DuneTMSVersionMinor", &DuneTMSVersionMinor);
+  Meta->Branch("DuneTMSVersionPatch", &DuneTMSVersionPatch);
+  Meta->Branch("GeometryGitTag", &GeometryGitTag);
+  Meta->Branch("GeometryGitBranch", &GeometryGitBranch);
+  Meta->Branch("GeometryGitCommit", &GeometryGitCommit);
+  Meta->Branch("NumberOfScintillatorPlanes", &NumberOfScintillatorPlanes);
+  Meta->Branch("NumberOfSteelPlatesThin", &NumberOfSteelPlatesThin);
+  Meta->Branch("NumberOfSteelPlatesThick", &NumberOfSteelPlatesThick);
+  Meta->Branch("NumberOfSteelPlatesDouble", &NumberOfSteelPlatesDouble);
+  Meta->Branch("TMSFiducialStartX", &TMSFiducialStartX);
+  Meta->Branch("TMSFiducialStartY", &TMSFiducialStartY);
+  Meta->Branch("TMSFiducialStartZ", &TMSFiducialStartZ);
+  Meta->Branch("TMSFiducialEndX", &TMSFiducialEndX);
+  Meta->Branch("TMSFiducialEndY", &TMSFiducialEndY);
+  Meta->Branch("TMSFiducialEndZ", &TMSFiducialEndZ);
+
   // Reco information
   Branch_Lines->Branch("EventNo", &EventNo, "EventNo/I");
   Branch_Lines->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Branch_Lines->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Branch_Lines->Branch("RunNo", &RunNo, "RunNo/I");
   Branch_Lines->Branch("nLinesU", &nLinesU, "nLinesU/I");
   Branch_Lines->Branch("nLinesV", &nLinesV, "nLinesV/I");
   Branch_Lines->Branch("nLinesX", &nLinesX, "nLinesX/I");
+  Branch_Lines->Branch("nLinesY", &nLinesY, "nLinesY/I");
   Branch_Lines->Branch("nLines3D",    &nLines3D,    "nLines3D/I");
 
   Branch_Lines->Branch("SlopeU",     SlopeU,      "SlopeU[nLinesU]/F");
@@ -92,12 +158,21 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("Slope_UpstreamX",       Slope_UpstreamX,        "Slope_UpstreamX[nLinesX]/F");
   Branch_Lines->Branch("Intercept_UpstreamX",   Intercept_UpstreamX,    "Intercept_UpstreamX[nLinesX]/F");
 
+  Branch_Lines->Branch("SlopeY",                SlopeY,                 "SlopeY[nLinesY]/F");
+  Branch_Lines->Branch("InterceptY",            InterceptY,             "InterceptY[nLinesY]/F");
+  Branch_Lines->Branch("Slope_DownstreamY",     Slope_DownstreamY,      "Slope_DownstreamY[nLinesY]/F");
+  Branch_Lines->Branch("Intercept_DownstreamY", Intercept_DownstreamY,  "Intercept_DownstreamY[nLinesY]/F");
+  Branch_Lines->Branch("Slope_UpstreamY",       Slope_UpstreamY,        "Slope_UpstreamY[nLinesY]/F");
+  Branch_Lines->Branch("Intercept_UpstreamY",   Intercept_UpstreamY,    "Intercept_UpstreamY[nLinesY]/F");
+
   Branch_Lines->Branch("DirectionZU", DirectionZU, "DirectionZU[nLinesU]/F");
   Branch_Lines->Branch("DirectionZV", DirectionZV, "DirectionZV[nLinesV]/F");
   Branch_Lines->Branch("DirectionZX", DirectionZX, "DirectionZX[nLinesX]/F");
+  Branch_Lines->Branch("DirectionZY", DirectionZY, "DirectionZY[nLinesY]/F");
   Branch_Lines->Branch("DirectionXU", DirectionXU, "DirectionXU[nLinesU]/F");
   Branch_Lines->Branch("DirectionXV", DirectionXV, "DirectionXV[nLinesV]/F");
   Branch_Lines->Branch("DirectionYX", DirectionYX, "DirectionYX[nLinesX]/F");
+  Branch_Lines->Branch("DirectionXY", DirectionXY, "DirectionXY[nLinesY]/F");
   Branch_Lines->Branch("DirectionZU_Downstream",   DirectionZU_Downstream,   "DirectionZU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionXU_Downstream",   DirectionXU_Downstream,   "DirectionXU_Downstream[nLinesU]/F");
   Branch_Lines->Branch("DirectionZU_Upstream",     DirectionZU_Upstream,     "DirectionZU_Upstream[nLinesU]/F");
@@ -109,46 +184,61 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("DirectionZX_Downstream",  DirectionZX_Downstream, "DirectionZX_Downstream[nLinesX]/F");
   Branch_Lines->Branch("DirectionYX_Downstream",  DirectionYX_Downstream, "DirectionYX_Downstream[nLinesX]/F");
   Branch_Lines->Branch("DirectionZX_Upstream",    DirectionZX_Upstream,   "DirectionZX_Upstream[nLinesX]/F");
-  Branch_Lines->Branch("DirectionYX_Upstream",    DirectionYX_Upstream,   "DirectionYX_Upstream[nLinesX]/F");
+  Branch_Lines->Branch("DirectionZY_Downstream",  DirectionZY_Downstream, "DirectionZY_Downstream[nLinesY]/F");
+  Branch_Lines->Branch("DirectionXY_Downstream",  DirectionXY_Downstream, "DirectionXY_Downstream[nLinesY]/F");
+  Branch_Lines->Branch("DirectionZY_Upstream",  DirectionZY_Upstream, "DirectionZY_Upstream[nLinesY]/F");
+  Branch_Lines->Branch("DirectionXY_Upstream",  DirectionXY_Upstream, "DirectionXY_Upstream[nLinesY]/F");
 
   Branch_Lines->Branch("FirstHoughHitU",     FirstHitU,     "FirstHoughHitU[nLinesU][2]/F");
   Branch_Lines->Branch("FirstHoughHitV",     FirstHitV,     "FirstHoughHitV[nLinesV][2]/F");
   Branch_Lines->Branch("FirstHoughHitX",     FirstHitX,     "FirstHoughHitX[nLinesX][2]/F");
+  Branch_Lines->Branch("FirstHoughHitY",     FirstHitY,     "FirstHoughHitY[nLinesY][2]/F");
   Branch_Lines->Branch("LastHoughHitU",      LastHitU,      "LastHoughHitU[nLinesU][2]/F");
   Branch_Lines->Branch("LastHoughHitV",      LastHitV,      "LastHoughHitV[nLinesV][2]/F");
   Branch_Lines->Branch("LastHoughHitX",      LastHitX,      "LastHoughHitX[nLinesX][2]/F");
+  Branch_Lines->Branch("LastHoughHitY",      LastHitY,      "LastHoughHitY[nLinesY][2]/F");
   Branch_Lines->Branch("FirstHoughHitTimeU", FirstHitTimeU, "FirstHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("FirstHoughHitTimeV", FirstHitTimeV, "FirstHoughHitTimeV[nLinesV]/F"); 
   Branch_Lines->Branch("FirstHoughHitTimeX", FirstHitTimeX, "FirstHoughHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("FirstHoughHitTimeY", FirstHitTimeY, "FirstHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("LastHoughHitTimeU",  LastHitTimeU,  "LastHoughHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("LastHoughHitTimeV",  LastHitTimeV,  "LastHoughHitTimeV[nLinesV]/F");
-  Branch_Lines->Branch("LastHoughHitTImeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("LastHoughHitTimeX",  LastHitTimeX,  "LastHoughHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("LastHoughHitTimeY",  LastHitTimeY,  "LastHoughHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeU", EarliestHitTimeU, "HoughEarliestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeV", EarliestHitTimeV, "HoughEarliestHitTimeV[nLinesV]/F");
   Branch_Lines->Branch("HoughEarliestHitTimeX", EarliestHitTimeX, "HoughEarliestHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("HoughEarliestHitTimeY", EarliestHitTimeY, "HoughEarliestHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("HoughLatestHitTimeU",   LatestHitTimeU,   "HoughLatestHitTimeU[nLinesU]/F");
   Branch_Lines->Branch("HoughLatestHitTimeV",   LatestHitTimeV,   "HoughLatestHitTimeV[nLinesV]/F");
   Branch_Lines->Branch("HoughLatestHitTimeX",   LatestHitTimeX,   "HoughLatestHitTimeX[nLinesX]/F");
+  Branch_Lines->Branch("HoughLatestHitTimeY",   LatestHitTimeY,   "HoughLatestHitTimeY[nLinesY]/F");
   Branch_Lines->Branch("FirstHoughPlaneU", FirstPlaneU,   "FirstHoughPlaneU[nLinesU]/I");
   Branch_Lines->Branch("FirstHoughPlaneV", FirstPlaneV,   "FirstHoughPlaneV[nLinesV]/I");
   Branch_Lines->Branch("FirstHoughPlaneX", FirstPlaneX,   "FirstHoughPlaneX[nLinesX]/I");
+  Branch_Lines->Branch("FirstHoughPlaneY", FirstPlaneY,   "FirstHoughPlaneY[nLinesY]/I");
   Branch_Lines->Branch("LastHoughPlaneU",  LastPlaneU,    "LastHoughPlaneU[nLinesU]/I");
   Branch_Lines->Branch("LastHoughPlaneV",  LastPlaneV,    "LastHoughPlaneV[nLinesV]/I");
   Branch_Lines->Branch("LastHoughPlaneX",  LastPlaneX,    "LastHoughPlaneX[nLinesX]/I");
+  Branch_Lines->Branch("LastHoughPlaneY",  LastPlaneY,    "LastHoughPlaneY[nLinesY]/I");
   Branch_Lines->Branch("TMSStart",         &TMSStart,     "TMSStart/O");
   Branch_Lines->Branch("TMSStartTime",     &TMSStartTime, "TMSStartTime/F");
   Branch_Lines->Branch("OccupancyU",       OccupancyU,    "OccupancyU[nLinesU]/F");
   Branch_Lines->Branch("OccupancyV",       OccupancyV,    "OccupancyV[nLinesV]/F");
   Branch_Lines->Branch("OccupancyX",       OccupancyX,    "OccupancyX[nLinesX]/F");
+  Branch_Lines->Branch("OccupancyY",       OccupancyY,    "OccupancyY[nLinesY]/F");
   Branch_Lines->Branch("TrackLengthU",     TrackLengthU,  "TrackLengthU[nLinesU]/F");
   Branch_Lines->Branch("TrackLengthV",     TrackLengthV,  "TrackLengthV[nLinesV]/F");
   Branch_Lines->Branch("TrackLengthX",     TrackLengthX,  "TrackLengthX[nLinesX]/F");
+  Branch_Lines->Branch("TrackLengthY",     TrackLengthY,  "TrackLengthY[nLinesY]/F");
   Branch_Lines->Branch("TotalTrackEnergyU", TotalTrackEnergyU, "TotalTrackEnergyU[nLinesU]/F");
   Branch_Lines->Branch("TotalTrackEnergyV", TotalTrackEnergyV, "TotalTrackEnergyV[nLinesV]/F");
   Branch_Lines->Branch("TotalTrackEnergyX", TotalTrackEnergyX, "TotalTrackEnergyX[nLinesX]/F");
+  Branch_Lines->Branch("TotalTrackEnergyY", TotalTrackEnergyY, "TotalTrackEnergyY[nLinesY]/F");
   Branch_Lines->Branch("TrackStoppingU",    TrackStoppingU,    "TrackStoppingU[nLinesU]/O");
   Branch_Lines->Branch("TrackStoppingV",    TrackStoppingV,    "TrackStoppingV[nLinesV]/O");
   Branch_Lines->Branch("TrackStoppingX",    TrackStoppingX,    "TrackStoppingX[nLinesX]/O");
+  Branch_Lines->Branch("TrackStoppingY",    TrackStoppingY,    "TrackStoppingY[nLinesY]/O");
 
 /*  // 3D Track information
   Branch_Lines->Branch("FirstHoughHit3D",        FirstHit3D,        "FirstHoughHit3D[nLines3D][3]/F");
@@ -173,93 +263,240 @@ void TMS_TreeWriter::MakeBranches() {
   Branch_Lines->Branch("nHitsInTrackU",   &nHitsInTrackU,  "nHitsInTrackU[nLinesU]/I");
   Branch_Lines->Branch("nHitsInTrackV",   &nHitsInTrackV,  "nHitsInTrackV[nLinesV]/I");
   Branch_Lines->Branch("nHitsInTrackX",   &nHitsInTrackX,  "nHitsInTrackX[nLinesX]/I");
+  Branch_Lines->Branch("nHitsInTrackY",   &nHitsInTrackY,  "nHitsInTrackY[nLinesY]/I");
   Branch_Lines->Branch("TrackHitEnergyU", TrackHitEnergyU, "TrackHitEnergyU[10][200]/F");
   Branch_Lines->Branch("TrackHitEnergyV", TrackHitEnergyV, "TrackHitEnergyV[10][200]/F");
   Branch_Lines->Branch("TrackHitEnergyX", TrackHitEnergyX, "TrackHitEnergyX[10][200]/F");
+  Branch_Lines->Branch("TrackHitEnergyY", TrackHitEnergyY, "TrackHitEnergyY[10][200]/F");
   Branch_Lines->Branch("TrackHitPosU",    TrackHitPosU,    "TrackHitPosU[10][200][2]/F");
   Branch_Lines->Branch("TrackHitPosV",    TrackHitPosV,    "TrackHitPosV[10][200][2]/F");
   Branch_Lines->Branch("TrackHitPosX",    TrackHitPosX,    "TrackHitPosX[10][200][2]/F");
+  Branch_Lines->Branch("TrackHitPosY",    TrackHitPosY,    "TrackHitPosY[10][200][2]/F");
   Branch_Lines->Branch("TrackHitTimeU",   TrackHitTimeU,   "TrackHitTimeU[10][200]/F");
   Branch_Lines->Branch("TrackHitTimeV",   TrackHitTimeV,   "TrackHitTimeV[10][200]/F");
   Branch_Lines->Branch("TrackHitTimeX",   TrackHitTimeX,   "TrackHitTimeX[10][200]/F");
+  Branch_Lines->Branch("TrackHitTimeY",   TrackHitTimeY,   "TrackHitTimeY[10][200]/F");
 
   // Cluster information
   Branch_Lines->Branch("nClustersU",        &nClustersU,       "nClustersU/I");
   Branch_Lines->Branch("nClustersV",        &nClustersV,       "nClustersV/I");
-  Branch_Lines->Branch("nClusterX",         &nClustersX,       "nClustersX/I");
+  Branch_Lines->Branch("nClustersX",        &nClustersX,       "nClustersX/I");
+  Branch_Lines->Branch("nClustersY",        &nClustersY,       "nClustersY/I");
   Branch_Lines->Branch("ClusterEnergyU",    ClusterEnergyU,    "ClusterEnergyU[nClustersU]/F");
   Branch_Lines->Branch("ClusterEnergyV",    ClusterEnergyV,    "ClusterEnergyV[nClustersV]/F");
   Branch_Lines->Branch("ClusterEnergyX",    ClusterEnergyX,    "ClusterEnergyX[nClustersX]/F");
+  Branch_Lines->Branch("ClusterEnergyY",    ClusterEnergyY,    "ClusterEnergyY[nClustersY]/F");
   Branch_Lines->Branch("ClusterTimeU",      ClusterTimeU,      "ClusterTimeU[nClustersU]/F");
   Branch_Lines->Branch("ClusterTimeV",      ClusterTimeV,      "ClusterTimeV[nClustersV]/F");
   Branch_Lines->Branch("ClusterTimeX",      ClusterTimeX,      "ClusterTimeX[nClustersX]/F");
+  Branch_Lines->Branch("ClusterTimeY",      ClusterTimeY,      "ClusterTimeY[nClustersY]/F");
   Branch_Lines->Branch("ClusterPosMeanU",   ClusterPosMeanU,   "ClusterPosMeanU[25][2]/F");
   Branch_Lines->Branch("ClusterPosMeanV",   ClusterPosMeanV,   "ClusterPosMeanV[25][2]/F");
   Branch_Lines->Branch("ClusterPosMeanX",   ClusterPosMeanX,   "ClusterPosMeanX[25][2]/F");
+  Branch_Lines->Branch("ClusterPosMeanY",   ClusterPosMeanY,   "ClusterPosMeanY[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevU", ClusterPosStdDevU, "ClusterPosStdDevU[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevV", ClusterPosStdDevV, "ClusterPosStdDevV[25][2]/F");
   Branch_Lines->Branch("ClusterPosStdDevX", ClusterPosStdDevX, "ClusterPosStdDevX[25][2]/F");
+  Branch_Lines->Branch("ClusterPosStdDevY", ClusterPosStdDevY, "ClusterPosStdDevY[25][2]/F");
   Branch_Lines->Branch("nHitsInClusterU",   nHitsInClusterU,   "nHitsInClusterU[nClustersU]/I");
   Branch_Lines->Branch("nHitsInClusterV",   nHitsInClusterV,   "nHitsInClusterV[nClustersV]/I");
   Branch_Lines->Branch("nHitsInClusterX",   nHitsInClusterX,   "nHitsInClusterX[nClustersX]/I");
+  Branch_Lines->Branch("nHitsInClusterY",   nHitsInClusterY,   "nHitsInClusterY[nClustersY]/I");
   Branch_Lines->Branch("ClusterHitPosU",    ClusterHitPosU,    "ClusterHitPosU[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitPosV",    ClusterHitPosV,    "ClusterHitPosV[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitPosX",    ClusterHitPosX,    "ClusterHitPosX[25][200][2]/F");
+  Branch_Lines->Branch("ClusterHitPosY",    ClusterHitPosY,    "ClusterHitPosY[25][200][2]/F");
   Branch_Lines->Branch("ClusterHitEnergyU", ClusterHitEnergyU, "ClusterHitEnergyU[25][200]/F");
   Branch_Lines->Branch("ClusterHitEnergyV", ClusterHitEnergyV, "ClusterHitEnergyV[25][200]/F");
   Branch_Lines->Branch("ClusterHitEnergyX", ClusterHitEnergyX, "ClusterHitEnergyX[25][200]/F");
+  Branch_Lines->Branch("ClusterHitEnergyY", ClusterHitEnergyY, "ClusterHitEnergyY[25][200]/F");
   Branch_Lines->Branch("ClusterHitTimeU",   ClusterHitTimeU,   "ClusterHitTimeU[25][200]/F");
   Branch_Lines->Branch("ClusterHitTimeV",   ClusterHitTimeV,   "ClusterHitTimeV[25][200]/F");
   Branch_Lines->Branch("ClusterHitTimeX",   ClusterHitTimeX,   "ClusterHitTimeX[25][200]/F");
+  Branch_Lines->Branch("ClusterHitTimeY",   ClusterHitTimeY,   "ClusterHitTimeY[25][200]/F");
   Branch_Lines->Branch("ClusterHitSliceU",  ClusterHitSliceU,  "ClusterHitSliceU[25][200]/I");
   Branch_Lines->Branch("ClusterHitSliceV",  ClusterHitSliceV,  "ClusterHitSliceV[25][200]/I");
   Branch_Lines->Branch("ClusterHitSliceX",  ClusterHitSliceX,  "ClusterHitSliceX[25][200]/I");
+  Branch_Lines->Branch("ClusterHitSliceY",  ClusterHitSliceY,  "ClusterHitSliceY[25][200]/I");
 
   // Hit information
-  Branch_Lines->Branch("nHits",         &nHits,        "nHits/I");
-  Branch_Lines->Branch("RecoHitPos",    RecoHitPos,    "RecoHitPos[nHits][4]/F");
-  Branch_Lines->Branch("RecoHitEnergy", RecoHitEnergy, "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("nHits",           &nHits,         "nHits/I");
+  Branch_Lines->Branch("RecoHitPos",      RecoHitPos,     "RecoHitPos[nHits][4]/F");
+  Branch_Lines->Branch("RecoHitEnergy",   RecoHitEnergy,  "RecoHitEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitPE",       RecoHitPE,      "RecoHitPE[nHits]/F");
+  Branch_Lines->Branch("RecoHitBar",      RecoHitBar,     "RecoHitBar[nHits]/I");
+  Branch_Lines->Branch("RecoHitBarType",  RecoHitBarType, "RecoHitBarType[nHits]/I");
+
+  Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryRunId", RecoHitPrimaryRunId, "RecoHitPrimaryRunId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexId", RecoHitPrimaryVertexId, "RecoHitPrimaryVertexId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexGlobalId", RecoHitPrimaryVertexGlobalId, "RecoHitPrimaryVertexGlobalId[nHits]/L");
+  Branch_Lines->Branch("RecoHitPrimaryTrackId", RecoHitPrimaryTrackId, "RecoHitPrimaryTrackId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryParticleIndex", RecoHitPrimaryParticleIndex, "RecoHitPrimaryParticleIndex[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryTrueEnergy", RecoHitPrimaryTrueEnergy, "RecoHitPrimaryTrueEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitOtherTrueEnergy", RecoHitOtherTrueEnergy, "RecoHitOtherTrueEnergy[nHits]/F");
 
   // Track information
   // TODO: Fill these properly
   Reco_Tree->Branch("EventNo", &EventNo, "EventNo/I");
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  Reco_Tree->Branch("RunNo",   &RunNo,   "RunNo/I");
 
-  Reco_Tree->Branch("nTracks",          &nTracks,               "nTracks/I");
-  Reco_Tree->Branch("nHits",            nHitsIn3DTrack,         "nHits[nTracks]/I");
-  Reco_Tree->Branch("TrackHitPos",      RecoTrackHitPos,        "TrackHitPos[nTracks][200][3]/F");
-  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "RecoTrackHitEnergies[10][200]/F");
-  Reco_Tree->Branch("StartPos",         RecoTrackStartPos,      "StartPos[nTracks][3]/F");
-  Reco_Tree->Branch("Direction",        RecoTrackDirection,     "Direction[nTracks][3]/F");
-  Reco_Tree->Branch("EndPos",           RecoTrackEndPos,        "EndPos[nTracks][3]/F");
-  Reco_Tree->Branch("EnergyRange",      RecoTrackEnergyRange,   "EnergyRange[nTracks]/F");
-  Reco_Tree->Branch("EnergyDeposit",    RecoTrackEnergyDeposit, "EnergyDeposit[nTracks]/F");
-  Reco_Tree->Branch("Length",           RecoTrackLength,        "Length[nTracks]/F");
-  Reco_Tree->Branch("Charge",           RecoTrackCharge,        "Charge[nTracks]/I");
+  Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
+  Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
+  Reco_Tree->Branch("TrackHitPos",    RecoTrackHitPos,          "TrackHitPos[nTracks][200][4]/F");
+  Reco_Tree->Branch("nKalmanNodes",   nKalmanNodes,             "nKalmanNodes[nTracks]/I");
+  Reco_Tree->Branch("KalmanPos",      RecoTrackKalmanPos,       "KalmanPos[nTracks][200][3]/F");  //TODO?
+  Reco_Tree->Branch("KalmanPos_plus_chi2",  RecoTrackKalmanPos_plus_chi2,   "KalmanPos_plus_chi2[nTracks][200][3]/F");
+  Reco_Tree->Branch("KalmanPos_minus_chi2", RecoTrackKalmanPos_minus_chi2,  "KalmanPos_minus_chi2[nTracks][200][3]/F");
+  Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarView", RecoTrackKalmanFirstPlaneBarView, "RecoTrackKalmanFirstPlaneBarView[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarView",  RecoTrackKalmanLastPlaneBarView,  "RecoTrackKalmanLastPlaneBarView[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarView",      RecoTrackKalmanPlaneBarView,      "RecoTrackKalmanPlaneBarView[nTracks][200][3]/I");
+  Reco_Tree->Branch("KalmanTruePos",  RecoTrackKalmanTruePos,   "TrackHitTruePos[nTracks][200][3]/F");  //TODO?
+  Reco_Tree->Branch("RecoTrackKalmanFirstPlaneBarViewTrue", RecoTrackKalmanFirstPlaneBarViewTrue, "RecoTrackKalmanFirstPlaneBarViewTrue[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanLastPlaneBarViewTrue",  RecoTrackKalmanLastPlaneBarViewTrue,  "RecoTrackKalmanLastPlaneBarViewTrue[nTracks][3]/I");
+  Reco_Tree->Branch("RecoTrackKalmanPlaneBarViewTrue",      RecoTrackKalmanPlaneBarViewTrue,      "RecoTrackKalmanPlaneBarViewTrue[nTracks][200][3]/I");
+  Reco_Tree->Branch("StartDirection", RecoTrackStartDirection,  "StartDirection[nTracks][3]/F");
+  Reco_Tree->Branch("EndDirection",   RecoTrackEndDirection,    "EndDirection[nTracks][3]/F");
+  Reco_Tree->Branch("StartPos",       RecoTrackStartPos,        "StartPos[nTracks][4]/F");
+  Reco_Tree->Branch("EndPos",         RecoTrackEndPos,          "EndPos[nTracks][4]/F");
+  Reco_Tree->Branch("EnergyRange",    RecoTrackEnergyRange,     "EnergyRange[nTracks]/F");
+  Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
+  Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
+  Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
+  Reco_Tree->Branch("Length_3D",      RecoTrackLength_3D,       "Length_3D[nTracks]/F");
+  Reco_Tree->Branch("LengthSource",   RecoTrackLengthSource,    "LengthSource[nTracks]/I");
+  Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
+  Reco_Tree->Branch("Charge_Kalman",  RecoTrackCharge_Kalman,   "Charge_Kalman[nTracks]/I");
+  Reco_Tree->Branch("Charge_Kalman_curvature",  RecoTrackCharge_Kalman_curvature, "Charge_Kalman_curvature[nTracks]/I");
+  Reco_Tree->Branch("Chi2",           RecoTrackChi2,            "Chi2[nTracks]/F");
+  Reco_Tree->Branch("Chi2_minus",     RecoTrackChi2_minus,      "Chi2_minus[nTracks]/F");
+  Reco_Tree->Branch("Chi2_plus",      RecoTrackChi2_plus,       "Chi2_plus[nTracks]/F");
 
+  Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
+  Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
+
+  
+  Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
+  Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
 
   MakeTruthBranches(Truth_Info);
   MakeTruthBranches(Truth_Spill);
+
+  Truth_Spill->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
+  Truth_Spill->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
+  Truth_Spill->Branch("nTrueForgottenParticles", &nTrueForgottenParticles, "nTrueForgottenParticles/I");
+  Truth_Spill->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
+  Truth_Spill->Branch("ParticleRunNo", ParticleRunNo, "ParticleRunNo[nTrueParticles]/I");
+  Truth_Spill->Branch("VertexGlobalID", VertexGlobalID, "VertexGlobalID[nTrueParticles]/L");
+  Truth_Spill->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
+  Truth_Spill->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
+  Truth_Spill->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
+  Truth_Spill->Branch("IsPrimary", IsPrimary, "IsPrimary[nTrueParticles]/O");
+  Truth_Spill->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
+  Truth_Spill->Branch("TrueNHits", TrueNHits, "TrueNHits[nTrueParticles]/I");
+  Truth_Spill->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
+  Truth_Spill->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
+
+  Truth_Spill->Branch("InteractionTMSFiducial", &InteractionTMSFiducial, "InteractionTMSFiducial/O");
+  Truth_Spill->Branch("InteractionTMSFirstTwoModules", &InteractionTMSFirstTwoModules, "InteractionTMSFirstTwoModules/O");
+  Truth_Spill->Branch("InteractionTMSThin", &InteractionTMSThin, "InteractionTMSThin/O");
+  Truth_Spill->Branch("InteractionLArFiducial", &InteractionLArFiducial, "InteractionLArFiducial/O");
+  Truth_Spill->Branch("TMSFiducialStart", TMSFiducialStart, "TMSFiducialStart[nTrueParticles]/O");
+  Truth_Spill->Branch("TMSFiducialTouch", TMSFiducialTouch, "TMSFiducialTouch[nTrueParticles]/O");
+  Truth_Spill->Branch("TMSFiducialEnd", TMSFiducialEnd, "TMSFiducialEnd[nTrueParticles]/O");
+  Truth_Spill->Branch("LArFiducialStart", LArFiducialStart, "LArFiducialStart[nTrueParticles]/O");
+  Truth_Spill->Branch("LArFiducialTouch", LArFiducialTouch, "LArFiducialTouch[nTrueParticles]/O");
+  Truth_Spill->Branch("LArFiducialEnd", LArFiducialEnd, "LArFiducialEnd[nTrueParticles]/O");
+
+  Truth_Spill->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
+  Truth_Spill->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
+  Truth_Spill->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
+  Truth_Spill->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
   
+  // IsInside-based start/end
+  Truth_Spill->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F");
+
+  // Z-based start/end
+  Truth_Spill->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
+  Truth_Spill->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F");
+
+  Truth_Spill->Branch("TrueVtxN", &TrueVtxN, "TrueVtxN/I");
+  // Position
+  Truth_Spill->Branch("TrueVtxX", TrueVtxX, "TrueVtxX[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxY", TrueVtxY, "TrueVtxY[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxZ", TrueVtxZ, "TrueVtxZ[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxT", TrueVtxT, "TrueVtxT[TrueVtxN]/F");
+  // Vtx E
+  Truth_Spill->Branch("TrueVtxPx", TrueVtxPx, "TrueVtxPx[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxPy", TrueVtxPy, "TrueVtxPy[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxPz", TrueVtxPz, "TrueVtxPz[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxE", TrueVtxE, "TrueVtxE[TrueVtxN]/F");
+  // Other info
+  Truth_Spill->Branch("TrueVtxPDG", TrueVtxPDG, "TrueVtxPDG[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxID", TrueVtxID, "TrueVtxID[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxRunNo", TrueVtxRunNo, "TrueVtxRunNo[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxGlobalID", TrueVtxGlobalID, "TrueVtxGlobalID[TrueVtxN]/L");
+  Truth_Spill->Branch("TrueVtxReaction", &TrueVtxReaction);
+  // Hadronic E
+  Truth_Spill->Branch("TrueVtxHadronicELarShell", TrueVtxHadronicELarShell, "TrueVtxHadronicELarShell[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxHadronicELAr", TrueVtxHadronicELAr, "TrueVtxHadronicELAr[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxHadronicETMS", TrueVtxHadronicETMS, "TrueVtxHadronicETMS[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxHadronicE", TrueVtxHadronicE, "TrueVtxHadronicE[TrueVtxN]/F");
+  // Visible E
+  Truth_Spill->Branch("TrueVtxVisibleETMS", TrueVtxVisibleETMS, "TrueVtxVisibleETMS[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxVisibleELAr", TrueVtxVisibleELAr, "TrueVtxVisibleELAr[TrueVtxN]/F");
+  Truth_Spill->Branch("TrueVtxVisibleE", TrueVtxVisibleE, "TrueVtxVisibleE[TrueVtxN]/F");
+  // Truth cuts
+  Truth_Spill->Branch("TrueVtxFiducialCut", TrueVtxFiducialCut, "TrueVtxFiducialCut[TrueVtxN]/O");
+  Truth_Spill->Branch("TrueVtxShellEnergyCut", TrueVtxShellEnergyCut, "TrueVtxShellEnergyCut[TrueVtxN]/O");
+  Truth_Spill->Branch("TrueVtxNDPhysicsCut", TrueVtxNDPhysicsCut, "TrueVtxNDPhysicsCut[TrueVtxN]/O");
+
   // Truth information
-  Truth_Info->Branch("nParticles", &nParticles, "nParticles/I");
-  Truth_Info->Branch("LeptonPDG", &LeptonPDG, "LeptonPDG/I");
-  Truth_Info->Branch("LeptonP4", LeptonP4, "LeptonP4[4]/F");
-  Truth_Info->Branch("LeptonX4", LeptonX4, "LeptonX4[4]/F");
-  Truth_Info->Branch("MuonP4", MuonP4, "MuonP4[4]/F");
-  Truth_Info->Branch("Muon_Vertex", Muon_Vertex, "Muon_Vertex[4]/F");
-  Truth_Info->Branch("Muon_Death", Muon_Death, "Muon_Death[4]/F");
+  Truth_Info->Branch("nParticles",  &nParticles,  "nParticles/I");
+  Truth_Info->Branch("LeptonPDG",   &LeptonPDG,   "LeptonPDG/I");
+  Truth_Info->Branch("LeptonP4",    LeptonP4,     "LeptonP4[4]/F");
+  Truth_Info->Branch("LeptonX4",    LeptonX4,     "LeptonX4[4]/F");
+  Truth_Info->Branch("MuonP4",      MuonP4,       "MuonP4[4]/F");
+  Truth_Info->Branch("Muon_Vertex", Muon_Vertex,  "Muon_Vertex[4]/F");
+  Truth_Info->Branch("Muon_Death",  Muon_Death,   "Muon_Death[4]/F");
   Truth_Info->Branch("Muon_TrueKE", &Muon_TrueKE, "Muon_TrueKE/F");
   Truth_Info->Branch("Muon_TrueTrackLength", &Muon_TrueTrackLength, "Muon_TrueTrackLength/F");
   
-  Truth_Info->Branch("VertexIdOfMostEnergyInEvent", &VertexIdOfMostEnergyInEvent, "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexIdOfMostEnergyInEvent",    &VertexIdOfMostEnergyInEvent,    "VertexIdOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexRunNoOfMostEnergyInEvent", &VertexRunNoOfMostEnergyInEvent, "VertexRunNoOfMostEnergyInEvent/I");
+  Truth_Info->Branch("VertexGlobalIDOfMostEnergyInEvent", &VertexGlobalIDOfMostEnergyInEvent, "VertexGlobalIDOfMostEnergyInEvent/L");
   Truth_Info->Branch("VisibleEnergyFromVertexInSlice", &VisibleEnergyFromVertexInSlice, "VisibleEnergyFromVertexInSlice/F");
-  Truth_Info->Branch("TotalVisibleEnergyFromVertex", &TotalVisibleEnergyFromVertex, "TotalVisibleEnergyFromVertex/F");
+  Truth_Info->Branch("TotalVisibleEnergyFromVertex",   &TotalVisibleEnergyFromVertex,   "TotalVisibleEnergyFromVertex/F");
   Truth_Info->Branch("VisibleEnergyFromOtherVerticesInSlice", &VisibleEnergyFromOtherVerticesInSlice, "VisibleEnergyFromOtherVerticesInSlice/F");
-  Truth_Info->Branch("VertexVisibleEnergyFractionInSlice", &VertexVisibleEnergyFractionInSlice, "VertexVisibleEnergyFractionInSlice/F");
-  Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction", &PrimaryVertexVisibleEnergyFraction, "PrimaryVertexVisibleEnergyFraction/F");
+  Truth_Info->Branch("VertexVisibleEnergyFractionInSlice",    &VertexVisibleEnergyFractionInSlice,    "VertexVisibleEnergyFractionInSlice/F");
+  Truth_Info->Branch("PrimaryVertexVisibleEnergyFraction",    &PrimaryVertexVisibleEnergyFraction,    "PrimaryVertexVisibleEnergyFraction/F");
+
+  Truth_Info->Branch("LArOuterShellEnergy", &LArOuterShellEnergy, "LArOuterShellEnergy/F");
+  Truth_Info->Branch("LArTotalEnergy",      &LArTotalEnergy,      "LArTotalEnergy/F");
+  Truth_Info->Branch("TotalNonTMSEnergy",   &TotalNonTMSEnergy,   "TotalNonTMSEnergy/F");
+  Truth_Info->Branch("LArOuterShellEnergyFromVertex", &LArOuterShellEnergyFromVertex, "LArOuterShellEnergyFromVertex/F");
+  Truth_Info->Branch("LArTotalEnergyFromVertex",      &LArTotalEnergyFromVertex,      "LArTotalEnergyFromVertex/F");
+  Truth_Info->Branch("TotalNonTMSEnergyFromVertex",   &TotalNonTMSEnergyFromVertex,   "TotalNonTMSEnergyFromVertex/F");
   
   Truth_Info->Branch("RecoTrackN", &RecoTrackN, "RecoTrackN/I");
   Truth_Info->Branch("RecoTrackTrueVisibleEnergy", RecoTrackTrueVisibleEnergy,
@@ -267,9 +504,13 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("RecoTrackPrimaryParticleIndex", RecoTrackPrimaryParticleIndex, "RecoTrackPrimaryParticleIndex[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueVisibleEnergy", RecoTrackPrimaryParticleTrueVisibleEnergy,
                      "RecoTrackPrimaryParticleTrueVisibleEnergy[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueNHits", RecoTrackPrimaryParticleTrueNHits,
+                     "RecoTrackPrimaryParticleTrueNHits[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleIndex", RecoTrackSecondaryParticleIndex, "RecoTrackSecondaryParticleIndex[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleTrueVisibleEnergy", RecoTrackSecondaryParticleTrueVisibleEnergy,
                      "RecoTrackSecondaryParticleTrueVisibleEnergy[RecoTrackN]/F");
+  Truth_Info->Branch("RecoTrackSecondaryParticleTrueNHits", RecoTrackSecondaryParticleTrueNHits,
+                     "RecoTrackSecondaryParticleTrueNHits[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumTrackStart", RecoTrackPrimaryParticleTrueMomentumTrackStart,
                      "RecoTrackPrimaryParticleTrueMomentumTrackStart[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTruePositionTrackStart", RecoTrackPrimaryParticleTruePositionTrackStart,
@@ -339,6 +580,19 @@ void TMS_TreeWriter::MakeBranches() {
     "RecoTrackPrimaryParticleLArFiducialTouch[RecoTrackN]/O");
   Truth_Info->Branch("RecoTrackPrimaryParticleLArFiducialEnd", RecoTrackPrimaryParticleLArFiducialEnd,
     "RecoTrackPrimaryParticleLArFiducialEnd[RecoTrackN]/O");
+
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxId", RecoTrackPrimaryParticleVtxId,
+                     "RecoTrackPrimaryParticleVtxId[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxRunNo", RecoTrackPrimaryParticleVtxRunNo,
+                     "RecoTrackPrimaryParticleVtxRunNo[RecoTrackN]/I");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxGlobalID", RecoTrackPrimaryParticleVtxGlobalID,
+                     "RecoTrackPrimaryParticleVtxGlobalID[RecoTrackN]/L");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxFiducialCut", RecoTrackPrimaryParticleVtxFiducialCut,
+    "RecoTrackPrimaryParticleVtxFiducialCut[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxShellEnergyCut", RecoTrackPrimaryParticleVtxShellEnergyCut,
+    "RecoTrackPrimaryParticleVtxShellEnergyCut[RecoTrackN]/O");
+  Truth_Info->Branch("RecoTrackPrimaryParticleVtxNDPhysicsCut", RecoTrackPrimaryParticleVtxNDPhysicsCut,
+    "RecoTrackPrimaryParticleVtxNDPhysicsCut[RecoTrackN]/O");
                      
   Truth_Info->Branch("RecoTrackSecondaryParticlePDG", &RecoTrackSecondaryParticlePDG, "RecoTrackSecondaryParticlePDG[RecoTrackN]/I");
   Truth_Info->Branch("RecoTrackSecondaryParticleIsPrimary", &RecoTrackSecondaryParticleIsPrimary, "RecoTrackSecondaryParticleIsPrimary[RecoTrackN]/O");
@@ -348,75 +602,62 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackSecondaryParticleTruePositionStart[RecoTrackN][4]/F"); 
   Truth_Info->Branch("RecoTrackSecondaryParticleTruePositionEnd", RecoTrackSecondaryParticleTruePositionEnd,
                      "RecoTrackSecondaryParticleTruePositionEnd[RecoTrackN][4]/F"); 
+                     
+  Truth_Info->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
+  Truth_Info->Branch("TrueVisibleEnergyInSlice", TrueVisibleEnergyInSlice, "TrueVisibleEnergyInSlice[nTrueParticles]/F");
+  Truth_Info->Branch("TrueNHitsInSlice", TrueNHitsInSlice, "TrueNHitsInSlice[nTrueParticles]/I");
+  
+  
+  Truth_Info->Branch("NTrueHits", &NTrueHits, "NTrueHits/I");
+  Truth_Info->Branch("TrueHitX",  &TrueHitX,  "TrueHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitY",  &TrueHitY,  "TrueHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitZ",  &TrueHitZ,  "TrueHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitT",  &TrueHitT,  "TrueHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitE",  &TrueHitE,  "TrueHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibers",          &TrueHitPEAfterFibers,          "TrueHitPEAfterFibers[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersLongPath",  &TrueHitPEAfterFibersLongPath,  "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
+  Truth_Info->Branch("TrueNTrueParticles", &TrueNTrueParticles, "TrueNTrueParticles[NTrueHits]/I");
+  Truth_Info->Branch("TrueLeptonicEnergy", &TrueLeptonicEnergy, "TrueLeptonicEnergy[NTrueHits]/F");
+  Truth_Info->Branch("TrueHadronicEnergy", &TrueHadronicEnergy, "TrueHadronicEnergy[NTrueHits]/F");
+  
+  
+  Truth_Info->Branch("TrueRecoHitX", &TrueRecoHitX, "TrueRecoHitX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitY", &TrueRecoHitY, "TrueRecoHitY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitZ", &TrueRecoHitZ, "TrueRecoHitZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackX", &TrueRecoHitTrackX, "TrueRecoHitTrackX[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackY", &TrueRecoHitTrackY, "TrueRecoHitTrackY[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackXUncertainty", &TrueRecoHitTrackXUncertainty, "TrueRecoHitTrackXUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitTrackYUncertainty", &TrueRecoHitTrackYUncertainty, "TrueRecoHitTrackYUncertainty[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitNotZ", &TrueRecoHitNotZ, "TrueRecoHitNotZ[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitT",    &TrueRecoHitT,    "TrueRecoHitT[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitE",    &TrueRecoHitE,    "TrueRecoHitE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitPE",   &TrueRecoHitPE,   "TrueRecoHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitEVis", &TrueRecoHitEVis, "TrueRecoHitEVis[NTrueHits]/F");
+  Truth_Info->Branch("TrueRecoHitIsPedSupped", &TrueRecoHitIsPedSupped, "TrueRecoHitIsPedSupped[NTrueHits]/O");
+  Truth_Info->Branch("TrueHitBar",    &TrueHitBar,    "TrueHitBar[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitPlane",  &TrueHitPlane,  "TrueHitPlane[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitView",   &TrueHitView,   "TrueHitView[NTrueHits]/I");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   // Truth information saved per spill only
   truth->Branch("EventNo", &EventNo, "EventNo/I");
-  truth->Branch("IsCC", &IsCC, "IsCC/O");
+  truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
+  truth->Branch("RunNo", &RunNo, "RunNo/I");
+  truth->Branch("IsCC",  &IsCC,  "IsCC/O");
   truth->Branch("Interaction", &Reaction);
-  truth->Branch("TruthInfoIndex", &TruthInfoIndex, "TruthInfoIndex/I");
+  truth->Branch("TruthInfoIndex",   &TruthInfoIndex,   "TruthInfoIndex/I");
   truth->Branch("TruthInfoNSlices", &TruthInfoNSlices, "TruthInfoNSlices/I");
   truth->Branch("nPrimaryVertices", &nPrimaryVertices, "nPrimaryVertices/I");
-  truth->Branch("HasPileup", &HasPileup, "HasPileup/O");
+  truth->Branch("HasPileup",   &HasPileup,   "HasPileup/O");
   truth->Branch("NeutrinoPDG", &NeutrinoPDG, "NeutrinoPDG/I");
   truth->Branch("NeutrinoP4", NeutrinoP4, "NeutrinoP4[4]/F");
   truth->Branch("NeutrinoX4", NeutrinoX4, "NeutrinoX4[4]/F");
-
-  truth->Branch("nTrueParticles", &nTrueParticles, "nTrueParticles/I");
-  truth->Branch("nTruePrimaryParticles", &nTruePrimaryParticles, "nTruePrimaryParticles/I");
-  truth->Branch("nTrueForgottenParticles", &nTrueForgottenParticles, "nTrueForgottenParticles/I");
-  truth->Branch("VertexID", VertexID, "VertexID[nTrueParticles]/I");
-  truth->Branch("Parent", Parent, "Parent[nTrueParticles]/I");
-  truth->Branch("TrackId", TrackId, "TrackId[nTrueParticles]/I");
-  truth->Branch("PDG", PDG, "PDG[nTrueParticles]/I");
-  truth->Branch("IsPrimary", IsPrimary, "IsPrimary[nTrueParticles]/O");
-  truth->Branch("TrueVisibleEnergy", TrueVisibleEnergy, "TrueVisibleEnergy[nTrueParticles]/F");
-  truth->Branch("TruePathLength", TruePathLength, "TruePathLength[nTrueParticles]/F");
-  truth->Branch("TruePathLengthIgnoreY", TruePathLengthIgnoreY, "TruePathLengthIgnoreY[nTrueParticles]/F");
-  truth->Branch("TruePathLengthInTMS", TruePathLengthInTMS, "TruePathLengthInTMS[nTrueParticles]/F");
-  truth->Branch("TruePathLengthInTMSIgnoreY", TruePathLengthInTMSIgnoreY, "TruePathLengthInTMSIgnoreY[nTrueParticles]/F");
-  
-  truth->Branch("InteractionTMSFiducial", &InteractionTMSFiducial, "InteractionTMSFiducial/O");
-  truth->Branch("InteractionTMSFirstTwoModules", &InteractionTMSFirstTwoModules, "InteractionTMSFirstTwoModules/O");
-  truth->Branch("InteractionTMSThin", &InteractionTMSThin, "InteractionTMSThin/O");
-  truth->Branch("InteractionLArFiducial", &InteractionLArFiducial, "InteractionLArFiducial/O");
-  truth->Branch("TMSFiducialStart", TMSFiducialStart, "TMSFiducialStart[nTrueParticles]/O");
-  truth->Branch("TMSFiducialTouch", TMSFiducialTouch, "TMSFiducialTouch[nTrueParticles]/O");
-  truth->Branch("TMSFiducialEnd", TMSFiducialEnd, "TMSFiducialEnd[nTrueParticles]/O");
-  truth->Branch("LArFiducialStart", LArFiducialStart, "LArFiducialStart[nTrueParticles]/O");
-  truth->Branch("LArFiducialTouch", LArFiducialTouch, "LArFiducialTouch[nTrueParticles]/O");
-  truth->Branch("LArFiducialEnd", LArFiducialEnd, "LArFiducialEnd[nTrueParticles]/O");
-  
-  truth->Branch("BirthMomentum", BirthMomentum, "BirthMomentum[nTrueParticles][4]/F");
-  truth->Branch("BirthPosition", BirthPosition, "BirthPosition[nTrueParticles][4]/F");
-  truth->Branch("DeathMomentum", DeathMomentum, "DeathMomentum[nTrueParticles][4]/F");
-  truth->Branch("DeathPosition", DeathPosition, "DeathPosition[nTrueParticles][4]/F");
-  
-  // IsInside-based start/end
-  truth->Branch("MomentumLArStart", MomentumLArStart, "MomentumLArStart[nTrueParticles][4]/F");
-  truth->Branch("PositionLArStart", PositionLArStart, "PositionLArStart[nTrueParticles][4]/F");
-  truth->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
-  truth->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
-  truth->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
-  truth->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F"); 
-  truth->Branch("MomentumTMSThinEnd", MomentumTMSThinEnd, "MomentumTMSThinEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionTMSThinEnd", PositionTMSThinEnd, "PositionTMSThinEnd[nTrueParticles][4]/F"); 
-  truth->Branch("MomentumTMSEnd", MomentumTMSEnd, "MomentumTMSEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionTMSEnd", PositionTMSEnd, "PositionTMSEnd[nTrueParticles][4]/F"); 
-  
-  // Z-based start/end
-  truth->Branch("MomentumZIsLArEnd", MomentumZIsLArEnd, "MomentumZIsLArEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionZIsLArEnd", PositionZIsLArEnd, "PositionZIsLArEnd[nTrueParticles][4]/F");
-  truth->Branch("MomentumZIsTMSStart", MomentumZIsTMSStart, "MomentumZIsTMSStart[nTrueParticles][4]/F");
-  truth->Branch("PositionZIsTMSStart", PositionZIsTMSStart, "PositionZIsTMSStart[nTrueParticles][4]/F");
-  truth->Branch("MomentumZIsTMSEnd", MomentumZIsTMSEnd, "MomentumZIsTMSEnd[nTrueParticles][4]/F");
-  truth->Branch("PositionZIsTMSEnd", PositionZIsTMSEnd, "PositionZIsTMSEnd[nTrueParticles][4]/F"); 
 }
 
-static void setMomentum(float *branch, TVector3 momentum, double energy = -9999) {
+static void setMomentum(float *branch, TVector3 momentum, double energy) {
     branch[0] = momentum.Px();
     branch[1] = momentum.Py();
     branch[2] = momentum.Pz();
@@ -434,7 +675,14 @@ static void setPosition(float *branch, TLorentzVector position) {
     branch[0] = position.X();
     branch[1] = position.Y();
     branch[2] = position.Z();
-    branch[3] = position.T();
+    // Preserve invalid times. Otherwise remove the giant spill offset before
+    // storing the value as a float.
+    if (position.T() == TMS_INVALID_TRUTH_VALUE) branch[3] = TMS_INVALID_TRUTH_VALUE;
+    else branch[3] = std::fmod(position.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
+}
+
+static int normalizeRunNumber(int run) {
+    return run >= 1000000000 ? run - 1000000000 : run;
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
@@ -444,12 +692,15 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // See if track is exiting or not
   int nLastHits = TMS_Manager::GetInstance().Get_Reco_STOPPING_nLastHits();
   double EnergyCut = TMS_Manager::GetInstance().Get_Reco_STOPPING_EnergyCut();
+  
+  FillTruthInfo(event);
 
 
   // Fill the truth info
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -461,8 +712,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   NeutrinoX4[1] = event.GetNeutrinoVtx().Y();
   NeutrinoX4[2] = event.GetNeutrinoVtx().Z();
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
-  NeutrinoP4[0] = event.GetNeutrinoP4().X();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
+
+
   // Lepton info
   LeptonPDG = event.GetLeptonPDG();
   LeptonP4[1] = event.GetLeptonP4().Y();
@@ -474,6 +726,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   LeptonX4[3] = event.GetLeptonX4().T();
   
   VertexIdOfMostEnergyInEvent = event.GetVertexIdOfMostVisibleEnergy();
+  VertexGlobalIDOfMostEnergyInEvent = event.GetVertexGlobalIdOfMostVisibleEnergy();
+  if (auto* vtx_info = event.GetVertexInfoByGlobalID(VertexGlobalIDOfMostEnergyInEvent)) {
+    VertexRunNoOfMostEnergyInEvent = vtx_info->run_id;
+  }
   VisibleEnergyFromVertexInSlice = event.GetVisibleEnergyFromVertexInSlice();
   TotalVisibleEnergyFromVertex = event.GetTotalVisibleEnergyFromVertex();
   VisibleEnergyFromOtherVerticesInSlice = event.GetVisibleEnergyFromOtherVerticesInSlice();
@@ -482,126 +738,33 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   Muon_TrueTrackLength= event.GetMuonTrueTrackLength();
   //Muon_TrueTrackLength = -999.99;
-  //std::cout << Muon_TrueTrackLength << std::endl;
   Muon_TrueKE = event.GetMuonTrueKE();
-
-  // Get the truth info
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
-  nParticles = TrueParticles.size();
-  // Just trying to find the true muon here from the fundamental vertex
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-
-    // Only save muon info for now
-    if (abs((*it).GetPDG()) != 13) continue;
-    // Also make sure it's a fundamental muon
-    if ((*it).GetParent() != -1) continue;
-
-    MuonP4[0] = (*it).GetBirthMomentum().Px();
-    MuonP4[1] = (*it).GetBirthMomentum().Py();
-    MuonP4[2] = (*it).GetBirthMomentum().Pz();
-    MuonP4[3] = (*it).GetBirthEnergy();
-
-    Muon_Vertex[0] = (*it).GetBirthPosition().X();
-    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
-    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
-    Muon_Vertex[3] = (*it).GetBirthPosition().T();
-
-    Muon_Death[0] = (*it).GetDeathPosition().X();
-    Muon_Death[1] = (*it).GetDeathPosition().Y();
-    Muon_Death[2] = (*it).GetDeathPosition().Z();
-    Muon_Death[3] = (*it).GetDeathPosition().T();
-  }
   
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
-  InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
-  InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
-  InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
-    
-  nTrueParticles = TrueParticles.size();
-  nTruePrimaryParticles = 0;
-  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
-  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
-  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
-    int index = it - TrueParticles.begin();
-    
-    if (index >= __TMS_MAX_TRUE_PARTICLES__) {
-      std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
-      std::cerr<<"WARNING: In this case, the __TMS_MAX_TRUE_PARTICLES__ is "<<__TMS_MAX_TRUE_PARTICLES__<<" but need "<<TrueParticles.size()<<std::endl;
-      break;
-    }
-  
-    VertexID[index] = (*it).GetVertexID();
-    Parent[index] = (*it).GetParent();
-    TrackId[index] = (*it).GetTrackId();
-    PDG[index] = (*it).GetPDG();
-    IsPrimary[index] = (*it).IsPrimary();
-    if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
-
-    TVector3 location_birth = (*it).GetBirthPosition().Vect();
-    TVector3 location_death = (*it).GetDeathPosition().Vect();
-    TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
-    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
-    TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
-    
-    setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
-    setPosition(BirthPosition[index], (*it).GetBirthPosition());
-    
-    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
-    setPosition(DeathPosition[index], (*it).GetDeathPosition());
-
-    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
-    TruePathLengthIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
-    TruePathLengthInTMS[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
-    TruePathLengthInTMSIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
-
-    setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
-    setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
-    
-    setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
-    setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
-    
-    setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
-    setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
-    
-    setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
-    setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
-    
-    setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
-    setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
-    
-    setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
-    setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
-    
-    setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
-    setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
-    
-    setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
-    setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
-    
-    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
-    setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
-    
-  }
+  // Fill LAr hit outer shell energy info
+  // Case 1: All energy in outer shell, useful only for single event interactions
+  // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
+  double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS(); // mm
+  LArOuterShellEnergy = event.CalculateEnergyInLArOuterShell(thickness);
+  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexGlobalIDOfMostEnergyInEvent);
+  LArTotalEnergy = event.CalculateEnergyInLAr();
+  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexGlobalIDOfMostEnergyInEvent);
+  TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
+  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexGlobalIDOfMostEnergyInEvent);
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*>> HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
   std::vector<std::pair<bool, TF1*>> HoughLinesX = TMS_TrackFinder::GetFinder().GetHoughLinesX();
+  std::vector<std::pair<bool, TF1*>> HoughLinesY = TMS_TrackFinder::GetFinder().GetHoughLinesY();
   // Also get the size of the hits to get a measure of relative goodness
   std::vector<std::vector<TMS_Hit> > HoughCandidatesU = TMS_TrackFinder::GetFinder().GetHoughCandidatesU();
   std::vector<std::vector<TMS_Hit> > HoughCandidatesV = TMS_TrackFinder::GetFinder().GetHoughCandidatesV();
   std::vector<std::vector<TMS_Hit> > HoughCandidatesX = TMS_TrackFinder::GetFinder().GetHoughCandidatesX();
+  std::vector<std::vector<TMS_Hit> > HoughCandidatesY = TMS_TrackFinder::GetFinder().GetHoughCandidatesY();
   nLinesU = HoughCandidatesU.size();
   nLinesV = HoughCandidatesV.size();
   nLinesX = HoughCandidatesX.size();
+  nLinesY = HoughCandidatesY.size();
 
 
   // Skip the event if there aren't any Hough Lines
@@ -625,6 +788,14 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
     std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
     std::cerr << "Number of lines in event (x): " << nLinesX << std::endl;
+    std::cerr << "Not writing evet" << std::endl;
+    return;
+  }
+
+  if (nLinesY > __TMS_MAX_LINES__) {
+    std::cerr << "Exceeded max number of HoughLines to write to file" << std::endl;
+    std::cerr << "Max lines: " << __TMS_MAX_LINES__ << std::endl;
+    std::cerr << "Number of lines in event (y): " << nLinesY << std::endl;
     std::cerr << "Not writing evet" << std::endl;
     return;
   }
@@ -760,6 +931,49 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     it++;
   }
 
+  it = 0;
+  for (auto &Lines: HoughLinesY) {
+    // Get the slopes saved down
+    InterceptY[it] = Lines.second->GetParameter(0);
+    Intercept_UpstreamY[it] = TMS_TrackFinder::GetFinder().GetHoughLinesY_Upstream()[it].first;
+    Intercept_DownstreamY[it] = TMS_TrackFinder::GetFinder().GetHoughLinesY_Downstream()[it].first;
+    SlopeY[it] = Lines.second->GetParameter(1);
+    Slope_UpstreamY[it] = TMS_TrackFinder::GetFinder().GetHoughLinesY_Upstream()[it].second;
+    Slope_DownstreamY[it] = TMS_TrackFinder::GetFinder().GetHoughLinesY_Downstream()[it].second;
+
+    // Calculate the z and x vectors by evaling the TF1 in thin and thick target
+    double xlow = TMS_Const::TMS_Thin_Start;
+    double xhi = TMS_Const::TMS_Thick_Start;
+    double ylow = Lines.second->Eval(xlow);
+    double yhi = Lines.second->Eval(xhi);
+    // Do the same for up and downstream portions
+    double ylow_upstream = Intercept_UpstreamY[it]+xlow*Slope_UpstreamY[it];
+    double yhi_upstream = Intercept_UpstreamY[it]+xhi*Slope_UpstreamY[it];
+
+    double ylow_downstream = Intercept_DownstreamY[it]+xlow*Slope_DownstreamY[it];
+    double yhi_downstream = Intercept_DownstreamY[it]+xhi*Slope_DownstreamY[it];
+
+    double xlen = xhi-xlow;
+    double ylen = yhi-ylow;
+    double len = sqrt(xlen*xlen+ylen*ylen);
+
+    double ylen_upstream = yhi_upstream - ylow_upstream;
+    double ylen_downstream = yhi_downstream - ylow_downstream;
+
+    double len_upstream = sqrt(xlen*xlen+ylen_upstream*ylen_upstream);
+    double len_downstream = sqrt(xlen*xlen+ylen_downstream*ylen_downstream);
+
+    DirectionZY[it] = xlen/len;
+    DirectionXY[it] = ylen/len;
+
+    DirectionZY_Upstream[it] = xlen/len_upstream;
+    DirectionXY_Upstream[it] = ylen_upstream/len_upstream;
+
+    DirectionZY_Downstream[it] = xlen/len_downstream;
+    DirectionXY_Downstream[it] = ylen_downstream/len_downstream;
+
+    it++;
+  }
 
   // Find where the first hough hit is
   TMSStart = false;
@@ -944,6 +1158,64 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     it++;
   }
 
+  std::vector<std::vector<TMS_Hit> > HoughCandsY = TMS_TrackFinder::GetFinder().GetHoughCandidatesY();
+  it = 0;
+  for (auto &Candidates: HoughCandsY) {
+    // Loop over hits
+    for (auto &hit: Candidates) {
+      if (FirstTrack == NULL) {
+        FirstTrack = &hit;
+      } else if (hit.GetZ() < FirstTrack->GetZ()) {
+        FirstTrack = &hit;
+      }
+    }
+    nHitsInTrackY[it] = Candidates.size();
+
+    // Then save the hit info
+    FirstPlaneY[it] = Candidates.front().GetPlaneNumber();
+    FirstHitY[it][0] = Candidates.front().GetZ();
+    FirstHitY[it][1] = Candidates.front().GetNotZ();
+    FirstHitTimeY[it] = Candidates.front().GetT();
+
+    LastPlaneY[it] = Candidates.back().GetPlaneNumber();
+    LastHitY[it][0] = Candidates.back().GetZ();
+    LastHitY[it][1] = Candidates.back().GetNotZ();
+    LastHitTimeY[it] = Candidates.back().GetT();
+
+    TrackLengthY[it] = TMS_TrackFinder::GetFinder().GetTrackLengthY()[it];
+    TotalTrackEnergyY[it] = TMS_TrackFinder::GetFinder().GetTrackEnergyY()[it];
+    OccupancyY[it] = double(HoughCandsY[it].size())/TotalHits;
+    
+    float earliest_hit_time = 1e32;
+    float latest_hit_time = -1e32;
+    // Get each hit in the track and save its energy
+    for (unsigned int j = 0; j < Candidates.size(); ++j) {
+      TrackHitEnergyY[it][j] = Candidates[j].GetE();
+      TrackHitTimeY[it][j] = Candidates[j].GetT();
+      TrackHitPosY[it][j][0] = Candidates[j].GetZ();
+      TrackHitPosY[it][j][1] = Candidates[j].GetNotZ();
+      
+      float time = Candidates[j].GetT();
+      
+      if (time < earliest_hit_time) earliest_hit_time = time;
+      if (time > latest_hit_time) latest_hit_time = time;
+    }
+    EarliestHitTimeY[it] = earliest_hit_time;
+    LatestHitTimeY[it] = latest_hit_time;
+    
+
+    double maxenergy = 0;
+    unsigned int nLastHits_temp = nLastHits;
+    if ((unsigned int)nLastHits > Candidates.size()) nLastHits_temp = Candidates.size();
+    for (unsigned int i = 0; i < nLastHits_temp; ++i) {
+      double hitenergy = Candidates[nLastHits_temp-1-i].GetE();
+      if (hitenergy > maxenergy) maxenergy = hitenergy;
+    }
+    if (maxenergy > EnergyCut) TrackStoppingY[it] = true;
+
+
+    it++;
+  }
 
 /*  std::vector<TMS_Track> HoughCands3D = TMS_TrackFinder::GetFinder().GetHoughTracks3D(); //TODO this should be done by Liam with Reco_Tree
   it = 0;
@@ -1014,9 +1286,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   std::vector<std::vector<TMS_Hit> > ClustersU = TMS_TrackFinder::GetFinder().GetClusterCandidatesU();
   std::vector<std::vector<TMS_Hit> > ClustersV = TMS_TrackFinder::GetFinder().GetClusterCandidatesV();
   std::vector<std::vector<TMS_Hit> > ClustersX = TMS_TrackFinder::GetFinder().GetClusterCandidatesX();
+  std::vector<std::vector<TMS_Hit> > ClustersY = TMS_TrackFinder::GetFinder().GetClusterCandidatesY();
   nClustersU = ClustersU.size();
   nClustersV = ClustersV.size();
   nClustersX = ClustersX.size();
+  nClustersY = ClustersY.size();
   if (nClustersU > __TMS_MAX_CLUSTERS__) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
@@ -1033,6 +1307,12 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
     std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
     std::cerr << "nClustersX in event: " << nClustersX << std::endl;
+    return;
+  }
+  if (nClustersY > __TMS_MAX_CLUSTERS__) {
+    std::cerr << "Too many clusters in TMS_TreeWriter" << std::endl;
+    std::cerr << "Hard-coded maximum: " << __TMS_MAX_CLUSTERS__ << std::endl;
+    std::cerr << "nClustersY in event: " << nClustersY << std::endl;
     return;
   }
 
@@ -1175,6 +1455,52 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevX[stdit][0] = std_dev_z;
     ClusterPosStdDevX[stdit][1] = std_dev_notz;
   } 
+  stdit = 0;
+  for (auto it = ClustersY.begin(); it != ClustersY.end(); ++it, ++stdit) {
+    double total_energy = 0;
+    // Mean of cluster in z and not z
+    double mean_z = 0;
+    double mean_notz = 0;
+    // Mean of square of cluster in z and not z
+    double mean2_z = 0;
+    double mean2_notz = 0;
+    double min_cluster_time = 1e10;
+    int nhits = (*it).size();
+//    std::cout << "Cluster One nHits: " << nhits << std::endl;
+    for (int j = 0; j < nhits; ++j) {
+      mean_z += (*it)[j].GetZ();
+      mean_notz += (*it)[j].GetNotZ();
+      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
+      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
+      total_energy += (*it)[j].GetE();
+      float time = (*it)[j].GetT();
+      if (time < min_cluster_time) min_cluster_time = time;
+//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
+      ClusterHitPosY[stdit][j][0] = (*it)[j].GetZ();
+      ClusterHitPosY[stdit][j][1] = (*it)[j].GetNotZ();
+      ClusterHitEnergyY[stdit][j] = (*it)[j].GetE();
+      ClusterHitTimeY[stdit][j] = (*it)[j].GetT();
+      ClusterHitSliceY[stdit][j] = (*it)[j].GetSlice();
+    }
+    mean_z /= nhits;
+    mean_notz /= nhits;
+
+    mean2_z /= nhits;
+    mean2_notz /= nhits;
+
+    ClusterEnergyY[stdit] = total_energy;
+    ClusterTimeY[stdit] = min_cluster_time;
+    nHitsInClusterY[stdit] = nhits;
+    ClusterPosMeanY[stdit][0] = mean_z;
+    ClusterPosMeanY[stdit][1] = mean_notz;
+    // Calculate the standard deviation
+    double std_dev_z = mean2_z-mean_z*mean_z;
+    double std_dev_notz = mean2_z-mean_z*mean_z;
+    if (std_dev_z > 0) std_dev_z = sqrt(std_dev_z);
+    if (std_dev_notz > 0) std_dev_notz = sqrt(std_dev_notz);
+    ClusterPosStdDevY[stdit][0] = std_dev_z;
+    ClusterPosStdDevY[stdit][1] = std_dev_notz;
+  } 
 
   // Write out the hit information
   std::vector<TMS_Hit> CleanedHits = TMS_TrackFinder::GetFinder().GetCleanedHits();
@@ -1187,13 +1513,42 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     return;
   }
   stdit = 0;
+  const auto TrueParticles = event.GetTrueParticles();
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
     RecoHitPos[stdit][0] = (*it).GetX();
     RecoHitPos[stdit][1] = (*it).GetY();
     RecoHitPos[stdit][2] = (*it).GetZ();
     RecoHitPos[stdit][3] = (*it).GetT();
     RecoHitEnergy[stdit] = (*it).GetE();
+    RecoHitPE[stdit] = (*it).GetPE();
+    RecoHitBar[stdit] = (*it).GetBarNumber();
+    RecoHitBarType[stdit] = (*it).GetBar().GetBarTypeNumber();
+    RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
+
+    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*it});
+    if (!particle_info.energies.empty()) {
+      const long long vertex_global_id = particle_info.vertexglobalids[0];
+      const int track_id = particle_info.trackids[0];
+      const int particle_index = event.GetTrueParticleIndex(vertex_global_id, track_id);
+
+      RecoHitPrimaryVertexGlobalId[stdit] = vertex_global_id;
+      RecoHitPrimaryRunId[stdit] = vertex_global_id / TMS_VertexIdScale;
+      RecoHitPrimaryVertexId[stdit] = vertex_global_id % TMS_VertexIdScale;
+      RecoHitPrimaryTrackId[stdit] = track_id;
+      RecoHitPrimaryParticleIndex[stdit] = particle_index;
+      RecoHitPrimaryTrueEnergy[stdit] = particle_info.energies[0];
+      RecoHitOtherTrueEnergy[stdit] = particle_info.total_energy - particle_info.energies[0];
+
+      // A missing index is expected when the contributor was omitted from the
+      // reduced Truth_Spill particle table (for example, lightweight truth
+      // skips photons and neutrons and removes low-visible-energy secondaries).
+      // The contributor IDs and energy remain valid in that case.
+      if (particle_index >= 0 && static_cast<size_t>(particle_index) < TrueParticles.size() &&
+          (RecoHitPrimaryRunId[stdit] != TrueParticles[particle_index].GetRunID() ||
+           RecoHitPrimaryVertexId[stdit] != TrueParticles[particle_index].GetVertexID()))
+        std::cerr << "Reco hit truth vertex ID does not match Truth_Spill particle index" << std::endl;
+    }
   }
 
   // Fill up the info only if all above has passed
@@ -1208,20 +1563,120 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
   nTracks = Reco_Tracks.size();
   RecoTrackN = Reco_Tracks.size();
+  
+  TimeSliceStartTime = event.GetTimeSliceBounds().first;
+  TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]          = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    RecoTrackEnergyRange[itTrack]    =       RecoTrack->EnergyRange;
-    RecoTrackLength[itTrack]         =       0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]); // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
-    RecoTrackEnergyDeposit[itTrack]  =       RecoTrack->EnergyDeposit;
-    RecoTrackCharge[itTrack]         =       RecoTrack->Charge;
-    for (int j = 0; j < 3; j++) {
+    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
+    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    const float raw_3d_length = RecoTrack->Length;
+    const float fallback_2d_length =
+        TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
+    const bool has_uv_view = nLinesU > 0 || nLinesV > 0;
+    const bool has_xy_view = nLinesX > 0 || nLinesY > 0;
+
+    RecoTrackLength[itTrack] = kInvalidRecoFloat;
+    RecoTrackLengthSource[itTrack] = kLengthSourceNone;
+    if (IsUsableRecoLength(raw_3d_length)) {
+      RecoTrackLength[itTrack] = raw_3d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSource3D;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_uv_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSourceUV;
+    } else if (IsUsableRecoLength(fallback_2d_length) && has_xy_view) {
+      RecoTrackLength[itTrack] = fallback_2d_length;
+      RecoTrackLengthSource[itTrack] = kLengthSourceXY;
+    }
+
+    RecoTrackEnergyRange[itTrack]   = EstimateKEFromRange(RecoTrackLength[itTrack]);
+    RecoTrackLength_3D[itTrack]     = raw_3d_length;
+    RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
+    RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
+    RecoTrackCharge[itTrack]        = RecoTrack->Charge;
+    RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
+    RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
+    // Chi2 is the chi2 of the fit selected as canonical in TMS_Reco.
+    RecoTrackChi2[itTrack]          = RecoTrack->Chi2;
+    RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
+    RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
+    
+    for (int j = 0; j < 4; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
       RecoTrackEndPos[itTrack][j]    = RecoTrack->End[j];
-      RecoTrackDirection[itTrack][j] = RecoTrack->Direction[j];
     }
+    for (int j = 0; j < 3; j++) {
+      RecoTrackStartDirection[itTrack][j] = RecoTrack->StartDirection[j];
+      RecoTrackEndDirection[itTrack][j] = RecoTrack->EndDirection[j];
+    } 
+
+    if (RecoTrack->KalmanNodes.size() > 0) {
+      size_t last_index = RecoTrack->KalmanNodes.size() - 1;
+      TMS_Bar first_bar(RecoTrack->KalmanNodes[0].RecoX, RecoTrack->KalmanNodes[0].RecoY,
+                        RecoTrack->KalmanNodes[0].z);
+      TMS_Bar last_bar(RecoTrack->KalmanNodes[last_index].RecoX, RecoTrack->KalmanNodes[last_index].RecoY,
+                       RecoTrack->KalmanNodes[last_index].z);
+      RecoTrackKalmanFirstPlaneBarView[itTrack][0] = first_bar.GetPlaneNumber();
+      RecoTrackKalmanFirstPlaneBarView[itTrack][1] = first_bar.GetBarNumber();
+      RecoTrackKalmanFirstPlaneBarView[itTrack][2] = first_bar.GetBarTypeNumber();
+
+      RecoTrackKalmanLastPlaneBarView[itTrack][0] = last_bar.GetPlaneNumber();
+      RecoTrackKalmanLastPlaneBarView[itTrack][1] = last_bar.GetBarNumber();
+      RecoTrackKalmanLastPlaneBarView[itTrack][2] = last_bar.GetBarTypeNumber();
+
+      TMS_Bar first_bar_true(RecoTrack->KalmanNodes[0].TrueX, RecoTrack->KalmanNodes[0].TrueY,
+                             RecoTrack->KalmanNodes[0].z);
+      TMS_Bar last_bar_true(RecoTrack->KalmanNodes[last_index].TrueX, RecoTrack->KalmanNodes[last_index].TrueY,
+                            RecoTrack->KalmanNodes[last_index].z);
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][0] = first_bar_true.GetPlaneNumber();
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][1] = first_bar_true.GetBarNumber();
+      RecoTrackKalmanFirstPlaneBarViewTrue[itTrack][2] = first_bar_true.GetBarTypeNumber();
+
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][0] = last_bar_true.GetPlaneNumber();
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][1] = last_bar_true.GetBarNumber();
+      RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
+    }
+
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+      //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
+      //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
+        //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
+        //RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->[j].GetNotZ();
+      //}
+      RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->KalmanNodes[j].RecoX;
+      RecoTrackKalmanPos[itTrack][j][1] = RecoTrack->KalmanNodes[j].RecoY;
+      RecoTrackKalmanPos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+      //TODO?
+
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[0];
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_plus[j].MeasurementVec[1];
+      RecoTrackKalmanPos_plus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_plus[j].z;
+
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][0] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[0];
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][1] = RecoTrack->KalmanNodes_minus[j].MeasurementVec[1];
+      RecoTrackKalmanPos_minus_chi2[itTrack][j][2] = RecoTrack->KalmanNodes_minus[j].z;
+
+      RecoTrackKalmanTruePos[itTrack][j][0] = RecoTrack->KalmanNodes[j].TrueX;
+      RecoTrackKalmanTruePos[itTrack][j][1] = RecoTrack->KalmanNodes[j].TrueY;
+      RecoTrackKalmanTruePos[itTrack][j][2] = RecoTrack->KalmanNodes[j].z;
+      //TODO?
+
+      TMS_Bar current_bar(RecoTrack->KalmanNodes[j].RecoX, RecoTrack->KalmanNodes[j].RecoY,
+                          RecoTrack->KalmanNodes[j].z);
+      RecoTrackKalmanPlaneBarView[itTrack][j][0] = current_bar.GetPlaneNumber();
+      RecoTrackKalmanPlaneBarView[itTrack][j][1] = current_bar.GetBarNumber();
+      RecoTrackKalmanPlaneBarView[itTrack][j][2] = current_bar.GetBarTypeNumber();
+
+      TMS_Bar current_bar_true(RecoTrack->KalmanNodes[j].TrueX, RecoTrack->KalmanNodes[j].TrueY,
+                               RecoTrack->KalmanNodes[j].z);
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][0] = current_bar_true.GetPlaneNumber();
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][1] = current_bar_true.GetBarNumber();
+      RecoTrackKalmanPlaneBarViewTrue[itTrack][j][2] = current_bar_true.GetBarTypeNumber();
+    }
+ 
     for (unsigned int j = 0; j < RecoTrack->Hits.size(); ++j) {
       RecoTrackHitEnergies[itTrack][j] = RecoTrack->Hits[j].GetE(); // Add the energy deposit from each hit
+      RecoTrackHitBarType[itTrack][j] = RecoTrack->Hits[j].GetBar().GetBarType();
 
       // Here we check for bar orientation
       if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
@@ -1232,15 +1687,18 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackHitPos[itTrack][j][1] = RecoTrack->Hits[j].GetNotZ();
       }
       RecoTrackHitPos[itTrack][j][2] = RecoTrack->Hits[j].GetZ();
+      RecoTrackHitPos[itTrack][j][3] = RecoTrack->Hits[j].GetT();
     }
     // Can manually compute direction if it hasn't been set
-    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
-    { // If true it seems the direction hasn't been set
-      for (int j = 0; j < 3; j++)
-      { // Right now no need to make sure this is a unit vector
-        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
-      }
-    }
+//    if ( (RecoTrackDirection[itTrack][0] == 0) && (RecoTrackDirection[itTrack][1] == 0) && (RecoTrackDirection[itTrack][2] == 0) )
+//    { // If true it seems the direction hasn't been set
+//      for (int j = 0; j < 3; j++)
+//      { // Right now no need to make sure this is a unit vector
+//        RecoTrackDirection[itTrack][j] = RecoTrack->End[j] - RecoTrack->Start[j];
+//      }
+//    }
+
+    auto TrueParticles = event.GetTrueParticles();
     
     // Now fill truth info
     if (itTrack >= __TMS_MAX_LINES__) {
@@ -1257,7 +1715,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     total_true_visible_energy = particle_info.total_energy;
     if (particle_info.energies.size() > 0) {
       true_primary_visible_energy = particle_info.energies[0];
-      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[0], particle_info.trackids[0]);
+      true_primary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[0], particle_info.trackids[0]);
     }
     // Now for the primary index, find the true starting and ending momentum and position
     if (true_primary_particle_index < 0) {
@@ -1279,7 +1737,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       if (itTrack < __TMS_MAX_LINES__) {
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackStart[itTrack], tp.GetMomentumAtZ(start_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackStart[itTrack], tp.GetPositionAtZ(start_z, max_z_distance));
-        //std::cout << "Setting tp shite: " << tp.GetPositionAtZ(start_z, max_z_distance).X() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Y() << " " << tp.GetPositionAtZ(start_z, max_z_distance).Z()  << ",\t" << start_z << " " <<  max_z_distance << std::endl;
         setMomentum(RecoTrackPrimaryParticleTrueMomentumTrackEnd[itTrack], tp.GetMomentumAtZ(end_z, max_z_distance));
         setPosition(RecoTrackPrimaryParticleTruePositionTrackEnd[itTrack], tp.GetPositionAtZ(end_z, max_z_distance));
         
@@ -1300,11 +1757,11 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, end_z), true);
         // Again from true start to particle's end
-        // Picking 10x TMS_Const::TMS_Thick_End breaks geometry
-        // Picking 2x TMS_Const::TMS_Thick_End causes infinite loop
+        // Picking 10x TMS_Const::TMS_Double_End breaks geometry
+        // Picking 2x TMS_Const::TMS_Double_End causes infinite loop
         // Or maybe crazy slowdown in sand?
         // So let's go slightly beyond end of TMS
-        const double LARGE_Z = TMS_Const::TMS_Thick_End + 1000;
+        const double LARGE_Z = TMS_Const::TMS_Double_End + 1000;
         const double SMALL_Z = TMS_Const::LAr_Start_Exact[2] - 1000;
         RecoTrackPrimaryParticleTrueTrackLengthRecoStart[itTrack] =
             TMS_Geom::GetInstance().GetTrackLength(tp.GetPositionPoints(start_z, LARGE_Z));
@@ -1323,9 +1780,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
             
         RecoTrackPrimaryParticlePDG[itTrack] = tp.GetPDG();
         RecoTrackPrimaryParticleIsPrimary[itTrack] = tp.IsPrimary();
-        setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setMomentum(RecoTrackPrimaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackPrimaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
-        setMomentum(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+        setPosition(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
         
         setMomentum(RecoTrackPrimaryParticleTrueMomentumEnteringTMS[itTrack], tp.GetMomentumEnteringTMS());
         setPosition(RecoTrackPrimaryParticleTruePositionEnteringTMS[itTrack], tp.GetPositionEnteringTMS());
@@ -1339,15 +1796,32 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTMSFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
         RecoTrackPrimaryParticleTMSFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideTMS);
         RecoTrackPrimaryParticleTMSFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
-        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
+
+        RecoTrackPrimaryParticleVtxId[itTrack] = tp.GetVertexID();
+        RecoTrackPrimaryParticleVtxRunNo[itTrack] = tp.GetRunID();
+        RecoTrackPrimaryParticleVtxGlobalID[itTrack] =
+            TMS_MakeGlobalVertexID(RecoTrackPrimaryParticleVtxRunNo[itTrack], RecoTrackPrimaryParticleVtxId[itTrack]);
+
+        auto* vtx_info = event.GetVertexInfo(tp.GetRunID(), tp.GetVertexID());
+        if (vtx_info != NULL) {
+          RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = vtx_info->fiducial_cut;
+          RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = vtx_info->shell_energy_cut;
+          RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = vtx_info->nd_physics_cut;
+        }
+        else {
+          RecoTrackPrimaryParticleVtxFiducialCut[itTrack] = false;
+          RecoTrackPrimaryParticleVtxShellEnergyCut[itTrack] = false;
+          RecoTrackPrimaryParticleVtxNDPhysicsCut[itTrack] = false;
+        }
       }
     }
     
     if (particle_info.energies.size() > 1) {
       true_secondary_visible_energy = particle_info.energies[1];
-      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexids[1], particle_info.trackids[1]);
+      true_secondary_particle_index = event.GetTrueParticleIndex(particle_info.vertexglobalids[1], particle_info.trackids[1]);
     }
     if (true_secondary_particle_index < 0 || (size_t)true_secondary_particle_index  >= TrueParticles.size()) {
       true_secondary_particle_index = -999999999;
@@ -1357,9 +1831,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         TMS_TrueParticle tp = TrueParticles[true_secondary_particle_index];
         RecoTrackSecondaryParticlePDG[itTrack] = tp.GetPDG();
         RecoTrackSecondaryParticleIsPrimary[itTrack] = tp.IsPrimary();
-        setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum());
+        setMomentum(RecoTrackSecondaryParticleTrueMomentum[itTrack], tp.GetBirthMomentum(), tp.GetBirthEnergy());
         setPosition(RecoTrackSecondaryParticleTruePositionStart[itTrack], tp.GetBirthPosition());
-        setMomentum(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
+        setPosition(RecoTrackSecondaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
       }
     }
     
@@ -1369,23 +1843,100 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackSecondaryParticleIndex[itTrack] = true_secondary_particle_index;
     RecoTrackSecondaryParticleTrueVisibleEnergy[itTrack] = true_secondary_visible_energy;
     
+    
+    RecoTrackPrimaryParticleTrueNHits[itTrack] = 0;
+    RecoTrackSecondaryParticleTrueNHits[itTrack] = 0;
+    if (particle_info.vertexglobalids.size() > 0) {
+      // Loop through all the hits, check if truth info matches primary (or secondary) particle, and then add to count
+      for (size_t ih = 0; ih < RecoTrack->Hits.size(); ih++) {
+        auto true_hit = RecoTrack->Hits[ih].GetTrueHit();
+        for (size_t i = 0; i < true_hit.GetNTrueParticles(); i++) {
+          if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[0] && true_hit.GetPrimaryIds(i) == particle_info.trackids[0]) {
+            RecoTrackPrimaryParticleTrueNHits[itTrack] += 1;
+            // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
+            break; 
+          }
+          if (particle_info.vertexglobalids.size() > 1) {
+            if (true_hit.GetVertexGlobalIds(i) == particle_info.vertexglobalids[1] && true_hit.GetPrimaryIds(i) == particle_info.trackids[1]) {
+              RecoTrackSecondaryParticleTrueNHits[itTrack] += 1;
+              // Only add 1 hit per true hit. True hits can have more than one instance of the same track id and vertex id after merging
+              break; 
+            }
+          }
+        }
+      }
+    }
   }
+  
+  
+  // Clear branches
+  NTrueHits = 0;
+  int index = 0;
+  for (auto& hit : event.GetHitsRaw()) {
+    if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      std::cout<<"TMS_TreeWriter WARNING: Too many hits in event. Increase __MAX_TRUE_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
+      break;
+    }
+    if (index < __MAX_TRUE_TREE_ARRAY_LENGTH__) {
+      // In theory a reco hit should have many true hits based on how the merging worked
+      // Plus true hits should have noise hits which don't have any parent info
+      auto true_hit = hit.GetTrueHit();
+      
+      // Only save if more than 0.5 PE since reco hits are pedestal subtracted if < 3 PE currently
+      if (true_hit.GetPE() > 0.5) {
+      
+        // True info
+        NTrueHits += 1;
+        TrueHitX[index] = true_hit.GetX();
+        TrueHitY[index] = true_hit.GetY();
+        TrueHitZ[index] = true_hit.GetZ();
+        TrueHitT[index] = true_hit.GetT();
+        TrueHitE[index] = true_hit.GetE();
+        TrueHitPE[index] = true_hit.GetPE();
+        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
+        TrueHitBar[index] = hit.GetBarNumber();
+        TrueHitPlane[index] = hit.GetPlaneNumber();
+        TrueHitView[index] = hit.GetBar().GetBarTypeNumber();
+        TrueNTrueParticles[index] = true_hit.GetNTrueParticles();
+        TrueLeptonicEnergy[index] = true_hit.GetLeptonicEnergy();
+        TrueHadronicEnergy[index] = true_hit.GetHadronicEnergy();
+        
+        // Reco info
+        TrueRecoHitX[index] = hit.GetX();
+        TrueRecoHitY[index] = hit.GetY();
+        TrueRecoHitZ[index] = hit.GetZ();
+        TrueRecoHitNotZ[index] = hit.GetNotZ();
+        TrueRecoHitT[index] = hit.GetT();
+        TrueRecoHitE[index] = hit.GetE();
+        TrueRecoHitEVis[index] = hit.GetEVis();
+        TrueRecoHitPE[index] = hit.GetPE();
+        TrueRecoHitIsPedSupped[index] = hit.GetPedSup();
+        TrueRecoHitTrackX[index] = hit.GetRecoX();
+        TrueRecoHitTrackY[index] = hit.GetRecoY();
+        TrueRecoHitTrackXUncertainty[index] = hit.GetRecoXUncertainty();
+        TrueRecoHitTrackYUncertainty[index] = hit.GetRecoYUncertainty();
+        
+        index += 1;
+      }
+    }
+  }
+
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
 }
 
-void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
-  // Clear old info
-  Clear();
-
+void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
+  // Common code between Fill (which fills Truth_Info) and FillSpill (which fills Truth_Spill)
+  
   // Fill the truth info
   EventNo = event.GetEventNumber();
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
+  RunNo = normalizeRunNumber(event.GetRunNumber());
   Reaction = event.GetReaction();
-  TruthInfoIndex = truth_info_entry_number;
-  TruthInfoNSlices = truth_info_n_slices;
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
 
@@ -1400,13 +1951,54 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
   NeutrinoX4[3] = event.GetNeutrinoVtx().T();
   IsCC = (event.GetReaction().find("[CC]") != std::string::npos);
 
-  TVector3 interaction_location = event.GetNeutrinoVtx().Vect(); 
+  TVector3 interaction_location = event.GetNeutrinoVtx().Vect()*1000.; 
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
-    
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
+  
+  // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  nParticles = TrueParticles.size();
+  // Just trying to find the true muon here from the fundamental vertex
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+
+    // Only save muon info for now
+    if (abs((*it).GetPDG()) != 13) continue;
+    // Also make sure it's a fundamental muon
+    if ((*it).GetParent() != -1) continue;
+
+    MuonP4[0] = (*it).GetBirthMomentum().Px();
+    MuonP4[1] = (*it).GetBirthMomentum().Py();
+    MuonP4[2] = (*it).GetBirthMomentum().Pz();
+    MuonP4[3] = (*it).GetBirthEnergy();
+
+    Muon_Vertex[0] = (*it).GetBirthPosition().X();
+    Muon_Vertex[1] = (*it).GetBirthPosition().Y();
+    Muon_Vertex[2] = (*it).GetBirthPosition().Z();
+    Muon_Vertex[3] = (*it).GetBirthPosition().T();
+
+    Muon_Death[0] = (*it).GetDeathPosition().X();
+    Muon_Death[1] = (*it).GetDeathPosition().Y();
+    Muon_Death[2] = (*it).GetDeathPosition().Z();
+    Muon_Death[3] = (*it).GetDeathPosition().T();
+  }
+    
+  nTrueParticles = TrueParticles.size();
+  nTruePrimaryParticles = 0;
+  nTrueForgottenParticles = event.GetNTrueForgottenParticles();
+  if (nTrueParticles > __TMS_MAX_TRUE_PARTICLES__) nTrueParticles = __TMS_MAX_TRUE_PARTICLES__;
+  for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
+    int index = it - TrueParticles.begin();
+    
+    if (index >= __TMS_MAX_TRUE_PARTICLES__) {
+      std::cerr<<"WARNING: Found more particles than __TMS_MAX_TRUE_PARTICLES__. Stopping loop early. If this happens often, increase the max"<<std::endl;
+      std::cerr<<"WARNING: In this case, the __TMS_MAX_TRUE_PARTICLES__ is "<<__TMS_MAX_TRUE_PARTICLES__<<" but need "<<TrueParticles.size()<<std::endl;
+      break;
+    }
+    
+  }
+
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
   nTrueForgottenParticles = event.GetNTrueForgottenParticles();
@@ -1420,21 +2012,26 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     }
   
     VertexID[index] = (*it).GetVertexID();
+    ParticleRunNo[index] = (*it).GetRunID();
+    VertexGlobalID[index] = TMS_MakeGlobalVertexID(ParticleRunNo[index], VertexID[index]);
     Parent[index] = (*it).GetParent();
     TrackId[index] = (*it).GetTrackId();
     PDG[index] = (*it).GetPDG();
     IsPrimary[index] = (*it).IsPrimary();
     if ((*it).IsPrimary()) nTruePrimaryParticles += 1;
-    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy();
+    TrueVisibleEnergy[index] = (*it).GetTrueVisibleEnergy(false);
+    TrueNHits[index] = (*it).GetNTrueHits(false);
+    TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
+    TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
     TVector3 location_death = (*it).GetDeathPosition().Vect();
     TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
     TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
     TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
@@ -1476,8 +2073,58 @@ void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, in
     
     setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
-    
   }
+
+  auto vtx_info = event.GetVertexInfo();
+  TrueVtxN = std::min((int)vtx_info.size(), __TMS_MAX_TRUE_VERTICES__);
+  int true_vtx_index = 0;
+  for (auto& itvtx : vtx_info) {
+    auto& vtx = itvtx.second;
+    if (true_vtx_index >= __TMS_MAX_TRUE_VERTICES__) {
+      std::cout<<"Stopping loop. Vtx index hit max of __TMS_MAX_TRUE_VERTICES__ = "<<__TMS_MAX_TRUE_VERTICES__<<", increase limit"<<std::endl;
+      break;
+    }
+    // Position
+    TrueVtxX[true_vtx_index] = vtx.vtx.X();
+    TrueVtxY[true_vtx_index] = vtx.vtx.Y();
+    TrueVtxZ[true_vtx_index] = vtx.vtx.Z();
+    TrueVtxT[true_vtx_index] = vtx.vtx.T();
+    // Momentum
+    TrueVtxPx[true_vtx_index] = vtx.p4.X();
+    TrueVtxPy[true_vtx_index] = vtx.p4.Y();
+    TrueVtxPz[true_vtx_index] = vtx.p4.Z();
+    TrueVtxE[true_vtx_index] = vtx.p4.E();
+    // Pdg
+    TrueVtxPDG[true_vtx_index] = vtx.pdg;
+    TrueVtxID[true_vtx_index] = vtx.vtx_id;
+    TrueVtxRunNo[true_vtx_index] = vtx.run_id;
+    TrueVtxGlobalID[true_vtx_index] = TMS_MakeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
+    TrueVtxReaction.push_back(vtx.reaction);
+    // Hadronic E
+    TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
+    TrueVtxHadronicELAr[true_vtx_index] = vtx.hadronic_energy_lar;
+    TrueVtxHadronicETMS[true_vtx_index] = vtx.hadronic_energy_tms;
+    TrueVtxHadronicE[true_vtx_index] = vtx.hadronic_energy_total;
+    // Visible E
+    TrueVtxVisibleETMS[true_vtx_index] = vtx.true_visible_energy_tms;
+    TrueVtxVisibleELAr[true_vtx_index] = vtx.true_visible_energy_lar;
+    TrueVtxVisibleE[true_vtx_index] = vtx.true_visible_energy_total;
+    // Truth cuts
+    TrueVtxFiducialCut[true_vtx_index] = vtx.fiducial_cut;
+    TrueVtxShellEnergyCut[true_vtx_index] = vtx.shell_energy_cut;
+    TrueVtxNDPhysicsCut[true_vtx_index] = vtx.nd_physics_cut;
+    // Finally update index
+    true_vtx_index++;
+  }
+}
+
+void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
+  // Clear old info
+  Clear();
+  TruthInfoIndex = truth_info_entry_number;
+  TruthInfoNSlices = truth_info_n_slices;
+  
+  FillTruthInfo(event);
 
   Truth_Spill->Fill();
 }
@@ -1490,9 +2137,14 @@ void TMS_TreeWriter::Clear() {
   // Reset truth information
 
   EventNo = nParticles = NeutrinoPDG = LeptonPDG = Muon_TrueKE = Muon_TrueTrackLength = VertexIdOfMostEnergyInEvent = -999;
-  VertexIdOfMostEnergyInEvent = VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
+  VertexIdOfMostEnergyInEvent = VertexRunNoOfMostEnergyInEvent = -999;
+  VertexGlobalIDOfMostEnergyInEvent = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+  VisibleEnergyFromVertexInSlice = TotalVisibleEnergyFromVertex = VisibleEnergyFromOtherVerticesInSlice = -999;
+  LArOuterShellEnergy = LArTotalEnergy = TotalNonTMSEnergy = DEFAULT_CLEARING_FLOAT;
+  LArOuterShellEnergyFromVertex = LArTotalEnergyFromVertex = TotalNonTMSEnergyFromVertex = DEFAULT_CLEARING_FLOAT;
   Reaction = "";
   IsCC = false;
+
   for (int i = 0; i < 4; ++i) {
     MuonP4[i]=DEFAULT_CLEARING_FLOAT;
     Muon_Vertex[i]=DEFAULT_CLEARING_FLOAT;
@@ -1505,28 +2157,37 @@ void TMS_TreeWriter::Clear() {
 
   // Reset line information
   TMSStart = false;
+  TMSStartTime = DEFAULT_CLEARING_FLOAT;
   nLinesU = DEFAULT_CLEARING_FLOAT;
   nLinesV = DEFAULT_CLEARING_FLOAT;
   nLinesX = DEFAULT_CLEARING_FLOAT;
+  nLinesY = DEFAULT_CLEARING_FLOAT;
+  nLines3D = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     SlopeU[i] = DEFAULT_CLEARING_FLOAT;
     SlopeV[i] = DEFAULT_CLEARING_FLOAT;
     SlopeX[i] = DEFAULT_CLEARING_FLOAT;
+    SlopeY[i] = DEFAULT_CLEARING_FLOAT;
     InterceptU[i] = DEFAULT_CLEARING_FLOAT;
     InterceptV[i] = DEFAULT_CLEARING_FLOAT;
     InterceptX[i] = DEFAULT_CLEARING_FLOAT;
+    InterceptY[i] = DEFAULT_CLEARING_FLOAT;
     Slope_DownstreamU[i] = DEFAULT_CLEARING_FLOAT;
     Slope_DownstreamV[i] = DEFAULT_CLEARING_FLOAT;
     Slope_DownstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_DownstreamY[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_DownstreamU[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_DownstreamV[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_DownstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_DownstreamY[i] = DEFAULT_CLEARING_FLOAT;
     Slope_UpstreamU[i] = DEFAULT_CLEARING_FLOAT;
     Slope_UpstreamV[i] = DEFAULT_CLEARING_FLOAT;
     Slope_UpstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Slope_UpstreamY[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_UpstreamU[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_UpstreamV[i] = DEFAULT_CLEARING_FLOAT;
     Intercept_UpstreamX[i] = DEFAULT_CLEARING_FLOAT;
+    Intercept_UpstreamY[i] = DEFAULT_CLEARING_FLOAT;
 
     DirectionZU[i] = DEFAULT_CLEARING_FLOAT;
     DirectionXU[i] = DEFAULT_CLEARING_FLOAT;
@@ -1549,27 +2210,100 @@ void TMS_TreeWriter::Clear() {
     DirectionZX_Downstream[i] = DEFAULT_CLEARING_FLOAT;
     DirectionYX_Downstream[i] = DEFAULT_CLEARING_FLOAT;
 
+    DirectionZY[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXY[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZY_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXY_Upstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionZY_Downstream[i] = DEFAULT_CLEARING_FLOAT;
+    DirectionXY_Downstream[i] = DEFAULT_CLEARING_FLOAT;
+
     OccupancyU[i] = DEFAULT_CLEARING_FLOAT;
     OccupancyV[i] = DEFAULT_CLEARING_FLOAT;
     OccupancyX[i] = DEFAULT_CLEARING_FLOAT;
+    OccupancyY[i] = DEFAULT_CLEARING_FLOAT;
     TrackLengthU[i] = DEFAULT_CLEARING_FLOAT;
     TrackLengthV[i] = DEFAULT_CLEARING_FLOAT;
     TrackLengthX[i] = DEFAULT_CLEARING_FLOAT;
+    TrackLengthY[i] = DEFAULT_CLEARING_FLOAT;
     TotalTrackEnergyU[i] = DEFAULT_CLEARING_FLOAT;
     TotalTrackEnergyV[i] = DEFAULT_CLEARING_FLOAT;
     TotalTrackEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    TotalTrackEnergyY[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneU[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneV[i] = DEFAULT_CLEARING_FLOAT;
     FirstPlaneX[i] = DEFAULT_CLEARING_FLOAT;
+    FirstPlaneY[i] = DEFAULT_CLEARING_FLOAT;
     LastPlaneU[i] = DEFAULT_CLEARING_FLOAT;
     LastPlaneV[i] = DEFAULT_CLEARING_FLOAT;
     LastPlaneX[i] = DEFAULT_CLEARING_FLOAT;
+    LastPlaneY[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInTrackU[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInTrackV[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInTrackX[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInTrackY[i] = DEFAULT_CLEARING_FLOAT;
     TrackStoppingU[i] = false;
     TrackStoppingV[i] = false;
     TrackStoppingX[i] = false;
+    TrackStoppingY[i] = false;
+
+    for (int j = 0; j < 2; ++j) {
+      FirstHitU[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitV[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitX[i][j] = DEFAULT_CLEARING_FLOAT;
+      FirstHitY[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitU[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitV[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitX[i][j] = DEFAULT_CLEARING_FLOAT;
+      LastHitY[i][j] = DEFAULT_CLEARING_FLOAT;
+    }
+    FirstHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    FirstHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    LastHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    EarliestHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    LatestHitTimeY[i] = DEFAULT_CLEARING_FLOAT;
+
+    for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
+      TrackHitEnergyU[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyV[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyX[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitEnergyY[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeU[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeV[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeX[i][j] = DEFAULT_CLEARING_FLOAT;
+      TrackHitTimeY[i][j] = DEFAULT_CLEARING_FLOAT;
+      for (int k = 0; k < 2; ++k) {
+        TrackHitPosU[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosV[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosX[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        TrackHitPosY[i][j][k] = DEFAULT_CLEARING_FLOAT;
+      }
+    }
+
+    for (int k = 0; k < 3; k++) {
+      RecoTrackKalmanFirstPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanLastPlaneBarView[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanFirstPlaneBarViewTrue[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackKalmanLastPlaneBarViewTrue[i][k] = DEFAULT_CLEARING_FLOAT;
+      for (int j = 0; j < __TMS_MAX_LINE_HITS__; j++) {
+        RecoTrackKalmanPlaneBarView[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPlaneBarViewTrue[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos_plus_chi2[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanPos_minus_chi2[i][j][k] = DEFAULT_CLEARING_FLOAT;
+        RecoTrackKalmanTruePos[i][j][k] = DEFAULT_CLEARING_FLOAT;
+      }
+    }
   }
 /*    Occupancy3D[i] = DEFAULT_CLEARING_FLOAT;
     TrackLength3D[i] = DEFAULT_CLEARING_FLOAT;
@@ -1609,19 +2343,38 @@ void TMS_TreeWriter::Clear() {
   for (int i = 0; i < __TMS_MAX_HITS__; ++i) {
     for (int j = 0; j < 4; ++j) RecoHitPos[i][j] = DEFAULT_CLEARING_FLOAT;
     RecoHitEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPE[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBar[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitBarType[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryRunId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexGlobalId[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    RecoHitPrimaryTrackId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitOtherTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info
   nClustersU = DEFAULT_CLEARING_FLOAT;
   nClustersV = DEFAULT_CLEARING_FLOAT;
   nClustersX = DEFAULT_CLEARING_FLOAT;
+  nClustersY = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_CLUSTERS__; ++i) {
     ClusterEnergyU[i] = DEFAULT_CLEARING_FLOAT;
     ClusterEnergyV[i] = DEFAULT_CLEARING_FLOAT;
     ClusterEnergyX[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterEnergyY[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeU[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeV[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeX[i] = DEFAULT_CLEARING_FLOAT;
+    ClusterTimeY[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterU[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterV[i] = DEFAULT_CLEARING_FLOAT;
     nHitsInClusterX[i] = DEFAULT_CLEARING_FLOAT;
+    nHitsInClusterY[i] = DEFAULT_CLEARING_FLOAT;
     for (int j = 0; j < 2; ++j) {
       ClusterPosMeanU[i][j] = DEFAULT_CLEARING_FLOAT;
       ClusterPosStdDevU[i][j] = DEFAULT_CLEARING_FLOAT;
@@ -1631,6 +2384,9 @@ void TMS_TreeWriter::Clear() {
 
       ClusterPosMeanX[i][j] = DEFAULT_CLEARING_FLOAT;
       ClusterPosStdDevX[i][j] = DEFAULT_CLEARING_FLOAT;
+
+      ClusterPosMeanY[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterPosStdDevY[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int j = 0; j < __TMS_MAX_LINE_HITS__; ++j) {
       ClusterHitPosU[i][j][0] = DEFAULT_CLEARING_FLOAT;
@@ -1644,26 +2400,57 @@ void TMS_TreeWriter::Clear() {
       ClusterHitPosX[i][j][0] = DEFAULT_CLEARING_FLOAT;
       ClusterHitPosX[i][j][1] = DEFAULT_CLEARING_FLOAT;
       ClusterHitEnergyX[i][j] = DEFAULT_CLEARING_FLOAT;
+
+      ClusterHitPosY[i][j][0] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitPosY[i][j][1] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitEnergyY[i][j] = DEFAULT_CLEARING_FLOAT;
+
+      ClusterHitTimeU[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeV[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeX[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitTimeY[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceU[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceV[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceX[i][j] = DEFAULT_CLEARING_FLOAT;
+      ClusterHitSliceY[i][j] = DEFAULT_CLEARING_FLOAT;
     }
   }
 
   // Reset track information
   nTracks = DEFAULT_CLEARING_FLOAT;
+  TimeSliceStartTime = DEFAULT_CLEARING_FLOAT;
+  TimeSliceEndTime = DEFAULT_CLEARING_FLOAT;
   for (int i = 0; i < __TMS_MAX_TRACKS__; ++i) {
-    for (int j = 0; j < 3; ++j) {
+    nHitsIn3DTrack[i] = DEFAULT_CLEARING_FLOAT;
+    nKalmanNodes[i] = DEFAULT_CLEARING_FLOAT;
+    for (int j = 0; j < 4; ++j) {
       RecoTrackStartPos[i][j] = DEFAULT_CLEARING_FLOAT;
-      RecoTrackDirection[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackEndPos[i][j] = DEFAULT_CLEARING_FLOAT;
+    }
+    for (int j = 0; j < 3; ++j) {
+      RecoTrackStartDirection[i][j] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackEndDirection[i][j] = DEFAULT_CLEARING_FLOAT;
     }
     for (int k = 0; k < __TMS_MAX_LINE_HITS__; ++k) {
       RecoTrackHitPos[i][k][0] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][1] = DEFAULT_CLEARING_FLOAT;
       RecoTrackHitPos[i][k][2] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitPos[i][k][3] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitEnergies[i][k] = DEFAULT_CLEARING_FLOAT;
+      RecoTrackHitBarType[i][k] = DEFAULT_CLEARING_FLOAT;
     }
     RecoTrackEnergyRange[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackMomentum[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackLengthSource[i] = kLengthSourceNone;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackCharge_Kalman_curvature[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
   }
   
   RecoTrackN = 0;
@@ -1671,8 +2458,10 @@ void TMS_TreeWriter::Clear() {
     RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackSecondaryParticleTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackSecondaryParticleTrueNHits[i] = DEFAULT_CLEARING_FLOAT;
 
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasured[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackPrimaryParticleTrueTrackLengthAsMeasuredIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
@@ -1694,6 +2483,13 @@ void TMS_TreeWriter::Clear() {
     RecoTrackPrimaryParticleLArFiducialStart[i] = false;
     RecoTrackPrimaryParticleLArFiducialTouch[i] = false;
     RecoTrackPrimaryParticleLArFiducialEnd[i] = false;
+
+    RecoTrackPrimaryParticleVtxId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackPrimaryParticleVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    RecoTrackPrimaryParticleVtxFiducialCut[i] = false;
+    RecoTrackPrimaryParticleVtxShellEnergyCut[i] = false;
+    RecoTrackPrimaryParticleVtxNDPhysicsCut[i] = false;
 
     for (int j = 0; j < 4; ++j) {
       RecoTrackPrimaryParticleTrueMomentumTrackStart[i][j] = DEFAULT_CLEARING_FLOAT;
@@ -1724,11 +2520,16 @@ void TMS_TreeWriter::Clear() {
   nTrueParticles = 0;
   for (int i = 0; i < __TMS_MAX_TRUE_PARTICLES__; ++i) {
     VertexID[i] = DEFAULT_CLEARING_FLOAT;
+    ParticleRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    VertexGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
     Parent[i] = DEFAULT_CLEARING_FLOAT;
     TrackId[i] = DEFAULT_CLEARING_FLOAT;
     PDG[i] = DEFAULT_CLEARING_FLOAT;
     IsPrimary[i] = false;
     TrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNHits[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVisibleEnergyInSlice[i] = DEFAULT_CLEARING_FLOAT;
+    TrueNHitsInSlice[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLength[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLengthIgnoreY[i] = DEFAULT_CLEARING_FLOAT;
     TruePathLengthInTMS[i] = DEFAULT_CLEARING_FLOAT;
@@ -1742,6 +2543,7 @@ void TMS_TreeWriter::Clear() {
     LArFiducialEnd[i] = false;
 
     for (int j = 0; j < 4; ++j) {
+      
       BirthMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
       BirthPosition[i][j] = DEFAULT_CLEARING_FLOAT;
       DeathMomentum[i][j] = DEFAULT_CLEARING_FLOAT;
@@ -1767,6 +2569,10 @@ void TMS_TreeWriter::Clear() {
     }
   }
 
+  for (int i = 0; i < __TMS_MAX_TRUE_VERTICES__; ++i) {
+    TrueVtxID[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+  }
 
 }
-

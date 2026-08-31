@@ -22,7 +22,7 @@ bool isTMSContained(TVector3 position, bool thin_only = false) {
   // before the change)
   const double TMS_Thick_Start = 13500;
   // Where does the thick region end
-  const double TMS_Thick_End = 18294;
+  const double TMS_Double_End = 18535;
   const double TMS_Start_Bars_Only[] = {-3350, 240, TMS_Thin_Start};
   const double TMS_End_Bars_Only[] = {3350, -2950, TMS_Thick_End};
   if (position.X() < TMS_Start_Bars_Only[0])

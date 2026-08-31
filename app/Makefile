@@ -59,6 +59,10 @@ MKDIR_P := mkdir -p
 
 all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe
 
+# Sanitize target
+sanitize: CXXFLAGS += -fsanitize=address
+sanitize: all
+
 directories: $(EXE_DIR)
 
 $(EXE_DIR):

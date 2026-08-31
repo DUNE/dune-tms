@@ -19,7 +19,11 @@
     # The minimum points for the DBSCAN clustering algorithm
     MinPoints = 2
     # How far away can a bar/plane combination be to include in a cluster
-    Epsilon = 2.5
+    Epsilon = 4.5
+    # Amount of neighbouring hits a hit needs to have for pre-clustering (DBSCAN)
+    PreDBNeighbours = 9
+    # Maximal distance to hits to count as neighbours for pre-clustering (DBSCAN)
+    PreDBDistance = 4.5
 
   [Recon.Hough]
     # The highest number of Hough transforms we can run after each other
@@ -28,48 +32,62 @@
     MinInter = -50.0E3
     MaxInter = 50.0E3
     # Slopes
-    MinSlope = -5.0
-    MaxSlope = 5.0
+    MinSlope = -1.5
+    MaxSlope = 1.5
     # Number of Hough bins, resolution should be about 1cm
     #NSlope = 10000
     #NInter = 10000
     NSlope = 1000
-    NInter = 1000
+    NInter = 2000
     # Minimum distance for Hough
     # What factor of hits of total do we need to cover to count a successful Hough line finding
     HitMult = 0.2
     # Minimum distance for a Hough track (prevents overfinding) -- in bars and plane
     # dist = sqrt(xplanes*xplanes + zplanes*zplanes)
-    MinDist = 4.0
+    MinDist = 8.0
     # Do we run DBSCAN clustering before the Hough transform and then run Hough on each cluster?
-    FirstCluster = false
+    FirstCluster = false  #true
     # Do we merge adjacent tracks afterwards?
     MergeTracks = true
     # Do we run AStar afterwards on start and end points
     # To undo the greediness in the Hough line finding?
     RunAStarCleanup = true
+    # Half-width of the Hough line-containment window, in transverse bar widths.
+    # The prior three-point test had an effective half-width of 1.5.  A value
+    # of 6.0 is the nominal 4x retuning after the X-bar transverse-width fix.
+    # This is deliberately shared by X and Y; change it only for a global
+    # reconstruction study, not as a view-specific geometry correction.
+    ContainmentHalfWidth = 6.0
 
   [Recon.Extrapolation]
     # Whether extrapolation should be performed or not
     Extrapolation = true
     # Maximal distance from start/end hit to first added hit by extrapolation
-    ExtrapolateDist = 4
+    ExtrapolateDist = 8
     # Maximal distance from first added hit (by extrapolation) to last added hit
-    ExtrapolateLimit = 20
+    ExtrapolateLimit = 40
     # Distance in number of bars a hit can be away from the direction line at the end
     NumBarsEnd = 4
     # Distance in number of bars a hit can be away from the direction line at the start
     NumBarsStart = 2
+    # Shared multiplier on the transverse-width extrapolation windows.  1.0
+    # reproduces the original code; 4.0 is the nominal retuning after the
+    # X-bar transverse-width fix.  It applies to both X and Y.
+    ContainmentWidthMultiplier = 4.0
+    # Extra allowance for X-bar candidate distances during extrapolation's
+    # heuristic-distance stage.  This is independent of the transverse-width
+    # containment multiplier above.
+    XBarDistanceMultiplier = 2.0
 
   [Recon.TrackMatch3D]
     # How many plane layers can the ends/starts of the two simple tracks be away from each other?
-    PlaneLimit = 3
+    PlaneLimit = 8
     # How many bars can the ends/starts of the two simple tracks be away from each other?
     BarLimit = 12
     # How many ns can the ends/starts of the two simple tracks be away from each other?
-    TimeLimit = 30
+    TimeLimit = 16  #30
     # How many ns can the ends/starts of a X simple track be away from U simple track?
-    XTimeLimit = 15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
+    XTimeLimit = 40 #15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
     # What is the 'anchor point' of the scintillator bars in y [mm]?
     YAnchor = -910.0
     # Tilt angle of scintillator planes for calculation of y (tan(90-angle))
@@ -77,7 +95,23 @@
     # Y difference for expectation of reconstruction from UV and from X hit [mm]
     YDifference = 3000.0
     # Distance from start to calculate track direction for [Number of planes]. Track matching done in plane pairs -> do not set to 1
-    DirectionDistance = 10
+    DirectionDistance = 28
+
+  [Recon.TrackSmoothing]
+    UseTrackSmoothing = true
+    TrackSmoothingStrategy = "simple"
+    # This is the max y distance a track can travel in a UV detector
+    # before we expect to see another transition point
+    # Used to calculate the maximum slope you can hide in the UV Y position uncertainty
+    MaxYDistanceBetweenUVTransitionPoints = 300.0 # mm
+    # For a UV detector, this is the uncertainty in X
+    # Numbers from TMS det review 2024-10-18
+    UncertaintyGoodDirection = 18.0 # mm
+    # For a UV detector, this is the default uncertainty in Y
+    UncertaintyBadDirection = 340.0 # mm
+    # In UV detector, transition point has better uncertainty
+    # This is found using the FWHM of reco - true for transition points only
+    UncertaintyForUVTransitionPoints = 120.0 # mm
 
   [Recon.AStar]
     #CostMetric = "Manhattan"
@@ -85,6 +119,14 @@
     #CostMetric = "DetectorZ"
     #CostMetric = "DetectorNotZ"
     IsGreedy = false
+    # Maximum plane gap allowed in local hit-merging logic
+    MergePlaneGap = 6
+    # Maximum bar gap allowed in local hit-merging logic
+    MergeBarGap = 4
+
+  [Recon.Kalman]
+    Run = true # Whether we run the Kalman filter or not
+    Assumed_Charge = 0.5 # Assumed to be a muon , 0.1 is for the assumption of being a muon. -0.1 is for the assumption of being an anti-muon. 0.0 is for no magnetic field.
 
   [Recon.Stopping]
     nLastHits = 5 # The number of hits at the end of track to look at for stopping
@@ -103,23 +145,56 @@
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
-[Fiducial]
+# Variables that have to do with the geometry or location of the detector
+[Geometry]
+  YBarMiddle = -1.35  #m
+  GitTag = "v2025.08.11"
+  GitBranch = "HEAD"
+  GitCommit = "cc28d73d93ee4c50c9f5b453c996e4ea20373e2f"
+  NumberOfScintillatorPlanes = 82
+  NumberOfSteelPlatesThin = 34
+  NumberOfSteelPlatesThick = 22
+  NumberOfSteelPlatesDouble = 24
+
+  # Volume-name substrings used to identify detector components while walking
+  # the geometry tree read from the input GDML (see TMS_Geom / TMS_Bar / TMS_Event).
+  # Update these -- not a compiled constant -- if a future GDML renames volumes.
+  [Geometry.VolumeNames]
+    ModuleLayer = "modulelayervol"
+    ModuleLayerU = "modulelayervol1" # +3 degree tilt from pure y orientation
+    ModuleLayerV = "modulelayervol2" # -3 degree tilt from pure y orientation
+    ModuleLayerX = "modulelayervol3" # 90 degree rotated/tilted from vertical
+    ModuleLayerY = "modulelayervol4" # pure y orientation
+    Module = "ModuleBoxvol"
+    ScintLayer = "scinBoxlvTMS"
+    ScintLayerOrtho = "scinBoxlv_orthoTMS"
+    ScintLayerParallel = "scinBoxlv_parallelTMS"
+    TopLayer = "volWorld"
+    DetEnclosure = "volDetEnclosure"
+    TMSVolume = "TMS"
+    TMSEDepSimVolume = "volTMS"
+    LArActive = "TPCActive"
   [Fiducial.TMS.Start]
-    X = -3300.0 # mm
-    Y = -2850.0 # mm
-    Z = 11362.0 # mm
+    X = -3419.0 # mm  # TODO this is very preliminary
+    Y = -2976.23 # mm # TODO this is very preliminary
+    Z = 11134.0 # mm
   [Fiducial.TMS.End]
-    X = 3300.0 # mm
-    Y = 160.0 # mm
-    Z = 18314.0 # mm
-  [Fiducial.LAr.Start]
+    X = 3419.0 # mm   # TODO this is very preliminary
+    Y = 291.77 # mm   # TODO this is very preliminary
+    Z = 18535.0 # mm
+  [Active.LAr.Start]
     X = -3478.48 # mm
     Y = -2166.71 # mm
     Z = 4179.24 # mm
-  [Fiducial.LAr.End]
+  [Active.LAr.End]
     X = 3478.48 # mm
     Y = 829.282 # mm
     Z = 9135.88 # mm
+  [Fiducial.LAr]
+    DownstreamZCut = 1500.0 #mm
+    XYCut = 500.0 # mm
+    OuterShellThickness=300.0 # mm
+    CutEnergy = 30.0 # MeV
 
 # Options for processing and saving truth information
 # LightWeight reduces run time signficantly because we only care about TMS objects (no LAr)
@@ -132,6 +207,8 @@
   DrawPDF = false
   MaximumNEvents = -1
 
-# Variables that have to do with the geometry or location of the detector 
-[Geometry]
-  YBarMiddle = -1.35  #m
+[Meta]
+  [Meta.Version]
+    Major = 1
+    Minor = 1
+    Patch = 0
