@@ -10,7 +10,7 @@ add_executable(ShootRay ShootRay.cpp)
 add_executable(TrackLengthTester TrackLengthTester.cpp)
 add_executable(DBSCAN_test DBSCAN_test.cpp)
 
-target_link_libraries(BField_tester LINK_PUBLIC TMS_Prod)
+target_link_libraries(BField_tester LINK_PUBLIC TMS_Prod ROOT::EG)
 target_link_libraries(BetheBloch_Example LINK_PUBLIC TMS_Prod)
 target_link_libraries(CherryPickEvents LINK_PUBLIC TMS_Prod)
 target_link_libraries(ConvertToTMSTree LINK_PUBLIC TMS_Prod)

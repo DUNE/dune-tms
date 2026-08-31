@@ -21,7 +21,7 @@
     ShouldSimulateFiberLengths = true
     WSFAttenuationLength = 4.160 # m
     WSFLengthMultiplier = 1.8 # Light doesn't travel straight through the fiber
-    WSFEndReflectionEff = 0.95 
+    WSFEndReflectionEff = 0.0 
     AdditionalFiberLength = -1.0 # m
     AdditionalFiberAttenuationLength = 4.160 # m
     AdditionalFiberCouplingEff = 1.0

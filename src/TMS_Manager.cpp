@@ -1,5 +1,7 @@
 #include "TMS_Manager.h"
 
+#include <stdexcept>
+
 TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
@@ -53,12 +55,22 @@ TMS_Manager::TMS_Manager() {
   _RECO_HOUGH_RunAStar = toml::find<bool>(data, "Recon", "Hough", "RunAStarCleanup");
   _RECO_HOUGH_FirstCluster = toml::find<bool>(data, "Recon", "Hough", "FirstCluster");
   _RECO_HOUGH_MinDist = toml::find<double>(data, "Recon", "Hough", "MinDist");
+  _RECO_HOUGH_ContainmentHalfWidth = toml::find<double>(data, "Recon", "Hough", "ContainmentHalfWidth");
 
   _RECO_EXTRAPOLATION_Extrapolation = toml::find<bool>(data, "Recon", "Extrapolation", "Extrapolation");
   _RECO_EXTRAPOLATION_ExtrapolateDist = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateDist");
   _RECO_EXTRAPOLATION_ExtrapolateLimit = toml::find<int>(data, "Recon", "Extrapolation", "ExtrapolateLimit");
   _RECO_EXTRAPOLATION_NumBarsEnd = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsEnd");
   _RECO_EXTRAPOLATION_NumBarsStart = toml::find<int>(data, "Recon", "Extrapolation", "NumBarsStart");
+  _RECO_EXTRAPOLATION_ContainmentWidthMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "ContainmentWidthMultiplier");
+  _RECO_EXTRAPOLATION_XBarDistanceMultiplier = toml::find<double>(data, "Recon", "Extrapolation", "XBarDistanceMultiplier");
+
+  if (_RECO_HOUGH_ContainmentHalfWidth < 0.5) {
+    throw std::runtime_error("Recon.Hough.ContainmentHalfWidth must be at least 0.5");
+  }
+  if (_RECO_EXTRAPOLATION_ContainmentWidthMultiplier <= 0.0) {
+    throw std::runtime_error("Recon.Extrapolation.ContainmentWidthMultiplier must be positive");
+  }
 
   _RECO_TRACKMATCH_PlaneLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "PlaneLimit");
   _RECO_TRACKMATCH_BarLimit = toml::find<int>(data, "Recon", "TrackMatch3D", "BarLimit");
@@ -71,6 +83,8 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_ASTAR_IsGreedy = toml::find<bool> (data, "Recon", "AStar", "IsGreedy");
   _RECO_ASTAR_CostMetric = toml::find<std::string> (data, "Recon", "AStar", "CostMetric");
+  _RECO_ASTAR_MergePlaneGap = toml::find<int>(data, "Recon", "AStar", "MergePlaneGap");
+  _RECO_ASTAR_MergeBarGap = toml::find<int>(data, "Recon", "AStar", "MergeBarGap");
 
   _RECO_STOPPING_nLastHits = toml::find<int>(data, "Recon", "Stopping", "nLastHits");
   _RECO_STOPPING_EnergyCut = toml::find<double>(data, "Recon", "Stopping", "EnergyCut");
@@ -80,10 +94,39 @@ TMS_Manager::TMS_Manager() {
 
   _RECO_KALMAN_RUN = toml::find<bool>(data, "Recon", "Kalman", "Run");
   _RECO_KALMAN_ASSUMED_CHARGE = toml::find<double>(data, "Recon", "Kalman", "Assumed_Charge");
+
   
   _RECO_CALIBRATION_EnergyCalibration = toml::find<double>  (data, "Recon", "Calibration", "EnergyCalibration");
   
   _GEOMETRY_YMIDDLE = toml::find<double>(data, "Geometry", "YBarMiddle");
+
+  // [Geometry.VolumeNames] is new as of the geometry-survey restructuring -- an older
+  // or hand-trimmed TOML config won't have it. toml::find() would throw a low-level
+  // toml11 parse/lookup exception here that gives no hint what's actually wrong, so
+  // catch it and rethrow something a user can act on.
+  try {
+    _GEOMETRY_VOLUME_ModuleLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayer");
+    _GEOMETRY_VOLUME_ModuleLayerU = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerU");
+    _GEOMETRY_VOLUME_ModuleLayerV = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerV");
+    _GEOMETRY_VOLUME_ModuleLayerX = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerX");
+    _GEOMETRY_VOLUME_ModuleLayerY = toml::find<std::string>(data, "Geometry", "VolumeNames", "ModuleLayerY");
+    _GEOMETRY_VOLUME_Module = toml::find<std::string>(data, "Geometry", "VolumeNames", "Module");
+    _GEOMETRY_VOLUME_ScintLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayer");
+    _GEOMETRY_VOLUME_ScintLayerOrtho = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayerOrtho");
+    _GEOMETRY_VOLUME_ScintLayerParallel = toml::find<std::string>(data, "Geometry", "VolumeNames", "ScintLayerParallel");
+    _GEOMETRY_VOLUME_TopLayer = toml::find<std::string>(data, "Geometry", "VolumeNames", "TopLayer");
+    _GEOMETRY_VOLUME_DetEnclosure = toml::find<std::string>(data, "Geometry", "VolumeNames", "DetEnclosure");
+    _GEOMETRY_VOLUME_TMSVolume = toml::find<std::string>(data, "Geometry", "VolumeNames", "TMSVolume");
+    _GEOMETRY_VOLUME_TMSEDepSimVolume = toml::find<std::string>(data, "Geometry", "VolumeNames", "TMSEDepSimVolume");
+    _GEOMETRY_VOLUME_LArActive = toml::find<std::string>(data, "Geometry", "VolumeNames", "LArActive");
+  } catch (const toml::exception &e) {
+    throw std::runtime_error(
+        "TMS_Manager: config '" + filename + "' is missing (or has a malformed) "
+        "[Geometry.VolumeNames] section. This section was added by the geometry-survey "
+        "restructuring -- copy it from config/TMS_Default_Config.toml into your config. "
+        "Underlying error: " + std::string(e.what()));
+  }
+
   _FIDUCIAL_TMS_START_X = toml::find<double>(data, "Fiducial", "TMS", "Start", "X");
   _FIDUCIAL_TMS_START_Y = toml::find<double>(data, "Fiducial", "TMS", "Start", "Y");
   _FIDUCIAL_TMS_START_Z = toml::find<double>(data, "Fiducial", "TMS", "Start", "Z");
@@ -109,4 +152,15 @@ TMS_Manager::TMS_Manager() {
   _APPLICATIONS_MaximumNEvents = toml::find<int>(data, "Applications", "MaximumNEvents");
   
   _NERSC_SPILL_PERIOD = 1.2e9;
+
+  _GEOMETRY_git_tag = toml::find<std::string>(data, "Geometry", "GitTag");
+  _GEOMETRY_git_branch = toml::find<std::string>(data, "Geometry", "GitBranch");
+  _GEOMETRY_git_commit = toml::find<std::string>(data, "Geometry", "GitCommit");
+  _GEOMETRY_NumberOfScintillatorPlanes = toml::find<int>(data, "Geometry", "NumberOfScintillatorPlanes");
+  _GEOMETRY_NumberOfSteelPlatesThin = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesThin");
+  _GEOMETRY_NumberOfSteelPlatesThick = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesThick");
+  _GEOMETRY_NumberOfSteelPlatesDouble = toml::find<int>(data, "Geometry", "NumberOfSteelPlatesDouble");
+  _META_version_major = toml::find<int>(data, "Meta", "Version", "Major");
+  _META_version_minor = toml::find<int>(data, "Meta", "Version", "Minor");
+  _META_version_patch = toml::find<int>(data, "Meta", "Version", "Patch");
 }

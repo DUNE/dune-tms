@@ -1,9 +1,14 @@
 #ifndef _TMS_GEOM_H_SEEN_
 #define _TMS_GEOM_H_SEEN_
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
+#include <set>
 
 #include "TGeoManager.h"
 
@@ -18,6 +23,59 @@
 #define __GEOM_LARGE_STEP__ 1E10
 #define __GEOM_SMALL_STEP__ 1E-4
 #define __GEOM_TINY_STEP__ 1E-5
+
+// Result of a one-time walk of the GDML node tree, done once by
+// TMS_Geom::SurveyGeometry() when SetGeometry() is called. Replaces several
+// TMS_Constants.h numbers that used to require a recompile whenever the geometry
+// changed, with numbers actually observed in the geometry that was loaded.
+//
+// NOT yet covered here (left on TMS_Const:: for now -- see the real-data
+// restructuring design proposal for why):
+//   - the steel-inclusive "TMS mass" bounding box: no steel volume is identified
+//     by name anywhere in this codebase yet, only scintillator bars are
+//   - the LAr active-volume bounding box
+//   - the thin/thick steel region z-boundary
+struct TMS_GeometryLayout {
+  bool valid = false;
+  // Set once SurveyGeometry() has completed a traversal that wasn't cut short by the
+  // safety cap -- true whenever the survey found *any* usable data (plane/module
+  // identity sets, bar-region bbox, or both), even a geometry with plane/module
+  // structure but zero bar nodes. Distinct from `valid`, which only tracks whether
+  // the bar-region bbox specifically has data (see GetStartOfTMS()/ExpandToInclude());
+  // HasGeometrySurvey() reports `surveyed`, not `valid`.
+  bool surveyed = false;
+  // Raw node numbers observed anywhere in the tree, used only for CheckBar()-style
+  // membership checks ("is this a value that occurs somewhere"). TGeoNode::GetNumber()
+  // is a copy number scoped to its parent volume, not a tree-wide unique id, so this
+  // set can under-COUNT distinct physical planes/modules if two different parents
+  // reuse the same local copy number -- see nPlaneNodesVisited/nModuleNodesVisited
+  // below for the actual count.
+  std::set<int> planeNumbers;
+  std::set<int> moduleNumbers;
+  // Plain visit counters: the traversal visits each node exactly once, so these are
+  // an exact count of distinct physical ModuleLayer/Module nodes, independent of
+  // whatever local numbering convention the GDML happens to use.
+  int nPlaneNodesVisited = 0;
+  int nModuleNodesVisited = 0;
+  int nBars = 0;                 // total scintillator-bar nodes visited
+  bool truncated = false;        // hit the node-visit safety cap before finishing
+
+  // Bounding box of all scintillator-bar nodes found, in mm (already geometry-scaled)
+  double xMin = 0, xMax = 0, yMin = 0, yMax = 0, zMin = 0, zMax = 0;
+
+  void ExpandToInclude(double x, double y, double z) {
+    if (!valid) {
+      xMin = xMax = x;
+      yMin = yMax = y;
+      zMin = zMax = z;
+    } else {
+      xMin = std::min(xMin, x); xMax = std::max(xMax, x);
+      yMin = std::min(yMin, y); yMax = std::max(yMax, y);
+      zMin = std::min(zMin, z); zMax = std::max(zMax, z);
+    }
+    valid = true;
+  }
+};
 
 // Define the TMS geometry singleton
 class TMS_Geom {
@@ -38,25 +96,56 @@ class TMS_Geom {
     inline double GetYEndOfLAr() const { return TMS_Const::LAr_End_Exact[1]; };
     inline double GetZEndOfLAr() const { return TMS_Const::LAr_End_Exact[2]; };
     inline TVector3 GetEndOfLAr() const { return TVector3(GetXEndOfLAr(), GetYEndOfLAr(), GetZEndOfLAr()); };
-    inline double GetXStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[0]; };
-    inline double GetYStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[1]; };
-    inline double GetZStartOfTMS() const { return TMS_Const::TMS_Start_Bars_Only[2]; };
+    // Bar-region bounding box: from the one-time geometry survey (SurveyGeometry())
+    // when available, falling back to the compiled TMS_Constants.h values (with a
+    // one-time warning) if no geometry has been surveyed yet.
+    inline void WarnIfNoSurvey() const {
+      if (!fLayout.valid && !fWarnedNoSurvey) {
+        std::cerr << "[TMS_Geom] WARNING: TMS bar-region bounding box requested before a geometry "
+          "survey has run (SetGeometry() not yet called, or the survey found no scintillator-bar "
+          "nodes). Falling back to the compiled TMS_Constants.h values." << std::endl;
+        fWarnedNoSurvey = true;
+      }
+    }
+    inline double GetXStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.xMin : TMS_Const::TMS_Start_Bars_Only[0]; };
+    inline double GetYStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.yMin : TMS_Const::TMS_Start_Bars_Only[1]; };
+    inline double GetZStartOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.zMin : TMS_Const::TMS_Start_Bars_Only[2]; };
     inline TVector3 GetStartOfTMS() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMS(), GetZStartOfTMS()); };
-    inline double GetXEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[0]; };
-    inline double GetYEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[1]; };
-    inline double GetZEndOfTMS() const { return TMS_Const::TMS_End_Bars_Only[2]; };
+    inline double GetXEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.xMax : TMS_Const::TMS_End_Bars_Only[0]; };
+    inline double GetYEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.yMax : TMS_Const::TMS_End_Bars_Only[1]; };
+    inline double GetZEndOfTMS() const { WarnIfNoSurvey(); return fLayout.valid ? fLayout.zMax : TMS_Const::TMS_End_Bars_Only[2]; };
     inline TVector3 GetEndOfTMS() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMS()); };
+
+    // Plane/module counts and identity, as actually observed in the surveyed geometry.
+    // Use these instead of TMS_Const::nPlanes / TMS_Const::nModules.
+    //
+    // GetNPlanesSurveyed()/GetNModulesSurveyed() count *matches of the name pattern*,
+    // which only equals the physical count if that volume type doesn't nest inside
+    // another matched type -- true for planes in every geometry seen so far, but NOT
+    // true for modules in at least one real geometry (module volumes nest once per
+    // plane there, see the nesting note SurveyGeometry() prints). GetNDistinctPlaneNumbers()/
+    // GetNDistinctModuleNumbers() count distinct raw node numbers instead, which is
+    // what actually matters for "is this a valid value" -- use those for anything
+    // that needs the count of legal values (e.g. an error message), not the match count.
+    inline bool HasGeometrySurvey() const { return fLayout.surveyed; };
+    inline int GetNPlanesSurveyed() const { return fLayout.nPlaneNodesVisited; };
+    inline int GetNModulesSurveyed() const { return fLayout.nModuleNodesVisited; };
+    inline int GetNDistinctPlaneNumbers() const { return (int)fLayout.planeNumbers.size(); };
+    inline int GetNDistinctModuleNumbers() const { return (int)fLayout.moduleNumbers.size(); };
+    inline int GetNBarsSurveyed() const { return fLayout.nBars; };
+    inline bool IsSurveyedPlaneNumber(int n) const { return fLayout.planeNumbers.count(n) > 0; };
+    inline bool IsSurveyedModuleNumber(int n) const { return fLayout.moduleNumbers.count(n) > 0; };
     inline double GetXStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[0]; };
     inline double GetYStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[1]; };
     inline double GetZStartOfTMSMass() const { return TMS_Const::TMS_Start_Exact[2]; };
-    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMS(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
+    inline TVector3 GetStartOfTMSMass() const { return TVector3(GetXStartOfTMSMass(), GetYStartOfTMSMass(), GetZStartOfTMSMass()); };
     inline double GetXEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[0]; };
     inline double GetYEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[1]; };
     inline double GetZEndOfTMSMass() const { return TMS_Const::TMS_End_Exact[2]; };
-    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
+    inline TVector3 GetEndOfTMSMass() const { return TVector3(GetXEndOfTMSMass(), GetYEndOfTMSMass(), GetZEndOfTMSMass()); };
     inline double GetZEndOfTMSThin() const { return TMS_Const::TMS_Thick_Start; };
     inline TVector3 GetEndOfTMSThin() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSThin()); };
-    inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 110; }; // module 2 - module 0 = 11cm
+    inline double GetZEndOfTMSFirstTwoModules() const { return GetZStartOfTMS() + 130; }; // module 2 - module 0 = 13cm
     inline TVector3 GetEndOfTMSFirstTwoModules() const { return TVector3(GetXEndOfTMS(), GetYEndOfTMS(), GetZEndOfTMSFirstTwoModules()); };
 
     inline TVector3 GetStartOfTMSFiducial() const { return TVector3(TMS_Manager::GetInstance().Get_FIDUCIAL_TMS_START_X(), 
@@ -78,7 +167,19 @@ class TMS_Geom {
         return TVector3(TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_X() - dxy, 
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Y() - dxy,
                         TMS_Manager::GetInstance().Get_ACTIVE_LAR_END_Z() - dz); };
-    
+
+    std::string GetGeometryGitTag() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitTag(); };
+    std::string GetGeometryGitBranch() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitBranch(); };
+    std::string GetGeometryGitCommit() { return TMS_Manager::GetInstance().Get_GEOMETRY_GitCommit(); };
+    int GetNumberOfScintillatorPlanes() {
+      EnsurePlaneLookup();
+      if (PlaneCount > 0) return PlaneCount;
+      return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfScintillatorPlanes();
+    };
+    int GetNumberOfSteelPlatesThin() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThin(); };
+    int GetNumberOfSteelPlatesThick() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesThick(); };
+    int GetNumberOfSteelPlatesDouble() { return TMS_Manager::GetInstance().Get_GEOMETRY_NumberOfSteelPlatesDouble(); };
+
     bool IsInsideBox(TVector3 position, TVector3 start, TVector3 end) const {
       if (position.X() < start.X()) return false;
       if (position.Y() < start.Y()) return false;
@@ -96,6 +197,8 @@ class TMS_Geom {
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
     bool IsInsideLarFiducial(TVector3 position) const
      { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
+    static bool StaticIsInsideLarFiducial(TVector3 position)
+      { return TMS_Geom::GetInstance().IsInsideLarFiducial(position); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
     bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };
@@ -127,7 +230,6 @@ class TMS_Geom {
     double XBarLength() { return GetXEndOfTMS(); };
     // Bar spans entire Y
     double YBarLength() { return GetYEndOfTMS() - GetYStartOfTMS(); };
-    
     
     std::string GetNameOfDetector(const TVector3 &point) {
       std::string out = "";
@@ -164,6 +266,12 @@ class TMS_Geom {
     void SetGeometry(TGeoManager *geometry) {
       geom = geometry;
       geom->LockGeometry();
+      PlaneLookupBuilt = false;
+      PlaneIndexByNodeName.clear();
+      PlaneIndexByPath.clear();
+      PlaneCount = 0;
+      BarLookupBuilt = false;
+      BarIndexByPath.clear();
       
       // There's an overall scale factor depending on if the gmdl was loaded with cm or mm. 
       // So here we're trying to automatically figure out the scale factor
@@ -184,6 +292,37 @@ class TMS_Geom {
       std::cout << "Global geometry set to " << geometry->GetName() << std::endl;
       std::cout << "Geometry scale factor: " << ScaleFactor;
       std::cout << ". Factor is 1 if 1 unit = 1mm (aka edep sim), 10 if 1 unit = 1cm (aka larsoft)." << std::endl;
+
+      // One-time survey of the node tree: derives plane/module counts and the
+      // scintillator-bar bounding box from this geometry instead of TMS_Constants.h.
+      // Needs ScaleFactor above to already be set. See SurveyGeometry() in TMS_Geom.cpp.
+      SurveyGeometry();
+    }
+
+    int GetPlaneNumberForCurrentNode() {
+      EnsurePlaneLookup();
+      if (geom == NULL || geom->GetCurrentNode() == NULL) return -1;
+
+      std::string NodePath = std::string(geom->GetPath());
+      auto it_path = PlaneIndexByPath.find(NodePath);
+      if (it_path != PlaneIndexByPath.end()) return it_path->second;
+
+      std::string NodeName = std::string(geom->GetCurrentNode()->GetName());
+      auto it = PlaneIndexByNodeName.find(NodeName);
+      if (it != PlaneIndexByNodeName.end()) return it->second;
+
+      return geom->GetCurrentNode()->GetNumber();
+    }
+
+    // Bar copy numbers reset in each geometry module.  Build a contiguous
+    // transverse ordering from the actual bar placements instead.
+    int GetBarNumberForCurrentNode() {
+      EnsureBarLookup();
+      if (geom == NULL || geom->GetCurrentNode() == NULL) return -1;
+
+      auto it = BarIndexByPath.find(std::string(geom->GetPath()));
+      if (it == BarIndexByPath.end()) return -1;
+      return it->second;
     }
 
     void SetFileName(std::string filename) {
@@ -549,7 +688,7 @@ class TMS_Geom {
         }
         // Try cding around
         std::cout << "***" << nodename << std::endl;
-        while (nodename.find(TMS_Const::TMS_DetEnclosure) == std::string::npos) {
+        while (nodename.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_DetEnclosure()) == std::string::npos) {
           geom->CdUp();
           nodename = std::string(geom->GetCurrentNode()->GetName());
           std::cout << nodename << std::endl;
@@ -601,14 +740,15 @@ class TMS_Geom {
         dist = (pt_vec-point1).Mag();
 
         // cd up in the geometry to find the right name
-        while (NodeName.find(TMS_Const::TMS_DetEnclosure) == std::string::npos && 
-            NodeName.find(TMS_Const::TMS_TopLayerName) == std::string::npos) {
+        TMS_Manager &manager = TMS_Manager::GetInstance();
+        while (NodeName.find(manager.Get_GEOMETRY_VOLUME_DetEnclosure()) == std::string::npos &&
+            NodeName.find(manager.Get_GEOMETRY_VOLUME_TopLayer()) == std::string::npos) {
           // We've found the plane number
-          if (NodeName.find(TMS_Const::TMS_ModuleLayerName) != std::string::npos) {
-            Plane[0] = geom->GetCurrentNode()->GetNumber();
-          } else if (NodeName.find(TMS_Const::TMS_ScintLayerName) != std::string::npos) {
+          if (NodeName.find(manager.Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
+            Plane[0] = GetPlaneNumberForCurrentNode();
+          } else if (NodeName.find(manager.Get_GEOMETRY_VOLUME_ScintLayer()) != std::string::npos) {
             Plane[1] = geom->GetCurrentNode()->GetNumber();
-          } else if (NodeName.find(TMS_Const::TMS_ModuleName) != std::string::npos) {
+          } else if (NodeName.find(manager.Get_GEOMETRY_VOLUME_Module()) != std::string::npos) {
             Plane[2] = geom->GetCurrentNode()->GetNumber();
           }
 
@@ -645,11 +785,146 @@ class TMS_Geom {
 
 
       private:
+    struct PlaneLookupRecord {
+      std::string NodePath;
+      std::string NodeName;
+      double ZCenter;
+    };
+
+    struct BarLookupRecord {
+      std::string NodePath;
+      std::string PlanePath;
+      double TransverseCenter;
+    };
+
+    void BuildPlaneLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path, std::vector<PlaneLookupRecord> &records) {
+      if (node == NULL) return;
+
+      TGeoHMatrix current(parent);
+      if (node->GetMatrix() != NULL) current.Multiply(node->GetMatrix());
+
+      std::string NodeName = std::string(node->GetName());
+      std::string NodePath = parent_path + "/" + NodeName;
+      if (NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
+        const Double_t local[3] = {0, 0, 0};
+        Double_t master[3] = {0, 0, 0};
+        current.LocalToMaster(local, master);
+        records.push_back({NodePath, NodeName, Scale(master[2])});
+      }
+
+      TObjArray *children = node->GetVolume() ? node->GetVolume()->GetNodes() : NULL;
+      if (children == NULL) return;
+      for (int i = 0; i < children->GetEntries(); ++i) {
+        BuildPlaneLookupRecursive((TGeoNode*)children->At(i), current, NodePath, records);
+      }
+    }
+
+    void EnsurePlaneLookup() {
+      if (PlaneLookupBuilt) return;
+      PlaneLookupBuilt = true;
+      PlaneIndexByNodeName.clear();
+      PlaneIndexByPath.clear();
+      PlaneCount = 0;
+
+      if (geom == NULL || geom->GetTopNode() == NULL) return;
+
+      std::vector<PlaneLookupRecord> records;
+      TGeoHMatrix identity;
+      BuildPlaneLookupRecursive(geom->GetTopNode(), identity, "", records);
+      if (records.empty()) return;
+
+      std::sort(records.begin(), records.end(), [](const PlaneLookupRecord &a, const PlaneLookupRecord &b) {
+        if (std::fabs(a.ZCenter - b.ZCenter) > 1e-3) return a.ZCenter < b.ZCenter;
+        return a.NodeName < b.NodeName;
+      });
+
+      int plane_index = -1;
+      double prev_z = 0.0;
+      bool have_prev_z = false;
+      for (auto const &record: records) {
+        if (!have_prev_z || std::fabs(record.ZCenter - prev_z) > 1e-3) {
+          plane_index += 1;
+          prev_z = record.ZCenter;
+          have_prev_z = true;
+        }
+        PlaneIndexByPath[record.NodePath] = plane_index;
+        PlaneIndexByNodeName[record.NodeName] = plane_index;
+      }
+      PlaneCount = plane_index + 1;
+    }
+
+    void BuildBarLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path,
+        const std::string &plane_path, bool x_bar, std::vector<BarLookupRecord> &records) {
+      if (node == NULL) return;
+
+      TGeoHMatrix current(parent);
+      if (node->GetMatrix() != NULL) current.Multiply(node->GetMatrix());
+
+      std::string NodeName = std::string(node->GetName());
+      std::string NodePath = parent_path + "/" + NodeName;
+      std::string child_plane_path = plane_path;
+      bool child_x_bar = x_bar;
+      if (NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayer()) != std::string::npos) {
+        child_plane_path = NodePath;
+        child_x_bar = NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ModuleLayerX()) != std::string::npos;
+      }
+
+      bool is_scintillator_bar = NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayer()) != std::string::npos ||
+          NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayerOrtho()) != std::string::npos ||
+          NodeName.find(TMS_Manager::GetInstance().Get_GEOMETRY_VOLUME_ScintLayerParallel()) != std::string::npos;
+      if (is_scintillator_bar && !plane_path.empty()) {
+        const Double_t local[3] = {0, 0, 0};
+        Double_t master[3] = {0, 0, 0};
+        current.LocalToMaster(local, master);
+        records.push_back({NodePath, plane_path, Scale(child_x_bar ? master[1] : master[0])});
+      }
+
+      TObjArray *children = node->GetVolume() ? node->GetVolume()->GetNodes() : NULL;
+      if (children == NULL) return;
+      for (int i = 0; i < children->GetEntries(); ++i) {
+        BuildBarLookupRecursive((TGeoNode*)children->At(i), current, NodePath, child_plane_path, child_x_bar, records);
+      }
+    }
+
+    void EnsureBarLookup() {
+      if (BarLookupBuilt) return;
+      BarLookupBuilt = true;
+      BarIndexByPath.clear();
+      EnsurePlaneLookup();
+      if (geom == NULL || geom->GetTopNode() == NULL) return;
+
+      std::vector<BarLookupRecord> records;
+      TGeoHMatrix identity;
+      BuildBarLookupRecursive(geom->GetTopNode(), identity, "", "", false, records);
+
+      std::map<int, std::vector<BarLookupRecord> > records_by_plane;
+      for (auto const &record: records) {
+        auto plane_it = PlaneIndexByPath.find(record.PlanePath);
+        if (plane_it == PlaneIndexByPath.end()) continue;
+        records_by_plane[plane_it->second].push_back(record);
+      }
+
+      for (auto &entry: records_by_plane) {
+        auto &bars = entry.second;
+        std::sort(bars.begin(), bars.end(), [](const BarLookupRecord &a, const BarLookupRecord &b) {
+          if (std::fabs(a.TransverseCenter - b.TransverseCenter) > 1e-3) return a.TransverseCenter < b.TransverseCenter;
+          return a.NodePath < b.NodePath;
+        });
+        for (size_t index = 0; index < bars.size(); ++index) {
+          BarIndexByPath[bars[index].NodePath] = index;
+        }
+      }
+    }
+
     // The empty constructor
     TMS_Geom() {
       FileName = TMS_Manager::GetInstance().GetFileName();
       geom = NULL;
       ScaleFactor = 1;
+      PlaneLookupBuilt = false;
+      PlaneCount = 0;
+      BarLookupBuilt = false;
+      fWarnedNoSurvey = false;
     };
 
     ~TMS_Geom() {};
@@ -657,10 +932,28 @@ class TMS_Geom {
     TMS_Geom(TMS_Geom const &) = delete;
     void operator=(TMS_Geom const &) = delete;
 
+    // Walk the full node tree once, recording plane/module numbers and the
+    // scintillator-bar bounding box into fLayout. Defined in TMS_Geom.cpp since
+    // it's more involved than the rest of this (otherwise header-only) class.
+    void SurveyGeometry();
+    void SurveyNodeRecursive(TMS_GeometryLayout &layout, const std::string &ModuleLayerName,
+        const std::string &ModuleName, const std::string &ScintLayerName,
+        const std::string &ScintLayerOrthoName, const std::string &ScintLayerParallelName,
+        long &nodesVisited);
+
     // The actual geometry
     TGeoManager *geom;
     std::string FileName;
     double ScaleFactor;
+    bool PlaneLookupBuilt;
+    std::map<std::string, int> PlaneIndexByPath;
+    std::map<std::string, int> PlaneIndexByNodeName;
+    int PlaneCount;
+    bool BarLookupBuilt;
+    std::map<std::string, int> BarIndexByPath;
+
+    TMS_GeometryLayout fLayout;
+    mutable bool fWarnedNoSurvey;
     };
 
 #endif

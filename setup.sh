@@ -24,7 +24,7 @@ else # actual script now
   #setup ifdhc
 
   #setup root v6_22_08b -f Linux64bit+3.10-2.17 -q e20:p383b:prof
-  setup cmake v3_17_3 -f Linux64bit+3.10-2.17
+  setup cmake v3_9_5 -f Linux64bit+3.10-2.17
 
   # Official duneanaobj UPS products doesn't include TMS info yet...
   #setup duneanaobj v01_00_00 -f Linux64bit+3.10-2.17 -q debug:e17:gv2
@@ -39,17 +39,17 @@ else # actual script now
   #fi
 
   # Need CLHEP for unit conversion in edep-sim info
-  setup clhep v2_4_4_1 -f Linux64bit+3.10-2.17 -q debug:e20
+  setup clhep v2_4_7_1 -f Linux64bit+3.10-2.17 -q e26:prof
   # Specific requirements for duneanaobj
-  setup root v6_12_06a -f Linux64bit+3.10-2.17 -q e15:prof
+  setup root v6_28_12 -f Linux64bit+3.10-2.17 -q e26:p3915:prof
 
   # Set up edep-sim
-  setup edepsim v3_2_0 -f Linux64bit+3.10-2.17 -q e20:prof
+  setup edepsim v3_2_0e -f Linux64bit+3.10-2.17 -q e26:prof
 
   # Add TMS execs and library directory to env
   export TMS_DIR=${PWD}
-  export PATH=${PATH}:${TMS_DIR}/bin
-  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/lib
+  export PATH=${PATH}:${TMS_DIR}/linux/bin
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TMS_DIR}/linux/lib
 
   # Debugging options passed to makefile
   #export DEBUG=1
