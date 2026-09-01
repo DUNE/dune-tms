@@ -1933,8 +1933,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
   // Fill space point information
   const std::vector<TMS_SpacePoint>& space_points = event.GetSpacePoints();
-  nSpacePoints = (int)space_points.size();
-  for (int i_sp = 0; i_sp < nSpacePoints && i_sp < __TMS_MAX_SPACEPOINTS__; ++i_sp) {
+  // Clamp to the fixed array size: nSpacePoints drives the branch's leafcount
+  // ("SpacePointX[nSpacePoints]/F"), so leaving it unclamped while the loop
+  // below stops at __TMS_MAX_SPACEPOINTS__ would make TTree::Fill() read past
+  // the end of these arrays for any event with more than __TMS_MAX_SPACEPOINTS__
+  // space points.
+  nSpacePoints = std::min((int)space_points.size(), __TMS_MAX_SPACEPOINTS__);
+  for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
     SpacePointX[i_sp] = space_points[i_sp].GetX();
     SpacePointY[i_sp] = space_points[i_sp].GetY();
     SpacePointZ[i_sp] = space_points[i_sp].GetZ();
