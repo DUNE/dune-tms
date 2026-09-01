@@ -1477,10 +1477,26 @@ void TMS_Event::BuildSpacePoints() {
     y_hits_by_layer_sorted[y_layer] = time_index_pairs;
   }
 
-  // Create space points by pairing adjacent X and Y layers
+  // Sort X hits by time too, so the inner Y-hit scan below can use a single
+  // forward-only pointer per (x_layer, y_layer) pair instead of restarting
+  // from the earliest Y hit for every X hit.
+  std::map<int, std::vector<std::pair<double, int>>> x_hits_by_layer_sorted;
   for (const auto& x_layer_entry : x_hits_by_layer) {
     int x_layer = x_layer_entry.first;
     const std::vector<int>& x_indices = x_layer_entry.second;
+
+    std::vector<std::pair<double, int>> time_index_pairs;
+    for (int x_idx : x_indices) {
+      time_index_pairs.push_back({TMS_Hits[x_idx].GetT(), x_idx});
+    }
+    std::sort(time_index_pairs.begin(), time_index_pairs.end());
+    x_hits_by_layer_sorted[x_layer] = time_index_pairs;
+  }
+
+  // Create space points by pairing adjacent X and Y layers
+  for (const auto& x_layer_entry : x_hits_by_layer_sorted) {
+    int x_layer = x_layer_entry.first;
+    const auto& x_time_indices = x_layer_entry.second;
 
     // Check adjacent layers (N-1 and N+1)
     for (int y_layer : {x_layer - 1, x_layer + 1}) {
@@ -1490,36 +1506,45 @@ void TMS_Event::BuildSpacePoints() {
 
       const auto& y_time_indices = y_hits_by_layer_sorted[y_layer];
 
-      // Pair X and Y hits based on timing coincidence with optimized search
-      for (int x_idx : x_indices) {
+      // Forward-only pointer into y_time_indices. Both sequences are time-sorted,
+      // so as x_time only increases across this loop, the "too early" cutoff
+      // (x_time - timing_window) only increases too -- once a Y hit falls below
+      // it, it falls below it for every later X hit as well, so it can be
+      // permanently skipped instead of re-scanned from the start each time.
+      size_t y_start = 0;
+
+      for (const auto& x_time_idx : x_time_indices) {
+        double x_time = x_time_idx.first;
+        int x_idx = x_time_idx.second;
         const TMS_Hit& x_hit = TMS_Hits[x_idx];
-        double x_time = x_hit.GetT();
         // An X-bar is oriented along X, so the coordinate it actually measures is Y
         // (its Bar.x member is a sentinel -- see TMS_Bar.cpp's kXBar branch). GetNotZ()
         // already knows to return the real value for whichever axis the bar measures.
         double y_pos = x_hit.GetNotZ();
         double z_pos = x_hit.GetZ();
 
-        // Find Y hits within timing window using sorted time ordering
-        // Start from first hit and skip those that are too early
-        bool found_first = false;
-        for (const auto& y_time_idx : y_time_indices) {
-          double y_time = y_time_idx.first;
-          int y_idx = y_time_idx.second;
+        // Advance past Y hits that are now permanently too early
+        while (y_start < y_time_indices.size() &&
+               y_time_indices[y_start].first - x_time < -timing_window) {
+          ++y_start;
+        }
+
+        // Scan forward from y_start until Y hits become too late for this X hit.
+        // The upper cutoff (x_time + timing_window) is NOT monotonic in the same
+        // way, so this scan (unlike y_start) has to restart from y_start every time.
+        for (size_t j = y_start; j < y_time_indices.size(); ++j) {
+          double y_time = y_time_indices[j].first;
+          int y_idx = y_time_indices[j].second;
+          // No time-of-flight correction between the X and Y planes: even the
+          // largest adjacent-plane gap (130mm, double-thick region) is only
+          // ~0.43ns at beta~1, under 1.5% of the timing_window below -- negligible
+          // next to the 30ns window and not worth the added complexity.
           double time_diff = y_time - x_time;
 
-          // Skip hits that are too early
-          if (time_diff < -timing_window) {
-            continue;
-          }
-
-          // Stop once hits become too late
           if (time_diff > timing_window) {
             break;
           }
 
-          // Hit is within timing window
-          found_first = true;
           const TMS_Hit& y_hit = TMS_Hits[y_idx];
           // Symmetrically, a Y-bar measures X (its Bar.y member is the sentinel).
           double x_pos = y_hit.GetNotZ();
