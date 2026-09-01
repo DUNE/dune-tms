@@ -1494,7 +1494,10 @@ void TMS_Event::BuildSpacePoints() {
       for (int x_idx : x_indices) {
         const TMS_Hit& x_hit = TMS_Hits[x_idx];
         double x_time = x_hit.GetT();
-        double x_pos = x_hit.GetX();
+        // An X-bar is oriented along X, so the coordinate it actually measures is Y
+        // (its Bar.x member is a sentinel -- see TMS_Bar.cpp's kXBar branch). GetNotZ()
+        // already knows to return the real value for whichever axis the bar measures.
+        double y_pos = x_hit.GetNotZ();
         double z_pos = x_hit.GetZ();
 
         // Find Y hits within timing window using sorted time ordering
@@ -1518,7 +1521,8 @@ void TMS_Event::BuildSpacePoints() {
           // Hit is within timing window
           found_first = true;
           const TMS_Hit& y_hit = TMS_Hits[y_idx];
-          double y_pos = y_hit.GetY();
+          // Symmetrically, a Y-bar measures X (its Bar.y member is the sentinel).
+          double x_pos = y_hit.GetNotZ();
 
           // Create space point with combined position and time
           double combined_time = (x_time + y_time) / 2.0;
