@@ -329,6 +329,13 @@ void TMS_TreeWriter::MakeBranches() {
 
   Branch_Lines->Branch("RecoHitPlane",  RecoHitPlane,  "RecoHitPlane[nHits]/I");
   Branch_Lines->Branch("RecoHitSlice",  RecoHitSlice,  "RecoHitSlice[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryRunId", RecoHitPrimaryRunId, "RecoHitPrimaryRunId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexId", RecoHitPrimaryVertexId, "RecoHitPrimaryVertexId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryVertexGlobalId", RecoHitPrimaryVertexGlobalId, "RecoHitPrimaryVertexGlobalId[nHits]/L");
+  Branch_Lines->Branch("RecoHitPrimaryTrackId", RecoHitPrimaryTrackId, "RecoHitPrimaryTrackId[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryParticleIndex", RecoHitPrimaryParticleIndex, "RecoHitPrimaryParticleIndex[nHits]/I");
+  Branch_Lines->Branch("RecoHitPrimaryTrueEnergy", RecoHitPrimaryTrueEnergy, "RecoHitPrimaryTrueEnergy[nHits]/F");
+  Branch_Lines->Branch("RecoHitOtherTrueEnergy", RecoHitOtherTrueEnergy, "RecoHitOtherTrueEnergy[nHits]/F");
 
   // Track information
   // TODO: Fill these properly
@@ -1506,6 +1513,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     return;
   }
   stdit = 0;
+  const auto TrueParticles = event.GetTrueParticles();
   for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
     RecoHitPos[stdit][0] = (*it).GetX();
     RecoHitPos[stdit][1] = (*it).GetY();
@@ -1517,6 +1525,30 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoHitBarType[stdit] = (*it).GetBar().GetBarTypeNumber();
     RecoHitPlane[stdit] = (*it).GetPlaneNumber();
     RecoHitSlice[stdit] = (*it).GetSlice();
+
+    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*it}, event);
+    if (!particle_info.energies.empty()) {
+      const long long vertex_global_id = particle_info.vertexglobalids[0];
+      const int track_id = particle_info.trackids[0];
+      const int particle_index = event.GetTrueParticleIndex(vertex_global_id, track_id);
+
+      RecoHitPrimaryVertexGlobalId[stdit] = vertex_global_id;
+      RecoHitPrimaryRunId[stdit] = vertex_global_id / TMS_VertexIdScale;
+      RecoHitPrimaryVertexId[stdit] = vertex_global_id % TMS_VertexIdScale;
+      RecoHitPrimaryTrackId[stdit] = track_id;
+      RecoHitPrimaryParticleIndex[stdit] = particle_index;
+      RecoHitPrimaryTrueEnergy[stdit] = particle_info.energies[0];
+      RecoHitOtherTrueEnergy[stdit] = particle_info.total_energy - particle_info.energies[0];
+
+      // A missing index is expected when the contributor was omitted from the
+      // reduced Truth_Spill particle table (for example, lightweight truth
+      // skips photons and neutrons and removes low-visible-energy secondaries).
+      // The contributor IDs and energy remain valid in that case.
+      if (particle_index >= 0 && static_cast<size_t>(particle_index) < TrueParticles.size() &&
+          (RecoHitPrimaryRunId[stdit] != TrueParticles[particle_index].GetRunID() ||
+           RecoHitPrimaryVertexId[stdit] != TrueParticles[particle_index].GetVertexID()))
+        std::cerr << "Reco hit truth vertex ID does not match Truth_Spill particle index" << std::endl;
+    }
   }
 
   // Fill up the info only if all above has passed
@@ -1564,10 +1596,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackCharge[itTrack]        = RecoTrack->Charge;
     RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
     RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
-    // Chi2 is the raw chi2 of the fit selected as canonical in TMS_Reco.
-    RecoTrackChi2[itTrack] = RecoTrack->Charge_Kalman < 0
-                                 ? RecoTrack->Chi2_minus
-                                 : RecoTrack->Chi2_plus;
+    // Chi2 is the chi2 of the fit selected as canonical in TMS_Reco.
+    RecoTrackChi2[itTrack]          = RecoTrack->Chi2;
     RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
     
@@ -1772,9 +1802,9 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
         RecoTrackPrimaryParticleTMSFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
         RecoTrackPrimaryParticleTMSFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideTMS);
         RecoTrackPrimaryParticleTMSFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLAr);
-        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+        RecoTrackPrimaryParticleLArFiducialStart[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+        RecoTrackPrimaryParticleLArFiducialTouch[itTrack] = tp.EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+        RecoTrackPrimaryParticleLArFiducialEnd[itTrack] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
 
         RecoTrackPrimaryParticleVtxId[itTrack] = tp.GetVertexID();
         RecoTrackPrimaryParticleVtxRunNo[itTrack] = tp.GetRunID();
@@ -1933,7 +1963,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   InteractionTMSFiducial = TMS_Geom::GetInstance().IsInsideTMS(interaction_location);
   InteractionTMSFirstTwoModules = TMS_Geom::GetInstance().IsInsideTMSFirstTwoModules(interaction_location);
   InteractionTMSThin = TMS_Geom::GetInstance().IsInsideTMSThin(interaction_location);
-  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLAr(interaction_location);
+  InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
   
   // Get the truth info
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
@@ -2007,9 +2037,9 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
     TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
     TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLAr(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLAr);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLAr(location_death);
+    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
@@ -2326,6 +2356,13 @@ void TMS_TreeWriter::Clear() {
     RecoHitBarType[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitPlane[i] = DEFAULT_CLEARING_FLOAT;
     RecoHitSlice[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryRunId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryVertexGlobalId[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    RecoHitPrimaryTrackId[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryParticleIndex[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitPrimaryTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
+    RecoHitOtherTrueEnergy[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   // Reset Cluster info

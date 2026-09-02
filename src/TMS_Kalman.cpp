@@ -772,9 +772,21 @@ void TMS_Kalman::Runchi2() {
         //KalmanNodes[i].RMatrix(1,1) = (KalmanNodes[i].NoiseMatrix(1,1) - KalmanNodes[i].SmoothCovarianceMatrix(1,1));
         //KalmanNodes[i].RMatrix.Invert(); // Matrix has to be inverted
 
-        //Just ignore the noise.
-        KalmanNodes[i].chi2 = KalmanNodes[i].rVec*KalmanNodes[i].rVec; // Calc chi^2
-        //KalmanNodes[i].chi2 = KalmanNodes[i].rVec*(KalmanNodes[i].RMatrix*KalmanNodes[i].rVec); // Calc chi^2
+        // Weight the position residual by the measurement covariance.  The
+        // previous implementation stored r^T r, which has units of mm^2 and
+        // is not a chi-squared statistic.
+        const double var_x = KalmanNodes[i].NoiseMatrix(0,0);
+        const double var_y = KalmanNodes[i].NoiseMatrix(1,1);
+        const double cov_xy = KalmanNodes[i].NoiseMatrix(0,1);
+        const double determinant = var_x*var_y - cov_xy*cov_xy;
+        if (determinant > 0.0 && std::isfinite(determinant)) {
+            const double residual_x = KalmanNodes[i].rVec[0];
+            const double residual_y = KalmanNodes[i].rVec[1];
+            KalmanNodes[i].chi2 =
+                (var_y*residual_x*residual_x
+                 - 2.0*cov_xy*residual_x*residual_y
+                 + var_x*residual_y*residual_y) / determinant;
+        }
 
     }
 }

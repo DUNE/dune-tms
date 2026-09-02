@@ -197,6 +197,8 @@ class TMS_Geom {
     static bool StaticIsInsideLAr(TVector3 position) { return TMS_Geom::GetInstance().IsInsideLAr(position); };
     bool IsInsideLarFiducial(TVector3 position) const
      { return IsInsideBox(position, GetStartOfLArFiducial(), GetEndOfLArFiducial()); };
+    static bool StaticIsInsideLarFiducial(TVector3 position)
+      { return TMS_Geom::GetInstance().IsInsideLarFiducial(position); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
     bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };

@@ -219,11 +219,13 @@ class TMS_Event {
     std::map<int, TMS_TrueHit> TrueHitByHitId;
 
     int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
+    void RebuildTrueParticleIndex();
     
     void SaveKeyVertexInfo(const TMS_TrueHit& hit);
 
     // True particles that create trajectories in TMS or LAr; after G4 is run
     std::vector<TMS_TrueParticle> TMS_TrueParticles;
+    std::map<std::pair<long long, int>, int> TrueParticleIndices;
     int nTrueForgottenParticles;
 
     // Primary particles from neutrino event; before G4 is run
