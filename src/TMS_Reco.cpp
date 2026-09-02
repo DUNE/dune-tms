@@ -924,7 +924,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
   std::vector<std::vector<TMS_Hit> >::iterator helper = SortedHoughCandidatesX.begin();
 
   while (Uhelper != SortedHoughCandidatesU.end()) {
-    if (SortedHoughCandidatesV.empty()) {
+    if (SortedHoughCandidatesV.empty()) { //(Vhelper == SortedHoughCandidatesV.end()) {
 #ifdef DEBUG
       std::cout << "Not enough V tracks" << std::endl;
 #endif
@@ -939,8 +939,8 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
     std::cout << "No X tracks? " << HoughCandidatesX.empty() << std::endl;
 #endif
-
-    if (SortedHoughCandidatesX.empty()) Xrun = false;
+    //  while (Xrun) {
+    if (helper == SortedHoughCandidatesX.end()) Xrun = false;
     std::vector<TMS_Hit> XTracks = *Uhelper;
     if (Xrun) {
       XTracks = *helper;
@@ -1323,21 +1323,32 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 //        if (Xrun) std::cout <<"itX:"<<itX<<" ,Y: " << XTracks[itX].GetNotZ() <<  ", Z: " << XTracks[itX].GetZ() <<", PlaneNumber: " << XTracks[itX].GetPlaneNumber()<< std::endl;
         // Sanity check for hits being in the detector volume (x and z)
         bool hit_outside = false;
+        bool view_exhausted = false;
         if (std::abs(UTracks[itU].GetNotZ()) > 4000.0 || UTracks[itU].GetZ() < 11000 || UTracks[itU].GetZ() > 20000) {
-          --itU;
+          if (itU == 0) view_exhausted = true;
+          else --itU;
           hit_outside = true;
         }
         if (std::abs(VTracks[itV].GetNotZ()) > 4000.0 || VTracks[itV].GetZ() < 11000 || VTracks[itV].GetZ() > 20000) {
-          --itV;
+          if (itV == 0) view_exhausted = true;
+          else --itV;
           hit_outside = true;
         }
         if (Xrun && Xback_match && Xfront_match) {
           if (XTracks[itX].GetNotZ() > 400. || XTracks[itX].GetNotZ() < -4000. || XTracks[itX].GetZ() < 11000 || XTracks[itX].GetZ() > 20000) {
-            --itX;
+            if (itX == 0) view_exhausted = true;
+            else --itX;
             hit_outside = true;
           }
         }
-        if (hit_outside) continue;
+        // There is no valid hit left in at least one required view. Continuing
+        // would decrement its index below zero and read outside the vector.
+        if (view_exhausted) break;
+        if (hit_outside) {
+          sane = (itU > 0 || itV > 0);
+          if (Xrun && Xback_match && Xfront_match) sane = sane || itX > 0;
+          continue;
+        }
 
         // Stereo check
         bool stereo_view = true;
@@ -1371,7 +1382,9 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
             std::cout << "same  Hit: " << UTracks[itU].GetRecoX() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " than: " << VTracks[itV].GetRecoX() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << std::endl;
 #endif
-            // Handling cases of two+ hits in same plane to be matched
+            // Handling cases of two hits in same plane to be matched
+            // By adding a loop into these statements one could also take care of more than 2 hits in the same plane/with the same z coordinate
+
             if (itU > 0) {
               while (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
                 CalculateRecoY(UTracks[itU - 1], UTracks[itU - 1], VTracks[itV]);
@@ -1384,7 +1397,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
             if (itV > 0) {
               while (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
                 CalculateRecoY(VTracks[itV - 1], UTracks[itU], VTracks[itV - 1]);
-                CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
+                CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);                
                 (aTrack.Hits).push_back(VTracks[itV]);
                 if (itV > 0) --itV;
                 if (itV == 0) break;
@@ -1409,7 +1422,7 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
               CalculateRecoX(UTracks[itU], VTracks[itV], UTracks[itU]);
               CalculateRecoX(UTracks[itU], VTracks[itV], VTracks[itV]);
 
-              // Handling cases of two+ hits in same plane
+              // Handling cases of two hits in same plane
               if (itU > 0) {
                 while (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
                   UTracks[itU - 1].SetRecoY(CompareY(UTracks[itU - 1], VTracks[itV], XTracks[itX]));
@@ -1458,53 +1471,24 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
 #ifdef DEBUG
                 std::cout << "same in UV, gap in X  Hit U: " << UTracks[itU].GetRecoX() << " | " << UTracks[itU].GetRecoY() << " | " << UTracks[itU].GetZ() << " / V: " << VTracks[itV].GetRecoX() << " | " << VTracks[itV].GetRecoY() << " | " << VTracks[itV].GetZ() << " / X: " << XTracks[itX].GetNotZ() << " | " << XTracks[itX].GetZ() << std::endl;
 #endif
-                if (itU > 0) {
-                  while (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
-                    CalculateRecoY(UTracks[itU - 1], UTracks[itU - 1], VTracks[itV]);
-                    CalculateRecoX(UTracks[itU - 1], VTracks[itV], UTracks[itU - 1]);
-                    (aTrack.Hits).push_back(UTracks[itU]);  // This adds the original hit
-                    if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
-                    if (itU == 0) break;
-                  }
+              if (itU > 0) {
+                while (UTracks[itU].GetZ() == UTracks[itU - 1].GetZ()) {
+                  CalculateRecoY(UTracks[itU - 1], UTracks[itU - 1], VTracks[itV]);
+                  CalculateRecoX(UTracks[itU - 1], VTracks[itV], UTracks[itU - 1]);
+                  (aTrack.Hits).push_back(UTracks[itU]);  // This adds the original hit
+                  if (itU > 0) --itU; // and this allows for the other hit then to be added with the next push_back statement
+                  if (itU == 0) break;
                 }
-                if (itV > 0) {
-                  while (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
-                    CalculateRecoY(VTracks[itV - 1], UTracks[itU], VTracks[itV - 1]);
-                    CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
-                    (aTrack.Hits).push_back(VTracks[itV]);
-                    if (itV > 0) --itV;
-                    if (itV == 0) break;
-                  }
+              }
+              if (itV > 0) {
+                while (VTracks[itV].GetZ() == VTracks[itV - 1].GetZ()) {
+                  CalculateRecoY(VTracks[itV - 1], UTracks[itU], VTracks[itV - 1]);
+                  CalculateRecoX(UTracks[itU], VTracks[itV - 1], VTracks[itV - 1]);
+                  (aTrack.Hits).push_back(VTracks[itV]);
+                  if (itV > 0) --itV;
+                  if (itV == 0) break;
                 }
-
-                (aTrack.Hits).push_back(UTracks[itU]);
-                (aTrack.Hits).push_back(VTracks[itV]);
-                if (itU > 0) --itU;
-                if (itV > 0) --itV;
-              } else if ((VTracks[itV]).GetZ() > (XTracks[itX]).GetZ() || (itX > 0 && itU == 0 && itV == 0)) {
-                // Gap in UV (X not ending!)
-                if (itU == 0 || itV == 0) {
-                  if (itU == 0 && itV > 0) CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX]);
-                  else if (itU > 0 && itV == 0) CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX]);
-                  else if (itU == 0 && itV == 0) CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX]);
-                } else CalculateRecoX(UTracks[itU - 1], VTracks[itV - 1], XTracks[itX]);
-                XTracks[itX].SetRecoY(XTracks[itX].GetNotZ());
-#ifdef DEBUG
-                std::cout << "gap in UV, X  Hit U: " << UTracks[itU].GetNotZ() << " | " << UTracks[itU].GetZ() << " / V: " << VTracks[itV].GetNotZ() << " | " << VTracks[itV].GetZ() << " / X: " << XTracks[itX].GetNotZ() << " | " << XTracks[itX].GetZ() << std::endl;
-#endif
-                if (itX > 0) {
-                  while (XTracks[itX].GetZ() == XTracks[itX - 1].GetZ()) {
-                    XTracks[itX - 1].SetRecoY(XTracks[itX - 1].GetNotZ());
-                    if (itU == 0 || itV == 0) {
-                      if (itU == 0 && itV > 0) CalculateRecoX(UTracks[itU], VTracks[itV - 1], XTracks[itX -1]);
-                      else if (itU > 0 && itV == 0) CalculateRecoX(UTracks[itU - 1], VTracks[itV], XTracks[itX - 1]);
-                      else if (itU == 0 && itV == 0) CalculateRecoX(UTracks[itU], VTracks[itV], XTracks[itX -1]);
-                    } else CalculateRecoX(UTracks[itU - 1], VTracks[itV - 1], XTracks[itX - 1]);
-                    (aTrack.Hits).push_back(XTracks[itX]);  // This adds the original hit
-                    if (itX > 0) --itX; // and this allows for the other hit then to be added with the next push_back statement
-                    if (itX == 0) break; //no RecoX or RecoY calculated?
-                  }
-                }
+              }
 
                 (aTrack.Hits).push_back(XTracks[itX]);
                 if (itX > 0) --itX;
@@ -1897,23 +1881,27 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D() {
       if (HoughCandidatesV.size() == 1) break;
 
       if (Xrun && !XTracks.empty()) {
+
         if (Xback_match && Xfront_match) {
-          // If match was made, remove the candidate (simple) track from candidate list
-          SortedHoughCandidatesV.erase(Vhelper);
-          SortedHoughCandidatesX.erase(helper);
-          if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
-          if (!SortedHoughCandidatesX.empty()) helper = SortedHoughCandidatesX.begin();
-          // Set iterator U tracks to next track
-          ++Uhelper;
+
+        // If match was made, remove the candidate tracks from candidate lists
+        SortedHoughCandidatesV.erase(Vhelper);
+        SortedHoughCandidatesX.erase(helper);
+        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
+        if (!SortedHoughCandidatesX.empty()) helper = SortedHoughCandidatesX.begin();
+        // Set iterator for U tracks to next track
+        ++Uhelper;
+  
         } else {
           SortedHoughCandidatesV.erase(Vhelper);
-          Vhelper = SortedHoughCandidatesV.begin();
+          if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
           ++Uhelper;
         }
+
       } else {
         // If match was made, remove the candidate (simple) track from candidate list
         SortedHoughCandidatesV.erase(Vhelper);
-        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin();
+        if (!SortedHoughCandidatesV.empty()) Vhelper = SortedHoughCandidatesV.begin(); //if (SortedHoughCandidatesV.size() > 1) Vhelper = SortedHoughCandidatesV.begin();
         // Set iterator for U tracks to next track
         ++Uhelper;
       }
@@ -2140,17 +2128,27 @@ std::vector<TMS_Track> TMS_TrackFinder::TrackMatching3D_XY() {
 //                std::cout <<"itX:"<<itX<<" ,Y: " << XTracks[itX].GetNotZ() <<  ", Z: " << XTracks[itX].GetZ() <<", PlaneNumber: " << XTracks[itX].GetPlaneNumber()<< std::endl;
                 // Sanity check for hits being in the detector volume (x and z)
                 bool hit_outside = false;
+                bool view_exhausted = false;
                 if (XTracks[itX].GetNotZ() > 500.0 || XTracks[itX].GetNotZ() == 0. || XTracks[itX].GetNotZ() < -4000.0
                         || XTracks[itX].GetZ() < 11000 || XTracks[itX].GetZ() > 20000) {
-                    --itX;
+                    if (itX == 0) view_exhausted = true;
+                    else --itX;
                     hit_outside = true;
                 }
                 if (std::abs(YTracks[itY].GetNotZ()) > 4000.0 or YTracks[itY].GetNotZ() == 0.
                         || YTracks[itY].GetZ() < 11000 || YTracks[itY].GetZ() > 20000) {
-                    --itY;
+                    if (itY == 0) view_exhausted = true;
+                    else --itY;
                     hit_outside = true;
                 }
-                if (hit_outside) continue;
+                // There is no valid hit left in at least one required view.
+                // Continuing would decrement its index below zero, skip the
+                // loop-condition update, and repeatedly read outside the vector.
+                if (view_exhausted) break;
+                if (hit_outside) {
+                    sane = (itX > 0 || itY > 0);
+                    continue;
+                }
 
                 // Stereo check
                 bool stereo_view = true;
