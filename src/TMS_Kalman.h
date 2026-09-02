@@ -19,6 +19,11 @@
 #include "TMS_Hit.h"
 #include "TMS_Bar.h"
 
+// Forward-declared, not included, to avoid a header cycle with TMS_Event.h (which pulls in
+// TMS_Track.h) -- only used as a reference parameter here, the actual TMS_Event methods are
+// called from TMS_Kalman.cpp, which includes TMS_Event.h itself.
+class TMS_Event;
+
 // Define the number of dimensions for a Kalman Node
 #ifndef KALMAN_DIM
 #define KALMAN_DIM 5
@@ -256,7 +261,7 @@ class TMS_Kalman {
   public:
     TRandom3 RNG;
     TMS_Kalman();
-    TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge);
+    TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Event &event);
     
     double Start[3];
     double End[3];

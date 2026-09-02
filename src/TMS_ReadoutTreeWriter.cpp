@@ -76,6 +76,7 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
   bool include_ped_sup = true;
   const int slice = -1; // Want all slices
   int index = 0;
+  int true_index = 0;
   for (auto hit : event.GetHits(slice, include_ped_sup)) {
     if (index >= __MAX_READOUT_TREE_ARRAY_LENGTH__) {
       std::cout<<"TMS_ReadoutTreeWriter WARNING: Too many hits in event. Increase __MAX_READOUT_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
@@ -84,22 +85,26 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
     if (index < __MAX_READOUT_TREE_ARRAY_LENGTH__) {
       // In theory a reco hit should have many true hits based on how the merging worked
       // Plus true hits should have noise hits which don't have any parent info
-      auto true_hit = hit.GetTrueHit();
-      
-      if (hasTruth) {
-        // True info
+      const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+
+      if (hasTruth && true_hit != nullptr) {
+        // True info -- indexed separately from the reco-hit loop (true_index, not index), since
+        // not every reco hit has truth: the TrueHit* branches are declared [NTrueHits], so a gap
+        // (writing at a reco index beyond NTrueHits) would silently drop that entry and leave
+        // stale values from a previous event's Fill() in the entries actually read back.
+        TrueHitX[true_index] = true_hit->GetX();
+        TrueHitY[true_index] = true_hit->GetY();
+        TrueHitZ[true_index] = true_hit->GetZ();
+        TrueHitT[true_index] = true_hit->GetT();
+        TrueHitE[true_index] = true_hit->GetE();
+        TrueHitPE[true_index] = true_hit->GetPE();
+        TrueHitPEAfterFibers[true_index] = true_hit->GetPEAfterFibers();
+        TrueHitPEAfterFibersLongPath[true_index] = true_hit->GetPEAfterFibersLongPath();
+        TrueHitPEAfterFibersShortPath[true_index] = true_hit->GetPEAfterFibersShortPath();
+        true_index += 1;
         NTrueHits += 1;
-        TrueHitX[index] = true_hit.GetX();
-        TrueHitY[index] = true_hit.GetY();
-        TrueHitZ[index] = true_hit.GetZ();
-        TrueHitT[index] = true_hit.GetT();
-        TrueHitE[index] = true_hit.GetE();
-        TrueHitPE[index] = true_hit.GetPE();
-        TrueHitPEAfterFibers[index] = true_hit.GetPEAfterFibers();
-        TrueHitPEAfterFibersLongPath[index] = true_hit.GetPEAfterFibersLongPath();
-        TrueHitPEAfterFibersShortPath[index] = true_hit.GetPEAfterFibersShortPath();
       }
-      
+
       // Reco info
       NRecoHits += 1;
       RecoHitX[index] = hit.GetX();

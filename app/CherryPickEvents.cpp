@@ -186,6 +186,9 @@ int main(int argc, char** argv) {
     }
 
     TMS_Event tms_event = TMS_Event(*event, true);
+    // Run the full detector-simulation pipeline (optical/timing/dark count/deadtime/merge/noise/pedsup),
+    // since this no longer happens implicitly inside the constructor.
+    tms_event.FinalizeEvent();
     tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, StdHepX4);
 
     int pdg = tms_event.GetNeutrinoPDG();
@@ -239,11 +242,13 @@ int main(int argc, char** argv) {
     std::vector<TMS_Hit> TMS_Hits = tms_event.GetHits();
     // First draw the hits
     for (auto it_hit = TMS_Hits.begin(); it_hit != TMS_Hits.end(); ++it_hit) {
-      double x = (*it_hit).GetTrueHit().GetX();
-      double y = (*it_hit).GetTrueHit().GetY();
-      double z = (*it_hit).GetTrueHit().GetZ();
-      double t = (*it_hit).GetTrueHit().GetT();
-      double e = (*it_hit).GetTrueHit().GetE();
+      const TMS_TrueHit* true_hit = tms_event.GetTrueHit((*it_hit).GetHitId());
+      if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
+      double x = true_hit->GetX();
+      double y = true_hit->GetY();
+      double z = true_hit->GetZ();
+      double t = true_hit->GetT();
+      double e = true_hit->GetE();
       plot->Fill(z/1E3, x/1E3, e);
       pos[0] = x;
       pos[1] = y;

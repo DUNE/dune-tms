@@ -34,6 +34,13 @@ class TMS_Bar {
     double GetY() const { return y; };
     double GetZ() const { return z; };
 
+    // The bar's own global-frame center along its readout axis (x for X-bars, y for
+    // U/V/Y-bars), captured in FindModules() before GetX()/GetY() gets sentinelled out for
+    // that axis. Needed by the optical model to place each bar's readout end in the global
+    // frame -- bars are not centered on the detector's coordinate origin, so barLength alone
+    // isn't enough to locate a readout end.
+    double GetAxisReadoutCenter() const { return AxisReadoutCenter; };
+
     // Get the dimension which is not z (i.e. x or y dependent on the bar
     double GetNotZ() const { 
       if (BarOrient == kXBar) return y;
@@ -118,6 +125,8 @@ class TMS_Bar {
     double zw;
     // Which type of bar
     BarType BarOrient;
+    // See GetAxisReadoutCenter()
+    double AxisReadoutCenter;
 };
 
 inline bool operator==(const TMS_Bar &a, const TMS_Bar &b) {

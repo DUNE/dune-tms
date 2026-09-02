@@ -12,6 +12,7 @@ TMS_Bar::TMS_Bar(TG4HitSegment &edep_seg) {
   xw = -1;
   yw = -1;
   zw = -1;
+  AxisReadoutCenter = -99999000;
 
   // Get the average distance
   double avgx = ( edep_seg.GetStart().X() + edep_seg.GetStop().X() ) / 2;
@@ -29,7 +30,7 @@ TMS_Bar::TMS_Bar(TG4HitSegment &edep_seg) {
 
 // Construct a bar from x, y, z
 TMS_Bar::TMS_Bar(double X, double Y, double Z) : PlaneNumber(-1), BarNumber(-1), GlobalBarNumber(-1),
-    x(X), y(Y), z(Z), xw(-1), yw(-1), zw(-1)
+    x(X), y(Y), z(Z), xw(-1), yw(-1), zw(-1), AxisReadoutCenter(-99999000)
 {
   // Find the bar in the geometry
   // Updates the x,y,z,xw,yw,zw
@@ -143,15 +144,18 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
   // If this is a y-bar, remove the y coordinate
   if (BarOrient == kXBar) {
+    AxisReadoutCenter = x;
     x = -99999000;
     // Flip the widths
     double tempyw = yw;
     yw = xw;
-    xw = tempyw; 
+    xw = tempyw;
   } else if (BarOrient == kUBar || BarOrient == kVBar || BarOrient == kYBar) {
+    AxisReadoutCenter = y;
     y = -99999000;
     // Don't need to flip the widths because they're already correct (yw = large, xw = 4cm)
   } else {
+    AxisReadoutCenter = -99999000;
     x = -99999000;
     y = -99999000;
     z = -99999000;

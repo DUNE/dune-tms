@@ -13,6 +13,7 @@
 #endif
 
 class TMS_Hit;
+class TMS_Event;
 
 namespace TMS_Utils {
 /*
@@ -44,7 +45,7 @@ namespace TMS_Utils {
     return (T(0)<value - (value<T(0)));
   }
   
-  ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits);
+  ParticleInfo GetPrimaryIdsByEnergy(const std::vector<TMS_Hit>& hits, const TMS_Event& event);
   ParticleInfo GetSumAndHighest(const std::map<std::pair<long long, int>, double>& map);
 
 // Can only run this if we have linkage to CAF format
