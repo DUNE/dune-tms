@@ -193,7 +193,6 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
   std::normal_distribution<double> noise_distribution(0.0, 1); // Mean of 0.0 and standard deviation of 1ns
-  std::uniform_int_distribution<int> coin_flip(0, 1); // 0 or 1 depending on if you went long or short
   double scintillator_decay_time = 3.0; // ns
   double wsf_decay_time = 20.0; // ns
   std::exponential_distribution<double> exp_scint(1 / scintillator_decay_time); // Decay time = 3ns for scintillator
