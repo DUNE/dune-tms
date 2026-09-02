@@ -33,6 +33,7 @@ class TMS_TrueParticle {
 
     // Copy over the edep-sim info
     TMS_TrueParticle(TG4PrimaryParticle edep_part) :
+      RunID(-999),
       VertexID(-999),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
@@ -42,6 +43,7 @@ class TMS_TrueParticle {
     }
 
     TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx) :
+      RunID(-999),
       VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),

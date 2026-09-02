@@ -37,10 +37,8 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
       // Merge
       if (z == z2 && y == y2 && fabs(t2-t) < readout_time) {
         (*it).MergeWith(hit2);
-        // Phase III: parallel by-ID merge of the new truth side table, alongside the still-
-        // present embedded-TrueHit merge that MergeWith() above already does -- lets Stage A
-        // cross-check that the two produce identical results before the embedded member is
-        // removed in Stage B.
+        // Phase III: merge the event-level truth side table by HitId alongside the reco-level
+        // merge above, since TMS_TrueHit is no longer embedded in TMS_Hit.
         event.MergeTrueHit((*it).GetHitId(), hit2.GetHitId());
         // todo, we may want to store an array of true hits. One way would be to move the merging code within the hit class
         duplicates.push_back(jt);
@@ -56,9 +54,13 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
   std::vector<TMS_Hit> remaining_hits;
   std::vector<TMS_Hit> deleted_hits;
   for (auto& hit : TMS_Hits) {
-    if (!hit.GetPedSup()) remaining_hits.push_back(hit);
-    else deleted_hits.push_back(hit);
-    if (!hit.GetPedSup() && hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
+    if (!hit.GetPedSup()) {
+      remaining_hits.push_back(hit);
+      if (hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
+    } else {
+      event.EraseTrueHit(hit.GetHitId());
+      deleted_hits.push_back(hit);
+    }
   }
   TMS_Hits.clear();
   for (auto& hit : remaining_hits) TMS_Hits.push_back(hit);
