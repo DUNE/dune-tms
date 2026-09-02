@@ -7,10 +7,12 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 #include "TMS_KDTree.h"
 #include "TMS_SpacePoint.h"
+#include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
 
 #include "TCanvas.h"
@@ -18,6 +20,107 @@
 #include "TLegend.h"
 #include "TRandom3.h"
 #include "TString.h"
+
+namespace {
+constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
+
+std::array<double, 3> RotateX(const std::array<double, 3> &p, double angle_rad) {
+  double c = std::cos(angle_rad), s = std::sin(angle_rad);
+  return {p[0], c * p[1] - s * p[2], s * p[1] + c * p[2]};
+}
+std::array<double, 3> RotateY(const std::array<double, 3> &p, double angle_rad) {
+  double c = std::cos(angle_rad), s = std::sin(angle_rad);
+  return {c * p[0] + s * p[2], p[1], -s * p[0] + c * p[2]};
+}
+std::array<double, 3> RotateZ(const std::array<double, 3> &p, double angle_rad) {
+  double c = std::cos(angle_rad), s = std::sin(angle_rad);
+  return {c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]};
+}
+}  // namespace
+
+// Stage 2 check: PCA linearity must not depend on cluster orientation. Builds
+// one canonical line and one canonical blob, computes linearity at several
+// different 3D rotations of each, and confirms the value stays consistent
+// (line ~1, blob ~0, both stable across rotations to within `tol`).
+bool CheckPCARotationInvariance() {
+  TRandom3 rnd(7);
+  std::vector<std::array<double, 3>> base_line;
+  for (int i = 0; i < 30; ++i) base_line.push_back({rnd.Gaus(0, 0.2), rnd.Gaus(0, 0.2), i * 2.0});
+  std::vector<std::array<double, 3>> base_blob;
+  for (int i = 0; i < 30; ++i) base_blob.push_back({rnd.Gaus(0, 3), rnd.Gaus(0, 3), rnd.Gaus(0, 3)});
+
+  struct RotationCase {
+    double rx, ry, rz;
+    const char *label;
+  };
+  std::vector<RotationCase> rotations = {
+      {0, 0, 0, "identity"},
+      {30, 0, 0, "30deg about X"},
+      {0, 45, 0, "45deg about Y"},
+      {0, 0, 60, "60deg about Z"},
+      {25, 35, 50, "combined rotation"},
+  };
+
+  auto rotate_all = [](const std::vector<std::array<double, 3>> &pts_in, const RotationCase &rc) {
+    std::vector<std::array<double, 3>> out;
+    for (auto p : pts_in) {
+      p = RotateX(p, rc.rx * kDegToRad);
+      p = RotateY(p, rc.ry * kDegToRad);
+      p = RotateZ(p, rc.rz * kDegToRad);
+      out.push_back(p);
+    }
+    return out;
+  };
+
+  double first_line_linearity = -1.0, first_blob_linearity = -1.0;
+  const double tol = 0.02;
+  bool all_ok = true;
+
+  for (const auto &rc : rotations) {
+    std::vector<std::array<double, 3>> line_rot = rotate_all(base_line, rc);
+    std::vector<std::array<double, 3>> blob_rot = rotate_all(base_blob, rc);
+
+    std::vector<TMS_SpacePoint> sp_line, sp_blob;
+    for (auto &p : line_rot) sp_line.emplace_back(p[0], p[1], p[2], -1, -1, 0.0);
+    for (auto &p : blob_rot) sp_blob.emplace_back(p[0], p[1], p[2], -1, -1, 0.0);
+
+    std::vector<int> all_line_idx(sp_line.size());
+    std::iota(all_line_idx.begin(), all_line_idx.end(), 0);
+    std::vector<int> all_blob_idx(sp_blob.size());
+    std::iota(all_blob_idx.begin(), all_blob_idx.end(), 0);
+
+    TMS_SpacePointCluster line_cluster(sp_line, all_line_idx);
+    TMS_SpacePointCluster blob_cluster(sp_blob, all_blob_idx);
+
+    std::cout << "PCA rotation check [" << rc.label << "]: line linearity=" << line_cluster.GetLinearity()
+              << ", blob linearity=" << blob_cluster.GetLinearity() << std::endl;
+
+    if (first_line_linearity < 0.0) {
+      first_line_linearity = line_cluster.GetLinearity();
+      first_blob_linearity = blob_cluster.GetLinearity();
+    } else {
+      if (std::fabs(line_cluster.GetLinearity() - first_line_linearity) > tol) {
+        std::cout << "  MISMATCH: line linearity not rotation-invariant!" << std::endl;
+        all_ok = false;
+      }
+      if (std::fabs(blob_cluster.GetLinearity() - first_blob_linearity) > tol) {
+        std::cout << "  MISMATCH: blob linearity not rotation-invariant!" << std::endl;
+        all_ok = false;
+      }
+    }
+  }
+
+  if (first_line_linearity < 0.9) {
+    std::cout << "WARNING: line linearity (" << first_line_linearity << ") lower than expected (~1)" << std::endl;
+    all_ok = false;
+  }
+  if (first_blob_linearity > 0.5) {
+    std::cout << "WARNING: blob linearity (" << first_blob_linearity << ") higher than expected (~0)" << std::endl;
+    all_ok = false;
+  }
+
+  return all_ok;
+}
 
 // Returns true if TMS_KDTree::RadiusQuery agrees exactly (same index set)
 // with a brute-force O(N^2) distance check, for every point in `pts`.
@@ -84,6 +187,13 @@ int main(int argc, char **argv) {
   }
   std::cout << "KD-tree radius query verified against brute force for all test epsilons." << std::endl;
 
+  // ---- Correctness gate: PCA linearity must be rotation-invariant ----
+  if (!CheckPCARotationInvariance()) {
+    std::cerr << "PCA rotation-invariance / line-vs-blob check failed! Aborting." << std::endl;
+    return -1;
+  }
+  std::cout << "PCA linearity verified rotation-invariant, line-like and blob-like as expected." << std::endl;
+
   // ---- Cluster the same points via TMS_SpacePointDBScan ----
   std::vector<TMS_SpacePoint> space_points;
   for (const auto &p : pts) space_points.emplace_back(p[0], p[1], p[2], -1, -1, 0.0);
@@ -101,6 +211,15 @@ int main(int argc, char **argv) {
   std::cout << "Number of points: " << space_points.size() << std::endl;
   std::cout << "Number of clusters: " << clusters.size() << std::endl;
   std::cout << "Number of noise points: " << n_noise << std::endl;
+
+  // ---- PCA per real cluster: blobs should be low-linearity, lines high ----
+  std::vector<TMS_SpacePointCluster> pca_clusters;
+  for (const auto &indices : clusters) pca_clusters.emplace_back(space_points, indices);
+  for (size_t i = 0; i < pca_clusters.size(); ++i) {
+    std::cout << "Cluster " << i << ": n=" << pca_clusters[i].GetSize()
+              << " linearity=" << pca_clusters[i].GetLinearity()
+              << " IsTrackLike(0.8,5)=" << (pca_clusters[i].IsTrackLike(0.8, 5) ? "yes" : "no") << std::endl;
+  }
 
   // ---- Plot: X-Z and Y-Z projections, colored by cluster ----
   TCanvas canv("canv", "canv", 1600, 800);
@@ -157,7 +276,8 @@ int main(int argc, char **argv) {
   leg.SetFillStyle(0);
   leg.SetLineWidth(0);
   leg.SetBorderSize(0);
-  for (int i = 0; i < nClusters; ++i) leg.AddEntry(graphs_xz[i], Form("Cluster %i (n=%zu)", i, clusters[i].size()), "p");
+  for (int i = 0; i < nClusters; ++i)
+    leg.AddEntry(graphs_xz[i], Form("Cluster %i (n=%zu, lin=%.2f)", i, clusters[i].size(), pca_clusters[i].GetLinearity()), "p");
   leg.AddEntry(&noise_xz, Form("Noise (n=%i)", n_noise), "p");
 
   canv.cd(1);
