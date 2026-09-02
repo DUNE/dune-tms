@@ -156,7 +156,6 @@ void TMS_Kalman::RunKalman() {
     Update(KalmanNodes[i-1], KalmanNodes[i]);
     Predict(KalmanNodes[i]);
   }
- 
   
   SetMomentum(1./KalmanNodes.back().CurrentState.qp);
 
@@ -438,26 +437,25 @@ void TMS_Kalman::Predict(TMS_KalmanNode &Node) {
   CurrentState.dxdz = FilteredVec[2];
   CurrentState.dydz = FilteredVec[3];
 
-  if ( (CurrentState.x < TMS_Geom::GetInstance().GetXStartOfTMS()) || (CurrentState.x > TMS_Geom::GetInstance().GetXEndOfTMS()) ) // point outside x region
-  {
-    //std::cerr << "[TMS_Kalman.cpp] x value outside TMS: " << CurrentState.x << "\tTMS: [" << TMS_Geom::GetInstance().GetXStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetXEndOfTMS() << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
-  if ( (CurrentState.y < TMS_Geom::GetInstance().GetYStartOfTMS()) || (CurrentState.y > TMS_Geom::GetInstance().GetYEndOfTMS()) ) // point outside y region
-  {
-    //std::cerr << "[TMS_Kalman.cpp] y value outside TMS: " << CurrentState.y << "\tTMS: [" << TMS_Geom::GetInstance().GetYStartOfTMS() << ", "<< TMS_Geom::GetInstance().GetYEndOfTMS() << "]" << std::endl;
-    if (Talk)
-    {
-      Node.PrintTrueReco();
-      PreviousState.Print();
-      CurrentState.Print();
-    }
-  }
+
+  // Calculate chi^2
+  Node.rVec[0] = (Measurement[0] - UpdateVec[0]);
+  Node.rVec[1] = (Measurement[1] - UpdateVec[1]);
+
+  // Probably a much nicer way to make (sub)matrix from a bigger one, but YOLO
+  Node.RMatrix(0,0) = (Node.NoiseMatrix(0,0) - UpdatedCovarianceMatrix(0,0));
+  Node.RMatrix(1,0) = (Node.NoiseMatrix(1,0) - UpdatedCovarianceMatrix(1,0));
+  Node.RMatrix(0,1) = (Node.NoiseMatrix(0,1) - UpdatedCovarianceMatrix(0,1));
+  Node.RMatrix(1,1) = (Node.NoiseMatrix(1,1) - UpdatedCovarianceMatrix(1,1));
+  Node.RMatrix.Invert(); // Matrix has to be inverted
+
+  Node.chi2 = Node.rVec*(Node.RMatrix*Node.rVec); // Calc chi^2
+
+
+
+  //CovarianceMatrix.Print();
+  //GainMatrix.Print();
+  //CurrentState.Print();
 
   Node.SetRecoXY(CurrentState);
   if (Talk) Node.PrintTrueReco();

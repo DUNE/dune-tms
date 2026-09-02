@@ -72,8 +72,7 @@ class TMS_TreeWriter {
     float RecoTrackMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackTrueMomentum[__TMS_MAX_TRACKS__];
     float RecoTrackLength[__TMS_MAX_TRACKS__];
-    float RecoTrackLength_3D[__TMS_MAX_TRACKS__];
-    int RecoTrackLengthSource[__TMS_MAX_TRACKS__];
+    float RecoTrackLengthInCM[__TMS_MAX_TRACKS__];
     float RecoTrackChi2[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];

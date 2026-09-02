@@ -366,8 +366,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("EnergyDeposit",  RecoTrackEnergyDeposit,   "EnergyDeposit[nTracks]/F");
   Reco_Tree->Branch("Momentum",       RecoTrackMomentum,        "Momentum[nTracks]/F");
   Reco_Tree->Branch("Length",         RecoTrackLength,          "Length[nTracks]/F");
-  Reco_Tree->Branch("Length_3D",      RecoTrackLength_3D,       "Length_3D[nTracks]/F");
-  Reco_Tree->Branch("LengthSource",   RecoTrackLengthSource,    "LengthSource[nTracks]/I");
+  Reco_Tree->Branch("LengthInCM",     RecoTrackLengthInCM,      "LengthInCM[nTracks]/F");
   Reco_Tree->Branch("Charge",         RecoTrackCharge,          "Charge[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman",  RecoTrackCharge_Kalman,   "Charge_Kalman[nTracks]/I");
   Reco_Tree->Branch("Charge_Kalman_curvature",  RecoTrackCharge_Kalman_curvature, "Charge_Kalman_curvature[nTracks]/I");
@@ -1568,38 +1567,30 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
-    const float raw_3d_length = RecoTrack->Length;
-    const float fallback_2d_length =
-        TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
-    const bool has_uv_view = nLinesU > 0 || nLinesV > 0;
-    const bool has_xy_view = nLinesX > 0 || nLinesY > 0;
+    nHitsIn3DTrack[itTrack]         =  RecoTrack->Hits.size(); // Do we need to cast it? idk
+    nKalmanNodes[itTrack]           =  RecoTrack->KalmanNodes.size();
+    nKalmanNodes_plus[itTrack]           =  RecoTrack->KalmanNodes_plus.size();
+    nKalmanNodes_minus[itTrack]           =  RecoTrack->KalmanNodes_minus.size();
+    KalmanErrorDetVol[itTrack]      =       RecoTrack->KalmanErrorDetVol;
 
-    RecoTrackLength[itTrack] = kInvalidRecoFloat;
-    RecoTrackLengthSource[itTrack] = kLengthSourceNone;
-    if (IsUsableRecoLength(raw_3d_length)) {
-      RecoTrackLength[itTrack] = raw_3d_length;
-      RecoTrackLengthSource[itTrack] = kLengthSource3D;
-    } else if (IsUsableRecoLength(fallback_2d_length) && has_uv_view) {
-      RecoTrackLength[itTrack] = fallback_2d_length;
-      RecoTrackLengthSource[itTrack] = kLengthSourceUV;
-    } else if (IsUsableRecoLength(fallback_2d_length) && has_xy_view) {
-      RecoTrackLength[itTrack] = fallback_2d_length;
-      RecoTrackLengthSource[itTrack] = kLengthSourceXY;
+//    std::cout << "TreeWriter number of hits: " << nHitsIn3DTrack[itTrack] << std::endl;
+    RecoTrackEnergyRange[itTrack]   =       RecoTrack->EnergyRange;
+    RecoTrackLengthInCM[itTrack]    =       RecoTrack->LengthInCM;
+    // RecoTrackLength[]
+    if (nLinesU<=0){
+        // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthX[itTrack] + TrackLengthY[itTrack]);
+    } else {
+        // RecoTrack->Length;, 2d is better estimate than 3d because of y jumps
+        RecoTrackLength[itTrack]    = 0.5 * (TrackLengthU[itTrack] + TrackLengthV[itTrack]);
     }
-
-    RecoTrackEnergyRange[itTrack]   = EstimateKEFromRange(RecoTrackLength[itTrack]);
-    RecoTrackLength_3D[itTrack]     = raw_3d_length;
-    RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
-    RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
-    RecoTrackCharge[itTrack]        = RecoTrack->Charge;
-    RecoTrackCharge_Kalman[itTrack] = RecoTrack->Charge_Kalman;
-    RecoTrackCharge_Kalman_curvature[itTrack] = RecoTrack->Charge_Kalman_curvature;
-    // Chi2 is the chi2 of the fit selected as canonical in TMS_Reco.
-    RecoTrackChi2[itTrack]          = RecoTrack->Chi2;
-    RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
-    RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
+    RecoTrackEnergyDeposit[itTrack] =       RecoTrack->EnergyDeposit;
+    RecoTrackMomentum[itTrack]      =       RecoTrack->Momentum;
+    RecoTrackCharge[itTrack]        =       RecoTrack->Charge;
+    RecoTrackCharge_Kalman[itTrack]        =       RecoTrack->Charge_Kalman;
+    RecoTrackChi2[itTrack]          =       RecoTrack->Chi2;
+    RecoTrackChi2_plus[itTrack]          =       RecoTrack->Chi2_plus;
+    RecoTrackChi2_minus[itTrack]          =       RecoTrack->Chi2_minus;
     
     for (int j = 0; j < 4; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -2451,8 +2442,7 @@ void TMS_TreeWriter::Clear() {
     RecoTrackEnergyDeposit[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackMomentum[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackLength[i] = DEFAULT_CLEARING_FLOAT;
-    RecoTrackLength_3D[i] = DEFAULT_CLEARING_FLOAT;
-    RecoTrackLengthSource[i] = kLengthSourceNone;
+    RecoTrackLengthInCM[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackCharge_Kalman_curvature[i] = DEFAULT_CLEARING_FLOAT;
