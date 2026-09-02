@@ -405,10 +405,11 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 }
 
 TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
-      // Phase III: carry the truth side table over wholesale (simpler than filtering to just
-      // this slice's hit IDs, and harmless -- lookups are still by HitId, which travels with
-      // each TMS_Hit regardless of which subset ends up in this sliced event's TMS_Hits).
-      HitIdCounter(event.HitIdCounter), TrueHitByHitId(event.TrueHitByHitId),
+      // Phase III: TrueHitByHitId is deliberately NOT copied wholesale here -- see the
+      // filtering loop in the constructor body below, which populates it with only the
+      // entries this slice's TMS_Hits actually need (flagged by Copilot review as an
+      // O(N_hits)-per-slice copy otherwise, real for production paths with many slices).
+      HitIdCounter(event.HitIdCounter),
       TMS_TrueParticles(event.TMS_TrueParticles), TrueParticleIndices(event.TrueParticleIndices),
       nTrueForgottenParticles(event.nTrueForgottenParticles),
       TMS_TruePrimaryParticles(event.TMS_TruePrimaryParticles),
@@ -427,8 +428,16 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   RunNumber = event.RunNumber;
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
-  
-  
+
+  // Populate the truth side table with only the entries this slice's TMS_Hits actually
+  // need, rather than copying the source event's full map (which can be many times larger
+  // once an event has been split into several slices).
+  for (const auto& hit : TMS_Hits) {
+    auto it = event.TrueHitByHitId.find(hit.GetHitId());
+    if (it != event.TrueHitByHitId.end()) TrueHitByHitId.emplace(hit.GetHitId(), it->second);
+  }
+
+
   nTrueTrajectories = -999;
   VertexIdOfMostEnergyInEvent = -9991;
   VertexGlobalIdOfMostEnergyInEvent = -9991;
