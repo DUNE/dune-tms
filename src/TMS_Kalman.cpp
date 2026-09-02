@@ -1,5 +1,6 @@
 #include "TMS_Kalman.h"
 #include "TMS_Geom.h"
+#include "TMS_Event.h"
 
 TMS_Kalman::TMS_Kalman() : 
   Bethe(Material::kPolyStyrene),
@@ -8,7 +9,7 @@ TMS_Kalman::TMS_Kalman() :
 }
 
 // Take a collection of hits, return collection of Kalman nodes
-TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) : 
+TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Event &event) :
   Bethe(Material::kPolyStyrene), 
   MSC(Material::kPolyStyrene),
   ForwardFitting(false),
@@ -33,8 +34,11 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge) :
   for (int i = 0; i < nCand; ++i) {
 
     TMS_Hit hit = Candidates[i];
-    double x_true = hit.GetTrueHit().GetX();
-    double y_true = hit.GetTrueHit().GetY();
+    // Diagnostic only (reco-to-truth comparison output), never fed into the fit itself --
+    // guard since this is a real reconstruction-path file and truth may be absent (real data).
+    const TMS_TrueHit* true_hit = event.GetTrueHit(hit.GetHitId());
+    double x_true = true_hit == nullptr ? -99999000 : true_hit->GetX();
+    double y_true = true_hit == nullptr ? -99999000 : true_hit->GetY();
     double x = hit.GetRecoX();
     double y = hit.GetRecoY();
     double z = hit.GetZ();

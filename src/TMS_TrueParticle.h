@@ -8,6 +8,7 @@
 #include "TLorentzVector.h"
 
 #include <iostream>
+#include <stdexcept>
 #include "TMS_Constants.h"
 
 #include "TMS_Geom.h"
@@ -33,6 +34,7 @@ class TMS_TrueParticle {
 
     // Copy over the edep-sim info
     TMS_TrueParticle(TG4PrimaryParticle edep_part) :
+      RunID(-999),
       VertexID(-999),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
@@ -41,7 +43,8 @@ class TMS_TrueParticle {
       BirthMomentum(TVector3(edep_part.GetMomentum().Vect())) {
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx) : 
+    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx) :
+      RunID(-999),
       VertexID(vtx.GetInteractionNumber()),
       Parent(-999),
       TrackId(edep_part.GetTrackId()),
@@ -49,6 +52,24 @@ class TMS_TrueParticle {
       TrueVisibleEnergy(-999),
       BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
       BirthPosition(TLorentzVector(vtx.GetPosition())) {
+    }
+
+    // Same as the 2-arg constructor above, but also records RunID -- needed by
+    // TMS_Event::ProcessTG4Event(), which (pre-dating the 2-arg constructor
+    // above) still constructs with the run number available at that call site.
+    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx, int runID) :
+      RunID(runID),
+      VertexID(vtx.GetInteractionNumber()),
+      Parent(-999),
+      TrackId(edep_part.GetTrackId()),
+      PDG(edep_part.GetPDGCode()),
+      TrueVisibleEnergy(-999),
+      BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
+      BirthPosition(TLorentzVector(vtx.GetPosition())) {
+      if (VertexID < 0) {
+        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
+        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
+      }
     }
 
     // Construct directly from edep-sim
@@ -65,21 +86,6 @@ class TMS_TrueParticle {
       }
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx, int RunIDVal) : 
-    RunID(RunIDVal),
-    VertexID(vtx.GetInteractionNumber()),
-    Parent(-999),
-    TrackId(edep_part.GetTrackId()),
-    PDG(edep_part.GetPDGCode()),
-    TrueVisibleEnergy(-999),
-    BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
-    BirthPosition(TLorentzVector(vtx.GetPosition())) {
-    if (VertexID < 0) {
-        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
-        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
-      }
-    }
-    
     ~TMS_TrueParticle();
 
     // Print
