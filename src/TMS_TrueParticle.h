@@ -86,21 +86,6 @@ class TMS_TrueParticle {
       }
     }
 
-    TMS_TrueParticle(TG4PrimaryParticle edep_part, TG4PrimaryVertex vtx, int RunIDVal) : 
-    RunID(RunIDVal),
-    VertexID(vtx.GetInteractionNumber()),
-    Parent(-999),
-    TrackId(edep_part.GetTrackId()),
-    PDG(edep_part.GetPDGCode()),
-    TrueVisibleEnergy(-999),
-    BirthMomentum(TVector3(edep_part.GetMomentum().Vect())),
-    BirthPosition(TLorentzVector(vtx.GetPosition())) {
-    if (VertexID < 0) {
-        std::cout<<"Fatal in TMS_TrueParticle: Get a vertex id < 0: "<<VertexID<<std::endl;
-        throw std::runtime_error("Fatal in TMS_TrueParticle: Get a vertex id < 0");
-      }
-    }
-    
     ~TMS_TrueParticle();
 
     // Print
