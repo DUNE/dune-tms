@@ -8,6 +8,7 @@
 #include "TLorentzVector.h"
 
 #include <iostream>
+#include <stdexcept>
 #include "TMS_Constants.h"
 
 #include "TMS_Geom.h"

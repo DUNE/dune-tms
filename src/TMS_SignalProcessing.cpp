@@ -52,19 +52,15 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
   }
   // Now erase all hits that are set as ped supped
   std::vector<TMS_Hit> remaining_hits;
-  std::vector<TMS_Hit> deleted_hits;
   for (auto& hit : TMS_Hits) {
     if (!hit.GetPedSup()) {
       remaining_hits.push_back(hit);
       if (hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
     } else {
       event.EraseTrueHit(hit.GetHitId());
-      deleted_hits.push_back(hit);
     }
   }
-  TMS_Hits.clear();
-  for (auto& hit : remaining_hits) TMS_Hits.push_back(hit);
-  deleted_hits.erase(deleted_hits.begin(), deleted_hits.end());
+  TMS_Hits = std::move(remaining_hits);
 }
 
 void TMS_SignalProcessing::SimulatePedestalSubtraction(TMS_Event &event) {

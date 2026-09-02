@@ -30,6 +30,8 @@
 #include <functional>
 #include <set>
 #include <array>
+#include <vector>
+#include <string>
 #include "TFile.h"
 #include "TGeoManager.h"
 
