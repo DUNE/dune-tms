@@ -456,7 +456,7 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
       //if (i > 100) exit(0);
 
     }
-    double n_dead_hits_as_percent = 100.0 * n_dead_hits / (float)TMS_Hits.size();
+    double n_dead_hits_as_percent = TMS_Hits.empty() ? 0.0 : 100.0 * n_dead_hits / (float)TMS_Hits.size();
     std::cout<<"N dead hits: "<<n_dead_hits<<" out of "<<TMS_Hits.size()<<" hits. That's "<<n_dead_hits_as_percent<<"%"<<std::endl;
     if (zombie_time > 0) std::cout<<"N zombie hits: "<<n_zombie_hits<<std::endl;
   }
