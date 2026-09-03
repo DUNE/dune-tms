@@ -3,6 +3,7 @@
 #define __TMS_DBSCAN_H__
 
 #include <cmath>
+#include <iostream>
 #include <vector>
 
 // Enum for how a point has been classified

@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
         if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
-      trajgraphs[muonindex]->Draw("P,same");
+      if (!trajgraphs.empty() && trajgraphs[muonindex] != NULL) trajgraphs[muonindex]->Draw("P,same");
       TString plottitle = plot->GetTitle();
       plottitle.ReplaceAll("all true hits", "all true hits and traj.");
       plot->SetTitle(plottitle);
@@ -370,7 +370,7 @@ int main(int argc, char** argv) {
         if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
-      trajgraphs[muonindex]->Draw("P,same");
+      if (!trajgraphs.empty() && trajgraphs[muonindex] != NULL) trajgraphs[muonindex]->Draw("P,same");
       TString plottitle_reco = plot->GetTitle();
       plottitle_reco.ReplaceAll("all binary reco hits", "all binary reco hits and true traj.");
       plot->SetTitle(plottitle_reco);

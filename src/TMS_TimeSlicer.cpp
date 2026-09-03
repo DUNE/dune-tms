@@ -98,7 +98,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     for (auto hit : hits) {
       // Only include hits that are not pedestal subtracted
       if (!hit.GetPedSup()) {
-        int index = hit.GetT() * DT;
+        int index = hit.GetT() / DT;
         // Make sure we're within bounds, and add energy
         if (index >= 0 && index < NUMBER_OF_SLICES) energy_slices[index] += hit.GetE();
       }
@@ -172,7 +172,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     double slice_end_time = -999;
     for (int i = 0; i < NUMBER_OF_SLICES; i++) {
       int current_slice = time_slices[i];
-      double current_slice_time = i / DT;
+      double current_slice_time = i * DT;
       if (current_slice != prev_slice) {
         // Write out the current slice and then start a new slice
         if (have_prev_slice) {
@@ -195,7 +195,7 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     // Finally assign hits based on slice
     std::vector<TMS_Hit> changed_hits;
     for (auto hit : hits) {
-      int index = hit.GetT() * DT;
+      int index = hit.GetT() / DT;
       int slice = 0; 
       // Make sure we're within bounds
       if (index >= 0 && index < NUMBER_OF_SLICES) slice = time_slices[index];
