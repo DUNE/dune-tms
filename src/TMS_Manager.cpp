@@ -24,8 +24,12 @@ TMS_Manager::TMS_Manager() {
   try {
     _GEOMETRY_UseGDMLFile = toml::find<bool>(data, "Geometry", "UseGDMLFile");
     _GEOMETRY_GDMLFilePath = toml::find<std::string>(data, "Geometry", "GDMLFilePath");
-  } catch (const std::exception &) {
-    // Missing Geometry.UseGDMLFile/GDMLFilePath keys; leave defaults.
+  } catch (const std::out_of_range &) {
+    // Missing Geometry.UseGDMLFile/GDMLFilePath keys; leave defaults. A type
+    // mismatch (toml::type_error, a sibling of std::out_of_range, not a
+    // subclass) is a real misconfiguration and is deliberately NOT caught
+    // here, so it propagates and fails loudly instead of silently reverting
+    // to defaults.
   }
 
   // The minimum hits needed to run reconstruction in a TMS event

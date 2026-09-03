@@ -58,9 +58,16 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
 
   // The input file
   TFile *input = new TFile(filename.c_str(), "open");
+  if (!input || input->IsZombie()) {
+    throw std::runtime_error("Failed to open input file: " + filename);
+  }
 
   // The EDepSim events
-  TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
+  TTree *events_raw = (TTree*)input->Get("EDepSimEvents");
+  if (!events_raw) {
+    throw std::runtime_error("Input file is missing the required 'EDepSimEvents' tree: " + filename);
+  }
+  TTree *events = (TTree*)(events_raw->Clone("events"));
   // The generator pass-through information
   TTree *gRoo = (TTree*) (input->Get("DetSimPassThru/gRooTracker"));
   if (gRoo)
