@@ -1032,6 +1032,15 @@ void TMS_Event::BuildSpacePoints() {
 
   for (size_t i = 0; i < TMS_Hits.size(); ++i) {
     const TMS_Hit& hit = TMS_Hits[i];
+    // TMS_Hits (for a per-slice event) includes pedestal-suppressed hits --
+    // the slice constructor deliberately keeps them (GetHits(slice, true))
+    // for other consumers -- but a suppressed hit is noise-level and isn't
+    // treated as real anywhere else in reconstruction (TMS_TrackFinder::
+    // FindTracks() excludes them via GetHits()'s default include_ped_sup=
+    // false). Pairing them here inflates the ghost space-point population
+    // with combinations that don't even correspond to a real reconstructed
+    // hit, on top of the expected real-hit-wrong-particle ghosting.
+    if (hit.GetPedSup()) continue;
     int layer = hit.GetBar().GetPlaneNumber();
     TMS_Bar::BarType bar_type = hit.GetBar().GetBarType();
 
