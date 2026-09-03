@@ -14,10 +14,11 @@
 // from the original edep-sim file.
 //
 // TMS_SpacePointDBScan's anisotropic neighbor test needs each point's real
-// z-ordered plane index, which requires the actual surveyed geometry (see its
-// header comment) -- so this tool now also loads the original edep-sim spill
-// file's TGeoManager (same pattern as app/ShootRay.cpp), purely to derive
-// plane indices from each space point's Z via TMS_Geom::GetPlaneIndexNearestZ().
+// z-ordered plane index and the real bar pitch (its quantization unit for the
+// transverse tolerance), both of which require the actual surveyed geometry
+// (see its header comment) -- so this tool now also loads the original
+// edep-sim spill file's TGeoManager (same pattern as app/ShootRay.cpp), purely
+// to derive these via TMS_Geom::GetPlaneIndexNearestZ()/GetMaxBarPitch().
 
 #include <cmath>
 #include <fstream>
@@ -35,10 +36,10 @@
 #include "TMS_SpacePointDBScan.h"
 
 int main(int argc, char **argv) {
-  if (argc != 8) {
+  if (argc != 9) {
     std::cerr << "Usage: " << argv[0]
-              << " <edep_sim_geom_file> <input_reco_tree.root> <entry_number> <transverse_tolerance_mm>"
-                 " <max_plane_gap> <min_points> <output.csv>"
+              << " <edep_sim_geom_file> <input_reco_tree.root> <entry_number> <base_transverse_bars>"
+                 " <transverse_bars_per_plane_gap> <max_plane_gap> <min_points> <output.csv>"
               << std::endl;
     return -1;
   }
@@ -46,10 +47,11 @@ int main(int argc, char **argv) {
   const std::string geom_filename = argv[1];
   const std::string input_filename = argv[2];
   const long long entry_number = std::stoll(argv[3]);
-  const double transverse_tolerance = std::stod(argv[4]);
-  const int max_plane_gap = std::stoi(argv[5]);
-  const unsigned int min_points = std::stoul(argv[6]);
-  const std::string output_csv = argv[7];
+  const int base_transverse_bars = std::stoi(argv[4]);
+  const int transverse_bars_per_plane_gap = std::stoi(argv[5]);
+  const int max_plane_gap = std::stoi(argv[6]);
+  const unsigned int min_points = std::stoul(argv[7]);
+  const std::string output_csv = argv[8];
 
   TFile geom_input(geom_filename.c_str());
   if (geom_input.IsZombie()) {
@@ -63,13 +65,15 @@ int main(int argc, char **argv) {
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
   const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
-  if (max_plane_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes -- cannot derive a plane-index tolerance."
+  const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
               << std::endl;
     return -1;
   }
+  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
   const double broad_phase_radius =
-      std::sqrt(transverse_tolerance * transverse_tolerance +
+      std::sqrt(worst_case_transverse * worst_case_transverse +
                 std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
 
   TFile input(input_filename.c_str());
@@ -116,8 +120,8 @@ int main(int argc, char **argv) {
     plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
   }
 
-  TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, transverse_tolerance, max_plane_gap,
-                               broad_phase_radius);
+  TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, bar_pitch, base_transverse_bars,
+                               transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
   std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
 
   std::vector<TMS_SpacePointCluster> clusters;
@@ -126,8 +130,9 @@ int main(int argc, char **argv) {
     clusters.emplace_back(space_points, indices);
   }
 
-  std::cout << "Found " << clusters.size() << " clusters (transverse_tolerance=" << transverse_tolerance
-            << "mm, max_plane_gap=" << max_plane_gap << ", min_points=" << min_points << ")" << std::endl;
+  std::cout << "Found " << clusters.size() << " clusters (bar_pitch=" << bar_pitch << "mm, base_transverse_bars="
+            << base_transverse_bars << ", transverse_bars_per_plane_gap=" << transverse_bars_per_plane_gap
+            << ", max_plane_gap=" << max_plane_gap << ", min_points=" << min_points << ")" << std::endl;
 
   // Per-point cluster id: 0 = noise, 1..N = cluster index (1-based, matching
   // TMS_SpacePointDBScan's own convention).

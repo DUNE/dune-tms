@@ -371,6 +371,18 @@ class TMS_Geom {
       return it->second;
     }
 
+    // Largest per-plane median bar-to-bar spacing (mm) found anywhere in the
+    // surveyed geometry -- a conservative real "bar width" figure (median, not
+    // max, so an occasional bigger gap at a module boundary within a plane
+    // doesn't skew it). Intended as the quantization unit for a transverse
+    // clustering tolerance that scales with plane-index gap, the same role
+    // GetMaxPlanePitch() plays for the Z direction. Returns -1 if fewer than 2
+    // bars were found in any surveyed plane.
+    double GetMaxBarPitch() {
+      EnsureBarLookup();
+      return MaxBarPitch;
+    }
+
     void SetFileName(std::string filename) {
       FileName = filename;
     }
@@ -939,6 +951,7 @@ class TMS_Geom {
       if (BarLookupBuilt) return;
       BarLookupBuilt = true;
       BarIndexByPath.clear();
+      MaxBarPitch = -1;
       EnsurePlaneLookup();
       if (geom == NULL || geom->GetTopNode() == NULL) return;
 
@@ -962,6 +975,21 @@ class TMS_Geom {
         for (size_t index = 0; index < bars.size(); ++index) {
           BarIndexByPath[bars[index].NodePath] = index;
         }
+
+        // Median (not max) consecutive spacing within this plane -- robust
+        // against the occasional larger gap at a module boundary, which isn't
+        // the real single-bar pitch. Track the largest such per-plane median
+        // across all planes as a conservative single "bar width" figure.
+        if (bars.size() >= 2) {
+          std::vector<double> diffs;
+          diffs.reserve(bars.size() - 1);
+          for (size_t index = 1; index < bars.size(); ++index) {
+            diffs.push_back(bars[index].TransverseCenter - bars[index - 1].TransverseCenter);
+          }
+          std::sort(diffs.begin(), diffs.end());
+          double median_pitch = diffs[diffs.size() / 2];
+          if (median_pitch > MaxBarPitch) MaxBarPitch = median_pitch;
+        }
       }
     }
 
@@ -974,6 +1002,7 @@ class TMS_Geom {
       PlaneCount = 0;
       MaxPlanePitch = -1;
       BarLookupBuilt = false;
+      MaxBarPitch = -1;
       fWarnedNoSurvey = false;
     };
 
@@ -1003,6 +1032,7 @@ class TMS_Geom {
     double MaxPlanePitch;
     bool BarLookupBuilt;
     std::map<std::string, int> BarIndexByPath;
+    double MaxBarPitch;
 
     TMS_GeometryLayout fLayout;
     mutable bool fWarnedNoSurvey;

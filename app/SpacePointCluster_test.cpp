@@ -148,22 +148,27 @@ bool CheckKDTreeAgainstBruteForce(const std::vector<std::array<double, 3>> &pts,
 }
 
 int main(int argc, char **argv) {
-  if (argc != 4) {
-    std::cout << "Need 3 arguments: transverse_tolerance_mm max_plane_gap nmin" << std::endl;
+  if (argc != 5) {
+    std::cout << "Need 4 arguments: base_transverse_bars transverse_bars_per_plane_gap max_plane_gap nmin"
+              << std::endl;
     return -1;
   }
-  double transverse_tolerance = std::atof(argv[1]);
-  int max_plane_gap = std::atoi(argv[2]);
-  int nMin = std::atoi(argv[3]);
+  int base_transverse_bars = std::atoi(argv[1]);
+  int transverse_bars_per_plane_gap = std::atoi(argv[2]);
+  int max_plane_gap = std::atoi(argv[3]);
+  int nMin = std::atoi(argv[4]);
 
   // No real geometry is loaded in this synthetic-data test, so approximate a
   // "plane index" per point as its Z discretized by a fixed synthetic pitch
   // (roughly the real thin-region plane pitch) -- keeps this test fully
   // self-contained, matching TMS_SpacePointDBScan's caller-supplied-plane-index
-  // design (see its header comment).
+  // design (see its header comment). Reused as the synthetic "bar pitch" too,
+  // for the same reason.
   const double kSyntheticPitch = 40.0;
+  const double worst_case_transverse =
+      (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * kSyntheticPitch;
   const double broad_phase_radius =
-      std::sqrt(transverse_tolerance * transverse_tolerance +
+      std::sqrt(worst_case_transverse * worst_case_transverse +
                 std::pow(kSyntheticPitch * (max_plane_gap + 1), 2));
 
   // Synthetic 3D data: two well-separated Gaussian blobs (should NOT cluster
@@ -213,8 +218,9 @@ int main(int argc, char **argv) {
   plane_index.reserve(pts.size());
   for (const auto &p : pts) plane_index.push_back(static_cast<int>(std::lround(p[2] / kSyntheticPitch)));
 
-  TMS_SpacePointDBScan dbscan(space_points, plane_index, static_cast<unsigned int>(nMin), transverse_tolerance,
-                               max_plane_gap, broad_phase_radius);
+  TMS_SpacePointDBScan dbscan(space_points, plane_index, static_cast<unsigned int>(nMin), kSyntheticPitch,
+                               base_transverse_bars, transverse_bars_per_plane_gap, max_plane_gap,
+                               broad_phase_radius);
   std::vector<std::vector<int>> clusters = dbscan.RunAndGetClusterIndices();
 
   std::vector<bool> in_cluster(space_points.size(), false);
@@ -240,7 +246,8 @@ int main(int argc, char **argv) {
   // ---- Plot: X-Z and Y-Z projections, colored by cluster ----
   TCanvas canv("canv", "canv", 1600, 800);
   canv.Divide(2, 1);
-  TString canvname = Form("spacepoint_clusters_%2.2f_%i_%i.pdf", transverse_tolerance, max_plane_gap, nMin);
+  TString canvname =
+      Form("spacepoint_clusters_%i_%i_%i_%i.pdf", base_transverse_bars, transverse_bars_per_plane_gap, max_plane_gap, nMin);
   canv.Print(canvname + "[");
 
   const int nClusters = static_cast<int>(clusters.size());
