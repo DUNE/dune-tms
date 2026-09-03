@@ -167,5 +167,31 @@ int main(int argc, char **argv) {
   csv.close();
   std::cout << "Wrote " << output_csv << std::endl;
 
+  // PCA axes for every track-like cluster, one row per cluster: centroid plus
+  // all 3 eigenvalue/eigenvector pairs (descending), for plotting each axis
+  // through the centroid with length ~3*sqrt(eigenvalue), same convention the
+  // user draws these with elsewhere.
+  const std::string pca_output_csv =
+      (output_csv.size() > 4 && output_csv.compare(output_csv.size() - 4, 4, ".csv") == 0)
+          ? output_csv.substr(0, output_csv.size() - 4) + "_pca.csv"
+          : output_csv + "_pca.csv";
+  std::ofstream pca_csv(pca_output_csv);
+  pca_csv << "cluster_id,cx,cy,cz,eval0,ex0,ey0,ez0,eval1,ex1,ey1,ez1,eval2,ex2,ey2,ez2\n";
+  for (size_t c = 0; c < clusters.size(); ++c) {
+    const auto &cl = clusters[c];
+    if (!cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)) continue;
+    const auto &centroid = cl.GetCentroid();
+    const auto &eigenvalues = cl.GetEigenvalues();
+    const auto &eigenvectors = cl.GetEigenvectors();
+    pca_csv << (c + 1) << "," << centroid[0] << "," << centroid[1] << "," << centroid[2];
+    for (int rank = 0; rank < 3; ++rank) {
+      pca_csv << "," << eigenvalues[rank] << "," << eigenvectors[rank][0] << "," << eigenvectors[rank][1] << ","
+              << eigenvectors[rank][2];
+    }
+    pca_csv << "\n";
+  }
+  pca_csv.close();
+  std::cout << "Wrote " << pca_output_csv << std::endl;
+
   return 0;
 }

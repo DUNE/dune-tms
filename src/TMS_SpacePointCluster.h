@@ -36,6 +36,9 @@ class TMS_SpacePointCluster {
     const std::array<double, 3> &GetEigenvalues() const { return _eigenvalues; }
     // Unit vector along the largest-eigenvalue eigenvector (the cluster's estimated direction).
     const std::array<double, 3> &GetPrincipalDirection() const { return _principal_direction; }
+    // All three unit eigenvectors, same descending eigenvalue order as GetEigenvalues();
+    // _eigenvectors[0] == GetPrincipalDirection().
+    const std::array<std::array<double, 3>, 3> &GetEigenvectors() const { return _eigenvectors; }
 
     // (lambda1 - lambda2) / lambda1 -- close to 1 for a line, close to 0 for a blob/disk.
     // 0 if the cluster is too small (<3 points) for a meaningful 3D PCA.
@@ -87,7 +90,10 @@ class TMS_SpacePointCluster {
       std::sort(order.begin(), order.end(), [&](int a, int b) { return eigenvalues[a] > eigenvalues[b]; });
 
       for (int i = 0; i < 3; ++i) _eigenvalues[i] = eigenvalues[order[i]];
-      for (int i = 0; i < 3; ++i) _principal_direction[i] = eigenvectors(i, order[0]);
+      for (int rank = 0; rank < 3; ++rank) {
+        for (int i = 0; i < 3; ++i) _eigenvectors[rank][i] = eigenvectors(i, order[rank]);
+      }
+      _principal_direction = _eigenvectors[0];
 
       _valid_pca = true;
       _linearity = (_eigenvalues[0] > 0.0) ? (_eigenvalues[0] - _eigenvalues[1]) / _eigenvalues[0] : 0.0;
@@ -97,6 +103,7 @@ class TMS_SpacePointCluster {
     std::array<double, 3> _centroid{};
     std::array<double, 3> _eigenvalues{};
     std::array<double, 3> _principal_direction{};
+    std::array<std::array<double, 3>, 3> _eigenvectors{};
     double _linearity = 0.0;
     bool _valid_pca = false;
 };
