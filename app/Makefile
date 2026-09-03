@@ -33,7 +33,7 @@ endif
 # The TMS includes
 TMS_INC = -I../src
 
-TOML_INC = -I../toml11
+TOML_INC = -isystem ../toml11
 
 CXXFLAGS = -Wall -Wextra -g -fPIC
 ifdef DEBUG
