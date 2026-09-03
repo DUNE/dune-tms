@@ -2,6 +2,7 @@
 #define _TMS_KALMAN_H_SEEN_
 
 #include <iostream>
+#include <stdexcept>
 
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -207,7 +208,7 @@ class TMS_KalmanNode {
       NoiseMatrix(1,0) = NoiseMatrix(0,1) = 0.0;
       return;
     } else {
-      throw; // xd haha TODO tho
+      throw std::runtime_error("TMS_Kalman: invalid noise matrix state");
     }
     H *= sign;
 
@@ -216,16 +217,16 @@ class TMS_KalmanNode {
     NoiseMatrix(1,0) = NoiseMatrix(0,1) = H*A*B;
   }
 
-  void FillUpdatedCovarianceMatrix(double pathLength, double dxdz, double dydz, double qp, double ms, bool ForwardFitting=false)
+  void FillUpdatedCovarianceMatrix(double pathLength, double dxdz_slope, double dydz_slope, double qp, double ms, bool ForwardFitting=false)
   {
     // Now proceed with Wolin and Ho (Nucl Inst A329 1993 493-500)
     // covariance for multiple scattering
     // Also see MINOS note on Kalman filter (John Marshall, Nov 15 2005)
-    //double norm = 1+dxdz+dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
-    double norm = 1 + dxdz*dxdz + dydz*dydz; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
-    double covAxAx = norm*ms*(1 + dxdz*dxdz);// eq 16 Wolin and Ho
-    double covAyAy = norm*ms*(1 + dydz*dydz);// eq 17 Wolin and Ho
-    double covAxAy = norm*ms*dxdz*dydz;// eq 18 Wolin and Ho
+    //double norm = 1+dxdz_slope+dydz_slope; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
+    double norm = 1 + dxdz_slope*dxdz_slope + dydz_slope*dydz_slope; // 1+P3^2+P4^2 in eq 16, 17, 18 in Wolin and Ho
+    double covAxAx = norm*ms*(1 + dxdz_slope*dxdz_slope);// eq 16 Wolin and Ho
+    double covAyAy = norm*ms*(1 + dydz_slope*dydz_slope);// eq 17 Wolin and Ho
+    double covAxAy = norm*ms*dxdz_slope*dydz_slope;// eq 18 Wolin and Ho
 
     double TotalPathLengthSq = pathLength*pathLength;
     UpdatedCovarianceMatrix(0,0) = covAxAx * TotalPathLengthSq / 4.;

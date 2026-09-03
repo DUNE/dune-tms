@@ -6,7 +6,7 @@ TMS_Manager::TMS_Manager() {
 
   if (!std::getenv("TMS_DIR")) {
     std::cerr << "Need ${TMS_DIR} environment set for reconstruction, please export TMS_DIR" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_DIR environment variable not set");
   }
 
   std::string filename;
@@ -17,6 +17,20 @@ TMS_Manager::TMS_Manager() {
 
   // Read the TOML file
   const auto data = toml::parse(filename);
+
+  // Geometry configuration (optional; keep backward compatibility with older TOMLs)
+  _GEOMETRY_UseGDMLFile = false;
+  _GEOMETRY_GDMLFilePath = "";
+  try {
+    _GEOMETRY_UseGDMLFile = toml::find<bool>(data, "Geometry", "UseGDMLFile");
+    _GEOMETRY_GDMLFilePath = toml::find<std::string>(data, "Geometry", "GDMLFilePath");
+  } catch (const std::out_of_range &) {
+    // Missing Geometry.UseGDMLFile/GDMLFilePath keys; leave defaults. A type
+    // mismatch (toml::type_error, a sibling of std::out_of_range, not a
+    // subclass) is a real misconfiguration and is deliberately NOT caught
+    // here, so it propagates and fails loudly instead of silently reverting
+    // to defaults.
+  }
 
   // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");

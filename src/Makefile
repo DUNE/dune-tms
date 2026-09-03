@@ -28,7 +28,7 @@ EDEP_LIBS = -L $(EDEPSIM_LIB) -ledepsim_io
 EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
 endif
 
-TOML_INC = -I../toml11/
+TOML_INC = -isystem ../toml11/
 
 CXXFLAGS = -Wall -Wextra -g -fPIC -Wno-free-nonheap-object # free nonheap obj warnings are mostly bugs in gcc 12 apparently
 ifdef DEBUG

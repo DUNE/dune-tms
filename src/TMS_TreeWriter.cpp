@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include <stdexcept>
 #include "TMS_VertexId.h"
 #include "TMS_Reco.h"
 #include "TMS_Utils.h"
@@ -33,7 +34,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
     std::cerr << "Max lines in output: " << __TMS_MAX_LINES__ << std::endl;
     std::cerr << "Max lines in reconstruction: " << TMS_Manager::GetInstance().Get_Reco_HOUGH_MaxHough() << std::endl;
     std::cerr << "Please reconfigure!" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_TreeWriter: max Hough lines exceeds output limit");
   }
 
   // Make the output file
@@ -56,7 +57,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
   if (!Output->IsOpen()) {
     std::cerr << "Could not write to file " << Outputname << std::endl;
     std::cerr << "Are you sure you have write access to the directory?" << std::endl;
-    throw;
+    throw std::runtime_error("TMS_TreeWriter: could not open output file");
   }
   Output->cd();
 
@@ -1320,7 +1321,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   int stdit = 0;
   // Calculate the cluster by cluster summaries
   // e.g. total energy in cluster, cluster position, and cluster standard deviation
-  for (auto it = ClustersU.begin(); it != ClustersU.end(); ++it, ++stdit) {
+  for (auto itU = ClustersU.begin(); itU != ClustersU.end(); ++itU, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -1329,22 +1330,22 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_z = 0;
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
-    int nhits = (*it).size();
+    int nhits = (*itU).size();
 //    std::cout << "Cluster One nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
-      mean_z += (*it)[j].GetZ();
-      mean_notz += (*it)[j].GetNotZ();
-      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
-      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
-      total_energy += (*it)[j].GetE();
-      float time = (*it)[j].GetT();
+      mean_z += (*itU)[j].GetZ();
+      mean_notz += (*itU)[j].GetNotZ();
+      mean2_z += (*itU)[j].GetZ()*(*itU)[j].GetZ();
+      mean2_notz += (*itU)[j].GetNotZ()*(*itU)[j].GetNotZ();
+      total_energy += (*itU)[j].GetE();
+      float time = (*itU)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
-      ClusterHitPosU[stdit][j][0] = (*it)[j].GetZ();
-      ClusterHitPosU[stdit][j][1] = (*it)[j].GetNotZ();
-      ClusterHitEnergyU[stdit][j] = (*it)[j].GetE();
-      ClusterHitTimeU[stdit][j] = (*it)[j].GetT();
-      ClusterHitSliceU[stdit][j] = (*it)[j].GetSlice();
+//      std::cout << (*itU)[j].GetZ() << " " << (*itU)[j].GetNotZ() << std::endl;
+      ClusterHitPosU[stdit][j][0] = (*itU)[j].GetZ();
+      ClusterHitPosU[stdit][j][1] = (*itU)[j].GetNotZ();
+      ClusterHitEnergyU[stdit][j] = (*itU)[j].GetE();
+      ClusterHitTimeU[stdit][j] = (*itU)[j].GetT();
+      ClusterHitSliceU[stdit][j] = (*itU)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -1366,29 +1367,29 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevU[stdit][1] = std_dev_notz;
   }
   stdit = 0;
-  for (auto it = ClustersV.begin(); it != ClustersV.end(); ++it, ++stdit) {
+  for (auto itV = ClustersV.begin(); itV != ClustersV.end(); ++itV, ++stdit) {
     double total_energy = 0;
     double mean_z = 0;
     double mean_notz = 0;
     double mean2_z = 0;
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
-    int nhits = (*it).size();
+    int nhits = (*itV).size();
 //    std::cout << "Cluster Other nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
-      mean_z += (*it)[j].GetZ();
-      mean_notz += (*it)[j].GetNotZ();
-      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
-      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
-      total_energy += (*it)[j].GetE();
-      float time = (*it)[j].GetT();
+      mean_z += (*itV)[j].GetZ();
+      mean_notz += (*itV)[j].GetNotZ();
+      mean2_z += (*itV)[j].GetZ()*(*itV)[j].GetZ();
+      mean2_notz += (*itV)[j].GetNotZ()*(*itV)[j].GetNotZ();
+      total_energy += (*itV)[j].GetE();
+      float time = (*itV)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
-      ClusterHitPosV[stdit][j][0] = (*it)[j].GetZ();
-      ClusterHitPosV[stdit][j][1] = (*it)[j].GetNotZ();
-      ClusterHitEnergyV[stdit][j] = (*it)[j].GetE();
-      ClusterHitTimeV[stdit][j] = (*it)[j].GetT();
-      ClusterHitSliceV[stdit][j] = (*it)[j].GetSlice();
+//      std::cout << (*itV)[j].GetZ() << " " << (*itV)[j].GetNotZ() << std::endl;
+      ClusterHitPosV[stdit][j][0] = (*itV)[j].GetZ();
+      ClusterHitPosV[stdit][j][1] = (*itV)[j].GetNotZ();
+      ClusterHitEnergyV[stdit][j] = (*itV)[j].GetE();
+      ClusterHitTimeV[stdit][j] = (*itV)[j].GetT();
+      ClusterHitSliceV[stdit][j] = (*itV)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -1410,7 +1411,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevV[stdit][1] = std_dev_notz;
   }
   stdit = 0;
-  for (auto it = ClustersX.begin(); it != ClustersX.end(); ++it, ++stdit) {
+  for (auto itX = ClustersX.begin(); itX != ClustersX.end(); ++itX, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -1419,22 +1420,22 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_z = 0;
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
-    int nhits = (*it).size();
+    int nhits = (*itX).size();
 //    std::cout << "Cluster One nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
-      mean_z += (*it)[j].GetZ();
-      mean_notz += (*it)[j].GetNotZ();
-      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
-      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
-      total_energy += (*it)[j].GetE();
-      float time = (*it)[j].GetT();
+      mean_z += (*itX)[j].GetZ();
+      mean_notz += (*itX)[j].GetNotZ();
+      mean2_z += (*itX)[j].GetZ()*(*itX)[j].GetZ();
+      mean2_notz += (*itX)[j].GetNotZ()*(*itX)[j].GetNotZ();
+      total_energy += (*itX)[j].GetE();
+      float time = (*itX)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
-      ClusterHitPosX[stdit][j][0] = (*it)[j].GetZ();
-      ClusterHitPosX[stdit][j][1] = (*it)[j].GetNotZ();
-      ClusterHitEnergyX[stdit][j] = (*it)[j].GetE();
-      ClusterHitTimeX[stdit][j] = (*it)[j].GetT();
-      ClusterHitSliceX[stdit][j] = (*it)[j].GetSlice();
+//      std::cout << (*itX)[j].GetZ() << " " << (*itX)[j].GetNotZ() << std::endl;
+      ClusterHitPosX[stdit][j][0] = (*itX)[j].GetZ();
+      ClusterHitPosX[stdit][j][1] = (*itX)[j].GetNotZ();
+      ClusterHitEnergyX[stdit][j] = (*itX)[j].GetE();
+      ClusterHitTimeX[stdit][j] = (*itX)[j].GetT();
+      ClusterHitSliceX[stdit][j] = (*itX)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -1456,7 +1457,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     ClusterPosStdDevX[stdit][1] = std_dev_notz;
   } 
   stdit = 0;
-  for (auto it = ClustersY.begin(); it != ClustersY.end(); ++it, ++stdit) {
+  for (auto itY = ClustersY.begin(); itY != ClustersY.end(); ++itY, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
     double mean_z = 0;
@@ -1465,22 +1466,22 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     double mean2_z = 0;
     double mean2_notz = 0;
     double min_cluster_time = 1e10;
-    int nhits = (*it).size();
+    int nhits = (*itY).size();
 //    std::cout << "Cluster One nHits: " << nhits << std::endl;
     for (int j = 0; j < nhits; ++j) {
-      mean_z += (*it)[j].GetZ();
-      mean_notz += (*it)[j].GetNotZ();
-      mean2_z += (*it)[j].GetZ()*(*it)[j].GetZ();
-      mean2_notz += (*it)[j].GetNotZ()*(*it)[j].GetNotZ();
-      total_energy += (*it)[j].GetE();
-      float time = (*it)[j].GetT();
+      mean_z += (*itY)[j].GetZ();
+      mean_notz += (*itY)[j].GetNotZ();
+      mean2_z += (*itY)[j].GetZ()*(*itY)[j].GetZ();
+      mean2_notz += (*itY)[j].GetNotZ()*(*itY)[j].GetNotZ();
+      total_energy += (*itY)[j].GetE();
+      float time = (*itY)[j].GetT();
       if (time < min_cluster_time) min_cluster_time = time;
-//      std::cout << (*it)[j].GetZ() << " " << (*it)[j].GetNotZ() << std::endl;
-      ClusterHitPosY[stdit][j][0] = (*it)[j].GetZ();
-      ClusterHitPosY[stdit][j][1] = (*it)[j].GetNotZ();
-      ClusterHitEnergyY[stdit][j] = (*it)[j].GetE();
-      ClusterHitTimeY[stdit][j] = (*it)[j].GetT();
-      ClusterHitSliceY[stdit][j] = (*it)[j].GetSlice();
+//      std::cout << (*itY)[j].GetZ() << " " << (*itY)[j].GetNotZ() << std::endl;
+      ClusterHitPosY[stdit][j][0] = (*itY)[j].GetZ();
+      ClusterHitPosY[stdit][j][1] = (*itY)[j].GetNotZ();
+      ClusterHitEnergyY[stdit][j] = (*itY)[j].GetE();
+      ClusterHitTimeY[stdit][j] = (*itY)[j].GetT();
+      ClusterHitSliceY[stdit][j] = (*itY)[j].GetSlice();
     }
     mean_z /= nhits;
     mean_notz /= nhits;
@@ -1514,19 +1515,19 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
   stdit = 0;
   const auto TrueParticles = event.GetTrueParticles();
-  for (auto it = CleanedHits.begin(); it != CleanedHits.end(); ++it, ++stdit) {
-    RecoHitPos[stdit][0] = (*it).GetX();
-    RecoHitPos[stdit][1] = (*it).GetY();
-    RecoHitPos[stdit][2] = (*it).GetZ();
-    RecoHitPos[stdit][3] = (*it).GetT();
-    RecoHitEnergy[stdit] = (*it).GetE();
-    RecoHitPE[stdit] = (*it).GetPE();
-    RecoHitBar[stdit] = (*it).GetBarNumber();
-    RecoHitBarType[stdit] = (*it).GetBar().GetBarTypeNumber();
-    RecoHitPlane[stdit] = (*it).GetPlaneNumber();
-    RecoHitSlice[stdit] = (*it).GetSlice();
+  for (auto itH = CleanedHits.begin(); itH != CleanedHits.end(); ++itH, ++stdit) {
+    RecoHitPos[stdit][0] = (*itH).GetX();
+    RecoHitPos[stdit][1] = (*itH).GetY();
+    RecoHitPos[stdit][2] = (*itH).GetZ();
+    RecoHitPos[stdit][3] = (*itH).GetT();
+    RecoHitEnergy[stdit] = (*itH).GetE();
+    RecoHitPE[stdit] = (*itH).GetPE();
+    RecoHitBar[stdit] = (*itH).GetBarNumber();
+    RecoHitBarType[stdit] = (*itH).GetBar().GetBarTypeNumber();
+    RecoHitPlane[stdit] = (*itH).GetPlaneNumber();
+    RecoHitSlice[stdit] = (*itH).GetSlice();
 
-    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*it}, event);
+    const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({*itH}, event);
     if (!particle_info.energies.empty()) {
       const long long vertex_global_id = particle_info.vertexglobalids[0];
       const int track_id = particle_info.trackids[0];
@@ -1698,8 +1699,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 //      }
 //    }
 
-    auto TrueParticles = event.GetTrueParticles();
-    
+
     // Now fill truth info
     if (itTrack >= __TMS_MAX_LINES__) {
       std::cout<<"Warning: RecoTrackN < __TMS_MAX_LINES__. If this happens often, increase __TMS_MAX_LINES__"<<std::endl;

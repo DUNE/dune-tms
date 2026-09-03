@@ -241,8 +241,8 @@ int main(int argc, char** argv) {
 
     std::vector<TMS_Hit> TMS_Hits = tms_event.GetHits();
     // First draw the hits
-    for (auto i = TMS_Hits.begin(); i != TMS_Hits.end(); ++i) {
-      const TMS_TrueHit* true_hit = tms_event.GetTrueHit((*i).GetHitId());
+    for (auto it_hit = TMS_Hits.begin(); it_hit != TMS_Hits.end(); ++it_hit) {
+      const TMS_TrueHit* true_hit = tms_event.GetTrueHit((*it_hit).GetHitId());
       if (true_hit == nullptr) continue; // No truth for this hit (e.g. real data)
       double x = true_hit->GetX();
       double y = true_hit->GetY();
@@ -266,35 +266,35 @@ int main(int argc, char** argv) {
     // Loop over the trajectories
     int it = 0;
     int muonindex = 0;
-    for (auto i = traj.begin(); i != traj.end(); ++i,it++) {
-      TGraph *tempgraph = new TGraph((*i).GetPositionPoints().size());
-      int npoints = int(((*i).GetPositionPoints()).size());
+    for (auto it_traj = traj.begin(); it_traj != traj.end(); ++it_traj,it++) {
+      TGraph *tempgraph = new TGraph((*it_traj).GetPositionPoints().size());
+      int npoints = int(((*it_traj).GetPositionPoints()).size());
       for (int j = 0; j < npoints; ++j) {
-        tempgraph->SetPoint(j, (*i).GetPositionPoints()[j].Z()/1E3, (*i).GetPositionPoints()[j].X()/1E3);
+        tempgraph->SetPoint(j, (*it_traj).GetPositionPoints()[j].Z()/1E3, (*it_traj).GetPositionPoints()[j].X()/1E3);
       }
 
       // Set a specific marker from primary particles
       tempgraph->SetMarkerStyle(24);
       tempgraph->SetMarkerSize(1.0);
-      if ((*i).GetParent() == -1) {
+      if ((*it_traj).GetParent() == -1) {
         tempgraph->SetMarkerStyle(25);
         tempgraph->SetMarkerSize(1.0);
-      } 
+      }
 
-      if (abs((*i).GetPDG()) == 13) {
+      if (abs((*it_traj).GetPDG()) == 13) {
         tempgraph->SetMarkerColor(kYellow-3);
         muonindex = it;
-      } else if (abs((*i).GetPDG()) == 11) {
+      } else if (abs((*it_traj).GetPDG()) == 11) {
         tempgraph->SetMarkerColor(kGreen-2);
-      } else if (abs((*i).GetPDG()) == 211) {
+      } else if (abs((*it_traj).GetPDG()) == 211) {
         tempgraph->SetMarkerColor(kRed-7);
-      } else if (abs((*i).GetPDG()) == 2212) {
+      } else if (abs((*it_traj).GetPDG()) == 2212) {
         tempgraph->SetMarkerColor(kMagenta-7);
-      } else if (abs((*i).GetPDG()) == 2112) {
+      } else if (abs((*it_traj).GetPDG()) == 2112) {
         tempgraph->SetMarkerColor(kCyan-3);
         tempgraph->SetMarkerSize(0.0);
         tempgraph->SetMarkerStyle(26);
-      } else if (abs((*i).GetPDG()) == 22) {
+      } else if (abs((*it_traj).GetPDG()) == 22) {
         tempgraph->SetMarkerColor(kGray);
         tempgraph->SetMarkerSize(0.0);
         tempgraph->SetMarkerStyle(27);
@@ -325,11 +325,11 @@ int main(int argc, char** argv) {
 
     // Go from back to front to have muon draw on top
     if (DrawTraj) {
-      for (int i = trajgraphs.size()-1; i >= 0; --i) {
-        if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+      for (size_t idx = trajgraphs.size(); idx-- > 0; ) {
+        if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
-      trajgraphs[muonindex]->Draw("P,same");
+      if (!trajgraphs.empty() && trajgraphs[muonindex] != NULL) trajgraphs[muonindex]->Draw("P,same");
       TString plottitle = plot->GetTitle();
       plottitle.ReplaceAll("all true hits", "all true hits and traj.");
       plot->SetTitle(plottitle);
@@ -341,9 +341,9 @@ int main(int argc, char** argv) {
       std::vector<TMS_Hit> TMS_Hits_Cleaned = TMS_TrackFinder::GetFinder().CleanHits(TMS_Hits);
       plot->Reset();
       // First draw the hits
-      for (auto i = TMS_Hits_Cleaned.begin(); i != TMS_Hits_Cleaned.end(); ++i) {
-        double x = (*i).GetNotZ();
-        double z = (*i).GetZ();
+      for (auto it_clean = TMS_Hits_Cleaned.begin(); it_clean != TMS_Hits_Cleaned.end(); ++it_clean) {
+        double x = (*it_clean).GetNotZ();
+        double z = (*it_clean).GetZ();
         plot->Fill(z/1E3, x/1E3);
       }
       plot->Draw("colz");
@@ -366,20 +366,20 @@ int main(int argc, char** argv) {
       canv->Print(Outputname);
 
       if (DrawTraj) {
-      for (int i = trajgraphs.size()-1; i >= 0; --i) {
-        if (trajgraphs[i] != NULL) trajgraphs[i]->Draw("P, same");
+      for (size_t idx = trajgraphs.size(); idx-- > 0; ) {
+        if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
-      trajgraphs[muonindex]->Draw("P,same");
-      TString plottitle = plot->GetTitle();
-      plottitle.ReplaceAll("all binary reco hits", "all binary reco hits and true traj.");
-      plot->SetTitle(plottitle);
+      if (!trajgraphs.empty() && trajgraphs[muonindex] != NULL) trajgraphs[muonindex]->Draw("P,same");
+      TString plottitle_reco = plot->GetTitle();
+      plottitle_reco.ReplaceAll("all binary reco hits", "all binary reco hits and true traj.");
+      plot->SetTitle(plottitle_reco);
       canv->Print(Outputname);
       }
     }
 
-    for (int i = 0; i < int(trajgraphs.size()); ++i) {
-      delete trajgraphs[i];
+    for (int idx = 0; idx < int(trajgraphs.size()); ++idx) {
+      delete trajgraphs[idx];
     }
     outfile->cd();
     canv->Write(Form("Event_%i", i));

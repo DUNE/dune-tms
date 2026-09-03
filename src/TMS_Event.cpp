@@ -38,7 +38,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   bool TMSLArOnly = false;
   bool OnlyPrimary = false;
   bool OnlyPrimaryOrInteresting = false;
-  bool LightWeight = TMS_Manager::GetInstance().Get_LightWeight_Truth();
+  bool use_lightweight_truth = TMS_Manager::GetInstance().Get_LightWeight_Truth();
   
   int nPrimary = 0;
   int nInteresting = 0;
@@ -125,7 +125,7 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         //std::cout << "PDG: " << PDGcode << " parentid: " << ParentId << " trackid: " << TrackId << " points: " << traj.Points.size() << std::endl;
 
         // Ignore particles that leave few hits, or gammas, if requested
-        if (LightWeight && 
+        if (use_lightweight_truth &&
             //(traj.Points.size() < 3 || PDGcode == 22 || PDGcode == 2112)) continue;
             (PDGcode == 22 || PDGcode == 2112)) continue;
             //ParentId != -1) continue;

@@ -1,5 +1,7 @@
 #include "TMS_Reco.h"
 
+#include <stdexcept>
+
 TMS_TrackFinder::TMS_TrackFinder() :
   nIntercept(TMS_Manager::GetInstance().Get_Reco_HOUGH_NInter()),
   nSlope(TMS_Manager::GetInstance().Get_Reco_HOUGH_NSlope()),
@@ -65,7 +67,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
     std::cerr << "You provided: " << trackname << std::endl;
     std::cerr << "Options are: Hough, AStar, DBSCAN" << std::endl;
     kTrackMethod = TrackMethod::kUnknown;
-    throw;
+    throw std::runtime_error("TMS_Reco: invalid track reconstruction method");
   }
 
   std::string heuristicname = TMS_Manager::GetInstance().Get_Reco_ASTAR_CostMetric();
@@ -78,7 +80,7 @@ TMS_TrackFinder::TMS_TrackFinder() :
     std::cerr << "You provided: " << heuristicname << std::endl;
     std::cerr << "Options are: Euclidean, Manhattan, DetectorZ, DetectorNotZ" << std::endl;
     kHeuristic = HeuristicType::kUnknown;
-    throw;
+    throw std::runtime_error("TMS_Reco: invalid AStar heuristic method");
   }
 
   std::cout << "Using " << trackname << " for main track finding reconstruction" << std::endl;
@@ -768,10 +770,10 @@ void TMS_TrackFinder::FindPseudoXTrack() {
   if (XHitGroup.empty()) return;
 
   // Find first and last hit of U/V track to compare X hits to
-  int Ufirst_z[HoughCandidatesU.size()] = {100000};
-  int Ulast_z[HoughCandidatesU.size()] = {0};
-  double Ufirst_t[HoughCandidatesU.size()] = {20000};
-  double Ulast_t[HoughCandidatesU.size()] = {-999};
+  std::vector<int> Ufirst_z(HoughCandidatesU.size(), 100000);
+  std::vector<int> Ulast_z(HoughCandidatesU.size(), 0);
+  std::vector<double> Ufirst_t(HoughCandidatesU.size(), 20000);
+  std::vector<double> Ulast_t(HoughCandidatesU.size(), -999);
   int i = 0;
   for (auto UTracks: HoughCandidatesU) {
     // Sort to make it computational less expensive
@@ -786,10 +788,10 @@ void TMS_TrackFinder::FindPseudoXTrack() {
     ++i;
   }
   i = 0;
-  int Vfirst_z[HoughCandidatesV.size()] = {100000};
-  int Vlast_z[HoughCandidatesV.size()] = {0};
-  double Vfirst_t[HoughCandidatesV.size()] = {20000};
-  double Vlast_t[HoughCandidatesV.size()] = {-999};
+  std::vector<int> Vfirst_z(HoughCandidatesV.size(), 100000);
+  std::vector<int> Vlast_z(HoughCandidatesV.size(), 0);
+  std::vector<double> Vfirst_t(HoughCandidatesV.size(), 20000);
+  std::vector<double> Vlast_t(HoughCandidatesV.size(), -999);
   for (auto VTracks: HoughCandidatesV) {
     // Sort to make it computational less expensive
     SpatialPrio(VTracks);
@@ -2585,7 +2587,7 @@ double TMS_TrackFinder::CalculateTrackLength3D(const TMS_Track &Track3D) {
   return final_total;
 }
 
-std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
+std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::vector<TMS_Hit> &TMS_Hits, const char &hit_type) {
   // The returned vector of tracks
   std::vector<std::vector<TMS_Hit> > LineCandidates;
 
@@ -2598,11 +2600,11 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
-  if (hitgroup == 'V') {
+  if (hit_type == 'V') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
-  } else if (hitgroup == 'X') {
+  } else if (hit_type == 'X') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
-  } else if (hitgroup == 'Y') {
+  } else if (hit_type == 'Y') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
   }
 
@@ -2619,47 +2621,47 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   // Keep running successive Hough transforms until we've covered 80% of hits (allow for maximum 4 runs)
   int nRuns = 0;
 
-  while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start && 
-      TMS_xz.size() > nMinHits && 
+  while (double(TMS_xz.size()) > nHits_Tol*nXZ_Hits_Start &&
+      TMS_xz.size() > nMinHits &&
       nRuns < nMaxHough) {
 
     // The candidate vectors
     std::vector<TMS_Hit> TMS_xz_cand;
-    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz, hitgroup);
+    if (TMS_xz.size() > 0) TMS_xz_cand = RunHough(TMS_xz, hit_type);
 
     if (TMS_xz_cand.size() == 0) {
       nRuns++;
-      if (hitgroup == 'U') {
+      if (hit_type == 'U') {
         delete HoughLinesU.back().second;
 
         HoughLinesU.pop_back(); // Remove the built Hough line
-      } else if (hitgroup == 'V') {
+      } else if (hit_type == 'V') {
         delete HoughLinesV.back().second;
-	
+
 	      HoughLinesV.pop_back();
-      } else if (hitgroup == 'X') {
+      } else if (hit_type == 'X') {
         delete HoughLinesX.back().second;
 
         HoughLinesX.pop_back();
-      } else if (hitgroup == 'Y') {
+      } else if (hit_type == 'Y') {
         delete HoughLinesY.back().second;
 
           HoughLinesY.pop_back();
       } else {
-          std::cout << "Removing built Hough lines goes wrong for hitgroups: hitgroup = " << hitgroup << std::endl;
+          std::cout << "Removing built Hough lines goes wrong for hit_types: hit_type = " << hit_type << std::endl;
           break;
-        }      
+        }
       break;
       }
 
-    if (hitgroup == 'U') {
+    if (hit_type == 'U') {
       // Move into the candidate vector
       for (auto &i: TMS_xz_cand) CandidatesU.push_back(std::move(i));
-    } else if (hitgroup == 'V') {
+    } else if (hit_type == 'V') {
       for (auto &i: TMS_xz_cand) CandidatesV.push_back(std::move(i));
-    } else if (hitgroup == 'X') {
+    } else if (hit_type == 'X') {
       for (auto &i: TMS_xz_cand) CandidatesX.push_back(std::move(i));
-    } else if (hitgroup == 'Y') {
+    } else if (hit_type == 'Y') {
       for (auto &i: TMS_xz_cand) CandidatesY.push_back(std::move(i));
     }
 
@@ -2671,14 +2673,14 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       }
     }
     
-    if (hitgroup == 'U') {
+    if (hit_type == 'U') {
       // Push back the candidates into the total candidates
       LineCandidates.push_back(std::move(CandidatesU));
-    } else if (hitgroup == 'V') {
+    } else if (hit_type == 'V') {
       LineCandidates.push_back(std::move(CandidatesV));
-    } else if (hitgroup == 'X') {
+    } else if (hit_type == 'X') {
       LineCandidates.push_back(std::move(CandidatesX));
-    } else if (hitgroup == 'Y') {
+    } else if (hit_type == 'Y') {
       LineCandidates.push_back(std::move(CandidatesY));
     }
       
@@ -2719,16 +2721,16 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       double HoughYInter_1 = 0.000;
       double HoughYSlope_1 = 0.000;
 
-      if (hitgroup == 'U') {
+      if (hit_type == 'U') {
         HoughUInter_1 = HoughLinesU[lineit].second->GetParameter(0);
         HoughUSlope_1 = HoughLinesU[lineit].second->GetParameter(1);
-      } else if (hitgroup == 'V') {
+      } else if (hit_type == 'V') {
         HoughVInter_1 = HoughLinesV[lineit].second->GetParameter(0);
         HoughVSlope_1 = HoughLinesV[lineit].second->GetParameter(1);
-      } else if (hitgroup == 'X') {
+      } else if (hit_type == 'X') {
         HoughXInter_1 = HoughLinesX[lineit].second->GetParameter(0);
         HoughXSlope_1 = HoughLinesX[lineit].second->GetParameter(1);
-      } else if (hitgroup == 'Y') {
+      } else if (hit_type == 'Y') {
         HoughYInter_1 = HoughLinesY[lineit].second->GetParameter(0);
         HoughYSlope_1 = HoughLinesY[lineit].second->GetParameter(1);
       }
@@ -2776,32 +2778,32 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
         double HoughYInter_2 = 0.000;
         double HoughYSlope_2 = 0.000;
 
-        if (hitgroup == 'U') {
+        if (hit_type == 'U') {
           HoughUInter_2 = HoughLinesU[lineit_2].second->GetParameter(0);
           HoughUSlope_2 = HoughLinesU[lineit_2].second->GetParameter(1);
-	      } else if (hitgroup == 'V') {
+	      } else if (hit_type == 'V') {
   	      HoughVInter_2 = HoughLinesV[lineit_2].second->GetParameter(0);
       	  HoughVSlope_2 = HoughLinesV[lineit_2].second->GetParameter(1);
-      	} else if (hitgroup == 'X') {
+      	} else if (hit_type == 'X') {
           HoughXInter_2 = HoughLinesX[lineit_2].second->GetParameter(0);
           HoughXSlope_2 = HoughLinesX[lineit_2].second->GetParameter(1);
-      	} else if (hitgroup == 'Y') {
+      	} else if (hit_type == 'Y') {
           HoughYInter_2 = HoughLinesY[lineit_2].second->GetParameter(0);
           HoughYSlope_2 = HoughLinesY[lineit_2].second->GetParameter(1);
         }
 
         // Now check how similar the Hough lines are
         bool mergehough = false;
-      	if (hitgroup == 'U') {
+      	if (hit_type == 'U') {
       	  mergehough = (fabs(HoughUInter_2 - HoughUInter_1) < 1000 &&   // 100 -> 1000
                        fabs(HoughUSlope_2 - HoughUSlope_1) < 0.1);  // 0.01 -> 0.1
-      	} else if (hitgroup == 'V') {
+      	} else if (hit_type == 'V') {
       	  mergehough = (fabs(HoughVInter_2 - HoughVInter_1) < 1000 && // 100 -> 1000
 			                 fabs(HoughVSlope_2 - HoughVSlope_1) < 0.1);    // 0.01 -> 0.1
-      	} else if (hitgroup == 'X') {
+      	} else if (hit_type == 'X') {
           mergehough = (fabs(HoughXInter_2 - HoughXInter_1) < 1000 &&
                        fabs(HoughXSlope_2 - HoughXSlope_1) < 0.1);
-      	} else if (hitgroup == 'Y') {
+      	} else if (hit_type == 'Y') {
           mergehough = (fabs(HoughYInter_2 - HoughYInter_1) < 1000 &&
                        fabs(HoughYSlope_2 - HoughYSlope_1) < 0.1);
         }
@@ -2834,13 +2836,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
   for (std::vector<std::vector<TMS_Hit> >::iterator it = LineCandidates.begin(); it != LineCandidates.end(); ) {
     if ((*it).size() == 0) {
       it = LineCandidates.erase(it);
-      if (hitgroup == 'U') {
+      if (hit_type == 'U') {
         HoughLinesU.erase(HoughLinesU.begin()+linenumber);
-      } else if (hitgroup == 'V') {
+      } else if (hit_type == 'V') {
         HoughLinesV.erase(HoughLinesV.begin()+linenumber);
-      } else if (hitgroup == 'X') {
+      } else if (hit_type == 'X') {
         HoughLinesX.erase(HoughLinesX.begin()+linenumber);
-      } else if (hitgroup == 'Y') {
+      } else if (hit_type == 'Y') {
         HoughLinesY.erase(HoughLinesY.begin()+linenumber);
       }
     } else {
@@ -2866,13 +2868,13 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       // Also remember to remove the line
       if (ncleaned < 1) {
         it = LineCandidates.erase(it);
-	      if (hitgroup == 'U') {
+	      if (hit_type == 'U') {
           HoughLinesU.erase(HoughLinesU.begin()+tracknumber);
-	      } else if (hitgroup == 'V') {
+	      } else if (hit_type == 'V') {
 	        HoughLinesV.erase(HoughLinesV.begin()+tracknumber);
-        } else if (hitgroup == 'X') {
+        } else if (hit_type == 'X') {
           HoughLinesX.erase(HoughLinesX.begin()+tracknumber);
-        } else if (hitgroup == 'Y') {
+        } else if (hit_type == 'Y') {
           HoughLinesY.erase(HoughLinesY.begin()+tracknumber);
         }
       } else {
@@ -2882,7 +2884,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::HoughTransform(const std::ve
       }
     }
   }
-//  std::cout<<"hit group:"<<hitgroup<<"# of Hough Line:"<<LineCandidates.size()<<std::endl;
+//  std::cout<<"hit group:"<<hit_type<<"# of Hough Line:"<<LineCandidates.size()<<std::endl;
 
   return LineCandidates;
 };
@@ -2962,7 +2964,7 @@ std::vector<std::vector<TMS_Hit> > TMS_TrackFinder::FindClusters(const std::vect
 }
 
 // Requires hits to be ordered in z
-std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
+std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_Hits, const char &hit_type) {
 //TODO new orientation
   // Check if we're in XZ view
   bool IsXZ = (TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kUBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kVBar || TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kXBar|| TMS_Hits.front().GetBar().GetBarType() == TMS_Bar::kYBar);
@@ -3010,16 +3012,16 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   double slope, intercept;
   // Calculate the Hough lines
   GetHoughLine(TMS_Hits, slope, intercept);
-  if (hitgroup == 'U') {
+  if (hit_type == 'U') {
     HoughLineU->SetParameter(0, intercept);
     HoughLineU->SetParameter(1, slope);
-  } else if (hitgroup == 'V') {
+  } else if (hit_type == 'V') {
     HoughLineV->SetParameter(0, intercept);
     HoughLineV->SetParameter(1, slope);
-  } else if (hitgroup == 'X') {
+  } else if (hit_type == 'X') {
     HoughLineX->SetParameter(0, intercept);
     HoughLineX->SetParameter(1, slope);
-  } else if (hitgroup == 'Y') {
+  } else if (hit_type == 'Y') {
     HoughLineY->SetParameter(0, intercept);
     HoughLineY->SetParameter(1, slope);
   }
@@ -3032,33 +3034,33 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
   
   TF1* HoughCopy = (TF1*)HoughLineU->Clone();
 
-  if (hitgroup == 'U') {
+  if (hit_type == 'U') {
     HoughLineU->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineU->Clone();
-  } else if (hitgroup == 'V') {
+  } else if (hit_type == 'V') {
     HoughLineV->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineV->Clone();
-  } else if (hitgroup == 'X') {
+  } else if (hit_type == 'X') {
     HoughLineX->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineX->Clone();
-  } else if (hitgroup == 'Y') {
+  } else if (hit_type == 'Y') {
     HoughLineY->SetRange(zMinHough, zMaxHough);
     HoughCopy = (TF1*)HoughLineY->Clone();
   } else {
 #ifdef DEBUG
-    std::cout << "Something is going wrong with the assigning of hitgroup" << std::endl;
+    std::cout << "Something is going wrong with the assigning of hit_type" << std::endl;
 #endif
     return TMS_Hits;
   }
 
   std::pair<bool, TF1*> HoughPairs = std::make_pair(IsXZ, HoughCopy);
-  if (hitgroup == 'U') {
+  if (hit_type == 'U') {
     HoughLinesU.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 'V') {
+  } else if (hit_type == 'V') {
     HoughLinesV.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 'X') {
+  } else if (hit_type == 'X') {
     HoughLinesX.push_back(std::move(HoughPairs));
-  } else if (hitgroup == 'Y') {
+  } else if (hit_type == 'Y') {
     HoughLinesY.push_back(std::move(HoughPairs));
   }
 
@@ -3085,13 +3087,13 @@ std::vector<TMS_Hit> TMS_TrackFinder::RunHough(const std::vector<TMS_Hit> &TMS_H
     
     // Calculate 'x'-point of hit with Hough line
     double HoughPoint = -9999999999; //HoughLineOne->Eval(zhit);
-    if (hitgroup == 'U') {
+    if (hit_type == 'U') {
       HoughPoint = HoughLineU->Eval(zhit);
-    } else if (hitgroup == 'V') {
+    } else if (hit_type == 'V') {
       HoughPoint = HoughLineV->Eval(zhit);
-    } else if (hitgroup == 'X') {
+    } else if (hit_type == 'X') {
       HoughPoint = HoughLineX->Eval(zhit);   
-    } else if (hitgroup == 'Y') {
+    } else if (hit_type == 'Y') {
       HoughPoint = HoughLineY->Eval(zhit);   
     }
     // Accept one continuous transverse window around the fitted Hough line.
@@ -3395,20 +3397,20 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
   // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from end of track away (heuristic cost)
   // and with a higher z at most +/- 2 bar widths away from the direction line
   std::vector<TMS_Hit> end_extrapolation_cand;
-  for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
+  for (std::vector<TMS_Hit>::const_iterator it_pool = Hitpool.begin(); it_pool != Hitpool.end(); ++it_pool) {
     // Check if hit is after the end of the track
-    if ((*it).GetZ() > TrackHits.back().GetZ()) {
+    if ((*it_pool).GetZ() > TrackHits.back().GetZ()) {
       // Check if within 4 bar widths above or below the direction line
-      double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
-      bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
-      if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
-        CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
-            (*it).GetNotZ() >= ((*it).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
+      double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it_pool).GetBar().GetNotZw();
+      bool CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * end.slope + end.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * end.slope + end.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
+      if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) { // increase Distance limit by 2 to reflect the difference in BarNumber for X layers
+        CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * end.slope + end.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width) &&
+            (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * end.slope + end.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsEnd() * containment_width));
       }
       if (CloseBars) {
         // Calculate temporary node to check for distance
-        aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+        aNode candidate((*it_pool).GetPlaneNumber(), (*it_pool).GetBarNumber());
         aNode track_end(TrackHits.back().GetPlaneNumber(), TrackHits.back().GetBarNumber());
         candidate.SetHeuristic(kHeuristic);
         candidate.SetHeuristicCost(track_end);
@@ -3417,9 +3419,9 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
           << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << std::endl;
 #endif
         // Check if node is within ExtrapolateDist + ExtrapolateLimit from end of track
-        bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() + 
+        bool MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
               TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit());
-        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
+        if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) {
           MaxDistance = (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_XBarDistanceMultiplier() *
               (TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
                TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit()));
@@ -3429,7 +3431,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
           std::cout << "Added to candidates" << std::endl;
 #endif
-          end_extrapolation_cand.push_back((*it));
+          end_extrapolation_cand.push_back((*it_pool));
         }
       }
     }
@@ -3494,29 +3496,29 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
     // Calculate new candidate hits that are at most ExtrapolateDist + ExtrapolateLimit from start of track away (Heuristic cost)
     // and with a smaller z at most +/- 2 bar widths away from the direction line
     std::vector<TMS_Hit> front_extrapolation_cand;
-    for (std::vector<TMS_Hit>::const_iterator it = Hitpool.begin(); it != Hitpool.end(); ++it) {
+    for (std::vector<TMS_Hit>::const_iterator it_pool = Hitpool.begin(); it_pool != Hitpool.end(); ++it_pool) {
       if (returned.empty()) {
         break;
       }
       // Check if hit is before the start of the track
-      if ((*it).GetZ() < returned.front().GetZ()) {
+      if ((*it_pool).GetZ() < returned.front().GetZ()) {
         // Check if within 2 bar widths above or below the direction line
-        double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it).GetBar().GetNotZw();
-        bool CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
-        if ((*it).GetBar().GetBarType() == TMS_Bar::kXBar) {
-          CloseBars = ((*it).GetNotZ() <= ((*it).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
-              (*it).GetNotZ() >= ((*it).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
+        double containment_width = TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ContainmentWidthMultiplier() * (*it_pool).GetBar().GetNotZw();
+        bool CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * front.slope + front.intercept + TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * front.slope + front.intercept - TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
+        if ((*it_pool).GetBar().GetBarType() == TMS_Bar::kXBar) {
+          CloseBars = ((*it_pool).GetNotZ() <= ((*it_pool).GetZ() * front.slope + front.intercept + 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width) &&
+              (*it_pool).GetNotZ() >= ((*it_pool).GetZ() * front.slope + front.intercept - 2 * TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_NumBarsStart() * containment_width));
         }
         if (CloseBars) {
           // Calculate temporary node to check for distance
-          aNode candidate((*it).GetPlaneNumber(), (*it).GetBarNumber());
+          aNode candidate((*it_pool).GetPlaneNumber(), (*it_pool).GetBarNumber());
           aNode track_start((returned).front().GetPlaneNumber(), (returned).front().GetBarNumber());
           candidate.SetHeuristic(kHeuristic);
           candidate.SetHeuristicCost(track_start);
 #ifdef DEBUG
           std::cout << "Heuristic Cost: " << candidate.HeuristicCost << " " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist()
-            << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << " (" << (*it).GetNotZ() << "|" << (*it).GetZ() << ")" << std::endl;
+            << " + " << TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateLimit() << " (" << (*it_pool).GetNotZ() << "|" << (*it_pool).GetZ() << ")" << std::endl;
 #endif
           // Check if node is within ExtrapolateDist + ExtrapolateLimit from start of track
           if (candidate.HeuristicCost <= TMS_Manager::GetInstance().Get_Reco_EXTRAPOLATION_ExtrapolateDist() +
@@ -3525,7 +3527,7 @@ std::vector<TMS_Hit> TMS_TrackFinder::Extrapolation(const std::vector<TMS_Hit> &
 #ifdef DEBUG
               std::cout << "Added to candidates" << std::endl;
 #endif
-            front_extrapolation_cand.push_back((*it));
+            front_extrapolation_cand.push_back((*it_pool));
           }
         }
       }
@@ -3630,7 +3632,7 @@ TH2D *TMS_TrackFinder::AccumulatorToTH2D(bool zy) {
 }
 
 // Implement A* algorithm for track finding, starting with most upstream to most downstream hit
-void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, const char &hitgroup) {
+void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, const char &hit_type) {
 
   // Set the Heuristic cost calculator
 
@@ -3639,11 +3641,11 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
 
   // Now split in yz and xz hits
   std::vector<TMS_Hit> TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kUBar);
-  if (hitgroup == 'V') {
+  if (hit_type == 'V') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kVBar);
-  } else if (hitgroup == 'X') {
+  } else if (hit_type == 'X') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
-  } else if (hitgroup == 'Y') {
+  } else if (hit_type == 'Y') {
     TMS_xz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kYBar);
   }
   //std::vector<TMS_Hit> TMS_yz = ProjectHits(TMS_Hits_Cleaned, TMS_Bar::kXBar);
@@ -3697,13 +3699,13 @@ void TMS_TrackFinder::BestFirstSearch(const std::vector<TMS_Hit> &TMS_Hits, cons
     }
     // Only push back if we have more than one candidate
     if (AStarHits_xz.size() > nMinHits) {
-      if (hitgroup == 'U') {    
+      if (hit_type == 'U') {    
         HoughCandidatesU.push_back(std::move(AStarHits_xz));
-      } else if (hitgroup == 'V') {
+      } else if (hit_type == 'V') {
         HoughCandidatesV.push_back(std::move(AStarHits_xz));
-      } else if (hitgroup == 'X') {
+      } else if (hit_type == 'X') {
         HoughCandidatesX.push_back(std::move(AStarHits_xz));
-      } else if (hitgroup == 'Y') {
+      } else if (hit_type == 'Y') {
         HoughCandidatesY.push_back(std::move(AStarHits_xz));
       }
     }

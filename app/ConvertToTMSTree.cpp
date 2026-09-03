@@ -1,5 +1,7 @@
 // python code was very slow...
 #include <iostream>
+#include <stdexcept>
+#include <vector>
 #include "TFile.h"
 #include "TTree.h"
 #include "TGeoManager.h"
@@ -28,20 +30,62 @@
 // General manager
 #include "TMS_Manager.h"
 
-bool ConvertToTMSTree(std::string filename, std::string output_filename) {
+TGeoManager* LoadGeometry(TFile *input, bool useGDML, const std::string &gdmlPath) {
+  // If GDML loading is enabled, the path must not be empty
+  if (useGDML) {
+    if (gdmlPath.empty()) {
+      throw std::runtime_error("Geometry loading from GDML is enabled (UseGDMLFile=true) but GDMLFilePath is empty. "
+                               "Please set GDMLFilePath in config or use --gdml-file flag.");
+    }
+    std::cout << "Loading geometry from GDML file: " << gdmlPath << std::endl;
+    TGeoManager *geom = TGeoManager::Import(gdmlPath.c_str());
+    if (!geom) {
+      throw std::runtime_error("Failed to load GDML file: " + gdmlPath);
+    }
+    return geom;
+  } else {
+    std::cout << "Loading geometry from input file" << std::endl;
+    TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
+    if (!geom) {
+      throw std::runtime_error("Failed to load geometry from input file");
+    }
+    return geom;
+  }
+}
+
+bool ConvertToTMSTree(std::string filename, std::string output_filename, const std::string &gdmlPath = "") {
   std::cout << "Got " << filename << ", writing to " << output_filename << std::endl;
 
   // The input file
   TFile *input = new TFile(filename.c_str(), "open");
+  if (!input || input->IsZombie()) {
+    throw std::runtime_error("Failed to open input file: " + filename);
+  }
 
   // The EDepSim events
-  TTree *events = (TTree*)(input->Get("EDepSimEvents")->Clone("events"));
+  TTree *events_raw = (TTree*)input->Get("EDepSimEvents");
+  if (!events_raw) {
+    throw std::runtime_error("Input file is missing the required 'EDepSimEvents' tree: " + filename);
+  }
+  TTree *events = (TTree*)(events_raw->Clone("events"));
   // The generator pass-through information
   TTree *gRoo = (TTree*) (input->Get("DetSimPassThru/gRooTracker"));
   if (gRoo)
     gRoo = (TTree*) (gRoo->Clone("gRoo"));
+
+  // The global manager
+  TMS_Manager::GetInstance().SetFileName(filename);
+
+  // Determine geometry loading source: CLI override takes precedence over config
+  bool useGDML = TMS_Manager::GetInstance().Get_Geometry_UseGDMLFile();
+  std::string gdmlPathToUse = TMS_Manager::GetInstance().Get_Geometry_GDMLFilePath();
+  if (!gdmlPath.empty()) {
+    useGDML = true;
+    gdmlPathToUse = gdmlPath;
+  }
+
   // Get the detector geometry
-  TGeoManager *geom = (TGeoManager*)input->Get("EDepSimGeometry");
+  TGeoManager *geom = LoadGeometry(input, useGDML, gdmlPathToUse);
 
   // Get the event
   TG4Event *event = NULL;
@@ -61,8 +105,6 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
     gRoo->SetBranchAddress("StdHepP4", StdHepP4);
     gRoo->SetBranchAddress("EvtVtx", EvtVtx);
   }
-  // The global manager
-  TMS_Manager::GetInstance().SetFileName(filename);
 
   // Load up the geometry
   TMS_Geom::GetInstance().SetGeometry(geom);
@@ -244,24 +286,58 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2 && argc != 3) {
-    std::cerr << "Need one or two arguments: [EDepSim output file] [Output filename]" << std::endl;
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <input_file> [<output_file>] [--gdml-file <path>]" << std::endl;
     return -1;
   }
 
   std::string EDepSimFile = std::string(argv[1]);
   std::string OutputFile;
+  std::string gdmlFileOverride = "";
 
-  // If two arguments are given
-  if (argc == 2) {
-    std::string filename = std::string(argv[1]);
-    OutputFile = filename.substr(0, filename.find(".root"));
-    OutputFile += "_output.root";
-  } else {
-    OutputFile = std::string(argv[2]);
+  // Collect positional arguments (input, output) and extract --gdml-file flag
+  std::vector<std::string> positional_args;
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]) == "--gdml-file") {
+      if (i + 1 < argc) {
+        gdmlFileOverride = std::string(argv[i + 1]);
+        i++; // skip the path argument
+      } else {
+        std::cerr << "Error: --gdml-file requires a path argument" << std::endl;
+        return -1;
+      }
+    } else if (std::string(argv[i]).substr(0, 2) == "--") {
+      // Reject unknown flags
+      std::cerr << "Error: Unknown option '" << argv[i] << "'" << std::endl;
+      return -1;
+    } else {
+      positional_args.push_back(std::string(argv[i]));
+    }
   }
 
-  bool ok = ConvertToTMSTree(EDepSimFile, OutputFile);
+  // Parse positional arguments: first is input, second (if exists) is output
+  if (positional_args.empty()) {
+    std::cerr << "Error: Missing input file" << std::endl;
+    return -1;
+  }
+
+  if (positional_args.size() > 2) {
+    std::cerr << "Error: Too many positional arguments. Expected at most 2 (input, output), got "
+              << positional_args.size() << std::endl;
+    return -1;
+  }
+
+  EDepSimFile = positional_args[0];
+
+  if (positional_args.size() >= 2) {
+    OutputFile = positional_args[1];
+  } else {
+    // Generate default output filename
+    OutputFile = EDepSimFile.substr(0, EDepSimFile.find(".root"));
+    OutputFile += "_output.root";
+  }
+
+  bool ok = ConvertToTMSTree(EDepSimFile, OutputFile, gdmlFileOverride);
   if (ok) return 0;
   else return -1;
 }

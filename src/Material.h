@@ -1,6 +1,8 @@
 #ifndef _MATERIAL_H_SEEN_
 #define _MATERIAL_H_SEEN_
 
+#include <stdexcept>
+
 #include <string>
 #include <iostream>
 
@@ -203,7 +205,7 @@ class Material {
         default:
           std::cerr << "Material not supported" << std::endl;
           std::cout << fMaterialType << std::endl;
-          throw;
+          throw std::runtime_error("Material: unsupported material type");
       }
     }
 

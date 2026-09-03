@@ -171,12 +171,12 @@ bool TMS_Bar::FindModules(double xval, double yval, double zval) {
 
 // Find which bar a given x,y,z position corresponds to
 // Maybe this function should be moved to the singleton instead
-int TMS_Bar::FindBar(double x, double y, double z) {
+int TMS_Bar::FindBar(double x_pos, double y_pos, double z_pos) {
 
   // Use the ROOT geometry to figure it out if available
   TGeoManager *geom = TMS_Geom::GetInstance().GetGeometry();
 
-  TVector3 vec_tmp = TVector3(x,y,z);
+  TVector3 vec_tmp = TVector3(x_pos,y_pos,z_pos);
   if (TMS_Geom::GetInstance().IsInsideTMS(vec_tmp)) {
     // Since the bar has already been created as a "error" in the above empty constructor we can just return
     std::cout << "position given to TMS_Bar::FindBar is outside detector!" << std::endl;
@@ -188,7 +188,7 @@ int TMS_Bar::FindBar(double x, double y, double z) {
   const std::string &DetEnclosureName = manager.Get_GEOMETRY_VOLUME_DetEnclosure();
 
   // Find which node this position is equivalent too
-  TMS_Geom::GetInstance().FindNode(x,y,z);
+  TMS_Geom::GetInstance().FindNode(x_pos,y_pos,z_pos);
   TGeoNavigator *nav = geom->GetCurrentNavigator();
   std::string NodeName = std::string(nav->GetCurrentNode()->GetName());
   // cd up in the geometry to find the right name
