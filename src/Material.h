@@ -1,6 +1,7 @@
 #ifndef _MATERIAL_H_SEEN_
-#include <stdexcept>
 #define _MATERIAL_H_SEEN_
+
+#include <stdexcept>
 
 #include <string>
 #include <iostream>

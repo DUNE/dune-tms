@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "TMS_TimeSlicer.h"
 #include "TMS_Event.h"
 #include "TMS_Hit.h"

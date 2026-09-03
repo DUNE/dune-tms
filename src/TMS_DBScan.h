@@ -1,6 +1,7 @@
 #ifndef __TMS_DBSCAN_H__
-#include <stdexcept>
 #define __TMS_DBSCAN_H__
+
+#include <stdexcept>
 
 #include <cmath>
 #include <iostream>
