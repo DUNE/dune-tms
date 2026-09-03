@@ -329,6 +329,37 @@ class TMS_Geom {
       return geom->GetCurrentNode()->GetNumber();
     }
 
+    // Nearest z-ordered plane index (the same indexing GetPlaneNumberForCurrentNode()/
+    // TMS_Bar::GetPlaneNumber() use) for an arbitrary Z position, found by binary
+    // search into the sorted per-plane Z-center table. Used by space-point
+    // clustering to derive "how many real planes apart" two points are directly
+    // from their Z coordinate, since a space point's Z is always exactly some
+    // plane's Z by construction. Returns -1 if no geometry has been surveyed.
+    int GetPlaneIndexNearestZ(double z) {
+      EnsurePlaneLookup();
+      if (PlaneZByIndex.empty()) return -1;
+
+      auto it = std::lower_bound(PlaneZByIndex.begin(), PlaneZByIndex.end(), z);
+      if (it == PlaneZByIndex.begin()) return 0;
+      if (it == PlaneZByIndex.end()) return static_cast<int>(PlaneZByIndex.size()) - 1;
+
+      int after_index = static_cast<int>(it - PlaneZByIndex.begin());
+      int before_index = after_index - 1;
+      double after_dist = std::fabs(PlaneZByIndex[after_index] - z);
+      double before_dist = std::fabs(PlaneZByIndex[before_index] - z);
+      return (before_dist <= after_dist) ? before_index : after_index;
+    }
+
+    // Largest gap between consecutive real plane Z-centers anywhere in the
+    // surveyed geometry (mm) -- e.g. the double-thick region's ~130mm pitch.
+    // Intended as an upper bound for sizing a broad-phase spatial-search radius
+    // when the true tolerance is expressed in "planes", not mm. Returns -1 if
+    // fewer than 2 planes have been surveyed.
+    double GetMaxPlanePitch() {
+      EnsurePlaneLookup();
+      return MaxPlanePitch;
+    }
+
     // Bar copy numbers reset in each geometry module.  Build a contiguous
     // transverse ordering from the actual bar placements instead.
     int GetBarNumberForCurrentNode() {
@@ -835,6 +866,8 @@ class TMS_Geom {
       PlaneIndexByNodeName.clear();
       PlaneIndexByPath.clear();
       PlaneCount = 0;
+      PlaneZByIndex.clear();
+      MaxPlanePitch = -1;
 
       if (geom == NULL || geom->GetTopNode() == NULL) return;
 
@@ -856,11 +889,17 @@ class TMS_Geom {
           plane_index += 1;
           prev_z = record.ZCenter;
           have_prev_z = true;
+          PlaneZByIndex.push_back(record.ZCenter);
         }
         PlaneIndexByPath[record.NodePath] = plane_index;
         PlaneIndexByNodeName[record.NodeName] = plane_index;
       }
       PlaneCount = plane_index + 1;
+
+      for (size_t i = 1; i < PlaneZByIndex.size(); ++i) {
+        double pitch = PlaneZByIndex[i] - PlaneZByIndex[i - 1];
+        if (pitch > MaxPlanePitch) MaxPlanePitch = pitch;
+      }
     }
 
     void BuildBarLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path,
@@ -933,6 +972,7 @@ class TMS_Geom {
       ScaleFactor = 1;
       PlaneLookupBuilt = false;
       PlaneCount = 0;
+      MaxPlanePitch = -1;
       BarLookupBuilt = false;
       fWarnedNoSurvey = false;
     };
@@ -959,6 +999,8 @@ class TMS_Geom {
     std::map<std::string, int> PlaneIndexByPath;
     std::map<std::string, int> PlaneIndexByNodeName;
     int PlaneCount;
+    std::vector<double> PlaneZByIndex;
+    double MaxPlanePitch;
     bool BarLookupBuilt;
     std::map<std::string, int> BarIndexByPath;
 

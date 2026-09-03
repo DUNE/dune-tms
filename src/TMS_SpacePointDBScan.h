@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
 
 #include "TMS_KDTree.h"
@@ -19,18 +21,37 @@
 // re-derives cluster membership from coordinates -- it carries space-point
 // array indices through directly, so there's no analogous re-match fragility.
 //
+// Neighbor test is ANISOTROPIC, not a plain isotropic radius: a small fixed
+// transverse (X/Y) tolerance, plus a tolerance expressed as "at most
+// max_plane_index_gap real scintillator planes apart" rather than a fixed mm
+// distance along Z. A single global mm epsilon can't be both tight enough in
+// the thin-plane region (~65mm pitch) and loose enough in the double-thick /
+// repeating-1-1-0-orientation region (~130mm pitch, sometimes needing a 2-3
+// plane hop between genuine adjacent space points) without also absorbing far
+// more ghosts upstream -- checking a plane-index gap instead of mm means the
+// effective mm tolerance scales with the real local pitch automatically. The
+// caller supplies each point's plane index (so this class stays independent
+// of TMS_Geom/geometry-loading, and fully testable with synthetic data) and a
+// broad_phase_radius_mm upper bound used only to prefilter KD-tree candidates
+// before the exact transverse+plane-gap test.
+//
 // The cluster-growth logic itself mirrors src/TMS_DBScan.h's GrowCluster()
 // (a known-working classic DBSCAN expansion), adapted to operate on point
 // indices via a parallel cluster-id array instead of embedding a ClusterID
 // field in a point struct.
 class TMS_SpacePointDBScan {
   public:
-    TMS_SpacePointDBScan(const std::vector<TMS_SpacePoint> &sp, unsigned int min_points, double epsilon_mm)
+    TMS_SpacePointDBScan(const std::vector<TMS_SpacePoint> &sp, const std::vector<int> &plane_index,
+                          unsigned int min_points, double transverse_tolerance_mm, int max_plane_index_gap,
+                          double broad_phase_radius_mm)
       : _sp(sp),
+        _plane_index(plane_index),
         _positions(BuildPositions(sp)),
         _tree(_positions),
         _min_points(min_points),
-        _epsilon(epsilon_mm) {}
+        _transverse_tolerance(transverse_tolerance_mm),
+        _max_plane_gap(max_plane_index_gap),
+        _broad_phase_radius(broad_phase_radius_mm) {}
 
     // Runs DBSCAN and returns clusters as vectors of SPACE-POINT INDICES
     // (into the `sp` vector passed to the constructor). Points classified as
@@ -73,7 +94,18 @@ class TMS_SpacePointDBScan {
     }
 
     std::vector<int> FindNeighbours(int point_index) const {
-      return _tree.RadiusQuery(point_index, _epsilon);
+      std::vector<int> candidates = _tree.RadiusQuery(point_index, _broad_phase_radius);
+      std::vector<int> out;
+      out.reserve(candidates.size());
+      const TMS_SpacePoint &seed = _sp[point_index];
+      for (int c : candidates) {
+        double dx = _sp[c].GetX() - seed.GetX();
+        double dy = _sp[c].GetY() - seed.GetY();
+        if (std::sqrt(dx * dx + dy * dy) > _transverse_tolerance) continue;
+        if (std::abs(_plane_index[c] - _plane_index[point_index]) > _max_plane_gap) continue;
+        out.push_back(c);
+      }
+      return out;
     }
 
     // Mirrors src/TMS_DBScan.h's GrowCluster(): expand a cluster outward from
@@ -87,7 +119,7 @@ class TMS_SpacePointDBScan {
         return false;
       }
 
-      // RadiusQuery includes the query point itself, so this also labels the seed.
+      // FindNeighbours includes the query point itself, so this also labels the seed.
       for (int idx : neighbours) {
         cluster_id_of_point[idx] = cluster_id;
       }
@@ -111,10 +143,13 @@ class TMS_SpacePointDBScan {
     }
 
     const std::vector<TMS_SpacePoint> &_sp;
+    const std::vector<int> &_plane_index;
     std::vector<std::array<double, 3>> _positions;
     TMS_KDTree _tree;
     unsigned int _min_points;
-    double _epsilon;
+    double _transverse_tolerance;
+    int _max_plane_gap;
+    double _broad_phase_radius;
 };
 
 #endif
