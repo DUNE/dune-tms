@@ -61,7 +61,7 @@ class TMS_DBScan {
       _Epsilon = eps;
     };
     void SetMinPoints(unsigned int minpts) {
-      if (minpts <= 0) {
+      if (minpts == 0) {
         std::cerr << "Can't set minpts in DBSCAN to negative or zero value!" << std::endl;
         throw std::runtime_error("DBSCAN: minpts must be positive");
       }

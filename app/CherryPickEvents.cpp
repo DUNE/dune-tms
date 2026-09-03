@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
 
     // Go from back to front to have muon draw on top
     if (DrawTraj) {
-      for (int idx = trajgraphs.size()-1; idx >= 0; --idx) {
+      for (size_t idx = trajgraphs.size(); idx-- > 0; ) {
         if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
       canv->Print(Outputname);
 
       if (DrawTraj) {
-      for (int idx = trajgraphs.size()-1; idx >= 0; --idx) {
+      for (size_t idx = trajgraphs.size(); idx-- > 0; ) {
         if (trajgraphs[idx] != NULL) trajgraphs[idx]->Draw("P, same");
       }
       // Draw muons on top
