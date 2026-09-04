@@ -387,6 +387,10 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpacePointTime", SpacePointTime, "SpacePointTime[nSpacePoints]/F");
   Reco_Tree->Branch("SpacePointXHitIndex", SpacePointXHitIndex, "SpacePointXHitIndex[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYHitIndex", SpacePointYHitIndex, "SpacePointYHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointXTrueVertexGlobalId", SpacePointXTrueVertexGlobalId, "SpacePointXTrueVertexGlobalId[nSpacePoints]/L");
+  Reco_Tree->Branch("SpacePointXTrueTrackId", SpacePointXTrueTrackId, "SpacePointXTrueTrackId[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointYTrueVertexGlobalId", SpacePointYTrueVertexGlobalId, "SpacePointYTrueVertexGlobalId[nSpacePoints]/L");
+  Reco_Tree->Branch("SpacePointYTrueTrackId", SpacePointYTrueTrackId, "SpacePointYTrueTrackId[nSpacePoints]/I");
 
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
@@ -1951,6 +1955,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // the end of these arrays for any event with more than __TMS_MAX_SPACEPOINTS__
   // space points.
   nSpacePoints = std::min((int)space_points.size(), __TMS_MAX_SPACEPOINTS__);
+  const std::vector<TMS_Hit>& raw_hits_for_sp = event.GetHitsRawRef();
   for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
     SpacePointX[i_sp] = space_points[i_sp].GetX();
     SpacePointY[i_sp] = space_points[i_sp].GetY();
@@ -1958,6 +1963,31 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     SpacePointTime[i_sp] = space_points[i_sp].GetTime();
     SpacePointXHitIndex[i_sp] = space_points[i_sp].GetXHitIndex();
     SpacePointYHitIndex[i_sp] = space_points[i_sp].GetYHitIndex();
+
+    // Exact ground truth for the two hits that formed this space point (same
+    // lookup RecoHitPrimary* uses above) -- lets a downstream consumer check
+    // whether a space point is genuinely from one particle by comparing IDs
+    // directly, instead of a distance-to-true-hit approximation.
+    SpacePointXTrueVertexGlobalId[i_sp] = -1;
+    SpacePointXTrueTrackId[i_sp] = -999;
+    SpacePointYTrueVertexGlobalId[i_sp] = -1;
+    SpacePointYTrueTrackId[i_sp] = -999;
+    const int x_idx = SpacePointXHitIndex[i_sp];
+    const int y_idx = SpacePointYHitIndex[i_sp];
+    if (x_idx >= 0 && static_cast<size_t>(x_idx) < raw_hits_for_sp.size()) {
+      const auto x_info = TMS_Utils::GetPrimaryIdsByEnergy({raw_hits_for_sp[x_idx]}, event);
+      if (!x_info.energies.empty()) {
+        SpacePointXTrueVertexGlobalId[i_sp] = x_info.vertexglobalids[0];
+        SpacePointXTrueTrackId[i_sp] = x_info.trackids[0];
+      }
+    }
+    if (y_idx >= 0 && static_cast<size_t>(y_idx) < raw_hits_for_sp.size()) {
+      const auto y_info = TMS_Utils::GetPrimaryIdsByEnergy({raw_hits_for_sp[y_idx]}, event);
+      if (!y_info.energies.empty()) {
+        SpacePointYTrueVertexGlobalId[i_sp] = y_info.vertexglobalids[0];
+        SpacePointYTrueTrackId[i_sp] = y_info.trackids[0];
+      }
+    }
   }
 
   Reco_Tree->Fill();
@@ -2498,6 +2528,10 @@ void TMS_TreeWriter::Clear() {
     SpacePointTime[i] = DEFAULT_CLEARING_FLOAT;
     SpacePointXHitIndex[i] = DEFAULT_CLEARING_FLOAT;
     SpacePointYHitIndex[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXTrueVertexGlobalId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXTrueTrackId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYTrueVertexGlobalId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYTrueTrackId[i] = DEFAULT_CLEARING_FLOAT;
   }
 
   RecoTrackN = 0;

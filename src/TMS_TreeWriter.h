@@ -90,6 +90,16 @@ class TMS_TreeWriter {
     float SpacePointTime[__TMS_MAX_SPACEPOINTS__];
     int SpacePointXHitIndex[__TMS_MAX_SPACEPOINTS__];
     int SpacePointYHitIndex[__TMS_MAX_SPACEPOINTS__];
+    // Exact ground truth for each space point's two component hits (same
+    // TMS_Utils::GetPrimaryIdsByEnergy lookup RecoHitPrimary* already uses for
+    // Line_Candidates) -- a space point is genuinely from one particle iff
+    // (SpacePointXTrueVertexGlobalId, SpacePointXTrueTrackId) ==
+    // (SpacePointYTrueVertexGlobalId, SpacePointYTrueTrackId), no distance
+    // threshold needed.
+    Long64_t SpacePointXTrueVertexGlobalId[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointXTrueTrackId[__TMS_MAX_SPACEPOINTS__];
+    Long64_t SpacePointYTrueVertexGlobalId[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointYTrueTrackId[__TMS_MAX_SPACEPOINTS__];
 
   private:
     TMS_TreeWriter();
