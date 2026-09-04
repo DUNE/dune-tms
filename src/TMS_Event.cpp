@@ -430,8 +430,24 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   // combines them the same way, via TMS_MakeGlobalVertexID(), as this event's canonical
   // identity), so this keeps the RNG stream reproducible per-event regardless of anything
   // upstream in the same run.
-  generator = std::default_random_engine(
-      7890 + static_cast<unsigned int>(TMS_MakeGlobalVertexID(event.RunId, event.EventId)));
+  // TMS_MakeGlobalVertexID() returns run_id*1e6 + vertex_id as a 64-bit value -- real RunIds
+  // in production files are already ~1e9, so run_id*1e6 alone is a ~15-16 digit number, well
+  // past what a single unsigned int (32 bits) can hold without wrapping. Folding it down to
+  // one unsigned int would only stay collision-free by accident within a single run (EventId
+  // is added on top of a truncated-but-constant RunId term, so distinct EventIds still map to
+  // distinct seeds there) -- across different runs, two different RunIds can readily collide
+  // mod 2^32, silently handing two unrelated events from different runs the same RNG stream.
+  // Feed both 32-bit halves of the full 64-bit identity into a std::seed_seq instead, so no
+  // entropy from either RunId or EventId is thrown away.
+  {
+    const unsigned long long global_vertex_id =
+        static_cast<unsigned long long>(TMS_MakeGlobalVertexID(event.RunId, event.EventId));
+    std::seed_seq seed_from_event_identity{
+        7890u,
+        static_cast<unsigned int>(global_vertex_id),
+        static_cast<unsigned int>(global_vertex_id >> 32)};
+    generator.seed(seed_from_event_identity);
+  }
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
