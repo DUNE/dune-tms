@@ -4,6 +4,7 @@
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
 #include "TDatabasePDG.h"
+#include <algorithm>
 #include <random>
 
 // Initialise the event counter to 0
@@ -368,6 +369,19 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   // which still separately reunites *different* vertices' signals landing in the same
   // channel within the same electronics window (genuine pileup), unrelated to this.
   TMS_SignalProcessing::GetInstance().MergeCoincidentHits(*this);
+  // MergeCoincidentHits() sorts TMS_Hits by (plane, T) as part of its own algorithm. Left in
+  // that order, SimulateOpticalModel()/SimulateTimingModel() (which iterate TMS_Hits
+  // sequentially and consume the single shared RNG stream one draw per hit) would assign
+  // different draws to hits that were never touched by the merge, purely because their
+  // position in the vector changed -- not because anything about them actually merged.
+  // HitId is assigned once, strictly increasing, at hit construction time (NextHitId()), so
+  // sorting back by HitId restores creation order for every surviving hit; only hits that
+  // were actually merged away are missing from the sequence, which is the intended effect.
+  {
+    std::vector<TMS_Hit> &hits_to_restore_order = GetHitsRawRef();
+    std::sort(hits_to_restore_order.begin(), hits_to_restore_order.end(),
+        [](const TMS_Hit &a, const TMS_Hit &b) { return a.GetHitId() < b.GetHitId(); });
+  }
 
   bool OnlyPrimaryOrVisibleEnergy = true;
 
