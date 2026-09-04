@@ -356,6 +356,19 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+
+  // Consolidate this vertex's own same-bar, true-time-coincident raw TG4HitSegment
+  // fragments (e.g. a muon's ionization split across G4 steps by delta-ray production,
+  // or a delta-ray's own hits landing back on the parent's track) into one TMS_Hit per
+  // readout channel, BEFORE any random optical/timing draw and BEFORE spill overlay.
+  // Operates on the deterministic true-average segment time/energy set above (TMS_Hit::
+  // Time/EnergyDeposit), not reconstructed/smeared values, so the merge decision cannot
+  // depend on RNG state. Distinct from -- and in addition to -- the existing post-
+  // simulation, post-overlay MergeCoincidentHits() call in ApplyReconstructionEffects(),
+  // which still separately reunites *different* vertices' signals landing in the same
+  // channel within the same electronics window (genuine pileup), unrelated to this.
+  TMS_SignalProcessing::GetInstance().MergeCoincidentHits(*this);
+
   bool OnlyPrimaryOrVisibleEnergy = true;
 
   // Now update truth info per particle
@@ -623,8 +636,10 @@ void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
 }
 
 void TMS_Event::FinalizeEvent() {
-  // Apply the det sim now, after overlaying events
-  // The timing and optical model were moved to the initial event creation
+  // Apply the det sim now, after overlaying events. Optical/timing simulation and the
+  // post-overlay MergeCoincidentHits() pass only ever run here; ProcessTG4Event() only
+  // runs an earlier, separate pre-simulation MergeCoincidentHits() pass on each vertex's
+  // own true (deterministic) hits, before overlay -- see its own comment for why.
   ApplyReconstructionEffects();
   // Connect true vis E and true n hits with true particles
   ConnectTrueHitWithTrueParticle(false);
