@@ -375,8 +375,12 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   // different draws to hits that were never touched by the merge, purely because their
   // position in the vector changed -- not because anything about them actually merged.
   // HitId is assigned once, strictly increasing, at hit construction time (NextHitId()), so
-  // sorting back by HitId restores creation order for every surviving hit; only hits that
-  // were actually merged away are missing from the sequence, which is the intended effect.
+  // sorting back by HitId restores creation order. This is NOT full per-hit RNG stability,
+  // though: a hit whose array position sits after an earlier merge in this same event still
+  // shifts by however many hits were removed ahead of it, and so still draws differently than
+  // before this change -- an unavoidable, intended consequence of the vector actually being
+  // shorter, not a reordering artifact. Only hits with no merge anywhere before them in
+  // creation order are truly unaffected.
   {
     std::vector<TMS_Hit> &hits_to_restore_order = GetHitsRawRef();
     std::sort(hits_to_restore_order.begin(), hits_to_restore_order.end(),
