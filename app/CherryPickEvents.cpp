@@ -185,6 +185,11 @@ int main(int argc, char** argv) {
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
 
+    // Same workaround as ConvertToTMSTree.cpp: the input file's own EventId isn't reliably
+    // unique (https://github.com/DUNE/2x2_sim/issues/54), and TMS_Event now seeds its
+    // detector-sim RNG from (RunId, EventId), so a non-unique EventId here would give two
+    // different events the same random draws.
+    event->EventId = i;
     TMS_Event tms_event = TMS_Event(*event, true);
     // Run the full detector-simulation pipeline (optical/timing/dark count/deadtime/merge/noise/pedsup),
     // since this no longer happens implicitly inside the constructor.

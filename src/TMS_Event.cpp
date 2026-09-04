@@ -420,7 +420,18 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
-  generator = std::default_random_engine(7890 + EventNumber); 
+  // Seed the detector-sim RNG from this raw event's own identity (RunId/EventId), not from
+  // EventCounter -- EventCounter also counts output slices (see the slice constructor below),
+  // so a seed derived from it depends on how many slices every earlier spill in the run
+  // produced. That lets one spill's build-sensitive slice count reseed -- and so completely
+  // decorrelate -- every later spill's random detector-sim outcome (Poisson PE draws, gamma
+  // timing draws), even though each raw event's own input is unchanged. RunId/EventId are
+  // fixed, build-invariant properties of this raw event (ProcessTG4Event() below already
+  // combines them the same way, via TMS_MakeGlobalVertexID(), as this event's canonical
+  // identity), so this keeps the RNG stream reproducible per-event regardless of anything
+  // upstream in the same run.
+  generator = std::default_random_engine(
+      7890 + static_cast<unsigned int>(TMS_MakeGlobalVertexID(event.RunId, event.EventId)));
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
