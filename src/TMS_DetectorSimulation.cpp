@@ -264,7 +264,7 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // the same for both terms -- so this loop simulates it directly instead.
     // We don't have to do 1000s of throws. The time will be very close to zero.
     // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
-    const double MAX_PE_THROWS = 300;
+    const int MAX_PE_THROWS = 300;
     // pe_short_path/pe_long_path are *mean* detected PE on each path, not integer photon
     // counts -- SimulateOpticalModel()'s upstream Poisson/binomial draws (which produced real
     // integer counts) get rescaled by deterministic but continuous attenuation/coupling
@@ -306,11 +306,10 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
       n_long_photons -= 1;
     }
-    // Both paths had 0 PE (no photons detected at all) -- neither while loop above ran even
-    // once, so minimum_time_offset is still its 1e100 sentinel (checked directly, since
-    // pe_short_path/pe_long_path have themselves been decremented to <=0 by the loops above
-    // regardless of whether they ran zero times or many). Fall back to no slew delay rather
-    // than propagating the sentinel into t.
+    // Both paths had 0 detected photons -- neither while loop above ran even once, so
+    // minimum_time_offset is still its 1e100 sentinel (checked directly, since the loops above
+    // only decrement n_*_photons and do not touch minimum_time_offset when the photon counts
+    // are 0). Fall back to no slew delay rather than propagating the sentinel into t.
     if (minimum_time_offset >= 1e100) minimum_time_offset = 0;
     t += minimum_time_offset;
     double hit_time = hit.GetT();
