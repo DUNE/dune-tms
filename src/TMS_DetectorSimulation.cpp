@@ -277,9 +277,10 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // did) would run ceil(mean) throws regardless of how small the fractional remainder is --
     // e.g. a mean of 0.2 (usually 0 real photons, occasionally 1) would deterministically get
     // 1 throw every time, biasing the earliest-arrival time low for any hit with a non-integer
-    // effective PE. A Poisson-thinned Poisson variable is itself Poisson, and the upstream
-    // draws were already Poisson/binomial, so draw an actual integer photon count from
-    // Poisson(mean) first and loop that many times instead.
+    // effective PE. When Sim.Optical.ShouldSimulatePoisson is enabled, a Poisson-thinned
+    // Poisson variable is itself Poisson, and the upstream PE split was already
+    // Poisson/binomial; draw an actual integer photon count from Poisson(mean) first and loop
+    // that many times instead.
     // If the mean itself is already at or past the cap, skip constructing/sampling the Poisson
     // entirely -- we're just going to clamp to MAX_PE_THROWS anyway, so there's no point paying
     // for a draw (which also risks an extreme mean producing a value outside int's range before
