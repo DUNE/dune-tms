@@ -276,13 +276,20 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // effective PE. A Poisson-thinned Poisson variable is itself Poisson, and the upstream
     // draws were already Poisson/binomial, so draw an actual integer photon count from
     // Poisson(mean) first and loop that many times instead.
+    // If the mean itself is already at or past the cap, skip constructing/sampling the Poisson
+    // entirely -- we're just going to clamp to MAX_PE_THROWS anyway, so there's no point paying
+    // for a draw (which also risks an extreme mean producing a value outside int's range before
+    // it gets clamped). Below the cap, a real draw can still legitimately exceed it on its own
+    // right tail, so the clamp stays for that case.
     int n_short_photons = 0;
-    if (pe_short_path > 0) {
+    if (pe_short_path >= MAX_PE_THROWS) {
+      n_short_photons = MAX_PE_THROWS;
+    } else if (pe_short_path > 0) {
       std::poisson_distribution<int> pois_short_path(pe_short_path);
       n_short_photons = pois_short_path(generator);
-    }
-    if (n_short_photons > MAX_PE_THROWS) {
-      n_short_photons = MAX_PE_THROWS;
+      if (n_short_photons > MAX_PE_THROWS) {
+        n_short_photons = MAX_PE_THROWS;
+      }
     }
     while (n_short_photons > 0) {
       double time_offset = time_correction;
@@ -292,12 +299,14 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
       n_short_photons -= 1;
     }
     int n_long_photons = 0;
-    if (pe_long_path > 0) {
+    if (pe_long_path >= MAX_PE_THROWS) {
+      n_long_photons = MAX_PE_THROWS;
+    } else if (pe_long_path > 0) {
       std::poisson_distribution<int> pois_long_path(pe_long_path);
       n_long_photons = pois_long_path(generator);
-    }
-    if (n_long_photons > MAX_PE_THROWS) {
-      n_long_photons = MAX_PE_THROWS;
+      if (n_long_photons > MAX_PE_THROWS) {
+        n_long_photons = MAX_PE_THROWS;
+      }
     }
     while (n_long_photons > 0) {
       double time_offset = time_correction_long_way;
