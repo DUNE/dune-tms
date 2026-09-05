@@ -4,6 +4,7 @@
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
 #include "TDatabasePDG.h"
+#include <algorithm>
 #include <random>
 
 // Initialise the event counter to 0
@@ -356,6 +357,36 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+
+  // Consolidate this vertex's own same-bar, true-time-coincident raw TG4HitSegment
+  // fragments (e.g. a muon's ionization split across G4 steps by delta-ray production,
+  // or a delta-ray's own hits landing back on the parent's track) into one TMS_Hit per
+  // readout channel, BEFORE any random optical/timing draw and BEFORE spill overlay.
+  // Operates on the deterministic true-average segment time/energy set above (TMS_Hit::
+  // Time/EnergyDeposit), not reconstructed/smeared values, so the merge decision cannot
+  // depend on RNG state. Distinct from -- and in addition to -- the existing post-
+  // simulation, post-overlay MergeCoincidentHits() call in ApplyReconstructionEffects(),
+  // which still separately reunites *different* vertices' signals landing in the same
+  // channel within the same electronics window (genuine pileup), unrelated to this.
+  TMS_SignalProcessing::GetInstance().MergeCoincidentHits(*this);
+  // MergeCoincidentHits() sorts TMS_Hits by (plane, T) as part of its own algorithm. Left in
+  // that order, SimulateOpticalModel()/SimulateTimingModel() (which iterate TMS_Hits
+  // sequentially and consume the single shared RNG stream as they go) would assign different
+  // random draws to hits that were never touched by the merge, purely because their position
+  // in the vector changed -- not because anything about them actually merged.
+  // HitId is assigned once, strictly increasing, at hit construction time (NextHitId()), so
+  // sorting back by HitId restores creation order. This is NOT full per-hit RNG stability,
+  // though: a hit whose array position sits after an earlier merge in this same event still
+  // shifts by however many hits were removed ahead of it, and so still draws differently than
+  // before this change -- an unavoidable, intended consequence of the vector actually being
+  // shorter, not a reordering artifact. Only hits with no merge anywhere before them in
+  // creation order are truly unaffected.
+  {
+    std::vector<TMS_Hit> &hits_to_restore_order = GetHitsRawRef();
+    std::sort(hits_to_restore_order.begin(), hits_to_restore_order.end(),
+        [](const TMS_Hit &a, const TMS_Hit &b) { return a.GetHitId() < b.GetHitId(); });
+  }
+
   bool OnlyPrimaryOrVisibleEnergy = true;
 
   // Now update truth info per particle
@@ -389,7 +420,43 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
-  generator = std::default_random_engine(7890 + EventNumber); 
+  // Seed the detector-sim RNG from this raw event's own identity (RunId/EventId), not from
+  // EventCounter -- EventCounter also counts output slices (see the slice constructor below),
+  // so a seed derived from it depends on how many slices every earlier spill in the run
+  // produced. That lets one spill's build-sensitive slice count reseed -- and so completely
+  // decorrelate -- every later spill's random detector-sim outcome (Poisson PE draws, timing
+  // model draws), even though each raw event's own input is unchanged. RunId/EventId are
+  // fixed, build-invariant properties of this raw event (ProcessTG4Event() below already
+  // combines them the same way, via TMS_MakeGlobalVertexID(), as this event's canonical
+  // identity), so this keeps the RNG stream reproducible per-event regardless of anything
+  // upstream in the same run.
+  // TMS_MakeGlobalVertexID() returns run_id*1e6 + vertex_id as a 64-bit value -- real RunIds
+  // in production files are already ~1e9, so run_id*1e6 alone is a ~15-16 digit number, well
+  // past what a single unsigned int (32 bits) can hold without wrapping. Folding it down to
+  // one unsigned int would only stay collision-free by accident within a single run (EventId
+  // is added on top of a truncated-but-constant RunId term, so distinct EventIds still map to
+  // distinct seeds there) -- across different runs, two different RunIds can readily collide
+  // mod 2^32, silently handing two unrelated events from different runs the same RNG stream.
+  // Feed both 32-bit halves of the full 64-bit identity into a std::seed_seq instead, so no
+  // entropy from either RunId or EventId is thrown away.
+  {
+    // Wrap EventId locally before combining, rather than calling TMS_MakeGlobalVertexID()
+    // directly on the raw value: that helper throws once its vertex_id argument reaches
+    // TMS_VertexIdScale, which is the right behavior for its actual job (vertex-ID bookkeeping
+    // in ProcessTG4Event() below, where a collision there is a real problem worth failing
+    // loudly on) but wrong for seeding -- a seed has no uniqueness requirement to enforce, so
+    // this call must never throw regardless of what any caller passes in as EventId. Any
+    // caller that also uses ProcessTG4Event()'s own vertex-ID bookkeeping still gets that
+    // throw from there if it's genuinely out of range; this just keeps the seed itself safe
+    // independently of that.
+    const unsigned long long global_vertex_id = static_cast<unsigned long long>(
+        TMS_MakeGlobalVertexID(event.RunId, event.EventId % TMS_VertexIdScale));
+    std::seed_seq seed_from_event_identity{
+        7890u,
+        static_cast<unsigned int>(global_vertex_id),
+        static_cast<unsigned int>(global_vertex_id >> 32)};
+    generator.seed(seed_from_event_identity);
+  }
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
@@ -623,8 +690,10 @@ void TMS_Event::OverlayEvents(std::vector<TMS_Event>& overlay_events) {
 }
 
 void TMS_Event::FinalizeEvent() {
-  // Apply the det sim now, after overlaying events
-  // The timing and optical model were moved to the initial event creation
+  // Apply the det sim now, after overlaying events. Optical/timing simulation and the
+  // post-overlay MergeCoincidentHits() pass only ever run here; ProcessTG4Event() only
+  // runs an earlier, separate pre-simulation MergeCoincidentHits() pass on each vertex's
+  // own true (deterministic) hits, before overlay -- see its own comment for why.
   ApplyReconstructionEffects();
   // Connect true vis E and true n hits with true particles
   ConnectTrueHitWithTrueParticle(false);

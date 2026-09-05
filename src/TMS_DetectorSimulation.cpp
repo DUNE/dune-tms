@@ -202,6 +202,10 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   const double SPEED_OF_LIGHT_IN_FIBER = SPEED_OF_LIGHT / FIBER_N;
 
   const double wsf_length_multiplier = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_WSFLengthMultiplier();
+  // Same switch SimulateOpticalModel() uses to gate its own Poisson/binomial PE draws -- when
+  // it's off, PE is meant to be fully deterministic, so the photon-count draw below must not
+  // silently reintroduce randomness in that mode.
+  const bool should_simulate_poisson_throws = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_ShouldSimulatePoisson();
 
   //double avg = 0;
   //double maxy = -1e9;
@@ -247,64 +251,109 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double pe_long_path = true_hit->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
 
-    #define USE_GAMMA_DISTRIBUTION
-    #ifdef USE_GAMMA_DISTRIBUTION
-    // TODO test this version with gamma
-
-    // Gamma distribution does throws without having to do the throws
-    // So it answer the question, what's the lowest of a random exponential assuming N throws.
-    // std::gamma_distribution requires shape (alpha) > 0 -- pe_short_path/pe_long_path can
-    // legitimately be exactly 0 (e.g. a low-energy hit where the Poisson/binomial split or
-    // fiber attenuation zeroes out one path entirely), so only sample a path with PE > 0.
-    // A zero-PE path simply contributes no candidate to the minimum -- same as the #else
-    // branch's while-loop, which does zero iterations for pe_*_path <= 0.
-    if (pe_short_path > 0) {
-      std::gamma_distribution<double> gamma_scint_short_path(pe_short_path, 1.0 / scintillator_decay_time);
-      std::gamma_distribution<double> gamma_wsf_short_path(pe_short_path, 1.0 / wsf_decay_time);
-      double minimum_time_gamma_scint_short_path = gamma_scint_short_path(generator);
-      double minimum_time_gamma_wsf_short_path = gamma_wsf_short_path(generator);
-      double minimum_time_offset_short_path = minimum_time_gamma_scint_short_path + minimum_time_gamma_wsf_short_path + time_correction;
-      minimum_time_offset = std::min(minimum_time_offset_short_path, minimum_time_offset);
-    }
-
-    if (pe_long_path > 0) {
-      std::gamma_distribution<double> gamma_scint_long_path(pe_long_path, 1.0 / scintillator_decay_time);
-      std::gamma_distribution<double> gamma_wsf_long_path(pe_long_path, 1.0 / wsf_decay_time);
-      double minimum_time_gamma_scint_long_path = gamma_scint_long_path(generator);
-      double minimum_time_gamma_wsf_long_path = gamma_wsf_long_path(generator);
-      double minimum_time_offset_long_path = minimum_time_gamma_scint_long_path + minimum_time_gamma_wsf_long_path + time_correction_long_way;
-      minimum_time_offset = std::min(minimum_time_offset_long_path, minimum_time_offset);
-    }
-
-    // Both paths had 0 PE (no photons detected at all) -- minimum_time_offset is still the
-    // 1e100 sentinel. Fall back to no slew delay rather than propagating the sentinel into t.
-    if (pe_short_path <= 0 && pe_long_path <= 0) minimum_time_offset = 0;
-
-    #else
+    // Model each detected photon explicitly and take the earliest arrival, rather than a
+    // closed-form shortcut. A prior version of this code used std::gamma_distribution(shape=N)
+    // to try to get "the earliest of N exponential draws" without doing N throws -- that's
+    // wrong on two counts: (1) conceptually, Gamma(shape=N) is the distribution of a *sum* of
+    // N exponentials, not a minimum -- a sum's mean grows with N while a minimum's mean shrinks
+    // with N, so the two move in opposite directions; (2) separately, even taken as a
+    // (mistaken) sum-of-N-exponentials model, std::gamma_distribution's second constructor
+    // argument is a *scale*, but the removed code passed a *rate* (1/scintillator_decay_time)
+    // there -- confirmed numerically to be off by a factor of scintillator_decay_time^2 for the
+    // simplest possible case (a single photon, where there's no min-vs-sum ambiguity at all: it
+    // should just be one ~3ns-mean exponential draw, and the old code gave ~0.33ns). There is no
+    // simple closed form for "the minimum, over N photons, of that photon's own (scintillator
+    // delay + WSF delay) sum" -- min_i(A_i) + min_i(B_i) is not the same random variable as
+    // min_i(A_i + B_i) for independent A_i/B_i, since the minimizing photon index need not be
+    // the same for both terms -- so this loop simulates it directly instead.
     // We don't have to do 1000s of throws. The time will be very close to zero.
     // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
-    const double MAX_PE_THROWS = 300;
-    if (pe_short_path > MAX_PE_THROWS) {
-      pe_short_path = MAX_PE_THROWS;
+    const int MAX_PE_THROWS = 300;
+    // pe_short_path/pe_long_path are *mean* detected PE on each path, not integer photon
+    // counts -- SimulateOpticalModel()'s upstream Poisson/binomial draws (which produced real
+    // integer counts) get rescaled by deterministic but continuous attenuation/coupling
+    // factors afterward, so these are generally fractional by the time they reach this
+    // function. Looping directly on the fractional mean (as an earlier version of this code
+    // did) would run ceil(mean) throws regardless of how small the fractional remainder is --
+    // e.g. a mean of 0.2 (usually 0 real photons, occasionally 1) would deterministically get
+    // 1 throw every time, biasing the earliest-arrival time low for any hit with a non-integer
+    // effective PE. When Sim.Optical.ShouldSimulatePoisson is enabled, a Poisson-thinned
+    // Poisson variable is itself Poisson, and the upstream PE split was already
+    // Poisson/binomial; draw an actual integer photon count from Poisson(mean) first and loop
+    // that many times instead.
+    // If the mean itself is already at or past the cap, skip constructing/sampling the Poisson
+    // entirely -- we're just going to clamp to MAX_PE_THROWS anyway, so there's no point paying
+    // for a draw (which also risks an extreme mean producing a value outside int's range before
+    // it gets clamped). Below the cap, a real draw can still legitimately exceed it on its own
+    // right tail, so the clamp stays for that case.
+    //
+    // KNOWN LIMITATION, deliberately not fixed here (2026-09-05): when Poisson fluctuations are
+    // enabled, pe_short_path/pe_long_path already carry one full layer of real randomness from
+    // SimulateOpticalModel()'s own Poisson/binomial draw -- the fractional remainder comes only
+    // from a *deterministic* attenuation/coupling rescale applied afterward, not from an
+    // un-realized mean. Drawing a second Poisson here to recover an integer photon count for
+    // timing therefore adds a second, independent fluctuation on top of that already-real one,
+    // rather than cleanly recovering the (unavailable) pre-attenuation integer count. The
+    // alternative -- rounding pe_short_path/pe_long_path to the nearest integer instead of
+    // redrawing -- isn't better: it makes attenuation survival fully deterministic, so any hit
+    // with mean PE below 0.5 on a path always gets exactly 0 photons there, when physically
+    // there's a real chance one survives. Neither option is really correct, because the pipeline
+    // doesn't preserve the true pre-attenuation integer count anywhere for this function to use.
+    // The properly correct fix is architectural -- compute the optical expectation once, before
+    // any Poisson draw at all, so this ambiguity can't arise -- and that is exactly what the
+    // long-term detector-response restructuring proposal ("DUNE TMS Scintillator Energy
+    // Deposition and Detector Response Review", 2026-09-04, section 7: "Calculate the optical
+    // expectation before drawing PE") already lays out. Deliberately left as-is until that
+    // restructuring lands, rather than picking one biased workaround now.
+    int n_short_photons = 0;
+    if (pe_short_path >= MAX_PE_THROWS) {
+      n_short_photons = MAX_PE_THROWS;
+    } else if (pe_short_path > 0) {
+      if (should_simulate_poisson_throws) {
+        std::poisson_distribution<int> pois_short_path(pe_short_path);
+        n_short_photons = pois_short_path(generator);
+      } else {
+        // Poisson fluctuations configured off -- stay deterministic, same as
+        // SimulateOpticalModel() does for PE itself in this mode.
+        n_short_photons = static_cast<int>(pe_short_path);
+      }
+      if (n_short_photons > MAX_PE_THROWS) {
+        n_short_photons = MAX_PE_THROWS;
+      }
     }
-    while (pe_short_path > 0) {
+    while (n_short_photons > 0) {
       double time_offset = time_correction;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_short_path -= 1;
+      n_short_photons -= 1;
     }
-    if (pe_long_path > MAX_PE_THROWS) {
-      pe_long_path = MAX_PE_THROWS;
+    int n_long_photons = 0;
+    if (pe_long_path >= MAX_PE_THROWS) {
+      n_long_photons = MAX_PE_THROWS;
+    } else if (pe_long_path > 0) {
+      if (should_simulate_poisson_throws) {
+        std::poisson_distribution<int> pois_long_path(pe_long_path);
+        n_long_photons = pois_long_path(generator);
+      } else {
+        n_long_photons = static_cast<int>(pe_long_path);
+      }
+      if (n_long_photons > MAX_PE_THROWS) {
+        n_long_photons = MAX_PE_THROWS;
+      }
     }
-    while (pe_long_path > 0) {
+    while (n_long_photons > 0) {
       double time_offset = time_correction_long_way;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_long_path -= 1;
+      n_long_photons -= 1;
     }
-    #endif
+    // Both paths had 0 detected photons -- neither while loop above ran even once, so
+    // minimum_time_offset is still its 1e100 sentinel (checked directly, since the loops above
+    // only decrement n_*_photons and do not touch minimum_time_offset when the photon counts
+    // are 0). Fall back to no slew delay rather than propagating the sentinel into t.
+    if (minimum_time_offset >= 1e100) minimum_time_offset = 0;
     t += minimum_time_offset;
     double hit_time = hit.GetT();
     //std::cout<<"dt: "<<t<<", hit t: "<<hit_time<<", reco t: "<<hit_time + t<<", min t offset: "<<minimum_time_offset<<", t corr: "<<time_correction<<", dist from middle: "<<distance_from_middle<<", long way t corr: "<<time_correction_long_way<<", long way dist: "<<long_way_distance<<", hit pe: "<<hit.GetPE()<<std::endl;
