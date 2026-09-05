@@ -29,7 +29,6 @@
 #include "TMS_ReadoutTreeWriter.h"
 // General manager
 #include "TMS_Manager.h"
-#include "TMS_VertexId.h" // Needed for TMS_VertexIdScale (EventId range safety, see below)
 
 TGeoManager* LoadGeometry(TFile *input, bool useGDML, const std::string &gdmlPath) {
   // If GDML loading is enabled, the path must not be empty
@@ -161,12 +160,14 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       
     // Todo: This should no longer be needed when this bug is fixed in the spill builder
     // https://github.com/DUNE/2x2_sim/issues/54
-    // Wrapped mod TMS_VertexIdScale since TMS_MakeGlobalVertexID() throws once EventId reaches
-    // that range (1,000,000) -- reached both via the vertex-info bookkeeping below and via
-    // TMS_Event's detector-sim RNG seed -- only matters for a single input file with over a
-    // million entries, but cheap to guard against outright (matches the same fix applied to
-    // DrawEvents.cpp/CherryPickEvents.cpp for the same reason).
-    event->EventId = i % TMS_VertexIdScale;
+    // Deliberately NOT wrapped mod TMS_VertexIdScale: that would silently make two different
+    // events past the 1,000,000th entry share an identity instead of failing loudly.
+    // TMS_Event's own RNG-seed computation already never throws regardless of EventId's range
+    // (see TMS_Event.cpp); a file large enough to reach TMS_VertexIdScale entries will still
+    // fail loudly via the existing duplicate/out-of-range vertex-ID checks in
+    // ProcessTG4Event()/AddEvent() below, which is the correct behavior for a genuine
+    // encoding-range violation.
+    event->EventId = i;
     //if (event->Primaries.size() > 0)
     //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
 

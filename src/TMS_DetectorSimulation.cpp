@@ -301,10 +301,9 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // doesn't preserve the true pre-attenuation integer count anywhere for this function to use.
     // The properly correct fix is architectural -- compute the optical expectation once, before
     // any Poisson draw at all, so this ambiguity can't arise -- and that is exactly what the
-    // long-term detector-response restructuring proposes (see
-    // /media/usher/Drive2/DUNE/TMS/reports/2026-09-04_detector_response_restructuring_proposal/
-    // DUNE_TMS_Scintillator_Energy_Deposition_and_Detector_Response_Review.md, section 7:
-    // "Calculate the optical expectation before drawing PE"). Deliberately left as-is until that
+    // long-term detector-response restructuring proposal ("DUNE TMS Scintillator Energy
+    // Deposition and Detector Response Review", 2026-09-04, section 7: "Calculate the optical
+    // expectation before drawing PE") already lays out. Deliberately left as-is until that
     // restructuring lands, rather than picking one biased workaround now.
     int n_short_photons = 0;
     if (pe_short_path >= MAX_PE_THROWS) {
