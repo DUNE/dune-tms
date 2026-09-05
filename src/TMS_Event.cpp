@@ -371,9 +371,9 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
   TMS_SignalProcessing::GetInstance().MergeCoincidentHits(*this);
   // MergeCoincidentHits() sorts TMS_Hits by (plane, T) as part of its own algorithm. Left in
   // that order, SimulateOpticalModel()/SimulateTimingModel() (which iterate TMS_Hits
-  // sequentially and consume the single shared RNG stream one draw per hit) would assign
-  // different draws to hits that were never touched by the merge, purely because their
-  // position in the vector changed -- not because anything about them actually merged.
+  // sequentially and consume the single shared RNG stream as they go) would assign different
+  // random draws to hits that were never touched by the merge, purely because their position
+  // in the vector changed -- not because anything about them actually merged.
   // HitId is assigned once, strictly increasing, at hit construction time (NextHitId()), so
   // sorting back by HitId restores creation order. This is NOT full per-hit RNG stability,
   // though: a hit whose array position sits after an earlier merge in this same event still
@@ -424,8 +424,8 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   // EventCounter -- EventCounter also counts output slices (see the slice constructor below),
   // so a seed derived from it depends on how many slices every earlier spill in the run
   // produced. That lets one spill's build-sensitive slice count reseed -- and so completely
-  // decorrelate -- every later spill's random detector-sim outcome (Poisson PE draws, gamma
-  // timing draws), even though each raw event's own input is unchanged. RunId/EventId are
+  // decorrelate -- every later spill's random detector-sim outcome (Poisson PE draws, timing
+  // model draws), even though each raw event's own input is unchanged. RunId/EventId are
   // fixed, build-invariant properties of this raw event (ProcessTG4Event() below already
   // combines them the same way, via TMS_MakeGlobalVertexID(), as this event's canonical
   // identity), so this keeps the RNG stream reproducible per-event regardless of anything
