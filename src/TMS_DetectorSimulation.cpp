@@ -265,25 +265,46 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // We don't have to do 1000s of throws. The time will be very close to zero.
     // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
     const double MAX_PE_THROWS = 300;
-    if (pe_short_path > MAX_PE_THROWS) {
-      pe_short_path = MAX_PE_THROWS;
+    // pe_short_path/pe_long_path are *mean* detected PE on each path, not integer photon
+    // counts -- SimulateOpticalModel()'s upstream Poisson/binomial draws (which produced real
+    // integer counts) get rescaled by deterministic but continuous attenuation/coupling
+    // factors afterward, so these are generally fractional by the time they reach this
+    // function. Looping directly on the fractional mean (as an earlier version of this code
+    // did) would run ceil(mean) throws regardless of how small the fractional remainder is --
+    // e.g. a mean of 0.2 (usually 0 real photons, occasionally 1) would deterministically get
+    // 1 throw every time, biasing the earliest-arrival time low for any hit with a non-integer
+    // effective PE. A Poisson-thinned Poisson variable is itself Poisson, and the upstream
+    // draws were already Poisson/binomial, so draw an actual integer photon count from
+    // Poisson(mean) first and loop that many times instead.
+    int n_short_photons = 0;
+    if (pe_short_path > 0) {
+      std::poisson_distribution<int> pois_short_path(pe_short_path);
+      n_short_photons = pois_short_path(generator);
     }
-    while (pe_short_path > 0) {
+    if (n_short_photons > MAX_PE_THROWS) {
+      n_short_photons = MAX_PE_THROWS;
+    }
+    while (n_short_photons > 0) {
       double time_offset = time_correction;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_short_path -= 1;
+      n_short_photons -= 1;
     }
-    if (pe_long_path > MAX_PE_THROWS) {
-      pe_long_path = MAX_PE_THROWS;
+    int n_long_photons = 0;
+    if (pe_long_path > 0) {
+      std::poisson_distribution<int> pois_long_path(pe_long_path);
+      n_long_photons = pois_long_path(generator);
     }
-    while (pe_long_path > 0) {
+    if (n_long_photons > MAX_PE_THROWS) {
+      n_long_photons = MAX_PE_THROWS;
+    }
+    while (n_long_photons > 0) {
       double time_offset = time_correction_long_way;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_long_path -= 1;
+      n_long_photons -= 1;
     }
     // Both paths had 0 PE (no photons detected at all) -- neither while loop above ran even
     // once, so minimum_time_offset is still its 1e100 sentinel (checked directly, since
