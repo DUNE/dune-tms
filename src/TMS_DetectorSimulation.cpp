@@ -286,6 +286,26 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // for a draw (which also risks an extreme mean producing a value outside int's range before
     // it gets clamped). Below the cap, a real draw can still legitimately exceed it on its own
     // right tail, so the clamp stays for that case.
+    //
+    // KNOWN LIMITATION, deliberately not fixed here (2026-09-05): when Poisson fluctuations are
+    // enabled, pe_short_path/pe_long_path already carry one full layer of real randomness from
+    // SimulateOpticalModel()'s own Poisson/binomial draw -- the fractional remainder comes only
+    // from a *deterministic* attenuation/coupling rescale applied afterward, not from an
+    // un-realized mean. Drawing a second Poisson here to recover an integer photon count for
+    // timing therefore adds a second, independent fluctuation on top of that already-real one,
+    // rather than cleanly recovering the (unavailable) pre-attenuation integer count. The
+    // alternative -- rounding pe_short_path/pe_long_path to the nearest integer instead of
+    // redrawing -- isn't better: it makes attenuation survival fully deterministic, so any hit
+    // with mean PE below 0.5 on a path always gets exactly 0 photons there, when physically
+    // there's a real chance one survives. Neither option is really correct, because the pipeline
+    // doesn't preserve the true pre-attenuation integer count anywhere for this function to use.
+    // The properly correct fix is architectural -- compute the optical expectation once, before
+    // any Poisson draw at all, so this ambiguity can't arise -- and that is exactly what the
+    // long-term detector-response restructuring proposes (see
+    // /media/usher/Drive2/DUNE/TMS/reports/2026-09-04_detector_response_restructuring_proposal/
+    // DUNE_TMS_Scintillator_Energy_Deposition_and_Detector_Response_Review.md, section 7:
+    // "Calculate the optical expectation before drawing PE"). Deliberately left as-is until that
+    // restructuring lands, rather than picking one biased workaround now.
     int n_short_photons = 0;
     if (pe_short_path >= MAX_PE_THROWS) {
       n_short_photons = MAX_PE_THROWS;
