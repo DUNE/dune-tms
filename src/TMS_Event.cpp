@@ -440,8 +440,17 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   // Feed both 32-bit halves of the full 64-bit identity into a std::seed_seq instead, so no
   // entropy from either RunId or EventId is thrown away.
   {
-    const unsigned long long global_vertex_id =
-        static_cast<unsigned long long>(TMS_MakeGlobalVertexID(event.RunId, event.EventId));
+    // Wrap EventId locally before combining, rather than calling TMS_MakeGlobalVertexID()
+    // directly on the raw value: that helper throws once its vertex_id argument reaches
+    // TMS_VertexIdScale, which is the right behavior for its actual job (vertex-ID bookkeeping
+    // in ProcessTG4Event() below, where a collision there is a real problem worth failing
+    // loudly on) but wrong for seeding -- a seed has no uniqueness requirement to enforce, so
+    // this call must never throw regardless of what any caller passes in as EventId. Any
+    // caller that also uses ProcessTG4Event()'s own vertex-ID bookkeeping still gets that
+    // throw from there if it's genuinely out of range; this just keeps the seed itself safe
+    // independently of that.
+    const unsigned long long global_vertex_id = static_cast<unsigned long long>(
+        TMS_MakeGlobalVertexID(event.RunId, event.EventId % TMS_VertexIdScale));
     std::seed_seq seed_from_event_identity{
         7890u,
         static_cast<unsigned int>(global_vertex_id),
