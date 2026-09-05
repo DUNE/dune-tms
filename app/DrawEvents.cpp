@@ -21,6 +21,7 @@
 #include "TMS_Event.h"
 #include "TMS_Constants.h"
 #include "TMS_Reco.h" // Needed for hit cleaning
+#include "TMS_VertexId.h" // Needed for TMS_VertexIdScale (EventId range safety, see below)
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -191,8 +192,10 @@ int main(int argc, char** argv) {
     // Same workaround as ConvertToTMSTree.cpp: the input file's own EventId isn't reliably
     // unique (https://github.com/DUNE/2x2_sim/issues/54), and TMS_Event now seeds its
     // detector-sim RNG from (RunId, EventId), so a non-unique EventId here would give two
-    // different events the same random draws.
-    event->EventId = i;
+    // different events the same random draws. Wrapped mod TMS_VertexIdScale since
+    // TMS_MakeGlobalVertexID() throws if EventId reaches that range -- only matters for a
+    // single input file with over a million entries, but cheap to guard against outright.
+    event->EventId = i % TMS_VertexIdScale;
     TMS_Event tms_event = TMS_Event(*event, true);
     // Run the full detector-simulation pipeline (optical/timing/dark count/deadtime/merge/noise/pedsup),
     // since this no longer happens implicitly inside the constructor.

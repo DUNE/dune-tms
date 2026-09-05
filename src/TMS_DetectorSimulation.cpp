@@ -202,6 +202,10 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   const double SPEED_OF_LIGHT_IN_FIBER = SPEED_OF_LIGHT / FIBER_N;
 
   const double wsf_length_multiplier = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_WSFLengthMultiplier();
+  // Same switch SimulateOpticalModel() uses to gate its own Poisson/binomial PE draws -- when
+  // it's off, PE is meant to be fully deterministic, so the photon-count draw below must not
+  // silently reintroduce randomness in that mode.
+  const bool should_simulate_poisson_throws = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_ShouldSimulatePoisson();
 
   //double avg = 0;
   //double maxy = -1e9;
@@ -285,8 +289,14 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     if (pe_short_path >= MAX_PE_THROWS) {
       n_short_photons = MAX_PE_THROWS;
     } else if (pe_short_path > 0) {
-      std::poisson_distribution<int> pois_short_path(pe_short_path);
-      n_short_photons = pois_short_path(generator);
+      if (should_simulate_poisson_throws) {
+        std::poisson_distribution<int> pois_short_path(pe_short_path);
+        n_short_photons = pois_short_path(generator);
+      } else {
+        // Poisson fluctuations configured off -- stay deterministic, same as
+        // SimulateOpticalModel() does for PE itself in this mode.
+        n_short_photons = static_cast<int>(pe_short_path);
+      }
       if (n_short_photons > MAX_PE_THROWS) {
         n_short_photons = MAX_PE_THROWS;
       }
@@ -302,8 +312,12 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     if (pe_long_path >= MAX_PE_THROWS) {
       n_long_photons = MAX_PE_THROWS;
     } else if (pe_long_path > 0) {
-      std::poisson_distribution<int> pois_long_path(pe_long_path);
-      n_long_photons = pois_long_path(generator);
+      if (should_simulate_poisson_throws) {
+        std::poisson_distribution<int> pois_long_path(pe_long_path);
+        n_long_photons = pois_long_path(generator);
+      } else {
+        n_long_photons = static_cast<int>(pe_long_path);
+      }
       if (n_long_photons > MAX_PE_THROWS) {
         n_long_photons = MAX_PE_THROWS;
       }
