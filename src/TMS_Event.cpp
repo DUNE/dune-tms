@@ -3,6 +3,7 @@
 #include "TMS_VertexId.h"
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
+#include "TMS_SpacePointBuilder.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -1021,128 +1022,12 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
 }
 
 void TMS_Event::BuildSpacePoints() {
-  TMS_SpacePoints.clear();
-
-  // Get timing window from config (in nanoseconds)
+  // The actual pairing logic lives in TMS_SpacePointBuilder (src/Cluster3D/)
+  // so it can be read, tested, and tuned independently of TMS_Event. This
+  // method just supplies this event's hits and the configured timing window.
+  // TMS_Hits (for a per-slice event) includes pedestal-suppressed hits -- the
+  // slice constructor deliberately keeps them (GetHits(slice, true)) for
+  // other consumers -- TMS_SpacePointBuilder::Build() skips them itself.
   double timing_window = TMS_Manager::GetInstance().Get_RECO_SPACEPOINTS_TimingWindow();
-
-  // Separate hits by bar type and layer
-  std::map<int, std::vector<int>> x_hits_by_layer;  // layer -> indices of X hits
-  std::map<int, std::vector<int>> y_hits_by_layer;  // layer -> indices of Y hits
-
-  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
-    const TMS_Hit& hit = TMS_Hits[i];
-    // TMS_Hits (for a per-slice event) includes pedestal-suppressed hits --
-    // the slice constructor deliberately keeps them (GetHits(slice, true))
-    // for other consumers -- but a suppressed hit is noise-level and isn't
-    // treated as real anywhere else in reconstruction (TMS_TrackFinder::
-    // FindTracks() excludes them via GetHits()'s default include_ped_sup=
-    // false). Pairing them here inflates the ghost space-point population
-    // with combinations that don't even correspond to a real reconstructed
-    // hit, on top of the expected real-hit-wrong-particle ghosting.
-    if (hit.GetPedSup()) continue;
-    int layer = hit.GetBar().GetPlaneNumber();
-    TMS_Bar::BarType bar_type = hit.GetBar().GetBarType();
-
-    if (bar_type == TMS_Bar::kXBar) {
-      x_hits_by_layer[layer].push_back(i);
-    } else if (bar_type == TMS_Bar::kYBar) {
-      y_hits_by_layer[layer].push_back(i);
-    }
-  }
-
-  // Sort Y hits by time for efficient matching
-  std::map<int, std::vector<std::pair<double, int>>> y_hits_by_layer_sorted;  // layer -> (time, index) pairs
-  for (const auto& y_layer_entry : y_hits_by_layer) {
-    int y_layer = y_layer_entry.first;
-    const std::vector<int>& y_indices = y_layer_entry.second;
-
-    std::vector<std::pair<double, int>> time_index_pairs;
-    for (int y_idx : y_indices) {
-      time_index_pairs.push_back({TMS_Hits[y_idx].GetT(), y_idx});
-    }
-    std::sort(time_index_pairs.begin(), time_index_pairs.end());
-    y_hits_by_layer_sorted[y_layer] = time_index_pairs;
-  }
-
-  // Sort X hits by time too, so the inner Y-hit scan below can use a single
-  // forward-only pointer per (x_layer, y_layer) pair instead of restarting
-  // from the earliest Y hit for every X hit.
-  std::map<int, std::vector<std::pair<double, int>>> x_hits_by_layer_sorted;
-  for (const auto& x_layer_entry : x_hits_by_layer) {
-    int x_layer = x_layer_entry.first;
-    const std::vector<int>& x_indices = x_layer_entry.second;
-
-    std::vector<std::pair<double, int>> time_index_pairs;
-    for (int x_idx : x_indices) {
-      time_index_pairs.push_back({TMS_Hits[x_idx].GetT(), x_idx});
-    }
-    std::sort(time_index_pairs.begin(), time_index_pairs.end());
-    x_hits_by_layer_sorted[x_layer] = time_index_pairs;
-  }
-
-  // Create space points by pairing adjacent X and Y layers
-  for (const auto& x_layer_entry : x_hits_by_layer_sorted) {
-    int x_layer = x_layer_entry.first;
-    const auto& x_time_indices = x_layer_entry.second;
-
-    // Check adjacent layers (N-1 and N+1)
-    for (int y_layer : {x_layer - 1, x_layer + 1}) {
-      if (y_hits_by_layer_sorted.find(y_layer) == y_hits_by_layer_sorted.end()) {
-        continue;  // No Y hits in this adjacent layer
-      }
-
-      const auto& y_time_indices = y_hits_by_layer_sorted[y_layer];
-
-      // Forward-only pointer into y_time_indices. Both sequences are time-sorted,
-      // so as x_time only increases across this loop, the "too early" cutoff
-      // (x_time - timing_window) only increases too -- once a Y hit falls below
-      // it, it falls below it for every later X hit as well, so it can be
-      // permanently skipped instead of re-scanned from the start each time.
-      size_t y_start = 0;
-
-      for (const auto& x_time_idx : x_time_indices) {
-        double x_time = x_time_idx.first;
-        int x_idx = x_time_idx.second;
-        const TMS_Hit& x_hit = TMS_Hits[x_idx];
-        // An X-bar is oriented along X, so the coordinate it actually measures is Y
-        // (its Bar.x member is a sentinel -- see TMS_Bar.cpp's kXBar branch). GetNotZ()
-        // already knows to return the real value for whichever axis the bar measures.
-        double y_pos = x_hit.GetNotZ();
-        double z_pos = x_hit.GetZ();
-
-        // Advance past Y hits that are now permanently too early
-        while (y_start < y_time_indices.size() &&
-               y_time_indices[y_start].first - x_time < -timing_window) {
-          ++y_start;
-        }
-
-        // Scan forward from y_start until Y hits become too late for this X hit.
-        // The upper cutoff (x_time + timing_window) is NOT monotonic in the same
-        // way, so this scan (unlike y_start) has to restart from y_start every time.
-        for (size_t j = y_start; j < y_time_indices.size(); ++j) {
-          double y_time = y_time_indices[j].first;
-          int y_idx = y_time_indices[j].second;
-          // No time-of-flight correction between the X and Y planes: even the
-          // largest adjacent-plane gap (130mm, double-thick region) is only
-          // ~0.43ns at beta~1, under 1.5% of the timing_window below -- negligible
-          // next to the 30ns window and not worth the added complexity.
-          double time_diff = y_time - x_time;
-
-          if (time_diff > timing_window) {
-            break;
-          }
-
-          const TMS_Hit& y_hit = TMS_Hits[y_idx];
-          // Symmetrically, a Y-bar measures X (its Bar.y member is the sentinel).
-          double x_pos = y_hit.GetNotZ();
-
-          // Create space point with combined position and time
-          double combined_time = (x_time + y_time) / 2.0;
-          TMS_SpacePoint sp(x_pos, y_pos, z_pos, x_idx, y_idx, combined_time);
-          TMS_SpacePoints.push_back(sp);
-        }
-      }
-    }
-  }
+  TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window);
 }
