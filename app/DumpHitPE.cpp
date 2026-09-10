@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   // MeV/PE constant -- so recoE/PE is a constant, not a physics correlation. trueE comes from the
   // separate TMS_TrueHit object (TMS_Event::GetTrueHit()), which SimulateOpticalModel reads from
   // but never overwrites, and is the real energy deposit.
-  out << "recoE,trueE,PE,pedsup,pdg\n";
+  out << "recoE,trueE,PE,pedsup,pdg,parent_pdg\n";
 
   int N_entries = events->GetEntries();
   std::vector<TMS_Event> overlay_events;
@@ -120,21 +120,30 @@ int main(int argc, char **argv) {
     for (const auto &hit : tms_event.GetHits(-1, /*include_ped_sup=*/true)) {
       // Dominant true contributor to this hit, same lookup TMS_TreeWriter uses for
       // RecoHitPrimary*Energy (see TMS_TreeWriter.cpp:1542-1553).
-      int pdg = 0;  // 0 = no truth match (shouldn't normally happen on MC input)
+      int pdg = 0;         // 0 = no truth match (shouldn't normally happen on MC input)
+      int parent_pdg = 0;  // 0 = no parent (primary particle) or parent not in the truth record
       const auto particle_info = TMS_Utils::GetPrimaryIdsByEnergy({hit}, tms_event);
       if (!particle_info.energies.empty()) {
         const long long vertex_global_id = particle_info.vertexglobalids[0];
         const int track_id = particle_info.trackids[0];
         const int particle_index = tms_event.GetTrueParticleIndex(vertex_global_id, track_id);
         if (particle_index >= 0) {
-          pdg = tms_event.GetTrueParticles()[particle_index].GetPDG();
+          const auto &particle = tms_event.GetTrueParticles()[particle_index];
+          pdg = particle.GetPDG();
+          // Immediate parent only (e.g. a delta ray's parent is the muon that knocked it off) --
+          // no ancestor-chain collapse, unlike ClusterTruthEfficiency's CollapseTrackId().
+          const int parent_track_id = particle.GetParent();
+          if (parent_track_id >= 0) {
+            const int parent_index = tms_event.GetTrueParticleIndex(vertex_global_id, parent_track_id);
+            if (parent_index >= 0) parent_pdg = tms_event.GetTrueParticles()[parent_index].GetPDG();
+          }
         }
       }
       const TMS_TrueHit *true_hit = tms_event.GetTrueHit(hit.GetHitId());
       const double true_e = true_hit ? true_hit->GetE() : -1.0;  // -1 = no truth (shouldn't happen on MC)
 
       out << hit.GetE() << "," << true_e << "," << hit.GetPE() << ","
-          << (hit.GetPedSup() ? 1 : 0) << "," << pdg << "\n";
+          << (hit.GetPedSup() ? 1 : 0) << "," << pdg << "," << parent_pdg << "\n";
       ++n_hits_written;
     }
   }
