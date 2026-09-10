@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <utility>
 
+#include "TMS_LayerGrouping.h"
+
 namespace TMS_GraphTrackFinder {
 namespace {
 
@@ -449,17 +451,10 @@ Result Finder::Find(const std::vector<TMS_SpacePoint> &spacePoints) const {
   stats.InputPoints = spacePoints.size();
   if (spacePoints.size() < fConfig.SeedLength) return result;
 
-  // Stable z ordering makes all subsequent graph operations deterministic.
-  std::vector<std::size_t> order(spacePoints.size());
-  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
-  std::sort(order.begin(), order.end(), [&spacePoints](std::size_t a,
-                                                       std::size_t b) {
-    if (spacePoints[a].GetZ() != spacePoints[b].GetZ())
-      return spacePoints[a].GetZ() < spacePoints[b].GetZ();
-    if (spacePoints[a].GetX() != spacePoints[b].GetX())
-      return spacePoints[a].GetX() < spacePoints[b].GetX();
-    return spacePoints[a].GetY() < spacePoints[b].GetY();
-  });
+  // Shared with a Kalman follower (TMS_LayerGrouping) so both stages agree
+  // on exactly where one detector plane ends and the next begins.
+  std::vector<std::vector<std::size_t> > zLayers =
+      TMS_LayerGrouping::Build(spacePoints, fConfig.LayerZTolerance);
 
   std::unordered_map<int, std::size_t> xMultiplicity;
   std::unordered_map<int, std::size_t> yMultiplicity;
@@ -469,25 +464,21 @@ Result Finder::Find(const std::vector<TMS_SpacePoint> &spacePoints) const {
   }
 
   std::vector<Node> nodes;
-  std::vector<std::vector<std::size_t> > layers;
-  for (std::size_t inputIndex : order) {
-    const TMS_SpacePoint &point = spacePoints[inputIndex];
-    if (layers.empty() ||
-        std::abs(point.GetZ() -
-                 spacePoints[nodes[layers.back().front()].InputIndex].GetZ()) >
-            fConfig.LayerZTolerance) {
-      layers.push_back(std::vector<std::size_t>());
+  std::vector<std::vector<std::size_t> > layers(zLayers.size());
+  for (std::size_t layerIdx = 0; layerIdx < zLayers.size(); ++layerIdx) {
+    for (std::size_t inputIndex : zLayers[layerIdx]) {
+      const TMS_SpacePoint &point = spacePoints[inputIndex];
+      Node node;
+      node.InputIndex = inputIndex;
+      node.Layer = layerIdx;
+      const std::size_t xCount = point.GetXHitIndex() >= 0
+          ? xMultiplicity[point.GetXHitIndex()] : 0;
+      const std::size_t yCount = point.GetYHitIndex() >= 0
+          ? yMultiplicity[point.GetYHitIndex()] : 0;
+      node.HitMultiplicity = std::max(xCount, yCount);
+      nodes.push_back(node);
+      layers[layerIdx].push_back(nodes.size() - 1);
     }
-    Node node;
-    node.InputIndex = inputIndex;
-    node.Layer = layers.size() - 1;
-    const std::size_t xCount = point.GetXHitIndex() >= 0
-        ? xMultiplicity[point.GetXHitIndex()] : 0;
-    const std::size_t yCount = point.GetYHitIndex() >= 0
-        ? yMultiplicity[point.GetYHitIndex()] : 0;
-    node.HitMultiplicity = std::max(xCount, yCount);
-    nodes.push_back(node);
-    layers.back().push_back(nodes.size() - 1);
   }
   stats.Layers = layers.size();
 
