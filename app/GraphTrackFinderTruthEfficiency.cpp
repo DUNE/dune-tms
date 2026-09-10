@@ -1,5 +1,5 @@
 // Full-population truth-based validation of a three-stage DBSCAN+PCA ->
-// merged-cluster PCA -> Link-and-Tree pipeline: run the existing, cheap
+// merged-cluster PCA -> Graph Track Finder pipeline: run the existing, cheap
 // DBSCAN+PCA clustering (identical to ClusterTruthEfficiency.cpp -- same
 // tolerances, same plurality-vote matching) on every slice; for any muon
 // candidate it misses, merge every DBSCAN cluster (track-like or not) that
@@ -8,7 +8,7 @@
 // track can legitimately get split across DBSCAN's own density boundaries,
 // e.g. a sparse tail end going its own way -- merging first undoes exactly
 // that, without pulling in the rest of the slice); only if the merged set
-// is still not track-like does the much more expensive Link-and-Tree graph
+// is still not track-like does the much more expensive Graph Track Finder graph
 // search run, on that same merged set. This mirrors how DBSCAN and Link-
 // and-Tree are actually meant to be used together (a fallback for the
 // cases DBSCAN structurally can't cluster, not a universal replacement),
@@ -31,7 +31,7 @@
 #include "TTree.h"
 
 #include "TMS_Geom.h"
-#include "TMS_LinkAndTree.h"
+#include "TMS_GraphTrackFinder.h"
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
@@ -85,7 +85,7 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   return fallback_top_primary_trackid;
 }
 
-// Same z-layer grouping TMS_LinkAndTree::Finder uses internally.
+// Same z-layer grouping TMS_GraphTrackFinder::Finder uses internally.
 std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
   std::vector<std::size_t> order(points.size());
   for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
@@ -128,11 +128,11 @@ int main(int argc, char **argv) {
   const double kLinearityThreshold = 0.8;
   const size_t kMinClusterSizeForTrack = 5;
 
-  // Link-and-Tree fallback config: today's validated fix (seed gates at
+  // Graph Track Finder fallback config: today's validated fix (seed gates at
   // real occupancy scale, occupancy/multiplicity growth-time scoring
   // penalty zeroed, quantization deadband on, curvature off). Deliberately
   // not the dense-layer search -- validated as a net regression.
-  TMS_LinkAndTree::Config lt_config;
+  TMS_GraphTrackFinder::Config lt_config;
   lt_config.MaxSeedLayerOccupancy = 150;
   lt_config.MaxSeedHitMultiplicity = 50;
   lt_config.OccupancyPenalty = 0.0;
@@ -356,12 +356,12 @@ int main(int argc, char **argv) {
     // enough to form or fall into a separate group) -- merging first
     // undoes exactly that split, still without pulling in the rest of the
     // slice's unrelated activity. Re-run PCA on the merged set: if it's
-    // now track-like on its own, no Link-and-Tree needed at all (this
+    // now track-like on its own, no Graph Track Finder needed at all (this
     // muon was really findable by DBSCAN+PCA all along, just needed its
     // own split pieces reunited first). Only if it's still not track-like
-    // does Link-and-Tree run, on the merged set.
+    // does Graph Track Finder run, on the merged set.
     struct FallbackRun {
-      TMS_LinkAndTree::Result result;
+      TMS_GraphTrackFinder::Result result;
       std::vector<int> local_to_global;
       std::vector<int> z_layer_local;
     };
@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
     }
 
     // Re-run PCA/linearity on each muon's merged set; only queue the
-    // Link-and-Tree fallback for the ones still not track-like on their own.
+    // Graph Track Finder fallback for the ones still not track-like on their own.
     std::unordered_map<int, FallbackRun> fallback_runs;  // keyed by pidx directly (per-muon, not shared)
     std::unordered_map<int, double> merged_linearity_by_pidx;
     std::unordered_map<int, int> merged_size_by_pidx;
@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
       for (int gi : merged_indices) local_points.push_back(space_points[gi]);
       FallbackRun run;
       run.z_layer_local = AssignZLayers(local_points, lt_config.LayerZTolerance);
-      run.result = TMS_LinkAndTree::Finder(lt_config).Find(local_points);
+      run.result = TMS_GraphTrackFinder::Finder(lt_config).Find(local_points);
       run.local_to_global = merged_indices;
       fallback_runs[pidx] = std::move(run);
       ++n_ran_fallback;
@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
           ran_fallback_this_muon = true;
           const FallbackRun &run = run_it->second;
           lt_resource_limit = run.result.Stats.ResourceLimitReached;
-          for (const TMS_LinkAndTree::Path &path : run.result.Paths) {
+          for (const TMS_GraphTrackFinder::Path &path : run.result.Paths) {
             int matched = 0;
             std::set<int> matched_layers;
             for (std::size_t local_idx : path.SpacePointIndices) {
@@ -534,9 +534,9 @@ int main(int argc, char **argv) {
   std::cout << "Done. " << n_muons_total << " muon candidates." << std::endl;
   std::cout << "Found by DBSCAN+PCA (per-cluster): " << n_found_dbscan << " ("
             << (n_muons_total > 0 ? 100.0 * n_found_dbscan / n_muons_total : 0.0) << "%)" << std::endl;
-  std::cout << "Additionally found by merged-cluster PCA (no Link-and-Tree needed): "
+  std::cout << "Additionally found by merged-cluster PCA (no Graph Track Finder needed): "
             << n_found_dbscan_merged << std::endl;
-  std::cout << "Link-and-Tree fallback ran " << n_ran_fallback << " times (once per still-missing"
+  std::cout << "Graph Track Finder fallback ran " << n_ran_fallback << " times (once per still-missing"
                " muon, on its merged cluster set), recovered " << n_found_via_fallback
             << " additional muons" << std::endl;
   const long n_total_found = n_found_dbscan + n_found_dbscan_merged + n_found_via_fallback;

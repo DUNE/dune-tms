@@ -1,4 +1,4 @@
-// Validates TMS_LinkAndTree against a single real, already-known-hard slice:
+// Validates TMS_GraphTrackFinder against a single real, already-known-hard slice:
 // by default, entry 101 of the 2026-09-07 clustering-benchmark reference
 // file -- the shower-contaminated muon that originally motivated the
 // Link-and-Tree proposal. DBSCAN puts all 3,820 of that slice's space points
@@ -11,7 +11,7 @@
 // not "a different particle") so "muon-owned" is defined exactly the same
 // way here as in the DBSCAN benchmark -- results are directly comparable.
 // Needs only Reco_Tree + Truth_Spill from a RecoCandidates file (no geometry
-// file: unlike DBSCAN, Link-and-Tree doesn't need a clustering tolerance
+// file: unlike DBSCAN, Graph Track Finder doesn't need a clustering tolerance
 // derived from bar/plane pitch).
 
 #include <algorithm>
@@ -28,7 +28,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "TMS_LinkAndTree.h"
+#include "TMS_GraphTrackFinder.h"
 #include "TMS_SpacePoint.h"
 
 namespace {
@@ -86,7 +86,7 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   return fallback_top_primary_trackid;
 }
 
-// Groups points into z-layers the same way TMS_LinkAndTree::Finder does
+// Groups points into z-layers the same way TMS_GraphTrackFinder::Finder does
 // internally (sort by z, start a new layer whenever the gap exceeds
 // tolerance) so this file can measure "how many distinct planes does the
 // muon touch" and "how many of those does a path actually cover" -- the
@@ -133,7 +133,7 @@ CandidateInspection InspectNextLayerCandidates(
     const std::vector<TMS_SpacePoint> &points,
     const std::vector<TrueLabel> &labels,
     const std::vector<int> &z_layer,
-    const TMS_LinkAndTree::Path &path,
+    const TMS_GraphTrackFinder::Path &path,
     double max_abs_dxdz,
     double max_abs_dydz,
     double point_reward,
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   const TrueLabel target{target_vgid, target_trackid};
   // Optional overrides for the growth-phase costs and seed-gate thresholds
   // that scale with local occupancy -- left as command-line knobs (rather
-  // than baked-in changes to TMS_LinkAndTree.h's Config defaults) since
+  // than baked-in changes to TMS_GraphTrackFinder.h's Config defaults) since
   // retuning them for real TMS occupancy scales is exactly the open
   // question this tool exists to probe.
   const bool has_occ_override = argc >= 5;
@@ -369,10 +369,10 @@ int main(int argc, char **argv) {
             << " total space points, " << best_count
             << " labeled as the target particle" << std::endl;
 
-  // Default config, same as the synthetic LinkAndTree_test -- real occupancy
+  // Default config, same as the synthetic GraphTrackFinder_test -- real occupancy
   // is much higher (3800ish points vs. 330), so watch the diagnostics below
   // for ResourceLimitReached before trusting the result.
-  TMS_LinkAndTree::Config config;
+  TMS_GraphTrackFinder::Config config;
   if (has_occ_override) config.OccupancyPenalty = occ_override;
   if (has_mult_override) config.HitMultiplicityPenalty = mult_override;
   if (has_seed_occ_override) config.MaxSeedLayerOccupancy = seed_occ_override;
@@ -382,7 +382,7 @@ int main(int argc, char **argv) {
   if (has_curvature_override) config.UseCurvatureProjection = curvature_override;
   if (has_quant_x_override) config.PositionQuantizationX = quant_x_override;
   if (has_quant_y_override) config.PositionQuantizationY = quant_y_override;
-  const TMS_LinkAndTree::Result result = TMS_LinkAndTree::Finder(config).Find(best_points);
+  const TMS_GraphTrackFinder::Result result = TMS_GraphTrackFinder::Finder(config).Find(best_points);
 
   // Distinct-plane bookkeeping (Section 15's real validation metric): a
   // combinatorial X/Y ghost can multiply how many *space points* carry the
@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
             << " distinct planes in this slice (out of " << result.Stats.Layers
             << " total planes with any activity).\n";
 
-  std::cout << "\nLink-and-Tree on the real slice\n"
+  std::cout << "\nGraph Track Finder on the real slice\n"
             << "  points: " << result.Stats.InputPoints << '\n'
             << "  z layers: " << result.Stats.Layers << '\n'
             << "  links tested/kept: " << result.Stats.LinksTested << "/"
@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
   std::size_t best_path_matched = 0;
   std::size_t best_path_planes = 0;
   for (std::size_t i = 0; i < result.Paths.size(); ++i) {
-    const TMS_LinkAndTree::Path &path = result.Paths[i];
+    const TMS_GraphTrackFinder::Path &path = result.Paths[i];
     std::size_t matched = 0;
     std::set<int> matched_layers;
     for (std::size_t idx : path.SpacePointIndices) {
@@ -440,7 +440,7 @@ int main(int argc, char **argv) {
                " all " << best_total << " points land in one cluster with PCA linearity"
                " 0.159 (below the 0.8 track-like cutoff) -- the whole cluster is discarded,"
                " recovering 0/" << target_layers_in_slice.size() << " target planes.\n";
-  std::cout << "Link-and-Tree recovered " << best_path_matched << "/" << best_count
+  std::cout << "Graph Track Finder recovered " << best_path_matched << "/" << best_count
             << " target-owned points (raw count, inflated by X/Y ghost pairing), covering "
             << best_path_planes << "/" << target_layers_in_slice.size()
             << " of the target's own distinct planes, in its best single path.\n";
@@ -502,7 +502,7 @@ int main(int argc, char **argv) {
     json << ",\"paths\":[";
     for (std::size_t p = 0; p < result.Paths.size(); ++p) {
       if (p) json << ",";
-      const TMS_LinkAndTree::Path &path = result.Paths[p];
+      const TMS_GraphTrackFinder::Path &path = result.Paths[p];
       std::size_t matched = 0;
       for (std::size_t idx : path.SpacePointIndices) if (best_point_label[idx] == target) ++matched;
       const double purity = path.SpacePointIndices.empty() ? 0.0

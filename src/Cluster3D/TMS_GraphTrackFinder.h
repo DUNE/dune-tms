@@ -1,5 +1,5 @@
-#ifndef _TMS_LINKANDTREE_H_SEEN_
-#define _TMS_LINKANDTREE_H_SEEN_
+#ifndef _TMS_GRAPHTRACKFINDER_H_SEEN_
+#define _TMS_GRAPHTRACKFINDER_H_SEEN_
 
 #include "TMS_SpacePoint.h"
 
@@ -11,7 +11,7 @@
 // input vector.  The returned indices preserve the X/Y hit provenance already
 // stored by TMS_SpacePoint, so a later Kalman follower can recover native 2D
 // measurements without rematching them.
-namespace TMS_LinkAndTree {
+namespace TMS_GraphTrackFinder {
 
 struct Config {
   // Space points whose z positions differ by less than this are one graph layer.
@@ -170,6 +170,6 @@ private:
   Config fConfig;
 };
 
-} // namespace TMS_LinkAndTree
+} // namespace TMS_GraphTrackFinder
 
 #endif

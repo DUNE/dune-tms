@@ -1,4 +1,4 @@
-#include "TMS_LinkAndTree.h"
+#include "TMS_GraphTrackFinder.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <utility>
 
-namespace TMS_LinkAndTree {
+namespace TMS_GraphTrackFinder {
 namespace {
 
 struct Node {
@@ -439,7 +439,7 @@ Finder::Finder(const Config &config) : fConfig(config) {
       fConfig.SeedOverlapFraction > 1.0 ||
       fConfig.DuplicateOverlapFraction < 0.0 ||
       fConfig.DuplicateOverlapFraction > 1.0) {
-    throw std::invalid_argument("Invalid Link-and-Tree configuration");
+    throw std::invalid_argument("Invalid Graph Track Finder configuration");
   }
 }
 
@@ -633,4 +633,4 @@ Result Finder::Find(const std::vector<TMS_SpacePoint> &spacePoints) const {
   return result;
 }
 
-} // namespace TMS_LinkAndTree
+} // namespace TMS_GraphTrackFinder

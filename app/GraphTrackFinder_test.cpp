@@ -1,4 +1,4 @@
-#include "TMS_LinkAndTree.h"
+#include "TMS_GraphTrackFinder.h"
 
 #include <algorithm>
 #include <iostream>
@@ -148,7 +148,7 @@ Sample MakeDenseEntranceEvent() {
   return sample;
 }
 
-std::size_t CountTruth(const TMS_LinkAndTree::Path &path,
+std::size_t CountTruth(const TMS_GraphTrackFinder::Path &path,
                        const std::set<std::size_t> &truth) {
   std::size_t count = 0;
   for (std::size_t index : path.SpacePointIndices)
@@ -160,16 +160,16 @@ std::size_t CountTruth(const TMS_LinkAndTree::Path &path,
 
 int main() {
   const Sample sample = MakeMessyEntranceEvent();
-  TMS_LinkAndTree::Config config;
+  TMS_GraphTrackFinder::Config config;
   config.MaxSeedLayerOccupancy = 12;
   config.MaxSeedHitMultiplicity = 4;
   config.MaxAbsDXDZ = 0.8;
   config.MaxAbsDYDZ = 0.8;
 
-  const TMS_LinkAndTree::Result result =
-      TMS_LinkAndTree::Finder(config).Find(sample.Points);
+  const TMS_GraphTrackFinder::Result result =
+      TMS_GraphTrackFinder::Finder(config).Find(sample.Points);
 
-  std::cout << "Link-and-Tree synthetic trial\n"
+  std::cout << "Graph Track Finder synthetic trial\n"
             << "  points: " << result.Stats.InputPoints << '\n'
             << "  z layers: " << result.Stats.Layers << '\n'
             << "  links tested/kept: " << result.Stats.LinksTested << "/"
@@ -213,10 +213,10 @@ int main() {
   }
 
   const Sample dense = MakeDenseEntranceEvent();
-  const TMS_LinkAndTree::Result denseResult =
-      TMS_LinkAndTree::Finder(config).Find(dense.Points);
+  const TMS_GraphTrackFinder::Result denseResult =
+      TMS_GraphTrackFinder::Finder(config).Find(dense.Points);
   std::size_t denseMuon = 0;
-  for (const TMS_LinkAndTree::Path &path : denseResult.Paths) {
+  for (const TMS_GraphTrackFinder::Path &path : denseResult.Paths) {
     denseMuon = std::max(denseMuon, CountTruth(path, dense.MuonIndices));
   }
   if (denseMuon < 10) {

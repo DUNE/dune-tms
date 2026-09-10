@@ -1,13 +1,13 @@
-// Runs TMS_LinkAndTree against every known DBSCAN-failure muon from the
+// Runs TMS_GraphTrackFinder against every known DBSCAN-failure muon from the
 // 2026-09-07 15-file clustering benchmark (26 ND-LAr-fiducial muons where
 // DBSCAN+PCA failed to recover a track-like cluster) and reports how many of
-// them Link-and-Tree can find a clean partial path for -- the real "Phase 0"
+// them Graph Track Finder can find a clean partial path for -- the real "Phase 0"
 // characterization the Link-and-Tree proposal calls for before committing to
 // full Kalman-follower development.
 //
 // Shares its truth-matching convention (Parent-chain collapse, X-hit-first-
 // then-Y point labeling) with ClusterTruthEfficiency.cpp and
-// LinkAndTreeSliceTest.cpp so "muon-owned" means the same thing everywhere.
+// GraphTrackFinderSliceTest.cpp so "muon-owned" means the same thing everywhere.
 //
 // Input: a CSV of file,vgid,trackid rows (one per known failure -- see
 // /media/usher/Drive2/DUNE/TMS/reports/2026-09-07_clustering_benchmark/
@@ -28,7 +28,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "TMS_LinkAndTree.h"
+#include "TMS_GraphTrackFinder.h"
 #include "TMS_SpacePoint.h"
 
 namespace {
@@ -59,7 +59,7 @@ struct SpillParticles {
   std::vector<int> collapsed_trackid;
 };
 
-// See LinkAndTreeSliceTest.cpp for the rationale (a muon's own delta-ray
+// See GraphTrackFinderSliceTest.cpp for the rationale (a muon's own delta-ray
 // hits should count as the muon's, not "a different particle").
 int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   int idx = start_idx;
@@ -77,8 +77,8 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   return fallback_top_primary_trackid;
 }
 
-// Same z-layer grouping TMS_LinkAndTree::Finder uses internally -- see
-// LinkAndTreeSliceTest.cpp for why plane-count, not raw point-count, is the
+// Same z-layer grouping TMS_GraphTrackFinder::Finder uses internally -- see
+// GraphTrackFinderSliceTest.cpp for why plane-count, not raw point-count, is the
 // meaningful completeness metric here.
 std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
   std::vector<std::size_t> order(points.size());
@@ -116,9 +116,9 @@ struct CaseResult {
 // Opens one RecoCandidates file, finds the slice where `target` has the most
 // space points, builds real TMS_SpacePoints from it (native hit indices and
 // truth labels straight from the already-written Reco_Tree branches -- no
-// re-simulation needed), and runs the Link-and-Tree finder on it.
+// re-simulation needed), and runs the Graph Track Finder finder on it.
 CaseResult RunOneCase(const std::string &input_filename, const TrueLabel &target,
-                      const TMS_LinkAndTree::Config &config) {
+                      const TMS_GraphTrackFinder::Config &config) {
   CaseResult res;
   res.vgid = target.vgid;
   res.trackid = target.trackid;
@@ -230,7 +230,7 @@ CaseResult RunOneCase(const std::string &input_filename, const TrueLabel &target
   res.total_points = best_total;
   res.target_points_raw = best_count;
 
-  const TMS_LinkAndTree::Result result = TMS_LinkAndTree::Finder(config).Find(best_points);
+  const TMS_GraphTrackFinder::Result result = TMS_GraphTrackFinder::Finder(config).Find(best_points);
   res.resource_limit_reached = result.Stats.ResourceLimitReached;
 
   const std::vector<int> z_layer = AssignZLayers(best_points, config.LayerZTolerance);
@@ -245,7 +245,7 @@ CaseResult RunOneCase(const std::string &input_filename, const TrueLabel &target
   // longer, more complete one may both be useful outputs; here we want to
   // know the best the finder achieved at all, for this initial survey).
   int best_planes = 0, best_points_at_best = 0, best_matched_at_best = 0;
-  for (const TMS_LinkAndTree::Path &path : result.Paths) {
+  for (const TMS_GraphTrackFinder::Path &path : result.Paths) {
     int matched = 0;
     std::set<int> matched_layers;
     for (std::size_t idx : path.SpacePointIndices) {
@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
   std::string header;
   std::getline(targets_file, header);  // discard "file,vgid,trackid"
 
-  TMS_LinkAndTree::Config config;  // default -- same as the synthetic/single-slice tests
+  TMS_GraphTrackFinder::Config config;  // default -- same as the synthetic/single-slice tests
   if (has_seed_overrides) {
     config.MaxSeedLayerOccupancy = seed_occ_override;
     config.MaxSeedHitMultiplicity = seed_mult_override;
