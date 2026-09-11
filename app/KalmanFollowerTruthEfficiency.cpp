@@ -1,0 +1,591 @@
+// Full-population truth-based validation of the Kalman follower stage, on
+// top of the exact same three-stage DBSCAN+PCA -> merged-cluster PCA ->
+// Graph Track Finder pipeline GraphTrackFinderTruthEfficiency.cpp validates
+// (same tolerances, same plurality-vote matching, same merge logic -- code
+// duplicated rather than shared because the two tools' downstream needs
+// diverge enough, per-muon, to make a shared loop harder to follow than two
+// parallel ones). Whichever stage finds a muon's track-like object, that
+// object's own points are handed to the Kalman follower: DBSCAN-direct and
+// merged-cluster-PCA objects (unordered, no directed search behind them) go
+// through TMS_KalmanFollower::Follower::RunBestSeed()'s multi-hypothesis
+// first-z-layer seeding; the Graph Track Finder's own already-ordered best
+// path goes through plain Run(), since its directed search already resolved
+// this same first-point ambiguity.
+//
+// Scope, deliberately: efficiency / purity / completeness / ambiguity-
+// resolution accuracy only. Momentum and charge resolution are real open
+// questions (chi2 gate threshold, initial covariance realism -- Phase 2 of
+// the project plan) but are NOT computed here; this tool's job is to answer
+// "does the follower reliably find and correctly resolve the right hits,"
+// not "how precise is the fitted momentum."
+
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "TFile.h"
+#include "TGeoManager.h"
+#include "TTree.h"
+
+#include "TMS_FieldModel.h"
+#include "TMS_Geom.h"
+#include "TMS_GraphTrackFinder.h"
+#include "TMS_KalmanFollower.h"
+#include "TMS_SpacePoint.h"
+#include "TMS_SpacePointCluster.h"
+#include "TMS_SpacePointDBScan.h"
+
+namespace {
+
+const int kMaxSpacePoints = 10000;
+const int kMaxTrueParticles = 20000;
+
+struct TrueLabel {
+  long long vgid = -1;
+  int trackid = -999;
+  bool Valid() const { return vgid >= 0; }
+  bool operator==(const TrueLabel &o) const { return vgid == o.vgid && trackid == o.trackid; }
+};
+
+struct LabelHash {
+  size_t operator()(const TrueLabel &l) const {
+    return std::hash<long long>()(l.vgid) ^ (std::hash<int>()(l.trackid) << 1);
+  }
+};
+
+struct SpillParticles {
+  int n = 0;
+  std::vector<long long> vgid;
+  std::vector<int> trackid;
+  std::vector<int> pdg;
+  std::vector<int> parent_trackid;
+  std::vector<bool> tms_fiducial_start;
+  std::vector<bool> lar_fiducial_start;
+  std::unordered_map<TrueLabel, int, LabelHash> index_of;
+  std::vector<int> collapsed_trackid;
+};
+
+// Same convention as ClusterTruthEfficiency.cpp / GraphTrackFinderTruthEfficiency.cpp.
+int CollapseTrackId(const SpillParticles &sp, int start_idx) {
+  int idx = start_idx;
+  int fallback_top_primary_trackid = sp.trackid[start_idx];
+  int guard = 0;
+  while (idx >= 0 && guard++ < 10000) {
+    if (std::abs(sp.pdg[idx]) == 13) return sp.trackid[idx];
+    fallback_top_primary_trackid = sp.trackid[idx];
+    const int parent_tid = sp.parent_trackid[idx];
+    if (parent_tid < 0) break;
+    auto it = sp.index_of.find(TrueLabel{sp.vgid[idx], parent_tid});
+    if (it == sp.index_of.end()) break;
+    idx = it->second;
+  }
+  return fallback_top_primary_trackid;
+}
+
+// Same z-layer grouping TMS_GraphTrackFinder::Finder / TMS_KalmanFollower use internally.
+std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
+  std::vector<std::size_t> order(points.size());
+  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+  std::sort(order.begin(), order.end(), [&points](std::size_t a, std::size_t b) {
+    return points[a].GetZ() < points[b].GetZ();
+  });
+  std::vector<int> layer(points.size());
+  int current_layer = -1;
+  double layer_start_z = 0.0;
+  for (std::size_t idx : order) {
+    if (current_layer < 0 || points[idx].GetZ() - layer_start_z > tolerance) {
+      ++current_layer;
+      layer_start_z = points[idx].GetZ();
+    }
+    layer[idx] = current_layer;
+  }
+  return layer;
+}
+
+// Turns an unordered index set into the follower's z-sorted seedPath format
+// (ties broken by x, then y), matching TMS_LayerGrouping's own convention --
+// same helper as KalmanFollowerSliceTest.cpp's BuildSeedPathFromIndices.
+std::vector<std::size_t> BuildSeedPath(const std::vector<TMS_SpacePoint> &points, std::vector<int> indices) {
+  std::sort(indices.begin(), indices.end(), [&points](int a, int b) {
+    if (points[a].GetZ() != points[b].GetZ()) return points[a].GetZ() < points[b].GetZ();
+    if (points[a].GetX() != points[b].GetX()) return points[a].GetX() < points[b].GetX();
+    return points[a].GetY() < points[b].GetY();
+  });
+  return std::vector<std::size_t>(indices.begin(), indices.end());
+}
+
+// Per-muon Kalman cross-check result, filled by RunFollowerAndScore() below --
+// bundles the CSV columns so the three call sites (DBSCAN-direct, merged-PCA,
+// Graph Track Finder) all fill them identically.
+struct KalmanScore {
+  bool ran = false;
+  std::string seed_source;
+  bool converged = false;
+  int nodes_total = 0;
+  int nodes_with_hit = 0;
+  int gaps = 0;
+  int correct_chosen = 0;
+  int wrong_chosen = 0;
+  int planes_covered = 0;
+  int ambiguous_layers = 0;
+  int ambiguous_truth_present = 0;
+  int ambiguous_correct = 0;
+};
+
+KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector<TrueLabel> &point_label,
+                     const TrueLabel &target, const std::vector<int> &z_layer_whole_slice,
+                     const std::string &seed_source) {
+  KalmanScore score;
+  score.ran = true;
+  score.seed_source = seed_source;
+  score.converged = fit.Converged;
+  score.nodes_total = (int)fit.Nodes.size();
+
+  std::set<int> covered_layers;
+  for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+    if (!node.HasHit) {
+      ++score.gaps;
+      continue;
+    }
+    ++score.nodes_with_hit;
+    const bool correct = point_label[node.ChosenSpacePointIndex] == target;
+    if (correct) {
+      ++score.correct_chosen;
+      covered_layers.insert(z_layer_whole_slice[node.ChosenSpacePointIndex]);
+    } else {
+      ++score.wrong_chosen;
+    }
+    if (node.CandidateIndices.size() > 1) {
+      ++score.ambiguous_layers;
+      bool truth_present = false;
+      for (std::size_t idx : node.CandidateIndices)
+        if (point_label[idx] == target) truth_present = true;
+      if (truth_present) {
+        ++score.ambiguous_truth_present;
+        if (correct) ++score.ambiguous_correct;
+      }
+    }
+  }
+  score.planes_covered = (int)covered_layers.size();
+  return score;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  if (argc < 4 || argc > 5) {
+    std::cerr << "Usage: " << argv[0]
+              << " <edep_sim_geom_file> <input_reco_tree.root> <muons_output.csv> [append 0|1]"
+              << std::endl;
+    return -1;
+  }
+
+  const std::string geom_filename = argv[1];
+  const std::string input_filename = argv[2];
+  const std::string muons_csv_path = argv[3];
+  const bool append = argc == 5 && std::stoi(argv[4]) != 0;
+
+  // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp / GraphTrackFinderTruthEfficiency.cpp.
+  const int base_transverse_bars = 1;
+  const int transverse_bars_per_plane_gap = 1;
+  const int max_plane_gap = 3;
+  const unsigned int min_points = 5;
+  const double kLinearityThreshold = 0.8;
+  const size_t kMinClusterSizeForTrack = 5;
+
+  // Graph Track Finder fallback config: same validated real-data config as
+  // GraphTrackFinderTruthEfficiency.cpp / KalmanFollowerSliceTest.cpp.
+  TMS_GraphTrackFinder::Config lt_config;
+  lt_config.MaxSeedLayerOccupancy = 150;
+  lt_config.MaxSeedHitMultiplicity = 50;
+  lt_config.OccupancyPenalty = 0.0;
+  lt_config.HitMultiplicityPenalty = 0.0;
+  lt_config.UseCurvatureProjection = false;
+
+  TFile geom_input(geom_filename.c_str());
+  if (geom_input.IsZombie()) {
+    std::cerr << "Failed to open geometry source file: " << geom_filename << std::endl;
+    return -1;
+  }
+  TGeoManager *geom = (TGeoManager *)geom_input.Get("EDepSimGeometry");
+  if (!geom) {
+    std::cerr << "Geometry source file is missing 'EDepSimGeometry': " << geom_filename << std::endl;
+    return -1;
+  }
+  TMS_Geom::GetInstance().SetGeometry(geom);
+  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
+  const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
+              << std::endl;
+    return -1;
+  }
+  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
+  const double broad_phase_radius =
+      std::sqrt(worst_case_transverse * worst_case_transverse +
+                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+
+  // Kalman follower: default Config, real (GDML-confirmed) 1.0T region field.
+  // Stateless -- constructed once, reused (as a const&) for every muon.
+  const RegionFieldModel field;
+  const TMS_KalmanFollower::Config follower_config;
+  const TMS_KalmanFollower::Follower follower(follower_config, field);
+
+  TFile input(input_filename.c_str());
+  if (input.IsZombie()) {
+    std::cerr << "Failed to open input file: " << input_filename << std::endl;
+    return -1;
+  }
+  TTree *reco_tree = (TTree *)input.Get("Reco_Tree");
+  TTree *truth_info = (TTree *)input.Get("Truth_Info");
+  TTree *truth_spill = (TTree *)input.Get("Truth_Spill");
+  if (!reco_tree || !truth_info || !truth_spill) {
+    std::cerr << "Input file is missing Reco_Tree/Truth_Info/Truth_Spill" << std::endl;
+    return -1;
+  }
+
+  int spill_no_ts = 0, n_tp_ts = 0;
+  static std::vector<long long> vgid_ts(kMaxTrueParticles);
+  static std::vector<int> trackid_ts(kMaxTrueParticles);
+  static std::vector<int> pdg_ts(kMaxTrueParticles);
+  static std::vector<int> parent_ts(kMaxTrueParticles);
+  static bool tms_fid_start_ts[kMaxTrueParticles];
+  static bool lar_fid_start_ts[kMaxTrueParticles];
+  truth_spill->SetBranchAddress("SpillNo", &spill_no_ts);
+  truth_spill->SetBranchAddress("nTrueParticles", &n_tp_ts);
+  truth_spill->SetBranchAddress("VertexGlobalID", vgid_ts.data());
+  truth_spill->SetBranchAddress("TrackId", trackid_ts.data());
+  truth_spill->SetBranchAddress("PDG", pdg_ts.data());
+  truth_spill->SetBranchAddress("Parent", parent_ts.data());
+  truth_spill->SetBranchAddress("TMSFiducialStart", tms_fid_start_ts);
+  truth_spill->SetBranchAddress("LArFiducialStart", lar_fid_start_ts);
+
+  std::map<int, SpillParticles> spills;
+  for (Long64_t e = 0; e < truth_spill->GetEntries(); ++e) {
+    truth_spill->GetEntry(e);
+    SpillParticles sp;
+    sp.n = n_tp_ts;
+    sp.vgid.assign(vgid_ts.begin(), vgid_ts.begin() + n_tp_ts);
+    sp.trackid.assign(trackid_ts.begin(), trackid_ts.begin() + n_tp_ts);
+    sp.pdg.assign(pdg_ts.begin(), pdg_ts.begin() + n_tp_ts);
+    sp.parent_trackid.assign(parent_ts.begin(), parent_ts.begin() + n_tp_ts);
+    sp.tms_fiducial_start.assign(tms_fid_start_ts, tms_fid_start_ts + n_tp_ts);
+    sp.lar_fiducial_start.assign(lar_fid_start_ts, lar_fid_start_ts + n_tp_ts);
+    for (int i = 0; i < n_tp_ts; ++i) sp.index_of[{sp.vgid[i], sp.trackid[i]}] = i;
+    sp.collapsed_trackid.resize(n_tp_ts);
+    for (int i = 0; i < n_tp_ts; ++i) sp.collapsed_trackid[i] = CollapseTrackId(sp, i);
+    spills[spill_no_ts] = std::move(sp);
+  }
+  std::cout << "Loaded Truth_Spill: " << spills.size() << " spills" << std::endl;
+
+  int n_space_points = 0, spill_no = 0, slice_no = 0;
+  static std::vector<float> sp_x(kMaxSpacePoints), sp_y(kMaxSpacePoints), sp_z(kMaxSpacePoints);
+  static std::vector<float> sp_time(kMaxSpacePoints);
+  static std::vector<int> sp_x_hitidx(kMaxSpacePoints), sp_y_hitidx(kMaxSpacePoints);
+  static std::vector<long long> sp_x_vgid(kMaxSpacePoints), sp_y_vgid(kMaxSpacePoints);
+  static std::vector<int> sp_x_trackid(kMaxSpacePoints), sp_y_trackid(kMaxSpacePoints);
+  reco_tree->SetBranchAddress("nSpacePoints", &n_space_points);
+  reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
+  reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
+  reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
+  reco_tree->SetBranchAddress("SpacePointXHitIndex", sp_x_hitidx.data());
+  reco_tree->SetBranchAddress("SpacePointYHitIndex", sp_y_hitidx.data());
+  reco_tree->SetBranchAddress("SpacePointXTrueVertexGlobalId", sp_x_vgid.data());
+  reco_tree->SetBranchAddress("SpacePointXTrueTrackId", sp_x_trackid.data());
+  reco_tree->SetBranchAddress("SpacePointYTrueVertexGlobalId", sp_y_vgid.data());
+  reco_tree->SetBranchAddress("SpacePointYTrueTrackId", sp_y_trackid.data());
+  reco_tree->SetBranchAddress("SpillNo", &spill_no);
+  reco_tree->SetBranchAddress("SliceNo", &slice_no);
+
+  int n_tp_ti = 0;
+  static std::vector<int> true_nhits_slice(kMaxTrueParticles);
+  truth_info->SetBranchAddress("nTrueParticles", &n_tp_ti);
+  truth_info->SetBranchAddress("TrueNHitsInSlice", true_nhits_slice.data());
+
+  std::ofstream muons_csv;
+  if (append) {
+    muons_csv.open(muons_csv_path, std::ios::app);
+  } else {
+    muons_csv.open(muons_csv_path);
+    muons_csv << "sourcefile,entry,slice,spill,vertexglobalid,trackid,vertex_in_tms,vertex_in_lar_fiducial,"
+                 "true_hits_in_slice,n_muons_in_slice,n_spacepoints_total,target_planes_total,"
+                 "found_combined,"
+                 "kalman_ran,kalman_seed_source,kalman_converged,"
+                 "kalman_nodes_total,kalman_nodes_with_hit,kalman_gaps,"
+                 "kalman_correct_chosen,kalman_wrong_chosen,kalman_purity_pct,"
+                 "kalman_planes_covered,kalman_completeness_pct,"
+                 "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct\n";
+  }
+
+  Long64_t n_entries = reco_tree->GetEntries();
+  long n_slices_skipped_mismatch = 0, n_slices_seen = 0, n_slices_skipped_no_muon = 0;
+  long n_muons_total = 0, n_found_combined = 0, n_kalman_ran = 0, n_kalman_converged = 0;
+
+  for (Long64_t entry = 0; entry < n_entries; ++entry) {
+    reco_tree->GetEntry(entry);
+    truth_info->GetEntry(entry);
+
+    auto spill_it = spills.find(spill_no);
+    if (spill_it == spills.end()) continue;
+    const SpillParticles &sp = spill_it->second;
+    if (sp.n != n_tp_ti) {
+      ++n_slices_skipped_mismatch;
+      continue;
+    }
+    if (n_space_points <= 0) continue;
+
+    std::vector<int> muon_particle_idx;
+    for (int i = 0; i < sp.n; ++i) {
+      if (std::abs(sp.pdg[i]) == 13 && true_nhits_slice[i] >= (int)min_points) {
+        muon_particle_idx.push_back(i);
+      }
+    }
+    if (muon_particle_idx.empty()) {
+      ++n_slices_skipped_no_muon;
+      continue;
+    }
+    ++n_slices_seen;
+
+    auto collapse = [&](const TrueLabel &raw) -> TrueLabel {
+      if (!raw.Valid()) return raw;
+      auto it = sp.index_of.find(raw);
+      if (it == sp.index_of.end()) return raw;
+      return TrueLabel{raw.vgid, sp.collapsed_trackid[it->second]};
+    };
+    std::vector<TrueLabel> point_label(n_space_points);
+    for (int i = 0; i < n_space_points; ++i) {
+      const TrueLabel x_label = collapse(TrueLabel{sp_x_vgid[i], sp_x_trackid[i]});
+      const TrueLabel y_label = collapse(TrueLabel{sp_y_vgid[i], sp_y_trackid[i]});
+      point_label[i] = x_label.Valid() ? x_label : y_label;
+    }
+
+    const int n_muons_in_slice = (int)muon_particle_idx.size();
+
+    // --- Pass A: DBSCAN+PCA, exactly as GraphTrackFinderTruthEfficiency.cpp. ---
+    std::vector<TMS_SpacePoint> space_points;
+    space_points.reserve(n_space_points);
+    for (int i = 0; i < n_space_points; ++i) {
+      space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]);
+    }
+    std::vector<int> plane_index;
+    plane_index.reserve(n_space_points);
+    for (int i = 0; i < n_space_points; ++i) {
+      plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
+    }
+    TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, bar_pitch, base_transverse_bars,
+                                 transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+    std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
+    std::vector<TMS_SpacePointCluster> clusters;
+    clusters.reserve(cluster_indices.size());
+    for (auto &indices : cluster_indices) clusters.emplace_back(space_points, indices);
+
+    std::unordered_map<TrueLabel, std::vector<int>, LabelHash> muon_matches;
+    for (size_t c = 0; c < clusters.size(); ++c) {
+      const auto &cl = clusters[c];
+      if (!cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)) continue;
+      std::unordered_map<TrueLabel, int, LabelHash> votes;
+      for (int idx : cluster_indices[c])
+        if (point_label[idx].Valid()) votes[point_label[idx]]++;
+      TrueLabel owner;
+      int owner_count = 0;
+      for (auto &kv : votes)
+        if (kv.second > owner_count) { owner = kv.first; owner_count = kv.second; }
+      int owner_pdg = 0;
+      auto owner_idx_it = sp.index_of.find(owner);
+      if (owner.Valid() && owner_idx_it != sp.index_of.end()) owner_pdg = sp.pdg[owner_idx_it->second];
+      if (owner.Valid() && std::abs(owner_pdg) == 13) muon_matches[owner].push_back((int)c);
+    }
+
+    std::vector<int> point_cluster_id(n_space_points, 0);
+    for (size_t c = 0; c < cluster_indices.size(); ++c)
+      for (int idx : cluster_indices[c]) point_cluster_id[idx] = (int)c + 1;
+
+    const std::vector<int> z_layer_whole_slice = AssignZLayers(space_points, lt_config.LayerZTolerance);
+
+    // --- Pass B: merge-touching-clusters-plus-own-noise-and-re-PCA fallback,
+    // identical logic to GraphTrackFinderTruthEfficiency.cpp. ---
+    struct FallbackRun {
+      TMS_GraphTrackFinder::Result result;
+      std::vector<int> local_to_global;
+      std::vector<int> z_layer_local;
+    };
+
+    std::unordered_map<int, std::vector<int>> merged_clusters;
+    for (int pidx : muon_particle_idx) {
+      TrueLabel label{sp.vgid[pidx], sp.trackid[pidx]};
+      if (muon_matches.find(label) != muon_matches.end()) continue;
+
+      std::set<int> touched_cluster_ids;
+      std::vector<int> own_noise_points;
+      for (int i = 0; i < n_space_points; ++i) {
+        if (!(point_label[i] == label)) continue;
+        const int cid = point_cluster_id[i];
+        if (cid == 0) own_noise_points.push_back(i);
+        else touched_cluster_ids.insert(cid);
+      }
+      std::vector<int> merged_indices = own_noise_points;
+      for (int cid : touched_cluster_ids)
+        for (int idx : cluster_indices[cid - 1]) merged_indices.push_back(idx);
+      std::sort(merged_indices.begin(), merged_indices.end());
+      merged_indices.erase(std::unique(merged_indices.begin(), merged_indices.end()), merged_indices.end());
+
+      merged_clusters[pidx] = std::move(merged_indices);
+    }
+
+    std::unordered_map<int, FallbackRun> fallback_runs;
+    std::unordered_map<int, bool> found_merged_by_pidx;
+    for (auto &kv : merged_clusters) {
+      const int pidx = kv.first;
+      const std::vector<int> &merged_indices = kv.second;
+      TrueLabel label{sp.vgid[pidx], sp.trackid[pidx]};
+      found_merged_by_pidx[pidx] = false;
+      if (merged_indices.size() < kMinClusterSizeForTrack) continue;
+
+      TMS_SpacePointCluster merged_cluster(space_points, merged_indices);
+      if (merged_cluster.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)) {
+        std::unordered_map<TrueLabel, int, LabelHash> votes;
+        for (int idx : merged_indices) if (point_label[idx].Valid()) votes[point_label[idx]]++;
+        TrueLabel owner; int owner_count = 0;
+        for (auto &v : votes) if (v.second > owner_count) { owner = v.first; owner_count = v.second; }
+        if (owner == label) { found_merged_by_pidx[pidx] = true; continue; }
+      }
+
+      if (merged_indices.size() < lt_config.SeedLength) continue;
+      std::vector<TMS_SpacePoint> local_points;
+      local_points.reserve(merged_indices.size());
+      for (int gi : merged_indices) local_points.push_back(space_points[gi]);
+      FallbackRun run;
+      run.z_layer_local = AssignZLayers(local_points, lt_config.LayerZTolerance);
+      run.result = TMS_GraphTrackFinder::Finder(lt_config).Find(local_points);
+      run.local_to_global = merged_indices;
+      fallback_runs[pidx] = std::move(run);
+    }
+
+    for (int pidx : muon_particle_idx) {
+      ++n_muons_total;
+      TrueLabel label{sp.vgid[pidx], sp.trackid[pidx]};
+
+      std::set<int> target_layers_in_slice;
+      for (int i = 0; i < n_space_points; ++i)
+        if (point_label[i] == label) target_layers_in_slice.insert(z_layer_whole_slice[i]);
+
+      auto match_it = muon_matches.find(label);
+      const bool found_dbscan = match_it != muon_matches.end();
+      int best_dbscan_cluster = -1;
+      if (found_dbscan) {
+        size_t best_size = 0;
+        for (int c : match_it->second)
+          if (best_dbscan_cluster == -1 || clusters[c].GetSize() > best_size) {
+            best_size = clusters[c].GetSize();
+            best_dbscan_cluster = c;
+          }
+      }
+
+      bool found_dbscan_merged = false;
+      if (!found_dbscan) {
+        auto it = found_merged_by_pidx.find(pidx);
+        if (it != found_merged_by_pidx.end()) found_dbscan_merged = it->second;
+      }
+
+      bool found_lt = false;
+      const TMS_GraphTrackFinder::Path *best_lt_path = nullptr;
+      const FallbackRun *lt_run = nullptr;
+      int best_lt_planes = 0;
+      if (!found_dbscan && !found_dbscan_merged) {
+        auto run_it = fallback_runs.find(pidx);
+        if (run_it != fallback_runs.end()) {
+          lt_run = &run_it->second;
+          for (const TMS_GraphTrackFinder::Path &path : lt_run->result.Paths) {
+            std::set<int> matched_layers;
+            for (std::size_t local_idx : path.SpacePointIndices) {
+              const int global_idx = lt_run->local_to_global[local_idx];
+              if (point_label[global_idx] == label) matched_layers.insert(lt_run->z_layer_local[local_idx]);
+            }
+            if ((int)matched_layers.size() > best_lt_planes) {
+              best_lt_planes = (int)matched_layers.size();
+              best_lt_path = &path;
+            }
+          }
+          found_lt = best_lt_planes > 0;
+        }
+      }
+
+      const bool found_combined = found_dbscan || found_dbscan_merged || found_lt;
+      if (found_combined) ++n_found_combined;
+
+      // --- Kalman follower: whichever stage found the object, fit it. ---
+      KalmanScore kscore;
+      if (found_dbscan) {
+        const std::vector<std::size_t> objectIndices(cluster_indices[best_dbscan_cluster].begin(),
+                                                       cluster_indices[best_dbscan_cluster].end());
+        const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "dbscan_direct");
+      } else if (found_dbscan_merged) {
+        const std::vector<int> &merged_indices = merged_clusters[pidx];
+        const std::vector<std::size_t> objectIndices(merged_indices.begin(), merged_indices.end());
+        const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "merged_pca");
+      } else if (found_lt && best_lt_path != nullptr && best_lt_path->SpacePointIndices.size() >= 2) {
+        std::vector<int> globalIndices;
+        globalIndices.reserve(best_lt_path->SpacePointIndices.size());
+        for (std::size_t local_idx : best_lt_path->SpacePointIndices)
+          globalIndices.push_back(lt_run->local_to_global[local_idx]);
+        const std::vector<std::size_t> seedPath = BuildSeedPath(space_points, globalIndices);
+        const TMS_KalmanFollower::FitResult fit = follower.Run(space_points, seedPath);
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "graphtrack");
+      }
+      if (kscore.ran) {
+        ++n_kalman_ran;
+        if (kscore.converged) ++n_kalman_converged;
+      }
+
+      const double kalman_purity_pct =
+          (kscore.correct_chosen + kscore.wrong_chosen) > 0
+              ? 100.0 * kscore.correct_chosen / (kscore.correct_chosen + kscore.wrong_chosen)
+              : 0.0;
+      const double kalman_completeness_pct =
+          !target_layers_in_slice.empty() ? 100.0 * kscore.planes_covered / target_layers_in_slice.size() : 0.0;
+
+      muons_csv << input_filename << "," << entry << "," << slice_no << "," << spill_no << ","
+                << label.vgid << "," << label.trackid << ","
+                << (sp.tms_fiducial_start[pidx] ? 1 : 0) << "," << (sp.lar_fiducial_start[pidx] ? 1 : 0) << ","
+                << true_nhits_slice[pidx] << "," << n_muons_in_slice << "," << n_space_points << ","
+                << (int)target_layers_in_slice.size() << ","
+                << (found_combined ? 1 : 0) << ","
+                << (kscore.ran ? 1 : 0) << "," << kscore.seed_source << "," << (kscore.converged ? 1 : 0) << ","
+                << kscore.nodes_total << "," << kscore.nodes_with_hit << "," << kscore.gaps << ","
+                << kscore.correct_chosen << "," << kscore.wrong_chosen << "," << kalman_purity_pct << ","
+                << kscore.planes_covered << "," << kalman_completeness_pct << ","
+                << kscore.ambiguous_layers << "," << kscore.ambiguous_truth_present << "," << kscore.ambiguous_correct
+                << "\n";
+    }
+
+    if (n_slices_seen % 25 == 0) {
+      std::cout << "  entry=" << entry << "/" << n_entries << " spill=" << spill_no << " slice=" << slice_no
+                << " nSP=" << n_space_points << " muons_in_slice=" << n_muons_in_slice
+                << " slices_seen=" << n_slices_seen << " kalman_ran=" << n_kalman_ran << std::endl;
+    }
+  }
+
+  muons_csv.close();
+
+  std::cout << "Done. " << n_muons_total << " muon candidates." << std::endl;
+  std::cout << "Found (combined pipeline): " << n_found_combined << " ("
+            << (n_muons_total > 0 ? 100.0 * n_found_combined / n_muons_total : 0.0) << "%)" << std::endl;
+  std::cout << "Kalman follower ran: " << n_kalman_ran << ", converged: " << n_kalman_converged << " ("
+            << (n_kalman_ran > 0 ? 100.0 * n_kalman_converged / n_kalman_ran : 0.0) << "%)" << std::endl;
+  std::cout << "Slices seen (>=1 findable muon): " << n_slices_seen
+            << ", skipped (no findable muon): " << n_slices_skipped_no_muon
+            << ", skipped (nTrueParticles mismatch): " << n_slices_skipped_mismatch << std::endl;
+  std::cout << "Wrote " << muons_csv_path << (append ? " (appended)" : "") << std::endl;
+
+  return 0;
+}
