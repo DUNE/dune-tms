@@ -1,7 +1,9 @@
 #ifndef _TMS_HIT_H_SEEN_
 #define _TMS_HIT_H_SEEN_
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 // Include the constants
 #include "TMS_Constants.h"
@@ -19,6 +21,16 @@
 
 // Not sure if users would need this beyond debugging deadtime
 #define RECORD_HIT_DEADTIME
+
+// A detected optical photon arrival at the photosensor. SourceHitId is the
+// event-scoped TMS_Hit/TMS_TrueHit key of the edep-sim deposit that produced
+// it; it deliberately survives a later reco-hit merge so a future readout
+// model can retain photon-level provenance.
+struct TMS_PhotonArrival {
+    double Time;
+    int SourceHitId;
+    bool LongPath;
+};
 
 // A low-level hit
 class TMS_Hit {
@@ -93,6 +105,17 @@ class TMS_Hit {
     void SetPE(double pe) { PE = pe; };
     double GetPE() const { return PE; };
 
+    void AddPhotonArrival(double time, int source_hit_id, bool long_path) {
+      PhotonArrivals.push_back({time, source_hit_id, long_path});
+    };
+    void SortPhotonArrivals() {
+      std::sort(PhotonArrivals.begin(), PhotonArrivals.end(),
+          [](const TMS_PhotonArrival& a, const TMS_PhotonArrival& b) {
+            return a.Time < b.Time;
+          });
+    };
+    const std::vector<TMS_PhotonArrival>& GetPhotonArrivals() const { return PhotonArrivals; };
+
     double GetE() const {return EnergyDeposit;};
     double GetEVis() const {return EnergyDepositVisible;};
     double GetT() const {return Time;};
@@ -164,6 +187,7 @@ class TMS_Hit {
     
     bool PedSuppressed;
     double PE;
+    std::vector<TMS_PhotonArrival> PhotonArrivals;
     
 };
 

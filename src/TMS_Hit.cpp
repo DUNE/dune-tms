@@ -52,6 +52,8 @@ void TMS_Hit::MergeWith(TMS_Hit& hit) {
   SetE(GetE() + hit.GetE());
   SetPE(GetPE() + hit.GetPE());
   SetT(std::min(GetT(), hit.GetT()));
+  PhotonArrivals.insert(PhotonArrivals.end(), hit.PhotonArrivals.begin(), hit.PhotonArrivals.end());
+  SortPhotonArrivals();
   // Truth-side merge (TMS_TrueHit::MergeWith by HitId) now happens in
   // TMS_SignalProcessing::MergeCoincidentHits() via TMS_Event::MergeTrueHit(), since truth is
   // no longer embedded in TMS_Hit.
