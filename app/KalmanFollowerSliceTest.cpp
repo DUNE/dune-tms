@@ -363,6 +363,15 @@ int main(int argc, char **argv) {
 
   std::vector<std::size_t> seedPath;
   std::string foundVia;
+  // The object's own point indices in their RAW (unordered) form, as found
+  // by Stage 1/2 -- kept separately from seedPath (which BuildSeedPathFromIndices
+  // has already z-sorted for display) so the follower can try every
+  // candidate at the object's own first z-layer as the seed anchor
+  // (RunBestSeed(), see TMS_KalmanFollower.h) instead of committing to
+  // whichever one a naive z-sort happens to put first. Left empty for the
+  // Stage 3 (graph-search) case, whose own directed search already resolved
+  // this same first-point ambiguity -- that seed keeps using plain Run().
+  std::vector<std::size_t> seedObjectIndices;
   // Every candidate path the graph search produced (not just the best),
   // converted to global best_points indices -- kept around only for the
   // optional JSON display dump (Stage 3, below, fills this in when it
@@ -385,6 +394,8 @@ int main(int argc, char **argv) {
     if (cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
         ClusterOwner(cluster_indices[bestOwnClusterId - 1]) == target) {
       seedPath = BuildSeedPathFromIndices(best_points, cluster_indices[bestOwnClusterId - 1]);
+      seedObjectIndices.assign(cluster_indices[bestOwnClusterId - 1].begin(),
+                                cluster_indices[bestOwnClusterId - 1].end());
       foundVia = "DBSCAN+PCA (direct)";
     }
   }
@@ -412,6 +423,7 @@ int main(int argc, char **argv) {
       if (merged_cluster.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
           ClusterOwner(merged_indices) == target) {
         seedPath = BuildSeedPathFromIndices(best_points, merged_indices);
+        seedObjectIndices.assign(merged_indices.begin(), merged_indices.end());
         foundVia = "merged-cluster PCA";
       }
     }
@@ -481,7 +493,23 @@ int main(int argc, char **argv) {
   const RegionFieldModel field;  // 1.0T, GDML-confirmed -- see TMS_FieldModel.h
   const TMS_KalmanFollower::Config followerConfig;
   const TMS_KalmanFollower::Follower follower(followerConfig, field);
-  const TMS_KalmanFollower::FitResult fit = follower.Run(best_points, seedPath);
+
+  // DBSCAN-direct/merged-PCA seeds (Stages 1-2) are unordered blobs with no
+  // directed search behind them -- naively z-sorting and taking whichever
+  // point lands first can anchor the fit on a bad choice when the object's
+  // own first z-layer has more than one point at (near-)identical z.
+  // RunBestSeed() spawns one hypothesis per first-layer candidate and keeps
+  // the best. Stage 3 (graph-search fallback) already ran a directed search
+  // that resolved this exact ambiguity, so it keeps using Run() on its own
+  // already-ordered path.
+  const bool usedMultiHypothesis = !seedObjectIndices.empty();
+  const TMS_KalmanFollower::FitResult fit = usedMultiHypothesis
+      ? follower.RunBestSeed(best_points, seedObjectIndices)
+      : follower.Run(best_points, seedPath);
+  if (usedMultiHypothesis) {
+    std::cout << "\nMulti-hypothesis seeding: " << seedObjectIndices.size()
+              << " object points, one fit per candidate at the object's own first z-layer.\n";
+  }
 
   std::cout << "\nKalman follower result\n"
             << "  converged: " << (fit.Converged ? "yes" : "NO") << '\n'

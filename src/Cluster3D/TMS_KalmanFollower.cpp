@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <set>
 
 #include "TVector3.h"
 
@@ -498,6 +499,23 @@ double SeedCharge(const std::vector<TMS_SpacePoint> &allSpacePoints,
   return 1.0;
 }
 
+// Ranks two hypotheses' fit results for RunBestSeed(): converged beats
+// unconverged outright; among either group, more accepted (non-gap) nodes
+// beats fewer (a hypothesis that only limped one step before diverging
+// covers less of the object than one that walked its full length); ties
+// broken by chi2/NDoF (lower is better), the standard goodness-of-fit
+// comparison once coverage is equal.
+bool IsBetterFit(const FitResult &a, const FitResult &b) {
+  if (a.Converged != b.Converged) return a.Converged;
+  int hitsA = 0, hitsB = 0;
+  for (const FollowedNode &n : a.Nodes) if (n.HasHit) ++hitsA;
+  for (const FollowedNode &n : b.Nodes) if (n.HasHit) ++hitsB;
+  if (hitsA != hitsB) return hitsA > hitsB;
+  const double chi2NDofA = a.NDoF > 0 ? a.TotalChi2 / a.NDoF : std::numeric_limits<double>::infinity();
+  const double chi2NDofB = b.NDoF > 0 ? b.TotalChi2 / b.NDoF : std::numeric_limits<double>::infinity();
+  return chi2NDofA < chi2NDofB;
+}
+
 }  // namespace
 
 Follower::Follower(const Config &config, const IFieldModel &field) : fConfig(config), fField(field) {}
@@ -631,6 +649,57 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   result.NDoF -= 5;  // 5 fitted state parameters
 
   return result;
+}
+
+FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoints,
+                                 const std::vector<std::size_t> &objectIndices) const {
+  FitResult best;
+  if (objectIndices.empty()) return best;
+
+  // Group just the object's own points to find ITS first z-layer -- not
+  // allSpacePoints' first layer, which could belong to unrelated activity
+  // elsewhere in a dense slice.
+  std::vector<TMS_SpacePoint> objectPoints;
+  objectPoints.reserve(objectIndices.size());
+  for (std::size_t idx : objectIndices) objectPoints.push_back(allSpacePoints[idx]);
+  const std::vector<std::vector<std::size_t> > objectLayers =
+      TMS_LayerGrouping::Build(objectPoints, fConfig.LayerZTolerance);
+  if (objectLayers.empty()) return best;
+
+  const std::vector<std::size_t> &firstLayerLocal = objectLayers.front();
+  std::set<std::size_t> firstLayerGlobal;
+  for (std::size_t localIdx : firstLayerLocal) firstLayerGlobal.insert(objectIndices[localIdx]);
+
+  // The rest of the object, z-sorted (same (z,x,y) tie-break
+  // TMS_LayerGrouping itself uses internally) -- shared across every
+  // hypothesis below; only which point leads the seed path (and therefore
+  // SeedDirection()'s first ~3-point average) changes per hypothesis.
+  std::vector<std::size_t> restSorted;
+  for (std::size_t idx : objectIndices)
+    if (!firstLayerGlobal.count(idx)) restSorted.push_back(idx);
+  std::sort(restSorted.begin(), restSorted.end(), [&allSpacePoints](std::size_t a, std::size_t b) {
+    const TMS_SpacePoint &pa = allSpacePoints[a];
+    const TMS_SpacePoint &pb = allSpacePoints[b];
+    if (pa.GetZ() != pb.GetZ()) return pa.GetZ() < pb.GetZ();
+    if (pa.GetX() != pb.GetX()) return pa.GetX() < pb.GetX();
+    return pa.GetY() < pb.GetY();
+  });
+
+  bool haveBest = false;
+  for (std::size_t localIdx : firstLayerLocal) {
+    const std::size_t anchor = objectIndices[localIdx];
+    std::vector<std::size_t> seedPath;
+    seedPath.reserve(restSorted.size() + 1);
+    seedPath.push_back(anchor);
+    seedPath.insert(seedPath.end(), restSorted.begin(), restSorted.end());
+
+    const FitResult candidate = Run(allSpacePoints, seedPath);
+    if (!haveBest || IsBetterFit(candidate, best)) {
+      best = candidate;
+      haveBest = true;
+    }
+  }
+  return best;
 }
 
 }  // namespace TMS_KalmanFollower

@@ -178,6 +178,31 @@ class Follower {
     FitResult Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
                   const std::vector<std::size_t> &seedPath) const;
 
+    // Multi-hypothesis seeding ("combinatorial Kalman filter" seeding, the
+    // standard ATLAS/CMS/ACTS pattern for exactly this problem): for a
+    // found track-like object whose points came from DBSCAN+PCA or a
+    // merge-and-re-PCA (i.e. NOT already ordered by a directed search the
+    // way TMS_GraphTrackFinder::Path is), z-sorting the object's points and
+    // always starting from whichever one lands first can pick a bad anchor
+    // when the object's own first z-layer has more than one point at
+    // (near-)identical z -- discovered on real slices: one such object's
+    // naive seed diverged after a single node, while a hand-picked
+    // different first-layer point on the SAME object converged cleanly.
+    // Run() itself can't distinguish these (it only ever sees one seedPath),
+    // so this spawns one hypothesis per candidate at the object's own first
+    // z-layer, fits each with Run(), and keeps the best -- reusing
+    // Converged/NDoF/TotalChi2 as the ready-made selection signal rather
+    // than inventing a new search. Prefer this over Run() for DBSCAN-direct
+    // and merged-cluster seeds; TMS_GraphTrackFinder::Path seeds already
+    // went through a directed graph search that resolved this same
+    // ambiguity, so they should keep calling Run() directly.
+    //
+    // objectIndices: the found object's own point indices into
+    // allSpacePoints, in ANY order (unlike seedPath above, this is not
+    // expected to be pre-sorted).
+    FitResult RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoints,
+                          const std::vector<std::size_t> &objectIndices) const;
+
   private:
     Config fConfig;
     const IFieldModel &fField;
