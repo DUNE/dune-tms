@@ -37,6 +37,20 @@ struct Config {
   // final yet.
   double ChiSquareGateMax = 9.21;
 
+  // Predict() sub-steps a layer-to-layer propagation into pieces no longer
+  // than this, rather than one linearized jump. Needed for real numerical
+  // stability, not just accuracy: the curvature Jacobian's position<->q/p
+  // coupling term is quadratic in the step length, so one big ~100-200mm
+  // plane-to-plane jump gives q/p an artificially outsized lever arm on
+  // position -- discovered on the flagship real-data case, where a single
+  // big jump let one ordinary ~45mm position residual (typical
+  // quantization+scattering noise, not a real momentum signal) collapse
+  // the fitted momentum to its floor in one update. ~1 bar pitch is a
+  // reasonable scale (fine enough that the linearization stays valid,
+  // coarse enough not to multiply the number of TMS_Geom::GetMaterials
+  // calls unreasonably).
+  double MaxSubstepLengthMM = 40.0;
+
   // How many consecutive layers with no accepted candidate the follower
   // tolerates before giving up (FitResult::Converged = false). Mirrors
   // TMS_GraphTrackFinder::Config::MaxLayerGap's role.

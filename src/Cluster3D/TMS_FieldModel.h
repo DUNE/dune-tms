@@ -35,18 +35,34 @@ class ZeroFieldModel : public IFieldModel {
 // that only dx/dz bends -- see TMS_KalmanFollower.cpp), sign flipping
 // between the central and outer regions same as legacy's SignSelection().
 //
-// The per-region magnitude has NO source-of-truth value anywhere in this
-// repo (checked: no field map, and legacy's own deflection term is computed
-// but never applied -- see TMS_Kalman.cpp:252-253). RegionFieldModelConfig
-// below defaults to a clearly-flagged placeholder; treat any momentum this
-// produces as "plausibly shaped," not calibrated, until a real value is
-// confirmed against TMS design documentation.
+// The per-region magnitude was a total placeholder (0.15T) until confirmed
+// two independent ways on 2026-09-10: (1) the actual production GDML used
+// for this MC (nd_hall_with_lar_tms_sand_drift1_v2026.03.06.txt) defines a
+// real field via the standard edep-sim <auxiliary auxtype="BField"> GDML
+// convention on TMS's own steel volumes -- thinvolTMS/thickvolTMS/
+// doublevolTMS at (0,+1.0T,0), thinvol2TMS/thickvol2TMS/doublevol2TMS at
+// (0,-1.0T,0) -- i.e. exactly this two-sided-sign-flip structure, at 1.0
+// Tesla, field along y (bends only dx/dz, matching this file's model).
+// (2) Verified empirically too: the flagship muon's own true (both-sides-
+// verified) trajectory shows dx/dz genuinely, monotonically steepening
+// along the track (~-0.14 near the entrance to ~-0.56 near the exit) while
+// dy/dz stays flat at zero -- the real signature of a systematic Y-field
+// bend, not multiple-scattering noise (which would random-walk, not trend
+// monotonically in one axis only). Back-solving this file's own curvature
+// formula with that muon's known true momentum (~1.49 GeV) gives an
+// implied field of ~0.89T, matching the GDML's 1.0T within the accuracy of
+// a crude segment-averaged slope estimate over real bar-pitch-quantized
+// data. Still worth confirming against a second production geometry (the
+// user's caution: newer geometries may use a different, progressively-
+// varying field structure across thickness regions -- this hasn't been
+// checked yet) before treating 1.0T as universally correct.
 struct RegionFieldModelConfig {
   // Tesla. Central region (|x| < region_2_and_3_border) and outer regions
   // share a magnitude but opposite sign, matching legacy's
-  // TMS_Kalman.cpp:225-230 region split.
-  double CentralRegionFieldY = 0.15;  // PLACEHOLDER -- not a confirmed TMS design value
-  double OuterRegionFieldY = -0.15;   // PLACEHOLDER -- not a confirmed TMS design value
+  // TMS_Kalman.cpp:225-230 region split AND the GDML's thinvolTMS (+) vs.
+  // thinvol2TMS (-) volume pairing.
+  double CentralRegionFieldY = 1.0;
+  double OuterRegionFieldY = -1.0;
 };
 
 class RegionFieldModel : public IFieldModel {

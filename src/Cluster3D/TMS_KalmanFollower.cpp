@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
 #include <limits>
 
 #include "TVector3.h"
@@ -175,28 +177,26 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
   return scatterCov;
 }
 
-// Propagate one node forward to zTarget: field-bent straight-line-plus-
-// curvature step (the bend legacy computes and discards, see this file's
-// header comment), then real energy loss + multiple scattering via
-// ApplyMaterialSteps.
-StepState Predict(const StepState &previous, double zTarget, const IFieldModel &field) {
+// One sub-step of the swimmer: field-bent straight-line-plus-curvature step
+// (the bend legacy computes and discards, see this file's header comment),
+// then real energy loss + multiple scattering via ApplyMaterialSteps, over
+// a single small dz. Kept separate from Predict() below because the
+// quadratic-in-dz Jacobian term (transfer(0,4)) is only a safe
+// linearization for a small dz -- see Predict()'s comment.
+StepState PredictSubstep(const StepState &previous, double subDz, const IFieldModel &field) {
   StepState predicted = previous;
-  predicted.z = zTarget;
-  const double dz = zTarget - previous.z;
-  if (std::abs(dz) < 1e-9) return predicted;
+  predicted.z = previous.z + subDz;
 
-  // Field sampled once, at the segment midpoint (straight-line projection)
-  // -- a single-sample estimate is adequate over one plane-to-plane gap.
-  const TVector3 midpoint(previous.x + 0.5 * previous.dxdz * dz,
-                           previous.y + 0.5 * previous.dydz * dz,
-                           previous.z + 0.5 * dz);
+  const TVector3 midpoint(previous.x + 0.5 * previous.dxdz * subDz,
+                           previous.y + 0.5 * previous.dydz * subDz,
+                           previous.z + 0.5 * subDz);
   const double fieldY = field.GetField(midpoint).Y();
   const double kappa = Kappa(previous.qp, fieldY);
 
-  predicted.dxdz = previous.dxdz + kappa * dz;
+  predicted.dxdz = previous.dxdz + kappa * subDz;
   predicted.dydz = previous.dydz;  // B along y bends only dx/dz in this model
-  predicted.x = previous.x + previous.dxdz * dz + 0.5 * kappa * dz * dz;
-  predicted.y = previous.y + previous.dydz * dz;
+  predicted.x = previous.x + previous.dxdz * subDz + 0.5 * kappa * subDz * subDz;
+  predicted.y = previous.y + previous.dydz * subDz;
 
   // Divergence guard: a slope or position this far outside anything
   // physical (TMS is a few meters across; even a hard-scattering muon
@@ -214,25 +214,43 @@ StepState Predict(const StepState &previous, double zTarget, const IFieldModel &
   // comment for the derivation. Off-diagonal q/p terms capture "how would
   // a different momentum have bent this step differently" -- physically
   // important, and exactly what a flat drift-only transfer matrix (like
-  // legacy's, TMS_Kalman.cpp:112-119) cannot represent.
+  // legacy's, TMS_Kalman.cpp:112-119) cannot represent. The (0,4) term is
+  // quadratic in subDz -- keeping subDz small (see Predict()) keeps this
+  // linearization valid and keeps q/p from picking up an artificially
+  // large lever arm on position over one step.
   TMatrixD transfer(5, 5);
   transfer.UnitMatrix();
-  transfer(0, 2) = dz;
-  transfer(0, 4) = 0.5 * kCurvatureConstant * fieldY * dz * dz;
-  transfer(1, 3) = dz;
-  transfer(2, 4) = kCurvatureConstant * fieldY * dz;
+  transfer(0, 2) = subDz;
+  transfer(0, 4) = 0.5 * kCurvatureConstant * fieldY * subDz * subDz;
+  transfer(1, 3) = subDz;
+  transfer(2, 4) = kCurvatureConstant * fieldY * subDz;
 
-  const TMatrixD propagatedCov = transfer * previous.cov * transfer.T();
+  // NOTE: TMatrixD::T() transposes IN PLACE and returns *this -- it is NOT
+  // a non-mutating "give me a transposed copy" like Eigen's/numpy's
+  // .transpose(). Calling it inline inside this expression corrupted
+  // `transfer` mid-evaluation (operand evaluation order across `*` isn't
+  // sequenced, so `transfer` could already be transposed by the time
+  // `transfer * previous.cov` itself runs) and silently broke the whole
+  // covariance propagation -- discovered via KF_DEBUG instrumentation
+  // showing cov(0,4)/cov(2,4) staying exactly zero after propagation
+  // despite a manifestly nonzero curvature Jacobian, no matter how the
+  // physics config (field magnitude, initial covariances, step size) was
+  // tuned. Use the kTransposed constructor for an explicit, non-mutating
+  // copy instead -- same reason legacy TMS_Kalman.h keeps a manually-
+  // maintained separate TransferMatrixT member rather than ever calling
+  // .T() inline.
+  const TMatrixD transferT(TMatrixD::kTransposed, transfer);
+  const TMatrixD propagatedCov = transfer * previous.cov * transferT;
 
-  // Second divergence guard: if repeated un-updated gaps have already
-  // inflated the covariance past the detector's own transverse extent, the
-  // chi2 gate (which scales with this covariance) stops meaningfully
-  // rejecting anything -- effectively any nearby point in a dense slice
-  // passes, letting the walk wander indefinitely through unrelated
-  // material instead of correctly running out of plausible candidates.
-  // Bound it well above genuine values (this detector is a few meters
-  // across) so real fits are never affected, but a runaway is caught here
-  // rather than a hundred layers later.
+  // Divergence guard: if repeated un-updated gaps have already inflated
+  // the covariance past the detector's own transverse extent, the chi2
+  // gate (which scales with this covariance) stops meaningfully rejecting
+  // anything -- effectively any nearby point in a dense slice passes,
+  // letting the walk wander indefinitely through unrelated material
+  // instead of correctly running out of plausible candidates. Bound it
+  // well above genuine values (this detector is a few meters across) so
+  // real fits are never affected, but a runaway is caught here rather than
+  // a hundred layers later.
   constexpr double kMaxPositionVarianceMM2 = 4.0e6;  // (2000mm)^2
   if (propagatedCov(0, 0) > kMaxPositionVarianceMM2 || propagatedCov(1, 1) > kMaxPositionVarianceMM2) {
     predicted.Diverged = true;
@@ -249,6 +267,32 @@ StepState Predict(const StepState &previous, double zTarget, const IFieldModel &
   predicted.cov(4, 4) += qpVariance;
 
   return predicted;
+}
+
+// Propagate one node forward to zTarget by sub-stepping through it (a real
+// swimmer, not one big linearized jump). A single dz~100-200mm plane-to-
+// plane gap makes PredictSubstep's transfer(0,4) term (quadratic in dz)
+// large enough to give q/p an artificially outsized lever arm on position
+// -- discovered on the flagship real-data case: a single ~130mm jump let
+// one ordinary ~45mm position residual (typical quantization+scattering
+// noise, not a real momentum signal) drive the Kalman gain to collapse
+// momentum to its floor in one update. Sub-stepping keeps each
+// linearization small and keeps the accumulated covariance honest.
+StepState Predict(const StepState &previous, double zTarget, const IFieldModel &field,
+                   double maxSubstepLengthMM) {
+  const double totalDz = zTarget - previous.z;
+  if (std::abs(totalDz) < 1e-9) return previous;
+
+  const int nSubsteps = std::max(
+      1, static_cast<int>(std::ceil(std::abs(totalDz) / maxSubstepLengthMM)));
+  const double subDz = totalDz / nSubsteps;
+
+  StepState current = previous;
+  for (int i = 0; i < nSubsteps; ++i) {
+    current = PredictSubstep(current, subDz, field);
+    if (current.Diverged) return current;
+  }
+  return current;
 }
 
 // Measurement covariance for one candidate space point, from the project's
@@ -304,6 +348,20 @@ StepState UpdateState(const StepState &predicted, const TMS_SpacePoint &chosen, 
   double stateVec[5] = {predicted.x, predicted.y, predicted.dxdz, predicted.dydz, predicted.qp};
   for (int row = 0; row < 5; ++row)
     stateVec[row] += gain[row][0] * residualX + gain[row][1] * residualY;
+
+  if (std::getenv("KF_DEBUG")) {
+    std::cerr << "[KF_DEBUG UpdateState] predicted.qp=" << predicted.qp
+              << " cov(4,4)=" << predicted.cov(4, 4)
+              << " cov(0,4)=" << predicted.cov(0, 4)
+              << " cov(2,4)=" << predicted.cov(2, 4)
+              << " cov(0,0)=" << predicted.cov(0, 0)
+              << " residualX=" << residualX << " residualY=" << residualY
+              << " gain[4][0]=" << gain[4][0] << " gain[4][1]=" << gain[4][1]
+              << " dqp=" << (gain[4][0] * residualX + gain[4][1] * residualY)
+              << " gain[2][0]=" << gain[2][0]
+              << " ddxdz=" << (gain[2][0] * residualX + gain[2][1] * residualY)
+              << std::endl;
+  }
 
   updated.x = stateVec[0];
   updated.y = stateVec[1];
@@ -519,7 +577,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     if (candidates.empty()) continue;  // TMS_LayerGrouping never emits an empty layer; defensive only
     const double targetZ = allSpacePoints[candidates.front()].GetZ();
 
-    const StepState predicted = Predict(current, targetZ, fField);
+    const StepState predicted = Predict(current, targetZ, fField, fConfig.MaxSubstepLengthMM);
     if (predicted.Diverged) {
       result.Converged = false;
       break;
