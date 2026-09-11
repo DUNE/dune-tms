@@ -584,6 +584,24 @@ int main(int argc, char **argv) {
       return best_point_label_x[i] == target && best_point_label_y[i] == target;
     });
 
+    // The actual object that was found and handed to the follower as a seed
+    // (the specific DBSCAN cluster, the merged set, or -- for the graph-
+    // search fallback -- its own best path) -- distinct from own_points
+    // above, which is every point in the WHOLE SLICE single-sided-truth-
+    // matched to the target, including any ghost/ambiguous matches the
+    // found object never actually contained. Marking each point's own
+    // truth-correctness here (rather than assuming every seed point is
+    // right) keeps this honest for the DBSCAN-direct/merged-PCA case too.
+    json << ",\"seed_points\":[";
+    for (std::size_t k = 0; k < seedPath.size(); ++k) {
+      if (k) json << ",";
+      const std::size_t idx = seedPath[k];
+      json << "{\"x\":" << best_points[idx].GetX() << ",\"y\":" << best_points[idx].GetY()
+           << ",\"z\":" << best_points[idx].GetZ() << ",\"is_target\":"
+           << (best_point_label[idx] == target ? "true" : "false") << "}";
+    }
+    json << "]";
+
     json << ",\"paths\":[";
     for (std::size_t p = 0; p < allGraphtrackGlobalPaths.size(); ++p) {
       if (p) json << ",";
