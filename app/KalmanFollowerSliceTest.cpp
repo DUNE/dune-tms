@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -136,10 +137,10 @@ std::vector<std::size_t> BuildSeedPathFromIndices(const std::vector<TMS_SpacePoi
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc < 3 || argc > 5) {
+  if (argc < 3 || argc > 6) {
     std::cerr << "Usage: " << argv[0]
               << " <geometry_source.root> <input_reco_tree.root> [target_vertexglobalid=10000461]"
-                 " [target_trackid=0]"
+                 " [target_trackid=0] [output_json_path]"
               << std::endl;
     return 1;
   }
@@ -147,6 +148,7 @@ int main(int argc, char **argv) {
   const std::string input_filename = argv[2];
   const long long target_vgid = argc >= 4 ? std::stoll(argv[3]) : 10000461;
   const int target_trackid = argc >= 5 ? std::stoi(argv[4]) : 0;
+  const std::string output_json_path = argc >= 6 ? argv[5] : "";
   const TrueLabel target{target_vgid, target_trackid};
 
   TFile geom_input(geom_filename.c_str());
@@ -253,6 +255,13 @@ int main(int argc, char **argv) {
   int best_spill = 0, best_slice = 0;
   std::vector<TMS_SpacePoint> best_points;
   std::vector<TrueLabel> best_point_label;
+  // Cached separately (not just the merged single-sided label) so a
+  // both-sides-verified truth trajectory -- a space point counts only if
+  // BOTH its X-hit and Y-hit truth branches independently confirm the
+  // target, the same rigor used for the flagship display's true-trajectory
+  // overlay -- can be reconstructed after the scan for whichever slice
+  // wins, without re-reading the tree.
+  std::vector<TrueLabel> best_point_label_x, best_point_label_y;
 
   for (Long64_t entry = 0; entry < n_entries; ++entry) {
     reco_tree->GetEntry(entry);
@@ -268,10 +277,13 @@ int main(int argc, char **argv) {
     };
 
     std::vector<TrueLabel> point_label(n_space_points);
+    std::vector<TrueLabel> point_label_x(n_space_points), point_label_y(n_space_points);
     int count = 0;
     for (int i = 0; i < n_space_points; ++i) {
       TrueLabel x_label = collapse(TrueLabel{sp_x_vgid[i], sp_x_trackid[i]});
       TrueLabel y_label = collapse(TrueLabel{sp_y_vgid[i], sp_y_trackid[i]});
+      point_label_x[i] = x_label;
+      point_label_y[i] = y_label;
       point_label[i] = x_label.Valid() ? x_label : y_label;
       if (point_label[i] == target) ++count;
     }
@@ -288,6 +300,8 @@ int main(int argc, char **argv) {
                                               sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]));
       }
       best_point_label = point_label;
+      best_point_label_x = point_label_x;
+      best_point_label_y = point_label_y;
     }
   }
 
@@ -349,6 +363,11 @@ int main(int argc, char **argv) {
 
   std::vector<std::size_t> seedPath;
   std::string foundVia;
+  // Every candidate path the graph search produced (not just the best),
+  // converted to global best_points indices -- kept around only for the
+  // optional JSON display dump (Stage 3, below, fills this in when it
+  // actually runs).
+  std::vector<std::vector<std::size_t>> allGraphtrackGlobalPaths;
 
   // Stage 1: does the cluster that plurality-owns the target's own points
   // (if any) already pass the PCA linearity check on its own?
@@ -415,6 +434,14 @@ int main(int argc, char **argv) {
     for (int gi : merged_indices) local_points.push_back(best_points[gi]);
     const TMS_GraphTrackFinder::Result finderResult =
         TMS_GraphTrackFinder::Finder(finderConfig).Find(local_points);
+
+    for (const TMS_GraphTrackFinder::Path &path : finderResult.Paths) {
+      std::vector<std::size_t> globalPath;
+      globalPath.reserve(path.SpacePointIndices.size());
+      for (std::size_t localIdx : path.SpacePointIndices)
+        globalPath.push_back(static_cast<std::size_t>(merged_indices[localIdx]));
+      allGraphtrackGlobalPaths.push_back(std::move(globalPath));
+    }
 
     std::size_t bestSeedMatched = 0;
     const TMS_GraphTrackFinder::Path *bestSeed = nullptr;
@@ -519,6 +546,82 @@ int main(int argc, char **argv) {
       std::cout << " GAP";
     }
     std::cout << '\n';
+  }
+
+  // Optional: dump the point cloud, the graph-search candidate paths (if
+  // Stage 3 ran), the both-sides-verified true trajectory, and the Kalman
+  // fit's own trajectory as JSON, for an event display. own/blob/other
+  // matches the 3-way split used throughout this project's displays (own =
+  // the target particle; blob = a different track at the *same* vertex;
+  // other = a different vertex entirely, or no truth).
+  if (!output_json_path.empty()) {
+    std::ofstream json(output_json_path);
+    json << std::fixed;
+    json << "{\"vgid\":" << target.vgid << ",\"trackid\":" << target.trackid
+         << ",\"entry\":" << best_entry << ",\"spill\":" << best_spill
+         << ",\"slice\":" << best_slice << ",\"n_total_slice\":" << best_total
+         << ",\"found_via\":\"" << foundVia << "\""
+         << ",\"n_target_planes\":" << target_layers_in_slice.size();
+
+    auto writePoints = [&](const char *key, std::function<bool(std::size_t)> include) {
+      json << ",\"" << key << "\":[";
+      bool first = true;
+      for (std::size_t i = 0; i < best_points.size(); ++i) {
+        if (!include(i)) continue;
+        if (!first) json << ",";
+        first = false;
+        json << "[" << best_points[i].GetX() << "," << best_points[i].GetY() << ","
+             << best_points[i].GetZ() << "]";
+      }
+      json << "]";
+    };
+    writePoints("own_points", [&](std::size_t i) { return best_point_label[i] == target; });
+    writePoints("blob_points", [&](std::size_t i) {
+      return best_point_label[i].vgid == target.vgid && !(best_point_label[i] == target);
+    });
+    writePoints("other_points", [&](std::size_t i) { return best_point_label[i].vgid != target.vgid; });
+    writePoints("true_trajectory", [&](std::size_t i) {
+      return best_point_label_x[i] == target && best_point_label_y[i] == target;
+    });
+
+    json << ",\"paths\":[";
+    for (std::size_t p = 0; p < allGraphtrackGlobalPaths.size(); ++p) {
+      if (p) json << ",";
+      const std::vector<std::size_t> &path = allGraphtrackGlobalPaths[p];
+      std::size_t matched = 0;
+      for (std::size_t idx : path)
+        if (best_point_label[idx] == target) ++matched;
+      const double purity = path.empty() ? 0.0 : 100.0 * matched / path.size();
+      json << "{\"purity\":" << purity << ",\"n_matched\":" << matched << ",\"points\":[";
+      for (std::size_t k = 0; k < path.size(); ++k) {
+        if (k) json << ",";
+        const std::size_t idx = path[k];
+        json << "{\"x\":" << best_points[idx].GetX() << ",\"y\":" << best_points[idx].GetY()
+             << ",\"z\":" << best_points[idx].GetZ() << ",\"is_target\":"
+             << (best_point_label[idx] == target ? "true" : "false") << "}";
+      }
+      json << "]}";
+    }
+    json << "]";
+
+    json << ",\"kalman_fit\":{\"converged\":" << (fit.Converged ? "true" : "false")
+         << ",\"momentum_mev\":" << fit.MomentumMeV << ",\"charge\":" << fit.Charge
+         << ",\"nodes\":[";
+    for (std::size_t n = 0; n < fit.Nodes.size(); ++n) {
+      if (n) json << ",";
+      const TMS_KalmanFollower::FollowedNode &node = fit.Nodes[n];
+      const bool chosenIsTarget = node.HasHit && best_point_label[node.ChosenSpacePointIndex] == target;
+      const double p = std::abs(node.FilteredQP) > 1e-12 ? 1.0 / std::abs(node.FilteredQP) : 0.0;
+      json << "{\"z\":" << node.Z << ",\"x\":" << node.FilteredX << ",\"y\":" << node.FilteredY
+           << ",\"has_hit\":" << (node.HasHit ? "true" : "false")
+           << ",\"chosen_is_target\":" << (chosenIsTarget ? "true" : "false")
+           << ",\"momentum_mev\":" << p << "}";
+    }
+    json << "]}";
+
+    json << "}";
+    json.close();
+    std::cout << "\nWrote event-display JSON to " << output_json_path << std::endl;
   }
 
   return 0;
