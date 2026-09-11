@@ -1,21 +1,26 @@
 // Phase 1 validation: runs TMS_KalmanFollower on a single real, already-
-// known-hard slice, seeded from TMS_GraphTrackFinder's own output (the same
-// machinery GraphTrackFinderSliceTest.cpp validates). By default, entry 101
-// of the 2026-09-07 clustering-benchmark reference file -- the shower-
+// known-hard slice. Unlike the first version of this tool, the seed isn't
+// always TMS_GraphTrackFinder's output -- it now mirrors the full pipeline
+// GraphTrackFinderTruthEfficiency.cpp validates: DBSCAN+PCA first (cheapest,
+// handles most muons alone), then merge-touching-clusters-and-re-PCA, and
+// only then the graph-search fallback on the merged set. Whichever stage
+// finds a track-like object, that object's own points (z-sorted) become the
+// Kalman follower's seed -- every track-like object gets a real physics fit,
+// not just the ones that needed the graph search. By default, entry 101 of
+// the 2026-09-07 clustering-benchmark reference file -- the shower-
 // contaminated muon that motivated the graph-search finder in the first
 // place, and a case with real, known-true momentum/charge to sanity-check
-// the follower's fit against (see the README-style comment near main()).
+// the follower's fit against.
 //
 // Reuses ClusterTruthEfficiency's truth machinery (Truth_Spill loading +
-// Parent-chain collapse) and GraphTrackFinderSliceTest's slice-loading
-// pattern, so results are directly comparable to both. Unlike those tools,
-// this one DOES need a geometry file -- TMS_KalmanFollower's material
-// stepping (TMS_Geom::GetMaterials) navigates a live TGeoManager, and the
+// Parent-chain collapse) and GraphTrackFinderTruthEfficiency's DBSCAN+PCA+
+// merge logic verbatim, so results are directly comparable to both. Needs a
+// geometry file -- TMS_KalmanFollower's material stepping
+// (TMS_Geom::GetMaterials) navigates a live TGeoManager, and the
 // RecoCandidates-style analysis file this project has been using all week
 // doesn't embed one (checked directly: no EDepSimGeometry key). Pass a
 // separate geometry-bearing file (e.g. the production *_Readout.root or
-// the raw *.EDEPSIM_SPILLS.root) as the first argument, same convention
-// GraphTrackFinderTruthEfficiency.cpp already uses.
+// the raw *.EDEPSIM_SPILLS.root) as the first argument.
 
 #include <algorithm>
 #include <cmath>
@@ -35,6 +40,8 @@
 #include "TMS_GraphTrackFinder.h"
 #include "TMS_KalmanFollower.h"
 #include "TMS_SpacePoint.h"
+#include "TMS_SpacePointCluster.h"
+#include "TMS_SpacePointDBScan.h"
 #include "TMS_Geom.h"
 
 namespace {
@@ -107,6 +114,25 @@ std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double
   return layer;
 }
 
+// Turns an unordered set of a track-like object's own point indices (from
+// DBSCAN, a merge, or a graph-search path) into the follower's seed format:
+// z-ordered (ties broken by x, then y, matching TMS_LayerGrouping's own
+// convention so this stays consistent with how the follower groups the
+// full pool internally). TMS_KalmanFollower::Follower::Run() only actually
+// looks at the first few entries for its initial direction estimate and at
+// the last entry to bound how far past the seed it walks -- passing every
+// one of the object's own points (not just its endpoints) keeps that bound
+// correctly reflecting the object's full known extent.
+std::vector<std::size_t> BuildSeedPathFromIndices(const std::vector<TMS_SpacePoint> &points,
+                                                   std::vector<int> indices) {
+  std::sort(indices.begin(), indices.end(), [&points](int a, int b) {
+    if (points[a].GetZ() != points[b].GetZ()) return points[a].GetZ() < points[b].GetZ();
+    if (points[a].GetX() != points[b].GetX()) return points[a].GetX() < points[b].GetX();
+    return points[a].GetY() < points[b].GetY();
+  });
+  return std::vector<std::size_t>(indices.begin(), indices.end());
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -134,6 +160,28 @@ int main(int argc, char **argv) {
     return 1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
+
+  // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp /
+  // GraphTrackFinderTruthEfficiency.cpp, so "track-like" means the same
+  // thing here as in every other validation tool in this area.
+  const int base_transverse_bars = 1;
+  const int transverse_bars_per_plane_gap = 1;
+  const int max_plane_gap = 3;
+  const unsigned int min_points = 5;
+  const double kLinearityThreshold = 0.8;
+  const std::size_t kMinClusterSizeForTrack = 5;
+  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
+  const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
+              << std::endl;
+    return 1;
+  }
+  const double worst_case_transverse =
+      (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
+  const double broad_phase_radius =
+      std::sqrt(worst_case_transverse * worst_case_transverse +
+                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
 
   TFile input(input_filename.c_str());
   if (input.IsZombie()) {
@@ -262,47 +310,151 @@ int main(int argc, char **argv) {
   std::cout << "Target particle touches " << target_layers_in_slice.size()
             << " distinct planes in this slice.\n";
 
-  // --- Seed: run TMS_GraphTrackFinder on the slice to get a topological
-  // path, the same way GraphTrackFinderTruthEfficiency's fallback does.
-  // This tool cares about the follower, not re-tuning the finder, so it
-  // uses that same already-validated real-data config (relaxed seed gates,
-  // zeroed occupancy/multiplicity penalty, quantization deadband on) rather
-  // than TMS_GraphTrackFinder::Config's stock defaults, which don't find
-  // any usable seed at all on this specific dense case. ---
+  // --- Seed: the same three-stage pipeline GraphTrackFinderTruthEfficiency
+  // validates (DBSCAN+PCA -> merge-and-re-PCA -> graph-search on the merged
+  // set), except now whichever stage actually finds a track-like object
+  // hands ITS OWN points to the Kalman follower as the seed -- previously
+  // this tool always ran the graph search on the whole slice regardless,
+  // meaning only the hardest (graph-search-needed) cases ever got a real
+  // physics fit. Now every track-like object does. ---
+  std::vector<int> plane_index;
+  plane_index.reserve(best_points.size());
+  for (const TMS_SpacePoint &point : best_points)
+    plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(point.GetZ()));
+
+  TMS_SpacePointDBScan dbscan(best_points, plane_index, min_points, bar_pitch, base_transverse_bars,
+                               transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+  std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
+  std::vector<TMS_SpacePointCluster> clusters;
+  clusters.reserve(cluster_indices.size());
+  for (auto &indices : cluster_indices) clusters.emplace_back(best_points, indices);
+
+  std::vector<int> point_cluster_id(best_points.size(), 0);  // 0 = noise, else cluster index + 1
+  for (std::size_t c = 0; c < cluster_indices.size(); ++c)
+    for (int idx : cluster_indices[c]) point_cluster_id[idx] = static_cast<int>(c) + 1;
+
+  auto ClusterOwner = [&](const std::vector<int> &indices) -> TrueLabel {
+    std::unordered_map<TrueLabel, int, LabelHash> votes;
+    for (int idx : indices)
+      if (best_point_label[idx].Valid()) votes[best_point_label[idx]]++;
+    TrueLabel owner;
+    int owner_count = 0;
+    for (auto &kv : votes)
+      if (kv.second > owner_count) {
+        owner = kv.first;
+        owner_count = kv.second;
+      }
+    return owner;
+  };
+
+  std::vector<std::size_t> seedPath;
+  std::string foundVia;
+
+  // Stage 1: does the cluster that plurality-owns the target's own points
+  // (if any) already pass the PCA linearity check on its own?
+  std::unordered_map<int, int> ownClusterVotes;
+  for (std::size_t i = 0; i < best_points.size(); ++i)
+    if (best_point_label[i] == target) ownClusterVotes[point_cluster_id[i]]++;
+  int bestOwnClusterId = 0, bestOwnClusterVotes = 0;
+  for (auto &kv : ownClusterVotes)
+    if (kv.second > bestOwnClusterVotes) {
+      bestOwnClusterId = kv.first;
+      bestOwnClusterVotes = kv.second;
+    }
+  if (bestOwnClusterId > 0) {
+    const TMS_SpacePointCluster &cl = clusters[bestOwnClusterId - 1];
+    if (cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
+        ClusterOwner(cluster_indices[bestOwnClusterId - 1]) == target) {
+      seedPath = BuildSeedPathFromIndices(best_points, cluster_indices[bestOwnClusterId - 1]);
+      foundVia = "DBSCAN+PCA (direct)";
+    }
+  }
+
+  // Stage 2: merge every cluster touching the target's own points, plus its
+  // own noise points specifically, and re-check PCA on the merged set.
+  std::vector<int> merged_indices;
+  if (seedPath.empty()) {
+    std::set<int> touched_cluster_ids;
+    std::vector<int> own_noise_points;
+    for (std::size_t i = 0; i < best_points.size(); ++i) {
+      if (!(best_point_label[i] == target)) continue;
+      const int cid = point_cluster_id[i];
+      if (cid == 0) own_noise_points.push_back(static_cast<int>(i));
+      else touched_cluster_ids.insert(cid);
+    }
+    merged_indices = own_noise_points;
+    for (int cid : touched_cluster_ids)
+      for (int idx : cluster_indices[cid - 1]) merged_indices.push_back(idx);
+    std::sort(merged_indices.begin(), merged_indices.end());
+    merged_indices.erase(std::unique(merged_indices.begin(), merged_indices.end()), merged_indices.end());
+
+    if (merged_indices.size() >= kMinClusterSizeForTrack) {
+      TMS_SpacePointCluster merged_cluster(best_points, merged_indices);
+      if (merged_cluster.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
+          ClusterOwner(merged_indices) == target) {
+        seedPath = BuildSeedPathFromIndices(best_points, merged_indices);
+        foundVia = "merged-cluster PCA";
+      }
+    }
+  }
+
+  // Stage 3: still not track-like -- run the graph search on the merged
+  // set (never the whole slice, matching GraphTrackFinderTruthEfficiency's
+  // validated design), using the config already validated as needed for
+  // real dense-slice occupancy (TMS_GraphTrackFinder::Config's stock
+  // defaults find no usable seed at all on cases like this one).
   TMS_GraphTrackFinder::Config finderConfig;
   finderConfig.OccupancyPenalty = 0.0;
   finderConfig.HitMultiplicityPenalty = 0.0;
   finderConfig.MaxSeedLayerOccupancy = 150;
   finderConfig.MaxSeedHitMultiplicity = 50;
   finderConfig.UseCurvatureProjection = false;
-  const TMS_GraphTrackFinder::Result finderResult =
-      TMS_GraphTrackFinder::Finder(finderConfig).Find(best_points);
+  if (seedPath.empty() && merged_indices.size() >= finderConfig.SeedLength) {
+    std::vector<TMS_SpacePoint> local_points;
+    local_points.reserve(merged_indices.size());
+    for (int gi : merged_indices) local_points.push_back(best_points[gi]);
+    const TMS_GraphTrackFinder::Result finderResult =
+        TMS_GraphTrackFinder::Finder(finderConfig).Find(local_points);
 
-  std::size_t bestSeedMatched = 0;
-  const TMS_GraphTrackFinder::Path *bestSeed = nullptr;
-  for (const TMS_GraphTrackFinder::Path &path : finderResult.Paths) {
-    std::size_t matched = 0;
-    for (std::size_t idx : path.SpacePointIndices)
-      if (best_point_label[idx] == target) ++matched;
-    if (matched > bestSeedMatched) {
-      bestSeedMatched = matched;
-      bestSeed = &path;
+    std::size_t bestSeedMatched = 0;
+    const TMS_GraphTrackFinder::Path *bestSeed = nullptr;
+    for (const TMS_GraphTrackFinder::Path &path : finderResult.Paths) {
+      std::size_t matched = 0;
+      for (std::size_t localIdx : path.SpacePointIndices)
+        if (best_point_label[merged_indices[localIdx]] == target) ++matched;
+      if (matched > bestSeedMatched) {
+        bestSeedMatched = matched;
+        bestSeed = &path;
+      }
+    }
+    if (bestSeed && bestSeed->SpacePointIndices.size() >= 2) {
+      std::vector<int> globalIndices;
+      globalIndices.reserve(bestSeed->SpacePointIndices.size());
+      for (std::size_t localIdx : bestSeed->SpacePointIndices) globalIndices.push_back(merged_indices[localIdx]);
+      seedPath = BuildSeedPathFromIndices(best_points, globalIndices);
+      foundVia = "GraphTrackFinder (merged fallback)";
     }
   }
-  if (!bestSeed || bestSeed->SpacePointIndices.size() < 2) {
-    std::cerr << "Graph Track Finder found no usable seed path for this target -- nothing to follow."
-              << std::endl;
+
+  if (seedPath.empty()) {
+    std::cerr << "No track-like object found for this target by any stage -- nothing to follow." << std::endl;
     return 1;
   }
-  std::cout << "\nSeed path (Graph Track Finder, default config): "
-            << bestSeed->SpacePointIndices.size() << " points, "
-            << bestSeedMatched << " target-matched.\n";
 
-  // --- Follow it. ---
-  const RegionFieldModel field;  // placeholder Tesla magnitude -- see TMS_FieldModel.h
+  std::size_t seedMatched = 0;
+  for (std::size_t idx : seedPath)
+    if (best_point_label[idx] == target) ++seedMatched;
+  std::cout << "\nFound via: " << foundVia << " -- " << seedPath.size() << " points, " << seedMatched
+            << " target-matched.\n";
+
+  // --- Follow it. Always against the FULL slice's space points, regardless
+  // of which stage found the seed -- ambiguity resolution needs to see
+  // ghosts the finding stage didn't pick, same as the graph-search-only
+  // design this replaces. ---
+  const RegionFieldModel field;  // 1.0T, GDML-confirmed -- see TMS_FieldModel.h
   const TMS_KalmanFollower::Config followerConfig;
   const TMS_KalmanFollower::Follower follower(followerConfig, field);
-  const TMS_KalmanFollower::FitResult fit = follower.Run(best_points, bestSeed->SpacePointIndices);
+  const TMS_KalmanFollower::FitResult fit = follower.Run(best_points, seedPath);
 
   std::cout << "\nKalman follower result\n"
             << "  converged: " << (fit.Converged ? "yes" : "NO") << '\n'
