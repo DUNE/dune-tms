@@ -264,17 +264,17 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      hit.AddPhotonArrival(hit_time + time_offset, hit.GetHitId(), false);
+      event.AddPhotonArrival(hit.GetHitId(), hit_time + time_offset, hit.GetHitId(), false);
     }
     for (int i = 0; i < n_long_photons; ++i) {
       double time_offset = time_correction_long_way;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      hit.AddPhotonArrival(hit_time + time_offset, hit.GetHitId(), true);
+      event.AddPhotonArrival(hit.GetHitId(), hit_time + time_offset, hit.GetHitId(), true);
     }
 
-    hit.SortPhotonArrivals();
+    event.SortPhotonArrivals(hit.GetHitId());
     // Both paths had 0 PE: retain the existing no-slew fallback rather than
     // propagating the sentinel into the reconstructed hit time.
     if (minimum_time_offset == 1e100) minimum_time_offset = 0;

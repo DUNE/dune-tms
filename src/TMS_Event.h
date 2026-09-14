@@ -1,6 +1,7 @@
 #ifndef _TMS_EVENT_H_SEEN_
 #define _TMS_EVENT_H_SEEN_
 
+#include <algorithm>
 #include <string>
 #include <iostream>
 
@@ -110,6 +111,37 @@ class TMS_Event {
       }
       TrueHitByHitId.erase(itMerged);
     };
+    // Same side-table pattern as TrueHitByHitId, for the same reason: TMS_Hit is copied by
+    // value in several places (GetHits(), range-for loops), so per-photon sensor-arrival data
+    // (up to ~600 entries/hit at the current 300-photon-per-path cap) must not live inline on
+    // TMS_Hit. Absent for a hit with no recorded arrivals -- callers must null-check.
+    const std::vector<TMS_PhotonArrival>* GetPhotonArrivals(int hitId) const {
+      auto it = PhotonArrivalsByHitId.find(hitId);
+      return it == PhotonArrivalsByHitId.end() ? nullptr : &it->second;
+    };
+    void AddPhotonArrival(int hitId, double time, int source_hit_id, bool long_path) {
+      PhotonArrivalsByHitId[hitId].push_back({time, source_hit_id, long_path});
+    };
+    void SortPhotonArrivals(int hitId) {
+      auto it = PhotonArrivalsByHitId.find(hitId);
+      if (it == PhotonArrivalsByHitId.end()) return;
+      std::sort(it->second.begin(), it->second.end(),
+          [](const TMS_PhotonArrival& a, const TMS_PhotonArrival& b) {
+            return a.Time < b.Time;
+          });
+    };
+    void ErasePhotonArrivals(int hitId) { PhotonArrivalsByHitId.erase(hitId); };
+    // For TMS_SignalProcessing::MergeCoincidentHits(): move mergedAwayHitId's recorded
+    // arrivals onto survivingHitId's list (each arrival keeps its own original SourceHitId --
+    // not rewritten on merge) and drop the merged-away entry. No-op if mergedAwayHitId has
+    // none recorded.
+    void MergePhotonArrivals(int survivingHitId, int mergedAwayHitId) {
+      auto itMerged = PhotonArrivalsByHitId.find(mergedAwayHitId);
+      if (itMerged == PhotonArrivalsByHitId.end()) return;
+      auto& dest = PhotonArrivalsByHitId[survivingHitId];
+      dest.insert(dest.end(), itMerged->second.begin(), itMerged->second.end());
+      PhotonArrivalsByHitId.erase(itMerged);
+    };
     // Reference access for TMS_DetectorSimulation/TMS_SignalProcessing to mutate hits in place
     // without the copy cost of GetHitsRaw()/SetHitsRaw().
     std::vector<TMS_Hit>& GetHitsRawRef() { return TMS_Hits; };
@@ -217,6 +249,8 @@ class TMS_Event {
     // See NextHitId()/GetTrueHit(int)/SetTrueHit(int, ...) above.
     int HitIdCounter = 0;
     std::map<int, TMS_TrueHit> TrueHitByHitId;
+    // See GetPhotonArrivals(int)/AddPhotonArrival(...) above.
+    std::map<int, std::vector<TMS_PhotonArrival>> PhotonArrivalsByHitId;
 
     int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
     void RebuildTrueParticleIndex();
