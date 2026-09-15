@@ -30,12 +30,21 @@ namespace TMS_KalmanFollower {
 
 struct Config {
   // A candidate's chi2 (2 DoF: x, y position residual) must be below this
-  // to be accepted at all. Natural statistical reference points exist
-  // (~5.99 @ 95% CL, ~9.21 @ 99% for 2 DoF) but the right operating point
-  // depends on how well-calibrated the real covariances turn out to be --
-  // this is a Phase 2 sweep/tuning question, not something to trust as
-  // final yet.
-  double ChiSquareGateMax = 9.21;
+  // to be accepted at all. Tuned empirically 2026-09-15 against the 15-file
+  // truth population (app/KalmanFollowerTruthEfficiency): the 2-DoF
+  // statistical reference value (~9.21 @ 99% CL) was rejecting real
+  // truth-matched hits outright -- 66.7% of all gap layers had the truth
+  // point evaluated but chi2-gated out, not missing. Swept 9.21/15/25/40/60;
+  // completeness rose monotonically the whole way (64.4%->71.2%) with
+  // purity also improving slightly at every step (87.7%->88.5%, never
+  // trading off) -- but gains halved at each step (+3.2/+1.8/+1.1/+0.7pp),
+  // and by 60 the gate barely constrains anything statistically (ambiguous-
+  // layer accuracy stayed flat at ~96.4% the entire sweep, since argmin-chi2
+  // already picks correctly among candidates regardless of the gate value --
+  // the gate only controls whether a hit is recorded at all). 25 keeps the
+  // gate a real threshold while capturing 73% of the measured gain
+  // (5.0/6.8pp). See kalman_follower memory for the full sweep table.
+  double ChiSquareGateMax = 25.0;
 
   // Predict() sub-steps a layer-to-layer propagation into pieces no longer
   // than this, rather than one linearized jump. Needed for real numerical
@@ -153,6 +162,14 @@ struct FollowedNode {
 };
 
 struct FitResult {
+  // Why the walk actually ended -- added to distinguish "ran out of search
+  // budget" (GapLimit/RangeEnd, tunable via Config) from "the numerical
+  // guards added during Phase 1's momentum-collapse debugging kicked in"
+  // (Diverged, not a search-budget question at all). See kalman_follower
+  // memory, "investigate the completeness ceiling" (2026-09-15).
+  enum class StopReason { NotStarted, ReachedRangeEnd, GapLimitExceeded, Diverged };
+  StopReason Stop = StopReason::NotStarted;
+
   bool Converged = false;
   std::vector<FollowedNode> Nodes;  // one per z-layer walked, low->high z
 

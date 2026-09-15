@@ -137,11 +137,39 @@ struct KalmanScore {
   int ambiguous_layers = 0;
   int ambiguous_truth_present = 0;
   int ambiguous_correct = 0;
+  // Breaks down every target plane NOT in planes_covered by why: outside the
+  // walked range entirely (before the seed's own first point -- the walk is
+  // forward-only, see TMS_KalmanFollower.cpp's Run() -- or past
+  // Config::MaxLayersBeyondSeed) vs. genuinely missed while walking through
+  // the range (chi2-gate rejection, wrong pick, or a real gap). Added to
+  // check whether the completeness ceiling is structural (out-of-range) or
+  // a fit-quality problem (missed-in-range) -- see kalman_follower memory,
+  // "investigate the completeness ceiling" (2026-09-15).
+  int planes_before_walk = 0;
+  int planes_after_walk = 0;
+  int planes_missed_in_range = 0;
+  std::string stop_reason = "not_started";
+  // Of the gap layers (HasHit==false), how many had the truth-matched point
+  // sitting right there among CandidateIndices but rejected by the chi2
+  // gate (a tuning problem) vs. truth genuinely absent from that layer's
+  // whole-slice candidate pool (a real hit-finding/reconstruction gap,
+  // unrecoverable by any Follower::Config change).
+  int gaps_truth_available = 0;
+  int gaps_truth_absent = 0;
 };
+
+std::string StopReasonName(TMS_KalmanFollower::FitResult::StopReason r) {
+  switch (r) {
+    case TMS_KalmanFollower::FitResult::StopReason::ReachedRangeEnd: return "reached_range_end";
+    case TMS_KalmanFollower::FitResult::StopReason::GapLimitExceeded: return "gap_limit_exceeded";
+    case TMS_KalmanFollower::FitResult::StopReason::Diverged: return "diverged";
+    default: return "not_started";
+  }
+}
 
 KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector<TrueLabel> &point_label,
                      const TrueLabel &target, const std::vector<int> &z_layer_whole_slice,
-                     const std::string &seed_source) {
+                     const std::string &seed_source, const std::set<int> &target_layers_in_slice) {
   KalmanScore score;
   score.ran = true;
   score.seed_source = seed_source;
@@ -152,6 +180,13 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
   for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
     if (!node.HasHit) {
       ++score.gaps;
+      bool truth_present = false;
+      for (std::size_t idx : node.CandidateIndices)
+        if (point_label[idx] == target) truth_present = true;
+      if (truth_present)
+        ++score.gaps_truth_available;
+      else
+        ++score.gaps_truth_absent;
       continue;
     }
     ++score.nodes_with_hit;
@@ -174,6 +209,18 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
     }
   }
   score.planes_covered = (int)covered_layers.size();
+  score.stop_reason = StopReasonName(fit.Stop);
+
+  const int walk_start = fit.Nodes.empty() ? -1 : fit.Nodes.front().Layer;
+  const int walk_end = fit.Nodes.empty() ? -1 : fit.Nodes.back().Layer;
+  for (int layer : target_layers_in_slice) {
+    if (fit.Nodes.empty() || layer < walk_start)
+      ++score.planes_before_walk;
+    else if (layer > walk_end)
+      ++score.planes_after_walk;
+  }
+  score.planes_missed_in_range =
+      (int)target_layers_in_slice.size() - score.planes_covered - score.planes_before_walk - score.planes_after_walk;
   return score;
 }
 
@@ -322,6 +369,8 @@ int main(int argc, char **argv) {
                  "kalman_nodes_total,kalman_nodes_with_hit,kalman_gaps,"
                  "kalman_correct_chosen,kalman_wrong_chosen,kalman_purity_pct,"
                  "kalman_planes_covered,kalman_completeness_pct,"
+                 "kalman_planes_before_walk,kalman_planes_after_walk,kalman_planes_missed_in_range,"
+                 "kalman_stop_reason,kalman_gaps_truth_available,kalman_gaps_truth_absent,"
                  "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct\n";
   }
 
@@ -527,12 +576,12 @@ int main(int argc, char **argv) {
         const std::vector<std::size_t> objectIndices(cluster_indices[best_dbscan_cluster].begin(),
                                                        cluster_indices[best_dbscan_cluster].end());
         const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "dbscan_direct");
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "dbscan_direct", target_layers_in_slice);
       } else if (found_dbscan_merged) {
         const std::vector<int> &merged_indices = merged_clusters[pidx];
         const std::vector<std::size_t> objectIndices(merged_indices.begin(), merged_indices.end());
         const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "merged_pca");
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "merged_pca", target_layers_in_slice);
       } else if (found_lt && best_lt_path != nullptr && best_lt_path->SpacePointIndices.size() >= 2) {
         std::vector<int> globalIndices;
         globalIndices.reserve(best_lt_path->SpacePointIndices.size());
@@ -540,7 +589,7 @@ int main(int argc, char **argv) {
           globalIndices.push_back(lt_run->local_to_global[local_idx]);
         const std::vector<std::size_t> seedPath = BuildSeedPath(space_points, globalIndices);
         const TMS_KalmanFollower::FitResult fit = follower.Run(space_points, seedPath);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "graphtrack");
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "graphtrack", target_layers_in_slice);
       }
       if (kscore.ran) {
         ++n_kalman_ran;
@@ -564,6 +613,8 @@ int main(int argc, char **argv) {
                 << kscore.nodes_total << "," << kscore.nodes_with_hit << "," << kscore.gaps << ","
                 << kscore.correct_chosen << "," << kscore.wrong_chosen << "," << kalman_purity_pct << ","
                 << kscore.planes_covered << "," << kalman_completeness_pct << ","
+                << kscore.planes_before_walk << "," << kscore.planes_after_walk << "," << kscore.planes_missed_in_range << ","
+                << kscore.stop_reason << "," << kscore.gaps_truth_available << "," << kscore.gaps_truth_absent << ","
                 << kscore.ambiguous_layers << "," << kscore.ambiguous_truth_present << "," << kscore.ambiguous_correct
                 << "\n";
     }

@@ -589,6 +589,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
 
   int consecutiveGaps = 0;
   result.Converged = true;
+  result.Stop = FitResult::StopReason::ReachedRangeEnd;  // overridden below if the walk breaks early
 
   for (std::size_t layerIdx = startLayer + 1; layerIdx <= lastLayerToWalk; ++layerIdx) {
     const std::vector<std::size_t> &candidates = zLayers[layerIdx];
@@ -598,6 +599,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     const StepState predicted = Predict(current, targetZ, fField, fConfig.MaxSubstepLengthMM);
     if (predicted.Diverged) {
       result.Converged = false;
+      result.Stop = FitResult::StopReason::Diverged;
       break;
     }
     const GateResult gate =
@@ -630,7 +632,10 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
       node.HasHit = false;
       ++result.NGapsFilled;
       ++consecutiveGaps;
-      if (consecutiveGaps > fConfig.MaxConsecutiveGaps) result.Converged = false;
+      if (consecutiveGaps > fConfig.MaxConsecutiveGaps) {
+        result.Converged = false;
+        result.Stop = FitResult::StopReason::GapLimitExceeded;
+      }
     }
 
     node.FilteredX = current.x;
