@@ -389,7 +389,18 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
 
   // Save down the event number
   EventNumber = EventCounter;
-  generator = std::default_random_engine(7890 + EventNumber); 
+  // Seed detector-response randomness from the raw event identity rather than
+  // EventCounter. EventCounter is process-local and also advances for output
+  // slices, so it repeats across independent jobs and can shift later events'
+  // random streams when an earlier event is reconstructed differently. Use both
+  // RunId and EventId directly: this follows the event-identity seeding idea in
+  // Tracy Usher's true-deposit-merge PR, while keeping this change independent
+  // of that PR's detector-response changes.
+  std::seed_seq seed_from_event_identity{
+      7890u,
+      static_cast<unsigned int>(event.RunId),
+      static_cast<unsigned int>(event.EventId)};
+  generator.seed(seed_from_event_identity);
   SliceNumber = 0;
   SpillNumber = EventCounter;
   NSlices = 1; // By default there's at least one
