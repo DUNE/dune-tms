@@ -22,6 +22,7 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Added leading truth-contributor information for reconstructed hits ([#303](https://github.com/DUNE/dune-tms/pull/303)).
 - Added a geometry survey that derives detector bounds, planes, modules, and configurable volume names from the loaded GDML ([#298](https://github.com/DUNE/dune-tms/pull/298)).
 - Added a truth side table and truthless reconstructed-hit construction to separate simulation truth from reconstructed detector data ([#301](https://github.com/DUNE/dune-tms/pull/301)).
+- Retained sampled sensor-photon arrival times, including their source hit and fiber-path metadata, as groundwork for future readout-window handling ([#318](https://github.com/DUNE/dune-tms/pull/318)).
 
 ### Changed
 
@@ -39,6 +40,7 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Aligned the CMake package version and ROOT output metadata version at `1.1.0`.
 - Changed `MergeTracks` to default to true.
 - Enabled adding trailing Hough-track hits to their corresponding track by default, with a configuration switch.
+- Seeded detector-response randomness from the edep-sim run and event IDs, avoiding repeated streams across independent jobs and making an event's response stable despite earlier slice-count changes ([#319](https://github.com/DUNE/dune-tms/pull/319)).
 
 ### Fixed
 
@@ -57,6 +59,7 @@ Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 - Preserved per-hit truth during event overlays and derived optical-model bar lengths and readout positions from each bar's geometry ([#301](https://github.com/DUNE/dune-tms/pull/301)).
 - Initialized the Kalman-node chi-squared values, recorded a covariance-weighted chi-squared, and corrected the muon/antimuon fit association ([#305](https://github.com/DUNE/dune-tms/pull/305), [#309](https://github.com/DUNE/dune-tms/pull/309)).
 - Prevented index underflow and infinite loops while matching X/Y and U/V(/X) track candidates ([#310](https://github.com/DUNE/dune-tms/pull/310)).
+- Corrected photon-timing simulation to sample individual scintillator and WLS delays and use the earliest detected-photon arrival, rather than an incorrectly parameterized Gamma shortcut ([#318](https://github.com/DUNE/dune-tms/pull/318)).
 
 ## [0.2] - 2023-12-13
 
