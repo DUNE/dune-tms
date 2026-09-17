@@ -40,6 +40,7 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
         // Phase III: merge the event-level truth side table by HitId alongside the reco-level
         // merge above, since TMS_TrueHit is no longer embedded in TMS_Hit.
         event.MergeTrueHit((*it).GetHitId(), hit2.GetHitId());
+        event.MergePhotonArrivals((*it).GetHitId(), hit2.GetHitId());
         // todo, we may want to store an array of true hits. One way would be to move the merging code within the hit class
         duplicates.push_back(jt);
       }
@@ -58,6 +59,7 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
       if (hit.GetE() > 10000)  std::cout << "Warning: Found hit higher than 10 GeV. Seems unlikely. Hit E = " << (hit.GetE() / 1000.0) << " GeV." << std::endl;
     } else {
       event.EraseTrueHit(hit.GetHitId());
+      event.ErasePhotonArrivals(hit.GetHitId());
     }
   }
   TMS_Hits = std::move(remaining_hits);

@@ -242,71 +242,43 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // This is the time correction if you go the long way instead
     double time_correction_long_way = long_way_distance / SPEED_OF_LIGHT_IN_FIBER;
 
-    // Time slew (up to 30ns for 1pe hits, 9ns for 5pe, ~2ns 22pe. Typically 22pe mips assuming 45 pe mips with half going the long way)
+    // Simulate every timing photon and use the first arrival as this hit's
+    // representative time. A previous std::gamma_distribution shortcut was
+    // wrong: Gamma(shape=N) describes a sum of N exponential draws, whereas
+    // this model needs the minimum of N independent scintillator+WLS delays.
+    // Keep the established 300-photon timing cap and ceil(mean PE) behavior;
+    // this is intentionally a targeted timing correction, not a readout-model
+    // redesign. PhotonArrivals records every sampled sensor arrival for a
+    // future threshold/window model.
     double pe_short_path = true_hit->GetPEAfterFibersShortPath();
     double pe_long_path = true_hit->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
-
-    #define USE_GAMMA_DISTRIBUTION
-    #ifdef USE_GAMMA_DISTRIBUTION
-    // TODO test this version with gamma
-
-    // Gamma distribution does throws without having to do the throws
-    // So it answer the question, what's the lowest of a random exponential assuming N throws.
-    // std::gamma_distribution requires shape (alpha) > 0 -- pe_short_path/pe_long_path can
-    // legitimately be exactly 0 (e.g. a low-energy hit where the Poisson/binomial split or
-    // fiber attenuation zeroes out one path entirely), so only sample a path with PE > 0.
-    // A zero-PE path simply contributes no candidate to the minimum -- same as the #else
-    // branch's while-loop, which does zero iterations for pe_*_path <= 0.
-    if (pe_short_path > 0) {
-      std::gamma_distribution<double> gamma_scint_short_path(pe_short_path, 1.0 / scintillator_decay_time);
-      std::gamma_distribution<double> gamma_wsf_short_path(pe_short_path, 1.0 / wsf_decay_time);
-      double minimum_time_gamma_scint_short_path = gamma_scint_short_path(generator);
-      double minimum_time_gamma_wsf_short_path = gamma_wsf_short_path(generator);
-      double minimum_time_offset_short_path = minimum_time_gamma_scint_short_path + minimum_time_gamma_wsf_short_path + time_correction;
-      minimum_time_offset = std::min(minimum_time_offset_short_path, minimum_time_offset);
-    }
-
-    if (pe_long_path > 0) {
-      std::gamma_distribution<double> gamma_scint_long_path(pe_long_path, 1.0 / scintillator_decay_time);
-      std::gamma_distribution<double> gamma_wsf_long_path(pe_long_path, 1.0 / wsf_decay_time);
-      double minimum_time_gamma_scint_long_path = gamma_scint_long_path(generator);
-      double minimum_time_gamma_wsf_long_path = gamma_wsf_long_path(generator);
-      double minimum_time_offset_long_path = minimum_time_gamma_scint_long_path + minimum_time_gamma_wsf_long_path + time_correction_long_way;
-      minimum_time_offset = std::min(minimum_time_offset_long_path, minimum_time_offset);
-    }
-
-    // Both paths had 0 PE (no photons detected at all) -- minimum_time_offset is still the
-    // 1e100 sentinel. Fall back to no slew delay rather than propagating the sentinel into t.
-    if (pe_short_path <= 0 && pe_long_path <= 0) minimum_time_offset = 0;
-
-    #else
-    // We don't have to do 1000s of throws. The time will be very close to zero.
-    // Assuming 1k PE, the mean time is ~0.02ns vs ~0.06ns for 300 PE.
     const double MAX_PE_THROWS = 300;
-    if (pe_short_path > MAX_PE_THROWS) {
-      pe_short_path = MAX_PE_THROWS;
-    }
-    while (pe_short_path > 0) {
+    const int n_short_photons = std::min(static_cast<int>(std::ceil(pe_short_path)),
+                                         static_cast<int>(MAX_PE_THROWS));
+    const int n_long_photons = std::min(static_cast<int>(std::ceil(pe_long_path)),
+                                        static_cast<int>(MAX_PE_THROWS));
+    const double hit_time = hit.GetT();
+    for (int i = 0; i < n_short_photons; ++i) {
       double time_offset = time_correction;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_short_path -= 1;
+      event.AddPhotonArrival(hit.GetHitId(), hit_time + time_offset, hit.GetHitId(), false);
     }
-    if (pe_long_path > MAX_PE_THROWS) {
-      pe_long_path = MAX_PE_THROWS;
-    }
-    while (pe_long_path > 0) {
+    for (int i = 0; i < n_long_photons; ++i) {
       double time_offset = time_correction_long_way;
       time_offset += exp_scint(generator);
       time_offset += exp_wsf(generator);
       minimum_time_offset = std::min(time_offset, minimum_time_offset);
-      pe_long_path -= 1;
+      event.AddPhotonArrival(hit.GetHitId(), hit_time + time_offset, hit.GetHitId(), true);
     }
-    #endif
+
+    event.SortPhotonArrivals(hit.GetHitId());
+    // Both paths had 0 PE: retain the existing no-slew fallback rather than
+    // propagating the sentinel into the reconstructed hit time.
+    if (minimum_time_offset == 1e100) minimum_time_offset = 0;
     t += minimum_time_offset;
-    double hit_time = hit.GetT();
     //std::cout<<"dt: "<<t<<", hit t: "<<hit_time<<", reco t: "<<hit_time + t<<", min t offset: "<<minimum_time_offset<<", t corr: "<<time_correction<<", dist from middle: "<<distance_from_middle<<", long way t corr: "<<time_correction_long_way<<", long way dist: "<<long_way_distance<<", hit pe: "<<hit.GetPE()<<std::endl;
     //std::cout<<"Hit time: "<<hit_time<<std::endl;
     //std::cout<<"Adjusted hit time: "<<hit_time + t<<std::endl;
