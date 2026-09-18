@@ -519,6 +519,11 @@ class TMS_TreeWriter {
     INTMYVAR(TrueHitView);
     INTMYVAR(TrueHitPlane);
     INTMYVAR(TrueNTrueParticles);
+    // Highest-energy-share contributor for this hit -- see
+    // TMS_TrueHit::GetPrimaryIdByEnergy()/GetVertexGlobalIdByEnergy() for why this is used
+    // instead of the first-merged contributor.
+    INTMYVAR(TrueHitPrimaryId);
+    Long64_t TrueHitVertexId[__MAX_TRUE_TREE_ARRAY_LENGTH__];
     MYVAR(TrueLeptonicEnergy);
     MYVAR(TrueHadronicEnergy);
     
