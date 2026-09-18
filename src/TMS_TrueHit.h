@@ -94,6 +94,21 @@ class TMS_TrueHit {
     int GetPrimaryIds(int index) const { return PrimaryIds.at(index); };
     long long GetVertexGlobalIds(int index) const { return VertexGlobalIds.at(index); };
     double GetEnergyShare(int index) const { return EnergyShare.at(index); };
+    // GetPrimaryId()/GetVertexGlobalIds(0) return whichever contributor happened to be
+    // pushed first (construction order, or first-in-merge-order after MergeWith()) --
+    // that can differ between otherwise-identical runs whenever merge order differs, even
+    // though the hit's own PE/energy is unaffected. These two instead return the highest
+    // *energy-share* contributor, which is order-independent and matches the convention
+    // already used for RecoHitPrimary* branches via TMS_Utils::GetPrimaryIdsByEnergy().
+    size_t IndexOfHighestEnergyContributor() const {
+      size_t best = 0;
+      for (size_t i = 1; i < EnergyShare.size(); i++) {
+        if (EnergyShare[i] > EnergyShare[best]) best = i;
+      }
+      return best;
+    };
+    int GetPrimaryIdByEnergy() const { return PrimaryIds.at(IndexOfHighestEnergyContributor()); };
+    long long GetVertexGlobalIdByEnergy() const { return VertexGlobalIds.at(IndexOfHighestEnergyContributor()); };
     double GetEnergySharePortion(int index) const { return EnergyShare.at(index) / GetE(); };
     //void SetVertexId(int id) { VertexId = id; };
     size_t GetNTrueParticles() const { return EnergyShare.size(); };
