@@ -127,6 +127,49 @@ struct Config {
   // false); a fixed, loosely-covaried prior is the standard fallback.
   double InitialMomentumSeedMeV = 1000.0;
 
+  // If > 0, sigma(q/p) of the first node is this fraction of the seed
+  // |q/p| instead of the fixed sqrt(InitialCovQPQP). The fixed value is 10x
+  // the seed q/p at 1000 MeV, i.e. an almost uninformative prior: ordinary
+  // position noise then drags q/p to a few hundred MeV within one or two
+  // layers (2026-09-21: a 2.4 GeV muon's fit went 2131 -> 231 MeV on a
+  // chi2 of 3.7), after which real energy loss ranges the fit out while the
+  // true track continues.
+  //
+  // Default 1.0 (with RangeSeedMargin below): 15-file sweep 2026-09-21
+  // (reports/2026-09-21_kalman_prior_sweep/): completeness 75.2% -> 82.6%,
+  // purity 86.4% -> 87.0%, ND-LAr-fiducial completeness 83.2% -> 92.4%.
+  // A tight sigma on the plain 1000 MeV seed (0.3x) was WORSE (67.7% on file
+  // 9) -- the tight prior is only safe once the seed itself is sensible.
+  double InitialQPRelSigma = 1.0;
+
+  // If > 0, seed the momentum with max(InitialMomentumSeedMeV, this *
+  // p_range), where p_range is the smallest momentum that could carry a
+  // muon across the seed object's own z-extent through the real material
+  // budget (Bethe-Bloch energy loss walked backwards from the momentum
+  // floor). A track that visibly spans N steel layers cannot have less
+  // momentum than that; it is a lower bound, computed from reconstructed
+  // quantities only.
+  //
+  // Default 1.5: the range is a lower bound and a candidate can be
+  // truncated, so a margin above 1 compensates. File-9 sweep of the margin
+  // (sigma(q/p)=1x): completeness 81.8 / 82.3 / 82.6 / 82.5% for margin
+  // 1.0 / 1.5 / 2.0 / 3.0, but seeds more than 1.5x too high rise 9 / 17 /
+  // 44 / 58%; 1.5 gives a median seed ~1.0x the true momentum.
+  double RangeSeedMargin = 1.5;
+
+  // End the walk when energy loss carries the fit to the momentum floor
+  // (StopReason::RangedOut, counted as converged). The fitted momentum is
+  // only as good as its seed, so this can fire while the true muon carries
+  // on: with the defaults above 30% of ranged-out fits still have truth
+  // planes beyond the stop. Set false to keep walking with the floor state.
+  bool StopOnRangeOut = true;
+
+  // RunBestSeed() also tries seeds that skip the object's first 1..MaxHeadSkip
+  // layers, keeping whichever hypothesis IsBetterFit prefers. Guards against
+  // an object whose head belongs to a different particle (see RunBestSeed).
+  // 0 = only the original first-layer anchors.
+  int MaxHeadSkip = 0;
+
   // Measurement uncertainty (mm) in a space point's own not-Z coordinate.
   // A per-hit lookup (TMS_Bar::GetNotZw()) would be more precise, but
   // needs a real, geometry-backed TMS_Hit for every candidate -- this
@@ -167,7 +210,13 @@ struct FitResult {
   // guards added during Phase 1's momentum-collapse debugging kicked in"
   // (Diverged, not a search-budget question at all). See kalman_follower
   // memory, "investigate the completeness ceiling" (2026-09-15).
-  enum class StopReason { NotStarted, ReachedRangeEnd, GapLimitExceeded, Diverged };
+  // RangedOut: the muon's own energy loss through the material to the next
+  // layer took it to the momentum floor, i.e. it physically stops before
+  // reaching that layer. A normal termination (Converged stays true), not a
+  // failure -- it is reported separately from ReachedRangeEnd only because
+  // the walk ended before running out of layers. The result keeps every node
+  // up to the last layer actually reached.
+  enum class StopReason { NotStarted, ReachedRangeEnd, GapLimitExceeded, Diverged, RangedOut };
   StopReason Stop = StopReason::NotStarted;
 
   bool Converged = false;

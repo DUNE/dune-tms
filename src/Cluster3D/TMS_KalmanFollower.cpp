@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -34,6 +35,12 @@ struct StepState {
   // to TMS_Geom::GetMaterials, which can spend a very long time (and a lot
   // of memory) trying to navigate between two wildly separated points.
   bool Diverged = false;
+  // Set by PredictSubstep() when energy loss in the material stepped through
+  // drives the momentum down to kMinMomentumMeV from above -- the particle
+  // has stopped, which is a physical end of the track, not a fit failure.
+  // Deliberately NOT set when q/p was already at the floor on entry (a
+  // Kalman-update collapse rather than genuine range-out).
+  bool RangedOut = false;
 };
 
 // The standard "0.3 rule" curvature constant: p[GeV/c] = 0.299792458 *
@@ -103,9 +110,10 @@ void ClampMomentum(double &qp) {
 // for through its own arguments).
 TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
                              double dxdz, double dydz, double &qpInOut,
-                             double &qpVarianceOut) {
+                             double &qpVarianceOut, bool &rangedOutOut) {
   TMatrixD scatterCov(5, 5);
   qpVarianceOut = 0.0;
+  rangedOutOut = false;
 
   const double chargeSign = (qpInOut >= 0.0) ? 1.0 : -1.0;
   double momentum = (std::abs(qpInOut) > 1e-12) ? 1.0 / std::abs(qpInOut) : 1.0;
@@ -156,7 +164,12 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
     // kMinMomentumMeV` are both false for NaN) and turned q/p, dx/dz and x
     // into NaN on the following gap nodes. Stopping the energy at the floor
     // keeps beta finite and agrees with the momentum floor applied below.
-    if (energy < energyFloor) energy = energyFloor;
+    if (energy < energyFloor) {
+      energy = energyFloor;
+      // Only a genuine range-out if we started this step above the floor;
+      // a state already pinned there by a Kalman update is not.
+      if (momentum > kMinMomentumMeV * 1.0001) rangedOutOut = true;
+    }
 
     const double energyStragglingSigma = bethe.Calc_dEdx_Straggling(energy) * density * thickness;
     totalEnergyVarianceSq += energyStragglingSigma * energyStragglingSigma;
@@ -194,7 +207,8 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
 // a single small dz. Kept separate from Predict() below because the
 // quadratic-in-dz Jacobian term (transfer(0,4)) is only a safe
 // linearization for a small dz -- see Predict()'s comment.
-StepState PredictSubstep(const StepState &previous, double subDz, const IFieldModel &field) {
+StepState PredictSubstep(const StepState &previous, double subDz, const IFieldModel &field,
+                          bool stopOnRangeOut) {
   StepState predicted = previous;
   predicted.z = previous.z + subDz;
 
@@ -275,8 +289,16 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   const TVector3 startPos(previous.x, previous.y, previous.z);
   const TVector3 endPos(predicted.x, predicted.y, predicted.z);
   double qpVariance = 0.0;
+  bool rangedOut = false;
   const TMatrixD scatterCov = ApplyMaterialSteps(startPos, endPos, predicted.dxdz,
-                                                  predicted.dydz, predicted.qp, qpVariance);
+                                                  predicted.dydz, predicted.qp, qpVariance, rangedOut);
+  if (rangedOut && stopOnRangeOut) {
+    // The muon stops inside this sub-step: nothing beyond here is reachable,
+    // so end the walk on the last layer actually reached instead of carrying
+    // an ever-less-constrained state on to (typically unrelated) later layers.
+    predicted.RangedOut = true;
+    return predicted;
+  }
 
   predicted.cov = propagatedCov + scatterCov;
   predicted.cov(4, 4) += qpVariance;
@@ -302,7 +324,7 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
 // momentum to its floor in one update. Sub-stepping keeps each
 // linearization small and keeps the accumulated covariance honest.
 StepState Predict(const StepState &previous, double zTarget, const IFieldModel &field,
-                   double maxSubstepLengthMM) {
+                   double maxSubstepLengthMM, bool stopOnRangeOut) {
   const double totalDz = zTarget - previous.z;
   if (std::abs(totalDz) < 1e-9) return previous;
 
@@ -312,8 +334,8 @@ StepState Predict(const StepState &previous, double zTarget, const IFieldModel &
 
   StepState current = previous;
   for (int i = 0; i < nSubsteps; ++i) {
-    current = PredictSubstep(current, subDz, field);
-    if (current.Diverged) return current;
+    current = PredictSubstep(current, subDz, field, stopOnRangeOut);
+    if (current.Diverged || current.RangedOut) return current;
   }
   return current;
 }
@@ -538,6 +560,35 @@ bool IsBetterFit(const FitResult &a, const FitResult &b) {
   return chi2NDofA < chi2NDofB;
 }
 
+// Smallest momentum (MeV/c) that lets a muon travel from start to end
+// through the real material budget: energy loss walked BACKWARDS from the
+// kMinMomentumMeV floor, so each step's dE/dx is evaluated at the energy the
+// muon has after that step. A lower bound on the true momentum (a straight
+// segment start->end, no scattering), used to seed q/p (Config::RangeSeedMargin).
+double RangeMomentumMeV(const TVector3 &start, const TVector3 &end) {
+  const std::vector<std::pair<TGeoMaterial *, double> > materials =
+      TMS_Geom::GetInstance().GetMaterials(start, end);
+  BetheBloch_Calculator bethe(Material::kPolyStyrene);
+  double energy = std::sqrt(kMinMomentumMeV * kMinMomentumMeV +
+                            BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
+  for (auto it = materials.rbegin(); it != materials.rend(); ++it) {
+    double density = it->first->GetDensity() / (CLHEP::g / CLHEP::cm3);
+    double thickness = it->second / 10.0;  // mm -> cm
+    const double scaleFactor = TMS_Geom::GetInstance().Scale(1.0);
+    density /= std::pow(scaleFactor, 3);
+    thickness = TMS_Geom::GetInstance().Scale(thickness);
+    try {
+      Material matter(density);
+      bethe.fMaterial = matter;
+    } catch (const std::invalid_argument &) {
+      continue;
+    }
+    const double loss = bethe.Calc_dEdx(energy) * density * thickness;
+    if (std::isfinite(loss)) energy += loss;
+  }
+  return BetheBloch_Utils::EnergyToMomentum(BetheBloch_Utils::Mm, energy);
+}
+
 }  // namespace
 
 Follower::Follower(const Config &config, const IFieldModel &field) : fConfig(config), fField(field) {}
@@ -585,13 +636,30 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   current.z = firstPoint.GetZ();
   current.dxdz = initialDxdz;
   current.dydz = initialDydz;
-  current.qp = chargeSign / fConfig.InitialMomentumSeedMeV;
+  double seedMomentum = fConfig.InitialMomentumSeedMeV;
+  if (fConfig.RangeSeedMargin > 0.0) {
+    // z-extent of the seed object itself: its lowest-z and highest-z points.
+    std::size_t lo = seedPath.front(), hi = seedPath.front();
+    for (std::size_t idx : seedPath) {
+      if (allSpacePoints[idx].GetZ() < allSpacePoints[lo].GetZ()) lo = idx;
+      if (allSpacePoints[idx].GetZ() > allSpacePoints[hi].GetZ()) hi = idx;
+    }
+    const double pRange = RangeMomentumMeV(
+        TVector3(allSpacePoints[lo].GetX(), allSpacePoints[lo].GetY(), allSpacePoints[lo].GetZ()),
+        TVector3(allSpacePoints[hi].GetX(), allSpacePoints[hi].GetY(), allSpacePoints[hi].GetZ()));
+    if (std::isfinite(pRange)) seedMomentum = std::max(seedMomentum, fConfig.RangeSeedMargin * pRange);
+  }
+  current.qp = chargeSign / seedMomentum;
   current.cov.Zero();
   current.cov(0, 0) = fConfig.InitialCovXX;
   current.cov(1, 1) = fConfig.InitialCovYY;
   current.cov(2, 2) = fConfig.InitialCovDXDZDXDZ;
   current.cov(3, 3) = fConfig.InitialCovDYDZDYDZ;
   current.cov(4, 4) = fConfig.InitialCovQPQP;
+  if (fConfig.InitialQPRelSigma > 0.0) {
+    const double sigmaQP = fConfig.InitialQPRelSigma / seedMomentum;
+    current.cov(4, 4) = sigmaQP * sigmaQP;
+  }
 
   FollowedNode firstNode;
   firstNode.Layer = startLayer;
@@ -618,7 +686,14 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     if (candidates.empty()) continue;  // TMS_LayerGrouping never emits an empty layer; defensive only
     const double targetZ = allSpacePoints[candidates.front()].GetZ();
 
-    const StepState predicted = Predict(current, targetZ, fField, fConfig.MaxSubstepLengthMM);
+    const StepState predicted =
+        Predict(current, targetZ, fField, fConfig.MaxSubstepLengthMM, fConfig.StopOnRangeOut);
+    if (predicted.RangedOut) {
+      // Physical end of the track (see StepState::RangedOut): keep every node
+      // so far, and count it as a normal termination.
+      result.Stop = FitResult::StopReason::RangedOut;
+      break;  // result.Converged is still true from initialisation
+    }
     if (predicted.Diverged) {
       result.Converged = false;
       result.Stop = FitResult::StopReason::Diverged;
@@ -693,37 +768,52 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
       TMS_LayerGrouping::Build(objectPoints, fConfig.LayerZTolerance);
   if (objectLayers.empty()) return best;
 
-  const std::vector<std::size_t> &firstLayerLocal = objectLayers.front();
-  std::set<std::size_t> firstLayerGlobal;
-  for (std::size_t localIdx : firstLayerLocal) firstLayerGlobal.insert(objectIndices[localIdx]);
-
-  // The rest of the object, z-sorted (same (z,x,y) tie-break
-  // TMS_LayerGrouping itself uses internally) -- shared across every
-  // hypothesis below; only which point leads the seed path (and therefore
-  // SeedDirection()'s first ~3-point average) changes per hypothesis.
-  std::vector<std::size_t> restSorted;
-  for (std::size_t idx : objectIndices)
-    if (!firstLayerGlobal.count(idx)) restSorted.push_back(idx);
-  std::sort(restSorted.begin(), restSorted.end(), [&allSpacePoints](std::size_t a, std::size_t b) {
-    const TMS_SpacePoint &pa = allSpacePoints[a];
-    const TMS_SpacePoint &pb = allSpacePoints[b];
-    if (pa.GetZ() != pb.GetZ()) return pa.GetZ() < pb.GetZ();
-    if (pa.GetX() != pb.GetX()) return pa.GetX() < pb.GetX();
-    return pa.GetY() < pb.GetY();
-  });
-
+  // Hypotheses: for each number of leading layers to skip (0 .. MaxHeadSkip,
+  // always leaving at least two layers to seed from), anchor the fit on every
+  // point of the resulting first layer. Skipping matters when the object's
+  // head belongs to something else -- e.g. a GraphTrackFinder path whose
+  // first points sit on a companion particle from the same vertex (case E,
+  // 2026-09-21): seeding there points the whole fit at the companion. The
+  // hypotheses compete through IsBetterFit (converged, then most hits, then
+  // chi2/ndof), all reco-only. A skip always gives up at least one layer's
+  // hit, so it only wins when the full-head fit lost more than that.
   bool haveBest = false;
-  for (std::size_t localIdx : firstLayerLocal) {
-    const std::size_t anchor = objectIndices[localIdx];
-    std::vector<std::size_t> seedPath;
-    seedPath.reserve(restSorted.size() + 1);
-    seedPath.push_back(anchor);
-    seedPath.insert(seedPath.end(), restSorted.begin(), restSorted.end());
+  const int maxSkip = std::max(0, fConfig.MaxHeadSkip);
+  for (int skip = 0; skip <= maxSkip; ++skip) {
+    if (objectLayers.size() < static_cast<std::size_t>(skip) + 2) break;
 
-    const FitResult candidate = Run(allSpacePoints, seedPath);
-    if (!haveBest || IsBetterFit(candidate, best)) {
-      best = candidate;
-      haveBest = true;
+    const std::vector<std::size_t> &firstLayerLocal = objectLayers[skip];
+    std::set<std::size_t> skippedOrFirstGlobal;
+    for (int l = 0; l <= skip; ++l)
+      for (std::size_t localIdx : objectLayers[l]) skippedOrFirstGlobal.insert(objectIndices[localIdx]);
+
+    // The rest of the object, z-sorted (same (z,x,y) tie-break
+    // TMS_LayerGrouping itself uses internally) -- shared across every anchor
+    // of this skip level; only which point leads the seed path (and
+    // therefore SeedDirection()'s first ~3-point average) changes.
+    std::vector<std::size_t> restSorted;
+    for (std::size_t idx : objectIndices)
+      if (!skippedOrFirstGlobal.count(idx)) restSorted.push_back(idx);
+    std::sort(restSorted.begin(), restSorted.end(), [&allSpacePoints](std::size_t a, std::size_t b) {
+      const TMS_SpacePoint &pa = allSpacePoints[a];
+      const TMS_SpacePoint &pb = allSpacePoints[b];
+      if (pa.GetZ() != pb.GetZ()) return pa.GetZ() < pb.GetZ();
+      if (pa.GetX() != pb.GetX()) return pa.GetX() < pb.GetX();
+      return pa.GetY() < pb.GetY();
+    });
+
+    for (std::size_t localIdx : firstLayerLocal) {
+      const std::size_t anchor = objectIndices[localIdx];
+      std::vector<std::size_t> seedPath;
+      seedPath.reserve(restSorted.size() + 1);
+      seedPath.push_back(anchor);
+      seedPath.insert(seedPath.end(), restSorted.begin(), restSorted.end());
+
+      const FitResult candidate = Run(allSpacePoints, seedPath);
+      if (!haveBest || IsBetterFit(candidate, best)) {
+        best = candidate;
+        haveBest = true;
+      }
     }
   }
   return best;
