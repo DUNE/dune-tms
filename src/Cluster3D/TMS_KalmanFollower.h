@@ -168,7 +168,16 @@ struct Config {
   // layers, keeping whichever hypothesis IsBetterFit prefers. Guards against
   // an object whose head belongs to a different particle (see RunBestSeed).
   // 0 = only the original first-layer anchors.
-  int MaxHeadSkip = 0;
+  //
+  // Default 2: near a vertex the first layers mix the muon with same-vertex
+  // hadrons, so a seed built there can lock the fit onto the wrong particle
+  // (case E: 0/16 -> 16/16 target planes). 15-file sweep 2026-09-21
+  // (reports/2026-09-21_kalman_prior_sweep/), skip 0 / 1 / 2: completeness
+  // 82.6 / 85.8 / 86.6%, purity 87.0 / 89.0 / 89.7%. Cost: up to 3x the fits
+  // per muon (runtime not yet optimised), and a tail of 21 short tracks
+  // (0.15%) lose >= 50 pp completeness because IsBetterFit counts hits
+  // without checking they belong to one particle.
+  int MaxHeadSkip = 2;
 
   // Measurement uncertainty (mm) in a space point's own not-Z coordinate.
   // A per-hit lookup (TMS_Bar::GetNotZw()) would be more precise, but
