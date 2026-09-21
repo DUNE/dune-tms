@@ -292,6 +292,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_QP_REL_SIGMA")) follower_config.InitialQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("KF_RANGE_SEED")) follower_config.RangeSeedMargin = std::atof(v);
   if (const char *v = std::getenv("KF_MAX_HEAD_SKIP")) follower_config.MaxHeadSkip = std::atoi(v);
+  if (const char *v = std::getenv("KF_RANK_BY_CONVERGENCE")) follower_config.RankHypothesesByConvergence = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) follower_config.StopOnRangeOut = std::atoi(v) != 0;
   const TMS_KalmanFollower::Follower follower(follower_config, field);
 
@@ -387,6 +388,18 @@ int main(int argc, char **argv) {
                  "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct,"
                  "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct,"
                  "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z\n";
+  }
+
+  // Optional: KF_DUMP_HYPOTHESES=<path> writes one row per RunBestSeed()
+  // hypothesis (its own selection statistics plus truth purity/completeness)
+  // so alternative ranking rules can be compared offline against the current
+  // IsBetterFit and against the oracle best.
+  std::ofstream hyp_csv;
+  if (const char *hp = std::getenv("KF_DUMP_HYPOTHESES")) {
+    hyp_csv.open(hp);
+    hyp_csv << "sourcefile,entry,slice,vertexglobalid,trackid,seed_source,n_hyp,hyp,chosen,head_skip,"
+               "converged,stop_reason,nodes,hits,gaps,chi2,ndof,hits_chi2_le4,hits_chi2_le9,sum_hit_chi2,"
+               "max_hit_chi2,ambig_layers,correct,wrong,purity_pct,planes_covered,target_planes,completeness_pct,first_z,last_z\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -733,8 +746,37 @@ int main(int argc, char **argv) {
       KalmanScore kscore;
       if (haveFinal) {
         const std::vector<std::size_t> objectIndices(finalIndices.begin(), finalIndices.end());
-        const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
+        std::vector<TMS_KalmanFollower::FitResult> hypotheses;
+        std::size_t best_hyp = 0;
+        const TMS_KalmanFollower::FitResult fit = hyp_csv.is_open()
+            ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
+            : follower.RunBestSeed(space_points, objectIndices);
         kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+        for (std::size_t h = 0; h < hypotheses.size(); ++h) {
+          const TMS_KalmanFollower::FitResult &hf = hypotheses[h];
+          const KalmanScore hs = ScoreFit(hf, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+          int le4 = 0, le9 = 0;
+          double sum_chi2 = 0.0, max_chi2 = 0.0;
+          for (const TMS_KalmanFollower::FollowedNode &n : hf.Nodes) {
+            if (!n.HasHit) continue;
+            if (n.Chi2AtChosen <= 4.0) ++le4;
+            if (n.Chi2AtChosen <= 9.0) ++le9;
+            sum_chi2 += n.Chi2AtChosen;
+            if (n.Chi2AtChosen > max_chi2) max_chi2 = n.Chi2AtChosen;
+          }
+          const int hn = hs.correct_chosen + hs.wrong_chosen;
+          hyp_csv << input_filename << "," << entry << "," << slice_no << "," << label.vgid << "," << label.trackid << ","
+                  << finalSeedSource << "," << hypotheses.size() << "," << h << "," << (h == best_hyp ? 1 : 0) << ","
+                  << hf.HeadSkip << "," << (hf.Converged ? 1 : 0) << "," << hs.stop_reason << ","
+                  << hf.Nodes.size() << "," << hs.nodes_with_hit << "," << hs.gaps << "," << hf.TotalChi2 << ","
+                  << hf.NDoF << "," << le4 << "," << le9 << "," << sum_chi2 << "," << max_chi2 << ","
+                  << hs.ambiguous_layers << "," << hs.correct_chosen << "," << hs.wrong_chosen << ","
+                  << (hn > 0 ? 100.0 * hs.correct_chosen / hn : 0.0) << "," << hs.planes_covered << ","
+                  << target_layers_in_slice.size() << ","
+                  << (!target_layers_in_slice.empty() ? 100.0 * hs.planes_covered / target_layers_in_slice.size() : 0.0) << ","
+                  << (hf.Nodes.empty() ? 0.0 : hf.Nodes.front().Z) << "," << (hf.Nodes.empty() ? 0.0 : hf.Nodes.back().Z)
+                  << "\n";
+        }
       }
       if (kscore.ran) {
         ++n_kalman_ran;
