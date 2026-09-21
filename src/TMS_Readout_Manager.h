@@ -44,9 +44,8 @@ class TMS_Readout_Manager {
     // Gate for the detector-response redesign (stitch physical passages, re-segment on
     // a fixed spatial scale, apply Birks/optical response locally before thresholding --
     // see reports/2026-09-04_detector_response_restructuring_proposal/). Defaults to
-    // false, i.e. no behavior change: the new pipeline doesn't exist yet, it's being
-    // built out behind this flag phase by phase so it can be validated incrementally
-    // against the existing pipeline before cutover.
+    // false, i.e. the existing pipeline: the new one is being built out behind this flag
+    // phase by phase so it can be validated incrementally before cutover.
     bool Get_Sim_DetSim_UseResponseElements() { return _SIM_DETSIM_UseResponseElements; };
 
 
