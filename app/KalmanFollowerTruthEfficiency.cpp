@@ -109,18 +109,6 @@ std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double
   return layer;
 }
 
-// Turns an unordered index set into the follower's z-sorted seedPath format
-// (ties broken by x, then y), matching TMS_LayerGrouping's own convention --
-// same helper as KalmanFollowerSliceTest.cpp's BuildSeedPathFromIndices.
-std::vector<std::size_t> BuildSeedPath(const std::vector<TMS_SpacePoint> &points, std::vector<int> indices) {
-  std::sort(indices.begin(), indices.end(), [&points](int a, int b) {
-    if (points[a].GetZ() != points[b].GetZ()) return points[a].GetZ() < points[b].GetZ();
-    if (points[a].GetX() != points[b].GetX()) return points[a].GetX() < points[b].GetX();
-    return points[a].GetY() < points[b].GetY();
-  });
-  return std::vector<std::size_t>(indices.begin(), indices.end());
-}
-
 // Per-muon Kalman cross-check result, filled by RunFollowerAndScore() below --
 // bundles the CSV columns so the three call sites (DBSCAN-direct, merged-PCA,
 // Graph Track Finder) all fill them identically.
@@ -371,7 +359,8 @@ int main(int argc, char **argv) {
                  "kalman_planes_covered,kalman_completeness_pct,"
                  "kalman_planes_before_walk,kalman_planes_after_walk,kalman_planes_missed_in_range,"
                  "kalman_stop_reason,kalman_gaps_truth_available,kalman_gaps_truth_absent,"
-                 "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct\n";
+                 "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct,"
+                 "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -518,6 +507,77 @@ int main(int argc, char **argv) {
       fallback_runs[pidx] = std::move(run);
     }
 
+    // --- Probe (2026-09-16): what would GraphTrackFinder recover if run on
+    // every cluster touching a muon's own points, REGARDLESS of whether
+    // Stage 1/2's whole-cluster ownership check already succeeded? A real
+    // case (vgid=1000000092001580, file 9) showed Stage 1 succeeding
+    // trivially on a small isolated 4-plane tail fragment (25% completeness)
+    // while the SAME GraphTrackFinder, run on the full touching-cluster set,
+    // recovered 14/16 planes (87.5%) at 87.5% purity from a companion-
+    // dominated cluster Stage 1's ownership gate had excluded -- because
+    // Stage 2/3 are both skipped outright the instant Stage 1 succeeds
+    // (`if (seedPath.empty())`), GraphTrackFinder never gets the chance to
+    // even try decomposing that bigger cluster. Deliberately a SEPARATE,
+    // parallel computation (not reusing/modifying merged_clusters/
+    // fallback_runs above) so this shadow metric cannot alter the existing
+    // validated found_dbscan/found_dbscan_merged/found_lt/kalman_* results
+    // -- pure measurement, zero risk to the numbers this tool already
+    // reports elsewhere.
+    struct ProbeResult {
+      bool ran = false;
+      int merged_size = 0;
+      int best_planes_covered = 0;
+      double best_purity_pct = 0.0;
+      std::vector<int> best_path_global_indices;  // ordered (GraphTrackFinder's own path order)
+    };
+    std::unordered_map<int, ProbeResult> probe_results;
+    for (int pidx : muon_particle_idx) {
+      TrueLabel label{sp.vgid[pidx], sp.trackid[pidx]};
+      ProbeResult probe;
+
+      std::set<int> touched_cluster_ids;
+      std::vector<int> own_noise_points;
+      for (int i = 0; i < n_space_points; ++i) {
+        if (!(point_label[i] == label)) continue;
+        const int cid = point_cluster_id[i];
+        if (cid == 0) own_noise_points.push_back(i);
+        else touched_cluster_ids.insert(cid);
+      }
+      std::vector<int> probe_indices = own_noise_points;
+      for (int cid : touched_cluster_ids)
+        for (int idx : cluster_indices[cid - 1]) probe_indices.push_back(idx);
+      std::sort(probe_indices.begin(), probe_indices.end());
+      probe_indices.erase(std::unique(probe_indices.begin(), probe_indices.end()), probe_indices.end());
+      probe.merged_size = (int)probe_indices.size();
+
+      if (probe_indices.size() >= lt_config.SeedLength) {
+        std::vector<TMS_SpacePoint> probe_points;
+        probe_points.reserve(probe_indices.size());
+        for (int gi : probe_indices) probe_points.push_back(space_points[gi]);
+        const TMS_GraphTrackFinder::Result probeResult = TMS_GraphTrackFinder::Finder(lt_config).Find(probe_points);
+        probe.ran = true;
+        for (const TMS_GraphTrackFinder::Path &path : probeResult.Paths) {
+          std::size_t matched = 0;
+          std::set<int> planesCovered;
+          for (std::size_t li : path.SpacePointIndices) {
+            const int gi = probe_indices[li];
+            if (point_label[gi] == label) {
+              ++matched;
+              planesCovered.insert(z_layer_whole_slice[gi]);
+            }
+          }
+          if ((int)planesCovered.size() > probe.best_planes_covered) {
+            probe.best_planes_covered = (int)planesCovered.size();
+            probe.best_purity_pct = path.SpacePointIndices.empty() ? 0.0 : 100.0 * matched / path.SpacePointIndices.size();
+            probe.best_path_global_indices.clear();
+            probe.best_path_global_indices.reserve(path.SpacePointIndices.size());
+            for (std::size_t li : path.SpacePointIndices) probe.best_path_global_indices.push_back(probe_indices[li]);
+          }
+        }
+      }
+      probe_results[pidx] = probe;
+    }
+
     for (int pidx : muon_particle_idx) {
       ++n_muons_total;
       TrueLabel label{sp.vgid[pidx], sp.trackid[pidx]};
@@ -567,29 +627,88 @@ int main(int argc, char **argv) {
         }
       }
 
-      const bool found_combined = found_dbscan || found_dbscan_merged || found_lt;
+      // --- Which of the three original stages (if any) found something,
+      // and how many of the target's own planes does ITS candidate object
+      // actually touch? Needed to compare against the probe below on equal
+      // footing (plane coverage of the raw candidate, before any Kalman
+      // fit) -- see the 2026-09-16 "GraphTrackFinder never gets a chance to
+      // run once Stage 1 succeeds" finding: Stage 1/2 succeeding at all,
+      // even on a small isolated fragment, used to end the search here.
+      auto CountOwnPlanes = [&](const std::vector<int> &idxs) {
+        std::set<int> planes;
+        for (int gi : idxs)
+          if (point_label[gi] == label) planes.insert(z_layer_whole_slice[gi]);
+        return (int)planes.size();
+      };
+
+      std::vector<int> stageCandidateIndices;
+      std::string stageSeedSource;
+      bool haveStageCandidate = false;
+      if (found_dbscan) {
+        stageCandidateIndices.assign(cluster_indices[best_dbscan_cluster].begin(), cluster_indices[best_dbscan_cluster].end());
+        stageSeedSource = "dbscan_direct";
+        haveStageCandidate = true;
+      } else if (found_dbscan_merged) {
+        stageCandidateIndices = merged_clusters[pidx];
+        stageSeedSource = "merged_pca";
+        haveStageCandidate = true;
+      } else if (found_lt && best_lt_path != nullptr && best_lt_path->SpacePointIndices.size() >= 2) {
+        stageCandidateIndices.reserve(best_lt_path->SpacePointIndices.size());
+        for (std::size_t local_idx : best_lt_path->SpacePointIndices)
+          stageCandidateIndices.push_back(lt_run->local_to_global[local_idx]);
+        stageSeedSource = "graphtrack";
+        haveStageCandidate = true;
+      }
+      const int stageCandidatePlanes = haveStageCandidate ? CountOwnPlanes(stageCandidateIndices) : 0;
+
+      // --- Fix (2026-09-16): always compare against GraphTrackFinder run on
+      // every cluster touching the target's own points, regardless of
+      // whether an earlier stage already "succeeded" -- validated at full
+      // population scale to recover 68.5%->94.1% completeness (ND-LAr-
+      // fiducial: 70.5%->97.4%), at 92.6% mean purity on the paths that win,
+      // for a real ~10x runtime cost (GraphTrackFinder now runs for
+      // essentially every muon, not just the ~4% that used to reach it). ---
+      const ProbeResult &probe = probe_results[pidx];
+      const bool probeWins = probe.ran && probe.best_planes_covered > stageCandidatePlanes;
+
+      std::vector<int> finalIndices;
+      std::string finalSeedSource;
+      bool haveFinal = false;
+      if (probeWins) {
+        finalIndices = probe.best_path_global_indices;
+        finalSeedSource = "graphtrack_probe";
+        haveFinal = true;
+      } else if (haveStageCandidate) {
+        finalIndices = stageCandidateIndices;
+        finalSeedSource = stageSeedSource;
+        haveFinal = true;
+      }
+
+      const bool found_combined = haveFinal;
       if (found_combined) ++n_found_combined;
 
-      // --- Kalman follower: whichever stage found the object, fit it. ---
+      // --- Kalman follower: whichever candidate won above, fit it, always
+      // via RunBestSeed()'s multi-hypothesis first-layer seeding -- even for
+      // GraphTrackFinder-sourced (ordered) paths. Previously ordered paths
+      // used plain Run(), trusting GraphTrackFinder's own directed search to
+      // have already resolved the first-point ambiguity; that assumption
+      // held when Stage 3 only ran as a last resort with nothing better
+      // available, but broke down once it started winning competitively
+      // against Stage 1/2 (the new graphtrack_probe pathway above) -- found
+      // 2026-09-16 on a real case where GraphTrackFinder's own path anchored
+      // its first TWO points on a companion particle (not the target),
+      // seeding the whole fit's initial direction wrong and making it
+      // confidently track the wrong particle for several layers before
+      // losing the thread. RunBestSeed() tries every candidate at the
+      // object's own first z-layer as an alternate seed hypothesis instead
+      // of trusting a single one -- same machinery already validated for
+      // DBSCAN-direct/merged-PCA seeds, just no longer withheld from
+      // graphtrack-sourced ones. ---
       KalmanScore kscore;
-      if (found_dbscan) {
-        const std::vector<std::size_t> objectIndices(cluster_indices[best_dbscan_cluster].begin(),
-                                                       cluster_indices[best_dbscan_cluster].end());
+      if (haveFinal) {
+        const std::vector<std::size_t> objectIndices(finalIndices.begin(), finalIndices.end());
         const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "dbscan_direct", target_layers_in_slice);
-      } else if (found_dbscan_merged) {
-        const std::vector<int> &merged_indices = merged_clusters[pidx];
-        const std::vector<std::size_t> objectIndices(merged_indices.begin(), merged_indices.end());
-        const TMS_KalmanFollower::FitResult fit = follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "merged_pca", target_layers_in_slice);
-      } else if (found_lt && best_lt_path != nullptr && best_lt_path->SpacePointIndices.size() >= 2) {
-        std::vector<int> globalIndices;
-        globalIndices.reserve(best_lt_path->SpacePointIndices.size());
-        for (std::size_t local_idx : best_lt_path->SpacePointIndices)
-          globalIndices.push_back(lt_run->local_to_global[local_idx]);
-        const std::vector<std::size_t> seedPath = BuildSeedPath(space_points, globalIndices);
-        const TMS_KalmanFollower::FitResult fit = follower.Run(space_points, seedPath);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, "graphtrack", target_layers_in_slice);
+        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
       }
       if (kscore.ran) {
         ++n_kalman_ran;
@@ -615,7 +734,9 @@ int main(int argc, char **argv) {
                 << kscore.planes_covered << "," << kalman_completeness_pct << ","
                 << kscore.planes_before_walk << "," << kscore.planes_after_walk << "," << kscore.planes_missed_in_range << ","
                 << kscore.stop_reason << "," << kscore.gaps_truth_available << "," << kscore.gaps_truth_absent << ","
-                << kscore.ambiguous_layers << "," << kscore.ambiguous_truth_present << "," << kscore.ambiguous_correct
+                << kscore.ambiguous_layers << "," << kscore.ambiguous_truth_present << "," << kscore.ambiguous_correct << ","
+                << (probe_results[pidx].ran ? 1 : 0) << "," << probe_results[pidx].merged_size << ","
+                << probe_results[pidx].best_planes_covered << "," << probe_results[pidx].best_purity_pct
                 << "\n";
     }
 

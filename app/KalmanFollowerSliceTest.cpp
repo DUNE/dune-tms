@@ -378,69 +378,126 @@ int main(int argc, char **argv) {
   // actually runs).
   std::vector<std::vector<std::size_t>> allGraphtrackGlobalPaths;
 
-  // Stage 1: does the cluster that plurality-owns the target's own points
-  // (if any) already pass the PCA linearity check on its own?
-  std::unordered_map<int, int> ownClusterVotes;
-  for (std::size_t i = 0; i < best_points.size(); ++i)
-    if (best_point_label[i] == target) ownClusterVotes[point_cluster_id[i]]++;
-  int bestOwnClusterId = 0, bestOwnClusterVotes = 0;
-  for (auto &kv : ownClusterVotes)
-    if (kv.second > bestOwnClusterVotes) {
-      bestOwnClusterId = kv.first;
-      bestOwnClusterVotes = kv.second;
-    }
-  if (bestOwnClusterId > 0) {
-    const TMS_SpacePointCluster &cl = clusters[bestOwnClusterId - 1];
-    if (cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
-        ClusterOwner(cluster_indices[bestOwnClusterId - 1]) == target) {
-      seedPath = BuildSeedPathFromIndices(best_points, cluster_indices[bestOwnClusterId - 1]);
-      seedObjectIndices.assign(cluster_indices[bestOwnClusterId - 1].begin(),
-                                cluster_indices[bestOwnClusterId - 1].end());
-      foundVia = "DBSCAN+PCA (direct)";
+  // Stage 1: does ANY track-like cluster have the target as its own
+  // plurality owner? Must match KalmanFollowerTruthEfficiency.cpp's Pass A
+  // exactly (iterate every cluster, filter on IsTrackLike + owner==target,
+  // pick the largest qualifying one) -- NOT pre-select a single candidate
+  // cluster by "which cluster holds the most of the target's own points"
+  // first. Those two queries can disagree: when the target's true points
+  // are split across multiple clusters, the cluster holding the MOST of
+  // them can be a different (non-track-like, or owned-by-someone-else)
+  // cluster than a smaller one that actually passes both checks -- found
+  // 2026-09-16 via a real discrepancy against the batch tool's numbers for
+  // the same (file, vgid, trackid): this tool fell through to the
+  // graph-search fallback where the batch tool's Pass A succeeded cleanly.
+  std::vector<std::size_t> stage1Candidates;
+  for (std::size_t c = 0; c < clusters.size(); ++c) {
+    if (!clusters[c].IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)) continue;
+    if (ClusterOwner(cluster_indices[c]) == target) stage1Candidates.push_back(c);
+  }
+
+  // Debug: every cluster touching ANY of the target's own points, whether
+  // or not it qualifies for Stage 1 -- added to directly verify (not just
+  // reason about) why a muon's DBSCAN-direct cluster can be a small,
+  // isolated tail fragment even when real truth-matched hits exist earlier:
+  // a busy co-vertex cluster can contain plenty of the muon's own points
+  // yet still be plurality-owned by a companion particle with even more
+  // points in it, excluding the whole cluster from Stage 1.
+  if (std::getenv("KF_DEBUG")) {
+    std::set<int> touchingClusterIds;
+    for (std::size_t i = 0; i < best_points.size(); ++i)
+      if (best_point_label[i] == target && point_cluster_id[i] > 0) touchingClusterIds.insert(point_cluster_id[i]);
+    std::cerr << "[KF_DEBUG Stage1] clusters touching target's own points:\n";
+    for (int cid : touchingClusterIds) {
+      const std::vector<int> &idx = cluster_indices[cid - 1];
+      double zmin = 1e18, zmax = -1e18;
+      int nOwn = 0;
+      std::unordered_map<TrueLabel, int, LabelHash> votes;
+      for (int i : idx) {
+        zmin = std::min(zmin, best_points[i].GetZ());
+        zmax = std::max(zmax, best_points[i].GetZ());
+        if (best_point_label[i] == target) ++nOwn;
+        if (best_point_label[i].Valid()) votes[best_point_label[i]]++;
+      }
+      TrueLabel owner;
+      int ownerCount = 0;
+      for (auto &kv : votes)
+        if (kv.second > ownerCount) { owner = kv.first; ownerCount = kv.second; }
+      std::cerr << "  cluster " << cid << ": size=" << idx.size() << " z=[" << zmin << "," << zmax << "]"
+                << " nOwnPoints=" << nOwn << " trackLike=" << clusters[cid - 1].IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)
+                << " owner=(vgid=" << owner.vgid << ",tid=" << owner.trackid << ",n=" << ownerCount << ")"
+                << " isTarget=" << (owner == target) << "\n";
     }
   }
+  // How many of the target's own truth-matched planes does a candidate
+  // index set actually touch? Used below to compare Stage 1/2's whole-
+  // cluster candidate against Stage 3's GraphTrackFinder path on equal
+  // footing (raw-candidate coverage, before the Kalman fit).
+  auto CountOwnPlanes = [&](const std::vector<int> &idxs) {
+    std::set<int> planes;
+    for (int i : idxs)
+      if (best_point_label[i] == target) planes.insert(static_cast<int>(std::round(best_points[i].GetZ())));
+    return (int)planes.size();
+  };
+
+  std::vector<int> stage1Indices;
+  if (!stage1Candidates.empty()) {
+    std::size_t bestC = stage1Candidates[0];
+    for (std::size_t c : stage1Candidates)
+      if (cluster_indices[c].size() > cluster_indices[bestC].size()) bestC = c;
+    stage1Indices.assign(cluster_indices[bestC].begin(), cluster_indices[bestC].end());
+  }
+  const int stage1Planes = stage1Indices.empty() ? 0 : CountOwnPlanes(stage1Indices);
 
   // Stage 2: merge every cluster touching the target's own points, plus its
-  // own noise points specifically, and re-check PCA on the merged set.
-  std::vector<int> merged_indices;
-  if (seedPath.empty()) {
-    std::set<int> touched_cluster_ids;
-    std::vector<int> own_noise_points;
-    for (std::size_t i = 0; i < best_points.size(); ++i) {
-      if (!(best_point_label[i] == target)) continue;
-      const int cid = point_cluster_id[i];
-      if (cid == 0) own_noise_points.push_back(static_cast<int>(i));
-      else touched_cluster_ids.insert(cid);
-    }
-    merged_indices = own_noise_points;
-    for (int cid : touched_cluster_ids)
-      for (int idx : cluster_indices[cid - 1]) merged_indices.push_back(idx);
-    std::sort(merged_indices.begin(), merged_indices.end());
-    merged_indices.erase(std::unique(merged_indices.begin(), merged_indices.end()), merged_indices.end());
+  // own noise points specifically, and re-check PCA on the merged set. Also
+  // the candidate pool Stage 3 (below) searches. Computed UNCONDITIONALLY
+  // now (not gated on Stage 1 failing) -- see the fix note below.
+  std::set<int> touched_cluster_ids;
+  std::vector<int> own_noise_points;
+  for (std::size_t i = 0; i < best_points.size(); ++i) {
+    if (!(best_point_label[i] == target)) continue;
+    const int cid = point_cluster_id[i];
+    if (cid == 0) own_noise_points.push_back(static_cast<int>(i));
+    else touched_cluster_ids.insert(cid);
+  }
+  std::vector<int> merged_indices = own_noise_points;
+  for (int cid : touched_cluster_ids)
+    for (int idx : cluster_indices[cid - 1]) merged_indices.push_back(idx);
+  std::sort(merged_indices.begin(), merged_indices.end());
+  merged_indices.erase(std::unique(merged_indices.begin(), merged_indices.end()), merged_indices.end());
 
-    if (merged_indices.size() >= kMinClusterSizeForTrack) {
-      TMS_SpacePointCluster merged_cluster(best_points, merged_indices);
-      if (merged_cluster.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
-          ClusterOwner(merged_indices) == target) {
-        seedPath = BuildSeedPathFromIndices(best_points, merged_indices);
-        seedObjectIndices.assign(merged_indices.begin(), merged_indices.end());
-        foundVia = "merged-cluster PCA";
-      }
+  std::vector<int> stage2Indices;
+  if (merged_indices.size() >= kMinClusterSizeForTrack) {
+    TMS_SpacePointCluster merged_cluster(best_points, merged_indices);
+    if (merged_cluster.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) &&
+        ClusterOwner(merged_indices) == target) {
+      stage2Indices = merged_indices;
     }
   }
+  const int stage2Planes = stage2Indices.empty() ? 0 : CountOwnPlanes(stage2Indices);
 
-  // Stage 3: still not track-like -- run the graph search on the merged
-  // set (never the whole slice, matching GraphTrackFinderTruthEfficiency's
-  // validated design), using the config already validated as needed for
-  // real dense-slice occupancy (TMS_GraphTrackFinder::Config's stock
-  // defaults find no usable seed at all on cases like this one).
+  // Stage 3 / fix (2026-09-16): run GraphTrackFinder on the SAME merged
+  // touching-cluster set REGARDLESS of whether Stage 1/2 already succeeded
+  // -- previously gated by `if (seedPath.empty())`, meaning ANY Stage 1
+  // success, even a trivial isolated fragment, skipped this entirely and
+  // GraphTrackFinder never got the chance to decompose a bigger, real,
+  // companion-dominated cluster into a track-like sub-path (exactly the job
+  // it exists for). Validated via KalmanFollowerTruthEfficiency.cpp at full
+  // population scale: completeness 68.5%->79.4% (ND-LAr-fiducial:
+  // 70.5%->84.6%), purity unchanged (88.1%->88.3%). Matches this tool's own
+  // pre-existing convention for Stage 3 (already picks among GraphTrackFinder's
+  // candidate paths by truth-matched count, not a new methodological
+  // departure -- see KF_DEBUG/probe history above for how this was found).
   TMS_GraphTrackFinder::Config finderConfig;
   finderConfig.OccupancyPenalty = 0.0;
   finderConfig.HitMultiplicityPenalty = 0.0;
   finderConfig.MaxSeedLayerOccupancy = 150;
   finderConfig.MaxSeedHitMultiplicity = 50;
   finderConfig.UseCurvatureProjection = false;
-  if (seedPath.empty() && merged_indices.size() >= finderConfig.SeedLength) {
+  std::vector<int> stage3Indices;
+  int stage3Planes = 0;
+  if (merged_indices.size() >= finderConfig.SeedLength) {
     std::vector<TMS_SpacePoint> local_points;
     local_points.reserve(merged_indices.size());
     for (int gi : merged_indices) local_points.push_back(best_points[gi]);
@@ -455,24 +512,56 @@ int main(int argc, char **argv) {
       allGraphtrackGlobalPaths.push_back(std::move(globalPath));
     }
 
-    std::size_t bestSeedMatched = 0;
     const TMS_GraphTrackFinder::Path *bestSeed = nullptr;
     for (const TMS_GraphTrackFinder::Path &path : finderResult.Paths) {
-      std::size_t matched = 0;
-      for (std::size_t localIdx : path.SpacePointIndices)
-        if (best_point_label[merged_indices[localIdx]] == target) ++matched;
-      if (matched > bestSeedMatched) {
-        bestSeedMatched = matched;
+      std::vector<int> globalIndices;
+      globalIndices.reserve(path.SpacePointIndices.size());
+      for (std::size_t localIdx : path.SpacePointIndices) globalIndices.push_back(merged_indices[localIdx]);
+      const int planes = CountOwnPlanes(globalIndices);
+      if (planes > stage3Planes) {
+        stage3Planes = planes;
         bestSeed = &path;
       }
     }
     if (bestSeed && bestSeed->SpacePointIndices.size() >= 2) {
-      std::vector<int> globalIndices;
-      globalIndices.reserve(bestSeed->SpacePointIndices.size());
-      for (std::size_t localIdx : bestSeed->SpacePointIndices) globalIndices.push_back(merged_indices[localIdx]);
-      seedPath = BuildSeedPathFromIndices(best_points, globalIndices);
-      foundVia = "GraphTrackFinder (merged fallback)";
+      stage3Indices.reserve(bestSeed->SpacePointIndices.size());
+      for (std::size_t localIdx : bestSeed->SpacePointIndices) stage3Indices.push_back(merged_indices[localIdx]);
     }
+  }
+
+  // Keep whichever of the three candidates covers the most of the target's
+  // own truth-matched planes. Strict `>` (not `>=`) so a tie prefers the
+  // simpler/earlier stage -- matches KalmanFollowerTruthEfficiency.cpp's
+  // `probe.best_planes_covered > stageCandidatePlanes` exactly; using `>=`
+  // here first biased every tie toward the more complex GraphTrackFinder
+  // path even when it wasn't actually better, which is what happened on a
+  // real re-check of case E (a tie in raw-candidate coverage, but the
+  // GraphTrackFinder-seeded fit did WORSE post-fit than Stage 1's clean
+  // small candidate would have) -- caught by testing this exact case, not
+  // assumed.
+  if (stage3Planes > stage1Planes && stage3Planes > stage2Planes && !stage3Indices.empty()) {
+    seedPath = BuildSeedPathFromIndices(best_points, stage3Indices);
+    // Also route through RunBestSeed() below, matching KalmanFollowerTruthEfficiency.cpp
+    // -- but note this is a NO-OP for a path exactly this shape (one point
+    // per z-layer already, by construction of an already-resolved
+    // GraphTrackFinder path): RunBestSeed's multi-hypothesis mechanism only
+    // has alternatives to try when the object itself contains >1 candidate
+    // at its own first layer, which a single resolved path never does.
+    // Verified empirically on case E (2026-09-16): identical result either
+    // way. Kept for consistency with the batch tool rather than removed,
+    // since a future stage3Indices shape (or a real multi-candidate first
+    // layer) could still benefit.
+    seedObjectIndices.assign(stage3Indices.begin(), stage3Indices.end());
+    foundVia = (stage1Planes == 0 && stage2Planes == 0) ? "GraphTrackFinder (merged fallback)"
+                                                          : "GraphTrackFinder (beat Stage 1/2)";
+  } else if (stage2Planes > stage1Planes && !stage2Indices.empty()) {
+    seedPath = BuildSeedPathFromIndices(best_points, stage2Indices);
+    seedObjectIndices.assign(stage2Indices.begin(), stage2Indices.end());
+    foundVia = "merged-cluster PCA";
+  } else if (!stage1Indices.empty()) {
+    seedPath = BuildSeedPathFromIndices(best_points, stage1Indices);
+    seedObjectIndices.assign(stage1Indices.begin(), stage1Indices.end());
+    foundVia = "DBSCAN+PCA (direct)";
   }
 
   if (seedPath.empty()) {
