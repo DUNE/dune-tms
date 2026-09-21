@@ -549,8 +549,8 @@ double SeedCharge(const std::vector<TMS_SpacePoint> &allSpacePoints,
 // covers less of the object than one that walked its full length); ties
 // broken by chi2/NDoF (lower is better), the standard goodness-of-fit
 // comparison once coverage is equal.
-bool IsBetterFit(const FitResult &a, const FitResult &b) {
-  if (a.Converged != b.Converged) return a.Converged;
+bool IsBetterFit(const FitResult &a, const FitResult &b, bool rankByConvergence) {
+  if (rankByConvergence && a.Converged != b.Converged) return a.Converged;
   int hitsA = 0, hitsB = 0;
   for (const FollowedNode &n : a.Nodes) if (n.HasHit) ++hitsA;
   for (const FollowedNode &n : b.Nodes) if (n.HasHit) ++hitsB;
@@ -754,7 +754,9 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
 }
 
 FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoints,
-                                 const std::vector<std::size_t> &objectIndices) const {
+                                 const std::vector<std::size_t> &objectIndices,
+                                 std::vector<FitResult> *allHypotheses,
+                                 std::size_t *bestIndex) const {
   FitResult best;
   if (objectIndices.empty()) return best;
 
@@ -809,10 +811,13 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
       seedPath.push_back(anchor);
       seedPath.insert(seedPath.end(), restSorted.begin(), restSorted.end());
 
-      const FitResult candidate = Run(allSpacePoints, seedPath);
-      if (!haveBest || IsBetterFit(candidate, best)) {
+      FitResult candidate = Run(allSpacePoints, seedPath);
+      candidate.HeadSkip = skip;
+      if (allHypotheses) allHypotheses->push_back(candidate);
+      if (!haveBest || IsBetterFit(candidate, best, fConfig.RankHypothesesByConvergence)) {
         best = candidate;
         haveBest = true;
+        if (bestIndex && allHypotheses) *bestIndex = allHypotheses->size() - 1;
       }
     }
   }

@@ -179,6 +179,20 @@ struct Config {
   // without checking they belong to one particle.
   int MaxHeadSkip = 2;
 
+  // RunBestSeed() ranks its hypotheses (IsBetterFit) by: [converged, only if
+  // this is true], then most hits, then lowest chi2/ndof. Default false.
+  // With RangedOut and the gap-limit stop, "converged" stopped being a
+  // quality signal: a prematurely ranged-out fit (counted converged) could
+  // beat a longer fit that merely ended at the gap limit, and head-skip
+  // hypotheses that filled gaps with high-chi2 wrong hits could win. Dropping
+  // it (2026-09-21 hypothesis study, reports/2026-09-21_kalman_hypothesis_selection/,
+  // 13,249 muons, files 1-7 vs 8-15 agree within 0.2 pp): completeness 88.6 ->
+  // 89.2%, purity unchanged, muons losing >= 50 pp vs skip-0 21 -> 14, losing
+  // >= 20 pp 115 -> 29. An oracle that sees the truth would reach 91.0% /
+  // 95.7%, so the ranking still has headroom that reco-only hit counts and
+  // chi2 do not reach.
+  bool RankHypothesesByConvergence = false;
+
   // Measurement uncertainty (mm) in a space point's own not-Z coordinate.
   // A per-hit lookup (TMS_Bar::GetNotZw()) would be more precise, but
   // needs a real, geometry-backed TMS_Hit for every candidate -- this
@@ -237,6 +251,7 @@ struct FitResult {
   int NDoF = 0;
   int NGapsFilled = 0;             // layers skipped for lack of a good candidate
   int NAmbiguousLayersResolved = 0;  // layers where >1 candidate existed
+  int HeadSkip = 0;  // RunBestSeed(): leading object layers this hypothesis's seed skipped
 };
 
 class Follower {
@@ -275,8 +290,14 @@ class Follower {
     // objectIndices: the found object's own point indices into
     // allSpacePoints, in ANY order (unlike seedPath above, this is not
     // expected to be pre-sorted).
+    //
+    // allHypotheses / bestIndex (both optional): every hypothesis' FitResult in
+    // the order tried, and the index of the one returned -- for studying how
+    // the hypotheses are ranked (see IsBetterFit in the .cpp).
     FitResult RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoints,
-                          const std::vector<std::size_t> &objectIndices) const;
+                          const std::vector<std::size_t> &objectIndices,
+                          std::vector<FitResult> *allHypotheses = nullptr,
+                          std::size_t *bestIndex = nullptr) const;
 
   private:
     Config fConfig;
