@@ -110,6 +110,8 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
   const double chargeSign = (qpInOut >= 0.0) ? 1.0 : -1.0;
   double momentum = (std::abs(qpInOut) > 1e-12) ? 1.0 / std::abs(qpInOut) : 1.0;
   double energy = std::sqrt(momentum * momentum + BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
+  const double energyFloor = std::sqrt(kMinMomentumMeV * kMinMomentumMeV +
+                                        BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
 
   const std::vector<std::pair<TGeoMaterial *, double> > materials =
       TMS_Geom::GetInstance().GetMaterials(start, end);
@@ -146,7 +148,15 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
 
     // Always walking forward (low->high z): energy decreases.
     energy -= bethe.Calc_dEdx(energy) * density * thickness;
-    if (energy < BetheBloch_Utils::Mm) energy = BetheBloch_Utils::Mm;
+    // Floor at the energy of the kMinMomentumMeV momentum floor, NOT at the
+    // bare rest mass. At E == Mm, beta is exactly 0 and Calc_dEdx /
+    // Calc_dEdx_Straggling divide by beta^2 (and by MaximumEnergyTransfer,
+    // also 0 there), so the NEXT material step returned inf/NaN. That NaN
+    // then survived every later guard (`energy < Mm` and `momentum <
+    // kMinMomentumMeV` are both false for NaN) and turned q/p, dx/dz and x
+    // into NaN on the following gap nodes. Stopping the energy at the floor
+    // keeps beta finite and agrees with the momentum floor applied below.
+    if (energy < energyFloor) energy = energyFloor;
 
     const double energyStragglingSigma = bethe.Calc_dEdx_Straggling(energy) * density * thickness;
     totalEnergyVarianceSq += energyStragglingSigma * energyStragglingSigma;
@@ -205,8 +215,12 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   // unphysical upstream -- stop here rather than hand these values to
   // TMS_Geom::GetMaterials, which can spend a very long time (and a lot
   // of memory) trying to navigate between two wildly separated points.
-  if (std::abs(predicted.dxdz) > 10.0 || std::abs(predicted.dydz) > 10.0 ||
-      std::abs(predicted.x) > 1.0e5 || std::abs(predicted.y) > 1.0e5) {
+  // Written as !(|v| <= limit) rather than |v| > limit: every comparison
+  // against NaN is false in C++, so the plain `>` form lets a NaN state
+  // through as "not diverged".
+  if (!(std::abs(predicted.dxdz) <= 10.0) || !(std::abs(predicted.dydz) <= 10.0) ||
+      !(std::abs(predicted.x) <= 1.0e5) || !(std::abs(predicted.y) <= 1.0e5) ||
+      !std::isfinite(predicted.qp)) {
     predicted.Diverged = true;
     return predicted;
   }
@@ -253,7 +267,7 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   // real fits are never affected, but a runaway is caught here rather than
   // a hundred layers later.
   constexpr double kMaxPositionVarianceMM2 = 4.0e6;  // (2000mm)^2
-  if (propagatedCov(0, 0) > kMaxPositionVarianceMM2 || propagatedCov(1, 1) > kMaxPositionVarianceMM2) {
+  if (!(propagatedCov(0, 0) <= kMaxPositionVarianceMM2) || !(propagatedCov(1, 1) <= kMaxPositionVarianceMM2)) {
     predicted.Diverged = true;
     return predicted;
   }
@@ -266,6 +280,14 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
 
   predicted.cov = propagatedCov + scatterCov;
   predicted.cov(4, 4) += qpVariance;
+
+  // Last line of defence: any NaN/inf that still reaches the state (e.g. a
+  // new degenerate material) stops the fit as Diverged instead of being
+  // carried silently through gap nodes.
+  if (!std::isfinite(predicted.qp) || !std::isfinite(predicted.cov(0, 0)) ||
+      !std::isfinite(predicted.cov(4, 4))) {
+    predicted.Diverged = true;
+  }
 
   return predicted;
 }
