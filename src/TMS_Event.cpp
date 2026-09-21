@@ -359,6 +359,22 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
       }
     } // End for (TG4HitSegmentContainer::iterator kt
   } // End loop over each hit, for (TG4HitSegmentDetectors::iterator jt
+
+  // Response-element pipeline: consolidate this vertex's own same-bar raw TG4HitSegment
+  // fragments (a muon's ionization split across Geant4 steps, e.g. by delta-ray production)
+  // into one TMS_Hit/TMS_TrueHit per bar BEFORE any random optical/timing draw and before
+  // spill overlay. Without this, each fragment gets its own PE and timing draw, and the
+  // post-simulation merge then keeps the earliest of those independent times, biasing the
+  // reconstructed hit time as a function of how many steps Geant4 used (~11 ns swing between
+  // 1 and 20 steps on release 1.1.0; see reports/2026-09-13_segmentation_timing_benchmark/
+  // phase2_baseline/BASELINE.md). Runs on the deterministic true segment time/energy set
+  // above, so the merge cannot depend on RNG state. The post-overlay merge in
+  // ApplyReconstructionEffects() is unchanged: it still reunites different vertices' signals
+  // in the same channel within one electronics window (genuine pileup).
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+    TMS_SignalProcessing::GetInstance().MergeCoincidentHits(*this);
+  }
+
   bool OnlyPrimaryOrVisibleEnergy = true;
 
   // Now update truth info per particle
@@ -493,18 +509,6 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
-  // The response-element redesign (stitched physical passages, fixed-scale
-  // re-segmentation, local Birks/optical response before thresholding) is being built
-  // out behind this flag phase by phase -- see
-  // reports/2026-09-04_detector_response_restructuring_proposal/. Fail loudly rather
-  // than silently falling through to the old pipeline if someone flips this on before
-  // a later phase actually implements it.
-  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
-    throw std::runtime_error(
-        "Sim.DetSim.UseResponseElements is set but the response-element pipeline is not "
-        "yet implemented -- leave this false until a later redesign phase lands.");
-  }
-
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
   // Sim-only steps (TMS_DetectorSimulation) and real-or-simulated steps (TMS_SignalProcessing)
   // are interleaved in this exact order deliberately: SimulateReadoutNoise() must run after
