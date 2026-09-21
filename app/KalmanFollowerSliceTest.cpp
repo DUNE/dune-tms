@@ -580,7 +580,12 @@ int main(int argc, char **argv) {
   // ghosts the finding stage didn't pick, same as the graph-search-only
   // design this replaces. ---
   const RegionFieldModel field;  // 1.0T, GDML-confirmed -- see TMS_FieldModel.h
-  const TMS_KalmanFollower::Config followerConfig;
+  // Same sweep hooks as KalmanFollowerTruthEfficiency (unset = Config defaults).
+  TMS_KalmanFollower::Config followerConfig;
+  if (const char *v = std::getenv("KF_QP_REL_SIGMA")) followerConfig.InitialQPRelSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_RANGE_SEED")) followerConfig.RangeSeedMargin = std::atof(v);
+  if (const char *v = std::getenv("KF_MAX_HEAD_SKIP")) followerConfig.MaxHeadSkip = std::atoi(v);
+  if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) followerConfig.StopOnRangeOut = std::atoi(v) != 0;
   const TMS_KalmanFollower::Follower follower(followerConfig, field);
 
   // DBSCAN-direct/merged-PCA seeds (Stages 1-2) are unordered blobs with no

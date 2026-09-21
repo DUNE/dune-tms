@@ -70,6 +70,7 @@ struct SpillParticles {
   std::vector<bool> lar_fiducial_start;
   std::unordered_map<TrueLabel, int, LabelHash> index_of;
   std::vector<int> collapsed_trackid;
+  std::vector<float> momentum;  // 4 floats per particle: MomentumTMSStart (px,py,pz,E), MeV
 };
 
 // Same convention as ClusterTruthEfficiency.cpp / GraphTrackFinderTruthEfficiency.cpp.
@@ -144,6 +145,12 @@ struct KalmanScore {
   // unrecoverable by any Follower::Config change).
   int gaps_truth_available = 0;
   int gaps_truth_absent = 0;
+  // Fit momentum at the first and last node, and z of the last node -- kept
+  // so the momentum the follower believes at its stop point can be compared
+  // with the true muon momentum (2026-09-21 ranged-out investigation).
+  double first_momentum_mev = 0.0;
+  double final_momentum_mev = 0.0;
+  double last_node_z = 0.0;
 };
 
 std::string StopReasonName(TMS_KalmanFollower::FitResult::StopReason r) {
@@ -151,6 +158,7 @@ std::string StopReasonName(TMS_KalmanFollower::FitResult::StopReason r) {
     case TMS_KalmanFollower::FitResult::StopReason::ReachedRangeEnd: return "reached_range_end";
     case TMS_KalmanFollower::FitResult::StopReason::GapLimitExceeded: return "gap_limit_exceeded";
     case TMS_KalmanFollower::FitResult::StopReason::Diverged: return "diverged";
+    case TMS_KalmanFollower::FitResult::StopReason::RangedOut: return "ranged_out";
     default: return "not_started";
   }
 }
@@ -198,6 +206,12 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
   }
   score.planes_covered = (int)covered_layers.size();
   score.stop_reason = StopReasonName(fit.Stop);
+  if (!fit.Nodes.empty()) {
+    const double qp0 = fit.Nodes.front().FilteredQP;
+    score.first_momentum_mev = std::abs(qp0) > 1e-12 ? 1.0 / std::abs(qp0) : 0.0;
+    score.final_momentum_mev = fit.MomentumMeV;
+    score.last_node_z = fit.Nodes.back().Z;
+  }
 
   const int walk_start = fit.Nodes.empty() ? -1 : fit.Nodes.front().Layer;
   const int walk_end = fit.Nodes.empty() ? -1 : fit.Nodes.back().Layer;
@@ -270,7 +284,15 @@ int main(int argc, char **argv) {
   // Kalman follower: default Config, real (GDML-confirmed) 1.0T region field.
   // Stateless -- constructed once, reused (as a const&) for every muon.
   const RegionFieldModel field;
-  const TMS_KalmanFollower::Config follower_config;
+  // Sweep hooks (environment, so configurations can be compared without a
+  // rebuild): KF_QP_REL_SIGMA -> Config::InitialQPRelSigma,
+  // KF_RANGE_SEED -> Config::RangeSeedMargin, KF_STOP_ON_RANGEOUT -> Config::StopOnRangeOut
+  // (0/1). Unset = the Config defaults.
+  TMS_KalmanFollower::Config follower_config;
+  if (const char *v = std::getenv("KF_QP_REL_SIGMA")) follower_config.InitialQPRelSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_RANGE_SEED")) follower_config.RangeSeedMargin = std::atof(v);
+  if (const char *v = std::getenv("KF_MAX_HEAD_SKIP")) follower_config.MaxHeadSkip = std::atoi(v);
+  if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) follower_config.StopOnRangeOut = std::atoi(v) != 0;
   const TMS_KalmanFollower::Follower follower(follower_config, field);
 
   TFile input(input_filename.c_str());
@@ -291,6 +313,7 @@ int main(int argc, char **argv) {
   static std::vector<int> trackid_ts(kMaxTrueParticles);
   static std::vector<int> pdg_ts(kMaxTrueParticles);
   static std::vector<int> parent_ts(kMaxTrueParticles);
+  static std::vector<float> mom_ts(kMaxTrueParticles * 4);
   static bool tms_fid_start_ts[kMaxTrueParticles];
   static bool lar_fid_start_ts[kMaxTrueParticles];
   truth_spill->SetBranchAddress("SpillNo", &spill_no_ts);
@@ -299,6 +322,7 @@ int main(int argc, char **argv) {
   truth_spill->SetBranchAddress("TrackId", trackid_ts.data());
   truth_spill->SetBranchAddress("PDG", pdg_ts.data());
   truth_spill->SetBranchAddress("Parent", parent_ts.data());
+  truth_spill->SetBranchAddress("MomentumTMSStart", mom_ts.data());
   truth_spill->SetBranchAddress("TMSFiducialStart", tms_fid_start_ts);
   truth_spill->SetBranchAddress("LArFiducialStart", lar_fid_start_ts);
 
@@ -311,6 +335,7 @@ int main(int argc, char **argv) {
     sp.trackid.assign(trackid_ts.begin(), trackid_ts.begin() + n_tp_ts);
     sp.pdg.assign(pdg_ts.begin(), pdg_ts.begin() + n_tp_ts);
     sp.parent_trackid.assign(parent_ts.begin(), parent_ts.begin() + n_tp_ts);
+    sp.momentum.assign(mom_ts.begin(), mom_ts.begin() + n_tp_ts * 4);
     sp.tms_fiducial_start.assign(tms_fid_start_ts, tms_fid_start_ts + n_tp_ts);
     sp.lar_fiducial_start.assign(lar_fid_start_ts, lar_fid_start_ts + n_tp_ts);
     for (int i = 0; i < n_tp_ts; ++i) sp.index_of[{sp.vgid[i], sp.trackid[i]}] = i;
@@ -360,7 +385,8 @@ int main(int argc, char **argv) {
                  "kalman_planes_before_walk,kalman_planes_after_walk,kalman_planes_missed_in_range,"
                  "kalman_stop_reason,kalman_gaps_truth_available,kalman_gaps_truth_absent,"
                  "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct,"
-                 "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct\n";
+                 "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct,"
+                 "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -736,7 +762,11 @@ int main(int argc, char **argv) {
                 << kscore.stop_reason << "," << kscore.gaps_truth_available << "," << kscore.gaps_truth_absent << ","
                 << kscore.ambiguous_layers << "," << kscore.ambiguous_truth_present << "," << kscore.ambiguous_correct << ","
                 << (probe_results[pidx].ran ? 1 : 0) << "," << probe_results[pidx].merged_size << ","
-                << probe_results[pidx].best_planes_covered << "," << probe_results[pidx].best_purity_pct
+                << probe_results[pidx].best_planes_covered << "," << probe_results[pidx].best_purity_pct << ","
+                << std::sqrt(sp.momentum[pidx * 4] * sp.momentum[pidx * 4] +
+                             sp.momentum[pidx * 4 + 1] * sp.momentum[pidx * 4 + 1] +
+                             sp.momentum[pidx * 4 + 2] * sp.momentum[pidx * 4 + 2]) << ","
+                << kscore.first_momentum_mev << "," << kscore.final_momentum_mev << "," << kscore.last_node_z
                 << "\n";
     }
 
