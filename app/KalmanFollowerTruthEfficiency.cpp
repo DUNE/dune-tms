@@ -402,6 +402,18 @@ int main(int argc, char **argv) {
                "max_hit_chi2,ambig_layers,correct,wrong,purity_pct,planes_covered,target_planes,completeness_pct,first_z,last_z\n";
   }
 
+  // Optional: KF_DUMP_MISSED=<path> writes one row per target plane that lies
+  // inside the walked range but was not covered by a correct pick, saying what
+  // the follower did there (gap or wrong pick) and what the truth candidate
+  // looked like (see the miss-diagnosis study, 2026-09-21).
+  std::ofstream miss_csv;
+  if (const char *mp = std::getenv("KF_DUMP_MISSED")) {
+    miss_csv.open(mp);
+    miss_csv << "sourcefile,entry,slice,vertexglobalid,trackid,seed_source,node_idx,nodes_total,layer,z,"
+                "node_type,n_candidates,n_truth_cands,truth_min_chi2,chosen_chi2,chosen_class,"
+                "shares_xhit,shares_yhit,prev_node_type,n_correct_before,n_wrong_before,converged,stop_reason\n";
+  }
+
   Long64_t n_entries = reco_tree->GetEntries();
   long n_slices_skipped_mismatch = 0, n_slices_seen = 0, n_slices_skipped_no_muon = 0;
   long n_muons_total = 0, n_found_combined = 0, n_kalman_ran = 0, n_kalman_converged = 0;
@@ -752,6 +764,50 @@ int main(int argc, char **argv) {
             ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
             : follower.RunBestSeed(space_points, objectIndices);
         kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+        if (miss_csv.is_open()) {
+          std::set<int> covered;
+          for (const TMS_KalmanFollower::FollowedNode &n : fit.Nodes)
+            if (n.HasHit && point_label[n.ChosenSpacePointIndex] == label) covered.insert(n.Layer);
+          int n_correct_before = 0, n_wrong_before = 0;
+          std::string prev_type = "seed";
+          for (std::size_t k = 0; k < fit.Nodes.size(); ++k) {
+            const TMS_KalmanFollower::FollowedNode &n = fit.Nodes[k];
+            const bool is_hit = n.HasHit;
+            const bool is_correct = is_hit && point_label[n.ChosenSpacePointIndex] == label;
+            const std::string this_type = !is_hit ? "gap" : (is_correct ? "correct" : "wrong");
+            if (target_layers_in_slice.count((int)n.Layer) && !covered.count((int)n.Layer)) {
+              int n_truth = 0;
+              double truth_min = -1.0;
+              for (std::size_t c = 0; c < n.CandidateIndices.size(); ++c) {
+                if (point_label[n.CandidateIndices[c]] == label) {
+                  ++n_truth;
+                  if (truth_min < 0 || n.CandidateChi2[c] < truth_min) truth_min = n.CandidateChi2[c];
+                }
+              }
+              std::string cls = "none";
+              int sx = 0, sy = 0;
+              if (is_hit) {
+                const TrueLabel &cl = point_label[n.ChosenSpacePointIndex];
+                cls = !cl.Valid() ? "unlabelled" : (cl.vgid == label.vgid ? "same_vertex_other" : "other_vertex");
+                for (std::size_t c = 0; c < n.CandidateIndices.size(); ++c) {
+                  const int ci = n.CandidateIndices[c];
+                  if (!(point_label[ci] == label)) continue;
+                  if (space_points[ci].GetXHitIndex() == space_points[n.ChosenSpacePointIndex].GetXHitIndex()) sx = 1;
+                  if (space_points[ci].GetYHitIndex() == space_points[n.ChosenSpacePointIndex].GetYHitIndex()) sy = 1;
+                }
+              }
+              miss_csv << input_filename << "," << entry << "," << slice_no << "," << label.vgid << "," << label.trackid << ","
+                       << finalSeedSource << "," << k << "," << fit.Nodes.size() << "," << n.Layer << "," << n.Z << ","
+                       << this_type << "," << n.CandidateIndices.size() << "," << n_truth << "," << truth_min << ","
+                       << (is_hit ? n.Chi2AtChosen : -1.0) << "," << cls << "," << sx << "," << sy << "," << prev_type << ","
+                       << n_correct_before << "," << n_wrong_before << "," << (fit.Converged ? 1 : 0) << ","
+                       << kscore.stop_reason << "\n";
+            }
+            if (is_correct) ++n_correct_before;
+            else if (is_hit) ++n_wrong_before;
+            prev_type = this_type;
+          }
+        }
         for (std::size_t h = 0; h < hypotheses.size(); ++h) {
           const TMS_KalmanFollower::FitResult &hf = hypotheses[h];
           const KalmanScore hs = ScoreFit(hf, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
