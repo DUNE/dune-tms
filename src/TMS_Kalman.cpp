@@ -85,6 +85,22 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Even
     }
   }
 
+  // RunKalman() and runRTSSmoother() index nodes [0] and [1] unconditionally, but a node is only created where
+  // consecutive hits are separated in z (see above), so a track whose hits collapse onto fewer than two distinct z
+  // values yields fewer than two nodes and cannot be fit. Indexing past the end corrupted the heap (seen as a
+  // "matrices not compatible" TMatrixT error followed by a double free). Leave the filter empty with defined
+  // outputs instead; callers already handle an empty node list (see TMS_Reco.cpp).
+  if (KalmanNodes.size() < 2) {
+    momentum = 0.0;
+    for (int i = 0; i < 3; i++) {
+      Start[i] = 0.0;
+      End[i] = 0.0;
+      StartDirection[i] = 0.0;
+      EndDirection[i] = 0.0;
+    }
+    return;
+  }
+
   int N_LAYER_BACK = 10;
   // Can't look back further than the first element
   if (Candidates.size() < (unsigned)N_LAYER_BACK)
@@ -515,6 +531,7 @@ void TMS_Kalman::SetEndDirection(double ax, double ay)
 //reference:https://jwmi.github.io/ASM/6-KalmanFilter.pdf
 void TMS_Kalman::runRTSSmoother() {
   int nCand = KalmanNodes.size();
+  if (nCand < 2) return; // nodes [0] and [1] are used below
   //Don't use [1] component for now. due to Covariance is not well maded.
   KalmanNodes[1].SmoothState=KalmanNodes[1].CurrentState;
   KalmanNodes[1].SmoothCovarianceMatrix=KalmanNodes[1].CovarianceMatrix;
