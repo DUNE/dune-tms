@@ -90,6 +90,21 @@ class TMS_TreeWriter {
     float SpacePointTime[__TMS_MAX_SPACEPOINTS__];
     int SpacePointXHitIndex[__TMS_MAX_SPACEPOINTS__];
     int SpacePointYHitIndex[__TMS_MAX_SPACEPOINTS__];
+    // Look-aside table for SpacePointX/YHitIndex: the slice's full raw hit
+    // list (TMS_Event::GetHitsRawRef(), pedestal-suppressed hits included),
+    // in the same order the space-point builder indexed it. Lets a reader get
+    // each space point's two component hits -- e.g. both hit times, where
+    // SpacePointTime only keeps their average -- without changing
+    // TMS_SpacePoint. Neither Line_Candidates' RecoHit* (the track finder's
+    // cleaned hits) nor Truth_Info's TrueRecoHit* (compacted: hits with truth
+    // and > 0.5 PE only) is indexed this way.
+    int nSpacePointHits;
+    float SpacePointHitTime[__TMS_MAX_HITS__];
+    float SpacePointHitNotZ[__TMS_MAX_HITS__];
+    float SpacePointHitZ[__TMS_MAX_HITS__];
+    float SpacePointHitPE[__TMS_MAX_HITS__];
+    int SpacePointHitView[__TMS_MAX_HITS__];     // TMS_Bar bar-type number
+    int SpacePointHitPedSup[__TMS_MAX_HITS__];   // 1 = pedestal-suppressed
     // Exact ground truth for each space point's two component hits (same
     // TMS_Utils::GetPrimaryIdsByEnergy lookup RecoHitPrimary* already uses for
     // Line_Candidates) -- a space point is genuinely from one particle iff

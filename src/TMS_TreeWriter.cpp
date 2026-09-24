@@ -387,6 +387,13 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpacePointTime", SpacePointTime, "SpacePointTime[nSpacePoints]/F");
   Reco_Tree->Branch("SpacePointXHitIndex", SpacePointXHitIndex, "SpacePointXHitIndex[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYHitIndex", SpacePointYHitIndex, "SpacePointYHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("nSpacePointHits", &nSpacePointHits, "nSpacePointHits/I");
+  Reco_Tree->Branch("SpacePointHitTime", SpacePointHitTime, "SpacePointHitTime[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitNotZ", SpacePointHitNotZ, "SpacePointHitNotZ[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitZ", SpacePointHitZ, "SpacePointHitZ[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitPE", SpacePointHitPE, "SpacePointHitPE[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitView", SpacePointHitView, "SpacePointHitView[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitPedSup", SpacePointHitPedSup, "SpacePointHitPedSup[nSpacePointHits]/I");
   Reco_Tree->Branch("SpacePointXTrueVertexGlobalId", SpacePointXTrueVertexGlobalId, "SpacePointXTrueVertexGlobalId[nSpacePoints]/L");
   Reco_Tree->Branch("SpacePointXTrueTrackId", SpacePointXTrueTrackId, "SpacePointXTrueTrackId[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYTrueVertexGlobalId", SpacePointYTrueVertexGlobalId, "SpacePointYTrueVertexGlobalId[nSpacePoints]/L");
@@ -1956,6 +1963,17 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // space points.
   nSpacePoints = std::min((int)space_points.size(), __TMS_MAX_SPACEPOINTS__);
   const std::vector<TMS_Hit>& raw_hits_for_sp = event.GetHitsRawRef();
+  // Look-aside hit table (see TMS_TreeWriter.h), clamped like nSpacePoints.
+  nSpacePointHits = std::min((int)raw_hits_for_sp.size(), __TMS_MAX_HITS__);
+  for (int i_h = 0; i_h < nSpacePointHits; ++i_h) {
+    const TMS_Hit &hit = raw_hits_for_sp[i_h];
+    SpacePointHitTime[i_h] = hit.GetT();
+    SpacePointHitNotZ[i_h] = hit.GetNotZ();
+    SpacePointHitZ[i_h] = hit.GetZ();
+    SpacePointHitPE[i_h] = hit.GetPE();
+    SpacePointHitView[i_h] = hit.GetBar().GetBarTypeNumber();
+    SpacePointHitPedSup[i_h] = hit.GetPedSup() ? 1 : 0;
+  }
   for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
     SpacePointX[i_sp] = space_points[i_sp].GetX();
     SpacePointY[i_sp] = space_points[i_sp].GetY();
@@ -2521,6 +2539,7 @@ void TMS_TreeWriter::Clear() {
 
   // Reset space point information
   nSpacePoints = DEFAULT_CLEARING_FLOAT;
+  nSpacePointHits = 0;
   for (int i = 0; i < __TMS_MAX_SPACEPOINTS__; ++i) {
     SpacePointX[i] = DEFAULT_CLEARING_FLOAT;
     SpacePointY[i] = DEFAULT_CLEARING_FLOAT;
