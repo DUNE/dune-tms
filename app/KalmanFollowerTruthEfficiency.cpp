@@ -123,6 +123,14 @@ struct KalmanScore {
   int correct_chosen = 0;
   int wrong_chosen = 0;
   int planes_covered = 0;
+  // "Strict" variants: a chosen point counts as correct only when BOTH its
+  // X-hit and Y-hit truth labels are the target. correct_chosen above uses
+  // the single-sided label (X-hit, falling back to Y), which also credits a
+  // ghost pairing the target's X hit with another particle's Y hit -- found
+  // 2026-09-24 on case H, where 3 such ghosts (one coordinate one bar off)
+  // were counted correct where two muons overlap.
+  int strict_correct_chosen = 0;
+  int strict_planes_covered = 0;
   int ambiguous_layers = 0;
   int ambiguous_truth_present = 0;
   int ambiguous_correct = 0;
@@ -164,7 +172,7 @@ std::string StopReasonName(TMS_KalmanFollower::FitResult::StopReason r) {
 }
 
 KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector<TrueLabel> &point_label,
-                     const TrueLabel &target, const std::vector<int> &z_layer_whole_slice,
+                     const std::vector<TrueLabel> &point_label_strict, const TrueLabel &target, const std::vector<int> &z_layer_whole_slice,
                      const std::string &seed_source, const std::set<int> &target_layers_in_slice) {
   KalmanScore score;
   score.ran = true;
@@ -172,7 +180,7 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
   score.converged = fit.Converged;
   score.nodes_total = (int)fit.Nodes.size();
 
-  std::set<int> covered_layers;
+  std::set<int> covered_layers, strict_covered_layers;
   for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
     if (!node.HasHit) {
       ++score.gaps;
@@ -187,6 +195,10 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
     }
     ++score.nodes_with_hit;
     const bool correct = point_label[node.ChosenSpacePointIndex] == target;
+    if (point_label_strict[node.ChosenSpacePointIndex] == target) {
+      ++score.strict_correct_chosen;
+      strict_covered_layers.insert(z_layer_whole_slice[node.ChosenSpacePointIndex]);
+    }
     if (correct) {
       ++score.correct_chosen;
       covered_layers.insert(z_layer_whole_slice[node.ChosenSpacePointIndex]);
@@ -205,6 +217,7 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
     }
   }
   score.planes_covered = (int)covered_layers.size();
+  score.strict_planes_covered = (int)strict_covered_layers.size();
   score.stop_reason = StopReasonName(fit.Stop);
   if (!fit.Nodes.empty()) {
     const double qp0 = fit.Nodes.front().FilteredQP;
@@ -295,6 +308,10 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_MAX_TRIPLETS")) follower_config.MaxTripletHypotheses = std::atoi(v);
   if (const char *v = std::getenv("KF_RANK_BY_CONVERGENCE")) follower_config.RankHypothesesByConvergence = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) follower_config.StopOnRangeOut = std::atoi(v) != 0;
+  // Time term in candidate selection (see Config::UseTimeInSelection).
+  if (const char *v = std::getenv("KF_USE_TIME")) follower_config.UseTimeInSelection = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_TIME_SIGMA")) follower_config.TimeSigmaNs = std::atof(v);
+  if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
   const TMS_KalmanFollower::Follower follower(follower_config, field);
 
   TFile input(input_filename.c_str());
@@ -388,7 +405,9 @@ int main(int argc, char **argv) {
                  "kalman_stop_reason,kalman_gaps_truth_available,kalman_gaps_truth_absent,"
                  "kalman_ambiguous_layers,kalman_ambiguous_truth_present,kalman_ambiguous_correct,"
                  "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct,"
-                 "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z\n";
+                 "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z,"
+                 "kalman_strict_correct_chosen,kalman_strict_purity_pct,kalman_strict_planes_covered,"
+                 "kalman_strict_completeness_pct\n";
   }
 
   // Optional: KF_DUMP_HYPOTHESES=<path> writes one row per RunBestSeed()
@@ -451,10 +470,14 @@ int main(int argc, char **argv) {
       return TrueLabel{raw.vgid, sp.collapsed_trackid[it->second]};
     };
     std::vector<TrueLabel> point_label(n_space_points);
+    // Valid only where the X-hit and Y-hit labels agree (see KalmanScore's
+    // strict_* fields); used only for scoring, never for seeding.
+    std::vector<TrueLabel> point_label_strict(n_space_points);
     for (int i = 0; i < n_space_points; ++i) {
       const TrueLabel x_label = collapse(TrueLabel{sp_x_vgid[i], sp_x_trackid[i]});
       const TrueLabel y_label = collapse(TrueLabel{sp_y_vgid[i], sp_y_trackid[i]});
       point_label[i] = x_label.Valid() ? x_label : y_label;
+      if (x_label.Valid() && x_label == y_label) point_label_strict[i] = x_label;
     }
 
     const int n_muons_in_slice = (int)muon_particle_idx.size();
@@ -764,7 +787,7 @@ int main(int argc, char **argv) {
         const TMS_KalmanFollower::FitResult fit = hyp_csv.is_open()
             ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
             : follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+        kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
         if (miss_csv.is_open()) {
           std::set<int> covered;
           for (const TMS_KalmanFollower::FollowedNode &n : fit.Nodes)
@@ -811,7 +834,7 @@ int main(int argc, char **argv) {
         }
         for (std::size_t h = 0; h < hypotheses.size(); ++h) {
           const TMS_KalmanFollower::FitResult &hf = hypotheses[h];
-          const KalmanScore hs = ScoreFit(hf, point_label, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+          const KalmanScore hs = ScoreFit(hf, point_label, point_label_strict, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
           int le4 = 0, le9 = 0;
           double sum_chi2 = 0.0, max_chi2 = 0.0;
           for (const TMS_KalmanFollower::FollowedNode &n : hf.Nodes) {
@@ -865,7 +888,15 @@ int main(int argc, char **argv) {
                 << std::sqrt(sp.momentum[pidx * 4] * sp.momentum[pidx * 4] +
                              sp.momentum[pidx * 4 + 1] * sp.momentum[pidx * 4 + 1] +
                              sp.momentum[pidx * 4 + 2] * sp.momentum[pidx * 4 + 2]) << ","
-                << kscore.first_momentum_mev << "," << kscore.final_momentum_mev << "," << kscore.last_node_z
+                << kscore.first_momentum_mev << "," << kscore.final_momentum_mev << "," << kscore.last_node_z << ","
+                << kscore.strict_correct_chosen << ","
+                << ((kscore.correct_chosen + kscore.wrong_chosen) > 0
+                        ? 100.0 * kscore.strict_correct_chosen / (kscore.correct_chosen + kscore.wrong_chosen)
+                        : 0.0)
+                << "," << kscore.strict_planes_covered << ","
+                << (!target_layers_in_slice.empty()
+                        ? 100.0 * kscore.strict_planes_covered / target_layers_in_slice.size()
+                        : 0.0)
                 << "\n";
     }
 

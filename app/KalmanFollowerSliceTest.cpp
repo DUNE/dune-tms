@@ -588,6 +588,10 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_MAX_TRIPLETS")) followerConfig.MaxTripletHypotheses = std::atoi(v);
   if (const char *v = std::getenv("KF_RANK_BY_CONVERGENCE")) followerConfig.RankHypothesesByConvergence = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) followerConfig.StopOnRangeOut = std::atoi(v) != 0;
+  // Time term in candidate selection (see Config::UseTimeInSelection).
+  if (const char *v = std::getenv("KF_USE_TIME")) followerConfig.UseTimeInSelection = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_TIME_SIGMA")) followerConfig.TimeSigmaNs = std::atof(v);
+  if (const char *v = std::getenv("KF_TIME_GATE")) followerConfig.TimeGateNSigma = std::atof(v);
   const TMS_KalmanFollower::Follower follower(followerConfig, field);
 
   // DBSCAN-direct/merged-PCA seeds (Stages 1-2) are unordered blobs with no
@@ -661,7 +665,12 @@ int main(int argc, char **argv) {
               << " candidates=" << node.CandidateIndices.size();
     if (node.HasHit) {
       const bool correct = best_point_label[node.ChosenSpacePointIndex] == target;
-      std::cout << " chosen=" << node.ChosenSpacePointIndex << " (" << (correct ? "correct" : "WRONG")
+      // HALF = single-sided label says target, but the X-hit and Y-hit
+      // labels disagree: a ghost with one coordinate from another particle.
+      const bool strict = best_point_label_x[node.ChosenSpacePointIndex] == target &&
+                          best_point_label_y[node.ChosenSpacePointIndex] == target;
+      std::cout << " chosen=" << node.ChosenSpacePointIndex << " ("
+                << (strict ? "correct" : correct ? "HALF" : "WRONG")
                 << ") chi2=" << node.Chi2AtChosen << " p=" << (std::abs(node.FilteredQP) > 1e-12
                                                                     ? 1.0 / std::abs(node.FilteredQP)
                                                                     : 0.0)
@@ -670,6 +679,32 @@ int main(int argc, char **argv) {
       std::cout << " GAP";
     }
     std::cout << '\n';
+    // Optional (KF_DUMP_CANDIDATES=1): every candidate the chi2 gate saw at
+    // this layer, not just the chosen one -- its chi2, its X-side and Y-side
+    // truth labels separately (so a ghost pairing one muon's X hit with
+    // another's Y hit is visible as such), and its space-point time. Added to
+    // check directly whether per-layer disambiguation between two nearby real
+    // muons is carried by the chi2 gate alone.
+    if (std::getenv("KF_DUMP_CANDIDATES")) {
+      std::vector<std::size_t> order(node.CandidateIndices.size());
+      for (std::size_t k = 0; k < order.size(); ++k) order[k] = k;
+      std::sort(order.begin(), order.end(),
+                [&](std::size_t a, std::size_t b) { return node.CandidateChi2[a] < node.CandidateChi2[b]; });
+      for (std::size_t k : order) {
+        const std::size_t idx = node.CandidateIndices[k];
+        const TMS_SpacePoint &p = best_points[idx];
+        const TrueLabel &lx = best_point_label_x[idx];
+        const TrueLabel &ly = best_point_label_y[idx];
+        std::cout << "      cand " << idx << (node.HasHit && idx == node.ChosenSpacePointIndex ? "*" : " ")
+                  << " x=" << p.GetX() << " y=" << p.GetY() << " t=" << p.GetTime()
+                  << " chi2=" << node.CandidateChi2[k]
+                  << (node.CandidateTimeChi2.empty() ? "" : " tchi2=")
+                  << (node.CandidateTimeChi2.empty() ? std::string() : std::to_string(node.CandidateTimeChi2[k]))
+                  << " X=(" << lx.vgid << "," << lx.trackid << ")"
+                  << " Y=(" << ly.vgid << "," << ly.trackid << ")"
+                  << (lx == target && ly == target ? " TARGET" : "") << '\n';
+      }
+    }
   }
 
   // Optional: dump the point cloud, the graph-search candidate paths (if

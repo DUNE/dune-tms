@@ -22,7 +22,10 @@
 // floor rather than inventing a separate threshold, since nothing below that
 // could ever form a cluster in the first place.
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -214,12 +217,14 @@ int main(int argc, char **argv) {
   // --- Pass 2: loop Reco_Tree / Truth_Info entries in lockstep. ---
   int n_space_points = 0, spill_no = 0, slice_no = 0;
   static std::vector<float> sp_x(kMaxSpacePoints), sp_y(kMaxSpacePoints), sp_z(kMaxSpacePoints);
+  static std::vector<float> sp_time(kMaxSpacePoints);
   static std::vector<long long> sp_x_vgid(kMaxSpacePoints), sp_y_vgid(kMaxSpacePoints);
   static std::vector<int> sp_x_trackid(kMaxSpacePoints), sp_y_trackid(kMaxSpacePoints);
   reco_tree->SetBranchAddress("nSpacePoints", &n_space_points);
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXTrueVertexGlobalId", sp_x_vgid.data());
   reco_tree->SetBranchAddress("SpacePointXTrueTrackId", sp_x_trackid.data());
   reco_tree->SetBranchAddress("SpacePointYTrueVertexGlobalId", sp_y_vgid.data());
@@ -244,6 +249,29 @@ int main(int argc, char **argv) {
   std::ofstream clusters_csv(clusters_csv_path);
   clusters_csv << "entry,slice,cluster_id,n_points,owner_vertexglobalid,owner_trackid,owner_pdg,"
                   "purity,is_muon_matched,linearity\n";
+
+  // Optional (CTE_CLUSTER_DETAIL_CSV=<path>): one row per DBSCAN cluster,
+  // track-like OR NOT (the main clusters CSV above only has track-like ones),
+  // with what's needed to study (a) whether the PCA linearity cut could be
+  // tightened to reject clusters that merge two real muons, and (b) whether
+  // those muons are separable in time. Per cluster: all three PCA
+  // eigenvalues, the per-layer transverse span (two parallel muons a few bar
+  // pitches apart are nearly perfectly "linear" by (l1-l2)/l1, but show up
+  // as a wide span within each layer), and the top-2 truth owners with the
+  // mean time of each one's "pure" points (X-hit and Y-hit truth agree, so
+  // the space-point time -- the X/Y hit-time average -- belongs to that one
+  // particle and isn't a ghost mixing two particles' times).
+  const char *detail_csv_env = std::getenv("CTE_CLUSTER_DETAIL_CSV");
+  std::ofstream detail_csv;
+  if (detail_csv_env) {
+    detail_csv.open(detail_csv_env);
+    detail_csv << "entry,slice,cluster_id,n_points,is_track_like,linearity,l1,l2,l3,n_layers,z_extent,"
+                  "median_layer_span,frac_layers_span_gt150,"
+                  "owner_vertexglobalid,owner_trackid,owner_pdg,owner_count,"
+                  "second_vertexglobalid,second_trackid,second_pdg,second_count,"
+                  "owner_pure_n,owner_pure_tmean,second_pure_n,second_pure_tmean,"
+                  "n_muons_ge5pure,cluster_trms\n";
+  }
 
   const bool dump_display = !display_prefix.empty();
   std::ofstream display_points_csv, display_pca_csv;
@@ -288,6 +316,9 @@ int main(int argc, char **argv) {
       return TrueLabel{raw.vgid, sp.collapsed_trackid[it->second]};
     };
     std::vector<TrueLabel> point_label(n_space_points);
+    // Set only when the X-hit and Y-hit truth labels agree (after collapse);
+    // invalid otherwise. Used by the optional detail CSV's per-owner times.
+    std::vector<TrueLabel> point_pure_label(n_space_points);
     for (int i = 0; i < n_space_points; ++i) {
       TrueLabel x_label_raw{sp_x_vgid[i], sp_x_trackid[i]};
       TrueLabel y_label_raw{sp_y_vgid[i], sp_y_trackid[i]};
@@ -301,6 +332,7 @@ int main(int argc, char **argv) {
         if (y_label.Valid()) {
           if (y_label == x_label) {
             ++xy_agree_count;
+            point_pure_label[i] = x_label;
           } else {
             ++xy_mismatch_count;
             if (x_label.vgid != y_label.vgid) ++xy_mismatch_diff_vertex;
@@ -342,6 +374,97 @@ int main(int argc, char **argv) {
     std::vector<int> point_cluster_id(n_space_points, 0);
     for (size_t c = 0; c < cluster_indices.size(); ++c)
       for (int idx : cluster_indices[c]) point_cluster_id[idx] = (int)c + 1;
+
+    if (detail_csv_env) {
+      for (size_t c = 0; c < clusters.size(); ++c) {
+        const auto &cl = clusters[c];
+        const std::vector<int> &idxs = cluster_indices[c];
+        // Top-2 owners by plurality vote (same single-sided label as above).
+        std::unordered_map<TrueLabel, int, LabelHash> votes;
+        for (int idx : idxs)
+          if (point_label[idx].Valid()) votes[point_label[idx]]++;
+        TrueLabel first, second;
+        int first_n = 0, second_n = 0;
+        for (auto &kv : votes) {
+          if (kv.second > first_n) {
+            second = first; second_n = first_n;
+            first = kv.first; first_n = kv.second;
+          } else if (kv.second > second_n) {
+            second = kv.first; second_n = kv.second;
+          }
+        }
+        auto pdg_of = [&](const TrueLabel &l) {
+          auto it = sp.index_of.find(l);
+          return (l.Valid() && it != sp.index_of.end()) ? sp.pdg[it->second] : 0;
+        };
+        // Mean time of each owner's pure points, and how many distinct
+        // muons have >= 5 pure points in the cluster.
+        std::unordered_map<TrueLabel, std::pair<int, double>, LabelHash> pure;  // label -> (n, sum t)
+        double tsum = 0, tsum2 = 0;
+        for (int idx : idxs) {
+          tsum += sp_time[idx];
+          tsum2 += sp_time[idx] * sp_time[idx];
+          if (point_pure_label[idx].Valid()) {
+            auto &e = pure[point_pure_label[idx]];
+            e.first++;
+            e.second += sp_time[idx];
+          }
+        }
+        int n_muons_ge5 = 0;
+        for (auto &kv : pure)
+          if (kv.second.first >= 5 && std::abs(pdg_of(kv.first)) == 13) ++n_muons_ge5;
+        const double tmean = tsum / idxs.size();
+        const double trms = std::sqrt(std::max(0.0, tsum2 / idxs.size() - tmean * tmean));
+        auto pure_stats = [&](const TrueLabel &l, int &n, double &t) {
+          n = 0; t = 0;
+          auto it = pure.find(l);
+          if (l.Valid() && it != pure.end()) { n = it->second.first; t = it->second.second / n; }
+        };
+        int first_pn, second_pn;
+        double first_pt, second_pt;
+        pure_stats(first, first_pn, first_pt);
+        pure_stats(second, second_pn, second_pt);
+        // Per-layer transverse span: max(x range, y range) of the cluster's
+        // points on each plane, then the median over planes with >= 2 points.
+        std::map<int, std::array<double, 4>> layer_box;  // plane -> xmin,xmax,ymin,ymax
+        std::map<int, int> layer_n;
+        double zmin = 1e18, zmax = -1e18;
+        for (int idx : idxs) {
+          const int pl = plane_index[idx];
+          auto it = layer_box.find(pl);
+          if (it == layer_box.end()) {
+            layer_box[pl] = {sp_x[idx], sp_x[idx], sp_y[idx], sp_y[idx]};
+          } else {
+            auto &b = it->second;
+            b[0] = std::min<double>(b[0], sp_x[idx]); b[1] = std::max<double>(b[1], sp_x[idx]);
+            b[2] = std::min<double>(b[2], sp_y[idx]); b[3] = std::max<double>(b[3], sp_y[idx]);
+          }
+          layer_n[pl]++;
+          zmin = std::min<double>(zmin, sp_z[idx]);
+          zmax = std::max<double>(zmax, sp_z[idx]);
+        }
+        std::vector<double> spans;
+        for (auto &kv : layer_box)
+          if (layer_n[kv.first] >= 2)
+            spans.push_back(std::max(kv.second[1] - kv.second[0], kv.second[3] - kv.second[2]));
+        double median_span = 0, frac_wide = 0;
+        if (!spans.empty()) {
+          std::sort(spans.begin(), spans.end());
+          median_span = spans[spans.size() / 2];
+          for (double s : spans) if (s > 150.0) frac_wide += 1.0;
+          frac_wide /= spans.size();
+        }
+        const auto &ev = cl.GetEigenvalues();
+        detail_csv << entry << "," << slice_no << "," << (c + 1) << "," << cl.GetSize() << ","
+                   << (cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack) ? 1 : 0) << ","
+                   << cl.GetLinearity() << "," << ev[0] << "," << ev[1] << "," << ev[2] << ","
+                   << layer_box.size() << "," << (zmax - zmin) << "," << median_span << "," << frac_wide << ","
+                   << first.vgid << "," << first.trackid << "," << pdg_of(first) << "," << first_n << ","
+                   << second.vgid << "," << second.trackid << "," << pdg_of(second) << "," << second_n << ","
+                   << first_pn << "," << first_pt << "," << second_pn << "," << second_pt << ","
+                   << n_muons_ge5 << "," << trms << "\n";
+      }
+    }
 
     // Per track-like cluster: plurality vote -> owner label + owner_count.
     // muon_matches[owner_label] accumulates every track-like cluster owned by
