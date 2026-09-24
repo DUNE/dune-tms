@@ -89,8 +89,12 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Even
   // consecutive hits are separated in z (see above), so a track whose hits collapse onto fewer than two distinct z
   // values yields fewer than two nodes and cannot be fit. Indexing past the end corrupted the heap (seen as a
   // "matrices not compatible" TMatrixT error followed by a double free). Leave the filter empty with defined
-  // outputs instead; callers already handle an empty node list (see TMS_Reco.cpp).
+  // outputs instead; callers already handle an empty node list (see TMS_Reco.cpp). The single leftover node (if
+  // any) is dropped too, since an unfitted node has chi2 = 0 and would otherwise win the plus/minus charge choice.
+  // charge_curvature is normally set only by SignSelection(), so give it TMS_Track's "not set" default.
   if (KalmanNodes.size() < 2) {
+    KalmanNodes.clear();
+    charge_curvature = -999999999;
     momentum = 0.0;
     for (int i = 0; i < 3; i++) {
       Start[i] = 0.0;
