@@ -5,7 +5,7 @@ into physics-fit tracks, with real ambiguity resolution at every step. This
 is a **fresh, standalone module** developed alongside the legacy
 `TMS_TrackFinder`/`TMS_Kalman` pipeline in `src/` — nothing here is wired
 into `TMS_Reco.cpp`/`ConvertToTMSTree.cpp` yet. It's exercised today only
-through the standalone validation tools in `app/` (see below).
+through the standalone validation tools in `app/cluster3D/` (see below).
 
 ## Pipeline
 
@@ -19,6 +19,8 @@ flowchart TD
   D -->|still not| E["TMS_GraphTrackFinder<br/>seeded beam-search graph"]
   E --> F["TMS_KalmanFollower<br/>Follower::Run / RunBestSeed"]
   F --> G[fitted trajectory:<br/>momentum, charge, chi2]
+  F -.->|cluster flagged as merged| H["TMS_IterativeTrackFit<br/>claim fitted hits, re-cluster<br/>and fit the remainder"]
+  H -.-> F
 ```
 
 A space point can carry ambiguity all the way through: one hit may join
@@ -42,6 +44,7 @@ https://claude.ai/code/artifact/2fc47021-a70f-42bf-87b8-5d5c7a9a32c2
 | `TMS_LayerGrouping.h/.cpp` | Groups space points into z-layers (detector planes) with "first-anchor" tolerance grouping. Shared by `TMS_GraphTrackFinder` and `TMS_KalmanFollower` so both stages agree on exactly where one plane ends and the next begins. |
 | `TMS_GraphTrackFinder.h/.cpp` | A bounded, seeded beam-search over a cluster's space points (field-angle-gated links, bar-pitch quantization deadband) that pulls the one straight-ish track out of a genuinely shower-contaminated cluster — DBSCAN+PCA alone has no mechanism for this. Output is ordered space-point indices only, no kinematics. |
 | `TMS_FieldModel.h` | A swappable magnetic-field lookup for the Kalman follower's swimmer (`IFieldModel` interface). `ZeroFieldModel` for field-off debugging; `RegionFieldModel` is the current v1 (the same 3-zone piecewise-constant region split as legacy `TMS_Kalman`, field along y, magnitude GDML-confirmed at 1.0T). |
+| `TMS_IterativeTrackFit.h/.cpp` | The split step for clusters that merge more than one real particle (e.g. two muons a few bar pitches apart, which PCA still calls track-like). Fits the cluster, claims the X/Y hits of the points the fit chose (removing the ghosts built from them too), re-runs DBSCAN on what is left, and fits the largest track-like piece, repeating up to a cap. Used by `TrackFindingObjectTruth`; not yet part of the muon-first tools' pipeline. |
 | `TMS_KalmanFollower.h/.cpp` | The physics fit: re-walks a seed path plane-by-plane, applying real field bending, Bethe-Bloch energy loss, and Lynch-Dahl multiple scattering, and resolving hit ambiguity at each layer via a chi2 gate over every candidate — not just accepting whichever the seed happened to pick. `Follower::Run()` takes an already-ordered seed path (e.g. a `TMS_GraphTrackFinder::Path`); `Follower::RunBestSeed()` is for seeds that *aren't* pre-ordered by a directed search (DBSCAN-direct/merged-PCA clusters) — it tries one hypothesis per candidate at the object's own first z-layer and keeps the best fit, rather than committing to a single naive z-sorted guess. |
 
 ## Why a fresh module, not an extension of the legacy code
@@ -55,20 +58,15 @@ this is a new module developed in parallel rather than a patch — the legacy
 Kalman keeps running as-is until this one is validated at scale and a
 promotion decision is made.
 
-## Validation tools (`app/`)
+## Validation tools (`app/cluster3D/`)
 
-| Tool | Purpose |
-|---|---|
-| `SpacePointCluster_test.cpp` | Unit-level sanity checks on `TMS_SpacePointCluster`'s PCA. |
-| `GraphTrackFinder_test.cpp` | Unit-level sanity checks on `TMS_GraphTrackFinder`. |
-| `ClusterTruthEfficiency.cpp` | Truth-matching machinery (Truth_Spill loading, Parent-chain collapse) shared by every other tool below. |
-| `GraphTrackFinderSliceTest.cpp` / `GraphTrackFinderTruthEfficiency.cpp` | Single-slice and full-population validation of the DBSCAN+PCA → merge → GraphTrackFinder pipeline. |
-| `GraphTrackFinderSweep.cpp` | Config-parameter sweep for `TMS_GraphTrackFinder::Config`. |
-| `KalmanFollowerSliceTest.cpp` | Single-slice validation of the full pipeline through the Kalman follower: whichever stage finds a track-like object hands its own points to `Follower::Run()`/`RunBestSeed()`, with a truth cross-check and an optional JSON dump for event-display tooling. |
-| `RealEventClusterDisplay.cpp` / `SpillClusterDisplay.cpp` | Dump real event/spill data for 3D event-display visualization. |
+The tools that exercise this module live in `app/cluster3D/`; see
+`app/cluster3D/README.md` for what each one does, its command line and its
+environment hooks. Their binaries build into `build/app/` like every other
+app.
 
-None of these need `TMS_Reco.cpp` — they read space points back out of a
-`Reco_Tree` that `ConvertToTMSTree` already wrote (or, for
-`KalmanFollowerSliceTest`, additionally need a separate geometry-bearing
-file, since `TMS_Geom::GetMaterials`'s material stepping needs a live
-`TGeoManager` that the standard `Reco_Tree` file doesn't embed).
+None of them need `TMS_Reco.cpp`: they read space points back out of a
+`Reco_Tree` that `ConvertToTMSTree` already wrote. Tools that fit tracks
+also need a separate geometry-bearing file, since `TMS_Geom::GetMaterials`'s
+material stepping needs a live `TGeoManager` that the standard `Reco_Tree`
+file doesn't embed.
