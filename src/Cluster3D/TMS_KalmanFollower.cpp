@@ -437,6 +437,7 @@ struct GateResult {
   std::vector<std::size_t> CandidateIndices;
   std::vector<double> CandidateChi2;
   std::vector<double> CandidateTimeChi2;  // filled only when time is in use
+  std::vector<double> CandidateXYTimeChi2;  // filled only when X/Y time is in use
 };
 
 // The ambiguity-resolution core: score every candidate at this layer
@@ -450,6 +451,11 @@ struct TimeContext {
   double ResidualVar = 0.0;  // ns^2, sigma_t^2 + var(T0)
   double PathLengthMM = 0.0; // s at this layer
   double GateNSigma = 0.0;   // 0 = no time gate
+  // X/Y hit-time agreement of each candidate itself (Config::UseXYTimeInSelection);
+  // null = not in use.
+  const XYTimeDifferenceFn *XYTimeDifference = nullptr;
+  double XYTimeVar = 0.0;         // ns^2
+  double XYTimeGateNSigma = 0.0;  // 0 = no X/Y time gate
 };
 
 GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_t> &candidatesAtLayer,
@@ -475,6 +481,13 @@ GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_
       result.CandidateTimeChi2.push_back(timeChi2);
       score += timeChi2;
       if (time.GateNSigma > 0.0 && timeChi2 > time.GateNSigma * time.GateNSigma) passes = false;
+    }
+    if (time.XYTimeDifference != nullptr) {
+      double dt = 0.0;
+      const double xyChi2 = (*time.XYTimeDifference)(candidate, dt) ? dt * dt / time.XYTimeVar : 0.0;
+      result.CandidateXYTimeChi2.push_back(xyChi2);
+      score += xyChi2;
+      if (time.XYTimeGateNSigma > 0.0 && xyChi2 > time.XYTimeGateNSigma * time.XYTimeGateNSigma) passes = false;
     }
     if (passes && score < bestScore) {
       bestScore = score;
@@ -743,6 +756,11 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     time.ResidualVar = fConfig.TimeSigmaNs * fConfig.TimeSigmaNs * (1.0 + 1.0 / t0Count);
     time.PathLengthMM = pathLengthMM;
     time.GateNSigma = fConfig.TimeGateNSigma;
+    if (fConfig.UseXYTimeInSelection && fXYTimeDifference) {
+      time.XYTimeDifference = &fXYTimeDifference;
+      time.XYTimeVar = fConfig.XYTimeSigmaNs * fConfig.XYTimeSigmaNs;
+      time.XYTimeGateNSigma = fConfig.XYTimeGateNSigma;
+    }
     const GateResult gate = ResolveLayer(predicted, candidates, allSpacePoints, fConfig.AssumedBarPitchMM,
                                          fConfig.ChiSquareGateMax, time);
 
@@ -752,6 +770,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     node.CandidateIndices = gate.CandidateIndices;
     node.CandidateChi2 = gate.CandidateChi2;
     node.CandidateTimeChi2 = gate.CandidateTimeChi2;
+    node.CandidateXYTimeChi2 = gate.CandidateXYTimeChi2;
 
     if (gate.Accepted) {
       const TMS_SpacePoint &chosen = allSpacePoints[gate.ChosenIndex];

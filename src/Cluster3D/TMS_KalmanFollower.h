@@ -2,6 +2,7 @@
 #define _TMS_KALMANFOLLOWER_H_SEEN_
 
 #include <cstddef>
+#include <functional>
 #include <vector>
 
 #include "TMatrixD.h"
@@ -270,7 +271,34 @@ struct Config {
   // If > 0, also reject any candidate with |r| > TimeGateNSigma *
   // sqrt(sigma_t^2 + sigma_t^2/n). 0 = time only ranks, never gates.
   double TimeGateNSigma = 0.0;
+
+  // X/Y hit-time agreement as a ghost discriminant in per-layer candidate
+  // selection. A space point pairs an X-view and a Y-view hit; if both came
+  // from one particle their times agree once each hit's light-transit delay
+  // along its bar is removed (TMS_SpacePointTiming), while a ghost pairing
+  // two particles' hits keeps their real time difference. When on, and a
+  // source has been given with Follower::SetXYTimeDifferenceSource(), each
+  // candidate's score gains dt^2 / XYTimeSigmaNs^2. Unlike the time term
+  // above it needs no track context -- it is a property of the point itself.
+  // Candidates whose dt is unavailable get no penalty.
+  //
+  // Motivation (2026-09-24, reports/2026-09-24_reco_hit_lookaside/):
+  // transit-corrected |dt| <= 10 ns keeps 84% of genuine points but only 71%
+  // of same-interaction ghosts and 37.5% of different-interaction ghosts.
+  //
+  // Default off until validated on the full truth population.
+  bool UseXYTimeInSelection = false;
+  // Width of the genuine-point transit-corrected dt distribution (ns);
+  // 5.1 ns is its MAD-sigma (sd 8.7 ns, the core is narrower than the tails).
+  double XYTimeSigmaNs = 5.1;
+  // If > 0, also reject any candidate with |dt| > XYTimeGateNSigma *
+  // XYTimeSigmaNs. 0 = ranks only, never gates.
+  double XYTimeGateNSigma = 0.0;
 };
+
+// Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
+// false if it can't be computed for that point.
+using XYTimeDifferenceFn = std::function<bool(const TMS_SpacePoint &, double &)>;
 
 // One followed plane: which candidate (if any) was chosen, the filtered
 // state there, and every candidate's chi2 (not just the chosen one) so
@@ -289,6 +317,10 @@ struct FollowedNode {
   // running track t0 (see Config::UseTimeInSelection). Filled only when
   // time is in use; empty otherwise.
   std::vector<double> CandidateTimeChi2;
+  // Parallel to CandidateIndices: each candidate's X/Y time-agreement chi2
+  // (see Config::UseXYTimeInSelection), 0 where unavailable. Filled only
+  // when that term is in use; empty otherwise.
+  std::vector<double> CandidateXYTimeChi2;
   std::size_t ChosenSpacePointIndex = 0;  // valid only if HasHit
   double Chi2AtChosen = 0.0;
 
@@ -375,9 +407,16 @@ class Follower {
                           std::vector<FitResult> *allHypotheses = nullptr,
                           std::size_t *bestIndex = nullptr) const;
 
+    // Where Config::UseXYTimeInSelection gets each point's transit-corrected
+    // X/Y time difference. The follower only sees TMS_SpacePoint, which keeps
+    // the average of its two hit times; the caller, which has the hits,
+    // supplies the difference (typically keyed on the point's hit indices).
+    void SetXYTimeDifferenceSource(XYTimeDifferenceFn source) { fXYTimeDifference = std::move(source); }
+
   private:
     Config fConfig;
     const IFieldModel &fField;
+    XYTimeDifferenceFn fXYTimeDifference;
 };
 
 }  // namespace TMS_KalmanFollower

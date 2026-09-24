@@ -41,6 +41,7 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_SpacePointTiming.h"
 
 namespace {
 
@@ -312,7 +313,37 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_USE_TIME")) follower_config.UseTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_TIME_SIGMA")) follower_config.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
-  const TMS_KalmanFollower::Follower follower(follower_config, field);
+  // X/Y hit-time agreement term (see Config::UseXYTimeInSelection). Needs
+  // the SpacePointHit* look-aside table (reco files converted 2026-09-24 or
+  // later).
+  if (const char *v = std::getenv("KF_USE_XYTIME")) follower_config.UseXYTimeInSelection = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_XYTIME_SIGMA")) follower_config.XYTimeSigmaNs = std::atof(v);
+  if (const char *v = std::getenv("KF_XYTIME_GATE")) follower_config.XYTimeGateNSigma = std::atof(v);
+  TMS_KalmanFollower::Follower follower(follower_config, field);
+  // Transit-corrected X/Y time difference of each space point in the current
+  // slice, keyed on its (X hit, Y hit) index pair -- the key survives the
+  // re-indexed point pools the follower is handed. Refilled per slice.
+  std::map<std::pair<int, int>, double> xy_dt_by_hits;
+  if (follower_config.UseXYTimeInSelection) {
+    follower.SetXYTimeDifferenceSource([&xy_dt_by_hits](const TMS_SpacePoint &point, double &dt) {
+      auto it = xy_dt_by_hits.find({point.GetXHitIndex(), point.GetYHitIndex()});
+      if (it == xy_dt_by_hits.end()) return false;
+      dt = it->second;
+      return true;
+    });
+  }
+  // Optional: KF_DUMP_XYTIME=<path> writes one row per space point with its
+  // transit-corrected dt and truth class (0 = one particle, 1 = two particles
+  // from one interaction, 2 = two interactions, -1 = unlabelled), to check
+  // the correction against the empirical fit.
+  const char *xytime_dump_path = std::getenv("KF_DUMP_XYTIME");
+  const bool compute_xy_dt = follower_config.UseXYTimeInSelection || xytime_dump_path != nullptr;
+  std::ofstream xytime_dump;
+  if (xytime_dump_path) {
+    xytime_dump.open(xytime_dump_path);
+    xytime_dump << "entry,x,y,dt_raw,dt_corr,cls\n";
+  }
+  long n_xy_dt_ok = 0, n_xy_dt_failed = 0;
 
   TFile input(input_filename.c_str());
   if (input.IsZombie()) {
@@ -383,6 +414,21 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointYTrueTrackId", sp_y_trackid.data());
   reco_tree->SetBranchAddress("SpillNo", &spill_no);
   reco_tree->SetBranchAddress("SliceNo", &slice_no);
+  // SpacePointHit* look-aside table, only needed for the X/Y time term.
+  const int kMaxHits = 20000;  // __TMS_MAX_HITS__ in TMS_TreeWriter.h
+  int n_sp_hits = 0;
+  static std::vector<float> sp_hit_time(kMaxHits), sp_hit_notz(kMaxHits), sp_hit_z(kMaxHits);
+  if (compute_xy_dt) {
+    if (reco_tree->GetBranch("SpacePointHitTime") == nullptr) {
+      std::cerr << "KF_USE_XYTIME/KF_DUMP_XYTIME need the SpacePointHit* branches; " << input_filename
+                << " predates them -- reconvert it." << std::endl;
+      return -1;
+    }
+    reco_tree->SetBranchAddress("nSpacePointHits", &n_sp_hits);
+    reco_tree->SetBranchAddress("SpacePointHitTime", sp_hit_time.data());
+    reco_tree->SetBranchAddress("SpacePointHitNotZ", sp_hit_notz.data());
+    reco_tree->SetBranchAddress("SpacePointHitZ", sp_hit_z.data());
+  }
 
   int n_tp_ti = 0;
   static std::vector<int> true_nhits_slice(kMaxTrueParticles);
@@ -481,6 +527,34 @@ int main(int argc, char **argv) {
     }
 
     const int n_muons_in_slice = (int)muon_particle_idx.size();
+
+    if (compute_xy_dt) {
+      xy_dt_by_hits.clear();
+      for (int i = 0; i < n_space_points; ++i) {
+        const int xi = sp_x_hitidx[i], yi = sp_y_hitidx[i];
+        if (xi < 0 || yi < 0 || xi >= n_sp_hits || yi >= n_sp_hits) {
+          ++n_xy_dt_failed;
+          continue;
+        }
+        double dt = 0.0;
+        if (!TMS_SpacePointTiming::CorrectedXYTimeDifference(sp_x[i], sp_y[i], sp_hit_notz[xi], sp_hit_z[xi],
+                                                             sp_hit_time[xi], sp_hit_notz[yi], sp_hit_z[yi],
+                                                             sp_hit_time[yi], dt)) {
+          ++n_xy_dt_failed;
+          continue;
+        }
+        ++n_xy_dt_ok;
+        xy_dt_by_hits[{xi, yi}] = dt;
+        if (xytime_dump.is_open()) {
+          int cls = -1;
+          if (sp_x_vgid[i] >= 0 && sp_y_vgid[i] >= 0) {
+            cls = (sp_x_vgid[i] != sp_y_vgid[i]) ? 2 : (sp_x_trackid[i] != sp_y_trackid[i]) ? 1 : 0;
+          }
+          xytime_dump << entry << "," << sp_x[i] << "," << sp_y[i] << "," << sp_hit_time[xi] - sp_hit_time[yi]
+                      << "," << dt << "," << cls << "\n";
+        }
+      }
+    }
 
     // --- Pass A: DBSCAN+PCA, exactly as GraphTrackFinderTruthEfficiency.cpp. ---
     std::vector<TMS_SpacePoint> space_points;
@@ -917,6 +991,10 @@ int main(int argc, char **argv) {
   std::cout << "Slices seen (>=1 findable muon): " << n_slices_seen
             << ", skipped (no findable muon): " << n_slices_skipped_no_muon
             << ", skipped (nTrueParticles mismatch): " << n_slices_skipped_mismatch << std::endl;
+  if (compute_xy_dt) {
+    std::cout << "X/Y time difference: computed for " << n_xy_dt_ok << " space points, unavailable for "
+              << n_xy_dt_failed << std::endl;
+  }
   std::cout << "Wrote " << muons_csv_path << (append ? " (appended)" : "") << std::endl;
 
   return 0;
