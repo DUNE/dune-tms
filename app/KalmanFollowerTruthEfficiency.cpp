@@ -292,6 +292,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_QP_REL_SIGMA")) follower_config.InitialQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("KF_RANGE_SEED")) follower_config.RangeSeedMargin = std::atof(v);
   if (const char *v = std::getenv("KF_MAX_HEAD_SKIP")) follower_config.MaxHeadSkip = std::atoi(v);
+  if (const char *v = std::getenv("KF_MAX_TRIPLETS")) follower_config.MaxTripletHypotheses = std::atoi(v);
   if (const char *v = std::getenv("KF_RANK_BY_CONVERGENCE")) follower_config.RankHypothesesByConvergence = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_STOP_ON_RANGEOUT")) follower_config.StopOnRangeOut = std::atoi(v) != 0;
   const TMS_KalmanFollower::Follower follower(follower_config, field);

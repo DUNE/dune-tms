@@ -820,6 +820,74 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
         if (bestIndex && allHypotheses) *bestIndex = allHypotheses->size() - 1;
       }
     }
+
+    // Triplet hypotheses: explore genuinely different (layer0,layer1,layer2)
+    // combinations, not just which point anchors the same fixed tail (see
+    // the Config::MaxTripletHypotheses comment). Needs a third layer beyond
+    // this skip level's first two.
+    if (fConfig.MaxTripletHypotheses > 0 && objectLayers.size() >= static_cast<std::size_t>(skip) + 3) {
+      const std::vector<std::size_t> &layer0 = firstLayerLocal;
+      const std::vector<std::size_t> &layer1 = objectLayers[skip + 1];
+      const std::vector<std::size_t> &layer2 = objectLayers[skip + 2];
+
+      struct TripletCandidate {
+        double residual;
+        std::size_t a, b, c;  // global indices into allSpacePoints
+      };
+      std::vector<TripletCandidate> tripletCandidates;
+      tripletCandidates.reserve(layer0.size() * layer1.size() * layer2.size());
+      for (std::size_t la : layer0) {
+        const std::size_t ga = objectIndices[la];
+        const TMS_SpacePoint &pa = allSpacePoints[ga];
+        for (std::size_t lc : layer2) {
+          const std::size_t gc = objectIndices[lc];
+          const TMS_SpacePoint &pc = allSpacePoints[gc];
+          const double dz = pc.GetZ() - pa.GetZ();
+          if (std::abs(dz) < 1e-6) continue;
+          for (std::size_t lb : layer1) {
+            const std::size_t gb = objectIndices[lb];
+            const TMS_SpacePoint &pb = allSpacePoints[gb];
+            // Predict the middle point by linear interpolation in z between
+            // the outer two, and score by how far the actual candidate sits
+            // from that prediction -- cheap, no fit involved.
+            const double t = (pb.GetZ() - pa.GetZ()) / dz;
+            const double predX = pa.GetX() + t * (pc.GetX() - pa.GetX());
+            const double predY = pa.GetY() + t * (pc.GetY() - pa.GetY());
+            const double residual = std::hypot(pb.GetX() - predX, pb.GetY() - predY);
+            if (residual <= fConfig.TripletCollinearityToleranceMM) {
+              tripletCandidates.push_back({residual, ga, gb, gc});
+            }
+          }
+        }
+      }
+      std::sort(tripletCandidates.begin(), tripletCandidates.end(),
+                [](const TripletCandidate &lhs, const TripletCandidate &rhs) {
+                  return lhs.residual < rhs.residual;
+                });
+      const std::size_t nTriplets =
+          std::min(tripletCandidates.size(), static_cast<std::size_t>(fConfig.MaxTripletHypotheses));
+      for (std::size_t t = 0; t < nTriplets; ++t) {
+        const TripletCandidate &tri = tripletCandidates[t];
+        std::vector<std::size_t> seedPath;
+        seedPath.reserve(restSorted.size() + 3);
+        seedPath.push_back(tri.a);
+        seedPath.push_back(tri.b);
+        seedPath.push_back(tri.c);
+        for (std::size_t idx : restSorted) {
+          if (idx == tri.b || idx == tri.c) continue;  // already placed above
+          seedPath.push_back(idx);
+        }
+
+        FitResult candidate = Run(allSpacePoints, seedPath);
+        candidate.HeadSkip = skip;
+        if (allHypotheses) allHypotheses->push_back(candidate);
+        if (!haveBest || IsBetterFit(candidate, best, fConfig.RankHypothesesByConvergence)) {
+          best = candidate;
+          haveBest = true;
+          if (bestIndex && allHypotheses) *bestIndex = allHypotheses->size() - 1;
+        }
+      }
+    }
   }
   return best;
 }

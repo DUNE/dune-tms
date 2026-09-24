@@ -201,6 +201,42 @@ struct Config {
   // ~1-bar-pitch scale already validated empirically for this exact
   // purpose (TMS_GraphTrackFinder::Config::PositionQuantizationX/Y).
   double AssumedBarPitchMM = 36.0;
+
+  // RunBestSeed()'s head-skip hypotheses (above) only ever vary the ANCHOR
+  // point (the object's own first-layer candidate); the next ~2 points that
+  // SeedDirection() actually averages to get the initial slope are always
+  // whichever sort first in global z order -- never explored as
+  // alternatives, even when that layer has several candidates. Triplet
+  // hypotheses fix that directly: at each skip level, enumerate every
+  // (layer0, layer1, layer2) candidate combination, keep only the
+  // MaxTripletHypotheses most nearly collinear (TripletCollinearityToleranceMM),
+  // and run a full fit on each survivor. The collinearity prune is cheap
+  // (arithmetic only); only the survivors pay for a real Kalman walk, so
+  // this stays bounded even in a dense slice with hundreds of candidates
+  // per layer (see the header comment above on TMS_SpacePointBuilder
+  // ghosting for why a single layer can have that many). Purely additive to
+  // the existing head-skip hypotheses -- worst case it finds nothing better
+  // and IsBetterFit keeps the old winner.
+  //
+  // Default 5: 15-file sweep 2026-09-23 (reports/2026-09-21_kalman_prior_sweep/,
+  // muons_triplets5.csv vs muons_rank_noconv.csv), on top of head-skip=2:
+  // completeness 87.10 -> 88.95%, purity 89.68 -> 90.11%, ND-LAr-fiducial
+  // completeness 94.53 -> 95.42% (purity also up), TMS-start completeness
+  // 80.12 -> 83.20% (the largest single gain). Per muon: 996 better, 111
+  // worse (27 lose >= 50pp completeness, almost all short dbscan_direct
+  // tracks around 6 target planes -- the same known IsBetterFit short-track
+  // weakness head-skip already has, not a new failure mode). Runtime cost
+  // measured at ~1.4% (solo file-9 timing, 7m12s -> 7m18s) -- far cheaper
+  // than head-skip's ~3x, for a larger completeness gain.
+  int MaxTripletHypotheses = 5;
+
+  // Max transverse deviation (mm) of the middle point from the straight
+  // line through the first and third, for a (layer0,layer1,layer2)
+  // candidate combination to be considered collinear enough to try. A few
+  // bar pitches (AssumedBarPitchMM=36mm) -- wide enough to admit a real
+  // muon's genuine multiple-scattering kink over 2 layers, tight enough to
+  // reject combinations that are obviously not one particle.
+  double TripletCollinearityToleranceMM = 100.0;
 };
 
 // One followed plane: which candidate (if any) was chosen, the filtered
