@@ -237,6 +237,33 @@ struct Config {
   // muon's genuine multiple-scattering kink over 2 layers, tight enough to
   // reject combinations that are obviously not one particle.
   double TripletCollinearityToleranceMM = 100.0;
+
+  // Time as a second discriminant in per-layer candidate selection. When on,
+  // the follower keeps a running estimate of the track's time origin t0 --
+  // the mean of (t - s/c) over accepted points, s = path length walked from
+  // the seed, c = speed of light (muons treated as beta~1) -- and ranks each
+  // candidate by position chi2 + time chi2, with time chi2 =
+  // r^2 / (sigma_t^2 + sigma_t^2/n), r = (t - s/c) - t0, n = accepted points
+  // so far. The acceptance gate itself stays the position-only
+  // ChiSquareGateMax, unless TimeGateNSigma > 0 adds a separate |r| cut.
+  //
+  // Motivation (2026-09-24, reports/2026-09-24_caseH_timing_pca/): muons from
+  // DIFFERENT interactions that DBSCAN merges into one cluster reach the TMS
+  // a median 23 ns apart, and a ghost space point pairing one muon's X hit
+  // with the other's Y hit carries the AVERAGE of the two hit times, so it
+  // sits half that offset away. Position alone cannot separate them where the
+  // two tracks come within a bar pitch of each other.
+  //
+  // Default off until validated on the full truth population.
+  bool UseTimeInSelection = false;
+  // Per-space-point time resolution (ns) after the path-length TOF
+  // correction. Measured 2026-09-24 on 120k X/Y-truth-agreeing muon space
+  // points (files 1-4): pooled sd 5.85 ns, MAD-sigma 5.66 ns, only 0.18% of
+  // points beyond 20 ns (i.e. close to Gaussian, no heavy tail to guard).
+  double TimeSigmaNs = 5.8;
+  // If > 0, also reject any candidate with |r| > TimeGateNSigma *
+  // sqrt(sigma_t^2 + sigma_t^2/n). 0 = time only ranks, never gates.
+  double TimeGateNSigma = 0.0;
 };
 
 // One followed plane: which candidate (if any) was chosen, the filtered
@@ -251,7 +278,11 @@ struct FollowedNode {
   // Indices into the SAME allSpacePoints vector passed to Follower::Run(),
   // i.e. every space point seen at this layer, not just the seed's pick.
   std::vector<std::size_t> CandidateIndices;
-  std::vector<double> CandidateChi2;  // parallel to CandidateIndices
+  std::vector<double> CandidateChi2;  // parallel to CandidateIndices (position-only chi2)
+  // Parallel to CandidateIndices: each candidate's time chi2 against the
+  // running track t0 (see Config::UseTimeInSelection). Filled only when
+  // time is in use; empty otherwise.
+  std::vector<double> CandidateTimeChi2;
   std::size_t ChosenSpacePointIndex = 0;  // valid only if HasHit
   double Chi2AtChosen = 0.0;
 
@@ -288,6 +319,9 @@ struct FitResult {
   int NGapsFilled = 0;             // layers skipped for lack of a good candidate
   int NAmbiguousLayersResolved = 0;  // layers where >1 candidate existed
   int HeadSkip = 0;  // RunBestSeed(): leading object layers this hypothesis's seed skipped
+  // Running track time origin, mean of (t - s/c) over accepted points (ns).
+  // Always computed, whether or not time is used in selection.
+  double TrackT0Ns = 0.0;
 };
 
 class Follower {

@@ -51,6 +51,10 @@ struct StepState {
 // tellingly, never actually applied (TMS_Kalman.cpp:252-253).
 constexpr double kCurvatureConstant = 0.299792458;
 
+// For the time-of-flight correction in the optional time term (muons treated
+// as beta~1; see Config::UseTimeInSelection).
+constexpr double kSpeedOfLightMMPerNs = 299.792458;
+
 double Kappa(double qp, double fieldTeslaY) { return kCurvatureConstant * fieldTeslaY * qp; }
 
 // Wolin & Ho (Nucl Inst A329 1993 493-500) multiple-scattering covariance,
@@ -432,24 +436,48 @@ struct GateResult {
   std::size_t ChosenIndex = 0;
   std::vector<std::size_t> CandidateIndices;
   std::vector<double> CandidateChi2;
+  std::vector<double> CandidateTimeChi2;  // filled only when time is in use
 };
 
 // The ambiguity-resolution core: score every candidate at this layer
 // against the predicted state, accept the best one under the chi2 gate (or
 // none, if nothing passes -- a gap, handled by the caller).
+// Optional time information for ResolveLayer(): the running track t0 and
+// its variance, plus where along the track this layer sits (path length).
+struct TimeContext {
+  bool Use = false;
+  double T0 = 0.0;           // ns, mean of (t - s/c) over accepted points
+  double ResidualVar = 0.0;  // ns^2, sigma_t^2 + var(T0)
+  double PathLengthMM = 0.0; // s at this layer
+  double GateNSigma = 0.0;   // 0 = no time gate
+};
+
 GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_t> &candidatesAtLayer,
                          const std::vector<TMS_SpacePoint> &allSpacePoints,
-                         double barPitchMM, double chiSquareGateMax) {
+                         double barPitchMM, double chiSquareGateMax, const TimeContext &time) {
   GateResult result;
-  double bestChi2 = std::numeric_limits<double>::infinity();
+  double bestScore = std::numeric_limits<double>::infinity();
   for (std::size_t index : candidatesAtLayer) {
     const TMS_SpacePoint &candidate = allSpacePoints[index];
     const TMatrixD measurementCov = BuildMeasurementCovariance(barPitchMM);
     const double chi2 = Chi2(predicted, candidate, measurementCov);
     result.CandidateIndices.push_back(index);
     result.CandidateChi2.push_back(chi2);
-    if (chi2 <= chiSquareGateMax && chi2 < bestChi2) {
-      bestChi2 = chi2;
+    // Selection score: position chi2, plus the time chi2 when enabled. The
+    // gate is still applied to position chi2 alone (and optionally a
+    // separate time cut), so turning time on changes WHICH passing
+    // candidate wins, not how permissive the gate is.
+    double score = chi2;
+    bool passes = chi2 <= chiSquareGateMax;
+    if (time.Use) {
+      const double r = (candidate.GetTime() - time.PathLengthMM / kSpeedOfLightMMPerNs) - time.T0;
+      const double timeChi2 = r * r / time.ResidualVar;
+      result.CandidateTimeChi2.push_back(timeChi2);
+      score += timeChi2;
+      if (time.GateNSigma > 0.0 && timeChi2 > time.GateNSigma * time.GateNSigma) passes = false;
+    }
+    if (passes && score < bestScore) {
+      bestScore = score;
       result.ChosenIndex = index;
       result.Accepted = true;
     }
@@ -677,6 +705,13 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   result.Nodes.push_back(firstNode);
   if (zLayers[startLayer].size() > 1) ++result.NAmbiguousLayersResolved;
 
+  // Running time origin t0 = mean of (t - s/c) over accepted points, s =
+  // path length from the seed point (see Config::UseTimeInSelection).
+  // Tracked even when time is off, so FitResult::TrackT0Ns is always filled.
+  double pathLengthMM = 0.0;
+  double t0Sum = firstPoint.GetTime();
+  int t0Count = 1;
+
   int consecutiveGaps = 0;
   result.Converged = true;
   result.Stop = FitResult::StopReason::ReachedRangeEnd;  // overridden below if the walk breaks early
@@ -685,6 +720,9 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     const std::vector<std::size_t> &candidates = zLayers[layerIdx];
     if (candidates.empty()) continue;  // TMS_LayerGrouping never emits an empty layer; defensive only
     const double targetZ = allSpacePoints[candidates.front()].GetZ();
+    // Path length to this layer along the current direction estimate.
+    pathLengthMM += std::abs(targetZ - current.z) *
+                    std::sqrt(1.0 + current.dxdz * current.dxdz + current.dydz * current.dydz);
 
     const StepState predicted =
         Predict(current, targetZ, fField, fConfig.MaxSubstepLengthMM, fConfig.StopOnRangeOut);
@@ -699,14 +737,21 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
       result.Stop = FitResult::StopReason::Diverged;
       break;
     }
-    const GateResult gate =
-        ResolveLayer(predicted, candidates, allSpacePoints, fConfig.AssumedBarPitchMM, fConfig.ChiSquareGateMax);
+    TimeContext time;
+    time.Use = fConfig.UseTimeInSelection;
+    time.T0 = t0Sum / t0Count;
+    time.ResidualVar = fConfig.TimeSigmaNs * fConfig.TimeSigmaNs * (1.0 + 1.0 / t0Count);
+    time.PathLengthMM = pathLengthMM;
+    time.GateNSigma = fConfig.TimeGateNSigma;
+    const GateResult gate = ResolveLayer(predicted, candidates, allSpacePoints, fConfig.AssumedBarPitchMM,
+                                         fConfig.ChiSquareGateMax, time);
 
     FollowedNode node;
     node.Layer = layerIdx;
     node.Z = targetZ;
     node.CandidateIndices = gate.CandidateIndices;
     node.CandidateChi2 = gate.CandidateChi2;
+    node.CandidateTimeChi2 = gate.CandidateTimeChi2;
 
     if (gate.Accepted) {
       const TMS_SpacePoint &chosen = allSpacePoints[gate.ChosenIndex];
@@ -720,6 +765,8 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
           break;
         }
       }
+      t0Sum += chosen.GetTime() - pathLengthMM / kSpeedOfLightMMPerNs;
+      ++t0Count;
       result.TotalChi2 += node.Chi2AtChosen;
       result.NDoF += 2;
       consecutiveGaps = 0;
@@ -749,6 +796,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   result.MomentumMeV = (std::abs(current.qp) > 1e-12) ? 1.0 / std::abs(current.qp) : 0.0;
   result.Charge = (current.qp >= 0.0) ? 1.0 : -1.0;
   result.NDoF -= 5;  // 5 fitted state parameters
+  result.TrackT0Ns = t0Sum / t0Count;
 
   return result;
 }
