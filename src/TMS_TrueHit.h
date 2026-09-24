@@ -100,10 +100,19 @@ class TMS_TrueHit {
     // though the hit's own PE/energy is unaffected. These two instead return the highest
     // *energy-share* contributor, which is order-independent and matches the convention
     // already used for RecoHitPrimary* branches via TMS_Utils::GetPrimaryIdsByEnergy().
+    // Ties on EnergyShare (exact ties are physically possible, e.g. two contributors of equal
+    // deposited energy) break on (VertexGlobalIds, PrimaryIds) ascending -- both are intrinsic
+    // identifiers of the contributor, not merge-order artifacts, so this stays order-independent.
+    // Same tie preference GetSumAndHighest() gets for free from its std::map<pair<...>> key order.
     size_t IndexOfHighestEnergyContributor() const {
       size_t best = 0;
       for (size_t i = 1; i < EnergyShare.size(); i++) {
-        if (EnergyShare[i] > EnergyShare[best]) best = i;
+        if (EnergyShare[i] > EnergyShare[best] ||
+            (EnergyShare[i] == EnergyShare[best] &&
+             (VertexGlobalIds[i] < VertexGlobalIds[best] ||
+              (VertexGlobalIds[i] == VertexGlobalIds[best] && PrimaryIds[i] < PrimaryIds[best])))) {
+          best = i;
+        }
       }
       return best;
     };
