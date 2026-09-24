@@ -31,7 +31,7 @@ namespace TMS_KalmanFollower {
 struct Config {
   // A candidate's chi2 (2 DoF: x, y position residual) must be below this
   // to be accepted at all. Tuned empirically 2026-09-15 against the 15-file
-  // truth population (app/KalmanFollowerTruthEfficiency): the 2-DoF
+  // truth population (app/cluster3D/KalmanFollowerTruthEfficiency): the 2-DoF
   // statistical reference value (~9.21 @ 99% CL) was rejecting real
   // truth-matched hits outright -- 66.7% of all gap layers had the truth
   // point evaluated but chi2-gated out, not missing. Swept 9.21/15/25/40/60;
@@ -254,8 +254,14 @@ struct Config {
   // sits half that offset away. Position alone cannot separate them where the
   // two tracks come within a bar pitch of each other.
   //
-  // Default off until validated on the full truth population.
-  bool UseTimeInSelection = false;
+  // Default on: 15-file truth run 2026-09-24 (reports/2026-09-24_kalman_timing/,
+  // 16,369 muons), on vs off: +0.1 to +0.3 pp completeness and purity in every
+  // population, strict (both-views) metrics included -- all: completeness
+  // 88.95 -> 89.05%, purity 90.11 -> 90.16%; ND-LAr-fiducial 95.42 -> 95.60% /
+  // 97.33 -> 97.59%. Per muon it is mixed (673 better, 544 worse, 36 lose
+  // >= 50 pp strict completeness), and it cannot rescue a seed that started on
+  // the wrong particle -- it keeps a fit consistent with its own start.
+  bool UseTimeInSelection = true;
   // Per-space-point time resolution (ns) after the path-length TOF
   // correction. Measured 2026-09-24 on 120k X/Y-truth-agreeing muon space
   // points (files 1-4): pooled sd 5.85 ns, MAD-sigma 5.66 ns, only 0.18% of
