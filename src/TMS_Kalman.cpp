@@ -91,14 +91,17 @@ TMS_Kalman::TMS_Kalman(std::vector<TMS_Hit> &Candidates, double charge, TMS_Even
   // "matrices not compatible" TMatrixT error followed by a double free). Leave the filter empty with defined
   // outputs instead; callers already handle an empty node list (see TMS_Reco.cpp). The single leftover node (if
   // any) is dropped too, since an unfitted node has chi2 = 0 and would otherwise win the plus/minus charge choice.
-  // charge_curvature is normally set only by SignSelection(), so give it TMS_Track's "not set" default.
+  // Outputs copied verbatim onto the TMS_Track get its -999999999 "not set" default (charge_curvature is normally
+  // set only by SignSelection()). Directions stay zero: TMS_Track::Set{Start,End}Direction normalise their input and
+  // map a zero vector to that same default, whereas a vector of -999999999s would normalise to a plausible direction.
   if (KalmanNodes.size() < 2) {
+    const double kNotSet = -999999999.;
     KalmanNodes.clear();
-    charge_curvature = -999999999;
-    momentum = 0.0;
+    charge_curvature = kNotSet;
+    momentum = kNotSet;
     for (int i = 0; i < 3; i++) {
-      Start[i] = 0.0;
-      End[i] = 0.0;
+      Start[i] = kNotSet;
+      End[i] = kNotSet;
       StartDirection[i] = 0.0;
       EndDirection[i] = 0.0;
     }
