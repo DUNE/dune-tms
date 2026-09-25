@@ -98,6 +98,8 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_GRAPH")) config.UseGraphSearch = std::atoi(v) != 0;
   if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_LAYERS")) config.MinGraphPathLayers = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_HITS")) config.MinGraphTrackHits = std::atoi(v);
+  if (const char *v = std::getenv("CLUSTER3D_MIN_HITS")) config.Split.MinHitsPerTrack = std::atoi(v);
+  if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_CLUSTER")) config.MinGraphClusterSize = std::atoi(v);
   const RegionFieldModel field;
 
   TFile input(input_filename.c_str());
@@ -184,7 +186,8 @@ int main(int argc, char **argv) {
                 "start_charge\n";
   muons_csv << "sourcefile,entry,slice,vertexglobalid,trackid,vertex_in_tms,vertex_in_lar_fiducial,stops_in_tms,"
                "true_hits_in_slice,true_momentum_tms_mev,true_charge,tracks_owned,found,best_stage,"
-               "hit_completeness_pct,hit_purity_pct,best_start_momentum_mev,best_start_charge\n";
+               "hit_completeness_pct,hit_purity_pct,best_start_momentum_mev,best_start_charge,"
+               "captor_share_pct,captor_owner_vgid,captor_owner_trackid,captor_stage\n";
 
   long n_tracks = 0, n_stage2 = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
@@ -294,6 +297,18 @@ int main(int argc, char **argv) {
           ++n_owned;
           if (!best || o.owner_share > best->owner_share) best = &o;
         }
+      // Diagnostic: the track holding the largest part of this muon's hit
+      // energy, whoever owns it -- where a muon's hits went when it owns no track.
+      double captor_share = 0.0;
+      const Owned *captor = nullptr;
+      for (const Owned &o : owned) {
+        double s = 0.0;
+        for (int h : o.track->HitIndices) s += hit_truth[h].Share(label);
+        if (s > captor_share) {
+          captor_share = s;
+          captor = &o;
+        }
+      }
       const double p = std::sqrt(sp.momentum[i * 4] * sp.momentum[i * 4] + sp.momentum[i * 4 + 1] * sp.momentum[i * 4 + 1] +
                                  sp.momentum[i * 4 + 2] * sp.momentum[i * 4 + 2]);
       muons_csv << input_filename << "," << entry << "," << slice_no << "," << label.vgid << "," << label.trackid << ","
@@ -304,7 +319,10 @@ int main(int argc, char **argv) {
                 << (best && total_share > 0 ? 100.0 * best->owner_share / total_share : 0.0) << ","
                 << (best && best->used > 0 ? 100.0 * best->owner_share / best->used : 0.0) << ","
                 << (best && best->track->Fit.HasStartState ? best->track->Fit.StartMomentumMeV : 0.0) << ","
-                << (best && best->track->Fit.HasStartState ? best->track->Fit.StartCharge : 0.0) << "\n";
+                << (best && best->track->Fit.HasStartState ? best->track->Fit.StartCharge : 0.0) << ","
+                << (captor && total_share > 0 ? 100.0 * captor_share / total_share : 0.0) << ","
+                << (captor ? captor->owner.vgid : -1) << "," << (captor ? captor->owner.trackid : -999) << ","
+                << (captor ? captor->track->Stage : 0) << "\n";
     }
   }
   std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << ")" << std::endl;
