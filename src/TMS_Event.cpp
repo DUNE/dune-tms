@@ -1028,6 +1028,11 @@ void TMS_Event::BuildSpacePoints() {
   // TMS_Hits (for a per-slice event) includes pedestal-suppressed hits -- the
   // slice constructor deliberately keeps them (GetHits(slice, true)) for
   // other consumers -- TMS_SpacePointBuilder::Build() skips them itself.
-  double timing_window = TMS_Manager::GetInstance().Get_RECO_SPACEPOINTS_TimingWindow();
-  TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window);
+  // Which planes pair with which comes from the loaded geometry and the
+  // configured [Recon.SpacePoints] Pairing scheme (see TMS_PlanePairing.h).
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  const double timing_window = manager.Get_RECO_SPACEPOINTS_TimingWindow();
+  const TMS_PlanePairing::Table pairing = TMS_PlanePairing::BuildFromGeometry();
+  TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window, pairing,
+                                                 manager.Get_RECO_SPACEPOINTS_PairingFallback());
 }

@@ -387,6 +387,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpacePointTime", SpacePointTime, "SpacePointTime[nSpacePoints]/F");
   Reco_Tree->Branch("SpacePointXHitIndex", SpacePointXHitIndex, "SpacePointXHitIndex[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYHitIndex", SpacePointYHitIndex, "SpacePointYHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointLayer", SpacePointLayer, "SpacePointLayer[nSpacePoints]/I");
   Reco_Tree->Branch("nSpacePointHits", &nSpacePointHits, "nSpacePointHits/I");
   Reco_Tree->Branch("SpacePointHitTime", SpacePointHitTime, "SpacePointHitTime[nSpacePointHits]/F");
   Reco_Tree->Branch("SpacePointHitNotZ", SpacePointHitNotZ, "SpacePointHitNotZ[nSpacePointHits]/F");
@@ -1990,6 +1991,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     SpacePointTime[i_sp] = space_points[i_sp].GetTime();
     SpacePointXHitIndex[i_sp] = space_points[i_sp].GetXHitIndex();
     SpacePointYHitIndex[i_sp] = space_points[i_sp].GetYHitIndex();
+    SpacePointLayer[i_sp] = space_points[i_sp].GetLayer();
 
     // Exact ground truth for the two hits that formed this space point (same
     // lookup RecoHitPrimary* uses above) -- lets a downstream consumer check

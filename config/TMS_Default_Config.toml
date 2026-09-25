@@ -146,6 +146,19 @@
     # Timing window for pairing X and Y hits (in nanoseconds)
     # Based on DUNE RF bucket spacing (19 ns) + transit time margin
     TimingWindow = 30.0 # ns
+    # Which planes' hits are paired into space points (TMS_PlanePairing):
+    #  "NearestY"       -- each x-measuring plane with its nearest y-measuring plane
+    #                      (front-section ties -> downstream), point z = midpoint of
+    #                      the two planes; one point layer per x-measuring plane.
+    #  "BothNeighbors" -- the original scheme: each y-measuring plane with the
+    #                      x-measuring planes on both sides, point z = the
+    #                      y-measuring plane's z. Kept only until NearestY is
+    #                      validated (2026-09-25 plan), then to be removed.
+    Pairing = "NearestY"
+    # NearestY only: a hit left with no partner in its own plane pair may pair
+    # across its other adjacent x/y gap instead (recovers crossings where the
+    # partner plane's hit is missing).
+    PairingFallback = true
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

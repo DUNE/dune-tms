@@ -90,6 +90,9 @@ class TMS_TreeWriter {
     float SpacePointTime[__TMS_MAX_SPACEPOINTS__];
     int SpacePointXHitIndex[__TMS_MAX_SPACEPOINTS__];
     int SpacePointYHitIndex[__TMS_MAX_SPACEPOINTS__];
+    // Point layer of each space point (TMS_SpacePoint::GetLayer()): which
+    // plane pair it was built from, z-ordered.
+    int SpacePointLayer[__TMS_MAX_SPACEPOINTS__];
     // Look-aside table for SpacePointX/YHitIndex: the slice's full raw hit
     // list (TMS_Event::GetHitsRawRef(), pedestal-suppressed hits included),
     // in the same order the space-point builder indexed it. Lets a reader get

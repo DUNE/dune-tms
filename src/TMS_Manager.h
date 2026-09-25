@@ -96,6 +96,8 @@ class TMS_Manager {
     double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
 
     double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
+    const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
+    bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
 
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -242,6 +244,8 @@ class TMS_Manager {
     double _RECO_TIME_TimeSlicerMaxTime;
 
     double _RECO_SPACEPOINTS_TimingWindow;
+    std::string _RECO_SPACEPOINTS_Pairing;
+    bool _RECO_SPACEPOINTS_PairingFallback;
 
     double _RECO_CALIBRATION_EnergyCalibration;
     
