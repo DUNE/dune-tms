@@ -105,6 +105,12 @@ class TMS_TreeWriter {
     float SpacePointHitPE[__TMS_MAX_HITS__];
     int SpacePointHitView[__TMS_MAX_HITS__];     // TMS_Bar bar-type number
     int SpacePointHitPedSup[__TMS_MAX_HITS__];   // 1 = pedestal-suppressed
+    // Ground truth per hit (same TMS_Utils::GetPrimaryIdsByEnergy lookup as
+    // SpacePointX/YTrue* below): covers every hit, including ones that never
+    // made it into a space point -- needed to study alternative X/Y pairings
+    // and to validate a hit-level fit. -1 / -999 = no truth.
+    Long64_t SpacePointHitTrueVertexGlobalId[__TMS_MAX_HITS__];
+    int SpacePointHitTrueTrackId[__TMS_MAX_HITS__];
     // Exact ground truth for each space point's two component hits (same
     // TMS_Utils::GetPrimaryIdsByEnergy lookup RecoHitPrimary* already uses for
     // Line_Candidates) -- a space point is genuinely from one particle iff

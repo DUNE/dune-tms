@@ -394,6 +394,8 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpacePointHitPE", SpacePointHitPE, "SpacePointHitPE[nSpacePointHits]/F");
   Reco_Tree->Branch("SpacePointHitView", SpacePointHitView, "SpacePointHitView[nSpacePointHits]/I");
   Reco_Tree->Branch("SpacePointHitPedSup", SpacePointHitPedSup, "SpacePointHitPedSup[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrueVertexGlobalId", SpacePointHitTrueVertexGlobalId, "SpacePointHitTrueVertexGlobalId[nSpacePointHits]/L");
+  Reco_Tree->Branch("SpacePointHitTrueTrackId", SpacePointHitTrueTrackId, "SpacePointHitTrueTrackId[nSpacePointHits]/I");
   Reco_Tree->Branch("SpacePointXTrueVertexGlobalId", SpacePointXTrueVertexGlobalId, "SpacePointXTrueVertexGlobalId[nSpacePoints]/L");
   Reco_Tree->Branch("SpacePointXTrueTrackId", SpacePointXTrueTrackId, "SpacePointXTrueTrackId[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYTrueVertexGlobalId", SpacePointYTrueVertexGlobalId, "SpacePointYTrueVertexGlobalId[nSpacePoints]/L");
@@ -1973,6 +1975,13 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     SpacePointHitPE[i_h] = hit.GetPE();
     SpacePointHitView[i_h] = hit.GetBar().GetBarTypeNumber();
     SpacePointHitPedSup[i_h] = hit.GetPedSup() ? 1 : 0;
+    SpacePointHitTrueVertexGlobalId[i_h] = -1;
+    SpacePointHitTrueTrackId[i_h] = -999;
+    const auto hit_info = TMS_Utils::GetPrimaryIdsByEnergy({hit}, event);
+    if (!hit_info.energies.empty()) {
+      SpacePointHitTrueVertexGlobalId[i_h] = hit_info.vertexglobalids[0];
+      SpacePointHitTrueTrackId[i_h] = hit_info.trackids[0];
+    }
   }
   for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
     SpacePointX[i_sp] = space_points[i_sp].GetX();
