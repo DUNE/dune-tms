@@ -112,6 +112,22 @@ struct ClaimedHits {
   }
 };
 
+// Fit one object (indices into slicePoints) over the slice minus every point
+// that uses a claimed hit, with Follower::RunBestSeed(); every index in the
+// result is remapped to slicePoints. allowed (optional): only these slice
+// points may enter the pool. False if fewer than two object points remain.
+bool FitObject(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &objectIndices,
+               const TMS_KalmanFollower::Follower &follower, const ClaimedHits &claimed,
+               const std::vector<char> *allowed, TMS_KalmanFollower::FitResult &fitOut);
+
+// Nodes with an accepted point.
+int CountHits(const TMS_KalmanFollower::FitResult &fit);
+
+// Claim a fitted track's hits: both hits of every chosen point, and any
+// orphan hits it picked up.
+void ClaimHits(const std::vector<TMS_SpacePoint> &slicePoints, const TMS_KalmanFollower::FitResult &fit,
+               ClaimedHits &claimed);
+
 bool IsFlaggedAsMerged(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &clusterIndices,
                        const Config &config);
 

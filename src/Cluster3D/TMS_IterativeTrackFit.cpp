@@ -77,6 +77,8 @@ std::vector<int> LargestTrackLikeSubCluster(const std::vector<TMS_SpacePoint> &s
 
 // Fit one object over the slice minus every point using a claimed hit.
 // Returns false if the object has no points left in the pool.
+}  // namespace
+
 // allowed (optional): if non-null, only these slice points may enter the pool.
 bool FitObject(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &objectIndices,
                const TMS_KalmanFollower::Follower &follower, const ClaimedHits &claimed,
@@ -112,7 +114,24 @@ int CountHits(const TMS_KalmanFollower::FitResult &fit) {
   return n;
 }
 
-}  // namespace
+void ClaimHits(const std::vector<TMS_SpacePoint> &slicePoints, const TMS_KalmanFollower::FitResult &fit,
+               ClaimedHits &claimed) {
+  for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+    if (!node.HasHit) continue;
+    // Negative = no hit index recorded (see TMS_SpacePoint); never claim it,
+    // or every other index-less point would look claimed too.
+    const TMS_SpacePoint &chosen = slicePoints[node.ChosenSpacePointIndex];
+    if (chosen.GetXHitIndex() >= 0) claimed.X.insert(chosen.GetXHitIndex());
+    if (chosen.GetYHitIndex() >= 0) claimed.Y.insert(chosen.GetYHitIndex());
+  }
+  // Orphan hits (hit-level fit): X-bar and Y-bar hit indices both index the
+  // slice's one hit list, so an orphan's index can go in both sets -- it only
+  // ever matches points built from that very hit.
+  for (const TMS_KalmanFollower::FitResult::OrphanHit &orphan : fit.Orphans) {
+    claimed.X.insert(orphan.HitIndex);
+    claimed.Y.insert(orphan.HitIndex);
+  }
+}
 
 std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints,
                               const std::vector<int> &clusterIndices, const TMS_KalmanFollower::Follower &follower,
@@ -145,14 +164,7 @@ std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints,
     if (!FitObject(slicePoints, object, follower, claimed, allowed, track.Fit)) break;
     if (CountHits(track.Fit) < (iteration == 0 ? config.MinHitsPerTrack : config.MinHitsPerSplitTrack)) break;
 
-    for (const TMS_KalmanFollower::FollowedNode &node : track.Fit.Nodes) {
-      if (!node.HasHit) continue;
-      // Negative = no hit index recorded (see TMS_SpacePoint); never claim it,
-      // or every other index-less point would look claimed too.
-      const TMS_SpacePoint &chosen = slicePoints[node.ChosenSpacePointIndex];
-      if (chosen.GetXHitIndex() >= 0) claimed.X.insert(chosen.GetXHitIndex());
-      if (chosen.GetYHitIndex() >= 0) claimed.Y.insert(chosen.GetYHitIndex());
-    }
+    ClaimHits(slicePoints, track.Fit, claimed);
     track.ObjectIndices.assign(object.begin(), object.end());
     track.Iteration = iteration;
     track.ClusterFlagged = flagged;

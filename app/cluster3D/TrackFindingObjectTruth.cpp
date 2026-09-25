@@ -51,6 +51,7 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_Cluster3DReco.h"
 #include "TMS_LayerGrouping.h"
 #include "SpacePointLayerInput.h"
 
@@ -150,7 +151,6 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_USE_TIME")) follower_config.UseTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_TIME_SIGMA")) follower_config.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
-  const TMS_KalmanFollower::Follower follower(follower_config, field);
 
   TMS_IterativeTrackFit::Config itf;
   itf.DBScanMinPoints = dbscan_min_points;
@@ -167,6 +167,17 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("ITF_MIN_HITS")) itf.MinHitsPerTrack = std::atoi(v);
   if (const char *v = std::getenv("ITF_MIN_SPLIT_HITS")) itf.MinHitsPerSplitTrack = std::atoi(v);
   if (const char *v = std::getenv("ITF_RESTRICT_SPLIT")) itf.RestrictSplitFitToCluster = std::atoi(v) != 0;
+
+  // The reconstruction under test: TMS_Cluster3DReco with this tool's
+  // settings (Stage 2, graph search in non-track-like clusters: CLUSTER3D_GRAPH=1).
+  TMS_Cluster3DReco::Config reco_config;
+  reco_config.DBScanMinPoints = dbscan_min_points;
+  reco_config.DBScanTolerance = dbscan_tolerance;
+  reco_config.LinearityThreshold = kLinearityThreshold;
+  reco_config.MinClusterSizeForTrack = kMinClusterSizeForTrack;
+  reco_config.Split = itf;
+  reco_config.Follower = follower_config;
+  reco_config.UseGraphSearch = std::getenv("CLUSTER3D_GRAPH") != nullptr && std::atoi(std::getenv("CLUSTER3D_GRAPH")) != 0;
 
   TFile input(input_filename.c_str());
   TTree *reco_tree = input.IsZombie() ? nullptr : (TTree *)input.Get("Reco_Tree");
@@ -268,20 +279,9 @@ int main(int argc, char **argv) {
     }
     const std::vector<int> z_layer = TMS_LayerGrouping::GroupIndexOfEachPoint(points, 1.0);
 
-    // --- Reconstruction (no truth). ---
-    TMS_SpacePointDBScan dbscan(points, dbscan_min_points, dbscan_tolerance);
-    std::vector<std::vector<int> > clusters = dbscan.RunAndGetClusterIndices();
-    std::vector<std::size_t> order;
-    for (std::size_t c = 0; c < clusters.size(); ++c) {
-      TMS_SpacePointCluster cl(points, clusters[c]);
-      if (cl.IsTrackLike(kLinearityThreshold, kMinClusterSizeForTrack)) order.push_back(c);
-    }
-    // Largest first, so a big merged cluster claims its hits before any
-    // small fragment beside it can.
-    std::sort(order.begin(), order.end(),
-              [&](std::size_t a, std::size_t b) { return clusters[a].size() > clusters[b].size(); });
-
-    TMS_IterativeTrackFit::ClaimedHits claimed;
+    // --- Reconstruction (no truth): the library stage. ---
+    const std::vector<TMS_Cluster3DReco::Track> reco_tracks =
+        TMS_Cluster3DReco::Run(points, {}, reco_config, field);
     struct Scored {
       TrueLabel owner;
       double purity = 0;
@@ -290,10 +290,9 @@ int main(int argc, char **argv) {
     };
     std::vector<Scored> scored;
     std::set<TrueLabel> owners_seen;
-    for (std::size_t c : order) {
-      const std::vector<TMS_IterativeTrackFit::Track> tracks =
-          TMS_IterativeTrackFit::FitCluster(points, clusters[c], follower, itf, claimed);
-      for (const TMS_IterativeTrackFit::Track &t : tracks) {
+    {
+      for (const TMS_Cluster3DReco::Track &t : reco_tracks) {
+        const int c = t.ClusterIndex;
         // --- Scoring (truth). ---
         std::unordered_map<TrueLabel, int, LabelHash> votes;
         std::unordered_map<TrueLabel, std::set<int>, LabelHash> planes;
@@ -326,7 +325,7 @@ int main(int argc, char **argv) {
         ++n_tracks;
         if (t.Iteration > 0) ++n_split_tracks;
 
-        tracks_csv << input_filename << "," << entry << "," << slice_no << "," << c + 1 << "," << clusters[c].size()
+        tracks_csv << input_filename << "," << entry << "," << slice_no << "," << c + 1 << "," << t.ClusterSize
                    << "," << (t.ClusterFlagged ? 1 : 0) << "," << t.Iteration << "," << n_hits << ","
                    << t.Fit.Nodes.size() << "," << (t.Fit.Converged ? 1 : 0) << "," << t.Fit.MomentumMeV << ","
                    << t.Fit.TrackT0Ns << "," << (t.Fit.Nodes.empty() ? 0.0 : t.Fit.Nodes.front().Z) << ","
