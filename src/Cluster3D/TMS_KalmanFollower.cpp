@@ -112,9 +112,11 @@ void ClampMomentum(double &qp) {
 // to add onto cov(4,4) separately (kept out of the 5x5 here since it needs
 // the FINAL dxdz/dydz, which the Wolin-Ho formula above already accounts
 // for through its own arguments).
+// upstream: stepping toward lower z (the backward pass) -- the muon had MORE
+// energy there, so the loss is added back instead of subtracted.
 TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
                              double dxdz, double dydz, double &qpInOut,
-                             double &qpVarianceOut, bool &rangedOutOut) {
+                             double &qpVarianceOut, bool &rangedOutOut, bool upstream) {
   TMatrixD scatterCov(5, 5);
   qpVarianceOut = 0.0;
   rangedOutOut = false;
@@ -158,8 +160,13 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
 
     totalPathLengthGcm2 += density * thickness;
 
-    // Always walking forward (low->high z): energy decreases.
-    energy -= bethe.Calc_dEdx(energy) * density * thickness;
+    // Walking forward (low->high z) energy decreases; walking upstream (the
+    // backward pass) it is restored.
+    if (upstream) {
+      energy += bethe.Calc_dEdx(energy) * density * thickness;
+    } else {
+      energy -= bethe.Calc_dEdx(energy) * density * thickness;
+    }
     // Floor at the energy of the kMinMomentumMeV momentum floor, NOT at the
     // bare rest mass. At E == Mm, beta is exactly 0 and Calc_dEdx /
     // Calc_dEdx_Straggling divide by beta^2 (and by MaximumEnergyTransfer,
@@ -295,7 +302,8 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   double qpVariance = 0.0;
   bool rangedOut = false;
   const TMatrixD scatterCov = ApplyMaterialSteps(startPos, endPos, predicted.dxdz,
-                                                  predicted.dydz, predicted.qp, qpVariance, rangedOut);
+                                                  predicted.dydz, predicted.qp, qpVariance, rangedOut,
+                                                  /*upstream=*/subDz < 0.0);
   if (rangedOut && stopOnRangeOut) {
     // The muon stops inside this sub-step: nothing beyond here is reachable,
     // so end the walk on the last layer actually reached instead of carrying
@@ -950,6 +958,44 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     result.Nodes.push_back(node);
 
     if (!result.Converged || stopInsideLayer) break;
+  }
+
+  // Backward pass: the forward filter's first node only knows the seed, and
+  // its last node -- the only one informed by every measurement -- sits at
+  // the track's END. Refit the same measurements from last to first,
+  // starting from the forward result with its covariance inflated (so it
+  // acts as a weak prior), stepping upstream through the material; the
+  // state at the first measurement is then the track-start estimate
+  // (momentum and charge at, e.g., the TMS entrance).
+  if (fConfig.BackwardPass && result.NDoF > 0) {
+    StepState back = current;
+    back.cov *= fConfig.BackwardCovScale;
+    bool ok = true;
+    for (auto node = result.Nodes.rbegin(); node != result.Nodes.rend() && ok; ++node) {
+      if (!node->HasHit) continue;
+      if (hits != nullptr && !node->Hits.empty()) {
+        for (auto update = node->Hits.rbegin(); update != node->Hits.rend(); ++update) {
+          if (!update->Applied) continue;
+          const FitHit &hit = (*hits)[update->HitIndex];
+          const StepState atHit = Predict(back, hit.Z, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
+          if (atHit.Diverged) { ok = false; break; }
+          double residual = 0.0, residualVar = 0.0;
+          back = UpdateWithHit(atHit, hit, residual, residualVar);
+        }
+      } else {
+        const TMS_SpacePoint &point = allSpacePoints[node->ChosenSpacePointIndex];
+        const StepState atPoint =
+            Predict(back, point.GetZ(), fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
+        if (atPoint.Diverged) { ok = false; break; }
+        back = UpdateState(atPoint, point, BuildMeasurementCovariance(fConfig.AssumedBarPitchMM));
+      }
+    }
+    if (ok) {
+      result.HasStartState = true;
+      result.StartZ = back.z;
+      result.StartMomentumMeV = (std::abs(back.qp) > 1e-12) ? 1.0 / std::abs(back.qp) : 0.0;
+      result.StartCharge = (back.qp >= 0.0) ? 1.0 : -1.0;
+    }
   }
 
   result.MomentumMeV = (std::abs(current.qp) > 1e-12) ? 1.0 / std::abs(current.qp) : 0.0;

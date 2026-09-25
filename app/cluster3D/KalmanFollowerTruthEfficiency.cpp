@@ -529,7 +529,8 @@ int main(int argc, char **argv) {
                  "kalman_strict_correct_chosen,kalman_strict_purity_pct,kalman_strict_planes_covered,"
                  "kalman_strict_completeness_pct,"
                  "hits_used,hits_used_target,target_hits_total,hit_completeness_pct,hit_purity_pct,"
-                 "true_charge,kalman_charge,true_stops_in_tms\n";
+                 "true_charge,kalman_charge,true_stops_in_tms,"
+                 "kalman_start_z,kalman_start_momentum_mev,kalman_start_charge\n";
   }
 
   // Optional: KF_DUMP_HYPOTHESES=<path> writes one row per RunBestSeed()
@@ -964,6 +965,7 @@ int main(int argc, char **argv) {
       KalmanScore kscore;
       HitScore hscore;
       double kalman_charge = 0.0;
+      double kalman_start_z = 0.0, kalman_start_momentum = 0.0, kalman_start_charge = 0.0;
       // Cheat mode: the muon's own points only, whether or not it was found.
       std::vector<std::size_t> cheat_indices;
       if (cheat)
@@ -993,6 +995,11 @@ int main(int argc, char **argv) {
         kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice,
                           cheat ? "cheat" : finalSeedSource, target_layers_in_slice);
         kalman_charge = fit.Charge;
+        if (fit.HasStartState) {
+          kalman_start_z = fit.StartZ;
+          kalman_start_momentum = fit.StartMomentumMeV;
+          kalman_start_charge = fit.StartCharge;
+        }
         if (have_hit_truth) hscore = ScoreHits(fit, space_points, hit_label, hit_usable, label, hit_level_fit);
         if (pulls_csv.is_open()) {
           for (std::size_t k = 0; k < fit.Nodes.size(); ++k)
@@ -1154,7 +1161,8 @@ int main(int argc, char **argv) {
                 << (hscore.used > 0 ? 100.0 * hscore.used_target / hscore.used : 0.0) << ","
                 // PDG 13 is mu-, -13 mu+.
                 << (sp.pdg[pidx] > 0 ? -1 : 1) << "," << kalman_charge << ","
-                << (sp.tms_fiducial_end[pidx] ? 1 : 0)
+                << (sp.tms_fiducial_end[pidx] ? 1 : 0) << ","
+                << kalman_start_z << "," << kalman_start_momentum << "," << kalman_start_charge
                 << "\n";
     }
 

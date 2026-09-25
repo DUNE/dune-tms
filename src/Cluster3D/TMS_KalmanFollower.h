@@ -336,6 +336,12 @@ struct Config {
   //    Needs Follower::SetHits(); without it the fit falls back to SpacePoint.
   enum class MeasurementModel { SpacePoint, Hits };
   MeasurementModel Measurement = MeasurementModel::SpacePoint;
+
+  // Backward pass after the forward walk (see FitResult::StartMomentumMeV):
+  // refits the accepted measurements from last to first, starting from the
+  // forward result with its covariance scaled by BackwardCovScale.
+  bool BackwardPass = true;
+  double BackwardCovScale = 100.0;
 };
 
 // Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
@@ -405,8 +411,15 @@ struct FitResult {
   bool Converged = false;
   std::vector<FollowedNode> Nodes;  // one per z-layer walked, low->high z
 
-  double MomentumMeV = 0.0;  // from the final node's filtered q/p
+  double MomentumMeV = 0.0;  // from the final node's filtered q/p (at the track's END)
   double Charge = 0.0;       // sign of the final node's filtered q/p
+  // Track-start state from the backward pass (Config::BackwardPass), at the
+  // first accepted measurement: every measurement informs it, unlike the
+  // forward walk's first node (which is only the seed).
+  bool HasStartState = false;
+  double StartZ = 0.0;
+  double StartMomentumMeV = 0.0;
+  double StartCharge = 0.0;
   double TotalChi2 = 0.0;
   int NDoF = 0;
   int NGapsFilled = 0;             // layers skipped for lack of a good candidate
