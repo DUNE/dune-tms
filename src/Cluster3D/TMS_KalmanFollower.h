@@ -367,20 +367,27 @@ struct Config {
   // muon crossing a bar boundary lights both). They enter the backward pass
   // (so the track-start state uses them) and FitResult::Orphans, not the
   // forward walk.
-  bool PickUpOrphanHits = false;
+  //
+  // Default on since 2026-09-25 (reports/2026-09-25_orphan_benchmark/, 15
+  // files, with OrphanTimeWindowNs 20 and OrphanSkipAmbiguousPlanes): hit
+  // completeness 75.1 -> 86.1%, purity 92.0 -> 90.0% (ND-LAr fiducial 81.7 ->
+  // 91.2% at 97.3 -> 97.0%; TMS-vertex muons 85.7 -> 81.7% purity, where
+  // hadron hits sit on the muon's path); 82% of orphans the muon's, ~5 per
+  // fit. Finding, early stops, momentum and charge unchanged.
+  bool PickUpOrphanHits = true;
   double OrphanChi2Max = 9.0;
   double OrphanZMarginMM = 150.0;
   // If > 0, a candidate must also be within this many ns of the track's
   // expected time at its plane (TrackT0Ns + path length / c). Hit times still
   // carry the light-transit delay along the bar (up to ~+-15 ns), hence the
   // loose window. 0 = no time requirement.
-  double OrphanTimeWindowNs = 0.0;
+  double OrphanTimeWindowNs = 20.0;
   // If true, a plane where more hits pass than the best one and its
   // neighbor-bar hit gives no orphans at all: several particles are there
   // and the pickup cannot tell which is the track's. (File 7: wrong orphans
   // concentrate near TMS vertices -- hadrons -- where only 27-37% of picked
   // hits were the muon's, vs 89-95% for muons entering the TMS.)
-  bool OrphanSkipAmbiguousPlanes = false;
+  bool OrphanSkipAmbiguousPlanes = true;
 };
 
 // Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
