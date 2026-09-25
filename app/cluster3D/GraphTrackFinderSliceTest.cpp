@@ -29,6 +29,8 @@
 #include "TTree.h"
 
 #include "TMS_GraphTrackFinder.h"
+#include "TMS_LayerGrouping.h"
+#include "SpacePointLayerInput.h"
 #include "TMS_SpacePoint.h"
 
 namespace {
@@ -84,32 +86,6 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
     idx = it->second;
   }
   return fallback_top_primary_trackid;
-}
-
-// Groups points into z-layers the same way TMS_GraphTrackFinder::Finder does
-// internally (sort by z, start a new layer whenever the gap exceeds
-// tolerance) so this file can measure "how many distinct planes does the
-// muon touch" and "how many of those does a path actually cover" -- the
-// proposal's own validation metric (Section 15: "distinct-plane coverage"),
-// not a raw point count, which combinatorial X/Y ghosting can inflate well
-// past the number of planes a particle actually crossed.
-std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
-  std::vector<std::size_t> order(points.size());
-  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
-  std::sort(order.begin(), order.end(), [&points](std::size_t a, std::size_t b) {
-    return points[a].GetZ() < points[b].GetZ();
-  });
-  std::vector<int> layer(points.size());
-  int current_layer = -1;
-  double layer_start_z = 0.0;
-  for (std::size_t idx : order) {
-    if (current_layer < 0 || points[idx].GetZ() - layer_start_z > tolerance) {
-      ++current_layer;
-      layer_start_z = points[idx].GetZ();
-    }
-    layer[idx] = current_layer;
-  }
-  return layer;
 }
 
 struct CandidateBreakdown {
@@ -298,6 +274,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXHitIndex", sp_x_hitidx.data());
   reco_tree->SetBranchAddress("SpacePointYHitIndex", sp_y_hitidx.data());
@@ -352,7 +329,8 @@ int main(int argc, char **argv) {
       best_points.clear();
       for (int i = 0; i < n_space_points; ++i) {
         best_points.push_back(TMS_SpacePoint(sp_x[i], sp_y[i], sp_z[i],
-                                              sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]));
+                                              sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i],
+                                              sp_layer.Layer(i, sp_z[i])));
       }
       best_point_label = point_label;
     }
@@ -389,7 +367,7 @@ int main(int argc, char **argv) {
   // target's label without the target ever visiting more than one real
   // plane per crossing, so raw point-count "completeness" overstates how
   // much of the muon's actual trajectory is missing.
-  const std::vector<int> z_layer = AssignZLayers(best_points, config.LayerZTolerance);
+  const std::vector<int> z_layer = TMS_LayerGrouping::GroupIndexOfEachPoint(best_points, config.LayerZTolerance);
   std::set<int> target_layers_in_slice;
   for (std::size_t i = 0; i < best_points.size(); ++i) {
     if (best_point_label[i] == target) target_layers_in_slice.insert(z_layer[i]);

@@ -51,6 +51,8 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_LayerGrouping.h"
+#include "SpacePointLayerInput.h"
 
 namespace {
 
@@ -100,25 +102,6 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   return fallback_top_primary_trackid;
 }
 
-// Same z-layer grouping the follower uses internally.
-std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
-  std::vector<std::size_t> order(points.size());
-  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
-  std::sort(order.begin(), order.end(),
-            [&points](std::size_t a, std::size_t b) { return points[a].GetZ() < points[b].GetZ(); });
-  std::vector<int> layer(points.size());
-  int current_layer = -1;
-  double layer_start_z = 0.0;
-  for (std::size_t idx : order) {
-    if (current_layer < 0 || points[idx].GetZ() - layer_start_z > tolerance) {
-      ++current_layer;
-      layer_start_z = points[idx].GetZ();
-    }
-    layer[idx] = current_layer;
-  }
-  return layer;
-}
-
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -131,9 +114,6 @@ int main(int argc, char **argv) {
   const std::string input_filename = argv[2];
 
   // DBSCAN+PCA params: identical to the muon-first tools.
-  const int base_transverse_bars = 1;
-  const int transverse_bars_per_plane_gap = 1;
-  const int max_plane_gap = 3;
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
   const size_t kMinClusterSizeForTrack = 5;
@@ -145,15 +125,19 @@ int main(int argc, char **argv) {
     return -1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
-  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
-  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars." << std::endl;
+  if (bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
     return -1;
   }
-  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
-  const double broad_phase_radius =
-      std::sqrt(worst_case_transverse * worst_case_transverse + std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+  // DBSCAN: TMS_SpacePointDBScan::DefaultTolerance() for this bar pitch.
+  // Sweep hooks (Phase 1 baselines): DBSCAN_MAX_DZ_MM overrides the z window,
+  // DBSCAN_MIN_POINTS the core-point threshold (which does NOT change the
+  // muon population, still defined by min_points true hits).
+  TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
+  if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
+  unsigned int dbscan_min_points = min_points;
+  if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   const RegionFieldModel field;
   TMS_KalmanFollower::Config follower_config;
@@ -165,12 +149,8 @@ int main(int argc, char **argv) {
   const TMS_KalmanFollower::Follower follower(follower_config, field);
 
   TMS_IterativeTrackFit::Config itf;
-  itf.DBScanMinPoints = min_points;
-  itf.BarPitchMM = bar_pitch;
-  itf.BaseTransverseBars = base_transverse_bars;
-  itf.TransverseBarsPerPlaneGap = transverse_bars_per_plane_gap;
-  itf.MaxPlaneGap = max_plane_gap;
-  itf.BroadPhaseRadiusMM = broad_phase_radius;
+  itf.DBScanMinPoints = dbscan_min_points;
+  itf.DBScanTolerance = dbscan_tolerance;
   itf.LinearityThreshold = kLinearityThreshold;
   itf.MinClusterSizeForTrack = kMinClusterSizeForTrack;
   if (const char *v = std::getenv("ITF_SPLIT")) {
@@ -238,6 +218,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXHitIndex", sp_x_hitidx.data());
   reco_tree->SetBranchAddress("SpacePointYHitIndex", sp_y_hitidx.data());
@@ -274,21 +255,17 @@ int main(int argc, char **argv) {
     // Strict label: valid only where X-hit and Y-hit truth agree.
     std::vector<TrueLabel> strict(n_space_points);
     std::vector<TMS_SpacePoint> points;
-    std::vector<int> plane_index;
     points.reserve(n_space_points);
-    plane_index.reserve(n_space_points);
     for (int i = 0; i < n_space_points; ++i) {
       const TrueLabel lx = collapse(TrueLabel{sp_x_vgid[i], sp_x_trackid[i]});
       const TrueLabel ly = collapse(TrueLabel{sp_y_vgid[i], sp_y_trackid[i]});
       if (lx.Valid() && lx == ly) strict[i] = lx;
-      points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]);
-      plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
+      points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i], sp_layer.Layer(i, sp_z[i]));
     }
-    const std::vector<int> z_layer = AssignZLayers(points, 1.0);
+    const std::vector<int> z_layer = TMS_LayerGrouping::GroupIndexOfEachPoint(points, 1.0);
 
     // --- Reconstruction (no truth). ---
-    TMS_SpacePointDBScan dbscan(points, plane_index, min_points, bar_pitch, base_transverse_bars,
-                                transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+    TMS_SpacePointDBScan dbscan(points, dbscan_min_points, dbscan_tolerance);
     std::vector<std::vector<int> > clusters = dbscan.RunAndGetClusterIndices();
     std::vector<std::size_t> order;
     for (std::size_t c = 0; c < clusters.size(); ++c) {
@@ -311,7 +288,7 @@ int main(int argc, char **argv) {
     std::set<TrueLabel> owners_seen;
     for (std::size_t c : order) {
       const std::vector<TMS_IterativeTrackFit::Track> tracks =
-          TMS_IterativeTrackFit::FitCluster(points, plane_index, clusters[c], follower, itf, claimed);
+          TMS_IterativeTrackFit::FitCluster(points, clusters[c], follower, itf, claimed);
       for (const TMS_IterativeTrackFit::Track &t : tracks) {
         // --- Scoring (truth). ---
         std::unordered_map<TrueLabel, int, LabelHash> votes;

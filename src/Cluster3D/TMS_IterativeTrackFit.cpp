@@ -10,17 +10,17 @@
 
 namespace TMS_IterativeTrackFit {
 
-bool IsFlaggedAsMerged(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &planeIndex,
-                       const std::vector<int> &clusterIndices, const Config &config) {
+bool IsFlaggedAsMerged(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &clusterIndices,
+                       const Config &config) {
   if (clusterIndices.empty()) return false;
 
-  // Per-plane bounding box of the cluster's points.
-  std::map<int, std::array<double, 4> > box;  // plane -> xmin, xmax, ymin, ymax
+  // Per-point-layer bounding box of the cluster's points.
+  std::map<int, std::array<double, 4> > box;  // layer -> xmin, xmax, ymin, ymax
   std::map<int, int> count;
   double tSum = 0.0, tSum2 = 0.0;
   for (int idx : clusterIndices) {
     const TMS_SpacePoint &p = slicePoints[idx];
-    const int plane = planeIndex[idx];
+    const int plane = p.GetLayer();
     auto it = box.find(plane);
     if (it == box.end()) {
       box[plane] = {p.GetX(), p.GetX(), p.GetY(), p.GetY()};
@@ -56,20 +56,12 @@ namespace {
 // Re-cluster a set of slice points and return the largest track-like
 // sub-cluster (as slice indices), or empty if none qualifies.
 std::vector<int> LargestTrackLikeSubCluster(const std::vector<TMS_SpacePoint> &slicePoints,
-                                            const std::vector<int> &planeIndex, const std::vector<int> &indices,
-                                            const Config &config) {
+                                            const std::vector<int> &indices, const Config &config) {
   if (indices.size() < config.MinClusterSizeForTrack) return {};
   std::vector<TMS_SpacePoint> subPoints;
-  std::vector<int> subPlanes;
   subPoints.reserve(indices.size());
-  subPlanes.reserve(indices.size());
-  for (int idx : indices) {
-    subPoints.push_back(slicePoints[idx]);
-    subPlanes.push_back(planeIndex[idx]);
-  }
-  TMS_SpacePointDBScan dbscan(subPoints, subPlanes, config.DBScanMinPoints, config.BarPitchMM,
-                              config.BaseTransverseBars, config.TransverseBarsPerPlaneGap, config.MaxPlaneGap,
-                              config.BroadPhaseRadiusMM);
+  for (int idx : indices) subPoints.push_back(slicePoints[idx]);
+  TMS_SpacePointDBScan dbscan(subPoints, config.DBScanMinPoints, config.DBScanTolerance);
   const std::vector<std::vector<int> > subClusters = dbscan.RunAndGetClusterIndices();
 
   std::vector<int> best;
@@ -122,11 +114,11 @@ int CountHits(const TMS_KalmanFollower::FitResult &fit) {
 
 }  // namespace
 
-std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &planeIndex,
+std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints,
                               const std::vector<int> &clusterIndices, const TMS_KalmanFollower::Follower &follower,
                               const Config &config, ClaimedHits &claimed) {
   std::vector<Track> tracks;
-  const bool flagged = IsFlaggedAsMerged(slicePoints, planeIndex, clusterIndices, config);
+  const bool flagged = IsFlaggedAsMerged(slicePoints, clusterIndices, config);
   const bool maySplit = config.Mode == Config::SplitMode::Always ||
                         (config.Mode == Config::SplitMode::Flagged && flagged);
   const int maxTracks = maySplit ? config.MaxTracksPerCluster : 1;
@@ -144,7 +136,7 @@ std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints, co
     // since removing one track's points usually leaves the other particle
     // plus scattered leftovers.
     const std::vector<int> object =
-        iteration == 0 ? remaining : LargestTrackLikeSubCluster(slicePoints, planeIndex, remaining, config);
+        iteration == 0 ? remaining : LargestTrackLikeSubCluster(slicePoints, remaining, config);
     if (object.size() < config.MinClusterSizeForTrack) break;
 
     Track track;

@@ -662,8 +662,12 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
       }
     }
   }
-  const std::size_t lastLayerToWalk =
-      std::min(zLayers.size() - 1, seedEndLayer + static_cast<std::size_t>(fConfig.MaxLayersBeyondSeed));
+  // Last layer within MaxDistanceBeyondSeedMM of the seed's own last point.
+  const double seedEndZ = allSpacePoints[zLayers[seedEndLayer].front()].GetZ();
+  std::size_t lastLayerToWalk = seedEndLayer;
+  while (lastLayerToWalk + 1 < zLayers.size() &&
+         allSpacePoints[zLayers[lastLayerToWalk + 1].front()].GetZ() - seedEndZ <= fConfig.MaxDistanceBeyondSeedMM)
+    ++lastLayerToWalk;
 
   // --- Initial node: taken directly from the seed, not gated. ---
   double initialDxdz = 0.0, initialDydz = 0.0;
@@ -725,7 +729,8 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   double t0Sum = firstPoint.GetTime();
   int t0Count = 1;
 
-  int consecutiveGaps = 0;
+  // z of the last accepted point, for the MaxGapMM limit.
+  double lastAcceptedZ = firstPoint.GetZ();
   result.Converged = true;
   result.Stop = FitResult::StopReason::ReachedRangeEnd;  // overridden below if the walk breaks early
 
@@ -788,14 +793,13 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
       ++t0Count;
       result.TotalChi2 += node.Chi2AtChosen;
       result.NDoF += 2;
-      consecutiveGaps = 0;
+      lastAcceptedZ = targetZ;
       if (candidates.size() > 1) ++result.NAmbiguousLayersResolved;
     } else {
       current = predicted;  // no update -- the inflated predicted covariance simply carries forward
       node.HasHit = false;
       ++result.NGapsFilled;
-      ++consecutiveGaps;
-      if (consecutiveGaps > fConfig.MaxConsecutiveGaps) {
+      if (targetZ - lastAcceptedZ > fConfig.MaxGapMM) {
         result.Converged = false;
         result.Stop = FitResult::StopReason::GapLimitExceeded;
       }

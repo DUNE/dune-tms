@@ -371,8 +371,13 @@ std::vector<Hypothesis> Extend(
       // layer within range instead of relying on AcceptsSeed to (wrongly)
       // veto it outright.
       if (config.UseDenseLayerSearch && !resourceLimitHit && wideRecent.size() >= 2) {
+        // Every layer within Config::MaxGapMM of the endpoint's, on the side
+        // being extended.
         const std::size_t endpointLayer = nodes[endpoint].Layer;
-        const std::size_t gapLimit = static_cast<std::size_t>(config.MaxLayerGap);
+        const auto zOfLayer = [&](std::size_t layerIdx) {
+          return points[nodes[layers[layerIdx].front()].InputIndex].GetZ();
+        };
+        const double endpointZ = zOfLayer(endpointLayer);
         bool haveRange = true;
         std::size_t loLayer = 0, hiLayer = 0;
         if (backward) {
@@ -380,14 +385,18 @@ std::vector<Hypothesis> Extend(
             haveRange = false;
           } else {
             hiLayer = endpointLayer - 1;
-            loLayer = (endpointLayer > gapLimit) ? (endpointLayer - gapLimit) : 0;
+            loLayer = hiLayer;
+            while (loLayer > 0 && endpointZ - zOfLayer(loLayer - 1) <= config.MaxGapMM) --loLayer;
+            haveRange = endpointZ - zOfLayer(hiLayer) <= config.MaxGapMM;
           }
         } else {
           if (endpointLayer + 1 >= layers.size()) {
             haveRange = false;
           } else {
             loLayer = endpointLayer + 1;
-            hiLayer = std::min(layers.size() - 1, endpointLayer + gapLimit);
+            hiLayer = loLayer;
+            while (hiLayer + 1 < layers.size() && zOfLayer(hiLayer + 1) - endpointZ <= config.MaxGapMM) ++hiLayer;
+            haveRange = zOfLayer(loLayer) - endpointZ <= config.MaxGapMM;
           }
         }
         if (haveRange) {
@@ -434,7 +443,7 @@ double OverlapFraction(const Path &a, const Path &b) {
 } // namespace
 
 Finder::Finder(const Config &config) : fConfig(config) {
-  if (fConfig.LayerZTolerance <= 0.0 || fConfig.MaxLayerGap < 1 ||
+  if (fConfig.LayerZTolerance <= 0.0 || fConfig.MaxGapMM <= 0.0 ||
       fConfig.SeedLength < 2 || fConfig.MaxLinksPerTargetLayer == 0 ||
       fConfig.BeamWidth == 0 || fConfig.MaxSeeds == 0 ||
       fConfig.SeedOverlapFraction < 0.0 ||
@@ -485,11 +494,15 @@ Result Finder::Find(const std::vector<TMS_SpacePoint> &spacePoints) const {
   std::vector<std::vector<Link> > forward(nodes.size());
   std::vector<std::vector<Link> > reverse(nodes.size());
 
+  // z of each layer (every point in a layer shares it).
+  std::vector<double> layerZ(zLayers.size());
+  for (std::size_t layerIdx = 0; layerIdx < zLayers.size(); ++layerIdx)
+    layerZ[layerIdx] = spacePoints[zLayers[layerIdx].front()].GetZ();
+
   for (std::size_t sourceLayer = 0; sourceLayer < layers.size(); ++sourceLayer) {
-    const std::size_t lastTarget = std::min(
-        layers.size() - 1, sourceLayer + static_cast<std::size_t>(fConfig.MaxLayerGap));
     for (std::size_t targetLayer = sourceLayer + 1;
-         targetLayer <= lastTarget; ++targetLayer) {
+         targetLayer < layers.size() && layerZ[targetLayer] - layerZ[sourceLayer] <= fConfig.MaxGapMM;
+         ++targetLayer) {
       for (std::size_t sourceNode : layers[sourceLayer]) {
         std::vector<Link> candidates;
         const TMS_SpacePoint &source = spacePoints[nodes[sourceNode].InputIndex];

@@ -41,6 +41,7 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "SpacePointLayerInput.h"
 
 namespace {
 
@@ -129,10 +130,8 @@ int main(int argc, char **argv) {
   const std::string clusters_csv_path = argv[4];
   const std::string display_prefix = argc == 6 ? argv[5] : "";
 
-  // Clustering params -- same defaults used throughout this session.
-  const int base_transverse_bars = 1;
-  const int transverse_bars_per_plane_gap = 1;
-  const int max_plane_gap = 3;
+  // Clustering params: TMS_SpacePointDBScan::DefaultTolerance() (set below,
+  // once the bar pitch is known) and these.
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
   const size_t kMinClusterSizeForTrack = 5;
@@ -148,17 +147,18 @@ int main(int argc, char **argv) {
     return -1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
-  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
-  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
-              << std::endl;
+  if (bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
     return -1;
   }
-  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
-  const double broad_phase_radius =
-      std::sqrt(worst_case_transverse * worst_case_transverse +
-                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+  // Sweep hooks (Phase 1 baselines): DBSCAN_MAX_DZ_MM overrides the z window,
+  // DBSCAN_MIN_POINTS the core-point threshold (which does NOT change the
+  // muon population, still defined by min_points true hits).
+  TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
+  if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
+  unsigned int dbscan_min_points = min_points;
+  if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   TFile input(input_filename.c_str());
   if (input.IsZombie()) {
@@ -224,6 +224,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXTrueVertexGlobalId", sp_x_vgid.data());
   reco_tree->SetBranchAddress("SpacePointXTrueTrackId", sp_x_trackid.data());
@@ -357,15 +358,9 @@ int main(int argc, char **argv) {
     std::vector<TMS_SpacePoint> space_points;
     space_points.reserve(n_space_points);
     for (int i = 0; i < n_space_points; ++i) {
-      space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], -1, -1, 0.0);
+      space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], -1, -1, 0.0, sp_layer.Layer(i, sp_z[i]));
     }
-    std::vector<int> plane_index;
-    plane_index.reserve(n_space_points);
-    for (int i = 0; i < n_space_points; ++i) {
-      plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
-    }
-    TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, bar_pitch, base_transverse_bars,
-                                 transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+    TMS_SpacePointDBScan dbscan(space_points, dbscan_min_points, dbscan_tolerance);
     std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
     std::vector<TMS_SpacePointCluster> clusters;
     clusters.reserve(cluster_indices.size());
@@ -425,12 +420,12 @@ int main(int argc, char **argv) {
         pure_stats(first, first_pn, first_pt);
         pure_stats(second, second_pn, second_pt);
         // Per-layer transverse span: max(x range, y range) of the cluster's
-        // points on each plane, then the median over planes with >= 2 points.
-        std::map<int, std::array<double, 4>> layer_box;  // plane -> xmin,xmax,ymin,ymax
+        // points in each point layer, then the median over layers with >= 2 points.
+        std::map<int, std::array<double, 4>> layer_box;  // layer -> xmin,xmax,ymin,ymax
         std::map<int, int> layer_n;
         double zmin = 1e18, zmax = -1e18;
         for (int idx : idxs) {
-          const int pl = plane_index[idx];
+          const int pl = space_points[idx].GetLayer();
           auto it = layer_box.find(pl);
           if (it == layer_box.end()) {
             layer_box[pl] = {sp_x[idx], sp_x[idx], sp_y[idx], sp_y[idx]};

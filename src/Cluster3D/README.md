@@ -11,7 +11,7 @@ through the standalone validation tools in `app/cluster3D/` (see below).
 
 ```mermaid
 flowchart TD
-  A[raw hits, time-sliced<br/>TMS_TimeSlicer] --> B["TMS_SpacePointBuilder::Build<br/>pairs X/Y hits in adjacent planes"]
+  A[raw hits, time-sliced<br/>TMS_TimeSlicer] --> B["TMS_SpacePointBuilder::Build<br/>pairs X/Y hits by TMS_PlanePairing"]
   B --> C["TMS_SpacePointDBScan<br/>+ TMS_SpacePointCluster (PCA)"]
   C -->|track-like| F
   C -->|not track-like| D["merge touching clusters<br/>+ own noise, re-run PCA"]
@@ -37,11 +37,12 @@ https://claude.ai/code/artifact/2fc47021-a70f-42bf-87b8-5d5c7a9a32c2
 | File | What it does |
 |---|---|
 | `TMS_SpacePoint.h` | The core data type: an (x, y, z, time) 3D point built from one X-bar hit and one Y-bar hit, carrying both hits' indices so native 2D measurements can be recovered later without rematching. |
-| `TMS_SpacePointBuilder.h/.cpp` | Builds space points from an event's (or slice's) hits by pairing X/Y hits in adjacent planes that land within a timing window. One hit can end up in several space points — that combinatorial ambiguity is resolved downstream, not here. |
+| `TMS_PlanePairing.h/.cpp` | Which planes' hits are paired, derived from the geometry's plane list and orientations. `NearestY` (default since 2026-09-25): each x-measuring (Y-bar) plane with its nearest y-measuring (X-bar) plane, front-section ties downstream, point z at the pair's midpoint, one point layer per pair, plus fallback pairs for hits left unpaired. `BothNeighbors`: the original adjacent-planes scheme, kept only until `NearestY` is validated. Set by `[Recon.SpacePoints] Pairing`. |
+| `TMS_SpacePointBuilder.h/.cpp` | Builds space points from an event's (or slice's) hits by pairing X/Y hits from the planes `TMS_PlanePairing` pairs, within a timing window; each point carries its point layer. One hit can end up in several space points — that combinatorial ambiguity is resolved downstream, not here. |
 | `TMS_KDTree.h` | A minimal static 3D KD-tree (build once, radius queries only — no insert/delete/k-NN) used to accelerate `TMS_SpacePointDBScan`'s neighbor lookups. |
-| `TMS_SpacePointDBScan.h` | DBSCAN clustering over space points' continuous (x, y, z) positions, with an anisotropic neighbor test (Z tolerance in units of real plane-index gaps, transverse tolerance in units of real bar pitch) — a separate implementation from the legacy `src/TMS_DBScan.h`, which clusters on fragile discretized plane/bar integers instead. |
+| `TMS_SpacePointDBScan.h` | DBSCAN clustering over space points' continuous (x, y, z) positions, with an anisotropic neighbor test (a z window in mm, and a transverse allowance of one bar pitch plus a maximum slope times the z distance) — a separate implementation from the legacy `src/TMS_DBScan.h`, which clusters on fragile discretized plane/bar integers instead. |
 | `TMS_SpacePointCluster.h` | Wraps a DBSCAN cluster's space-point indices with a 3D PCA (via ROOT's `TMatrixDSym`/`TMatrixDSymEigen`), exposing a linearity score used to classify a cluster as track-like vs. blob/shower-like. |
-| `TMS_LayerGrouping.h/.cpp` | Groups space points into z-layers (detector planes) with "first-anchor" tolerance grouping. Shared by `TMS_GraphTrackFinder` and `TMS_KalmanFollower` so both stages agree on exactly where one plane ends and the next begins. |
+| `TMS_LayerGrouping.h/.cpp` | Groups space points by their point layer (z tolerance only for points without one, e.g. older files). Shared by `TMS_GraphTrackFinder` and `TMS_KalmanFollower` so both stages agree on exactly where one layer ends and the next begins. Gap limits in both are z distances in mm. |
 | `TMS_GraphTrackFinder.h/.cpp` | A bounded, seeded beam-search over a cluster's space points (field-angle-gated links, bar-pitch quantization deadband) that pulls the one straight-ish track out of a genuinely shower-contaminated cluster — DBSCAN+PCA alone has no mechanism for this. Output is ordered space-point indices only, no kinematics. |
 | `TMS_FieldModel.h` | A swappable magnetic-field lookup for the Kalman follower's swimmer (`IFieldModel` interface). `ZeroFieldModel` for field-off debugging; `RegionFieldModel` is the current v1 (the same 3-zone piecewise-constant region split as legacy `TMS_Kalman`, field along y, magnitude GDML-confirmed at 1.0T). |
 | `TMS_IterativeTrackFit.h/.cpp` | The split step for clusters that merge more than one real particle (e.g. two muons a few bar pitches apart, which PCA still calls track-like). Fits the cluster, claims the X/Y hits of the points the fit chose (removing the ghosts built from them too), re-runs DBSCAN on what is left, and fits the largest track-like piece, repeating up to a cap. Used by `TrackFindingObjectTruth`; not yet part of the muon-first tools' pipeline. |

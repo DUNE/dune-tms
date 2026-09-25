@@ -21,32 +21,29 @@
 // re-derives cluster membership from coordinates -- it carries space-point
 // array indices through directly, so there's no analogous re-match fragility.
 //
-// Neighbor test is ANISOTROPIC, not a plain isotropic radius: a tolerance
-// expressed as "at most max_plane_index_gap real scintillator planes apart"
-// along Z (see below), and a TRANSVERSE (X/Y) tolerance that itself scales
-// with how many planes apart the candidate pair is, quantized in units of the
-// real bar pitch: allowed_transverse = (base_transverse_bars + plane_gap *
-// transverse_bars_per_plane_gap) * bar_pitch_mm. A flat transverse tolerance
-// fails for exactly the same reason a flat Z epsilon does: a pair that's
-// genuinely 2-3 planes apart (skipping intermediate planes in the
-// double-thick/1-1-0 region, or just because of the muon's real trajectory
-// slope) covers proportionally more transverse distance even without unusual
-// curvature, purely from covering more Z -- confirmed empirically on event
-// 487, where within-cluster transverse jumps between genuine points tracked
-// the plane gap in units of ~1 bar pitch (~36mm) per plane crossed, while a
-// flat 50mm tolerance broke links exactly where 2-3 planes were skipped.
+// Neighbor test is ANISOTROPIC, not a plain isotropic radius: two points
+// are neighbors if they are at most Tolerance::MaxDzMM apart in z, and their
+// transverse (x/y) separation is within an allowance that grows with that z
+// distance -- BaseTransverseMM + TransversePerDzMM * |dz|. The growth term is
+// the transverse distance a straight track of slope up to TransversePerDzMM
+// covers over |dz|: a flat transverse tolerance breaks links between genuine
+// points on an inclined track exactly where they are farther apart in z
+// (confirmed on event 487, where within-cluster transverse jumps tracked the
+// z separation). The base term is about one bar pitch, the position
+// quantization of a space point.
 //
-// Z tolerance: a fixed mm distance can't be both tight enough in the
-// thin-plane region (~65mm pitch) and loose enough in the double-thick /
-// repeating-1-1-0-orientation region (~130mm pitch, sometimes needing a 2-3
-// plane hop between genuine adjacent space points) without also absorbing far
-// more ghosts upstream -- checking a plane-index gap instead of mm means the
-// effective mm tolerance scales with the real local pitch automatically.
+// History: until 2026-09-25 both limits were counted in PLANE INDEX gaps
+// (max 3 planes; one extra bar pitch of transverse allowance per plane),
+// because the old space points (BothNeighbors pairing) sat 130 mm apart in
+// the front section but 390 mm apart in the back, and no single mm limit
+// suited both. With NearestY pairing (TMS_PlanePairing) consecutive point
+// layers are 130 mm apart in front and alternate 130/260 mm in the back, and
+// a point's z is a midpoint between planes rather than a plane's z, so the
+// limits are now in mm of z (decision of 2026-09-25).
 //
-// The caller supplies each point's plane index and the real bar pitch (so
-// this class stays independent of TMS_Geom/geometry-loading, and fully
-// testable with synthetic data) and a broad_phase_radius_mm upper bound used
-// only to prefilter KD-tree candidates before the exact test.
+// The caller supplies the tolerance (so this class stays independent of
+// TMS_Geom/geometry-loading, and fully testable with synthetic data);
+// DefaultTolerance() gives the standard values for a given bar pitch.
 //
 // The cluster-growth logic itself mirrors src/TMS_DBScan.h's GrowCluster()
 // (a known-working classic DBSCAN expansion), adapted to operate on point
@@ -54,19 +51,40 @@
 // field in a point struct.
 class TMS_SpacePointDBScan {
   public:
-    TMS_SpacePointDBScan(const std::vector<TMS_SpacePoint> &sp, const std::vector<int> &plane_index,
-                          unsigned int min_points, double bar_pitch_mm, int base_transverse_bars,
-                          int transverse_bars_per_plane_gap, int max_plane_index_gap, double broad_phase_radius_mm)
+    struct Tolerance {
+      // Neighbors are at most this far apart in z (mm).
+      double MaxDzMM = 270.0;
+      // Transverse allowance at dz = 0 (mm): about one bar pitch.
+      double BaseTransverseMM = 36.0;
+      // Extra transverse allowance per mm of |dz|: the largest track slope
+      // (transverse/z) a link should survive.
+      double TransversePerDzMM = 0.55;
+      // Radius that contains every possible neighbor, for the KD-tree prefilter.
+      double BroadPhaseRadiusMM() const {
+        const double transverse = BaseTransverseMM + TransversePerDzMM * MaxDzMM;
+        return std::sqrt(transverse * transverse + MaxDzMM * MaxDzMM);
+      }
+    };
+
+    // Standard tolerance for a detector with the given bar pitch (mm), e.g.
+    // TMS_Geom::GetMaxBarPitch(). Starting values for NearestY points,
+    // 2026-09-25: MaxDzMM 270 reaches the next point layer anywhere (130 mm
+    // in front, up to 260 mm in the back); TransversePerDzMM 0.55 (~29 deg)
+    // covers the observed muon angles (90th percentile ~20 deg, max ~33 deg)
+    // and equals the old front-section allowance (one bar pitch per 65 mm plane).
+    static Tolerance DefaultTolerance(double barPitchMM) {
+      Tolerance tolerance;
+      tolerance.BaseTransverseMM = barPitchMM;
+      return tolerance;
+    }
+
+    TMS_SpacePointDBScan(const std::vector<TMS_SpacePoint> &sp, unsigned int min_points, const Tolerance &tolerance)
       : _sp(sp),
-        _plane_index(plane_index),
         _positions(BuildPositions(sp)),
         _tree(_positions),
         _min_points(min_points),
-        _bar_pitch(bar_pitch_mm),
-        _base_transverse_bars(base_transverse_bars),
-        _transverse_bars_per_plane_gap(transverse_bars_per_plane_gap),
-        _max_plane_gap(max_plane_index_gap),
-        _broad_phase_radius(broad_phase_radius_mm) {}
+        _tolerance(tolerance),
+        _broad_phase_radius(tolerance.BroadPhaseRadiusMM()) {}
 
     // Runs DBSCAN and returns clusters as vectors of SPACE-POINT INDICES
     // (into the `sp` vector passed to the constructor). Points classified as
@@ -114,9 +132,9 @@ class TMS_SpacePointDBScan {
       out.reserve(candidates.size());
       const TMS_SpacePoint &seed = _sp[point_index];
       for (int c : candidates) {
-        int plane_gap = std::abs(_plane_index[c] - _plane_index[point_index]);
-        if (plane_gap > _max_plane_gap) continue;
-        double allowed_transverse = (_base_transverse_bars + plane_gap * _transverse_bars_per_plane_gap) * _bar_pitch;
+        const double dz = std::abs(_sp[c].GetZ() - seed.GetZ());
+        if (dz > _tolerance.MaxDzMM) continue;
+        const double allowed_transverse = _tolerance.BaseTransverseMM + _tolerance.TransversePerDzMM * dz;
         double dx = _sp[c].GetX() - seed.GetX();
         double dy = _sp[c].GetY() - seed.GetY();
         if (std::sqrt(dx * dx + dy * dy) > allowed_transverse) continue;
@@ -160,14 +178,10 @@ class TMS_SpacePointDBScan {
     }
 
     const std::vector<TMS_SpacePoint> &_sp;
-    const std::vector<int> &_plane_index;
     std::vector<std::array<double, 3>> _positions;
     TMS_KDTree _tree;
     unsigned int _min_points;
-    double _bar_pitch;
-    int _base_transverse_bars;
-    int _transverse_bars_per_plane_gap;
-    int _max_plane_gap;
+    Tolerance _tolerance;
     double _broad_phase_radius;
 };
 

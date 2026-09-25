@@ -61,12 +61,16 @@ struct Config {
   // calls unreasonably).
   double MaxSubstepLengthMM = 40.0;
 
-  // How many consecutive layers with no accepted candidate the follower
-  // tolerates before giving up (FitResult::Converged = false). Mirrors
-  // TMS_GraphTrackFinder::Config::MaxLayerGap's role.
-  int MaxConsecutiveGaps = 3;
+  // How far (mm of z) past its last accepted point the follower keeps going
+  // through layers where no candidate is accepted, before giving up
+  // (FitResult::Converged = false). Mirrors
+  // TMS_GraphTrackFinder::Config::MaxGapMM's role. Was a count of 3 gap
+  // layers until 2026-09-25; 650 mm is about 3 NearestY layers in the back
+  // (alternating 130/260 mm) and 5 in the front (130 mm). Starting value,
+  // to be checked against the Phase 1 baseline.
+  double MaxGapMM = 650.0;
 
-  // How many layers past the seed path's OWN last point the follower will
+  // How far (mm of z) past the seed path's OWN last point the follower will
   // keep walking. A generous margin (this lets the follower genuinely
   // recover real continuation the seed's finder missed, not just replay
   // it), but bounded: without this, a slice with a lot of unrelated
@@ -75,8 +79,11 @@ struct Config {
   // clear to the end of the slice's z-range, each one a real (slow)
   // TMS_Geom::GetMaterials navigation call -- discovered on the flagship
   // real-data case, which has activity across most of the detector's 82
-  // planes even though the target muon only touches 14 of them.
-  int MaxLayersBeyondSeed = 15;
+  // planes even though the target muon only touches 14 of them. Was 15
+  // layers until 2026-09-25 (1.95 m in the front, 5.85 m in the back on the
+  // old points); 3 m keeps the walk bounded while still reaching well past
+  // the seed.
+  double MaxDistanceBeyondSeedMM = 3000.0;
 
   // MUST match whatever TMS_LayerGrouping::Build() tolerance the seed path
   // was grouped with (e.g. TMS_GraphTrackFinder::Config::LayerZTolerance),

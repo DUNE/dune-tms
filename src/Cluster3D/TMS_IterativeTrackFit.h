@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "TMS_KalmanFollower.h"
+#include "TMS_SpacePointDBScan.h"
 #include "TMS_SpacePoint.h"
 
 // Iterative "fit, claim, refit the remainder" track extraction from one
@@ -66,11 +67,13 @@ struct Config {
   // remainder track had been made, i.e. its hits were claimed by that track.
   bool RestrictSplitFitToCluster = true;
 
-  // Merge flag: more than WideLayerFraction of the cluster's planes (those
-  // with >= 2 points) are wider than WideSpanMM in x or y, or the cluster's
-  // space-point time RMS exceeds TimeRMSNs. 2026-09-24, track-like clusters
-  // spanning >= 15 layers, 14 files: flags 90% of merged multi-muon clusters
-  // and 18.6% of single-muon ones.
+  // Merge flag: more than WideLayerFraction of the cluster's point layers
+  // (those with >= 2 points) are wider than WideSpanMM in x or y, or the
+  // cluster's space-point time RMS exceeds TimeRMSNs. 2026-09-24, track-like
+  // clusters spanning >= 15 layers, 14 files: flags 90% of merged multi-muon
+  // clusters and 18.6% of single-muon ones. Calibrated on BothNeighbors
+  // points (~2.4 genuine points per muon per layer); NearestY layers hold
+  // ~1.3, so these thresholds need re-checking on the new points.
   double WideSpanMM = 150.0;
   double WideLayerFraction = 0.3;
   double TimeRMSNs = 10.0;
@@ -79,11 +82,9 @@ struct Config {
   // the caller used for the original clustering, so "track-like" means the
   // same thing on both passes.
   unsigned int DBScanMinPoints = 5;
-  double BarPitchMM = 0.0;  // required: TMS_Geom::GetMaxBarPitch()
-  int BaseTransverseBars = 1;
-  int TransverseBarsPerPlaneGap = 1;
-  int MaxPlaneGap = 3;
-  double BroadPhaseRadiusMM = 0.0;  // required, as computed by the caller
+  // Required: set from TMS_SpacePointDBScan::DefaultTolerance(bar pitch) or
+  // whatever the caller clustered with.
+  TMS_SpacePointDBScan::Tolerance DBScanTolerance;
   double LinearityThreshold = 0.8;
   std::size_t MinClusterSizeForTrack = 5;
 };
@@ -110,13 +111,12 @@ struct ClaimedHits {
   }
 };
 
-bool IsFlaggedAsMerged(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &planeIndex,
-                       const std::vector<int> &clusterIndices, const Config &config);
+bool IsFlaggedAsMerged(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &clusterIndices,
+                       const Config &config);
 
 // Extract up to Config::MaxTracksPerCluster tracks from one cluster.
-// planeIndex is parallel to slicePoints (TMS_Geom::GetPlaneIndexNearestZ);
 // claimed is updated in place with every accepted track's hits.
-std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints, const std::vector<int> &planeIndex,
+std::vector<Track> FitCluster(const std::vector<TMS_SpacePoint> &slicePoints,
                               const std::vector<int> &clusterIndices, const TMS_KalmanFollower::Follower &follower,
                               const Config &config, ClaimedHits &claimed);
 

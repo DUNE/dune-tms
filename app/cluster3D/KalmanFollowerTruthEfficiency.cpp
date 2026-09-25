@@ -42,6 +42,8 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_LayerGrouping.h"
+#include "SpacePointLayerInput.h"
 #include "TMS_SpacePointTiming.h"
 
 namespace {
@@ -92,26 +94,6 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
   return fallback_top_primary_trackid;
 }
 
-// Same z-layer grouping TMS_GraphTrackFinder::Finder / TMS_KalmanFollower use internally.
-std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
-  std::vector<std::size_t> order(points.size());
-  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
-  std::sort(order.begin(), order.end(), [&points](std::size_t a, std::size_t b) {
-    return points[a].GetZ() < points[b].GetZ();
-  });
-  std::vector<int> layer(points.size());
-  int current_layer = -1;
-  double layer_start_z = 0.0;
-  for (std::size_t idx : order) {
-    if (current_layer < 0 || points[idx].GetZ() - layer_start_z > tolerance) {
-      ++current_layer;
-      layer_start_z = points[idx].GetZ();
-    }
-    layer[idx] = current_layer;
-  }
-  return layer;
-}
-
 // Per-muon Kalman cross-check result, filled by RunFollowerAndScore() below --
 // bundles the CSV columns so the three call sites (DBSCAN-direct, merged-PCA,
 // Graph Track Finder) all fill them identically.
@@ -139,7 +121,7 @@ struct KalmanScore {
   // Breaks down every target plane NOT in planes_covered by why: outside the
   // walked range entirely (before the seed's own first point -- the walk is
   // forward-only, see TMS_KalmanFollower.cpp's Run() -- or past
-  // Config::MaxLayersBeyondSeed) vs. genuinely missed while walking through
+  // Config::MaxDistanceBeyondSeedMM) vs. genuinely missed while walking through
   // the range (chi2-gate rejection, wrong pick, or a real gap). Added to
   // check whether the completeness ceiling is structural (out-of-range) or
   // a fit-quality problem (missed-in-range) -- see kalman_follower memory,
@@ -257,9 +239,6 @@ int main(int argc, char **argv) {
   const bool append = argc == 5 && std::stoi(argv[4]) != 0;
 
   // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp / GraphTrackFinderTruthEfficiency.cpp.
-  const int base_transverse_bars = 1;
-  const int transverse_bars_per_plane_gap = 1;
-  const int max_plane_gap = 3;
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
   const size_t kMinClusterSizeForTrack = 5;
@@ -284,17 +263,19 @@ int main(int argc, char **argv) {
     return -1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
-  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
-  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
-              << std::endl;
+  if (bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
     return -1;
   }
-  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
-  const double broad_phase_radius =
-      std::sqrt(worst_case_transverse * worst_case_transverse +
-                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+  // DBSCAN: TMS_SpacePointDBScan::DefaultTolerance() for this bar pitch.
+  // Sweep hooks (Phase 1 baselines): DBSCAN_MAX_DZ_MM overrides the z window,
+  // DBSCAN_MIN_POINTS the core-point threshold (which does NOT change the
+  // muon population, still defined by min_points true hits).
+  TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
+  if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
+  unsigned int dbscan_min_points = min_points;
+  if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   // Kalman follower: default Config, real (GDML-confirmed) 1.0T region field.
   // Stateless -- constructed once, reused (as a const&) for every muon.
@@ -406,6 +387,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXHitIndex", sp_x_hitidx.data());
   reco_tree->SetBranchAddress("SpacePointYHitIndex", sp_y_hitidx.data());
@@ -583,15 +565,9 @@ int main(int argc, char **argv) {
     std::vector<TMS_SpacePoint> space_points;
     space_points.reserve(n_space_points);
     for (int i = 0; i < n_space_points; ++i) {
-      space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]);
+      space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i], sp_layer.Layer(i, sp_z[i]));
     }
-    std::vector<int> plane_index;
-    plane_index.reserve(n_space_points);
-    for (int i = 0; i < n_space_points; ++i) {
-      plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
-    }
-    TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, bar_pitch, base_transverse_bars,
-                                 transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+    TMS_SpacePointDBScan dbscan(space_points, dbscan_min_points, dbscan_tolerance);
     std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
     std::vector<TMS_SpacePointCluster> clusters;
     clusters.reserve(cluster_indices.size());
@@ -618,7 +594,7 @@ int main(int argc, char **argv) {
     for (size_t c = 0; c < cluster_indices.size(); ++c)
       for (int idx : cluster_indices[c]) point_cluster_id[idx] = (int)c + 1;
 
-    const std::vector<int> z_layer_whole_slice = AssignZLayers(space_points, lt_config.LayerZTolerance);
+    const std::vector<int> z_layer_whole_slice = TMS_LayerGrouping::GroupIndexOfEachPoint(space_points, lt_config.LayerZTolerance);
 
     // --- Pass B: merge-touching-clusters-plus-own-noise-and-re-PCA fallback,
     // identical logic to GraphTrackFinderTruthEfficiency.cpp. ---
@@ -673,7 +649,7 @@ int main(int argc, char **argv) {
       local_points.reserve(merged_indices.size());
       for (int gi : merged_indices) local_points.push_back(space_points[gi]);
       FallbackRun run;
-      run.z_layer_local = AssignZLayers(local_points, lt_config.LayerZTolerance);
+      run.z_layer_local = TMS_LayerGrouping::GroupIndexOfEachPoint(local_points, lt_config.LayerZTolerance);
       run.result = TMS_GraphTrackFinder::Finder(lt_config).Find(local_points);
       run.local_to_global = merged_indices;
       fallback_runs[pidx] = std::move(run);

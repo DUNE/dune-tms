@@ -13,12 +13,9 @@
 // coordinates, with dummy hit indices, rather than re-deriving the full event
 // from the original edep-sim file.
 //
-// TMS_SpacePointDBScan's anisotropic neighbor test needs each point's real
-// z-ordered plane index and the real bar pitch (its quantization unit for the
-// transverse tolerance), both of which require the actual surveyed geometry
-// (see its header comment) -- so this tool now also loads the original
-// edep-sim spill file's TGeoManager (same pattern as app/ShootRay.cpp), purely
-// to derive these via TMS_Geom::GetPlaneIndexNearestZ()/GetMaxBarPitch().
+// The tool also loads the original edep-sim spill file's TGeoManager (same
+// pattern as app/ShootRay.cpp): files without SpacePointLayer need the
+// surveyed planes to recover each point's layer (SpacePointLayerInput).
 
 #include <cmath>
 #include <fstream>
@@ -34,12 +31,15 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_LayerGrouping.h"
+#include "SpacePointLayerInput.h"
 
 int main(int argc, char **argv) {
   if (argc != 9) {
     std::cerr << "Usage: " << argv[0]
-              << " <edep_sim_geom_file> <input_reco_tree.root> <entry_number> <base_transverse_bars>"
-                 " <transverse_bars_per_plane_gap> <max_plane_gap> <min_points> <output.csv>"
+              << " <edep_sim_geom_file> <input_reco_tree.root> <entry_number> <max_dz_mm>"
+                 " <base_transverse_mm> <transverse_per_dz> <min_points> <output.csv>\n"
+                 "  (DBSCAN tolerance, TMS_SpacePointDBScan::Tolerance; defaults 270 <bar pitch> 0.55)"
               << std::endl;
     return -1;
   }
@@ -47,9 +47,9 @@ int main(int argc, char **argv) {
   const std::string geom_filename = argv[1];
   const std::string input_filename = argv[2];
   const long long entry_number = std::stoll(argv[3]);
-  const int base_transverse_bars = std::stoi(argv[4]);
-  const int transverse_bars_per_plane_gap = std::stoi(argv[5]);
-  const int max_plane_gap = std::stoi(argv[6]);
+  const double max_dz_mm = std::stod(argv[4]);
+  const double base_transverse_mm = std::stod(argv[5]);
+  const double transverse_per_dz = std::stod(argv[6]);
   const unsigned int min_points = std::stoul(argv[7]);
   const std::string output_csv = argv[8];
 
@@ -64,17 +64,16 @@ int main(int argc, char **argv) {
     return -1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
-  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
-  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
-              << std::endl;
+  if (bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
     return -1;
   }
-  const double worst_case_transverse = (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
-  const double broad_phase_radius =
-      std::sqrt(worst_case_transverse * worst_case_transverse +
-                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+  // DBSCAN tolerance from the command line (mm), as TMS_SpacePointDBScan::Tolerance.
+  TMS_SpacePointDBScan::Tolerance dbscan_tolerance;
+  dbscan_tolerance.MaxDzMM = max_dz_mm;
+  dbscan_tolerance.BaseTransverseMM = base_transverse_mm;
+  dbscan_tolerance.TransversePerDzMM = transverse_per_dz;
 
   TFile input(input_filename.c_str());
   if (input.IsZombie()) {
@@ -100,6 +99,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->GetEntry(entry_number);
 
@@ -108,20 +108,12 @@ int main(int argc, char **argv) {
   std::vector<TMS_SpacePoint> space_points;
   space_points.reserve(n_space_points);
   for (int i = 0; i < n_space_points; ++i) {
-    space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], /*x_idx=*/-1, /*y_idx=*/-1, sp_time[i]);
+    space_points.emplace_back(sp_x[i], sp_y[i], sp_z[i], /*x_idx=*/-1, /*y_idx=*/-1, sp_time[i],
+                              sp_layer.Layer(i, sp_z[i]));
   }
 
-  // A space point's Z is always exactly some plane's Z by BuildSpacePoints()'s
-  // own convention (confirmed earlier this session), so the nearest-Z lookup
-  // recovers the real plane index without needing the original hit objects.
-  std::vector<int> plane_index;
-  plane_index.reserve(n_space_points);
-  for (int i = 0; i < n_space_points; ++i) {
-    plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(sp_z[i]));
-  }
 
-  TMS_SpacePointDBScan dbscan(space_points, plane_index, min_points, bar_pitch, base_transverse_bars,
-                               transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+  TMS_SpacePointDBScan dbscan(space_points, min_points, dbscan_tolerance);
   std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
 
   std::vector<TMS_SpacePointCluster> clusters;
@@ -130,9 +122,8 @@ int main(int argc, char **argv) {
     clusters.emplace_back(space_points, indices);
   }
 
-  std::cout << "Found " << clusters.size() << " clusters (bar_pitch=" << bar_pitch << "mm, base_transverse_bars="
-            << base_transverse_bars << ", transverse_bars_per_plane_gap=" << transverse_bars_per_plane_gap
-            << ", max_plane_gap=" << max_plane_gap << ", min_points=" << min_points << ")" << std::endl;
+  std::cout << "Found " << clusters.size() << " clusters (bar_pitch=" << bar_pitch << "mm, max_dz_mm=" << max_dz_mm << ", base_transverse_mm=" << base_transverse_mm
+            << ", transverse_per_dz=" << transverse_per_dz << ", min_points=" << min_points << ")" << std::endl;
 
   // Per-point cluster id: 0 = noise, 1..N = cluster index (1-based, matching
   // TMS_SpacePointDBScan's own convention).

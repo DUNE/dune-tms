@@ -43,6 +43,8 @@
 #include "TMS_SpacePoint.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_LayerGrouping.h"
+#include "SpacePointLayerInput.h"
 #include "TMS_Geom.h"
 
 namespace {
@@ -90,29 +92,6 @@ int CollapseTrackId(const SpillParticles &sp, int start_idx) {
     idx = it->second;
   }
   return fallback_top_primary_trackid;
-}
-
-// Same "first-anchor" z-layer grouping TMS_GraphTrackFinder/TMS_LayerGrouping
-// use, reimplemented locally just for the truth-plane-count bookkeeping
-// below (not fed into the follower itself, which builds its own layers
-// internally via TMS_LayerGrouping::Build()).
-std::vector<int> AssignZLayers(const std::vector<TMS_SpacePoint> &points, double tolerance) {
-  std::vector<std::size_t> order(points.size());
-  for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
-  std::sort(order.begin(), order.end(), [&points](std::size_t a, std::size_t b) {
-    return points[a].GetZ() < points[b].GetZ();
-  });
-  std::vector<int> layer(points.size());
-  int current_layer = -1;
-  double layer_start_z = 0.0;
-  for (std::size_t idx : order) {
-    if (current_layer < 0 || points[idx].GetZ() - layer_start_z > tolerance) {
-      ++current_layer;
-      layer_start_z = points[idx].GetZ();
-    }
-    layer[idx] = current_layer;
-  }
-  return layer;
 }
 
 // Turns an unordered set of a track-like object's own point indices (from
@@ -166,24 +145,22 @@ int main(int argc, char **argv) {
   // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp /
   // GraphTrackFinderTruthEfficiency.cpp, so "track-like" means the same
   // thing here as in every other validation tool in this area.
-  const int base_transverse_bars = 1;
-  const int transverse_bars_per_plane_gap = 1;
-  const int max_plane_gap = 3;
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
   const std::size_t kMinClusterSizeForTrack = 5;
-  const double max_plane_pitch = TMS_Geom::GetInstance().GetMaxPlanePitch();
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
-  if (max_plane_pitch <= 0 || bar_pitch <= 0) {
-    std::cerr << "TMS_Geom found fewer than 2 surveyed planes or bars -- cannot derive a clustering tolerance."
-              << std::endl;
-    return 1;
+  if (bar_pitch <= 0) {
+    std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
+    return -1;
   }
-  const double worst_case_transverse =
-      (base_transverse_bars + max_plane_gap * transverse_bars_per_plane_gap) * bar_pitch;
-  const double broad_phase_radius =
-      std::sqrt(worst_case_transverse * worst_case_transverse +
-                std::pow(max_plane_pitch * (max_plane_gap + 1), 2));
+  // DBSCAN: TMS_SpacePointDBScan::DefaultTolerance() for this bar pitch.
+  // Sweep hooks (Phase 1 baselines): DBSCAN_MAX_DZ_MM overrides the z window,
+  // DBSCAN_MIN_POINTS the core-point threshold (which does NOT change the
+  // muon population, still defined by min_points true hits).
+  TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
+  if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
+  unsigned int dbscan_min_points = min_points;
+  if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   TFile input(input_filename.c_str());
   if (input.IsZombie()) {
@@ -238,6 +215,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("SpacePointX", sp_x.data());
   reco_tree->SetBranchAddress("SpacePointY", sp_y.data());
   reco_tree->SetBranchAddress("SpacePointZ", sp_z.data());
+  const SpacePointLayerInput sp_layer(reco_tree, kMaxSpacePoints);
   reco_tree->SetBranchAddress("SpacePointTime", sp_time.data());
   reco_tree->SetBranchAddress("SpacePointXHitIndex", sp_x_hitidx.data());
   reco_tree->SetBranchAddress("SpacePointYHitIndex", sp_y_hitidx.data());
@@ -297,7 +275,8 @@ int main(int argc, char **argv) {
       best_points.clear();
       for (int i = 0; i < n_space_points; ++i) {
         best_points.push_back(TMS_SpacePoint(sp_x[i], sp_y[i], sp_z[i],
-                                              sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i]));
+                                              sp_x_hitidx[i], sp_y_hitidx[i], sp_time[i],
+                                              sp_layer.Layer(i, sp_z[i])));
       }
       best_point_label = point_label;
       best_point_label_x = point_label_x;
@@ -316,7 +295,7 @@ int main(int argc, char **argv) {
             << " total space points, " << best_count
             << " labeled as the target particle" << std::endl;
 
-  const std::vector<int> z_layer = AssignZLayers(best_points, 1.0);
+  const std::vector<int> z_layer = TMS_LayerGrouping::GroupIndexOfEachPoint(best_points, 1.0);
   std::set<int> target_layers_in_slice;
   for (std::size_t i = 0; i < best_points.size(); ++i) {
     if (best_point_label[i] == target) target_layers_in_slice.insert(z_layer[i]);
@@ -331,13 +310,7 @@ int main(int argc, char **argv) {
   // this tool always ran the graph search on the whole slice regardless,
   // meaning only the hardest (graph-search-needed) cases ever got a real
   // physics fit. Now every track-like object does. ---
-  std::vector<int> plane_index;
-  plane_index.reserve(best_points.size());
-  for (const TMS_SpacePoint &point : best_points)
-    plane_index.push_back(TMS_Geom::GetInstance().GetPlaneIndexNearestZ(point.GetZ()));
-
-  TMS_SpacePointDBScan dbscan(best_points, plane_index, min_points, bar_pitch, base_transverse_bars,
-                               transverse_bars_per_plane_gap, max_plane_gap, broad_phase_radius);
+  TMS_SpacePointDBScan dbscan(best_points, dbscan_min_points, dbscan_tolerance);
   std::vector<std::vector<int>> cluster_indices = dbscan.RunAndGetClusterIndices();
   std::vector<TMS_SpacePointCluster> clusters;
   clusters.reserve(cluster_indices.size());

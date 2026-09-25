@@ -14,9 +14,16 @@
 namespace TMS_GraphTrackFinder {
 
 struct Config {
-  // Space points whose z positions differ by less than this are one graph layer.
+  // Graph layers are the points' own point layers (TMS_LayerGrouping); this
+  // z tolerance only groups points that carry no layer (older files).
   double LayerZTolerance = 1.0;       // mm
-  int MaxLayerGap = 3;
+  // Links reach from a layer to every later layer at most this far away in
+  // z (mm), skipping layers with no usable point in between. Was a count of
+  // populated layers (3) until 2026-09-25; with NearestY points (layers 130 mm
+  // apart in front, alternating 130/260 mm in the back) 520 mm reaches 4
+  // layers ahead in front and 3 in the back. Starting value, to be checked
+  // against the Phase 1 baseline.
+  double MaxGapMM = 520.0;
   // 1.25 (~51 deg from the z-axis) was an uncalibrated placeholder. Checked
   // against the real ND-LAr-fiducial-origin muon population (n=31, the
   // actual target sample -- see muons.csv): median angle 12.5 deg, 90th

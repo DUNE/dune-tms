@@ -125,9 +125,11 @@ how many it recovers. Used to tune `TMS_GraphTrackFinder::Config`.
 
 ### `RealEventClusterDisplay` / `SpillClusterDisplay`
 ```
-RealEventClusterDisplay <geom.root> <reco.root> <entry> <base_transverse_bars>
-SpillClusterDisplay     <geom.root> <reco.root> <spill>  <base_transverse_bars>
+RealEventClusterDisplay <geom.root> <reco.root> <entry> <max_dz_mm> <base_transverse_mm> <transverse_per_dz> <min_points> <out.csv>
+SpillClusterDisplay     <geom.root> <reco.root> <spill> <max_dz_mm> <base_transverse_mm> <transverse_per_dz> <min_points> <out.csv>
 ```
+The DBSCAN tolerance arguments are `TMS_SpacePointDBScan::Tolerance`
+(defaults: 270, one bar pitch, 0.55).
 Run the real DBSCAN + PCA on one slice (or on every slice of one spill,
 clustered per slice as in reconstruction), and write per-point cluster labels
 and per-cluster PCA to CSV for 3D display.
@@ -152,8 +154,12 @@ here with the other tools from the same branch.
 ## Unit-level tests
 
 ### `SpacePointCluster_test`
+```
+SpacePointCluster_test <max_dz_mm> <base_transverse_mm> <transverse_per_dz> <min_points>
+```
 Checks `TMS_KDTree` radius queries against brute force, and runs
-`TMS_SpacePointDBScan` on synthetic data (two Gaussian blobs and two lines).
+`TMS_SpacePointDBScan` on synthetic data (two Gaussian blobs and two lines,
+on a 40 mm synthetic plane grid: `120 40 1.0 5` is the old default).
 
 ### `GraphTrackFinder_test`
 Checks `TMS_GraphTrackFinder` on synthetic tracks.
