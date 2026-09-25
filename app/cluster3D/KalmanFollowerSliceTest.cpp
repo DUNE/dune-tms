@@ -45,6 +45,7 @@
 #include "TMS_SpacePointDBScan.h"
 #include "TMS_LayerGrouping.h"
 #include "SpacePointLayerInput.h"
+#include "TruthLabels.h"
 #include "TMS_Geom.h"
 #include "TMS_SpacePointTiming.h"
 
@@ -56,19 +57,6 @@ const int kMaxTrueParticles = 20000;  // matches __TMS_MAX_TRUE_PARTICLES__
 // Copied from ClusterTruthEfficiency.cpp / GraphTrackFinderSliceTest.cpp so
 // "muon-owned" means the same thing across every validation tool in this
 // area.
-struct TrueLabel {
-  long long vgid = -1;
-  int trackid = -999;
-  bool Valid() const { return vgid >= 0; }
-  bool operator==(const TrueLabel &o) const { return vgid == o.vgid && trackid == o.trackid; }
-};
-
-struct LabelHash {
-  size_t operator()(const TrueLabel &l) const {
-    return std::hash<long long>()(l.vgid) ^ (std::hash<int>()(l.trackid) << 1);
-  }
-};
-
 struct SpillParticles {
   int n = 0;
   std::vector<long long> vgid;
@@ -301,12 +289,59 @@ int main(int argc, char **argv) {
     int n_hits = 0;
     static std::vector<float> hit_time(kMaxHits), hit_notz(kMaxHits), hit_z(kMaxHits);
     static std::vector<int> hit_view(kMaxHits);
+    // Per-hit truth with energy sharing (files from 2026-09-25 evening on):
+    // relabel the chosen slice's points by the owner of BOTH their hits
+    // (PointOwner), so a ghost point is nobody's -- it decides which found
+    // object is the target's and how picks are marked.
+    const bool have_hit_share = reco_tree->GetBranch("SpacePointHitTrueEnergyFrac") != nullptr;
+    static std::vector<long long> hit_vgid(kMaxHits), hit_vgid2(kMaxHits);
+    static std::vector<int> hit_tid(kMaxHits), hit_tid2(kMaxHits);
+    static std::vector<float> hit_frac(kMaxHits), hit_frac2(kMaxHits);
+    if (have_hit_share) {
+      reco_tree->SetBranchAddress("SpacePointHitTrueVertexGlobalId", hit_vgid.data());
+      reco_tree->SetBranchAddress("SpacePointHitTrueTrackId", hit_tid.data());
+      reco_tree->SetBranchAddress("SpacePointHitTrueEnergyFrac", hit_frac.data());
+      reco_tree->SetBranchAddress("SpacePointHitTrue2VertexGlobalId", hit_vgid2.data());
+      reco_tree->SetBranchAddress("SpacePointHitTrue2TrackId", hit_tid2.data());
+      reco_tree->SetBranchAddress("SpacePointHitTrue2EnergyFrac", hit_frac2.data());
+    }
     reco_tree->SetBranchAddress("nSpacePointHits", &n_hits);
     reco_tree->SetBranchAddress("SpacePointHitTime", hit_time.data());
     reco_tree->SetBranchAddress("SpacePointHitNotZ", hit_notz.data());
     reco_tree->SetBranchAddress("SpacePointHitZ", hit_z.data());
     reco_tree->SetBranchAddress("SpacePointHitView", hit_view.data());
     reco_tree->GetEntry(best_entry);
+    if (have_hit_share) {
+      const SpillParticles &sp = spills.at(best_spill);
+      auto collapse = [&](const TrueLabel &raw) -> TrueLabel {
+        if (!raw.Valid()) return raw;
+        auto it = sp.index_of.find(raw);
+        if (it == sp.index_of.end()) return raw;
+        return TrueLabel{raw.vgid, sp.collapsed_trackid[it->second]};
+      };
+      std::vector<HitTruth> hit_truth(n_hits);
+      for (int h = 0; h < n_hits; ++h) {
+        hit_truth[h].first = collapse(TrueLabel{hit_vgid[h], hit_tid[h]});
+        hit_truth[h].first_frac = hit_frac[h];
+        hit_truth[h].second = collapse(TrueLabel{hit_vgid2[h], hit_tid2[h]});
+        hit_truth[h].second_frac = hit_frac2[h];
+        if (hit_truth[h].second.Valid() && hit_truth[h].second == hit_truth[h].first) {
+          hit_truth[h].first_frac += hit_truth[h].second_frac;
+          hit_truth[h].second = TrueLabel();
+          hit_truth[h].second_frac = 0.0;
+        }
+      }
+      int n_relabelled = 0;
+      for (std::size_t i = 0; i < best_points.size(); ++i) {
+        const int xi = best_points[i].GetXHitIndex(), yi = best_points[i].GetYHitIndex();
+        if (xi < 0 || yi < 0 || xi >= n_hits || yi >= n_hits) continue;
+        const TrueLabel owner = PointOwner(hit_truth[xi], hit_truth[yi]);
+        if (!(owner == best_point_label[i])) ++n_relabelled;
+        best_point_label[i] = owner;
+      }
+      std::cout << "Point labels from per-hit energy shares: " << n_relabelled << " of " << best_points.size()
+                << " points relabelled (ghosts now have no owner)." << std::endl;
+    }
     const double bar_pitch_for_hits = TMS_Geom::GetInstance().GetMaxBarPitch();
     fit_hits.assign(n_hits, TMS_KalmanFollower::FitHit());
     for (int h = 0; h < n_hits; ++h) {

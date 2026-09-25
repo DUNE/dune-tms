@@ -44,25 +44,13 @@
 #include "TMS_SpacePointDBScan.h"
 #include "TMS_LayerGrouping.h"
 #include "SpacePointLayerInput.h"
+#include "TruthLabels.h"
 #include "TMS_SpacePointTiming.h"
 
 namespace {
 
 const int kMaxSpacePoints = 10000;
 const int kMaxTrueParticles = 20000;
-
-struct TrueLabel {
-  long long vgid = -1;
-  int trackid = -999;
-  bool Valid() const { return vgid >= 0; }
-  bool operator==(const TrueLabel &o) const { return vgid == o.vgid && trackid == o.trackid; }
-};
-
-struct LabelHash {
-  size_t operator()(const TrueLabel &l) const {
-    return std::hash<long long>()(l.vgid) ^ (std::hash<int>()(l.trackid) << 1);
-  }
-};
 
 struct SpillParticles {
   int n = 0;
@@ -224,18 +212,20 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
   return score;
 }
 
-// Hit-level scoring: which of the slice's hits the fit used. Hits model:
-// every hit actually applied (FollowedNode::Hits); SpacePoint model: both
-// hits of every chosen point. Target hits: the muon's non-pedestal-suppressed
-// X-bar/Y-bar hits in the slice (everything a fit could possibly use).
+// Hit-level scoring, energy-share weighted: which of the slice's hits the
+// fit used (Hits model: every hit applied, FollowedNode::Hits; SpacePoint
+// model: both hits of every chosen point), the target's share summed over
+// those, and the target's share summed over every usable hit (non-pedestal-
+// suppressed X-bar/Y-bar hits in the slice). Completeness = used share /
+// total share; purity = used share / hits used.
 struct HitScore {
   int used = 0;
-  int used_target = 0;
-  int target_total = 0;
+  double used_share = 0.0;
+  double target_share_total = 0.0;
 };
 
 HitScore ScoreHits(const TMS_KalmanFollower::FitResult &fit, const std::vector<TMS_SpacePoint> &points,
-                   const std::vector<TrueLabel> &hit_label, const std::vector<int> &hit_usable,
+                   const std::vector<HitTruth> &hit_truth, const std::vector<int> &hit_usable,
                    const TrueLabel &target, bool hit_level) {
   HitScore score;
   std::set<int> used;
@@ -249,12 +239,12 @@ HitScore ScoreHits(const TMS_KalmanFollower::FitResult &fit, const std::vector<T
     }
   }
   for (int index : used) {
-    if (index < 0 || index >= (int)hit_label.size()) continue;
+    if (index < 0 || index >= (int)hit_truth.size()) continue;
     ++score.used;
-    if (hit_label[index] == target) ++score.used_target;
+    score.used_share += hit_truth[index].Share(target);
   }
-  for (std::size_t i = 0; i < hit_label.size(); ++i)
-    if (hit_usable[i] && hit_label[i] == target) ++score.target_total;
+  for (std::size_t i = 0; i < hit_truth.size(); ++i)
+    if (hit_usable[i]) score.target_share_total += hit_truth[i].Share(target);
   return score;
 }
 
@@ -356,8 +346,9 @@ int main(int argc, char **argv) {
   // Not const: falls back to the point fit on files without the hit table
   // (unless KF_MEASUREMENT=hits asked for it explicitly), see below.
   bool hit_level_fit = follower_config.Measurement == TMS_KalmanFollower::Config::MeasurementModel::Hits;
-  // KF_CHEAT=1: fit every findable muon from its OWN points only (those whose
-  // X-bar and Y-bar hits are both the muon's), seeded from all of them --
+  // KF_CHEAT=1: fit every findable muon from its OWN points only (owned by it
+  // per PointOwner, or with both hits labelled it on older files), seeded
+  // from all of them --
   // tests the fit's measurement model, material and field stepping apart
   // from pattern recognition (residual pulls, momentum, charge).
   const bool cheat = std::getenv("KF_CHEAT") != nullptr && std::atoi(std::getenv("KF_CHEAT")) != 0;
@@ -512,6 +503,22 @@ int main(int argc, char **argv) {
     reco_tree->SetBranchAddress("SpacePointHitTrueVertexGlobalId", sp_hit_true_vgid.data());
     reco_tree->SetBranchAddress("SpacePointHitTrueTrackId", sp_hit_true_trackid.data());
   }
+  // Per-hit energy sharing (files converted from 2026-09-25 evening on). With
+  // it, a point's owner comes from both of its hits (PointOwner) instead of
+  // either hit's single label.
+  const bool have_hit_share = have_hit_truth && reco_tree->GetBranch("SpacePointHitTrueEnergyFrac") != nullptr;
+  static std::vector<float> sp_hit_true_frac(kMaxHits), sp_hit_true2_frac(kMaxHits);
+  static std::vector<long long> sp_hit_true2_vgid(kMaxHits);
+  static std::vector<int> sp_hit_true2_trackid(kMaxHits);
+  if (have_hit_share) {
+    reco_tree->SetBranchAddress("SpacePointHitTrueEnergyFrac", sp_hit_true_frac.data());
+    reco_tree->SetBranchAddress("SpacePointHitTrue2VertexGlobalId", sp_hit_true2_vgid.data());
+    reco_tree->SetBranchAddress("SpacePointHitTrue2TrackId", sp_hit_true2_trackid.data());
+    reco_tree->SetBranchAddress("SpacePointHitTrue2EnergyFrac", sp_hit_true2_frac.data());
+  } else {
+    std::cerr << "NOTE: " << input_filename << " has no per-hit energy shares -- points are labelled by "
+              << "either hit's single truth label (ghost points count as the target's)." << std::endl;
+  }
   // The slice's hits as 1D fit measurements (Config::Measurement = Hits):
   // an X-bar hit (view 0) measures y, a Y-bar hit (view 1) measures x, each
   // with a uniform-bar resolution of pitch / sqrt(12).
@@ -542,7 +549,7 @@ int main(int argc, char **argv) {
                  "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z,"
                  "kalman_strict_correct_chosen,kalman_strict_purity_pct,kalman_strict_planes_covered,"
                  "kalman_strict_completeness_pct,"
-                 "hits_used,hits_used_target,target_hits_total,hit_completeness_pct,hit_purity_pct,"
+                 "hits_used,hit_share_used,hit_share_total,hit_completeness_pct,hit_purity_pct,"
                  "true_charge,kalman_charge,true_stops_in_tms,"
                  "kalman_start_z,kalman_start_momentum_mev,kalman_start_charge\n";
   }
@@ -590,7 +597,7 @@ int main(int argc, char **argv) {
   std::ofstream pulls_csv;
   if (const char *pp = std::getenv("KF_DUMP_PULLS")) {
     pulls_csv.open(pp);
-    pulls_csv << "sourcefile,entry,vertexglobalid,trackid,cheat,node_idx,z,measures_x,residual,residual_var,hit_is_target\n";
+    pulls_csv << "sourcefile,entry,vertexglobalid,trackid,cheat,node_idx,z,measures_x,residual,residual_var,hit_target_share\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -628,6 +635,30 @@ int main(int argc, char **argv) {
       if (it == sp.index_of.end()) return raw;
       return TrueLabel{raw.vgid, sp.collapsed_trackid[it->second]};
     };
+    // Per-hit truth for the slice (see HitTruth), collapsed like the points'.
+    const int n_hits_slice = have_hit_table ? n_sp_hits : 0;
+    std::vector<HitTruth> hit_truth(n_hits_slice);
+    if (have_hit_truth) {
+      for (int h = 0; h < n_hits_slice; ++h) {
+        HitTruth &ht = hit_truth[h];
+        ht.first = collapse(TrueLabel{sp_hit_true_vgid[h], sp_hit_true_trackid[h]});
+        ht.first_frac = have_hit_share ? sp_hit_true_frac[h] : (ht.first.Valid() ? 1.0 : 0.0);
+        if (have_hit_share) {
+          ht.second = collapse(TrueLabel{sp_hit_true2_vgid[h], sp_hit_true2_trackid[h]});
+          ht.second_frac = sp_hit_true2_frac[h];
+          // Collapsing can map both contributors onto the same muon.
+          if (ht.second.Valid() && ht.second == ht.first) {
+            ht.first_frac += ht.second_frac;
+            ht.second = TrueLabel();
+            ht.second_frac = 0.0;
+          }
+        }
+      }
+    }
+
+    // point_label: which particle a point belongs to. With per-hit shares,
+    // the owner of both hits together (PointOwner: ghosts have none);
+    // otherwise, as before, either hit's single label.
     std::vector<TrueLabel> point_label(n_space_points);
     // Valid only where the X-hit and Y-hit labels agree (see KalmanScore's
     // strict_* fields); used only for scoring, never for seeding.
@@ -635,7 +666,11 @@ int main(int argc, char **argv) {
     for (int i = 0; i < n_space_points; ++i) {
       const TrueLabel x_label = collapse(TrueLabel{sp_x_vgid[i], sp_x_trackid[i]});
       const TrueLabel y_label = collapse(TrueLabel{sp_y_vgid[i], sp_y_trackid[i]});
-      point_label[i] = x_label.Valid() ? x_label : y_label;
+      const int xi = sp_x_hitidx[i], yi = sp_y_hitidx[i];
+      if (have_hit_share && xi >= 0 && yi >= 0 && xi < n_hits_slice && yi < n_hits_slice)
+        point_label[i] = PointOwner(hit_truth[xi], hit_truth[yi]);
+      else
+        point_label[i] = x_label.Valid() ? x_label : y_label;
       if (x_label.Valid() && x_label == y_label) point_label_strict[i] = x_label;
     }
 
@@ -643,8 +678,6 @@ int main(int argc, char **argv) {
 
     // The slice's hits: fit measurements, truth labels (collapsed like the
     // points' labels), and which hits a fit could use at all.
-    const int n_hits_slice = have_hit_table ? n_sp_hits : 0;
-    std::vector<TrueLabel> hit_label(n_hits_slice);
     std::vector<int> hit_usable(n_hits_slice, 0);
     fit_hits.assign(n_hits_slice, TMS_KalmanFollower::FitHit());
     for (int h = 0; h < n_hits_slice; ++h) {
@@ -654,7 +687,6 @@ int main(int argc, char **argv) {
       hit.MeasuresX = sp_hit_view[h] == 1;
       hit.SigmaMM = bar_pitch / std::sqrt(12.0);
       hit_usable[h] = !sp_hit_pedsup[h] && (sp_hit_view[h] == 0 || sp_hit_view[h] == 1);
-      if (have_hit_truth) hit_label[h] = collapse(TrueLabel{sp_hit_true_vgid[h], sp_hit_true_trackid[h]});
     }
 
     if (compute_xy_dt) {
@@ -984,7 +1016,7 @@ int main(int argc, char **argv) {
       std::vector<std::size_t> cheat_indices;
       if (cheat)
         for (int i = 0; i < n_space_points; ++i)
-          if (point_label_strict[i] == label) cheat_indices.push_back(i);
+          if ((have_hit_share ? point_label[i] : point_label_strict[i]) == label) cheat_indices.push_back(i);
       const bool fit_this = cheat ? cheat_indices.size() >= 2 : haveFinal;
       if (fit_this) {
         std::vector<TMS_KalmanFollower::FitResult> hypotheses;
@@ -1014,7 +1046,7 @@ int main(int argc, char **argv) {
           kalman_start_momentum = fit.StartMomentumMeV;
           kalman_start_charge = fit.StartCharge;
         }
-        if (have_hit_truth) hscore = ScoreHits(fit, space_points, hit_label, hit_usable, label, hit_level_fit);
+        if (have_hit_truth) hscore = ScoreHits(fit, space_points, hit_truth, hit_usable, label, hit_level_fit);
         if (pulls_csv.is_open()) {
           for (std::size_t k = 0; k < fit.Nodes.size(); ++k)
             for (const auto &update : fit.Nodes[k].Hits) {
@@ -1022,7 +1054,7 @@ int main(int argc, char **argv) {
               pulls_csv << input_filename << "," << entry << "," << label.vgid << "," << label.trackid << ","
                         << (cheat ? 1 : 0) << "," << k << "," << update.Z << ","
                         << (fit_hits[update.HitIndex].MeasuresX ? 1 : 0) << "," << update.Residual << ","
-                        << update.ResidualVar << "," << (hit_label[update.HitIndex] == label ? 1 : 0) << "\n";
+                        << update.ResidualVar << "," << hit_truth[update.HitIndex].Share(label) << "\n";
             }
         }
         if (node_csv.is_open()) {
@@ -1170,9 +1202,9 @@ int main(int argc, char **argv) {
                 << (!target_layers_in_slice.empty()
                         ? 100.0 * kscore.strict_planes_covered / target_layers_in_slice.size()
                         : 0.0)
-                << "," << hscore.used << "," << hscore.used_target << "," << hscore.target_total << ","
-                << (hscore.target_total > 0 ? 100.0 * hscore.used_target / hscore.target_total : 0.0) << ","
-                << (hscore.used > 0 ? 100.0 * hscore.used_target / hscore.used : 0.0) << ","
+                << "," << hscore.used << "," << hscore.used_share << "," << hscore.target_share_total << ","
+                << (hscore.target_share_total > 0 ? 100.0 * hscore.used_share / hscore.target_share_total : 0.0) << ","
+                << (hscore.used > 0 ? 100.0 * hscore.used_share / hscore.used : 0.0) << ","
                 // PDG 13 is mu-, -13 mu+.
                 << (sp.pdg[pidx] > 0 ? -1 : 1) << "," << kalman_charge << ","
                 << (sp.tms_fiducial_end[pidx] ? 1 : 0) << ","
