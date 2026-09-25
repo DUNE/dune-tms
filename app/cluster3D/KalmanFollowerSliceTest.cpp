@@ -46,6 +46,7 @@
 #include "TMS_LayerGrouping.h"
 #include "SpacePointLayerInput.h"
 #include "TMS_Geom.h"
+#include "TMS_SpacePointTiming.h"
 
 namespace {
 
@@ -286,6 +287,45 @@ int main(int argc, char **argv) {
     std::cerr << "No slice found containing vertexglobalid=" << target_vgid
               << " trackid=" << target_trackid << std::endl;
     return 1;
+  }
+
+  // The winning slice's per-hit table (files converted from 2026-09-24 on):
+  // the hit-level fit's measurements (Config::Measurement = Hits) and the
+  // X/Y time term's transit-corrected hit-time differences -- the same
+  // inputs KalmanFollowerTruthEfficiency gives the follower.
+  std::vector<TMS_KalmanFollower::FitHit> fit_hits;
+  std::map<std::pair<int, int>, double> xy_dt_by_hits;
+  const bool have_hit_table = reco_tree->GetBranch("SpacePointHitTime") != nullptr;
+  if (have_hit_table) {
+    const int kMaxHits = 20000;  // __TMS_MAX_HITS__ in TMS_TreeWriter.h
+    int n_hits = 0;
+    static std::vector<float> hit_time(kMaxHits), hit_notz(kMaxHits), hit_z(kMaxHits);
+    static std::vector<int> hit_view(kMaxHits);
+    reco_tree->SetBranchAddress("nSpacePointHits", &n_hits);
+    reco_tree->SetBranchAddress("SpacePointHitTime", hit_time.data());
+    reco_tree->SetBranchAddress("SpacePointHitNotZ", hit_notz.data());
+    reco_tree->SetBranchAddress("SpacePointHitZ", hit_z.data());
+    reco_tree->SetBranchAddress("SpacePointHitView", hit_view.data());
+    reco_tree->GetEntry(best_entry);
+    const double bar_pitch_for_hits = TMS_Geom::GetInstance().GetMaxBarPitch();
+    fit_hits.assign(n_hits, TMS_KalmanFollower::FitHit());
+    for (int h = 0; h < n_hits; ++h) {
+      fit_hits[h].Z = hit_z[h];
+      fit_hits[h].Coordinate = hit_notz[h];
+      fit_hits[h].MeasuresX = hit_view[h] == 1;
+      fit_hits[h].SigmaMM = bar_pitch_for_hits / std::sqrt(12.0);
+    }
+    for (const TMS_SpacePoint &point : best_points) {
+      const int xi = point.GetXHitIndex(), yi = point.GetYHitIndex();
+      if (xi < 0 || yi < 0 || xi >= n_hits || yi >= n_hits) continue;
+      double dt = 0.0;
+      if (TMS_SpacePointTiming::CorrectedXYTimeDifference(point.GetX(), point.GetY(), hit_notz[xi], hit_z[xi],
+                                                           hit_time[xi], hit_notz[yi], hit_z[yi], hit_time[yi], dt))
+        xy_dt_by_hits[{xi, yi}] = dt;
+    }
+  } else {
+    std::cout << "WARNING: no SpacePointHit* table in " << input_filename
+              << " -- fitting space points, without the X/Y time term." << std::endl;
   }
 
   std::cout << "Target slice: entry=" << best_entry << " spill=" << best_spill
@@ -563,7 +603,16 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_USE_TIME")) followerConfig.UseTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_TIME_SIGMA")) followerConfig.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) followerConfig.TimeGateNSigma = std::atof(v);
-  const TMS_KalmanFollower::Follower follower(followerConfig, field);
+  TMS_KalmanFollower::Follower follower(followerConfig, field);
+  if (have_hit_table) {
+    follower.SetHits(&fit_hits);
+    follower.SetXYTimeDifferenceSource([&xy_dt_by_hits](const TMS_SpacePoint &point, double &dt) {
+      auto it = xy_dt_by_hits.find({point.GetXHitIndex(), point.GetYHitIndex()});
+      if (it == xy_dt_by_hits.end()) return false;
+      dt = it->second;
+      return true;
+    });
+  }
 
   // DBSCAN-direct/merged-PCA seeds (Stages 1-2) are unordered blobs with no
   // directed search behind them -- naively z-sorting and taking whichever
@@ -754,16 +803,32 @@ int main(int argc, char **argv) {
 
     json << ",\"kalman_fit\":{\"converged\":" << (fit.Converged ? "true" : "false")
          << ",\"momentum_mev\":" << fit.MomentumMeV << ",\"charge\":" << fit.Charge
+         << ",\"start_momentum_mev\":" << (fit.HasStartState ? fit.StartMomentumMeV : 0.0)
+         << ",\"start_charge\":" << (fit.HasStartState ? fit.StartCharge : 0.0)
+         << ",\"start_z\":" << (fit.HasStartState ? fit.StartZ : 0.0)
+         << ",\"hit_level\":" << (have_hit_table ? "true" : "false")
          << ",\"nodes\":[";
     for (std::size_t n = 0; n < fit.Nodes.size(); ++n) {
       if (n) json << ",";
       const TMS_KalmanFollower::FollowedNode &node = fit.Nodes[n];
       const bool chosenIsTarget = node.HasHit && best_point_label[node.ChosenSpacePointIndex] == target;
       const double p = std::abs(node.FilteredQP) > 1e-12 ? 1.0 / std::abs(node.FilteredQP) : 0.0;
-      json << "{\"z\":" << node.Z << ",\"x\":" << node.FilteredX << ",\"y\":" << node.FilteredY
+      // z: the point layer; fz: where the filtered state (x, y) actually is --
+      // with the hit-level fit, the plane of the last hit applied.
+      json << "{\"z\":" << node.Z << ",\"fz\":" << (node.FilteredZ != 0.0 ? node.FilteredZ : node.Z)
+           << ",\"x\":" << node.FilteredX << ",\"y\":" << node.FilteredY
            << ",\"has_hit\":" << (node.HasHit ? "true" : "false")
            << ",\"chosen_is_target\":" << (chosenIsTarget ? "true" : "false")
-           << ",\"momentum_mev\":" << p << "}";
+           << ",\"momentum_mev\":" << p << ",\"hits\":[";
+      bool firstHit = true;
+      for (const auto &update : node.Hits) {
+        if (!update.Applied) continue;
+        const TMS_KalmanFollower::FitHit &hit = fit_hits[update.HitIndex];
+        json << (firstHit ? "" : ",") << "{\"z\":" << hit.Z << ",\"c\":" << hit.Coordinate
+             << ",\"mx\":" << (hit.MeasuresX ? 1 : 0) << "}";
+        firstHit = false;
+      }
+      json << "]}";
     }
     json << "]}";
 
