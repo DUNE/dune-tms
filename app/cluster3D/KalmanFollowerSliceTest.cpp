@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
     const int kMaxHits = 20000;  // __TMS_MAX_HITS__ in TMS_TreeWriter.h
     int n_hits = 0;
     static std::vector<float> hit_time(kMaxHits), hit_notz(kMaxHits), hit_z(kMaxHits);
-    static std::vector<int> hit_view(kMaxHits);
+    static std::vector<int> hit_view(kMaxHits), hit_pedsup(kMaxHits);
     // Per-hit truth with energy sharing (files from 2026-09-25 evening on):
     // relabel the chosen slice's points by the owner of BOTH their hits
     // (PointOwner), so a ghost point is nobody's -- it decides which found
@@ -310,6 +310,7 @@ int main(int argc, char **argv) {
     reco_tree->SetBranchAddress("SpacePointHitNotZ", hit_notz.data());
     reco_tree->SetBranchAddress("SpacePointHitZ", hit_z.data());
     reco_tree->SetBranchAddress("SpacePointHitView", hit_view.data());
+    reco_tree->SetBranchAddress("SpacePointHitPedSup", hit_pedsup.data());
     reco_tree->GetEntry(best_entry);
     if (have_hit_share) {
       const SpillParticles &sp = spills.at(best_spill);
@@ -349,6 +350,8 @@ int main(int argc, char **argv) {
       fit_hits[h].Coordinate = hit_notz[h];
       fit_hits[h].MeasuresX = hit_view[h] == 1;
       fit_hits[h].SigmaMM = bar_pitch_for_hits / std::sqrt(12.0);
+      fit_hits[h].Usable = !hit_pedsup[h] && (hit_view[h] == 0 || hit_view[h] == 1);
+      fit_hits[h].Time = hit_time[h];
     }
     for (const TMS_SpacePoint &point : best_points) {
       const int xi = point.GetXHitIndex(), yi = point.GetYHitIndex();
@@ -638,6 +641,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_USE_TIME")) followerConfig.UseTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_TIME_SIGMA")) followerConfig.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) followerConfig.TimeGateNSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_ORPHANS")) followerConfig.PickUpOrphanHits = std::atoi(v) != 0;
   TMS_KalmanFollower::Follower follower(followerConfig, field);
   if (have_hit_table) {
     follower.SetHits(&fit_hits);
@@ -842,6 +846,12 @@ int main(int argc, char **argv) {
          << ",\"start_charge\":" << (fit.HasStartState ? fit.StartCharge : 0.0)
          << ",\"start_z\":" << (fit.HasStartState ? fit.StartZ : 0.0)
          << ",\"hit_level\":" << (have_hit_table ? "true" : "false")
+         << ",\"orphans\":[";
+    for (std::size_t o = 0; o < fit.Orphans.size(); ++o) {
+      const TMS_KalmanFollower::FitHit &hit = fit_hits[fit.Orphans[o].HitIndex];
+      json << (o ? "," : "") << "{\"z\":" << hit.Z << ",\"c\":" << hit.Coordinate << ",\"mx\":" << (hit.MeasuresX ? 1 : 0) << "}";
+    }
+    json << "]"
          << ",\"nodes\":[";
     for (std::size_t n = 0; n < fit.Nodes.size(); ++n) {
       if (n) json << ",";

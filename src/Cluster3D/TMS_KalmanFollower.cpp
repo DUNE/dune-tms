@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <set>
 
 #include "TVector3.h"
@@ -994,27 +995,123 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   // acts as a weak prior), stepping upstream through the material; the
   // state at the first measurement is then the track-start estimate
   // (momentum and charge at, e.g., the TMS entrance).
+  // Orphan-hit pickup (Config::PickUpOrphanHits): hits the track crosses
+  // that are in no chosen space point. Each candidate is scored against the
+  // filtered state nearest its plane, transported straight to the plane
+  // (ProjectToHit), as candidates are scored during the walk.
+  if (hits != nullptr && fConfig.PickUpOrphanHits && !appliedHits.empty()) {
+    std::vector<StepState> states;
+    for (const FollowedNode &node : result.Nodes) {
+      if (!node.HasHit) continue;
+      StepState state;
+      state.x = node.FilteredX;
+      state.y = node.FilteredY;
+      state.z = node.FilteredZ;
+      state.dxdz = node.FilteredDXDZ;
+      state.dydz = node.FilteredDYDZ;
+      state.qp = node.FilteredQP;
+      state.cov = node.FilteredCovariance;
+      states.push_back(state);
+    }
+    double zLow = std::numeric_limits<double>::infinity(), zHigh = -zLow;
+    for (int index : appliedHits) {
+      zLow = std::min(zLow, (*hits)[index].Z);
+      zHigh = std::max(zHigh, (*hits)[index].Z);
+    }
+    zLow -= fConfig.OrphanZMarginMM;
+    zHigh += fConfig.OrphanZMarginMM;
+    // Passing candidates per plane (plane z, and which coordinate it measures).
+    std::map<std::pair<long long, bool>, std::vector<std::pair<double, FitResult::OrphanHit>>> passing;
+    // Expected track time at a plane: the running t0 (defined at the seed
+    // point, path length 0) plus the path length from there over c.
+    const double trackT0 = t0Sum / t0Count;
+    const double seedZ = firstPoint.GetZ();
+    for (int index = 0; index < static_cast<int>(hits->size()); ++index) {
+      const FitHit &hit = (*hits)[index];
+      if (!hit.Usable || appliedHits.count(index) || hit.Z < zLow || hit.Z > zHigh || states.empty()) continue;
+      const StepState *nearest = &states.front();
+      for (const StepState &state : states)
+        if (std::abs(state.z - hit.Z) < std::abs(nearest->z - hit.Z)) nearest = &state;
+      if (fConfig.OrphanTimeWindowNs > 0.0) {
+        const double pathMM = (hit.Z - seedZ) *
+            std::sqrt(1.0 + nearest->dxdz * nearest->dxdz + nearest->dydz * nearest->dydz);
+        if (std::abs(hit.Time - (trackT0 + pathMM / kSpeedOfLightMMPerNs)) > fConfig.OrphanTimeWindowNs) continue;
+      }
+      double predictedCoordinate = 0.0, residualVar = 0.0;
+      ProjectToHit(*nearest, hit, predictedCoordinate, residualVar);
+      const double residual = hit.Coordinate - predictedCoordinate;
+      const double chi2 = residual * residual / residualVar;
+      if (chi2 > fConfig.OrphanChi2Max) continue;
+      FitResult::OrphanHit orphan;
+      orphan.HitIndex = index;
+      orphan.Z = hit.Z;
+      orphan.Residual = residual;
+      orphan.ResidualVar = residualVar;
+      passing[{std::llround(hit.Z), hit.MeasuresX}].push_back({chi2, orphan});
+    }
+    for (auto &plane : passing) {
+      std::vector<std::pair<double, FitResult::OrphanHit>> &candidates = plane.second;
+      std::sort(candidates.begin(), candidates.end(),
+                [](const std::pair<double, FitResult::OrphanHit> &a, const std::pair<double, FitResult::OrphanHit> &b) {
+                  return a.first < b.first;
+                });
+      // The best hit, plus any other passing hit in the next bar over from it.
+      const FitHit &best = (*hits)[candidates.front().second.HitIndex];
+      const double barPitch = best.SigmaMM * std::sqrt(12.0);
+      std::vector<FitResult::OrphanHit> taken;
+      bool ambiguous = false;
+      for (const auto &candidate : candidates) {
+        const FitHit &hit = (*hits)[candidate.second.HitIndex];
+        if (&hit == &best || std::abs(hit.Coordinate - best.Coordinate) <= 1.5 * barPitch)
+          taken.push_back(candidate.second);
+        else
+          ambiguous = true;
+      }
+      if (ambiguous && fConfig.OrphanSkipAmbiguousPlanes) continue;
+      result.Orphans.insert(result.Orphans.end(), taken.begin(), taken.end());
+    }
+  }
+
+  // Backward pass: the forward filter's first node only knows the seed, and
+  // its last node -- the only one informed by every measurement -- sits at
+  // the track's END. Refit the same measurements (plus any orphan hits)
+  // from last to first, in z order, starting from the forward result with
+  // its covariance inflated (so it acts as a weak prior), stepping upstream
+  // through the material; the state at the first measurement is then the
+  // track-start estimate (momentum and charge at, e.g., the TMS entrance).
   if (fConfig.BackwardPass && result.NDoF > 0) {
+    // Measurements as (z, hit index), or (z, -1 - point index) for a node the
+    // walk updated with its space point.
+    std::vector<std::pair<double, int>> measurements;
+    for (const FollowedNode &node : result.Nodes) {
+      if (!node.HasHit) continue;
+      if (hits != nullptr && !node.Hits.empty()) {
+        for (const FollowedNode::HitUpdate &update : node.Hits)
+          if (update.Applied) measurements.push_back({(*hits)[update.HitIndex].Z, update.HitIndex});
+      } else {
+        const int pointIndex = static_cast<int>(node.ChosenSpacePointIndex);
+        measurements.push_back({allSpacePoints[pointIndex].GetZ(), -1 - pointIndex});
+      }
+    }
+    for (const FitResult::OrphanHit &orphan : result.Orphans) measurements.push_back({orphan.Z, orphan.HitIndex});
+    std::stable_sort(measurements.begin(), measurements.end(),
+                     [](const std::pair<double, int> &a, const std::pair<double, int> &b) { return a.first > b.first; });
+
     StepState back = current;
     back.cov *= fConfig.BackwardCovScale;
     bool ok = true;
-    for (auto node = result.Nodes.rbegin(); node != result.Nodes.rend() && ok; ++node) {
-      if (!node->HasHit) continue;
-      if (hits != nullptr && !node->Hits.empty()) {
-        for (auto update = node->Hits.rbegin(); update != node->Hits.rend(); ++update) {
-          if (!update->Applied) continue;
-          const FitHit &hit = (*hits)[update->HitIndex];
-          const StepState atHit = Predict(back, hit.Z, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
-          if (atHit.Diverged) { ok = false; break; }
-          double residual = 0.0, residualVar = 0.0;
-          back = UpdateWithHit(atHit, hit, residual, residualVar);
-        }
+    for (const auto &measurement : measurements) {
+      const StepState at = Predict(back, measurement.first, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
+      if (at.Diverged) {
+        ok = false;
+        break;
+      }
+      if (measurement.second >= 0) {
+        double residual = 0.0, residualVar = 0.0;
+        back = UpdateWithHit(at, (*hits)[measurement.second], residual, residualVar);
       } else {
-        const TMS_SpacePoint &point = allSpacePoints[node->ChosenSpacePointIndex];
-        const StepState atPoint =
-            Predict(back, point.GetZ(), fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
-        if (atPoint.Diverged) { ok = false; break; }
-        back = UpdateState(atPoint, point, BuildMeasurementCovariance(fConfig.AssumedBarPitchMM));
+        back = UpdateState(at, allSpacePoints[-1 - measurement.second],
+                           BuildMeasurementCovariance(fConfig.AssumedBarPitchMM));
       }
     }
     if (ok) {

@@ -213,7 +213,8 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
 }
 
 // Hit-level scoring, energy-share weighted: which of the slice's hits the
-// fit used (Hits model: every hit applied, FollowedNode::Hits; SpacePoint
+// fit used (Hits model: every hit applied, FollowedNode::Hits, plus any orphan
+// hits picked up, FitResult::Orphans; SpacePoint
 // model: both hits of every chosen point), the target's share summed over
 // those, and the target's share summed over every usable hit (non-pedestal-
 // suppressed X-bar/Y-bar hits in the slice). Completeness = used share /
@@ -238,6 +239,7 @@ HitScore ScoreHits(const TMS_KalmanFollower::FitResult &fit, const std::vector<T
       used.insert(points[node.ChosenSpacePointIndex].GetYHitIndex());
     }
   }
+  for (const auto &orphan : fit.Orphans) used.insert(orphan.HitIndex);
   for (int index : used) {
     if (index < 0 || index >= (int)hit_truth.size()) continue;
     ++score.used;
@@ -326,6 +328,12 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("KF_MAX_GAP_MM")) follower_config.MaxGapMM = std::atof(v);
   if (const char *v = std::getenv("KF_BACK_COV_SCALE")) follower_config.BackwardCovScale = std::atof(v);
+  // Orphan-hit pickup (Config::PickUpOrphanHits, hit-level fit only).
+  if (const char *v = std::getenv("KF_ORPHANS")) follower_config.PickUpOrphanHits = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_ORPHAN_CHI2")) follower_config.OrphanChi2Max = std::atof(v);
+  if (const char *v = std::getenv("KF_ORPHAN_TIME")) follower_config.OrphanTimeWindowNs = std::atof(v);
+  if (const char *v = std::getenv("KF_ORPHAN_MARGIN")) follower_config.OrphanZMarginMM = std::atof(v);
+  if (const char *v = std::getenv("KF_ORPHAN_SKIP_AMBIGUOUS")) follower_config.OrphanSkipAmbiguousPlanes = std::atoi(v) != 0;
   // X/Y hit-time agreement term (see Config::UseXYTimeInSelection). Needs
   // the SpacePointHit* look-aside table (reco files converted 2026-09-24 or
   // later).
@@ -551,7 +559,7 @@ int main(int argc, char **argv) {
                  "kalman_strict_completeness_pct,"
                  "hits_used,hit_share_used,hit_share_total,hit_completeness_pct,hit_purity_pct,"
                  "true_charge,kalman_charge,true_stops_in_tms,"
-                 "kalman_start_z,kalman_start_momentum_mev,kalman_start_charge\n";
+                 "kalman_start_z,kalman_start_momentum_mev,kalman_start_charge,kalman_orphan_hits\n";
   }
 
   // Optional: KF_DUMP_HYPOTHESES=<path> writes one row per RunBestSeed()
@@ -687,6 +695,8 @@ int main(int argc, char **argv) {
       hit.MeasuresX = sp_hit_view[h] == 1;
       hit.SigmaMM = bar_pitch / std::sqrt(12.0);
       hit_usable[h] = !sp_hit_pedsup[h] && (sp_hit_view[h] == 0 || sp_hit_view[h] == 1);
+      hit.Usable = hit_usable[h];
+      hit.Time = sp_hit_time[h];
     }
 
     if (compute_xy_dt) {
@@ -1012,6 +1022,7 @@ int main(int argc, char **argv) {
       HitScore hscore;
       double kalman_charge = 0.0;
       double kalman_start_z = 0.0, kalman_start_momentum = 0.0, kalman_start_charge = 0.0;
+      int kalman_orphan_hits = 0;
       // Cheat mode: the muon's own points only, whether or not it was found.
       std::vector<std::size_t> cheat_indices;
       if (cheat)
@@ -1041,6 +1052,7 @@ int main(int argc, char **argv) {
         kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice,
                           cheat ? "cheat" : finalSeedSource, target_layers_in_slice);
         kalman_charge = fit.Charge;
+        kalman_orphan_hits = static_cast<int>(fit.Orphans.size());
         if (fit.HasStartState) {
           kalman_start_z = fit.StartZ;
           kalman_start_momentum = fit.StartMomentumMeV;
@@ -1056,6 +1068,13 @@ int main(int argc, char **argv) {
                         << (fit_hits[update.HitIndex].MeasuresX ? 1 : 0) << "," << update.Residual << ","
                         << update.ResidualVar << "," << hit_truth[update.HitIndex].Share(label) << "\n";
             }
+          // Orphan hits, as node_idx -1 (residual against the nearest filtered
+          // state, not a predicted one -- not a proper pull).
+          for (const auto &orphan : fit.Orphans)
+            pulls_csv << input_filename << "," << entry << "," << label.vgid << "," << label.trackid << ","
+                      << (cheat ? 1 : 0) << ",-1," << orphan.Z << "," << (fit_hits[orphan.HitIndex].MeasuresX ? 1 : 0)
+                      << "," << orphan.Residual << "," << orphan.ResidualVar << ","
+                      << hit_truth[orphan.HitIndex].Share(label) << "\n";
         }
         if (node_csv.is_open()) {
           const auto dt_of = [&](std::size_t i) {
@@ -1208,8 +1227,8 @@ int main(int argc, char **argv) {
                 // PDG 13 is mu-, -13 mu+.
                 << (sp.pdg[pidx] > 0 ? -1 : 1) << "," << kalman_charge << ","
                 << (sp.tms_fiducial_end[pidx] ? 1 : 0) << ","
-                << kalman_start_z << "," << kalman_start_momentum << "," << kalman_start_charge
-                << "\n";
+                << kalman_start_z << "," << kalman_start_momentum << "," << kalman_start_charge << ","
+                << kalman_orphan_hits << "\n";
     }
 
     if (n_slices_seen % 25 == 0) {

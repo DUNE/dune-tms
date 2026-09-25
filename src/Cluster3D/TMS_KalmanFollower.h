@@ -38,6 +38,12 @@ struct FitHit {
   double Coordinate = 0.0;  // what the bar measures (mm): x for a Y-bar hit, y for an X-bar hit
   bool MeasuresX = false;   // true for a Y-bar (x-measuring) hit
   double SigmaMM = 0.0;     // measurement resolution (mm)
+  // False for hits no fit may use (pedestal-suppressed, or a bar orientation
+  // the fit doesn't handle); only orphan-hit pickup consults it, since every
+  // other hit reaches the fit through a space point, which never contains one.
+  bool Usable = true;
+  // Hit time (ns), as the space points' times; only orphan-hit pickup uses it.
+  double Time = 0.0;
 };
 
 struct Config {
@@ -350,6 +356,31 @@ struct Config {
   // forward result with its covariance scaled by BackwardCovScale.
   bool BackwardPass = true;
   double BackwardCovScale = 100.0;
+
+  // Orphan-hit pickup (Hits model only): after the forward walk, add hits the
+  // track crosses that are in no chosen space point -- ~10% of a muon's
+  // x-plane crossings have no y partner in time, so they are in no genuine
+  // point at all (2026-09-25 pairing study). Every usable, not-yet-applied
+  // hit within OrphanZMarginMM of the applied hits' z range is projected
+  // against the nearest filtered state; per plane the best one with 1D chi2
+  // <= OrphanChi2Max is taken, plus any passing hit in the next bar over (a
+  // muon crossing a bar boundary lights both). They enter the backward pass
+  // (so the track-start state uses them) and FitResult::Orphans, not the
+  // forward walk.
+  bool PickUpOrphanHits = false;
+  double OrphanChi2Max = 9.0;
+  double OrphanZMarginMM = 150.0;
+  // If > 0, a candidate must also be within this many ns of the track's
+  // expected time at its plane (TrackT0Ns + path length / c). Hit times still
+  // carry the light-transit delay along the bar (up to ~+-15 ns), hence the
+  // loose window. 0 = no time requirement.
+  double OrphanTimeWindowNs = 0.0;
+  // If true, a plane where more hits pass than the best one and its
+  // neighbor-bar hit gives no orphans at all: several particles are there
+  // and the pickup cannot tell which is the track's. (File 7: wrong orphans
+  // concentrate near TMS vertices -- hadrons -- where only 27-37% of picked
+  // hits were the muon's, vs 89-95% for muons entering the TMS.)
+  bool OrphanSkipAmbiguousPlanes = false;
 };
 
 // Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
@@ -424,6 +455,17 @@ struct FitResult {
   // Track-start state from the backward pass (Config::BackwardPass), at the
   // first accepted measurement: every measurement informs it, unlike the
   // forward walk's first node (which is only the seed).
+  // Orphan hits picked up after the walk (Config::PickUpOrphanHits): index
+  // into the hit list, residual against the nearest filtered state and its
+  // variance.
+  struct OrphanHit {
+    int HitIndex = -1;
+    double Z = 0.0;
+    double Residual = 0.0;
+    double ResidualVar = 0.0;
+  };
+  std::vector<OrphanHit> Orphans;
+
   bool HasStartState = false;
   double StartZ = 0.0;
   double StartMomentumMeV = 0.0;
