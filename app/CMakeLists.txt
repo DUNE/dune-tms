@@ -27,6 +27,7 @@ add_executable(GraphTrackFinderTruthEfficiency cluster3D/GraphTrackFinderTruthEf
 add_executable(KalmanFollowerSliceTest cluster3D/KalmanFollowerSliceTest.cpp)
 add_executable(KalmanFollowerTruthEfficiency cluster3D/KalmanFollowerTruthEfficiency.cpp)
 add_executable(TrackFindingObjectTruth cluster3D/TrackFindingObjectTruth.cpp)
+add_executable(Cluster3DRecoTruth cluster3D/Cluster3DRecoTruth.cpp)
 add_executable(DumpTrueTrajectory cluster3D/DumpTrueTrajectory.cpp)
 
 target_link_libraries(BField_tester LINK_PUBLIC TMS_Prod ROOT::EG)
@@ -50,6 +51,7 @@ target_link_libraries(GraphTrackFinderTruthEfficiency LINK_PUBLIC TMS_Prod)
 target_link_libraries(KalmanFollowerSliceTest LINK_PUBLIC TMS_Prod)
 target_link_libraries(KalmanFollowerTruthEfficiency LINK_PUBLIC TMS_Prod)
 target_link_libraries(TrackFindingObjectTruth LINK_PUBLIC TMS_Prod)
+target_link_libraries(Cluster3DRecoTruth LINK_PUBLIC TMS_Prod)
 # TMS_Prod pulls in ROOT's libImt, which needs libtbb symbols that ROOT_LIBRARIES
 # doesn't itself link -- LD_LIBRARY_PATH finds the .so at runtime but the linker
 # needs it explicitly at link time. Only DrawEvents/DumpTrueTrajectory actually
@@ -79,4 +81,5 @@ install(TARGETS GraphTrackFinderTruthEfficiency RUNTIME DESTINATION bin)
 install(TARGETS KalmanFollowerSliceTest RUNTIME DESTINATION bin)
 install(TARGETS KalmanFollowerTruthEfficiency RUNTIME DESTINATION bin)
 install(TARGETS TrackFindingObjectTruth RUNTIME DESTINATION bin)
+install(TARGETS Cluster3DRecoTruth RUNTIME DESTINATION bin)
 install(TARGETS DumpTrueTrajectory RUNTIME DESTINATION bin)
