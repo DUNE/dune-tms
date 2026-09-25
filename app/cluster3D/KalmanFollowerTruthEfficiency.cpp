@@ -335,6 +335,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_TIME_SIGMA")) follower_config.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("KF_MAX_GAP_MM")) follower_config.MaxGapMM = std::atof(v);
+  if (const char *v = std::getenv("KF_BACK_COV_SCALE")) follower_config.BackwardCovScale = std::atof(v);
   // X/Y hit-time agreement term (see Config::UseXYTimeInSelection). Needs
   // the SpacePointHit* look-aside table (reco files converted 2026-09-24 or
   // later).
@@ -352,7 +353,9 @@ int main(int argc, char **argv) {
       return -1;
     }
   }
-  const bool hit_level_fit = follower_config.Measurement == TMS_KalmanFollower::Config::MeasurementModel::Hits;
+  // Not const: falls back to the point fit on files without the hit table
+  // (unless KF_MEASUREMENT=hits asked for it explicitly), see below.
+  bool hit_level_fit = follower_config.Measurement == TMS_KalmanFollower::Config::MeasurementModel::Hits;
   // KF_CHEAT=1: fit every findable muon from its OWN points only (those whose
   // X-bar and Y-bar hits are both the muon's), seeded from all of them --
   // tests the fit's measurement model, material and field stepping apart
@@ -479,10 +482,21 @@ int main(int argc, char **argv) {
   // metrics (with per-hit truth, in files converted from 2026-09-25 on).
   const bool have_hit_table = reco_tree->GetBranch("SpacePointHitTime") != nullptr;
   const bool have_hit_truth = reco_tree->GetBranch("SpacePointHitTrueVertexGlobalId") != nullptr;
-  if ((hit_level_fit || cheat) && !(have_hit_table && have_hit_truth)) {
-    std::cerr << "KF_MEASUREMENT=hits / KF_CHEAT need the SpacePointHit* table with per-hit truth; "
-              << input_filename << " predates it -- reconvert it." << std::endl;
+  // The hit fit needs the per-hit table; cheat mode also needs per-hit truth.
+  if (cheat && !(have_hit_table && have_hit_truth)) {
+    std::cerr << "KF_CHEAT needs the SpacePointHit* table with per-hit truth; " << input_filename
+              << " predates it -- reconvert it." << std::endl;
     return -1;
+  }
+  if (hit_level_fit && !have_hit_table) {
+    if (std::getenv("KF_MEASUREMENT") != nullptr) {
+      std::cerr << "KF_MEASUREMENT=hits needs the SpacePointHit* table; " << input_filename
+                << " predates it -- reconvert it." << std::endl;
+      return -1;
+    }
+    std::cerr << "WARNING: " << input_filename << " has no SpacePointHit* table -- fitting space points "
+              << "instead of hits (Config::Measurement is Hits by default)." << std::endl;
+    hit_level_fit = false;
   }
   static std::vector<int> sp_hit_view(kMaxHits), sp_hit_pedsup(kMaxHits), sp_hit_true_trackid(kMaxHits);
   static std::vector<long long> sp_hit_true_vgid(kMaxHits);

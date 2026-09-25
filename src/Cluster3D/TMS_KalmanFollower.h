@@ -76,10 +76,11 @@ struct Config {
   // through layers where no candidate is accepted, before giving up
   // (FitResult::Converged = false). Mirrors
   // TMS_GraphTrackFinder::Config::MaxGapMM's role. Was a count of 3 gap
-  // layers until 2026-09-25; 650 mm is about 3 NearestY layers in the back
-  // (alternating 130/260 mm) and 5 in the front (130 mm). Starting value,
-  // to be checked against the Phase 1 baseline.
-  double MaxGapMM = 650.0;
+  // layers until 2026-09-25 (up to ~1.56 m in the back on the old points).
+  // 650 mm (first mm value) vs 1000 mm, 15 files: early stops (before the
+  // muon's last layer) 2.6% -> 1.6% of fits (ND-LAr fiducial 1.1 -> 0.7%),
+  // hit completeness and purity unchanged.
+  double MaxGapMM = 1000.0;
 
   // How far (mm of z) past the seed path's OWN last point the follower will
   // keep walking. A generous margin (this lets the follower genuinely
@@ -334,8 +335,15 @@ struct Config {
   //    and material plane by plane. A hit shared by two layers (a y-measuring
   //    plane serves both neighbors in the back section) is applied once.
   //    Needs Follower::SetHits(); without it the fit falls back to SpacePoint.
+  //
+  // Default Hits since 2026-09-25 (reports/2026-09-25_phase2_hitfit/, 15
+  // files, 16,544 muons, NearestY points, steel-only field): vs SpacePoint,
+  // same hit-level purity (83.4 vs 83.2%) and completeness (68.4%), strict
+  // layer completeness 73.6 -> 74.8%, start-momentum resolution (MAD) 0.36 ->
+  // 0.32 (exiting) / 0.45 -> 0.42 (stopping); cheated-fit pulls mean -0.02,
+  // MAD-sigma 0.99 over 450k hits.
   enum class MeasurementModel { SpacePoint, Hits };
-  MeasurementModel Measurement = MeasurementModel::SpacePoint;
+  MeasurementModel Measurement = MeasurementModel::Hits;
 
   // Backward pass after the forward walk (see FitResult::StartMomentumMeV):
   // refits the accepted measurements from last to first, starting from the
