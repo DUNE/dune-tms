@@ -687,6 +687,25 @@ for (auto Lines: HoughCandidatesY) {
 
       const size_t n_kalman_nodes_plus = KalmanFilter_plus.GetKalmanNodes().size();
       const size_t n_kalman_nodes_minus = KalmanFilter_minus.GetKalmanNodes().size();
+
+      // Neither hypothesis could be fitted (fewer than two Kalman nodes): leave every
+      // Kalman-derived field at TMS_Track's "not set" default rather than reporting a fitted mu+.
+      if (n_kalman_nodes_plus == 0 && n_kalman_nodes_minus == 0) {
+        const double not_set = -999999999.;
+        trk.Charge_Kalman = -999999999;
+        trk.Charge_Kalman_curvature = -999999999;
+        trk.SetChi2(not_set);
+        trk.SetChi2_plus(not_set);
+        trk.SetChi2_minus(not_set);
+        trk.SetMomentum(not_set);
+        trk.SetStartPosition(not_set, not_set, not_set);
+        trk.SetEndPosition(not_set, not_set, not_set);
+        // A zero direction is mapped to the "not set" default by TMS_Track
+        trk.SetStartDirection(0.0, 0.0, 0.0);
+        trk.SetEndDirection(0.0, 0.0, 0.0);
+        continue;
+      }
+
       const bool use_minus =
           n_kalman_nodes_minus > 0 &&
           (n_kalman_nodes_plus == 0 ||
