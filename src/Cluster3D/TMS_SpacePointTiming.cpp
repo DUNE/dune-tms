@@ -35,7 +35,7 @@ bool CorrectedXYTimeDifference(double x, double y,
                                double &dtOut) {
   // The X-view hit's bar runs along x at transverse y = xHitNotZ; the
   // Y-view hit's bar runs along y at transverse x = yHitNotZ. Look each up
-  // at the space point's position along it (on the bar's own centre line,
+  // at the space point's position along it (on the bar's own center line,
   // so the geometry lookup lands inside the bar).
   TMS_Bar xBar(x, xHitNotZ, xHitZ);
   TMS_Bar yBar(yHitNotZ, y, yHitZ);
