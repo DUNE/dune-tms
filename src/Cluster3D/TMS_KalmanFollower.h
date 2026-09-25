@@ -286,11 +286,19 @@ struct Config {
   // transit-corrected |dt| <= 10 ns keeps 84% of genuine points but only 71%
   // of same-interaction ghosts and 37.5% of different-interaction ghosts.
   //
-  // Default off until validated on the full truth population.
-  bool UseXYTimeInSelection = false;
-  // Width of the genuine-point transit-corrected dt distribution (ns);
-  // 5.1 ns is its MAD-sigma (sd 8.7 ns, the core is narrower than the tails).
-  double XYTimeSigmaNs = 5.1;
+  // Default on: 15-file truth run 2026-09-24 (reports/2026-09-24_kalman_xytime/,
+  // 16,544 muons), sigma 3.7 vs off: strict (both-views) completeness /
+  // purity 74.94/75.69 -> 75.91/76.57% overall, +1.2 to +1.5 pp in
+  // multi-muon slices and TMS-start tracks; loose metrics flat (+/-0.1).
+  // Wider sigma (5.1, 8.9) gave monotonically less. Per muon: 904 better,
+  // 432 worse, 19 lose >= 50 pp strict completeness. Only has an effect
+  // when a source is set (SetXYTimeDifferenceSource) and a layer has more
+  // than one passing candidate -- it ranks, it doesn't gate.
+  bool UseXYTimeInSelection = true;
+  // Width of the genuine-point transit-corrected dt distribution (ns): its
+  // MAD-sigma with the physics transit correction (TMS_SpacePointTiming).
+  // The tails are wider (sd 8.9 ns), so this may need relaxing.
+  double XYTimeSigmaNs = 3.7;
   // If > 0, also reject any candidate with |dt| > XYTimeGateNSigma *
   // XYTimeSigmaNs. 0 = ranks only, never gates.
   double XYTimeGateNSigma = 0.0;

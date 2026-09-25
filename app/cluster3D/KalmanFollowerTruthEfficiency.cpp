@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <set>
 #include <string>
@@ -337,7 +338,7 @@ int main(int argc, char **argv) {
   // from one interaction, 2 = two interactions, -1 = unlabelled), to check
   // the correction against the empirical fit.
   const char *xytime_dump_path = std::getenv("KF_DUMP_XYTIME");
-  const bool compute_xy_dt = follower_config.UseXYTimeInSelection || xytime_dump_path != nullptr;
+  bool compute_xy_dt = follower_config.UseXYTimeInSelection || xytime_dump_path != nullptr;
   std::ofstream xytime_dump;
   if (xytime_dump_path) {
     xytime_dump.open(xytime_dump_path);
@@ -420,10 +421,19 @@ int main(int argc, char **argv) {
   static std::vector<float> sp_hit_time(kMaxHits), sp_hit_notz(kMaxHits), sp_hit_z(kMaxHits);
   if (compute_xy_dt) {
     if (reco_tree->GetBranch("SpacePointHitTime") == nullptr) {
-      std::cerr << "KF_USE_XYTIME/KF_DUMP_XYTIME need the SpacePointHit* branches; " << input_filename
-                << " predates them -- reconvert it." << std::endl;
-      return -1;
+      // Explicitly asked for: fail. Only on by default: run without it (an
+      // empty lookup makes the follower's X/Y time term a no-op).
+      if (std::getenv("KF_USE_XYTIME") != nullptr || xytime_dump_path != nullptr) {
+        std::cerr << "KF_USE_XYTIME/KF_DUMP_XYTIME need the SpacePointHit* branches; " << input_filename
+                  << " predates them -- reconvert it." << std::endl;
+        return -1;
+      }
+      std::cerr << "WARNING: " << input_filename << " has no SpacePointHit* branches -- running WITHOUT the "
+                << "X/Y time term (Config::UseXYTimeInSelection is on by default)." << std::endl;
+      compute_xy_dt = false;
     }
+  }
+  if (compute_xy_dt) {
     reco_tree->SetBranchAddress("nSpacePointHits", &n_sp_hits);
     reco_tree->SetBranchAddress("SpacePointHitTime", sp_hit_time.data());
     reco_tree->SetBranchAddress("SpacePointHitNotZ", sp_hit_notz.data());
@@ -478,6 +488,19 @@ int main(int argc, char **argv) {
     miss_csv << "sourcefile,entry,slice,vertexglobalid,trackid,seed_source,node_idx,nodes_total,layer,z,"
                 "node_type,n_candidates,n_truth_cands,truth_min_chi2,chosen_chi2,chosen_class,"
                 "shares_xhit,shares_yhit,prev_node_type,n_correct_before,n_wrong_before,converged,stop_reason\n";
+  }
+
+  // Optional: KF_DUMP_NODES=<path> writes one row per followed layer (seed
+  // node excluded) of each muon's final fit: how many candidates passed the
+  // position gate (local ghost density), whether the pick was correct, and a
+  // within-run counterfactual -- the candidate position (+ track time) score
+  // alone would have picked, i.e. what the X/Y time term changed at that
+  // layer. Correctness columns: 1 = strict (both hits the target muon's).
+  std::ofstream node_csv;
+  if (const char *np = std::getenv("KF_DUMP_NODES")) {
+    node_csv.open(np);
+    node_csv << "sourcefile,entry,vertexglobalid,trackid,node_idx,layer,n_candidates,n_pass,n_pass_strict_truth,"
+                "has_hit,chosen_strict,chosen_loose,chosen_dt,noxy_strict,noxy_loose,noxy_dt,changed\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -862,6 +885,42 @@ int main(int argc, char **argv) {
             ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
             : follower.RunBestSeed(space_points, objectIndices);
         kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+        if (node_csv.is_open()) {
+          const auto dt_of = [&](std::size_t i) {
+            auto it = xy_dt_by_hits.find({space_points[i].GetXHitIndex(), space_points[i].GetYHitIndex()});
+            return it == xy_dt_by_hits.end() ? std::nan("") : it->second;
+          };
+          for (std::size_t k = 1; k < fit.Nodes.size(); ++k) {
+            const TMS_KalmanFollower::FollowedNode &n = fit.Nodes[k];
+            const bool have_time = n.CandidateTimeChi2.size() == n.CandidateIndices.size();
+            int n_pass = 0, n_pass_truth = 0;
+            double best_noxy = std::numeric_limits<double>::infinity();
+            std::size_t noxy_index = 0;
+            bool noxy_found = false;
+            for (std::size_t c = 0; c < n.CandidateIndices.size(); ++c) {
+              if (n.CandidateChi2[c] > follower_config.ChiSquareGateMax) continue;
+              const std::size_t ci = n.CandidateIndices[c];
+              ++n_pass;
+              if (point_label_strict[ci] == label) ++n_pass_truth;
+              const double score = n.CandidateChi2[c] + (have_time ? n.CandidateTimeChi2[c] : 0.0);
+              if (score < best_noxy) {
+                best_noxy = score;
+                noxy_index = ci;
+                noxy_found = true;
+              }
+            }
+            const std::size_t ch = n.ChosenSpacePointIndex;
+            node_csv << input_filename << "," << entry << "," << label.vgid << "," << label.trackid << "," << k << ","
+                     << n.Layer << "," << n.CandidateIndices.size() << "," << n_pass << "," << n_pass_truth << ","
+                     << (n.HasHit ? 1 : 0) << ","
+                     << (n.HasHit && point_label_strict[ch] == label ? 1 : 0) << ","
+                     << (n.HasHit && point_label[ch] == label ? 1 : 0) << "," << (n.HasHit ? dt_of(ch) : std::nan(""))
+                     << "," << (noxy_found && point_label_strict[noxy_index] == label ? 1 : 0) << ","
+                     << (noxy_found && point_label[noxy_index] == label ? 1 : 0) << ","
+                     << (noxy_found ? dt_of(noxy_index) : std::nan("")) << ","
+                     << (n.HasHit && noxy_found && noxy_index != ch ? 1 : 0) << "\n";
+          }
+        }
         if (miss_csv.is_open()) {
           std::set<int> covered;
           for (const TMS_KalmanFollower::FollowedNode &n : fit.Nodes)
