@@ -431,6 +431,64 @@ StepState UpdateState(const StepState &predicted, const TMS_SpacePoint &chosen, 
   return updated;
 }
 
+// --- Hit-level measurement model (Config::MeasurementModel::Hits). ---
+
+// Indices (into StepState) of the position and slope a hit measures.
+int PositionIndex(const FitHit &hit) { return hit.MeasuresX ? 0 : 1; }
+int SlopeIndex(const FitHit &hit) { return hit.MeasuresX ? 2 : 3; }
+
+// Predicted coordinate at the hit's own plane, by straight-line transport
+// from the state's z (field and material over the few cm between a point
+// layer's z and its hits' planes are neglected here -- this is only used to
+// SCORE candidates; the update itself steps properly), and the variance of
+// the residual.
+void ProjectToHit(const StepState &state, const FitHit &hit, double &predictedOut, double &residualVarOut) {
+  const double dz = hit.Z - state.z;
+  const int ip = PositionIndex(hit), is = SlopeIndex(hit);
+  predictedOut = hit.MeasuresX ? state.x + state.dxdz * dz : state.y + state.dydz * dz;
+  residualVarOut = state.cov(ip, ip) + 2.0 * dz * state.cov(ip, is) + dz * dz * state.cov(is, is) +
+                   hit.SigmaMM * hit.SigmaMM + 1e-6;
+}
+
+double HitChi2(const StepState &state, const FitHit &hit) {
+  double predicted = 0.0, var = 0.0;
+  ProjectToHit(state, hit, predicted, var);
+  const double r = hit.Coordinate - predicted;
+  return r * r / var;
+}
+
+// Kalman update with one hit as a 1D measurement; predicted must already be
+// at the hit's z. H picks out x or y, so the gain is that column of the
+// covariance over the residual variance.
+StepState UpdateWithHit(const StepState &predicted, const FitHit &hit, double &residualOut,
+                        double &residualVarOut) {
+  StepState updated = predicted;
+  const int i = PositionIndex(hit);
+  residualOut = hit.Coordinate - (hit.MeasuresX ? predicted.x : predicted.y);
+  residualVarOut = predicted.cov(i, i) + hit.SigmaMM * hit.SigmaMM + 1e-6;
+  double gain[5];
+  for (int row = 0; row < 5; ++row) gain[row] = predicted.cov(row, i) / residualVarOut;
+  double stateVec[5] = {predicted.x, predicted.y, predicted.dxdz, predicted.dydz, predicted.qp};
+  for (int row = 0; row < 5; ++row) stateVec[row] += gain[row] * residualOut;
+  updated.x = stateVec[0];
+  updated.y = stateVec[1];
+  updated.dxdz = stateVec[2];
+  updated.dydz = stateVec[3];
+  updated.qp = stateVec[4];
+  ClampMomentum(updated.qp);
+  for (int row = 0; row < 5; ++row)
+    for (int col = 0; col < 5; ++col) updated.cov(row, col) -= gain[row] * predicted.cov(i, col);
+  return updated;
+}
+
+// The two hits of a space point, if both indices are valid for this hit list.
+bool PointHits(const TMS_SpacePoint &point, const std::vector<FitHit> &hits, int &xBarIndex, int &yBarIndex) {
+  xBarIndex = point.GetXHitIndex();
+  yBarIndex = point.GetYHitIndex();
+  const int n = static_cast<int>(hits.size());
+  return xBarIndex >= 0 && xBarIndex < n && yBarIndex >= 0 && yBarIndex < n;
+}
+
 struct GateResult {
   bool Accepted = false;
   std::size_t ChosenIndex = 0;
@@ -458,15 +516,22 @@ struct TimeContext {
   double XYTimeGateNSigma = 0.0;  // 0 = no X/Y time gate
 };
 
+// hits: non-null for the hit-level model -- each candidate is then scored on
+// its two hits at their own planes (2 DoF, as for the point) instead of on
+// the point itself.
 GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_t> &candidatesAtLayer,
                          const std::vector<TMS_SpacePoint> &allSpacePoints,
-                         double barPitchMM, double chiSquareGateMax, const TimeContext &time) {
+                         double barPitchMM, double chiSquareGateMax, const TimeContext &time,
+                         const std::vector<FitHit> *hits) {
   GateResult result;
   double bestScore = std::numeric_limits<double>::infinity();
   for (std::size_t index : candidatesAtLayer) {
     const TMS_SpacePoint &candidate = allSpacePoints[index];
     const TMatrixD measurementCov = BuildMeasurementCovariance(barPitchMM);
-    const double chi2 = Chi2(predicted, candidate, measurementCov);
+    int xBarIndex = -1, yBarIndex = -1;
+    const double chi2 = (hits != nullptr && PointHits(candidate, *hits, xBarIndex, yBarIndex))
+        ? HitChi2(predicted, (*hits)[xBarIndex]) + HitChi2(predicted, (*hits)[yBarIndex])
+        : Chi2(predicted, candidate, measurementCov);
     result.CandidateIndices.push_back(index);
     result.CandidateChi2.push_back(chi2);
     // Selection score: position chi2, plus the time chi2 when enabled. The
@@ -669,6 +734,52 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
          allSpacePoints[zLayers[lastLayerToWalk + 1].front()].GetZ() - seedEndZ <= fConfig.MaxDistanceBeyondSeedMM)
     ++lastLayerToWalk;
 
+  // Hit-level model (Config::Measurement): the hits to update with, and the
+  // ones already applied -- in the back section one y-measuring plane serves
+  // the point layers on both sides of it, and its hit must enter the fit once.
+  const std::vector<FitHit> *hits =
+      (fConfig.Measurement == Config::MeasurementModel::Hits) ? fHits : nullptr;
+  std::set<int> appliedHits;
+  // Applies a point's two hits to state as 1D measurements in z order,
+  // stepping field and material to each hit's own plane, and records each in
+  // node.Hits. A hit already applied, or lying behind the state (possible
+  // only if the walk skipped back), is recorded but not applied. Returns
+  // false (stopOut set) if stepping to a hit ranged out or diverged.
+  const auto applyPointHits = [&](int xBarIndex, int yBarIndex, StepState &state, FollowedNode &node,
+                                  FitResult::StopReason &stopOut) -> bool {
+    int order[2] = {xBarIndex, yBarIndex};
+    if ((*hits)[yBarIndex].Z < (*hits)[xBarIndex].Z) std::swap(order[0], order[1]);
+    for (int index : order) {
+      const FitHit &hit = (*hits)[index];
+      FollowedNode::HitUpdate record;
+      record.HitIndex = index;
+      record.Z = hit.Z;
+      if (appliedHits.count(index) || hit.Z < state.z - 1e-3) {
+        double predictedCoordinate = 0.0;
+        ProjectToHit(state, hit, predictedCoordinate, record.ResidualVar);
+        record.Residual = hit.Coordinate - predictedCoordinate;
+        node.Hits.push_back(record);
+        continue;
+      }
+      const StepState atHit = Predict(state, hit.Z, fField, fConfig.MaxSubstepLengthMM, fConfig.StopOnRangeOut);
+      if (atHit.RangedOut) {
+        stopOut = FitResult::StopReason::RangedOut;
+        return false;
+      }
+      if (atHit.Diverged) {
+        stopOut = FitResult::StopReason::Diverged;
+        return false;
+      }
+      state = UpdateWithHit(atHit, hit, record.Residual, record.ResidualVar);
+      record.Applied = true;
+      appliedHits.insert(index);
+      result.TotalChi2 += record.Residual * record.Residual / record.ResidualVar;
+      result.NDoF += 1;
+      node.Hits.push_back(record);
+    }
+    return true;
+  };
+
   // --- Initial node: taken directly from the seed, not gated. ---
   double initialDxdz = 0.0, initialDydz = 0.0;
   SeedDirection(allSpacePoints, seedPath, initialDxdz, initialDydz);
@@ -706,9 +817,20 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     current.cov(4, 4) = sigmaQP * sigmaQP;
   }
 
+  // Hit-level model: start at the seed point's first hit plane and apply both
+  // its hits (the wide initial covariance lets them set the position).
+  FollowedNode seedHits;
+  int seedXBar = -1, seedYBar = -1;
+  if (hits != nullptr && PointHits(firstPoint, *hits, seedXBar, seedYBar)) {
+    current.z = std::min((*hits)[seedXBar].Z, (*hits)[seedYBar].Z);
+    FitResult::StopReason unused = FitResult::StopReason::NotStarted;
+    applyPointHits(seedXBar, seedYBar, current, seedHits, unused);
+  }
+
   FollowedNode firstNode;
   firstNode.Layer = startLayer;
-  firstNode.Z = current.z;
+  firstNode.Z = firstPoint.GetZ();
+  firstNode.Hits = seedHits.Hits;
   firstNode.HasHit = true;
   firstNode.ChosenSpacePointIndex = seedPath.front();
   firstNode.CandidateIndices = zLayers[startLayer];
@@ -719,6 +841,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   firstNode.FilteredDYDZ = current.dydz;
   firstNode.FilteredQP = current.qp;
   firstNode.FilteredCovariance = current.cov;
+  firstNode.FilteredZ = current.z;
   result.Nodes.push_back(firstNode);
   if (zLayers[startLayer].size() > 1) ++result.NAmbiguousLayersResolved;
 
@@ -767,7 +890,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
       time.XYTimeGateNSigma = fConfig.XYTimeGateNSigma;
     }
     const GateResult gate = ResolveLayer(predicted, candidates, allSpacePoints, fConfig.AssumedBarPitchMM,
-                                         fConfig.ChiSquareGateMax, time);
+                                         fConfig.ChiSquareGateMax, time, hits);
 
     FollowedNode node;
     node.Layer = layerIdx;
@@ -777,10 +900,9 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     node.CandidateTimeChi2 = gate.CandidateTimeChi2;
     node.CandidateXYTimeChi2 = gate.CandidateXYTimeChi2;
 
+    bool stopInsideLayer = false;
     if (gate.Accepted) {
       const TMS_SpacePoint &chosen = allSpacePoints[gate.ChosenIndex];
-      const TMatrixD measurementCov = BuildMeasurementCovariance(fConfig.AssumedBarPitchMM);
-      current = UpdateState(predicted, chosen, measurementCov);
       node.HasHit = true;
       node.ChosenSpacePointIndex = gate.ChosenIndex;
       for (std::size_t i = 0; i < gate.CandidateIndices.size(); ++i) {
@@ -789,10 +911,23 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
           break;
         }
       }
+      int xBarIndex = -1, yBarIndex = -1;
+      if (hits != nullptr && PointHits(chosen, *hits, xBarIndex, yBarIndex)) {
+        // Step from the last applied hit (not from the layer's z) to each hit.
+        FitResult::StopReason stop = result.Stop;
+        if (!applyPointHits(xBarIndex, yBarIndex, current, node, stop)) {
+          stopInsideLayer = true;
+          result.Stop = stop;
+          if (stop == FitResult::StopReason::Diverged) result.Converged = false;
+        }
+      } else {
+        const TMatrixD measurementCov = BuildMeasurementCovariance(fConfig.AssumedBarPitchMM);
+        current = UpdateState(predicted, chosen, measurementCov);
+        result.TotalChi2 += node.Chi2AtChosen;
+        result.NDoF += 2;
+      }
       t0Sum += chosen.GetTime() - pathLengthMM / kSpeedOfLightMMPerNs;
       ++t0Count;
-      result.TotalChi2 += node.Chi2AtChosen;
-      result.NDoF += 2;
       lastAcceptedZ = targetZ;
       if (candidates.size() > 1) ++result.NAmbiguousLayersResolved;
     } else {
@@ -811,9 +946,10 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     node.FilteredDYDZ = current.dydz;
     node.FilteredQP = current.qp;
     node.FilteredCovariance = current.cov;
+    node.FilteredZ = current.z;
     result.Nodes.push_back(node);
 
-    if (!result.Converged) break;
+    if (!result.Converged || stopInsideLayer) break;
   }
 
   result.MomentumMeV = (std::abs(current.qp) > 1e-12) ? 1.0 / std::abs(current.qp) : 0.0;

@@ -29,6 +29,17 @@
 // Forward-pass only for now (no RTS smoother yet -- see the project plan).
 namespace TMS_KalmanFollower {
 
+// One detector hit as a 1D measurement, for the hit-level fit
+// (Config::Measurement = Hits). The caller builds a vector of these indexed
+// exactly like TMS_SpacePoint::GetXHitIndex()/GetYHitIndex() (the slice's raw
+// hit list) and hands it over with Follower::SetHits().
+struct FitHit {
+  double Z = 0.0;           // the hit's own plane z (mm)
+  double Coordinate = 0.0;  // what the bar measures (mm): x for a Y-bar hit, y for an X-bar hit
+  bool MeasuresX = false;   // true for a Y-bar (x-measuring) hit
+  double SigmaMM = 0.0;     // measurement resolution (mm)
+};
+
 struct Config {
   // A candidate's chi2 (2 DoF: x, y position residual) must be below this
   // to be accepted at all. Tuned empirically 2026-09-15 against the 15-file
@@ -309,6 +320,22 @@ struct Config {
   // If > 0, also reject any candidate with |dt| > XYTimeGateNSigma *
   // XYTimeSigmaNs. 0 = ranks only, never gates.
   double XYTimeGateNSigma = 0.0;
+
+  // What the fit updates with.
+  //  SpacePoint: each accepted space point as one 2D (x, y) measurement at
+  //    the point's z. With NearestY points that z is the midpoint between the
+  //    two hits' planes, so x and y are each off by slope * half the plane
+  //    separation -- in the back section alternately +-65 mm, a zigzag of
+  //    ~30 mm rms on real muons (2026-09-25, reports/2026-09-25_phase1_baselines/
+  //    scripts/zigzag_check.py), which cost ~9 pp of fit convergence.
+  //  Hits: candidates are still chosen per point layer, but scored on each
+  //    of the point's two hits at the hit's own plane z, and the chosen
+  //    point's hits are applied as two 1D updates in z order, stepping field
+  //    and material plane by plane. A hit shared by two layers (a y-measuring
+  //    plane serves both neighbors in the back section) is applied once.
+  //    Needs Follower::SetHits(); without it the fit falls back to SpacePoint.
+  enum class MeasurementModel { SpacePoint, Hits };
+  MeasurementModel Measurement = MeasurementModel::SpacePoint;
 };
 
 // Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
@@ -345,6 +372,19 @@ struct FollowedNode {
   double FilteredDYDZ = 0.0;
   double FilteredQP = 0.0;  // charge[e] / momentum[MeV/c]
   TMatrixD FilteredCovariance{5, 5};
+  // Hits model only: z of the filtered state above (the last hit applied at
+  // this node; Z above stays the point layer's z).
+  double FilteredZ = 0.0;
+
+  // Hits model only: the chosen point's hits, in the order considered.
+  struct HitUpdate {
+    int HitIndex = -1;
+    double Z = 0.0;
+    double Residual = 0.0;     // measured - predicted, before the update (mm)
+    double ResidualVar = 0.0;  // predicted variance of that residual (mm^2): pull = Residual / sqrt(ResidualVar)
+    bool Applied = false;      // false: already applied at an earlier node (shared hit), or behind the state
+  };
+  std::vector<HitUpdate> Hits;
 };
 
 struct FitResult {
@@ -428,10 +468,16 @@ class Follower {
     // supplies the difference (typically keyed on the point's hit indices).
     void SetXYTimeDifferenceSource(XYTimeDifferenceFn source) { fXYTimeDifference = std::move(source); }
 
+    // The slice's hits for Config::Measurement = Hits, indexed like the space
+    // points' hit indices. Not owned: must outlive every Run()/RunBestSeed()
+    // call that uses it. nullptr = no hits (the fit uses space points).
+    void SetHits(const std::vector<FitHit> *hits) { fHits = hits; }
+
   private:
     Config fConfig;
     const IFieldModel &fField;
     XYTimeDifferenceFn fXYTimeDifference;
+    const std::vector<FitHit> *fHits = nullptr;
 };
 
 }  // namespace TMS_KalmanFollower

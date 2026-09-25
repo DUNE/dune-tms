@@ -7,6 +7,7 @@
 
 #include "TMS_KalmanFollower.h"
 #include "TMS_SpacePointDBScan.h"
+#include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePoint.h"
 
 // Iterative "fit, claim, refit the remainder" track extraction from one
@@ -81,12 +82,12 @@ struct Config {
   // DBSCAN + PCA settings for re-clustering a remainder. Must match the ones
   // the caller used for the original clustering, so "track-like" means the
   // same thing on both passes.
-  unsigned int DBScanMinPoints = 5;
+  unsigned int DBScanMinPoints = TMS_SpacePointDBScan::kDefaultMinPoints;
   // Required: set from TMS_SpacePointDBScan::DefaultTolerance(bar pitch) or
   // whatever the caller clustered with.
   TMS_SpacePointDBScan::Tolerance DBScanTolerance;
   double LinearityThreshold = 0.8;
-  std::size_t MinClusterSizeForTrack = 5;
+  std::size_t MinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
 };
 
 // One extracted track.

@@ -45,6 +45,14 @@ class TMS_SpacePointCluster {
     double GetLinearity() const { return _linearity; }
     bool HasValidPCA() const { return _valid_pca; }
 
+    // Default minimum size for IsTrackLike(). 5 until 2026-09-25, set on
+    // BothNeighbors points; with NearestY points (about half the front-section
+    // point density) short muons fell below it. Phase 1 benchmark: 4 matches
+    // the old ND-LAr-fiducial finding efficiency (92.5% vs 92.7%) and gains
+    // 4.6 pp overall, with 48% more non-muon track-like clusters (3: +6.9 pp,
+    // but 2.4x). To revisit with hit-level purity after the hit-level fit.
+    static constexpr size_t kDefaultMinTrackSize = 4;
+
     bool IsTrackLike(double linearity_threshold, size_t min_cluster_size) const {
       return _valid_pca && _linearity >= linearity_threshold && GetSize() >= min_cluster_size;
     }

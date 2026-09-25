@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   }
 
   const double kLinearityThreshold = 0.8;
-  const size_t kMinClusterSizeForTrack = 5;
+  const size_t kMinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
   for (size_t c = 0; c < clusters.size(); ++c) {
     const auto &cl = clusters[c];
     std::cout << "  Cluster " << (c + 1) << ": n=" << cl.GetSize() << " linearity=" << cl.GetLinearity()

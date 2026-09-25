@@ -66,6 +66,12 @@ class TMS_SpacePointDBScan {
       }
     };
 
+    // Default core-point threshold (neighbors, including the point itself).
+    // 5 until 2026-09-25, set on BothNeighbors points (~2.4 per muon crossing
+    // in the front section); NearestY points carry ~1.3, and 3 did best in
+    // the Phase 1 sweep (reports/2026-09-25_phase1_baselines/).
+    static constexpr unsigned int kDefaultMinPoints = 3;
+
     // Standard tolerance for a detector with the given bar pitch (mm), e.g.
     // TMS_Geom::GetMaxBarPitch(). Starting values for NearestY points,
     // 2026-09-25: MaxDzMM 270 reaches the next point layer anywhere (130 mm

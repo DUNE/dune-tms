@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   reco_tree->SetBranchAddress("TimeSliceEndTime", &slice_end);
 
   const double kLinearityThreshold = 0.8;
-  const size_t kMinClusterSizeForTrack = 5;
+  const size_t kMinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
 
   std::ofstream csv(output_csv);
   csv << "entry,slice,slice_start,slice_end,x,y,z,time,cluster_id,cluster_linearity,is_track_like\n";

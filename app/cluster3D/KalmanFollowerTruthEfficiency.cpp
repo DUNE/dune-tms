@@ -72,6 +72,7 @@ struct SpillParticles {
   std::vector<int> parent_trackid;
   std::vector<bool> tms_fiducial_start;
   std::vector<bool> lar_fiducial_start;
+  std::vector<bool> tms_fiducial_end;  // true = the particle ends (stops) inside the TMS fiducial volume
   std::unordered_map<TrueLabel, int, LabelHash> index_of;
   std::vector<int> collapsed_trackid;
   std::vector<float> momentum;  // 4 floats per particle: MomentumTMSStart (px,py,pz,E), MeV
@@ -223,6 +224,40 @@ KalmanScore ScoreFit(const TMS_KalmanFollower::FitResult &fit, const std::vector
   return score;
 }
 
+// Hit-level scoring: which of the slice's hits the fit used. Hits model:
+// every hit actually applied (FollowedNode::Hits); SpacePoint model: both
+// hits of every chosen point. Target hits: the muon's non-pedestal-suppressed
+// X-bar/Y-bar hits in the slice (everything a fit could possibly use).
+struct HitScore {
+  int used = 0;
+  int used_target = 0;
+  int target_total = 0;
+};
+
+HitScore ScoreHits(const TMS_KalmanFollower::FitResult &fit, const std::vector<TMS_SpacePoint> &points,
+                   const std::vector<TrueLabel> &hit_label, const std::vector<int> &hit_usable,
+                   const TrueLabel &target, bool hit_level) {
+  HitScore score;
+  std::set<int> used;
+  for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+    if (hit_level) {
+      for (const auto &update : node.Hits)
+        if (update.Applied) used.insert(update.HitIndex);
+    } else if (node.HasHit) {
+      used.insert(points[node.ChosenSpacePointIndex].GetXHitIndex());
+      used.insert(points[node.ChosenSpacePointIndex].GetYHitIndex());
+    }
+  }
+  for (int index : used) {
+    if (index < 0 || index >= (int)hit_label.size()) continue;
+    ++score.used;
+    if (hit_label[index] == target) ++score.used_target;
+  }
+  for (std::size_t i = 0; i < hit_label.size(); ++i)
+    if (hit_usable[i] && hit_label[i] == target) ++score.target_total;
+  return score;
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -241,10 +276,9 @@ int main(int argc, char **argv) {
   // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp / GraphTrackFinderTruthEfficiency.cpp.
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
-  // Minimum points for a track-like cluster. 5 was set on BothNeighbors
-  // points (~2.4 per muon crossing in the front section); sweep hook
-  // TRACKLIKE_MIN_SIZE for NearestY points (~1.3).
-  size_t kMinClusterSizeForTrack = 5;
+  // Minimum points for a track-like cluster (see
+  // TMS_SpacePointCluster::kDefaultMinTrackSize); sweep hook TRACKLIKE_MIN_SIZE.
+  size_t kMinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
   if (const char *v = std::getenv("TRACKLIKE_MIN_SIZE")) kMinClusterSizeForTrack = std::atoi(v);
 
   // Graph Track Finder fallback config: same validated real-data config as
@@ -279,7 +313,7 @@ int main(int argc, char **argv) {
   TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
   if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
   if (const char *v = std::getenv("DBSCAN_TRANSVERSE_PER_DZ")) dbscan_tolerance.TransversePerDzMM = std::atof(v);
-  unsigned int dbscan_min_points = min_points;
+  unsigned int dbscan_min_points = TMS_SpacePointDBScan::kDefaultMinPoints;
   if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   // Kalman follower: default Config, real (GDML-confirmed) 1.0T region field.
@@ -300,12 +334,30 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_USE_TIME")) follower_config.UseTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_TIME_SIGMA")) follower_config.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) follower_config.TimeGateNSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_MAX_GAP_MM")) follower_config.MaxGapMM = std::atof(v);
   // X/Y hit-time agreement term (see Config::UseXYTimeInSelection). Needs
   // the SpacePointHit* look-aside table (reco files converted 2026-09-24 or
   // later).
   if (const char *v = std::getenv("KF_USE_XYTIME")) follower_config.UseXYTimeInSelection = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_XYTIME_SIGMA")) follower_config.XYTimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_XYTIME_GATE")) follower_config.XYTimeGateNSigma = std::atof(v);
+  // KF_MEASUREMENT=hits|points -> Config::Measurement (hit-level fit needs
+  // the SpacePointHit* table).
+  if (const char *v = std::getenv("KF_MEASUREMENT")) {
+    const std::string model = v;
+    if (model == "hits") follower_config.Measurement = TMS_KalmanFollower::Config::MeasurementModel::Hits;
+    else if (model == "points") follower_config.Measurement = TMS_KalmanFollower::Config::MeasurementModel::SpacePoint;
+    else {
+      std::cerr << "KF_MEASUREMENT must be hits or points, not " << model << std::endl;
+      return -1;
+    }
+  }
+  const bool hit_level_fit = follower_config.Measurement == TMS_KalmanFollower::Config::MeasurementModel::Hits;
+  // KF_CHEAT=1: fit every findable muon from its OWN points only (those whose
+  // X-bar and Y-bar hits are both the muon's), seeded from all of them --
+  // tests the fit's measurement model, material and field stepping apart
+  // from pattern recognition (residual pulls, momentum, charge).
+  const bool cheat = std::getenv("KF_CHEAT") != nullptr && std::atoi(std::getenv("KF_CHEAT")) != 0;
   TMS_KalmanFollower::Follower follower(follower_config, field);
   // Transit-corrected X/Y time difference of each space point in the current
   // slice, keyed on its (X hit, Y hit) index pair -- the key survives the
@@ -353,6 +405,7 @@ int main(int argc, char **argv) {
   static std::vector<float> mom_ts(kMaxTrueParticles * 4);
   static bool tms_fid_start_ts[kMaxTrueParticles];
   static bool lar_fid_start_ts[kMaxTrueParticles];
+  static bool tms_fid_end_ts[kMaxTrueParticles];
   truth_spill->SetBranchAddress("SpillNo", &spill_no_ts);
   truth_spill->SetBranchAddress("nTrueParticles", &n_tp_ts);
   truth_spill->SetBranchAddress("VertexGlobalID", vgid_ts.data());
@@ -362,6 +415,7 @@ int main(int argc, char **argv) {
   truth_spill->SetBranchAddress("MomentumTMSStart", mom_ts.data());
   truth_spill->SetBranchAddress("TMSFiducialStart", tms_fid_start_ts);
   truth_spill->SetBranchAddress("LArFiducialStart", lar_fid_start_ts);
+  truth_spill->SetBranchAddress("TMSFiducialEnd", tms_fid_end_ts);
 
   std::map<int, SpillParticles> spills;
   for (Long64_t e = 0; e < truth_spill->GetEntries(); ++e) {
@@ -375,6 +429,7 @@ int main(int argc, char **argv) {
     sp.momentum.assign(mom_ts.begin(), mom_ts.begin() + n_tp_ts * 4);
     sp.tms_fiducial_start.assign(tms_fid_start_ts, tms_fid_start_ts + n_tp_ts);
     sp.lar_fiducial_start.assign(lar_fid_start_ts, lar_fid_start_ts + n_tp_ts);
+    sp.tms_fiducial_end.assign(tms_fid_end_ts, tms_fid_end_ts + n_tp_ts);
     for (int i = 0; i < n_tp_ts; ++i) sp.index_of[{sp.vgid[i], sp.trackid[i]}] = i;
     sp.collapsed_trackid.resize(n_tp_ts);
     for (int i = 0; i < n_tp_ts; ++i) sp.collapsed_trackid[i] = CollapseTrackId(sp, i);
@@ -420,12 +475,34 @@ int main(int argc, char **argv) {
       compute_xy_dt = false;
     }
   }
-  if (compute_xy_dt) {
+  // The per-hit table also feeds the hit-level fit and the hit-level
+  // metrics (with per-hit truth, in files converted from 2026-09-25 on).
+  const bool have_hit_table = reco_tree->GetBranch("SpacePointHitTime") != nullptr;
+  const bool have_hit_truth = reco_tree->GetBranch("SpacePointHitTrueVertexGlobalId") != nullptr;
+  if ((hit_level_fit || cheat) && !(have_hit_table && have_hit_truth)) {
+    std::cerr << "KF_MEASUREMENT=hits / KF_CHEAT need the SpacePointHit* table with per-hit truth; "
+              << input_filename << " predates it -- reconvert it." << std::endl;
+    return -1;
+  }
+  static std::vector<int> sp_hit_view(kMaxHits), sp_hit_pedsup(kMaxHits), sp_hit_true_trackid(kMaxHits);
+  static std::vector<long long> sp_hit_true_vgid(kMaxHits);
+  if (have_hit_table) {
     reco_tree->SetBranchAddress("nSpacePointHits", &n_sp_hits);
     reco_tree->SetBranchAddress("SpacePointHitTime", sp_hit_time.data());
     reco_tree->SetBranchAddress("SpacePointHitNotZ", sp_hit_notz.data());
     reco_tree->SetBranchAddress("SpacePointHitZ", sp_hit_z.data());
+    reco_tree->SetBranchAddress("SpacePointHitView", sp_hit_view.data());
+    reco_tree->SetBranchAddress("SpacePointHitPedSup", sp_hit_pedsup.data());
   }
+  if (have_hit_truth) {
+    reco_tree->SetBranchAddress("SpacePointHitTrueVertexGlobalId", sp_hit_true_vgid.data());
+    reco_tree->SetBranchAddress("SpacePointHitTrueTrackId", sp_hit_true_trackid.data());
+  }
+  // The slice's hits as 1D fit measurements (Config::Measurement = Hits):
+  // an X-bar hit (view 0) measures y, a Y-bar hit (view 1) measures x, each
+  // with a uniform-bar resolution of pitch / sqrt(12).
+  std::vector<TMS_KalmanFollower::FitHit> fit_hits;
+  if (hit_level_fit) follower.SetHits(&fit_hits);
 
   int n_tp_ti = 0;
   static std::vector<int> true_nhits_slice(kMaxTrueParticles);
@@ -450,7 +527,9 @@ int main(int argc, char **argv) {
                  "probe_ran,probe_merged_size,probe_best_planes_covered,probe_best_purity_pct,"
                  "true_momentum_tms_mev,kalman_first_momentum_mev,kalman_final_momentum_mev,kalman_last_node_z,"
                  "kalman_strict_correct_chosen,kalman_strict_purity_pct,kalman_strict_planes_covered,"
-                 "kalman_strict_completeness_pct\n";
+                 "kalman_strict_completeness_pct,"
+                 "hits_used,hits_used_target,target_hits_total,hit_completeness_pct,hit_purity_pct,"
+                 "true_charge,kalman_charge,true_stops_in_tms\n";
   }
 
   // Optional: KF_DUMP_HYPOTHESES=<path> writes one row per RunBestSeed()
@@ -488,6 +567,15 @@ int main(int argc, char **argv) {
     node_csv.open(np);
     node_csv << "sourcefile,entry,vertexglobalid,trackid,node_idx,layer,n_candidates,n_pass,n_pass_strict_truth,"
                 "has_hit,chosen_strict,chosen_loose,chosen_dt,noxy_strict,noxy_loose,noxy_dt,changed\n";
+  }
+
+  // Optional: KF_DUMP_PULLS=<path> writes one row per hit the fit applied
+  // (hit-level model): residual before the update and its predicted
+  // variance, and whether the hit is the target muon's -- pull checks.
+  std::ofstream pulls_csv;
+  if (const char *pp = std::getenv("KF_DUMP_PULLS")) {
+    pulls_csv.open(pp);
+    pulls_csv << "sourcefile,entry,vertexglobalid,trackid,cheat,node_idx,z,measures_x,residual,residual_var,hit_is_target\n";
   }
 
   Long64_t n_entries = reco_tree->GetEntries();
@@ -537,6 +625,22 @@ int main(int argc, char **argv) {
     }
 
     const int n_muons_in_slice = (int)muon_particle_idx.size();
+
+    // The slice's hits: fit measurements, truth labels (collapsed like the
+    // points' labels), and which hits a fit could use at all.
+    const int n_hits_slice = have_hit_table ? n_sp_hits : 0;
+    std::vector<TrueLabel> hit_label(n_hits_slice);
+    std::vector<int> hit_usable(n_hits_slice, 0);
+    fit_hits.assign(n_hits_slice, TMS_KalmanFollower::FitHit());
+    for (int h = 0; h < n_hits_slice; ++h) {
+      TMS_KalmanFollower::FitHit &hit = fit_hits[h];
+      hit.Z = sp_hit_z[h];
+      hit.Coordinate = sp_hit_notz[h];
+      hit.MeasuresX = sp_hit_view[h] == 1;
+      hit.SigmaMM = bar_pitch / std::sqrt(12.0);
+      hit_usable[h] = !sp_hit_pedsup[h] && (sp_hit_view[h] == 0 || sp_hit_view[h] == 1);
+      if (have_hit_truth) hit_label[h] = collapse(TrueLabel{sp_hit_true_vgid[h], sp_hit_true_trackid[h]});
+    }
 
     if (compute_xy_dt) {
       xy_dt_by_hits.clear();
@@ -858,14 +962,48 @@ int main(int argc, char **argv) {
       // DBSCAN-direct/merged-PCA seeds, just no longer withheld from
       // graphtrack-sourced ones. ---
       KalmanScore kscore;
-      if (haveFinal) {
-        const std::vector<std::size_t> objectIndices(finalIndices.begin(), finalIndices.end());
+      HitScore hscore;
+      double kalman_charge = 0.0;
+      // Cheat mode: the muon's own points only, whether or not it was found.
+      std::vector<std::size_t> cheat_indices;
+      if (cheat)
+        for (int i = 0; i < n_space_points; ++i)
+          if (point_label_strict[i] == label) cheat_indices.push_back(i);
+      const bool fit_this = cheat ? cheat_indices.size() >= 2 : haveFinal;
+      if (fit_this) {
         std::vector<TMS_KalmanFollower::FitResult> hypotheses;
         std::size_t best_hyp = 0;
-        const TMS_KalmanFollower::FitResult fit = hyp_csv.is_open()
-            ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
-            : follower.RunBestSeed(space_points, objectIndices);
-        kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice, finalSeedSource, target_layers_in_slice);
+        TMS_KalmanFollower::FitResult fit;
+        if (cheat) {
+          std::vector<TMS_SpacePoint> own;
+          for (std::size_t i : cheat_indices) own.push_back(space_points[i]);
+          std::vector<std::size_t> all(own.size());
+          for (std::size_t i = 0; i < all.size(); ++i) all[i] = i;
+          fit = follower.RunBestSeed(own, all);
+          // Back to slice point indices, so the scoring below applies unchanged.
+          for (TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+            node.ChosenSpacePointIndex = cheat_indices[node.ChosenSpacePointIndex];
+            for (std::size_t &c : node.CandidateIndices) c = cheat_indices[c];
+          }
+        } else {
+          const std::vector<std::size_t> objectIndices(finalIndices.begin(), finalIndices.end());
+          fit = hyp_csv.is_open() ? follower.RunBestSeed(space_points, objectIndices, &hypotheses, &best_hyp)
+                                  : follower.RunBestSeed(space_points, objectIndices);
+        }
+        kscore = ScoreFit(fit, point_label, point_label_strict, label, z_layer_whole_slice,
+                          cheat ? "cheat" : finalSeedSource, target_layers_in_slice);
+        kalman_charge = fit.Charge;
+        if (have_hit_truth) hscore = ScoreHits(fit, space_points, hit_label, hit_usable, label, hit_level_fit);
+        if (pulls_csv.is_open()) {
+          for (std::size_t k = 0; k < fit.Nodes.size(); ++k)
+            for (const auto &update : fit.Nodes[k].Hits) {
+              if (!update.Applied) continue;
+              pulls_csv << input_filename << "," << entry << "," << label.vgid << "," << label.trackid << ","
+                        << (cheat ? 1 : 0) << "," << k << "," << update.Z << ","
+                        << (fit_hits[update.HitIndex].MeasuresX ? 1 : 0) << "," << update.Residual << ","
+                        << update.ResidualVar << "," << (hit_label[update.HitIndex] == label ? 1 : 0) << "\n";
+            }
+        }
         if (node_csv.is_open()) {
           const auto dt_of = [&](std::size_t i) {
             auto it = xy_dt_by_hits.find({space_points[i].GetXHitIndex(), space_points[i].GetYHitIndex()});
@@ -1011,6 +1149,12 @@ int main(int argc, char **argv) {
                 << (!target_layers_in_slice.empty()
                         ? 100.0 * kscore.strict_planes_covered / target_layers_in_slice.size()
                         : 0.0)
+                << "," << hscore.used << "," << hscore.used_target << "," << hscore.target_total << ","
+                << (hscore.target_total > 0 ? 100.0 * hscore.used_target / hscore.target_total : 0.0) << ","
+                << (hscore.used > 0 ? 100.0 * hscore.used_target / hscore.used : 0.0) << ","
+                // PDG 13 is mu-, -13 mu+.
+                << (sp.pdg[pidx] > 0 ? -1 : 1) << "," << kalman_charge << ","
+                << (sp.tms_fiducial_end[pidx] ? 1 : 0)
                 << "\n";
     }
 

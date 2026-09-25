@@ -134,10 +134,9 @@ int main(int argc, char **argv) {
   // once the bar pitch is known) and these.
   const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
-  // Minimum points for a track-like cluster. 5 was set on BothNeighbors
-  // points (~2.4 per muon crossing in the front section); sweep hook
-  // TRACKLIKE_MIN_SIZE for NearestY points (~1.3).
-  size_t kMinClusterSizeForTrack = 5;
+  // Minimum points for a track-like cluster (see
+  // TMS_SpacePointCluster::kDefaultMinTrackSize); sweep hook TRACKLIKE_MIN_SIZE.
+  size_t kMinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
   if (const char *v = std::getenv("TRACKLIKE_MIN_SIZE")) kMinClusterSizeForTrack = std::atoi(v);
 
   TFile geom_input(geom_filename.c_str());
@@ -162,7 +161,7 @@ int main(int argc, char **argv) {
   TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
   if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
   if (const char *v = std::getenv("DBSCAN_TRANSVERSE_PER_DZ")) dbscan_tolerance.TransversePerDzMM = std::atof(v);
-  unsigned int dbscan_min_points = min_points;
+  unsigned int dbscan_min_points = TMS_SpacePointDBScan::kDefaultMinPoints;
   if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   TFile input(input_filename.c_str());

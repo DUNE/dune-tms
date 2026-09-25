@@ -145,9 +145,8 @@ int main(int argc, char **argv) {
   // DBSCAN+PCA params: identical to ClusterTruthEfficiency.cpp /
   // GraphTrackFinderTruthEfficiency.cpp, so "track-like" means the same
   // thing here as in every other validation tool in this area.
-  const unsigned int min_points = 5;
   const double kLinearityThreshold = 0.8;
-  const std::size_t kMinClusterSizeForTrack = 5;
+  const std::size_t kMinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
   if (bar_pitch <= 0) {
     std::cerr << "TMS_Geom found fewer than 2 surveyed bars -- cannot derive a clustering tolerance." << std::endl;
@@ -155,11 +154,10 @@ int main(int argc, char **argv) {
   }
   // DBSCAN: TMS_SpacePointDBScan::DefaultTolerance() for this bar pitch.
   // Sweep hooks (Phase 1 baselines): DBSCAN_MAX_DZ_MM overrides the z window,
-  // DBSCAN_MIN_POINTS the core-point threshold (which does NOT change the
-  // muon population, still defined by min_points true hits).
+  // DBSCAN_MIN_POINTS the core-point threshold.
   TMS_SpacePointDBScan::Tolerance dbscan_tolerance = TMS_SpacePointDBScan::DefaultTolerance(bar_pitch);
   if (const char *v = std::getenv("DBSCAN_MAX_DZ_MM")) dbscan_tolerance.MaxDzMM = std::atof(v);
-  unsigned int dbscan_min_points = min_points;
+  unsigned int dbscan_min_points = TMS_SpacePointDBScan::kDefaultMinPoints;
   if (const char *v = std::getenv("DBSCAN_MIN_POINTS")) dbscan_min_points = std::atoi(v);
 
   TFile input(input_filename.c_str());
