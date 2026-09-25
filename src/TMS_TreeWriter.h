@@ -114,6 +114,18 @@ class TMS_TreeWriter {
     // and to validate a hit-level fit. -1 / -999 = no truth.
     Long64_t SpacePointHitTrueVertexGlobalId[__TMS_MAX_HITS__];
     int SpacePointHitTrueTrackId[__TMS_MAX_HITS__];
+    // How the hit's energy is shared between true primary particles (the
+    // same GetPrimaryIdsByEnergy sums, which fold a particle's own
+    // secondaries -- delta rays -- into it): the fraction carried by the
+    // largest contributor above, the second-largest contributor and its
+    // fraction, and how many primaries contributed. Two muons crossing the
+    // same bar leave ONE hit, genuinely shared; hit-level truth metrics
+    // should credit both. -1 / -999 / 0 = none.
+    float SpacePointHitTrueEnergyFrac[__TMS_MAX_HITS__];
+    Long64_t SpacePointHitTrue2VertexGlobalId[__TMS_MAX_HITS__];
+    int SpacePointHitTrue2TrackId[__TMS_MAX_HITS__];
+    float SpacePointHitTrue2EnergyFrac[__TMS_MAX_HITS__];
+    int SpacePointHitNTrueParticles[__TMS_MAX_HITS__];
     // Exact ground truth for each space point's two component hits (same
     // TMS_Utils::GetPrimaryIdsByEnergy lookup RecoHitPrimary* already uses for
     // Line_Candidates) -- a space point is genuinely from one particle iff

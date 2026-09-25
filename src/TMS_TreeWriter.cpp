@@ -397,6 +397,11 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SpacePointHitPedSup", SpacePointHitPedSup, "SpacePointHitPedSup[nSpacePointHits]/I");
   Reco_Tree->Branch("SpacePointHitTrueVertexGlobalId", SpacePointHitTrueVertexGlobalId, "SpacePointHitTrueVertexGlobalId[nSpacePointHits]/L");
   Reco_Tree->Branch("SpacePointHitTrueTrackId", SpacePointHitTrueTrackId, "SpacePointHitTrueTrackId[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrueEnergyFrac", SpacePointHitTrueEnergyFrac, "SpacePointHitTrueEnergyFrac[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitTrue2VertexGlobalId", SpacePointHitTrue2VertexGlobalId, "SpacePointHitTrue2VertexGlobalId[nSpacePointHits]/L");
+  Reco_Tree->Branch("SpacePointHitTrue2TrackId", SpacePointHitTrue2TrackId, "SpacePointHitTrue2TrackId[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrue2EnergyFrac", SpacePointHitTrue2EnergyFrac, "SpacePointHitTrue2EnergyFrac[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitNTrueParticles", SpacePointHitNTrueParticles, "SpacePointHitNTrueParticles[nSpacePointHits]/I");
   Reco_Tree->Branch("SpacePointXTrueVertexGlobalId", SpacePointXTrueVertexGlobalId, "SpacePointXTrueVertexGlobalId[nSpacePoints]/L");
   Reco_Tree->Branch("SpacePointXTrueTrackId", SpacePointXTrueTrackId, "SpacePointXTrueTrackId[nSpacePoints]/I");
   Reco_Tree->Branch("SpacePointYTrueVertexGlobalId", SpacePointYTrueVertexGlobalId, "SpacePointYTrueVertexGlobalId[nSpacePoints]/L");
@@ -1978,10 +1983,24 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     SpacePointHitPedSup[i_h] = hit.GetPedSup() ? 1 : 0;
     SpacePointHitTrueVertexGlobalId[i_h] = -1;
     SpacePointHitTrueTrackId[i_h] = -999;
+    SpacePointHitTrueEnergyFrac[i_h] = 0;
+    SpacePointHitTrue2VertexGlobalId[i_h] = -1;
+    SpacePointHitTrue2TrackId[i_h] = -999;
+    SpacePointHitTrue2EnergyFrac[i_h] = 0;
+    SpacePointHitNTrueParticles[i_h] = 0;
     const auto hit_info = TMS_Utils::GetPrimaryIdsByEnergy({hit}, event);
     if (!hit_info.energies.empty()) {
+      // Contributors come sorted by energy, largest first.
+      const double total = hit_info.total_energy > 0 ? hit_info.total_energy : 1.0;
       SpacePointHitTrueVertexGlobalId[i_h] = hit_info.vertexglobalids[0];
       SpacePointHitTrueTrackId[i_h] = hit_info.trackids[0];
+      SpacePointHitTrueEnergyFrac[i_h] = hit_info.energies[0] / total;
+      SpacePointHitNTrueParticles[i_h] = (int)hit_info.energies.size();
+      if (hit_info.energies.size() > 1) {
+        SpacePointHitTrue2VertexGlobalId[i_h] = hit_info.vertexglobalids[1];
+        SpacePointHitTrue2TrackId[i_h] = hit_info.trackids[1];
+        SpacePointHitTrue2EnergyFrac[i_h] = hit_info.energies[1] / total;
+      }
     }
   }
   for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
