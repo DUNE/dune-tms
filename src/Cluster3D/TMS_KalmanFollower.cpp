@@ -104,8 +104,34 @@ void ClampMomentum(double &qp) {
   }
 }
 
-// Walks the real material budget between two points (TMS_Geom::GetMaterials,
-// already proven correct via app/ShootRay.cpp), applying mean Bethe-Bloch
+// Material steps along a straight line (TMS_Geom::GetMaterials, already
+// proven correct via app/ShootRay.cpp).
+typedef std::vector<std::pair<TGeoMaterial *, double> > MaterialSteps;
+
+// Density (g/cm^3) of a material step, with the geometry's unit scaling --
+// the same conversion ApplyMaterialSteps() uses.
+double DensityGCm3(const TGeoMaterial *material) {
+  const double scaleFactor = TMS_Geom::GetInstance().Scale(1.0);
+  return material->GetDensity() / (CLHEP::g / CLHEP::cm3) / std::pow(scaleFactor, 3);
+}
+
+// Fraction of a step's path length in magnetized steel. The TMS field lives
+// in the steel plates only (edep-sim's GDML field is attached to the steel
+// volumes): measured 2026-09-25 from G4 truth, the field per unit steel is
+// +-1.0-1.1 T at every |x|, and the effective field in each z section equals
+// 1 T times its steel fraction (thin 15/65: 0.227 vs 0.231 T; thick 40/90:
+// 0.424 vs 0.444 T; double 80/130: 0.597 vs 0.615 T). Steel is recognised by
+// density (7.85 g/cm^3; nothing else in the TMS is above 5), not by name.
+double SteelFraction(const MaterialSteps &materials) {
+  double steel = 0.0, total = 0.0;
+  for (const auto &step : materials) {
+    total += step.second;
+    if (DensityGCm3(step.first) > 5.0) steel += step.second;
+  }
+  return total > 0.0 ? steel / total : 0.0;
+}
+
+// Walks the real material budget of a step, applying mean Bethe-Bloch
 // energy loss to qpInOut and accumulating Lynch-Dahl multiple-scattering
 // variance. Returns the resulting process-noise covariance contribution;
 // qpVarianceOut carries the straggling-derived q/p variance for the caller
@@ -114,7 +140,7 @@ void ClampMomentum(double &qp) {
 // for through its own arguments).
 // upstream: stepping toward lower z (the backward pass) -- the muon had MORE
 // energy there, so the loss is added back instead of subtracted.
-TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
+TMatrixD ApplyMaterialSteps(const MaterialSteps &materials,
                              double dxdz, double dydz, double &qpInOut,
                              double &qpVarianceOut, bool &rangedOutOut, bool upstream) {
   TMatrixD scatterCov(5, 5);
@@ -126,9 +152,6 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
   double energy = std::sqrt(momentum * momentum + BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
   const double energyFloor = std::sqrt(kMinMomentumMeV * kMinMomentumMeV +
                                         BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
-
-  const std::vector<std::pair<TGeoMaterial *, double> > materials =
-      TMS_Geom::GetInstance().GetMaterials(start, end);
 
   // Placeholder material type, matching TMS_Kalman.cpp:6-7's convention --
   // .fMaterial is reassigned every step below before either calculator is
@@ -144,10 +167,8 @@ TMatrixD ApplyMaterialSteps(const TVector3 &start, const TVector3 &end,
     // (TMS_Kalman.cpp:304-328): fragile (Material(double) throws outside 3
     // tightly-toleranced hardcoded density windows) but matches this
     // detector's known-simple material budget (scintillator/steel/air).
-    double density = materialStep.first->GetDensity() / (CLHEP::g / CLHEP::cm3);
+    const double density = DensityGCm3(materialStep.first);
     double thickness = materialStep.second / 10.0;  // mm -> cm
-    const double scaleFactor = TMS_Geom::GetInstance().Scale(1.0);
-    density /= std::pow(scaleFactor, 3);
     thickness = TMS_Geom::GetInstance().Scale(thickness);
 
     try {
@@ -226,7 +247,15 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   const TVector3 midpoint(previous.x + 0.5 * previous.dxdz * subDz,
                            previous.y + 0.5 * previous.dydz * subDz,
                            previous.z + 0.5 * subDz);
-  const double fieldY = field.GetField(midpoint).Y();
+  // Materials along the straight-line step (the curved path differs by well
+  // under a mm over a substep), used both for the field -- which acts in the
+  // steel only, so the step bends by the field times its steel fraction --
+  // and below for energy loss and scattering.
+  const TVector3 startPos(previous.x, previous.y, previous.z);
+  const TVector3 straightEnd(previous.x + previous.dxdz * subDz, previous.y + previous.dydz * subDz,
+                             previous.z + subDz);
+  const MaterialSteps materials = TMS_Geom::GetInstance().GetMaterials(startPos, straightEnd);
+  const double fieldY = field.GetField(midpoint).Y() * SteelFraction(materials);
   const double kappa = Kappa(previous.qp, fieldY);
 
   predicted.dxdz = previous.dxdz + kappa * subDz;
@@ -297,11 +326,9 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
     return predicted;
   }
 
-  const TVector3 startPos(previous.x, previous.y, previous.z);
-  const TVector3 endPos(predicted.x, predicted.y, predicted.z);
   double qpVariance = 0.0;
   bool rangedOut = false;
-  const TMatrixD scatterCov = ApplyMaterialSteps(startPos, endPos, predicted.dxdz,
+  const TMatrixD scatterCov = ApplyMaterialSteps(materials, predicted.dxdz,
                                                   predicted.dydz, predicted.qp, qpVariance, rangedOut,
                                                   /*upstream=*/subDz < 0.0);
   if (rangedOut && stopOnRangeOut) {

@@ -15,7 +15,10 @@ class IFieldModel {
   public:
     virtual ~IFieldModel() = default;
 
-    // Field at a lab-frame position, in Tesla.
+    // Field INSIDE THE MAGNETIZED STEEL at a lab-frame position's x/y, in
+    // Tesla. The TMS field exists in the steel plates only; the Kalman
+    // follower scales this by the fraction of each propagation step spent in
+    // steel (see SteelFraction() in TMS_KalmanFollower.cpp).
     virtual TVector3 GetField(const TVector3 &position) const = 0;
 };
 
@@ -56,6 +59,13 @@ class ZeroFieldModel : public IFieldModel {
 // user's caution: newer geometries may use a different, progressively-
 // varying field structure across thickness regions -- this hasn't been
 // checked yet) before treating 1.0T as universally correct.
+//
+// Correction 2026-09-25: the field is in the STEEL only (as the GDML says),
+// not along the whole path -- until then the follower applied 1.0 T over
+// every mm, bending ~2-4x too much and fitting momentum 2.2-2.7x too high.
+// Measured from G4 truth (1,507 muons): 1.0-1.1 T per unit steel at every
+// |x|, sign flip near |x| = 1860 mm (see SignBorderMM). The "~0.89T" one-muon
+// estimate above averaged over steel AND gaps with a crude slope estimate.
 struct RegionFieldModelConfig {
   // Tesla. Central region (|x| < region_2_and_3_border) and outer regions
   // share a magnitude but opposite sign, matching legacy's
@@ -63,6 +73,14 @@ struct RegionFieldModelConfig {
   // thinvol2TMS (-) volume pairing.
   double CentralRegionFieldY = 1.0;
   double OuterRegionFieldY = -1.0;
+  // |x| (mm) where the field flips sign. Measured 2026-09-25 from G4 truth
+  // (reports/2026-09-25_phase2_hitfit/true_field_vs_x.out, 1,507 muons): the
+  // field per unit steel is +1.0-1.1 T for |x| < 1750 mm and -1.1 T beyond
+  // 2000 mm, i.e. the 1860 mm border of TMS_Constants.h's IS_PDR (7 m wide)
+  // branch. The build uses the non-PDR branch (1467.5 mm), which does NOT
+  // match this production's geometry -- hence a setting here rather than
+  // TMS_Const::TMS_Magnetic_region_2_and_3_border.
+  double SignBorderMM = 1860.0;
 };
 
 class RegionFieldModel : public IFieldModel {
@@ -73,7 +91,7 @@ class RegionFieldModel : public IFieldModel {
 
     TVector3 GetField(const TVector3 &position) const override {
       const double fieldY =
-          (std::abs(position.X()) <= TMS_Const::TMS_Magnetic_region_2_and_3_border)
+          (std::abs(position.X()) <= fConfig.SignBorderMM)
               ? fConfig.CentralRegionFieldY
               : fConfig.OuterRegionFieldY;
       return TVector3(0.0, fieldY, 0.0);
