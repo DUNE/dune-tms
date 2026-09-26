@@ -1032,6 +1032,7 @@ void TMS_Event::RunCluster3DReco() {
   TMS_Manager &manager = TMS_Manager::GetInstance();
   TMS_Cluster3DReco::Config config;
   config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
+  config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
   static const RegionFieldModel field;
 
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();

@@ -87,9 +87,35 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
     });
   }
 
-  // DBSCAN; which clusters are track-like.
+  // DBSCAN; which objects are track-like.
   TMS_SpacePointDBScan dbscan(points, config.DBScanMinPoints, tolerance);
-  const std::vector<std::vector<int>> clusters = dbscan.RunAndGetClusterIndices();
+  const std::vector<std::vector<int>> dbscanClusters = dbscan.RunAndGetClusterIndices();
+
+  // The objects to fit: DBSCAN's clusters, or with linking, each chain of
+  // linked clusters merged into one object and every unlinked cluster as is.
+  std::vector<std::vector<int>> clusters;
+  std::vector<std::vector<int>> chains;
+  if (config.UseClusterLinking) {
+    chains = TMS_ClusterLinker::LinkClusters(points, dbscanClusters, config.Linker).Chains;
+    std::vector<char> linked(dbscanClusters.size(), 0);
+    for (const std::vector<int> &chain : chains) {
+      std::vector<int> merged;
+      for (int c : chain) {
+        merged.insert(merged.end(), dbscanClusters[c].begin(), dbscanClusters[c].end());
+        linked[c] = 1;
+      }
+      std::sort(merged.begin(), merged.end());
+      clusters.push_back(std::move(merged));
+    }
+    for (std::size_t c = 0; c < dbscanClusters.size(); ++c)
+      if (!linked[c]) clusters.push_back(dbscanClusters[c]);
+  } else {
+    clusters = dbscanClusters;
+  }
+  if (info) {
+    info->DBScanClusters = dbscanClusters;
+    info->Chains = chains;
+  }
   std::vector<std::size_t> trackLike, other;
   for (std::size_t c = 0; c < clusters.size(); ++c) {
     TMS_SpacePointCluster cluster(points, clusters[c]);

@@ -100,6 +100,7 @@ class TMS_Manager {
     bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
     bool Get_RECO_CLUSTER3D_Enabled() { return _RECO_CLUSTER3D_Enabled; };
     bool Get_RECO_CLUSTER3D_GraphSearch() { return _RECO_CLUSTER3D_GraphSearch; };
+    bool Get_RECO_CLUSTER3D_LinkClusters() { return _RECO_CLUSTER3D_LinkClusters; };
 
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -250,6 +251,7 @@ class TMS_Manager {
     bool _RECO_SPACEPOINTS_PairingFallback;
     bool _RECO_CLUSTER3D_Enabled;
     bool _RECO_CLUSTER3D_GraphSearch;
+    bool _RECO_CLUSTER3D_LinkClusters;
 
     double _RECO_CALIBRATION_EnergyCalibration;
     

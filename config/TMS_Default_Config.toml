@@ -168,6 +168,11 @@
     # Stage 2: graph search inside clusters that are not track-like. Off: as
     # first designed it adds few muons and many non-muon tracks (2026-09-25).
     GraphSearch = false
+    # Link DBSCAN clusters that are pieces of one track (ordered in z, colinear,
+    # same time) and fit each chain as one object (TMS_ClusterLinker). 15 files,
+    # 2026-09-26: suite ND-physics muons ending correctly 405 -> 443 of 616,
+    # duplicate tracks halved, +5% non-muon tracks. Off until validated.
+    LinkClusters = false
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

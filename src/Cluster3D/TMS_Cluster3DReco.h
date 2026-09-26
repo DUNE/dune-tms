@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <vector>
 
+#include "TMS_ClusterLinker.h"
 #include "TMS_FieldModel.h"
 #include "TMS_GraphTrackFinder.h"
 #include "TMS_IterativeTrackFit.h"
@@ -17,9 +18,11 @@ class TMS_Hit;
 // production counterpart of what the app/cluster3D truth tools orchestrate
 // themselves.
 //
-//   Stage 1: DBSCAN over the space points; every track-like cluster, largest
-//     first, through TMS_IterativeTrackFit::FitCluster() (Kalman fit, and for
-//     clusters that look merged, further tracks from the unclaimed remainder).
+//   Stage 1: DBSCAN over the space points; optionally (UseClusterLinking)
+//     chains of clusters that are pieces of one track merged into one object
+//     (TMS_ClusterLinker); every track-like object, largest first, through
+//     TMS_IterativeTrackFit::FitCluster() (Kalman fit, and for objects that
+//     look merged, further tracks from the unclaimed remainder).
 //   Stage 2: for every cluster that is NOT track-like -- a muon inside hadron
 //     activity -- the graph finder on the cluster's unclaimed points, and each
 //     accepted path fitted over the slice's unclaimed points.
@@ -37,6 +40,11 @@ struct Config {
   TMS_SpacePointDBScan::Tolerance DBScanTolerance = ZeroBase();
   double LinearityThreshold = 0.8;
   std::size_t MinClusterSizeForTrack = TMS_SpacePointCluster::kDefaultMinTrackSize;
+
+  // Link DBSCAN clusters that are pieces of one track before fitting, and fit
+  // each chain as one object. Off by default until validated (2026-09-26).
+  bool UseClusterLinking = false;
+  TMS_ClusterLinker::Config Linker;
 
   // Stage 1 per-cluster fitting and splitting. Its DBSCAN fields are
   // overwritten with the ones above.
@@ -81,7 +89,7 @@ struct Track {
   std::vector<int> HitIndices;         // every hit the fit used (applied + orphans), into the slice's hit list
   std::vector<std::size_t> ObjectIndices;  // the object the fit was seeded from
   int Stage = 1;                       // 1 = track-like cluster, 2 = graph path in a non-track-like cluster
-  int ClusterIndex = -1;               // into the DBSCAN clusters of this slice
+  int ClusterIndex = -1;               // into this slice's objects (RunInfo::Clusters)
   std::size_t ClusterSize = 0;
   int Iteration = 0;                   // Stage 1: 0 = first fit, >= 1 = split remainder
   bool ClusterFlagged = false;
@@ -93,11 +101,17 @@ struct Track {
 // hits and other bar orientations are marked unusable.
 std::vector<TMS_KalmanFollower::FitHit> BuildFitHits(const std::vector<TMS_Hit> &hits, double barPitchMM);
 
-// What Run() saw on the way, for diagnostics: the DBSCAN clusters (point
-// indices; Track::ClusterIndex indexes these) and which are track-like.
+// What Run() saw on the way, for diagnostics.
 struct RunInfo {
+  // The objects that were fitted (point indices; Track::ClusterIndex indexes
+  // these) and which are track-like: the DBSCAN clusters, or with
+  // UseClusterLinking, each chain of linked clusters as one object and every
+  // unlinked cluster as itself.
   std::vector<std::vector<int>> Clusters;
   std::vector<bool> ClusterTrackLike;
+  // DBSCAN's own clusters, and the chains the linker made (indices into them).
+  std::vector<std::vector<int>> DBScanClusters;
+  std::vector<std::vector<int>> Chains;
 };
 
 // Reconstruct one slice. hits: as BuildFitHits() makes them (or empty, for

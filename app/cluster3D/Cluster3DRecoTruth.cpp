@@ -114,6 +114,12 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_HITS")) config.MinGraphTrackHits = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_MIN_HITS")) config.Split.MinHitsPerTrack = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_CLUSTER")) config.MinGraphClusterSize = std::atoi(v);
+  if (const char *v = std::getenv("CLUSTER3D_STOP_ON_RANGE_OUT")) config.Follower.StopOnRangeOut = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_LINK")) config.UseClusterLinking = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_BASE")) config.Linker.MissBaseMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_PER_M")) config.Linker.MissPerMeterMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_ANGLE")) config.Linker.MaxAngleRad = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_GAP")) config.Linker.MaxGapMM = std::atof(v);
   const RegionFieldModel field;
 
   TFile input(input_filename.c_str());
@@ -212,9 +218,9 @@ int main(int argc, char **argv) {
                "n_points,n_noise_points,n_clusters,n_clusters_2pt,n_tracklike_clusters,frac_in_largest_cluster,"
                "largest_cluster_muon_purity,true_last_hit_z,best_last_hit_z,best_cluster,tail_hits,"
                "tail_hits_other_tracks,tail_points,tail_points_best_cluster,tail_points_other_clusters,"
-               "tail_other_clusters,tail_points_noise,vertex_in_lar_box\n";
+               "tail_other_clusters,tail_points_noise,vertex_in_lar_box,best_stop,best_end_momentum_mev\n";
 
-  long n_tracks = 0, n_stage2 = 0;
+  long n_tracks = 0, n_stage2 = 0, n_chains = 0, n_chained_clusters = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
     reco_tree->GetEntry(entry);
     truth_info->GetEntry(entry);
@@ -263,6 +269,8 @@ int main(int argc, char **argv) {
 
     // Which DBSCAN cluster each point is in (-1 = noise), each point's true
     // owner, and which track (if any) used each hit.
+    n_chains += run_info.Chains.size();
+    for (const auto &chain : run_info.Chains) n_chained_clusters += chain.size();
     std::vector<int> point_cluster(n_sp, -1);
     for (std::size_t c = 0; c < run_info.Clusters.size(); ++c)
       for (int idx : run_info.Clusters[c]) point_cluster[idx] = static_cast<int>(c);
@@ -418,9 +426,14 @@ int main(int argc, char **argv) {
                 << true_last_z << "," << (best ? best_last_z : 0.0) << "," << best_cluster << "," << tail_hits << ","
                 << tail_hits_other_tracks << "," << tail_points << "," << tail_points_best_cluster << ","
                 << tail_points_other_clusters << "," << tail_other_clusters.size() << "," << tail_points_noise << ","
-                << (sp.lar_box_start[i] ? 1 : 0) << "\n";
+                << (sp.lar_box_start[i] ? 1 : 0) << ","
+                // Why the best track's walk ended: 0 not started, 1 reached the end of
+                // the allowed range, 2 gap limit, 3 diverged, 4 ranged out.
+                << (best ? static_cast<int>(best->track->Fit.Stop) : -1) << ","
+                << (best ? best->track->Fit.MomentumMeV : 0.0) << "\n";
     }
   }
-  std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << ")" << std::endl;
+  std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << "); linked chains: " << n_chains
+            << " joining " << n_chained_clusters << " clusters" << std::endl;
   return 0;
 }
