@@ -1076,9 +1076,12 @@ void TMS_Event::RunCluster3DReco() {
         if (trueHit != nullptr) kn.TrueX = trueHit->GetX();
       }
       out.KalmanNodes.push_back(kn);
+      // Length as the legacy fit reports it (TMS_TrackFinder::
+      // CalculateTrackLengthKalman): areal density in g/cm^2, walked through
+      // the geometry between consecutive nodes -- what the range-to-energy
+      // conversions downstream expect, not a path length in mm.
       if (havePrevious)
-        length += std::sqrt((node.FilteredX - px) * (node.FilteredX - px) + (node.FilteredY - py) * (node.FilteredY - py) +
-                            (z - pz) * (z - pz));
+        length += TMS_Geom::GetInstance().GetTrackLength(TVector3(px, py, pz), TVector3(node.FilteredX, node.FilteredY, z));
       px = node.FilteredX;
       py = node.FilteredY;
       pz = z;
