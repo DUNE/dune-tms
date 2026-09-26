@@ -42,8 +42,9 @@ struct Config {
   // overwritten with the ones above.
   TMS_IterativeTrackFit::Config Split;
 
-  // Stage 2.
-  bool UseGraphSearch = true;
+  // Stage 2. Off by default: as first designed (2026-09-25, file 7) it made
+  // 20 tracks of which 3 were muons', and found 2 more muons.
+  bool UseGraphSearch = false;
   // Only clusters with at least this many unclaimed points are searched.
   std::size_t MinGraphClusterSize = 8;
   // A graph path must span at least this many point layers to be fitted.

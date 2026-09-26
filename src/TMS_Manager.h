@@ -98,6 +98,8 @@ class TMS_Manager {
     double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
     const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
     bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
+    bool Get_RECO_CLUSTER3D_Enabled() { return _RECO_CLUSTER3D_Enabled; };
+    bool Get_RECO_CLUSTER3D_GraphSearch() { return _RECO_CLUSTER3D_GraphSearch; };
 
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -246,6 +248,8 @@ class TMS_Manager {
     double _RECO_SPACEPOINTS_TimingWindow;
     std::string _RECO_SPACEPOINTS_Pairing;
     bool _RECO_SPACEPOINTS_PairingFallback;
+    bool _RECO_CLUSTER3D_Enabled;
+    bool _RECO_CLUSTER3D_GraphSearch;
 
     double _RECO_CALIBRATION_EnergyCalibration;
     

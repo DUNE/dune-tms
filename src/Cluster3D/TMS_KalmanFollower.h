@@ -474,7 +474,8 @@ struct FitResult {
   std::vector<OrphanHit> Orphans;
 
   bool HasStartState = false;
-  double StartZ = 0.0;
+  double StartX = 0.0, StartY = 0.0, StartZ = 0.0;
+  double StartDXDZ = 0.0, StartDYDZ = 0.0;
   double StartMomentumMeV = 0.0;
   double StartCharge = 0.0;
   double TotalChi2 = 0.0;

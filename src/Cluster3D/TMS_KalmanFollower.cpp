@@ -1116,7 +1116,11 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     }
     if (ok) {
       result.HasStartState = true;
+      result.StartX = back.x;
+      result.StartY = back.y;
       result.StartZ = back.z;
+      result.StartDXDZ = back.dxdz;
+      result.StartDYDZ = back.dydz;
       result.StartMomentumMeV = (std::abs(back.qp) > 1e-12) ? 1.0 / std::abs(back.qp) : 0.0;
       result.StartCharge = (back.qp >= 0.0) ? 1.0 : -1.0;
     }

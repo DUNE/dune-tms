@@ -159,6 +159,15 @@
     # across its other adjacent x/y gap instead (recovers crossings where the
     # partner plane's hit is missing).
     PairingFallback = true
+  [Recon.Cluster3D]
+    # Run the Cluster3D reconstruction (space points -> DBSCAN -> Kalman
+    # follower, TMS_Cluster3DReco) on every slice and write its tracks, in the
+    # legacy track format, to the Reco_Tree_C3D / Truth_Info_C3D trees next
+    # to the legacy Reco_Tree / Truth_Info. Off until validated.
+    Enabled = false
+    # Stage 2: graph search inside clusters that are not track-like. Off: as
+    # first designed it adds few muons and many non-muon tracks (2026-09-25).
+    GraphSearch = false
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

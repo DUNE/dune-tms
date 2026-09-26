@@ -83,6 +83,25 @@ TMS_TreeWriter::TMS_TreeWriter() {
 
 
   MakeBranches();
+
+  if (TMS_Manager::GetInstance().Get_RECO_CLUSTER3D_Enabled()) {
+    // Same branches at the same addresses (CloneTree copies only active
+    // branches and shares their addresses), minus the space-point families,
+    // which are identical to Reco_Tree's and large.
+    Reco_Tree->SetBranchStatus("SpacePoint*", 0);
+    Reco_Tree->SetBranchStatus("nSpacePoint*", 0);
+    Reco_Tree_C3D = Reco_Tree->CloneTree(0);
+    Reco_Tree->SetBranchStatus("*", 1);
+    Reco_Tree_C3D->SetName("Reco_Tree_C3D");
+    Reco_Tree_C3D->SetTitle("Reco_Tree with Cluster3D tracks");
+    Reco_Tree_C3D->SetDirectory(Output);
+    Reco_Tree_C3D->SetAutoSave(__TMS_AUTOSAVE__);
+    Truth_Info_C3D = Truth_Info->CloneTree(0);
+    Truth_Info_C3D->SetName("Truth_Info_C3D");
+    Truth_Info_C3D->SetTitle("Truth_Info with Cluster3D track truth");
+    Truth_Info_C3D->SetDirectory(Output);
+    Truth_Info_C3D->SetAutoSave(__TMS_AUTOSAVE__);
+  }
   FillMetadata();
 }
 
@@ -716,6 +735,16 @@ static int normalizeRunNumber(int run) {
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
+  // The legacy reconstruction's tracks into the legacy trees; then, if
+  // enabled, the same slice again with the Cluster3D tracks into the C3D
+  // trees (every non-track branch recomputed identically).
+  FillSlice(event, TMS_TrackFinder::GetFinder().GetHoughTracks3D(), Reco_Tree, Truth_Info, true);
+  if (Reco_Tree_C3D && Truth_Info_C3D)
+    FillSlice(event, event.GetCluster3DTracks(), Reco_Tree_C3D, Truth_Info_C3D, false);
+}
+
+void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &tracks, TTree *reco, TTree *truth,
+                               bool fillLines) {
   // Clear old info
   Clear();
 
@@ -1582,7 +1611,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
 
   // Fill up the info only if all above has passed
-  Branch_Lines->Fill();
+  if (fillLines) Branch_Lines->Fill();
 
 
   // Fill the 3D Tracks
@@ -1590,7 +1619,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
 
   int itTrack= 0;
-  std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
+  const std::vector<TMS_Track> &Reco_Tracks = tracks;
   nTracks = Reco_Tracks.size();
   RecoTrackN = Reco_Tracks.size();
   
@@ -2038,8 +2067,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
   }
 
-  Reco_Tree->Fill();
-  Truth_Info->Fill();
+  reco->Fill();
+  truth->Fill();
 }
 
 void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {

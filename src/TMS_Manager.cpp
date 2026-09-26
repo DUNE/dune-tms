@@ -47,6 +47,8 @@ TMS_Manager::TMS_Manager() {
   _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
   _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");
   _RECO_SPACEPOINTS_PairingFallback = toml::find<bool>(data, "Recon", "SpacePoints", "PairingFallback");
+  _RECO_CLUSTER3D_Enabled = toml::find<bool>(data, "Recon", "Cluster3D", "Enabled");
+  _RECO_CLUSTER3D_GraphSearch = toml::find<bool>(data, "Recon", "Cluster3D", "GraphSearch");
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");

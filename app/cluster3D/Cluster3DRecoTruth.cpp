@@ -13,8 +13,8 @@
 //     track (most of its energy share) gives completeness and purity; more
 //     than one owned track is a duplicate.
 //
-// Stage 2 (graph search in non-track-like clusters) is on by default here;
-// CLUSTER3D_GRAPH=0 turns it off. Requires reco files with the per-hit
+// Stage 2 (graph search in non-track-like clusters) is off by default, as in
+// the library; CLUSTER3D_GRAPH=1 turns it on. Requires reco files with the per-hit
 // table and per-hit energy shares (converted 2026-09-25 evening or later).
 //
 // Usage: Cluster3DRecoTruth <edep_sim_geom_file> <reco.root> <tracks.csv> <muons.csv>

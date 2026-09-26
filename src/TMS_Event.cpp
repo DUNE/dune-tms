@@ -4,6 +4,7 @@
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
 #include "TMS_SpacePointBuilder.h"
+#include "TMS_Cluster3DReco.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -438,6 +439,11 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       generator(event.generator) {
   // Create an event from a slice of another event
   RunNumber = event.RunNumber;
+  // Was left uninitialized for slices, so Truth_Info's nPrimaryVertices and
+  // HasPileup held garbage for every slice (found 2026-09-25 when the output
+  // of two identical runs differed in that one leaf). The parent event's
+  // (the spill's) count, like the other inherited fields here.
+  nVertices = event.nVertices;
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
 
@@ -1018,6 +1024,122 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
   if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
     hadronic_energy_tms += hadronic_energy;
     true_visible_energy_tms += energy;
+  }
+}
+
+void TMS_Event::RunCluster3DReco() {
+  // Settings: the library defaults, plus [Recon.Cluster3D] from the config.
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  TMS_Cluster3DReco::Config config;
+  config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
+  static const RegionFieldModel field;
+
+  const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  const std::vector<TMS_KalmanFollower::FitHit> fitHits = TMS_Cluster3DReco::BuildFitHits(TMS_Hits, barPitch);
+  const std::vector<TMS_Cluster3DReco::Track> tracks =
+      TMS_Cluster3DReco::Run(TMS_SpacePoints, fitHits, config, field);
+
+  Cluster3DTracks.clear();
+  for (const TMS_Cluster3DReco::Track &track : tracks) {
+    const TMS_KalmanFollower::FitResult &fit = track.Fit;
+    TMS_Track out;
+    for (int h : track.HitIndices) out.Hits.push_back(TMS_Hits[h]);
+    out.nHits = static_cast<int>(out.Hits.size());
+    double deposit = 0.0;
+    for (const TMS_Hit &hit : out.Hits) deposit += hit.GetE();
+    out.EnergyDeposit = deposit;
+
+    // Kalman nodes: the filtered state at each accepted point. RecoX/RecoY is
+    // that state's position (as the legacy fit's nodes carry its prediction);
+    // TrueX/TrueY the true position of the chosen point's y-measuring (X-bar)
+    // and x-measuring (Y-bar) hits. Cluster3D fits once, so the legacy fit's
+    // separate plus/minus-charge node lists are copies of the same nodes.
+    double length = 0.0;
+    bool havePrevious = false;
+    double px = 0, py = 0, pz = 0;
+    for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+      if (!node.HasHit) continue;
+      const double z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+      TMS_KalmanNode kn(node.FilteredX, node.FilteredY, z, 0.0, node.FilteredDXDZ, node.FilteredDYDZ);
+      kn.RecoX = node.FilteredX;
+      kn.RecoY = node.FilteredY;
+      kn.MeasurementVec[0] = node.FilteredX;
+      kn.MeasurementVec[1] = node.FilteredY;
+      kn.TrueX = kn.TrueY = -999999.0;
+      const TMS_SpacePoint &point = TMS_SpacePoints[node.ChosenSpacePointIndex];
+      if (point.GetXHitIndex() >= 0) {
+        const TMS_TrueHit *trueHit = GetTrueHit(TMS_Hits[point.GetXHitIndex()].GetHitId());
+        if (trueHit != nullptr) kn.TrueY = trueHit->GetY();
+      }
+      if (point.GetYHitIndex() >= 0) {
+        const TMS_TrueHit *trueHit = GetTrueHit(TMS_Hits[point.GetYHitIndex()].GetHitId());
+        if (trueHit != nullptr) kn.TrueX = trueHit->GetX();
+      }
+      out.KalmanNodes.push_back(kn);
+      if (havePrevious)
+        length += std::sqrt((node.FilteredX - px) * (node.FilteredX - px) + (node.FilteredY - py) * (node.FilteredY - py) +
+                            (z - pz) * (z - pz));
+      px = node.FilteredX;
+      py = node.FilteredY;
+      pz = z;
+      havePrevious = true;
+    }
+    out.KalmanNodes_plus = out.KalmanNodes;
+    out.KalmanNodes_minus = out.KalmanNodes;
+    out.Length = length;
+
+    // Each hit's reconstructed position (TMS_Hit::RecoX/RecoY, what the
+    // writer stores as the track's hit positions): the filtered state
+    // nearest the hit's plane, transported straight to it.
+    for (TMS_Hit &hit : out.Hits) {
+      const TMS_KalmanFollower::FollowedNode *nearest = nullptr;
+      double nearestZ = 0.0;
+      for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+        if (!node.HasHit) continue;
+        const double z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+        if (!nearest || std::abs(z - hit.GetZ()) < std::abs(nearestZ - hit.GetZ())) {
+          nearest = &node;
+          nearestZ = z;
+        }
+      }
+      if (!nearest) continue;
+      const double dz = hit.GetZ() - nearestZ;
+      hit.SetRecoX(nearest->FilteredX + nearest->FilteredDXDZ * dz);
+      hit.SetRecoY(nearest->FilteredY + nearest->FilteredDYDZ * dz);
+      hit.SetRecoXUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(0, 0))));
+      hit.SetRecoYUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(1, 1))));
+    }
+
+    // Start: the backward pass's state at the first measurement; end: the
+    // forward walk's last accepted node. Times: the track's t0.
+    const auto direction = [](double dxdz, double dydz, double out3[3]) {
+      const double norm = std::sqrt(1.0 + dxdz * dxdz + dydz * dydz);
+      out3[0] = dxdz / norm;
+      out3[1] = dydz / norm;
+      out3[2] = 1.0 / norm;
+    };
+    const TMS_KalmanFollower::FollowedNode *last = nullptr;
+    for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes)
+      if (node.HasHit) last = &node;
+    if (fit.HasStartState) {
+      out.SetStartPosition(fit.StartX, fit.StartY, fit.StartZ);
+      direction(fit.StartDXDZ, fit.StartDYDZ, out.StartDirection);
+      out.Momentum = fit.StartMomentumMeV;
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge >= 0 ? 1 : -1;
+    } else if (!fit.Nodes.empty()) {
+      const TMS_KalmanFollower::FollowedNode &first = fit.Nodes.front();
+      out.SetStartPosition(first.FilteredX, first.FilteredY, first.FilteredZ != 0.0 ? first.FilteredZ : first.Z);
+      direction(first.FilteredDXDZ, first.FilteredDYDZ, out.StartDirection);
+      out.Momentum = fit.MomentumMeV;
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.Charge >= 0 ? 1 : -1;
+    }
+    if (last != nullptr) {
+      out.SetEndPosition(last->FilteredX, last->FilteredY, last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
+      direction(last->FilteredDXDZ, last->FilteredDYDZ, out.EndDirection);
+    }
+    out.Start[3] = out.End[3] = out.Time = fit.TrackT0Ns;
+    out.Chi2 = out.Chi2_plus = out.Chi2_minus = fit.TotalChi2;
+    Cluster3DTracks.push_back(out);
   }
 }
 
