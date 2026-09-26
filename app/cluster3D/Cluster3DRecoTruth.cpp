@@ -17,6 +17,13 @@
 // the library; CLUSTER3D_GRAPH=1 turns it on. Requires reco files with the per-hit
 // table and per-hit energy shares (converted 2026-09-25 evening or later).
 //
+// Each muon row also says how its space points are spread over the DBSCAN
+// clusters, and -- for a muon whose best track ends early -- where the rest of
+// it went (its "tail": hits/points more than kTailMarginMM downstream of the
+// best track's last hit): the track's own cluster, other clusters, DBSCAN
+// noise, or another track. This is the ceiling study for linking clusters
+// before the fit (2026-09-26).
+//
 // Usage: Cluster3DRecoTruth <edep_sim_geom_file> <reco.root> <tracks.csv> <muons.csv>
 
 #include <algorithm>
@@ -46,6 +53,10 @@ namespace {
 const int kMaxSpacePoints = 10000;    // __TMS_MAX_SPACEPOINTS__
 const int kMaxHits = 20000;           // __TMS_MAX_HITS__
 const int kMaxTrueParticles = 20000;
+// A muon hit/point counts as beyond its best track's end only when it is at
+// least this far downstream of the track's last hit (so hits in the same
+// plane or plane pair are not counted).
+const double kTailMarginMM = 20.0;
 
 struct SpillParticles {
   int n = 0;
@@ -53,6 +64,9 @@ struct SpillParticles {
   std::vector<int> trackid, pdg, parent_trackid;
   std::vector<bool> tms_fiducial_start, lar_fiducial_start, tms_fiducial_end;
   std::vector<float> momentum;  // MomentumTMSStart, 4 per particle
+  // Starts inside the ND-LAr box the validation suite's Reco_Eff uses for its
+  // ND-physics sample (is_lar_start_position) -- looser than LArFiducialStart.
+  std::vector<bool> lar_box_start;
   std::unordered_map<TrueLabel, int, LabelHash> index_of;
   std::vector<int> collapsed_trackid;
 };
@@ -115,7 +129,7 @@ int main(int argc, char **argv) {
   int spill_no_ts = 0, n_tp_ts = 0;
   static std::vector<long long> vgid_ts(kMaxTrueParticles);
   static std::vector<int> trackid_ts(kMaxTrueParticles), pdg_ts(kMaxTrueParticles), parent_ts(kMaxTrueParticles);
-  static std::vector<float> mom_ts(kMaxTrueParticles * 4);
+  static std::vector<float> mom_ts(kMaxTrueParticles * 4), birth_ts(kMaxTrueParticles * 4);
   static bool fid_start_ts[kMaxTrueParticles], lar_start_ts[kMaxTrueParticles], fid_end_ts[kMaxTrueParticles];
   truth_spill->SetBranchAddress("SpillNo", &spill_no_ts);
   truth_spill->SetBranchAddress("nTrueParticles", &n_tp_ts);
@@ -124,6 +138,7 @@ int main(int argc, char **argv) {
   truth_spill->SetBranchAddress("PDG", pdg_ts.data());
   truth_spill->SetBranchAddress("Parent", parent_ts.data());
   truth_spill->SetBranchAddress("MomentumTMSStart", mom_ts.data());
+  truth_spill->SetBranchAddress("BirthPosition", birth_ts.data());
   truth_spill->SetBranchAddress("TMSFiducialStart", fid_start_ts);
   truth_spill->SetBranchAddress("LArFiducialStart", lar_start_ts);
   truth_spill->SetBranchAddress("TMSFiducialEnd", fid_end_ts);
@@ -137,6 +152,12 @@ int main(int argc, char **argv) {
     sp.pdg.assign(pdg_ts.begin(), pdg_ts.begin() + n_tp_ts);
     sp.parent_trackid.assign(parent_ts.begin(), parent_ts.begin() + n_tp_ts);
     sp.momentum.assign(mom_ts.begin(), mom_ts.begin() + n_tp_ts * 4);
+    sp.lar_box_start.resize(n_tp_ts);
+    for (int k = 0; k < n_tp_ts; ++k) {
+      const float *b = &birth_ts[k * 4];
+      sp.lar_box_start[k] = b[0] >= -3478.48 && b[0] <= 3478.48 && b[1] >= -2166.71 && b[1] <= 829.282 &&
+                            b[2] >= 4179.24 && b[2] <= 9135.88;
+    }
     sp.tms_fiducial_start.assign(fid_start_ts, fid_start_ts + n_tp_ts);
     sp.lar_fiducial_start.assign(lar_start_ts, lar_start_ts + n_tp_ts);
     sp.tms_fiducial_end.assign(fid_end_ts, fid_end_ts + n_tp_ts);
@@ -187,7 +208,11 @@ int main(int argc, char **argv) {
   muons_csv << "sourcefile,entry,slice,vertexglobalid,trackid,vertex_in_tms,vertex_in_lar_fiducial,stops_in_tms,"
                "true_hits_in_slice,true_momentum_tms_mev,true_charge,tracks_owned,found,best_stage,"
                "hit_completeness_pct,hit_purity_pct,best_start_momentum_mev,best_start_charge,"
-               "captor_share_pct,captor_owner_vgid,captor_owner_trackid,captor_stage\n";
+               "captor_share_pct,captor_owner_vgid,captor_owner_trackid,captor_stage,"
+               "n_points,n_noise_points,n_clusters,n_clusters_2pt,n_tracklike_clusters,frac_in_largest_cluster,"
+               "largest_cluster_muon_purity,true_last_hit_z,best_last_hit_z,best_cluster,tail_hits,"
+               "tail_hits_other_tracks,tail_points,tail_points_best_cluster,tail_points_other_clusters,"
+               "tail_other_clusters,tail_points_noise,vertex_in_lar_box\n";
 
   long n_tracks = 0, n_stage2 = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
@@ -233,7 +258,21 @@ int main(int argc, char **argv) {
       points.emplace_back(sp_x[i], sp_y[i], sp_z[i], sp_xi[i], sp_yi[i], sp_t[i], sp_layer.Layer(i, sp_z[i]));
 
     // --- Reconstruction (no truth). ---
-    const std::vector<TMS_Cluster3DReco::Track> tracks = TMS_Cluster3DReco::Run(points, hits, config, field);
+    TMS_Cluster3DReco::RunInfo run_info;
+    const std::vector<TMS_Cluster3DReco::Track> tracks = TMS_Cluster3DReco::Run(points, hits, config, field, &run_info);
+
+    // Which DBSCAN cluster each point is in (-1 = noise), each point's true
+    // owner, and which track (if any) used each hit.
+    std::vector<int> point_cluster(n_sp, -1);
+    for (std::size_t c = 0; c < run_info.Clusters.size(); ++c)
+      for (int idx : run_info.Clusters[c]) point_cluster[idx] = static_cast<int>(c);
+    std::vector<TrueLabel> point_owner(n_sp);
+    for (int i = 0; i < n_sp; ++i)
+      if (sp_xi[i] >= 0 && sp_yi[i] >= 0 && sp_xi[i] < n_hits && sp_yi[i] < n_hits)
+        point_owner[i] = PointOwner(hit_truth[sp_xi[i]], hit_truth[sp_yi[i]]);
+    std::vector<int> hit_track(n_hits, -1);
+    for (std::size_t t = 0; t < tracks.size(); ++t)
+      for (int h : tracks[t].HitIndices) hit_track[h] = static_cast<int>(t);
 
     // --- Scoring: each track's owner by hit energy share. ---
     struct Owned {
@@ -309,6 +348,57 @@ int main(int argc, char **argv) {
           captor = &o;
         }
       }
+      // --- How this muon's points are spread over the DBSCAN clusters. ---
+      std::map<int, int> muon_points_in_cluster;  // cluster -> this muon's points in it
+      int n_points = 0, n_noise_points = 0;
+      for (int k = 0; k < n_sp; ++k) {
+        if (!(point_owner[k] == label)) continue;
+        ++n_points;
+        if (point_cluster[k] < 0) ++n_noise_points;
+        else ++muon_points_in_cluster[point_cluster[k]];
+      }
+      int n_clusters_2pt = 0, n_tracklike_clusters = 0, largest_cluster = -1, largest_count = 0;
+      for (const auto &kv : muon_points_in_cluster) {
+        if (kv.second >= 2) ++n_clusters_2pt;
+        if (run_info.ClusterTrackLike[kv.first]) ++n_tracklike_clusters;
+        if (kv.second > largest_count) {
+          largest_count = kv.second;
+          largest_cluster = kv.first;
+        }
+      }
+      const double largest_purity =
+          largest_cluster >= 0 ? static_cast<double>(largest_count) / run_info.Clusters[largest_cluster].size() : 0.0;
+
+      // --- Where the muon's tail went, beyond its best track's last hit. ---
+      // (With no best track, the whole muon is tail.)
+      double true_last_z = -1e9, best_last_z = -1e9;
+      for (int h = 0; h < n_hits; ++h)
+        if (usable[h] && hit_truth[h].Share(label) > 0.5) true_last_z = std::max(true_last_z, (double)h_z[h]);
+      const int best_track = best ? static_cast<int>(best->track - tracks.data()) : -1;
+      const int best_cluster = best ? best->track->ClusterIndex : -1;
+      if (best)
+        for (int h : best->track->HitIndices) best_last_z = std::max(best_last_z, (double)h_z[h]);
+      const double tail_from = best ? best_last_z + kTailMarginMM : -1e9;
+      int tail_hits = 0, tail_hits_other_tracks = 0;
+      for (int h = 0; h < n_hits; ++h) {
+        if (!usable[h] || !(hit_truth[h].Share(label) > 0.5) || h_z[h] <= tail_from) continue;
+        ++tail_hits;
+        if (hit_track[h] >= 0 && hit_track[h] != best_track) ++tail_hits_other_tracks;
+      }
+      int tail_points = 0, tail_points_best_cluster = 0, tail_points_other_clusters = 0, tail_points_noise = 0;
+      std::set<int> tail_other_clusters;
+      for (int k = 0; k < n_sp; ++k) {
+        if (!(point_owner[k] == label) || sp_z[k] <= tail_from) continue;
+        ++tail_points;
+        const int c = point_cluster[k];
+        if (c < 0) ++tail_points_noise;
+        else if (c == best_cluster) ++tail_points_best_cluster;
+        else {
+          ++tail_points_other_clusters;
+          tail_other_clusters.insert(c);
+        }
+      }
+
       const double p = std::sqrt(sp.momentum[i * 4] * sp.momentum[i * 4] + sp.momentum[i * 4 + 1] * sp.momentum[i * 4 + 1] +
                                  sp.momentum[i * 4 + 2] * sp.momentum[i * 4 + 2]);
       muons_csv << input_filename << "," << entry << "," << slice_no << "," << label.vgid << "," << label.trackid << ","
@@ -322,7 +412,13 @@ int main(int argc, char **argv) {
                 << (best && best->track->Fit.HasStartState ? best->track->Fit.StartCharge : 0.0) << ","
                 << (captor && total_share > 0 ? 100.0 * captor_share / total_share : 0.0) << ","
                 << (captor ? captor->owner.vgid : -1) << "," << (captor ? captor->owner.trackid : -999) << ","
-                << (captor ? captor->track->Stage : 0) << "\n";
+                << (captor ? captor->track->Stage : 0) << "," << n_points << "," << n_noise_points << ","
+                << muon_points_in_cluster.size() << "," << n_clusters_2pt << "," << n_tracklike_clusters << ","
+                << (n_points > 0 ? static_cast<double>(largest_count) / n_points : 0.0) << "," << largest_purity << ","
+                << true_last_z << "," << (best ? best_last_z : 0.0) << "," << best_cluster << "," << tail_hits << ","
+                << tail_hits_other_tracks << "," << tail_points << "," << tail_points_best_cluster << ","
+                << tail_points_other_clusters << "," << tail_other_clusters.size() << "," << tail_points_noise << ","
+                << (sp.lar_box_start[i] ? 1 : 0) << "\n";
     }
   }
   std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << ")" << std::endl;

@@ -54,8 +54,9 @@ std::vector<int> UsedHits(const TMS_KalmanFollower::FitResult &fit, const std::v
 
 std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
                        const std::vector<TMS_KalmanFollower::FitHit> &hits, const Config &config,
-                       const IFieldModel &field) {
+                       const IFieldModel &field, RunInfo *info) {
   std::vector<Track> tracks;
+  if (info) *info = RunInfo();
   if (points.empty()) return tracks;
 
   // DBSCAN tolerance: the geometry's bar pitch as the base, unless set.
@@ -92,8 +93,11 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
   std::vector<std::size_t> trackLike, other;
   for (std::size_t c = 0; c < clusters.size(); ++c) {
     TMS_SpacePointCluster cluster(points, clusters[c]);
-    (cluster.IsTrackLike(config.LinearityThreshold, config.MinClusterSizeForTrack) ? trackLike : other).push_back(c);
+    const bool isTrackLike = cluster.IsTrackLike(config.LinearityThreshold, config.MinClusterSizeForTrack);
+    (isTrackLike ? trackLike : other).push_back(c);
+    if (info) info->ClusterTrackLike.push_back(isTrackLike);
   }
+  if (info) info->Clusters = clusters;
   // Largest first, so a big merged cluster claims its hits before any small
   // fragment beside it can.
   const auto largestFirst = [&](std::size_t a, std::size_t b) { return clusters[a].size() > clusters[b].size(); };

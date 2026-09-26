@@ -93,12 +93,19 @@ struct Track {
 // hits and other bar orientations are marked unusable.
 std::vector<TMS_KalmanFollower::FitHit> BuildFitHits(const std::vector<TMS_Hit> &hits, double barPitchMM);
 
+// What Run() saw on the way, for diagnostics: the DBSCAN clusters (point
+// indices; Track::ClusterIndex indexes these) and which are track-like.
+struct RunInfo {
+  std::vector<std::vector<int>> Clusters;
+  std::vector<bool> ClusterTrackLike;
+};
+
 // Reconstruct one slice. hits: as BuildFitHits() makes them (or empty, for
 // the space-point fit). Needs the TMS geometry loaded (TMS_Geom) for the
-// material and the X/Y time transit correction.
+// material and the X/Y time transit correction. info, if given, is filled.
 std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
                        const std::vector<TMS_KalmanFollower::FitHit> &hits, const Config &config,
-                       const IFieldModel &field);
+                       const IFieldModel &field, RunInfo *info = nullptr);
 
 }  // namespace TMS_Cluster3DReco
 
