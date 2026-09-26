@@ -1350,6 +1350,7 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
     FillRecoEff(reco_eff_context);
 #include "TimeSlicing.cxx"
 #include "Track_Resolution.cxx"
+#include "MomentumResolution.cxx"
 #include "TruthVtx.cxx"
 
   } // End for loop over entries
