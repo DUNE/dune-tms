@@ -1424,13 +1424,27 @@ std::string Trim(const std::string &text) {
   return text.substr(first, last - first + 1);
 }
 
+// Which reconstruction to validate: the tree names for the reco output and
+// the per-track truth. Defaults are the legacy reconstruction's trees;
+// TMS_VALIDATION_RECO_TREE / TMS_VALIDATION_TRUTH_TREE select another (e.g.
+// Reco_Tree_C3D / Truth_Info_C3D for the Cluster3D reconstruction, written
+// next to the legacy trees by ConvertToTMSTree when [Recon.Cluster3D] is on).
+std::string RecoTreeName() {
+  const char *name = std::getenv("TMS_VALIDATION_RECO_TREE");
+  return name ? name : "Reco_Tree";
+}
+std::string TruthTreeName() {
+  const char *name = std::getenv("TMS_VALIDATION_TRUTH_TREE");
+  return name ? name : "Truth_Info";
+}
+
 bool HasValidationTrees(const std::filesystem::path &path) {
   TFile file(path.string().c_str(), "READ");
   if (file.IsZombie())
     return false;
 
-  return file.Get("Truth_Info") && file.Get("Truth_Spill") &&
-         file.Get("Reco_Tree") &&
+  return file.Get(TruthTreeName().c_str()) && file.Get("Truth_Spill") &&
+         file.Get(RecoTreeName().c_str()) &&
          file.Get("Line_Candidates");
 }
 
@@ -1574,9 +1588,10 @@ int main(int argc, char *argv[]) {
     DrawSliceN::max_slices = atoi(argv[3]);
 
   // Load the trees and make the MakeClass objects
-  TChain *truth = new TChain("Truth_Info");
+  TChain *truth = new TChain(TruthTreeName().c_str());
   TChain *truth_spill = new TChain("Truth_Spill");
-  TChain *reco = new TChain("Reco_Tree");
+  TChain *reco = new TChain(RecoTreeName().c_str());
+  std::cout << "Validating reco tree " << RecoTreeName() << " with truth tree " << TruthTreeName() << std::endl;
   TChain *line_candidates = new TChain("Line_Candidates");
   AddInputsToChain(*truth, inputFiles);
   AddInputsToChain(*truth_spill, inputFiles);
@@ -1620,25 +1635,26 @@ int main(int argc, char *argv[]) {
   static Line_Candidates li(line_candidates);
   std::cout << "Loaded Line_Candidates" << std::endl;
 
-  std::string directoryPath = "/exp/dune/data/users/" +
-                              std::string(getenv("USER")) +
-                              "/dune-tms/Validation/" + exeName + "/";
-
-  if (createDirectory(directoryPath)) {
-    std::cout << "Directory created: " << directoryPath << std::endl;
-  } else {
-    std::cerr << "Failed to create directory" << std::endl;
-    exit(1);
-  }
-
   SetEnergyFunctionBasedOnInputFile(inputFilename);
 
   // Create output filename, GIT_BRANCH_NAME + "_" +
   std::string outputFilename;
-  if (argc > 4)
+  if (argc > 4) {
     outputFilename = argv[4];
-  else
+  } else {
+    // Default location (FNAL disk) -- only needed, and only created, when no
+    // output file was given, so the tool also runs off the FNAL machines.
+    std::string directoryPath = "/exp/dune/data/users/" +
+                                std::string(getenv("USER")) +
+                                "/dune-tms/Validation/" + exeName + "/";
+    if (createDirectory(directoryPath)) {
+      std::cout << "Directory created: " << directoryPath << std::endl;
+    } else {
+      std::cerr << "Failed to create directory" << std::endl;
+      exit(1);
+    }
     outputFilename = directoryPath + getOutputFilename(inputFilename);
+  }
 
   save_location = getOutputDirname(outputFilename);
 

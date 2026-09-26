@@ -1125,13 +1125,15 @@ void TMS_Event::RunCluster3DReco() {
       out.SetStartPosition(fit.StartX, fit.StartY, fit.StartZ);
       direction(fit.StartDXDZ, fit.StartDYDZ, out.StartDirection);
       out.Momentum = fit.StartMomentumMeV;
-      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge >= 0 ? 1 : -1;
+      // Charge in the legacy tracks' PDG convention: 13 = mu- (physical
+      // charge -1), -13 = mu+ -- what the validation suite expects.
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge < 0 ? 13 : -13;
     } else if (!fit.Nodes.empty()) {
       const TMS_KalmanFollower::FollowedNode &first = fit.Nodes.front();
       out.SetStartPosition(first.FilteredX, first.FilteredY, first.FilteredZ != 0.0 ? first.FilteredZ : first.Z);
       direction(first.FilteredDXDZ, first.FilteredDYDZ, out.StartDirection);
       out.Momentum = fit.MomentumMeV;
-      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.Charge >= 0 ? 1 : -1;
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.Charge < 0 ? 13 : -13;
     }
     if (last != nullptr) {
       out.SetEndPosition(last->FilteredX, last->FilteredY, last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);

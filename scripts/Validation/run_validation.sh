@@ -4,13 +4,18 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./run_validation.sh <input file|filelist.txt|glob|directory> [output name|output.root] [num_events] [max_slices]
+  ./run_validation.sh [--cluster3d] <input file|filelist.txt|glob|directory> [output name|output.root] [num_events] [max_slices]
   ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices]
   ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices] [output name|output.root]
 
 If the second argument is non-numeric, it is used as the output name/stem.
 Directory inputs are scanned recursively by Tracking_Validation.
 Text-file inputs are treated as one ROOT file path or URL per line.
+
+--cluster3d validates the Cluster3D reconstruction instead of the legacy one:
+it reads Reco_Tree_C3D / Truth_Info_C3D (written by ConvertToTMSTree with
+[Recon.Cluster3D] Enabled). Equivalent to setting TMS_VALIDATION_RECO_TREE and
+TMS_VALIDATION_TRUTH_TREE.
 EOF
 }
 
@@ -19,6 +24,12 @@ is_integer() {
 }
 
 validation_dir="/exp/dune/data/users/${USER}/dune-tms/Validation/Tracking_Validation"
+
+if [[ $# -gt 0 ]] && [[ "$1" == "--cluster3d" ]]; then
+  export TMS_VALIDATION_RECO_TREE=Reco_Tree_C3D
+  export TMS_VALIDATION_TRUTH_TREE=Truth_Info_C3D
+  shift
+fi
 
 if [[ $# -lt 1 ]]; then
   usage >&2
