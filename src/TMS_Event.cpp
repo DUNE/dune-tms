@@ -1034,6 +1034,9 @@ void TMS_Event::RunCluster3DReco() {
   config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
   config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
   const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
+  const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
+  const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();
+  const TVector3 tmsLo = TMS_Geom::GetInstance().GetStartOfTMS(), tmsHi = TMS_Geom::GetInstance().GetEndOfTMS();
   static const RegionFieldModel field;
 
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
@@ -1129,10 +1132,22 @@ void TMS_Event::RunCluster3DReco() {
     if (fit.HasStartState) {
       out.SetStartPosition(fit.StartX, fit.StartY, fit.StartZ);
       direction(fit.StartDXDZ, fit.StartDYDZ, out.StartDirection);
-      // The track's momentum: its range (legacy's definition -- see
-      // TMS_KalmanFollower::Config::RangeStopMomentumMeV) with
-      // [Recon.Cluster3D] MomentumFromRange, else the curvature fit's.
-      out.Momentum = (momentumFromRange && fit.RangeMomentumMeV > 0.0) ? fit.RangeMomentumMeV : fit.StartMomentumMeV;
+      // The track's momentum. With [Recon.Cluster3D] MomentumFromRange: its
+      // range (legacy's definition -- see TMS_KalmanFollower::Config::
+      // RangeStopMomentumMeV) if the track stops inside the TMS -- its fitted
+      // end at least RangeContainmentMarginXY from the x/y faces of the bar
+      // region and RangeContainmentMarginZ before its back face -- else the
+      // curvature fit's, since range is only a lower bound for a muon that
+      // leaves. Otherwise always the curvature fit's.
+      bool stopsInside = false;
+      if (last != nullptr) {
+        const double ex = last->FilteredX, ey = last->FilteredY;
+        const double ez = last->FilteredZ != 0.0 ? last->FilteredZ : last->Z;
+        stopsInside = ex > tmsLo.X() + containXY && ex < tmsHi.X() - containXY && ey > tmsLo.Y() + containXY &&
+                      ey < tmsHi.Y() - containXY && ez < tmsHi.Z() - containZ;
+      }
+      out.Momentum = (momentumFromRange && stopsInside && fit.RangeMomentumMeV > 0.0) ? fit.RangeMomentumMeV
+                                                                                     : fit.StartMomentumMeV;
       // Charge in the legacy tracks' PDG convention: 13 = mu- (physical
       // charge -1), -13 = mu+ -- what the validation suite expects.
       out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge < 0 ? 13 : -13;

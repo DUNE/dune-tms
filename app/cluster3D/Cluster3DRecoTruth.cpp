@@ -40,6 +40,7 @@
 #include "TFile.h"
 #include "TGeoManager.h"
 #include "TTree.h"
+#include "TVector3.h"
 
 #include "TMS_Cluster3DReco.h"
 #include "TMS_FieldModel.h"
@@ -106,6 +107,11 @@ int main(int argc, char **argv) {
     return -1;
   }
   TMS_Geom::GetInstance().SetGeometry(geom);
+  {
+    const TVector3 lo = TMS_Geom::GetInstance().GetStartOfTMS(), hi = TMS_Geom::GetInstance().GetEndOfTMS();
+    std::cout << "TMS bar-region box (mm): x " << lo.X() << " " << hi.X() << "  y " << lo.Y() << " " << hi.Y() << "  z "
+              << lo.Z() << " " << hi.Z() << std::endl;
+  }
   const double bar_pitch = TMS_Geom::GetInstance().GetMaxBarPitch();
 
   TMS_Cluster3DReco::Config config;
@@ -221,7 +227,7 @@ int main(int argc, char **argv) {
                "largest_cluster_muon_purity,true_last_hit_z,best_last_hit_z,best_cluster,tail_hits,"
                "tail_hits_other_tracks,tail_points,tail_points_best_cluster,tail_points_other_clusters,"
                "tail_other_clusters,tail_points_noise,vertex_in_lar_box,best_stop,best_end_momentum_mev,"
-               "best_range_momentum_mev,best_range_seeded_momentum_mev\n";
+               "best_range_momentum_mev,best_range_seeded_momentum_mev,best_end_x,best_end_y,best_end_z\n";
 
   long n_tracks = 0, n_stage2 = 0, n_chains = 0, n_chained_clusters = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
@@ -410,6 +416,17 @@ int main(int argc, char **argv) {
         }
       }
 
+      // The best track's fitted end: the last node with an accepted
+      // measurement (for choosing a reco containment test).
+      double bestEnd[3] = {0.0, 0.0, 0.0};
+      if (best)
+        for (const auto &node : best->track->Fit.Nodes)
+          if (node.HasHit) {
+            bestEnd[0] = node.FilteredX;
+            bestEnd[1] = node.FilteredY;
+            bestEnd[2] = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+          }
+
       const double p = std::sqrt(sp.momentum[i * 4] * sp.momentum[i * 4] + sp.momentum[i * 4 + 1] * sp.momentum[i * 4 + 1] +
                                  sp.momentum[i * 4 + 2] * sp.momentum[i * 4 + 2]);
       muons_csv << input_filename << "," << entry << "," << slice_no << "," << label.vgid << "," << label.trackid << ","
@@ -435,7 +452,8 @@ int main(int argc, char **argv) {
                 << (best ? static_cast<int>(best->track->Fit.Stop) : -1) << ","
                 << (best ? best->track->Fit.MomentumMeV : 0.0) << ","
                 << (best ? best->track->Fit.RangeMomentumMeV : 0.0) << ","
-                << (best ? best->track->Fit.RangeSeededMomentumMeV : 0.0) << "\n";
+                << (best ? best->track->Fit.RangeSeededMomentumMeV : 0.0) << "," << bestEnd[0] << "," << bestEnd[1] << ","
+                << bestEnd[2] << "\n";
     }
   }
   std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << "); linked chains: " << n_chains

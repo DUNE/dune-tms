@@ -51,6 +51,8 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTER3D_GraphSearch = toml::find<bool>(data, "Recon", "Cluster3D", "GraphSearch");
   _RECO_CLUSTER3D_LinkClusters = toml::find<bool>(data, "Recon", "Cluster3D", "LinkClusters");
   _RECO_CLUSTER3D_MomentumFromRange = toml::find<bool>(data, "Recon", "Cluster3D", "MomentumFromRange");
+  _RECO_CLUSTER3D_RangeContainmentMarginXY = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginXY");
+  _RECO_CLUSTER3D_RangeContainmentMarginZ = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginZ");
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
