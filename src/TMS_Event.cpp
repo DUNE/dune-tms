@@ -450,6 +450,7 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
 
 
   nTrueTrajectories = -999;
+  nVertices = -999;
   VertexIdOfMostEnergyInEvent = -9991;
   VertexGlobalIdOfMostEnergyInEvent = -9991;
   LightWeight = true;
