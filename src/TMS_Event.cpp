@@ -1060,9 +1060,6 @@ void TMS_Event::RunCluster3DReco() {
     // TrueX/TrueY the true position of the chosen point's y-measuring (X-bar)
     // and x-measuring (Y-bar) hits. Cluster3D fits once, so the legacy fit's
     // separate plus/minus-charge node lists are copies of the same nodes.
-    double length = 0.0;
-    bool havePrevious = false;
-    double px = 0, py = 0, pz = 0;
     for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
       if (!node.HasHit) continue;
       const double z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
@@ -1082,20 +1079,9 @@ void TMS_Event::RunCluster3DReco() {
         if (trueHit != nullptr) kn.TrueX = trueHit->GetX();
       }
       out.KalmanNodes.push_back(kn);
-      // Length as the legacy fit reports it (TMS_TrackFinder::
-      // CalculateTrackLengthKalman): areal density in g/cm^2, walked through
-      // the geometry between consecutive nodes -- what the range-to-energy
-      // conversions downstream expect, not a path length in mm.
-      if (havePrevious)
-        length += TMS_Geom::GetInstance().GetTrackLength(TVector3(px, py, pz), TVector3(node.FilteredX, node.FilteredY, z));
-      px = node.FilteredX;
-      py = node.FilteredY;
-      pz = z;
-      havePrevious = true;
     }
     out.KalmanNodes_plus = out.KalmanNodes;
     out.KalmanNodes_minus = out.KalmanNodes;
-    out.Length = length;
 
     // Each hit's reconstructed position (TMS_Hit::RecoX/RecoY, what the
     // writer stores as the track's hit positions): the filtered state
@@ -1117,6 +1103,31 @@ void TMS_Event::RunCluster3DReco() {
       hit.SetRecoY(nearest->FilteredY + nearest->FilteredDYDZ * dz);
       hit.SetRecoXUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(0, 0))));
       hit.SetRecoYUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(1, 1))));
+    }
+
+    // Length as the legacy fit reports it: areal density in g/cm^2, walked
+    // through the geometry -- what the range-to-energy conversions downstream
+    // (EnergyRange, the validation suite) expect, not a path length in mm.
+    // Walked hit to hit in z, at each hit's reconstructed position, through
+    // every hit the track uses (orphans and the single-hit extension
+    // included), so it covers the same stretch as the range momentum. (It was
+    // summed node to node over the walked nodes only, missing the extension:
+    // 2026-09-27, the suite's length-based energy read -9% for stopping
+    // muons while the range momentum read +2%.)
+    {
+      std::vector<const TMS_Hit *> byZ;
+      for (const TMS_Hit &hit : out.Hits) byZ.push_back(&hit);
+      std::sort(byZ.begin(), byZ.end(), [](const TMS_Hit *a, const TMS_Hit *b) { return a->GetZ() < b->GetZ(); });
+      double length = 0.0;
+      const TMS_Hit *previous = nullptr;
+      for (const TMS_Hit *hit : byZ) {
+        if (previous && hit->GetZ() - previous->GetZ() > 1e-3)
+          length += TMS_Geom::GetInstance().GetTrackLength(
+              TVector3(previous->GetRecoX(), previous->GetRecoY(), previous->GetZ()),
+              TVector3(hit->GetRecoX(), hit->GetRecoY(), hit->GetZ()));
+        if (!previous || hit->GetZ() - previous->GetZ() > 1e-3) previous = hit;
+      }
+      out.Length = length;
     }
 
     // Start: the backward pass's state at the first measurement; end: the

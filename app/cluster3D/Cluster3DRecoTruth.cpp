@@ -244,7 +244,8 @@ int main(int argc, char **argv) {
                "largest_cluster_muon_purity,true_last_hit_z,best_last_hit_z,best_cluster,tail_hits,"
                "tail_hits_other_tracks,tail_points,tail_points_best_cluster,tail_points_other_clusters,"
                "tail_other_clusters,tail_points_noise,vertex_in_lar_box,best_stop,best_end_momentum_mev,"
-               "best_range_momentum_mev,best_range_seeded_momentum_mev,best_end_x,best_end_y,best_end_z\n";
+               "best_range_momentum_mev,best_range_seeded_momentum_mev,best_end_x,best_end_y,best_end_z,"
+               "own_hits_meas_x,own_hits_meas_y,own_hits_in_no_point,points_touching,points_touching_not_owned\n";
 
   long n_tracks = 0, n_stage2 = 0, n_chains = 0, n_chained_clusters = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
@@ -434,6 +435,28 @@ int main(int argc, char **argv) {
         if (point_cluster[k] < 0) ++n_noise_points;
         else ++muon_points_in_cluster[point_cluster[k]];
       }
+      // Space-point building diagnostics: the muon's own usable hits per view
+      // (share > 0.5), the points built from at least one of them, how many of
+      // those it does not own, and its hits that are in no point at all.
+      int own_hits_meas_x = 0, own_hits_meas_y = 0, own_hits_in_no_point = 0, points_touching = 0, points_touching_not_owned = 0;
+      {
+        std::vector<char> in_point(n_hits, 0);
+        for (int k = 0; k < n_sp; ++k) {
+          const int xi = sp_xi[k], yi = sp_yi[k];
+          if (xi >= 0 && xi < n_hits) in_point[xi] = 1;
+          if (yi >= 0 && yi < n_hits) in_point[yi] = 1;
+          const bool touches = (xi >= 0 && xi < n_hits && hit_truth[xi].Share(label) > 0.5) ||
+                               (yi >= 0 && yi < n_hits && hit_truth[yi].Share(label) > 0.5);
+          if (!touches) continue;
+          ++points_touching;
+          if (!(point_owner[k] == label)) ++points_touching_not_owned;
+        }
+        for (int h = 0; h < n_hits; ++h) {
+          if (!usable[h] || !(hit_truth[h].Share(label) > 0.5)) continue;
+          (hits[h].MeasuresX ? own_hits_meas_x : own_hits_meas_y)++;
+          if (!in_point[h]) ++own_hits_in_no_point;
+        }
+      }
       int n_clusters_2pt = 0, n_tracklike_clusters = 0, largest_cluster = -1, largest_count = 0;
       for (const auto &kv : muon_points_in_cluster) {
         if (kv.second >= 2) ++n_clusters_2pt;
@@ -518,7 +541,8 @@ int main(int argc, char **argv) {
                 << (best ? best->track->Fit.MomentumMeV : 0.0) << ","
                 << (best ? best->track->Fit.RangeMomentumMeV : 0.0) << ","
                 << (best ? best->track->Fit.RangeSeededMomentumMeV : 0.0) << "," << bestEnd[0] << "," << bestEnd[1] << ","
-                << bestEnd[2] << "\n";
+                << bestEnd[2] << "," << own_hits_meas_x << "," << own_hits_meas_y << "," << own_hits_in_no_point << ","
+                << points_touching << "," << points_touching_not_owned << "\n";
     }
   }
   std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << "); linked chains: " << n_chains

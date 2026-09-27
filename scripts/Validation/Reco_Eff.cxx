@@ -281,6 +281,13 @@ void FillRecoEff(ValidationContext &ctx) {
                            9, "# truth particles");
       }
 
+      // Muons from interactions inside the TMS (born in its fiducial volume).
+      if (ismuon && truth_spill.TMSFiducialStart[ip])
+        GetHist("reco_eff__tms_vertex_muon_ke_tms_enter_denominator",
+                "Reco Efficiency vs True KE, Muons from TMS Interactions: Denominator",
+                "ke_tms_enter")
+            ->Fill(particle_starting_ke);
+
       if (ismuon && should_include) {
         GetHist("reco_eff__no_lar_tms_cuts__all_muon_ke_tms_enter_denominator",
                 "Reconstruction Efficiency: Denominator", "ke_tms_enter")
@@ -535,6 +542,11 @@ void FillRecoEff(ValidationContext &ctx) {
               "ke_tms_enter")
           ->Fill(particle_starting_ke);
     }
+    if (ismuon && not_double_reco && truth.RecoTrackPrimaryParticleTMSFiducialStart[it])
+      GetHist("reco_eff__tms_vertex_muon_ke_tms_enter_numerator",
+              "Reco Efficiency vs True KE, Muons from TMS Interactions: Numerator",
+              "ke_tms_enter")
+          ->Fill(particle_starting_ke);
     if (ismuon && not_double_reco) {
       GetHist("reco_eff__all_muon_ke_tms_enter_numerator",
               "Reco Efficiency vs True TMS-Entering KE, All Muons: Numerator",
