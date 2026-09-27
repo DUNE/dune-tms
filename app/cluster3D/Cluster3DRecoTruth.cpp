@@ -123,6 +123,10 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_STOP_ON_RANGE_OUT")) config.Follower.StopOnRangeOut = std::atoi(v) != 0;
   if (const char *v = std::getenv("CLUSTER3D_LINK")) config.UseClusterLinking = std::atoi(v) != 0;
   if (const char *v = std::getenv("CLUSTER3D_RANGE_SEEDED")) config.Follower.RangeSeededBackwardPass = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_RESEED_FACTOR")) config.Follower.RangeReseedFactor = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_RESEED_SIGMA")) config.Follower.RangeReseedQPRelSigma = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_RESEED_PASSES")) config.Follower.RangeReseedMaxPasses = std::atoi(v);
+  if (const char *v = std::getenv("CLUSTER3D_MAX_BEYOND_SEED")) config.Follower.MaxDistanceBeyondSeedMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_RANGE_SEED_REL_SIGMA")) config.Follower.RangeSeedQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_BASE")) config.Linker.MissBaseMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_PER_M")) config.Linker.MissPerMeterMM = std::atof(v);

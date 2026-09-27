@@ -379,6 +379,28 @@ struct Config {
   bool RangeSeededBackwardPass = false;
   double RangeSeedQPRelSigma = 0.1;
 
+  // Range re-seed (RunBestSeed only): after the best hypothesis is chosen,
+  // walk its seed again with the momentum seeded at RangeReseedFactor x its
+  // own range momentum at the start (FitResult::RangeMomentumMeV) and a
+  // tighter prior (RangeReseedQPRelSigma of the seed q/p), and keep the new
+  // fit if it reaches further downstream without ranking worse; repeat up to
+  // RangeReseedMaxPasses times while the end keeps moving. Motivation
+  // (2026-09-27): most tracks that end early stop because the walk "ranged
+  // out" -- its momentum, seeded from the seed object's length and pulled low
+  // by the curvature updates, ran down to the floor while the muon went on --
+  // and the range momentum of the first fit is a better seed. A factor above
+  // 1 lets the walk arrive at the first fit's end with momentum to spare, so
+  // it can continue if hits are there (the gap limit and chi2 gate stop it
+  // otherwise). 0 = off.
+  //
+  // Default 1.5 (15 files, 2026-09-27, suite ND-physics muons, 616): tracks
+  // ending correctly 459 -> 476, early ends inside the track's own object
+  // 19 -> 7, hit completeness 90.0 -> 90.6%, range momentum within 10% 79 ->
+  // 82%, no more junk. 1.2 / 2.0 give the same within a few tracks.
+  double RangeReseedFactor = 1.5;
+  double RangeReseedQPRelSigma = 0.2;
+  int RangeReseedMaxPasses = 2;
+
   // Orphan-hit pickup (Hits model only): after the forward walk, add hits the
   // track crosses that are in no chosen space point -- ~10% of a muon's
   // x-plane crossings have no y partner in time, so they are in no genuine
@@ -572,6 +594,11 @@ class Follower {
     void SetHits(const std::vector<FitHit> *hits) { fHits = hits; }
 
   private:
+    // Run() with an optional seed-momentum override (> 0) and q/p prior
+    // (relative sigma, > 0), for the range re-seed.
+    FitResult RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, const std::vector<std::size_t> &seedPath,
+                      double seedMomentumOverrideMeV, double qpRelSigmaOverride) const;
+
     Config fConfig;
     const IFieldModel &fField;
     XYTimeDifferenceFn fXYTimeDifference;

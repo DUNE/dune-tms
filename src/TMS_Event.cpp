@@ -1033,6 +1033,7 @@ void TMS_Event::RunCluster3DReco() {
   TMS_Cluster3DReco::Config config;
   config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
   config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
+  config.Follower.RangeReseedFactor = manager.Get_RECO_CLUSTER3D_RangeReseedFactor();
   const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
   const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
   const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();

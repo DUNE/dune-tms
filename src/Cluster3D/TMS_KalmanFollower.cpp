@@ -737,6 +737,11 @@ Follower::Follower(const Config &config, const IFieldModel &field) : fConfig(con
 
 FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
                          const std::vector<std::size_t> &seedPath) const {
+  return RunImpl(allSpacePoints, seedPath, 0.0, 0.0);
+}
+
+FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, const std::vector<std::size_t> &seedPath,
+                            double seedMomentumOverrideMeV, double qpRelSigmaOverride) const {
   FitResult result;
   if (seedPath.size() < 2 || allSpacePoints.empty()) return result;
 
@@ -841,6 +846,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
         TVector3(allSpacePoints[hi].GetX(), allSpacePoints[hi].GetY(), allSpacePoints[hi].GetZ()));
     if (std::isfinite(pRange)) seedMomentum = std::max(seedMomentum, fConfig.RangeSeedMargin * pRange);
   }
+  if (seedMomentumOverrideMeV > 0.0) seedMomentum = seedMomentumOverrideMeV;
   current.qp = chargeSign / seedMomentum;
   current.cov.Zero();
   current.cov(0, 0) = fConfig.InitialCovXX;
@@ -848,8 +854,9 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
   current.cov(2, 2) = fConfig.InitialCovDXDZDXDZ;
   current.cov(3, 3) = fConfig.InitialCovDYDZDYDZ;
   current.cov(4, 4) = fConfig.InitialCovQPQP;
-  if (fConfig.InitialQPRelSigma > 0.0) {
-    const double sigmaQP = fConfig.InitialQPRelSigma / seedMomentum;
+  const double qpRelSigma = qpRelSigmaOverride > 0.0 ? qpRelSigmaOverride : fConfig.InitialQPRelSigma;
+  if (qpRelSigma > 0.0) {
+    const double sigmaQP = qpRelSigma / seedMomentum;
     current.cov(4, 4) = sigmaQP * sigmaQP;
   }
 
@@ -1218,6 +1225,7 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
   // chi2/ndof), all reco-only. A skip always gives up at least one layer's
   // hit, so it only wins when the full-head fit lost more than that.
   bool haveBest = false;
+  std::vector<std::size_t> bestSeedPath;
   const int maxSkip = std::max(0, fConfig.MaxHeadSkip);
   for (int skip = 0; skip <= maxSkip; ++skip) {
     if (objectLayers.size() < static_cast<std::size_t>(skip) + 2) break;
@@ -1254,6 +1262,7 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
       if (allHypotheses) allHypotheses->push_back(candidate);
       if (!haveBest || IsBetterFit(candidate, best, fConfig.RankHypothesesByConvergence)) {
         best = candidate;
+        bestSeedPath = seedPath;
         haveBest = true;
         if (bestIndex && allHypotheses) *bestIndex = allHypotheses->size() - 1;
       }
@@ -1321,9 +1330,35 @@ FitResult Follower::RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoint
         if (allHypotheses) allHypotheses->push_back(candidate);
         if (!haveBest || IsBetterFit(candidate, best, fConfig.RankHypothesesByConvergence)) {
           best = candidate;
+          bestSeedPath = seedPath;
           haveBest = true;
           if (bestIndex && allHypotheses) *bestIndex = allHypotheses->size() - 1;
         }
+      }
+    }
+  }
+
+  // Range re-seed (Config::RangeReseedFactor): walk the best seed again with
+  // its own range momentum (times a margin) as the seed, while that extends
+  // the track.
+  if (haveBest && fConfig.RangeReseedFactor > 0.0) {
+    auto lastHitZ = [](const FitResult &fit) {
+      double z = -1e30;
+      for (const FollowedNode &node : fit.Nodes)
+        if (node.HasHit) z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+      return z;
+    };
+    for (int pass = 0; pass < fConfig.RangeReseedMaxPasses; ++pass) {
+      if (!(best.RangeMomentumMeV > 0.0)) break;
+      FitResult again = RunImpl(allSpacePoints, bestSeedPath, fConfig.RangeReseedFactor * best.RangeMomentumMeV,
+                                fConfig.RangeReseedQPRelSigma);
+      again.HeadSkip = best.HeadSkip;
+      // Keep it only if it reaches further downstream and does not rank worse.
+      if (!(lastHitZ(again) > lastHitZ(best) + 1.0) || IsBetterFit(best, again, fConfig.RankHypothesesByConvergence)) break;
+      best = again;
+      if (allHypotheses) {
+        allHypotheses->push_back(again);
+        if (bestIndex) *bestIndex = allHypotheses->size() - 1;
       }
     }
   }

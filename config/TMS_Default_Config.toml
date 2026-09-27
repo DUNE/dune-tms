@@ -185,6 +185,11 @@
     MomentumFromRange = false
     RangeContainmentMarginXY = 100.0
     RangeContainmentMarginZ = 100.0
+    # Re-walk each Cluster3D track seeded with this factor x its own range
+    # momentum, keeping the new fit if it reaches further (0 = off). 15 files,
+    # 2026-09-27: tracks ending correctly 459 -> 476 of 616, early ends inside
+    # the track's own object 19 -> 7, no more junk.
+    RangeReseedFactor = 1.5
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
