@@ -116,6 +116,8 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_GRAPH_MIN_CLUSTER")) config.MinGraphClusterSize = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_STOP_ON_RANGE_OUT")) config.Follower.StopOnRangeOut = std::atoi(v) != 0;
   if (const char *v = std::getenv("CLUSTER3D_LINK")) config.UseClusterLinking = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_RANGE_SEEDED")) config.Follower.RangeSeededBackwardPass = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_RANGE_SEED_REL_SIGMA")) config.Follower.RangeSeedQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_BASE")) config.Linker.MissBaseMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_PER_M")) config.Linker.MissPerMeterMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_ANGLE")) config.Linker.MaxAngleRad = std::atof(v);
@@ -218,7 +220,8 @@ int main(int argc, char **argv) {
                "n_points,n_noise_points,n_clusters,n_clusters_2pt,n_tracklike_clusters,frac_in_largest_cluster,"
                "largest_cluster_muon_purity,true_last_hit_z,best_last_hit_z,best_cluster,tail_hits,"
                "tail_hits_other_tracks,tail_points,tail_points_best_cluster,tail_points_other_clusters,"
-               "tail_other_clusters,tail_points_noise,vertex_in_lar_box,best_stop,best_end_momentum_mev\n";
+               "tail_other_clusters,tail_points_noise,vertex_in_lar_box,best_stop,best_end_momentum_mev,"
+               "best_range_momentum_mev,best_range_seeded_momentum_mev\n";
 
   long n_tracks = 0, n_stage2 = 0, n_chains = 0, n_chained_clusters = 0;
   for (Long64_t entry = 0; entry < reco_tree->GetEntries(); ++entry) {
@@ -430,7 +433,9 @@ int main(int argc, char **argv) {
                 // Why the best track's walk ended: 0 not started, 1 reached the end of
                 // the allowed range, 2 gap limit, 3 diverged, 4 ranged out.
                 << (best ? static_cast<int>(best->track->Fit.Stop) : -1) << ","
-                << (best ? best->track->Fit.MomentumMeV : 0.0) << "\n";
+                << (best ? best->track->Fit.MomentumMeV : 0.0) << ","
+                << (best ? best->track->Fit.RangeMomentumMeV : 0.0) << ","
+                << (best ? best->track->Fit.RangeSeededMomentumMeV : 0.0) << "\n";
     }
   }
   std::cout << "Tracks: " << n_tracks << " (Stage 2: " << n_stage2 << "); linked chains: " << n_chains

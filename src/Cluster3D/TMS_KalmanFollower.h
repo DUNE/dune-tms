@@ -357,6 +357,28 @@ struct Config {
   bool BackwardPass = true;
   double BackwardCovScale = 100.0;
 
+  // Range momentum (FitResult::RangeMomentumMeV), computed with the backward
+  // pass: the momentum a muon needs to cross exactly the material between the
+  // first and last accepted measurement and stop at the last -- the legacy
+  // TMS_Kalman's estimate (its "fit" momentum is this: it walks the hits from
+  // last to first starting at 20 MeV/c, adding Bethe-Bloch loss, and never
+  // updates q/p from the measurements). Stepped along the backward pass's own
+  // filtered trajectory, field off (only the path through the material
+  // matters). Right for a muon that stops just past its last hit; low for one
+  // that leaves the detector or whose track ends early.
+  double RangeStopMomentumMeV = 20.0;
+
+  // Also run a range-SEEDED backward Kalman pass (FitResult::
+  // RangeSeededMomentumMeV): the backward pass started at the last
+  // measurement with |p| = RangeStopMomentumMeV and a tight q/p prior
+  // (RangeSeedQPRelSigma of the seed q/p) instead of the forward result, then
+  // updated by the measurements as usual. Diagnostic only: on 15 files
+  // (2026-09-26) it lands on the curvature answer (stopping muons median
+  // -22% vs -21%, range +6.4%) -- once the curvature updates are allowed
+  // they pull q/p away from the range seed. Use RangeMomentumMeV instead.
+  bool RangeSeededBackwardPass = false;
+  double RangeSeedQPRelSigma = 0.1;
+
   // Orphan-hit pickup (Hits model only): after the forward walk, add hits the
   // track crosses that are in no chosen space point -- ~10% of a muon's
   // x-plane crossings have no y partner in time, so they are in no genuine
@@ -478,6 +500,11 @@ struct FitResult {
   double StartDXDZ = 0.0, StartDYDZ = 0.0;
   double StartMomentumMeV = 0.0;
   double StartCharge = 0.0;
+  // Range momentum at the track start (Config::RangeStopMomentumMeV); 0 if
+  // the backward pass did not run.
+  double RangeMomentumMeV = 0.0;
+  // Range-seeded backward pass (Config::RangeSeededBackwardPass); 0 if off.
+  double RangeSeededMomentumMeV = 0.0;
   double TotalChi2 = 0.0;
   int NDoF = 0;
   int NGapsFilled = 0;             // layers skipped for lack of a good candidate

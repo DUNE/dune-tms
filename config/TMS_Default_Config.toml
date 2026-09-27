@@ -173,6 +173,12 @@
     # 2026-09-26: suite ND-physics muons ending correctly 405 -> 443 of 616,
     # duplicate tracks halved, +5% non-muon tracks. Off until validated.
     LinkClusters = false
+    # Write each Cluster3D track's momentum from its range (the momentum needed
+    # to cross exactly the material between its first and last hit and stop),
+    # as the legacy fit's Momentum is defined, instead of the curvature fit's.
+    # 15 files, 2026-09-26, stopping muons: range median +6.4%, half-width 9%;
+    # curvature -21%, 46%. Low for muons that leave the TMS.
+    MomentumFromRange = false
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

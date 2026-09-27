@@ -1033,6 +1033,7 @@ void TMS_Event::RunCluster3DReco() {
   TMS_Cluster3DReco::Config config;
   config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
   config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
+  const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
   static const RegionFieldModel field;
 
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
@@ -1128,7 +1129,10 @@ void TMS_Event::RunCluster3DReco() {
     if (fit.HasStartState) {
       out.SetStartPosition(fit.StartX, fit.StartY, fit.StartZ);
       direction(fit.StartDXDZ, fit.StartDYDZ, out.StartDirection);
-      out.Momentum = fit.StartMomentumMeV;
+      // The track's momentum: its range (legacy's definition -- see
+      // TMS_KalmanFollower::Config::RangeStopMomentumMeV) with
+      // [Recon.Cluster3D] MomentumFromRange, else the curvature fit's.
+      out.Momentum = (momentumFromRange && fit.RangeMomentumMeV > 0.0) ? fit.RangeMomentumMeV : fit.StartMomentumMeV;
       // Charge in the legacy tracks' PDG convention: 13 = mu- (physical
       // charge -1), -13 = mu+ -- what the validation suite expects.
       out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge < 0 ? 13 : -13;

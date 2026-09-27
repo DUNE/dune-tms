@@ -1097,22 +1097,79 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
     std::stable_sort(measurements.begin(), measurements.end(),
                      [](const std::pair<double, int> &a, const std::pair<double, int> &b) { return a.first > b.first; });
 
+    // One backward pass over measurements[first..], from a given state. With
+    // a range walker, it also steps the range momentum along the pass's
+    // trajectory (rangeOk false if that walk fails -- which only loses the
+    // range momentum, never the pass); afterFirst, if given, receives the
+    // state updated at measurements[first] -- the track's last measurement
+    // when first = 0.
+    const ZeroFieldModel noField;
+    auto runBackward = [&](StepState back, std::size_t first, StepState *range, bool &rangeOk,
+                           StepState *afterFirst, StepState &out) {
+      rangeOk = range != nullptr;
+      for (std::size_t m = first; m < measurements.size(); ++m) {
+        const auto &measurement = measurements[m];
+        const StepState at = Predict(back, measurement.first, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
+        if (at.Diverged) return false;
+        if (measurement.second >= 0) {
+          double residual = 0.0, residualVar = 0.0;
+          back = UpdateWithHit(at, (*hits)[measurement.second], residual, residualVar);
+        } else {
+          back = UpdateState(at, allSpacePoints[-1 - measurement.second],
+                             BuildMeasurementCovariance(fConfig.AssumedBarPitchMM));
+        }
+        if (m == first && afterFirst) *afterFirst = back;
+        if (rangeOk) {
+          if (m == first) {
+            // The range walk starts AT the last measurement, stopping there --
+            // not at the forward walk's final state, which can lie up to
+            // MaxGapMM past it after gap layers.
+            *range = back;
+            range->qp = (back.qp >= 0.0 ? 1.0 : -1.0) / fConfig.RangeStopMomentumMeV;
+          } else {
+            // Energy loss only (no field, no measurement updates on q/p), then
+            // back onto the fitted trajectory -- position, direction and
+            // covariance: the walk's own covariance means nothing (at tens of
+            // MeV its scattering term alone would trip Predict()'s variance
+            // guard within a few steps).
+            StepState stepped = Predict(*range, measurement.first, noField, fConfig.MaxSubstepLengthMM, false);
+            if (stepped.Diverged) {
+              rangeOk = false;
+            } else {
+              stepped.x = back.x;
+              stepped.y = back.y;
+              stepped.dxdz = back.dxdz;
+              stepped.dydz = back.dydz;
+              stepped.cov = back.cov;
+              *range = stepped;
+            }
+          }
+        }
+      }
+      out = back;
+      return true;
+    };
+
     StepState back = current;
     back.cov *= fConfig.BackwardCovScale;
-    bool ok = true;
-    for (const auto &measurement : measurements) {
-      const StepState at = Predict(back, measurement.first, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
-      if (at.Diverged) {
-        ok = false;
-        break;
-      }
-      if (measurement.second >= 0) {
-        double residual = 0.0, residualVar = 0.0;
-        back = UpdateWithHit(at, (*hits)[measurement.second], residual, residualVar);
-      } else {
-        back = UpdateState(at, allSpacePoints[-1 - measurement.second],
-                           BuildMeasurementCovariance(fConfig.AssumedBarPitchMM));
-      }
+    StepState range, atLast, backOut;
+    bool rangeOk = false;
+    const bool ok = runBackward(back, 0, &range, rangeOk, &atLast, backOut);
+    back = backOut;
+    if (ok && rangeOk) result.RangeMomentumMeV = std::abs(range.qp) > 1e-12 ? 1.0 / std::abs(range.qp) : 0.0;
+
+    if (ok && fConfig.RangeSeededBackwardPass) {
+      // Same pass from the last measurement on, but starting from the range
+      // hypothesis: |p| = RangeStopMomentumMeV there, with a tight q/p prior.
+      StepState seeded = atLast;
+      seeded.qp = (atLast.qp >= 0.0 ? 1.0 : -1.0) / fConfig.RangeStopMomentumMeV;
+      for (int k = 0; k < 5; ++k) seeded.cov(4, k) = seeded.cov(k, 4) = 0.0;
+      const double sigmaQP = fConfig.RangeSeedQPRelSigma * std::abs(seeded.qp);
+      seeded.cov(4, 4) = sigmaQP * sigmaQP;
+      StepState seededOut;
+      bool unused = false;
+      if (runBackward(seeded, 1, nullptr, unused, nullptr, seededOut))
+        result.RangeSeededMomentumMeV = std::abs(seededOut.qp) > 1e-12 ? 1.0 / std::abs(seededOut.qp) : 0.0;
     }
     if (ok) {
       result.HasStartState = true;
