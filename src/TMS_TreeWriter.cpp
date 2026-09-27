@@ -394,6 +394,10 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,            "Chi2[nTracks]/F");
   Reco_Tree->Branch("Chi2_minus",     RecoTrackChi2_minus,      "Chi2_minus[nTracks]/F");
   Reco_Tree->Branch("Chi2_plus",      RecoTrackChi2_plus,       "Chi2_plus[nTracks]/F");
+  Reco_Tree->Branch("NDoF",           RecoTrackNDoF,            "NDoF[nTracks]/I");
+  Reco_Tree->Branch("NLayersWalked",  RecoTrackNLayersWalked,   "NLayersWalked[nTracks]/I");
+  Reco_Tree->Branch("NGapLayers",     RecoTrackNGapLayers,      "NGapLayers[nTracks]/I");
+  Reco_Tree->Branch("NOrphanHits",    RecoTrackNOrphanHits,     "NOrphanHits[nTracks]/I");
 
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
@@ -1659,6 +1663,10 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     RecoTrackChi2[itTrack]          = RecoTrack->Chi2;
     RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
+    RecoTrackNDoF[itTrack]          = RecoTrack->NDoF;
+    RecoTrackNLayersWalked[itTrack] = RecoTrack->NLayersWalked;
+    RecoTrackNGapLayers[itTrack]    = RecoTrack->NGapLayers;
+    RecoTrackNOrphanHits[itTrack]   = RecoTrack->NOrphanHits;
     
     for (int j = 0; j < 4; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -2594,6 +2602,10 @@ void TMS_TreeWriter::Clear() {
     RecoTrackChi2[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackNDoF[i] = -1;
+    RecoTrackNLayersWalked[i] = -1;
+    RecoTrackNGapLayers[i] = -1;
+    RecoTrackNOrphanHits[i] = -1;
   }
 
   // Reset space point information

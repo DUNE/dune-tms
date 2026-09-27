@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
                 "owner_vgid,owner_trackid,owner_pdg,owner_is_muon,purity,duplicate,start_z,start_momentum_mev,"
                 "start_charge,first_hit_z,last_hit_z,n_ext_hits,end_x,end_y,start_dxdz,start_dydz,stop,"
                 "n_hits_meas_x,owner_share_meas_x,n_hits_meas_y,owner_share_meas_y,start_x,start_y,end_z,end_dxdz,end_dydz,"
-                "owner_self_purity\n";
+                "owner_self_purity,chi2,ndof,n_nodes,n_gaps,n_ambiguous\n";
   muons_csv << "sourcefile,entry,slice,vertexglobalid,trackid,vertex_in_tms,vertex_in_lar_fiducial,stops_in_tms,"
                "true_hits_in_slice,true_momentum_tms_mev,true_charge,tracks_owned,found,best_stage,"
                "hit_completeness_pct,hit_purity_pct,best_start_momentum_mev,best_start_charge,"
@@ -392,7 +392,8 @@ int main(int argc, char **argv) {
                  << nMeasX << "," << (nMeasX > 0 ? shareMeasX / nMeasX : 0.0) << "," << nMeasY << ","
                  << (nMeasY > 0 ? shareMeasY / nMeasY : 0.0) << "," << (fit.HasStartState ? fit.StartX : 0.0) << ","
                  << (fit.HasStartState ? fit.StartY : 0.0) << "," << end_z << "," << end_dxdz << "," << end_dydz << ","
-                 << (o.used > 0 ? selfShare / o.used : 0.0) << "\n";
+                 << (o.used > 0 ? selfShare / o.used : 0.0) << "," << fit.TotalChi2 << "," << fit.NDoF << ","
+                 << fit.Nodes.size() << "," << fit.NGapsFilled << "," << fit.NAmbiguousLayersResolved << "\n";
       owned.push_back(o);
       ++n_tracks;
       if (track.Stage == 2) ++n_stage2;

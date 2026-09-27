@@ -1173,6 +1173,10 @@ void TMS_Event::RunCluster3DReco() {
     }
     out.Start[3] = out.End[3] = out.Time = fit.TrackT0Ns;
     out.Chi2 = out.Chi2_plus = out.Chi2_minus = fit.TotalChi2;
+    out.NDoF = fit.NDoF;
+    out.NLayersWalked = static_cast<int>(fit.Nodes.size());
+    out.NGapLayers = fit.NGapsFilled;
+    out.NOrphanHits = static_cast<int>(fit.Orphans.size());
     Cluster3DTracks.push_back(out);
   }
 }

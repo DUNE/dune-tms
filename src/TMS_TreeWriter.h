@@ -80,6 +80,11 @@ class TMS_TreeWriter {
     float RecoTrackChi2[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];
+    // Fit-quality counts (TMS_Track::NDoF etc.; -1 when not filled).
+    int RecoTrackNDoF[__TMS_MAX_TRACKS__];
+    int RecoTrackNLayersWalked[__TMS_MAX_TRACKS__];
+    int RecoTrackNGapLayers[__TMS_MAX_TRACKS__];
+    int RecoTrackNOrphanHits[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
