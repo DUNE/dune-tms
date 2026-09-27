@@ -127,6 +127,9 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_RESEED_SIGMA")) config.Follower.RangeReseedQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_RESEED_PASSES")) config.Follower.RangeReseedMaxPasses = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_MAX_BEYOND_SEED")) config.Follower.MaxDistanceBeyondSeedMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_EXTEND")) config.Follower.ExtendOnHits = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_EXTEND_GAP")) config.Follower.ExtendMaxGapMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_EXTEND_CHI2")) config.Follower.ExtendChi2Max = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_RANGE_SEED_REL_SIGMA")) config.Follower.RangeSeedQPRelSigma = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_BASE")) config.Linker.MissBaseMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_PER_M")) config.Linker.MissPerMeterMM = std::atof(v);
@@ -430,6 +433,11 @@ int main(int argc, char **argv) {
             bestEnd[1] = node.FilteredY;
             bestEnd[2] = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
           }
+      if (best && best->track->Fit.NExtensionHits > 0) {
+        bestEnd[0] = best->track->Fit.ExtensionEndX;
+        bestEnd[1] = best->track->Fit.ExtensionEndY;
+        bestEnd[2] = best->track->Fit.ExtensionEndZ;
+      }
 
       const double p = std::sqrt(sp.momentum[i * 4] * sp.momentum[i * 4] + sp.momentum[i * 4 + 1] * sp.momentum[i * 4 + 1] +
                                  sp.momentum[i * 4 + 2] * sp.momentum[i * 4 + 2]);

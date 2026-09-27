@@ -241,7 +241,7 @@ TMatrixD ApplyMaterialSteps(const MaterialSteps &materials,
 // quadratic-in-dz Jacobian term (transfer(0,4)) is only a safe
 // linearization for a small dz -- see Predict()'s comment.
 StepState PredictSubstep(const StepState &previous, double subDz, const IFieldModel &field,
-                          bool stopOnRangeOut) {
+                          bool stopOnRangeOut, bool varianceGuard = true) {
   StepState predicted = previous;
   predicted.z = previous.z + subDz;
 
@@ -321,8 +321,13 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   // well above genuine values (this detector is a few meters across) so
   // real fits are never affected, but a runaway is caught here rather than
   // a hundred layers later.
+  // (The backward pass turns this off: it refits a fixed list of
+  // measurements, gating nothing, and near a stopping track's end -- tens of
+  // MeV -- genuine multiple scattering exceeds this bound within one steel
+  // layer; the next measurement sets the position anyway.)
   constexpr double kMaxPositionVarianceMM2 = 4.0e6;  // (2000mm)^2
-  if (!(propagatedCov(0, 0) <= kMaxPositionVarianceMM2) || !(propagatedCov(1, 1) <= kMaxPositionVarianceMM2)) {
+  if (varianceGuard &&
+      (!(propagatedCov(0, 0) <= kMaxPositionVarianceMM2) || !(propagatedCov(1, 1) <= kMaxPositionVarianceMM2))) {
     predicted.Diverged = true;
     return predicted;
   }
@@ -364,7 +369,7 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
 // momentum to its floor in one update. Sub-stepping keeps each
 // linearization small and keeps the accumulated covariance honest.
 StepState Predict(const StepState &previous, double zTarget, const IFieldModel &field,
-                   double maxSubstepLengthMM, bool stopOnRangeOut) {
+                   double maxSubstepLengthMM, bool stopOnRangeOut, bool varianceGuard = true) {
   const double totalDz = zTarget - previous.z;
   if (std::abs(totalDz) < 1e-9) return previous;
 
@@ -374,7 +379,7 @@ StepState Predict(const StepState &previous, double zTarget, const IFieldModel &
 
   StepState current = previous;
   for (int i = 0; i < nSubsteps; ++i) {
-    current = PredictSubstep(current, subDz, field, stopOnRangeOut);
+    current = PredictSubstep(current, subDz, field, stopOnRangeOut, varianceGuard);
     if (current.Diverged || current.RangedOut) return current;
   }
   return current;
@@ -995,13 +1000,109 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
     if (!result.Converged || stopInsideLayer) break;
   }
 
-  // Backward pass: the forward filter's first node only knows the seed, and
-  // its last node -- the only one informed by every measurement -- sits at
-  // the track's END. Refit the same measurements from last to first,
-  // starting from the forward result with its covariance inflated (so it
-  // acts as a weak prior), stepping upstream through the material; the
-  // state at the first measurement is then the track-start estimate
-  // (momentum and charge at, e.g., the TMS entrance).
+  // Extension past the walk's end on single hits (Config::ExtendOnHits).
+  bool haveExtensionEnd = false;
+  StepState extensionEndState;
+  std::set<int> extensionHits;  // hit indices the extension took
+  if (hits != nullptr && fConfig.ExtendOnHits && !appliedHits.empty()) {
+    const FollowedNode *lastNode = nullptr;
+    for (const FollowedNode &node : result.Nodes)
+      if (node.HasHit) lastNode = &node;
+    if (lastNode != nullptr) {
+      StepState state;
+      state.x = lastNode->FilteredX;
+      state.y = lastNode->FilteredY;
+      state.z = lastNode->FilteredZ != 0.0 ? lastNode->FilteredZ : lastNode->Z;
+      state.dxdz = lastNode->FilteredDXDZ;
+      state.dydz = lastNode->FilteredDYDZ;
+      state.qp = lastNode->FilteredQP;
+      state.cov = lastNode->FilteredCovariance;
+      double lastHitZ = -std::numeric_limits<double>::infinity();
+      for (int index : appliedHits) lastHitZ = std::max(lastHitZ, (*hits)[index].Z);
+      // Usable, unused hits beyond the last applied hit, by plane (z, view).
+      std::map<std::pair<long long, bool>, std::vector<int>> planes;
+      for (int index = 0; index < static_cast<int>(hits->size()); ++index) {
+        const FitHit &hit = (*hits)[index];
+        if (hit.Usable && !appliedHits.count(index) && hit.Z > lastHitZ + 1.0)
+          planes[{std::llround(hit.Z), hit.MeasuresX}].push_back(index);
+      }
+      std::vector<std::pair<double, std::vector<int>>> ordered;
+      for (auto &kv : planes) ordered.push_back({(*hits)[kv.second.front()].Z, kv.second});
+      std::stable_sort(ordered.begin(), ordered.end(),
+                       [](const std::pair<double, std::vector<int>> &a, const std::pair<double, std::vector<int>> &b) {
+                         return a.first < b.first;
+                       });
+      const double trackT0 = t0Sum / t0Count;
+      const double seedZ = firstPoint.GetZ();
+      double lastTakenZ = lastHitZ;
+      StepState extensionEnd;
+      for (const auto &plane : ordered) {
+        if (plane.first - lastTakenZ > fConfig.ExtendMaxGapMM) break;
+        const StepState predicted = Predict(state, plane.first, fField, fConfig.MaxSubstepLengthMM, false);
+        if (predicted.Diverged) break;
+        // Passing hits at this plane, best first.
+        std::vector<std::pair<double, FitResult::OrphanHit>> passing;
+        for (int index : plane.second) {
+          const FitHit &hit = (*hits)[index];
+          if (fConfig.ExtendTimeWindowNs > 0.0) {
+            const double pathMM = (hit.Z - seedZ) *
+                std::sqrt(1.0 + predicted.dxdz * predicted.dxdz + predicted.dydz * predicted.dydz);
+            if (std::abs(hit.Time - (trackT0 + pathMM / kSpeedOfLightMMPerNs)) > fConfig.ExtendTimeWindowNs) continue;
+          }
+          double predictedCoordinate = 0.0, residualVar = 0.0;
+          ProjectToHit(predicted, hit, predictedCoordinate, residualVar);
+          const double residual = hit.Coordinate - predictedCoordinate;
+          const double chi2 = residual * residual / residualVar;
+          if (chi2 > fConfig.ExtendChi2Max) continue;
+          FitResult::OrphanHit taken;
+          taken.HitIndex = index;
+          taken.Z = hit.Z;
+          taken.Residual = residual;
+          taken.ResidualVar = residualVar;
+          passing.push_back({chi2, taken});
+        }
+        if (passing.empty()) {
+          state = predicted;  // carry the prediction; the gap check above ends the walk
+          continue;
+        }
+        std::sort(passing.begin(), passing.end(),
+                  [](const std::pair<double, FitResult::OrphanHit> &a, const std::pair<double, FitResult::OrphanHit> &b) {
+                    return a.first < b.first;
+                  });
+        const FitHit &best = (*hits)[passing.front().second.HitIndex];
+        const double barPitch = best.SigmaMM * std::sqrt(12.0);
+        bool ambiguous = false;
+        for (const auto &candidate : passing)
+          if (std::abs((*hits)[candidate.second.HitIndex].Coordinate - best.Coordinate) > 1.5 * barPitch) ambiguous = true;
+        if (ambiguous) {
+          state = predicted;
+          continue;
+        }
+        double residual = 0.0, residualVar = 0.0;
+        const StepState updated = UpdateWithHit(predicted, best, residual, residualVar);
+        // A one-view update can drag the unmeasured direction; a muon here
+        // never has |slope| above ~0.65 (33 degrees), so an update that
+        // leaves the state steeper than 1.5 is following something else --
+        // stop the extension rather than take it.
+        if (!(std::abs(updated.dxdz) < 1.5 && std::abs(updated.dydz) < 1.5)) break;
+        state = updated;
+        result.Orphans.push_back(passing.front().second);
+        appliedHits.insert(passing.front().second.HitIndex);  // keeps orphan pickup from re-taking it
+        extensionHits.insert(passing.front().second.HitIndex);
+        ++result.NExtensionHits;
+        result.ExtensionEndX = state.x;
+        result.ExtensionEndY = state.y;
+        result.ExtensionEndZ = state.z;
+        lastTakenZ = plane.first;
+        extensionEnd = state;
+      }
+      if (result.NExtensionHits > 0) {
+        haveExtensionEnd = true;
+        extensionEndState = extensionEnd;
+      }
+    }
+  }
+
   // Orphan-hit pickup (Config::PickUpOrphanHits): hits the track crosses
   // that are in no chosen space point. Each candidate is scored against the
   // filtered state nearest its plane, transported straight to the plane
@@ -1116,7 +1217,8 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
       rangeOk = range != nullptr;
       for (std::size_t m = first; m < measurements.size(); ++m) {
         const auto &measurement = measurements[m];
-        const StepState at = Predict(back, measurement.first, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false);
+        const StepState at = Predict(back, measurement.first, fField, fConfig.MaxSubstepLengthMM, /*stopOnRangeOut=*/false,
+                                     /*varianceGuard=*/false);
         if (at.Diverged) return false;
         if (measurement.second >= 0) {
           double residual = 0.0, residualVar = 0.0;
@@ -1139,7 +1241,8 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
             // covariance: the walk's own covariance means nothing (at tens of
             // MeV its scattering term alone would trip Predict()'s variance
             // guard within a few steps).
-            StepState stepped = Predict(*range, measurement.first, noField, fConfig.MaxSubstepLengthMM, false);
+            StepState stepped = Predict(*range, measurement.first, noField, fConfig.MaxSubstepLengthMM, false,
+                                        /*varianceGuard=*/false);
             if (stepped.Diverged) {
               rangeOk = false;
             } else {
@@ -1157,11 +1260,60 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
       return true;
     };
 
-    StepState back = current;
-    back.cov *= fConfig.BackwardCovScale;
+    // Start from the filtered state AT the track's last measurement -- the
+    // last accepted node, or the single-hit extension's last hit -- not from
+    // the walk's final state: that can lie up to MaxGapMM past the last
+    // measurement after gap layers, its covariance grown by the predictions
+    // carried through them. Scaled by BackwardCovScale on top, stepping back
+    // over that stretch tripped Predict()'s position-variance guard and lost
+    // the whole pass for 9% of stopping muons (2026-09-27).
+    // The pass starts from the filtered state AT the track's last measurement
+    // (withExtension: the single-hit extension's last hit, else the last
+    // accepted node) -- not from the walk's final state, which can lie up to
+    // MaxGapMM past it after gap layers, with the covariance grown by the
+    // predictions carried through them (that lost the whole pass for 9% of
+    // stopping muons, 2026-09-27). An orphan hit past that point (orphan
+    // pickup looks OrphanZMarginMM beyond the applied hits) is reached by a
+    // straight move, not by stepping downstream through steel at a
+    // ranged-out momentum.
+    auto backwardStart = [&](bool withExtension) {
+      StepState start = current;
+      for (const FollowedNode &node : result.Nodes) {
+        if (!node.HasHit) continue;
+        start.x = node.FilteredX;
+        start.y = node.FilteredY;
+        start.z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+        start.dxdz = node.FilteredDXDZ;
+        start.dydz = node.FilteredDYDZ;
+        start.qp = node.FilteredQP;
+        start.cov = node.FilteredCovariance;
+      }
+      if (withExtension && haveExtensionEnd) start = extensionEndState;
+      start.Diverged = start.RangedOut = false;
+      if (!measurements.empty() && measurements.front().first > start.z) {
+        const double dz = measurements.front().first - start.z;
+        start.x += start.dxdz * dz;
+        start.y += start.dydz * dz;
+        start.z = measurements.front().first;
+      }
+      start.cov *= fConfig.BackwardCovScale;
+      return start;
+    };
+    StepState back = backwardStart(true);
     StepState range, atLast, backOut;
     bool rangeOk = false;
-    const bool ok = runBackward(back, 0, &range, rangeOk, &atLast, backOut);
+    bool ok = runBackward(back, 0, &range, rangeOk, &atLast, backOut);
+    if (!ok && haveExtensionEnd) {
+      // Fallback: without the extension's hits, from the last walked node.
+      // The track keeps them; only its momenta come from the rest.
+      measurements.erase(std::remove_if(measurements.begin(), measurements.end(),
+                                        [&](const std::pair<double, int> &m) {
+                                          return extensionHits.count(m.second) > 0;
+                                        }),
+                         measurements.end());
+      back = backwardStart(false);
+      ok = runBackward(back, 0, &range, rangeOk, &atLast, backOut);
+    }
     back = backOut;
     if (ok && rangeOk) result.RangeMomentumMeV = std::abs(range.qp) > 1e-12 ? 1.0 / std::abs(range.qp) : 0.0;
 

@@ -1142,8 +1142,12 @@ void TMS_Event::RunCluster3DReco() {
       // leaves. Otherwise always the curvature fit's.
       bool stopsInside = false;
       if (last != nullptr) {
-        const double ex = last->FilteredX, ey = last->FilteredY;
-        const double ez = last->FilteredZ != 0.0 ? last->FilteredZ : last->Z;
+        // The fitted end: the extension's, if the fit extended past its last
+        // node on single hits (TMS_KalmanFollower::Config::ExtendOnHits).
+        const bool extended = fit.NExtensionHits > 0;
+        const double ex = extended ? fit.ExtensionEndX : last->FilteredX;
+        const double ey = extended ? fit.ExtensionEndY : last->FilteredY;
+        const double ez = extended ? fit.ExtensionEndZ : (last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
         stopsInside = ex > tmsLo.X() + containXY && ex < tmsHi.X() - containXY && ey > tmsLo.Y() + containXY &&
                       ey < tmsHi.Y() - containXY && ez < tmsHi.Z() - containZ;
       }
@@ -1160,7 +1164,11 @@ void TMS_Event::RunCluster3DReco() {
       out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.Charge < 0 ? 13 : -13;
     }
     if (last != nullptr) {
-      out.SetEndPosition(last->FilteredX, last->FilteredY, last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
+      // End position: the single-hit extension's end if the fit extended.
+      if (fit.NExtensionHits > 0)
+        out.SetEndPosition(fit.ExtensionEndX, fit.ExtensionEndY, fit.ExtensionEndZ);
+      else
+        out.SetEndPosition(last->FilteredX, last->FilteredY, last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
       direction(last->FilteredDXDZ, last->FilteredDYDZ, out.EndDirection);
     }
     out.Start[3] = out.End[3] = out.Time = fit.TrackT0Ns;

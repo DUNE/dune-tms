@@ -401,6 +401,28 @@ struct Config {
   double RangeReseedQPRelSigma = 0.2;
   int RangeReseedMaxPasses = 2;
 
+  // Extension past the walk's end on single hits (Hits model only): from the
+  // last accepted node, step plane by plane through the slice's usable hits
+  // beyond the last applied hit, take the best hit at each plane whose 1D
+  // chi2 <= ExtendChi2Max and whose time is within ExtendTimeWindowNs of the
+  // track's (as orphan pickup), skip a plane with two separated passing hits,
+  // and stop once ExtendMaxGapMM of z passes with nothing taken. For a
+  // muon's last planes that have hits but no space points (one view only).
+  // The hits are recorded as orphans (FitResult::Orphans), so the backward
+  // pass, the range momentum and hit claiming use them;
+  // FitResult::ExtensionEnd* is where the extension ended.
+  //
+  // Default on (15 files, 2026-09-27, suite ND-physics muons, 616): tracks
+  // ending correctly 481 -> 492, early ends with no space points in the tail
+  // 7 -> 2 and inside the track's own object 6 -> 2, hit completeness 90.6 ->
+  // 91.5%, purity unchanged, junk tracks -125 and duplicates -159 of ~2200 /
+  // ~780 (the extension takes hits that used to become their own tracks);
+  // all muons found -27 of ~11600.
+  bool ExtendOnHits = true;
+  double ExtendChi2Max = 9.0;
+  double ExtendTimeWindowNs = 20.0;
+  double ExtendMaxGapMM = 400.0;
+
   // Orphan-hit pickup (Hits model only): after the forward walk, add hits the
   // track crosses that are in no chosen space point -- ~10% of a muon's
   // x-plane crossings have no y partner in time, so they are in no genuine
@@ -527,6 +549,10 @@ struct FitResult {
   double RangeMomentumMeV = 0.0;
   // Range-seeded backward pass (Config::RangeSeededBackwardPass); 0 if off.
   double RangeSeededMomentumMeV = 0.0;
+  // Extension on single hits (Config::ExtendOnHits): hits taken, and the
+  // filtered position at the last of them (0 if none).
+  int NExtensionHits = 0;
+  double ExtensionEndX = 0.0, ExtensionEndY = 0.0, ExtensionEndZ = 0.0;
   double TotalChi2 = 0.0;
   int NDoF = 0;
   int NGapsFilled = 0;             // layers skipped for lack of a good candidate
