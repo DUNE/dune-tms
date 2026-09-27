@@ -62,6 +62,46 @@ struct Config {
   // The validated real-data configuration the truth tools use.
   TMS_GraphTrackFinder::Config Graph = DefaultGraphConfig();
 
+  // Stitching of sequential pieces, after all fits: a track B that starts
+  // where a track A ends (B downstream, up to StitchMaxOverlapMM of z
+  // overlap, a gap of at most StitchMaxGapMM), A's end extrapolating onto
+  // B's start within StitchMissBaseMM + StitchMissPerMeterMM per meter of gap
+  // (x tolerance x2: the bending plane) and their directions within
+  // StitchMaxAngleRad, is refitted with A as one object; the merged fit
+  // replaces both if it reaches B's end. Motivation (2026-09-27, 15 files):
+  // ~80 of the extra tracks owned by an already-found muon are sequential
+  // pieces (median gap 260 mm). The refit is the real test (it must reach
+  // B's end with at least as many hits as either piece), so the geometric
+  // pre-test is loose. Default on: with shadow absorption, 15 files, the
+  // stitching adds 2 tracks ending correctly and removes 27 duplicates; most
+  // sequential pieces fail the refit (their end directions disagree by ~0.3
+  // rad) -- they are the muon itself, not descendants.
+  bool StitchSequentialTracks = true;
+  double StitchMaxGapMM = 1500.0;
+  double StitchMaxOverlapMM = 150.0;
+  double StitchMissBaseMM = 300.0;
+  double StitchMissPerMeterMM = 300.0;
+  double StitchMaxAngleRad = 0.6;
+
+  // Shadow-track absorption, after all fits (needs the slice's hits). A
+  // smaller track B that overlaps a bigger track A in z, with at least
+  // ShadowHitFraction of its hits lying on A's fitted trajectory (within
+  // ShadowTolerancePitch bar pitches of A's coordinate at the hit's plane, in
+  // the view the hit measures), is A's shadow: its on-A hits join A and B is
+  // dropped. Motivation (2026-09-27, 15 files): of 570 extra tracks owned by
+  // a muon that already had a track, 484 overlap the main track in z and 302
+  // of those hold the muon's hits in one view only -- a ghost built from the
+  // muon's leftover hits in one view and foreign hits in the other.
+  //
+  // Default on at 0.5 (15 files, suite ND-physics muons 616): duplicate
+  // tracks 621 -> 412, tracks ending correctly 492 -> 501, junk -19; all
+  // muons found -9 of ~11600 (none from ND-LAr) -- near-parallel genuine
+  // muons that match another track in one view. 0.4 / 0.3: duplicates 344 /
+  // 268 but -28 / -54 muons found; a geometric test can't tell those apart.
+  bool AbsorbShadowTracks = true;
+  double ShadowHitFraction = 0.5;
+  double ShadowTolerancePitch = 1.5;
+
   // Kalman follower settings (library defaults).
   TMS_KalmanFollower::Config Follower;
   // Give the follower the transit-corrected X/Y hit-time differences

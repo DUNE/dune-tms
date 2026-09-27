@@ -189,6 +189,190 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
       }
     }
   }
+  // --- Stitching of sequential pieces (Config::StitchSequentialTracks). ---
+  if (config.StitchSequentialTracks && tracks.size() > 1) {
+    // A track's end state (its last accepted node, or its single-hit
+    // extension's end) and start state (the backward pass's, or its first
+    // accepted node), as position + slopes at a z.
+    struct Ends {
+      bool ok = false;
+      double sz = 0, sx = 0, sy = 0, sdx = 0, sdy = 0;  // start
+      double ez = 0, ex = 0, ey = 0, edx = 0, edy = 0;  // end
+    };
+    auto endsOf = [](const TMS_KalmanFollower::FitResult &fit) {
+      Ends e;
+      const TMS_KalmanFollower::FollowedNode *first = nullptr, *last = nullptr;
+      for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes)
+        if (node.HasHit) {
+          if (!first) first = &node;
+          last = &node;
+        }
+      if (!first) return e;
+      e.ok = true;
+      e.sz = first->FilteredZ != 0.0 ? first->FilteredZ : first->Z;
+      e.sx = first->FilteredX; e.sy = first->FilteredY; e.sdx = first->FilteredDXDZ; e.sdy = first->FilteredDYDZ;
+      if (fit.HasStartState) {
+        e.sz = fit.StartZ; e.sx = fit.StartX; e.sy = fit.StartY; e.sdx = fit.StartDXDZ; e.sdy = fit.StartDYDZ;
+      }
+      e.ez = last->FilteredZ != 0.0 ? last->FilteredZ : last->Z;
+      e.ex = last->FilteredX; e.ey = last->FilteredY; e.edx = last->FilteredDXDZ; e.edy = last->FilteredDYDZ;
+      if (fit.NExtensionHits > 0) { e.ez = fit.ExtensionEndZ; e.ex = fit.ExtensionEndX; e.ey = fit.ExtensionEndY; }
+      return e;
+    };
+    // Score of B continuing A (lower = better); false if it does not.
+    auto stitchScore = [&](const Ends &a, const Ends &b, double &score) {
+      if (!a.ok || !b.ok) return false;
+      if (b.sz < a.ez - config.StitchMaxOverlapMM || b.sz <= a.sz || b.ez <= a.ez) return false;
+      const double gap = std::max(0.0, b.sz - a.ez);
+      if (gap > config.StitchMaxGapMM) return false;
+      const double tolY = config.StitchMissBaseMM + config.StitchMissPerMeterMM * gap / 1000.0, tolX = 2.0 * tolY;
+      const double dz = b.sz - a.ez;
+      const double mx1 = (a.ex + a.edx * dz - b.sx) / tolX, my1 = (a.ey + a.edy * dz - b.sy) / tolY;
+      const double mx2 = (b.sx - b.sdx * dz - a.ex) / tolX, my2 = (b.sy - b.sdy * dz - a.ey) / tolY;
+      if (std::abs(mx1) > 1 || std::abs(my1) > 1 || std::abs(mx2) > 1 || std::abs(my2) > 1) return false;
+      const double c = (a.edx * b.sdx + a.edy * b.sdy + 1.0) /
+                       std::sqrt((a.edx * a.edx + a.edy * a.edy + 1.0) * (b.sdx * b.sdx + b.sdy * b.sdy + 1.0));
+      const double angle = std::acos(std::min(1.0, std::max(-1.0, c)));
+      if (angle > config.StitchMaxAngleRad) return false;
+      score = mx1 * mx1 + my1 * my1 + mx2 * mx2 + my2 * my2 + (angle / config.StitchMaxAngleRad) * (angle / config.StitchMaxAngleRad);
+      return true;
+    };
+    auto release = [&](const TMS_KalmanFollower::FitResult &fit) {
+      for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+        if (!node.HasHit) continue;
+        const TMS_SpacePoint &p = points[node.ChosenSpacePointIndex];
+        claimed.X.erase(p.GetXHitIndex());
+        claimed.Y.erase(p.GetYHitIndex());
+      }
+      for (const auto &orphan : fit.Orphans) {
+        claimed.X.erase(orphan.HitIndex);
+        claimed.Y.erase(orphan.HitIndex);
+      }
+    };
+    bool merged = true;
+    std::vector<char> failed(tracks.size() * tracks.size(), 0);  // pairs already tried without success
+    while (merged) {
+      merged = false;
+      // The best-scoring (A, B) pair not yet tried.
+      int bestA = -1, bestB = -1;
+      double bestScore = 1e30;
+      for (std::size_t a = 0; a < tracks.size(); ++a) {
+        const Ends ea = endsOf(tracks[a].Fit);
+        for (std::size_t b = 0; b < tracks.size(); ++b) {
+          if (a == b || failed[a * tracks.size() + b]) continue;
+          double score = 0.0;
+          if (stitchScore(ea, endsOf(tracks[b].Fit), score) && score < bestScore) {
+            bestScore = score;
+            bestA = static_cast<int>(a);
+            bestB = static_cast<int>(b);
+          }
+        }
+      }
+      if (bestA < 0) break;
+      Track &A = tracks[bestA];
+      Track &B = tracks[bestB];
+      std::vector<int> object;
+      for (const Track *t : {&A, &B})
+        for (const TMS_KalmanFollower::FollowedNode &node : t->Fit.Nodes)
+          if (node.HasHit) object.push_back(static_cast<int>(node.ChosenSpacePointIndex));
+      std::sort(object.begin(), object.end());
+      object.erase(std::unique(object.begin(), object.end()), object.end());
+      release(A.Fit);
+      release(B.Fit);
+      TMS_KalmanFollower::FitResult fit;
+      const Ends eb = endsOf(B.Fit);
+      bool accept = TMS_IterativeTrackFit::FitObject(points, object, follower, claimed, nullptr, fit);
+      if (accept) {
+        const Ends em = endsOf(fit);
+        accept = em.ok && em.ez >= eb.ez - config.StitchMaxOverlapMM &&
+                 TMS_IterativeTrackFit::CountHits(fit) >=
+                     std::max(TMS_IterativeTrackFit::CountHits(A.Fit), TMS_IterativeTrackFit::CountHits(B.Fit));
+      }
+      if (accept) {
+        TMS_IterativeTrackFit::ClaimHits(points, fit, claimed);
+        A.HitIndices = UsedHits(fit, points);
+        A.Fit = std::move(fit);
+        tracks.erase(tracks.begin() + bestB);
+        failed.assign(tracks.size() * tracks.size(), 0);
+        merged = true;
+      } else {
+        TMS_IterativeTrackFit::ClaimHits(points, A.Fit, claimed);
+        TMS_IterativeTrackFit::ClaimHits(points, B.Fit, claimed);
+        failed[bestA * tracks.size() + bestB] = 1;
+        merged = true;  // try the next-best pair
+      }
+    }
+  }
+
+  // --- Shadow-track absorption (Config::AbsorbShadowTracks). ---
+  if (config.AbsorbShadowTracks && !hits.empty() && tracks.size() > 1) {
+    // A track's coordinate at z in one view: its fitted node nearest in z,
+    // carried straight to z.
+    auto coordinateAt = [](const TMS_KalmanFollower::FitResult &fit, double z, bool measuresX, double &out) {
+      const TMS_KalmanFollower::FollowedNode *nearest = nullptr;
+      double best = 0.0;
+      for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+        if (!node.HasHit) continue;
+        const double nz = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+        if (!nearest || std::abs(nz - z) < best) {
+          nearest = &node;
+          best = std::abs(nz - z);
+        }
+      }
+      if (!nearest) return false;
+      const double nz = nearest->FilteredZ != 0.0 ? nearest->FilteredZ : nearest->Z;
+      out = measuresX ? nearest->FilteredX + nearest->FilteredDXDZ * (z - nz)
+                      : nearest->FilteredY + nearest->FilteredDYDZ * (z - nz);
+      return true;
+    };
+    auto zRange = [&](const Track &t, double &lo, double &hi) {
+      lo = 1e30;
+      hi = -1e30;
+      for (int h : t.HitIndices) {
+        lo = std::min(lo, hits[h].Z);
+        hi = std::max(hi, hits[h].Z);
+      }
+    };
+    std::vector<std::size_t> order(tracks.size());
+    for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+    // Biggest first: a track can only be absorbed into a bigger one.
+    std::sort(order.begin(), order.end(),
+              [&](std::size_t a, std::size_t b) { return tracks[a].HitIndices.size() > tracks[b].HitIndices.size(); });
+    std::vector<char> removed(tracks.size(), 0);
+    for (std::size_t bi = order.size(); bi-- > 1;) {
+      Track &b = tracks[order[bi]];
+      if (b.HitIndices.empty()) continue;
+      double b0, b1;
+      zRange(b, b0, b1);
+      for (std::size_t ai = 0; ai < bi; ++ai) {
+        if (removed[order[ai]]) continue;
+        Track &a = tracks[order[ai]];
+        double a0, a1;
+        zRange(a, a0, a1);
+        if (std::min(a1, b1) - std::max(a0, b0) <= 0.0) continue;  // no z overlap
+        std::vector<int> onA;
+        for (int h : b.HitIndices) {
+          const TMS_KalmanFollower::FitHit &hit = hits[h];
+          double c = 0.0;
+          if (!coordinateAt(a.Fit, hit.Z, hit.MeasuresX, c)) continue;
+          const double pitch = hit.SigmaMM * std::sqrt(12.0);
+          if (std::abs(hit.Coordinate - c) <= config.ShadowTolerancePitch * pitch) onA.push_back(h);
+        }
+        if (onA.size() < config.ShadowHitFraction * b.HitIndices.size()) continue;
+        // B is A's shadow: A takes B's on-A hits; B goes.
+        a.HitIndices.insert(a.HitIndices.end(), onA.begin(), onA.end());
+        std::sort(a.HitIndices.begin(), a.HitIndices.end());
+        a.HitIndices.erase(std::unique(a.HitIndices.begin(), a.HitIndices.end()), a.HitIndices.end());
+        removed[order[bi]] = 1;
+        break;
+      }
+    }
+    std::vector<Track> kept;
+    kept.reserve(tracks.size());
+    for (std::size_t i = 0; i < tracks.size(); ++i)
+      if (!removed[i]) kept.push_back(std::move(tracks[i]));
+    tracks.swap(kept);
+  }
   return tracks;
 }
 

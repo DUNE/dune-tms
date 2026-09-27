@@ -128,6 +128,14 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_RESEED_PASSES")) config.Follower.RangeReseedMaxPasses = std::atoi(v);
   if (const char *v = std::getenv("CLUSTER3D_MAX_BEYOND_SEED")) config.Follower.MaxDistanceBeyondSeedMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_EXTEND")) config.Follower.ExtendOnHits = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_SHADOW")) config.AbsorbShadowTracks = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_STITCH")) config.StitchSequentialTracks = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_STITCH_MISS_BASE")) config.StitchMissBaseMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_STITCH_MISS_PER_M")) config.StitchMissPerMeterMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_STITCH_ANGLE")) config.StitchMaxAngleRad = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_STITCH_GAP")) config.StitchMaxGapMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_SHADOW_FRAC")) config.ShadowHitFraction = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_SHADOW_TOL")) config.ShadowTolerancePitch = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_EXTEND_GAP")) config.Follower.ExtendMaxGapMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_EXTEND_CHI2")) config.Follower.ExtendChi2Max = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_RANGE_SEED_REL_SIGMA")) config.Follower.RangeSeedQPRelSigma = std::atof(v);
@@ -225,7 +233,9 @@ int main(int argc, char **argv) {
   std::ofstream tracks_csv(argv[3]), muons_csv(argv[4]);
   tracks_csv << "sourcefile,entry,slice,track,stage,cluster_size,iteration,hits_used,orphans,converged,"
                 "owner_vgid,owner_trackid,owner_pdg,owner_is_muon,purity,duplicate,start_z,start_momentum_mev,"
-                "start_charge\n";
+                "start_charge,first_hit_z,last_hit_z,n_ext_hits,end_x,end_y,start_dxdz,start_dydz,stop,"
+                "n_hits_meas_x,owner_share_meas_x,n_hits_meas_y,owner_share_meas_y,start_x,start_y,end_z,end_dxdz,end_dydz,"
+                "owner_self_purity\n";
   muons_csv << "sourcefile,entry,slice,vertexglobalid,trackid,vertex_in_tms,vertex_in_lar_fiducial,stops_in_tms,"
                "true_hits_in_slice,true_momentum_tms_mev,true_charge,tracks_owned,found,best_stage,"
                "hit_completeness_pct,hit_purity_pct,best_start_momentum_mev,best_start_charge,"
@@ -333,6 +343,42 @@ int main(int argc, char **argv) {
       const bool duplicate = o.owner.Valid() && owners_seen.count(o.owner) > 0;
       if (o.owner.Valid()) owners_seen.insert(o.owner);
       const TMS_KalmanFollower::FitResult &fit = track.Fit;
+      // The track's hit z range, and its fitted end position (extension's if it extended).
+      double first_hit_z = 1e30, last_hit_z = -1e30, end_x = 0.0, end_y = 0.0, end_z = 0.0, end_dxdz = 0.0, end_dydz = 0.0;
+      for (int h : track.HitIndices) {
+        first_hit_z = std::min(first_hit_z, (double)h_z[h]);
+        last_hit_z = std::max(last_hit_z, (double)h_z[h]);
+      }
+      for (const auto &node : fit.Nodes)
+        if (node.HasHit) {
+          end_x = node.FilteredX;
+          end_y = node.FilteredY;
+          end_z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+          end_dxdz = node.FilteredDXDZ;
+          end_dydz = node.FilteredDYDZ;
+        }
+      if (fit.NExtensionHits > 0) {
+        end_x = fit.ExtensionEndX;
+        end_y = fit.ExtensionEndY;
+        end_z = fit.ExtensionEndZ;
+      }
+      // Per view: hits measuring x (Y bars) and y (X bars), and the owner's
+      // mean energy share of each.
+      // The owner's share from the particle ITSELF (raw truth ids), not from
+      // its descendants folded into it (delta rays, decay electrons...).
+      double selfShare = 0.0;
+      for (int h : track.HitIndices) {
+        if (!o.owner.Valid()) break;
+        if (h_vg1[h] == o.owner.vgid && h_tk1[h] == o.owner.trackid) selfShare += h_f1[h];
+        if (h_vg2[h] == o.owner.vgid && h_tk2[h] == o.owner.trackid) selfShare += h_f2[h];
+      }
+      int nMeasX = 0, nMeasY = 0;
+      double shareMeasX = 0.0, shareMeasY = 0.0;
+      for (int h : track.HitIndices) {
+        const double share = o.owner.Valid() ? hit_truth[h].Share(o.owner) : 0.0;
+        if (hits[h].MeasuresX) { ++nMeasX; shareMeasX += share; }
+        else { ++nMeasY; shareMeasY += share; }
+      }
       tracks_csv << input_filename << "," << entry << "," << slice_no << "," << t << "," << track.Stage << ","
                  << track.ClusterSize << "," << track.Iteration << "," << o.used << "," << fit.Orphans.size() << ","
                  << (fit.Converged ? 1 : 0) << "," << o.owner.vgid << "," << o.owner.trackid << "," << owner_pdg << ","
@@ -340,7 +386,13 @@ int main(int argc, char **argv) {
                  << (o.used > 0 ? (o.owner.Valid() ? o.owner_share : 0.0) / o.used : 0.0) << ","
                  << (duplicate ? 1 : 0) << "," << (fit.HasStartState ? fit.StartZ : 0.0) << ","
                  << (fit.HasStartState ? fit.StartMomentumMeV : 0.0) << ","
-                 << (fit.HasStartState ? fit.StartCharge : 0.0) << "\n";
+                 << (fit.HasStartState ? fit.StartCharge : 0.0) << "," << first_hit_z << "," << last_hit_z << ","
+                 << fit.NExtensionHits << "," << end_x << "," << end_y << "," << (fit.HasStartState ? fit.StartDXDZ : 0.0)
+                 << "," << (fit.HasStartState ? fit.StartDYDZ : 0.0) << "," << static_cast<int>(fit.Stop) << ","
+                 << nMeasX << "," << (nMeasX > 0 ? shareMeasX / nMeasX : 0.0) << "," << nMeasY << ","
+                 << (nMeasY > 0 ? shareMeasY / nMeasY : 0.0) << "," << (fit.HasStartState ? fit.StartX : 0.0) << ","
+                 << (fit.HasStartState ? fit.StartY : 0.0) << "," << end_z << "," << end_dxdz << "," << end_dydz << ","
+                 << (o.used > 0 ? selfShare / o.used : 0.0) << "\n";
       owned.push_back(o);
       ++n_tracks;
       if (track.Stage == 2) ++n_stage2;
