@@ -46,6 +46,7 @@
 #include "TMS_FieldModel.h"
 #include "TMS_Geom.h"
 #include "TMS_SpacePoint.h"
+#include "TMS_SpacePointTiming.h"
 #include "SpacePointLayerInput.h"
 #include "TruthLabels.h"
 
@@ -143,6 +144,8 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_LINK_MISS_PER_M")) config.Linker.MissPerMeterMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_ANGLE")) config.Linker.MaxAngleRad = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_GAP")) config.Linker.MaxGapMM = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_XYTIME_SIGMA")) config.Follower.XYTimeSigmaNs = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_XYTIME_GATE")) config.Follower.XYTimeGateNSigma = std::atof(v);
   const RegionFieldModel field;
 
   TFile input(input_filename.c_str());
@@ -231,6 +234,15 @@ int main(int argc, char **argv) {
   truth_info->SetBranchAddress("TrueNHitsInSlice", true_nhits_slice.data());
 
   std::ofstream tracks_csv(argv[3]), muons_csv(argv[4]);
+  // STUDY DUMP (C3D_POINT_DUMP=1): one row per chosen point of every track, with
+  // its transit-corrected X/Y time difference and both hits' truth, plus whether
+  // any candidate at that node was built from two hits of the track's owner.
+  std::ofstream points_csv;
+  if (std::getenv("C3D_POINT_DUMP")) {
+    points_csv.open(std::string(argv[3]) + ".points.csv");
+    points_csv << "entry,slice,track,owner_vgid,owner_trackid,z,x,y,t_xhit,t_yhit,dt_corr,dt_ok,xhit_vg,xhit_tk,yhit_vg,yhit_tk,"
+                  "n_cand,owner_cand_exists,chosen_is_owner\n";
+  }
   tracks_csv << "sourcefile,entry,slice,track,stage,cluster_size,iteration,hits_used,orphans,converged,"
                 "owner_vgid,owner_trackid,owner_pdg,owner_is_muon,purity,duplicate,start_z,start_momentum_mev,"
                 "start_charge,first_hit_z,last_hit_z,n_ext_hits,end_x,end_y,start_dxdz,start_dydz,stop,"
@@ -392,6 +404,27 @@ int main(int argc, char **argv) {
           xyDtMean /= dts.size();
           std::sort(dts.begin(), dts.end());
           xyDtMedian = dts[dts.size() / 2];
+        }
+      }
+      if (points_csv.is_open()) {
+        auto isOwner = [&](int h) { return o.owner.Valid() && h_vg1[h] == o.owner.vgid && h_tk1[h] == o.owner.trackid; };
+        for (const auto &node : fit.Nodes) {
+          if (!node.HasHit) continue;
+          const int k = node.ChosenSpacePointIndex;
+          const int xi = sp_xi[k], yi = sp_yi[k];
+          if (xi < 0 || yi < 0 || xi >= n_hits || yi >= n_hits) continue;
+          double dt = 0.0;
+          const bool ok = TMS_SpacePointTiming::CorrectedXYTimeDifference(sp_x[k], sp_y[k], h_nz[xi], h_z[xi], h_t[xi], h_nz[yi],
+                                                                         h_z[yi], h_t[yi], dt);
+          bool ownerCand = false;
+          for (std::size_t c : node.CandidateIndices) {
+            const int cx = sp_xi[c], cy = sp_yi[c];
+            if (cx >= 0 && cy >= 0 && cx < n_hits && cy < n_hits && isOwner(cx) && isOwner(cy)) ownerCand = true;
+          }
+          points_csv << entry << "," << slice_no << "," << t << "," << o.owner.vgid << "," << o.owner.trackid << "," << sp_z[k] << ","
+                     << sp_x[k] << "," << sp_y[k] << "," << h_t[xi] << "," << h_t[yi] << "," << dt << "," << ok << "," << h_vg1[xi]
+                     << "," << h_tk1[xi] << "," << h_vg1[yi] << "," << h_tk1[yi] << "," << node.CandidateIndices.size() << ","
+                     << ownerCand << "," << (isOwner(xi) && isOwner(yi)) << "\n";
         }
       }
       int nMeasX = 0, nMeasY = 0;
