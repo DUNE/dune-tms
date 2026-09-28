@@ -325,8 +325,13 @@ struct Config {
   // The tails are wider (sd 8.9 ns), so this may need relaxing.
   double XYTimeSigmaNs = 3.7;
   // If > 0, also reject any candidate with |dt| > XYTimeGateNSigma *
-  // XYTimeSigmaNs. 0 = ranks only, never gates.
-  double XYTimeGateNSigma = 0.0;
+  // XYTimeSigmaNs. 0 = ranks only, never gates. Ranking alone let 6% of muon
+  // tracks follow ghost points pairing the muon's hits in one view with
+  // another particle's in the other (once on that branch, the position chi2
+  // outweighs the time penalty). 15 files, 2026-09-28, 2 sigma (7.4 ns):
+  // those 6.0 -> 2.6%, ND muons ending correctly 522 -> 529 of 566, junk
+  // tracks -24%, duplicates -38%, found unchanged; 4.4 ns lost ~100 muons.
+  double XYTimeGateNSigma = 2.0;
 
   // What the fit updates with.
   //  SpacePoint: each accepted space point as one 2D (x, y) measurement at

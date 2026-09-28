@@ -1034,6 +1034,8 @@ void TMS_Event::RunCluster3DReco() {
   config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
   config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
   config.Follower.RangeReseedFactor = manager.Get_RECO_CLUSTER3D_RangeReseedFactor();
+  config.Follower.XYTimeSigmaNs = manager.Get_RECO_CLUSTER3D_XYTimeSigmaNs();
+  config.Follower.XYTimeGateNSigma = manager.Get_RECO_CLUSTER3D_XYTimeGateNSigma();
   const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
   const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
   const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();

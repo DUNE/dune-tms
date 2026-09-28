@@ -223,6 +223,17 @@
     # 2026-09-27: tracks ending correctly 459 -> 476 of 616, early ends inside
     # the track's own object 19 -> 7, no more junk.
     RangeReseedFactor = 1.5
+    # Follower candidate choice by each space point's transit-corrected X/Y hit
+    # time difference (TMS_SpacePointTiming): each candidate's score gains
+    # (dt / XYTimeSigmaNs)^2, and candidates with |dt| > XYTimeGateNSigma x
+    # XYTimeSigmaNs are rejected (0 = rank only). Without the gate, 6% of muon
+    # tracks paired the muon's hits in one view with another particle's in the
+    # other ("view mismatch"): once on that branch, position outweighs the time
+    # penalty. 15 files, 2026-09-28, gate 2 (7.4 ns): mismatched muon tracks
+    # 6.0 -> 2.6%, ND muons ending correctly 522 -> 529 of 566, junk tracks
+    # -24%, duplicates -38%, muons found unchanged; tighter gates lose muons.
+    XYTimeSigmaNs = 3.7
+    XYTimeGateNSigma = 2.0
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
