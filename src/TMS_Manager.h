@@ -94,6 +94,11 @@ class TMS_Manager {
     int Get_RECO_TIME_TimeSlicerEnergyWindowInUnits() { return _RECO_TIME_TimeSlicerEnergyWindowInUnits; };
     int Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits() { return _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits; };
     double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
+    bool Get_RECO_TIME_PerViewSlicing() { return _RECO_TIME_PerViewSlicing; };
+    double Get_RECO_TIME_PerViewThresholdScale() { return _RECO_TIME_PerViewThresholdScale; };
+    double Get_RECO_TIME_PerViewMatchToleranceNs() { return _RECO_TIME_PerViewMatchToleranceNs; };
+    double Get_RECO_TIME_PerViewMatchZMarginMM() { return _RECO_TIME_PerViewMatchZMarginMM; };
+    bool Get_RECO_TIME_PerViewBestLinkMatching() { return _RECO_TIME_PerViewBestLinkMatching; };
     
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -238,6 +243,11 @@ class TMS_Manager {
     int _RECO_TIME_TimeSlicerEnergyWindowInUnits;
     int _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits;
     double _RECO_TIME_TimeSlicerMaxTime;
+    bool _RECO_TIME_PerViewSlicing;
+    double _RECO_TIME_PerViewThresholdScale;
+    double _RECO_TIME_PerViewMatchToleranceNs;
+    double _RECO_TIME_PerViewMatchZMarginMM;
+    bool _RECO_TIME_PerViewBestLinkMatching;
     
     double _RECO_CALIBRATION_EnergyCalibration;
     

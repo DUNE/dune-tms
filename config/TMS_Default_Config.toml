@@ -141,6 +141,28 @@
     TimeSlicerMinimumSliceWidthInUnits = 19 # units, the minimum width of a slice in time
     TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
+    # Per-view slicing: run the slicer on each view's hits separately, then merge
+    # x- and y-view slices that overlap in time within PerViewMatchToleranceNs and
+    # in z within PerViewMatchZMarginMM.
+    # Motivation (2026-09-27): light travel along the bars puts a muon's two views
+    # up to 20-40 ns apart, so a slice boundary can fall between them; a muon split
+    # by view gets no space points and is usually lost.
+    # PerViewThresholdScale multiplies the start/end energy thresholds for each
+    # view; a value <= 0 (a float -- toml11 rejects a bare 0 here) scales them
+    # instead by that view's share of the spill's energy (recommended; a fixed 0.5
+    # under-triggers the y view, which has ~37% of the energy).
+    # PerViewBestLinkMatching = true joins each view slice to its single best
+    # partner in the other view; false requires mutual best partners (left ~40% of
+    # slices single-view in testing).
+    # Files 1-15, best-link + auto vs. the standard slicer: Cluster3D found
+    # 91.1 -> 93.0%, good reco 70.3 -> 71.0%, single-view slices 3.1 -> 1.6%;
+    # but 83 vs. 110 slices/spill (more slices hold >1 interaction) and legacy
+    # found 73.1 -> 71.5%.
+    PerViewSlicing = false
+    PerViewThresholdScale = 0.0
+    PerViewMatchToleranceNs = 40.0
+    PerViewMatchZMarginMM = 200.0
+    PerViewBestLinkMatching = true
     
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
