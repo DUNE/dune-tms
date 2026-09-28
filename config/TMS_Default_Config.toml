@@ -141,9 +141,10 @@
     TimeSlicerMinimumSliceWidthInUnits = 19 # units, the minimum width of a slice in time
     TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
-    # Per-view slicing: run the slicer on each view's hits separately, then merge
-    # x- and y-view slices that overlap in time within PerViewMatchToleranceNs and
-    # in z within PerViewMatchZMarginMM.
+    # Per-view slicing: run the slicer on each view's hits separately, then link
+    # each x-view slice to one y-view slice and vice versa; linked groups become
+    # the slices. Candidates must overlap in time within PerViewMatchToleranceNs
+    # and in z within PerViewMatchZMarginMM.
     # Motivation (2026-09-27): light travel along the bars puts a muon's two views
     # up to 20-40 ns apart, so a slice boundary can fall between them; a muon split
     # by view gets no space points and is usually lost.
@@ -151,18 +152,28 @@
     # view; a value <= 0 (a float -- toml11 rejects a bare 0 here) scales them
     # instead by that view's share of the spill's energy (recommended; a fixed 0.5
     # under-triggers the y view, which has ~37% of the energy).
-    # PerViewBestLinkMatching = true joins each view slice to its single best
-    # partner in the other view; false requires mutual best partners (left ~40% of
-    # slices single-view in testing).
-    # Files 1-15, best-link + auto vs. the standard slicer: Cluster3D found
-    # 91.1 -> 93.0%, good reco 70.3 -> 71.0%, single-view slices 3.1 -> 1.6%;
-    # but 83 vs. 110 slices/spill (more slices hold >1 interaction) and legacy
-    # found 73.1 -> 71.5%.
+    # PerViewMatching picks each view slice's partner:
+    #   "Coincidence" (recommended): the candidate with the most planes holding
+    #     x/y hit pairs (within PerViewCoincidenceDzMM in z) whose times agree
+    #     within PerViewCoincidenceWindowNs after correcting each hit for light
+    #     travel along its bar (PerViewFiberDelayNsPerMM, using the partner hit's
+    #     coordinate) and for flight time; at least PerViewMinCoincidencePlanes.
+    #     The fiber delay matches the simulation's (1.8 x path at c/1.5); real
+    #     data would need it calibrated.
+    #   "BestOverlap": the candidate overlapping most in time.
+    #   "MutualOverlap": as BestOverlap, but only mutual best pairs (worse).
+    # Files 1-15 vs. the standard slicer: Coincidence gives 120 vs. 110 slices per
+    # spill, muons with views in different slices 1.2 vs. 5.3%, Cluster3D found
+    # 91.1 -> 93.5%, legacy unchanged; BestOverlap: 83 slices, legacy -1.6 pp.
     PerViewSlicing = false
     PerViewThresholdScale = 0.0
     PerViewMatchToleranceNs = 40.0
     PerViewMatchZMarginMM = 200.0
-    PerViewBestLinkMatching = true
+    PerViewMatching = "Coincidence"
+    PerViewMinCoincidencePlanes = 3
+    PerViewCoincidenceWindowNs = 10.0
+    PerViewCoincidenceDzMM = 200.0
+    PerViewFiberDelayNsPerMM = 0.009
     
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE

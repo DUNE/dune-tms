@@ -7,6 +7,7 @@
 #include "TMS_Event.h"
 #include "TMS_Hit.h"
 #include "TMS_Manager.h"
+#include "TMS_Geom.h"
 
 #include <algorithm>
 #include <numeric>
@@ -269,22 +270,27 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
 // quarter of all the missed ones). Within one view the delays are consistent.
 //
 // So: run the energy-window slicer on each view's hits separately (thresholds
-// scaled per view, below), then link each view slice to the other view's slice
-// it overlaps most in time (widened by PerViewMatchToleranceNs) among those
-// overlapping it in z (within PerViewMatchZMarginMM): the connected groups are
-// the slices. Two unrelated interactions overlapping in both time and z can end
-// up in one slice -- the trackers still separate them in 3D.
+// scaled per view, below), then link each view slice to one slice of the other
+// view (PerViewMatching, below): the connected groups are the slices. Two
+// unrelated interactions overlapping in both time and z can end up in one slice
+// -- the trackers still separate them in 3D.
 //
-// Files 1-15 (best-link matching, automatic thresholds) vs. RunTimeSlicer:
-// Cluster3D found 91.1 -> 93.0% of ND-LAr muons, single-view slices 3.1 ->
-// 1.6%, but 83 vs. 110 slices per spill, so more slices hold >1 interaction.
+// Files 1-15 (2026-09-28), Coincidence matching vs. RunTimeSlicer: 120 vs. 110
+// slices per spill, slices with >1 interaction at >=5% 55 vs. 57%, muons with
+// their views in different slices 1.2 vs. 5.3%; Cluster3D found 91.1 -> 93.5%
+// and good reco 70.3 -> 72.0% of ND-LAr muons entering the TMS, legacy
+// unchanged (73.1%). BestOverlap reached 93.0% but with 83 slices per spill.
 int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
   TMS_Manager &manager = TMS_Manager::GetInstance();
   const double SPILL_LENGTH = manager.Get_RECO_TIME_TimeSlicerMaxTime();
   const double DT = manager.Get_RECO_TIME_TimeSlicerSliceUnit();
   const int nUnits = std::ceil(SPILL_LENGTH / DT);
   const double scaleSetting = manager.Get_RECO_TIME_PerViewThresholdScale();
-  const bool bestLinkMatching = manager.Get_RECO_TIME_PerViewBestLinkMatching();
+  const std::string matching = manager.Get_RECO_TIME_PerViewMatching();
+  const int minCoincidencePlanes = manager.Get_RECO_TIME_PerViewMinCoincidencePlanes();
+  const double coincidenceWindow = manager.Get_RECO_TIME_PerViewCoincidenceWindowNs();
+  const double coincidenceDz = manager.Get_RECO_TIME_PerViewCoincidenceDzMM();
+  const double fiberDelayPerMM = manager.Get_RECO_TIME_PerViewFiberDelayNsPerMM();
   const int windowWidth = manager.Get_RECO_TIME_TimeSlicerEnergyWindowInUnits();
   const int minimumWidth = manager.Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
   const double tolerance = manager.Get_RECO_TIME_PerViewMatchToleranceNs();
@@ -334,12 +340,11 @@ int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
     }
   }
 
-  // For every view slice, find its best partner in the other view: the one it
-  // overlaps most in time (after widening by the tolerance, and requiring z
-  // overlap). Linking every overlapping pair instead let pairs chain (x1-y1-x2-
-  // y2...) and glued successive interactions into one slice: half as many
-  // slices on the first spill tried (46 vs 99). The goal is one slice per
-  // interaction.
+  // Candidate partners: other-view slices that overlap in time (after widening by
+  // the tolerance) and in z (within the margin). Linking every overlapping pair
+  // let pairs chain (x1-y1-x2-y2...) and glued successive interactions into one
+  // slice: half as many slices on the first spill tried (46 vs 99). The goal is
+  // one slice per interaction, so each view slice links to at most one partner.
   const int offset = slices[0].size();
   std::vector<int> parent(offset + slices[1].size());
   std::iota(parent.begin(), parent.end(), 0);
@@ -349,25 +354,98 @@ int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
     if (!(x.z0 - zMargin < y.z1 && y.z0 < x.z1 + zMargin)) return 0.0;
     return std::max(0.0, std::min(x.t1 + tolerance, y.t1) - std::max(x.t0 - tolerance, y.t0));
   };
+
+  // Coincidence score of a candidate pair: the number of distinct planes holding a
+  // hit of one slice that pairs with a hit of the other in a nearby plane of the
+  // other view (|dz| <= PerViewCoincidenceDzMM; the views interleave with up to
+  // 130 mm between neighboring planes) at the same time. "Same time" is after
+  // correcting each hit for the light's travel along its bar -- which needs the
+  // coordinate along the bar, and that is exactly what the partner hit measures --
+  // and for flight time along z. A muon split by view gives a coincidence at
+  // nearly every plane; slices that merely overlap in time give few, however much
+  // other activity they hold. Slice-level times do not work here: over half of
+  // the slices hold more than one interaction, so their median times are blends.
+  std::vector<std::vector<const TMS_Hit *>> sliceHits[2];
+  for (int v = 0; v < 2; ++v) {
+    sliceHits[v].resize(slices[v].size());
+    for (const TMS_Hit *hit : viewHits[v]) {
+      const int index = hit->GetT() / DT;
+      if (index < 0 || index >= nUnits) continue;
+      const int l = labels[v][index];
+      if (l > 0 && l < static_cast<int>(slices[v].size())) sliceHits[v][l].push_back(hit);
+    }
+    for (auto &list : sliceHits[v])
+      std::sort(list.begin(), list.end(), [](const TMS_Hit *p, const TMS_Hit *q) { return p->GetZ() < q->GetZ(); });
+  }
+  // Light-travel delay of a hit relative to its bar's center, given the position
+  // along the bar (as TMS_DetectorSimulation::SimulateTimingModel models it:
+  // single-ended readout, X-type bars read out at the outer end of their half,
+  // the others at the top).
+  TMS_Geom &geom = TMS_Geom::GetInstance();
+  auto fiberDelay = [&](const TMS_Hit &hit, double alongBar) {
+    const TMS_Bar &bar = hit.GetBar();
+    const double length = bar.GetBarLength(), center = bar.GetAxisReadoutCenter();
+    double distance;
+    if (bar.GetBarType() == TMS_Bar::kXBar) {
+      const double readout = center < 0 ? geom.XBarNegReadoutLocation(center, length) : geom.XBarPosReadoutLocation(center, length);
+      distance = std::fabs(alongBar - readout);
+    } else {
+      distance = geom.YBarReadoutLocation(center, length) - alongBar;
+    }
+    return (distance - 0.5 * length) * fiberDelayPerMM;
+  };
+  const double kSpeedOfLightMMPerNs = 299.792458;
+  auto coincidencePlanes = [&](int a, int b) {  // a: view-1 slice, b: view-0 slice
+    const std::vector<const TMS_Hit *> &ha = sliceHits[1][a], &hb = sliceHits[0][b];
+    std::vector<double> planes;
+    std::size_t start = 0;
+    for (const TMS_Hit *p : ha) {
+      while (start < hb.size() && hb[start]->GetZ() < p->GetZ() - coincidenceDz) ++start;
+      for (std::size_t j = start; j < hb.size() && hb[j]->GetZ() <= p->GetZ() + coincidenceDz; ++j) {
+        const TMS_Hit *q = hb[j];
+        const double tp = p->GetT() - fiberDelay(*p, q->GetNotZ()) - p->GetZ() / kSpeedOfLightMMPerNs;
+        const double tq = q->GetT() - fiberDelay(*q, p->GetNotZ()) - q->GetZ() / kSpeedOfLightMMPerNs;
+        if (std::fabs(tp - tq) < coincidenceWindow) {
+          planes.push_back(p->GetZ());
+          planes.push_back(q->GetZ());
+        }
+      }
+    }
+    std::sort(planes.begin(), planes.end());
+    return static_cast<int>(std::unique(planes.begin(), planes.end()) - planes.begin());
+  };
+
+  // Each view slice's best partner: by coincidence planes (Coincidence, default;
+  // ties broken by overlap, at least PerViewMinCoincidencePlanes), or by time
+  // overlap alone (BestOverlap, MutualOverlap).
+  const bool byCoincidence = matching == "Coincidence";
   std::vector<int> bestY(slices[1].size(), -1), bestX(slices[0].size(), -1);
   std::vector<double> bestYOverlap(slices[1].size(), 0.0), bestXOverlap(slices[0].size(), 0.0);
+  std::vector<int> bestYScore(slices[1].size(), 0), bestXScore(slices[0].size(), 0);
   for (std::size_t a = 1; a < slices[1].size(); ++a)
     for (std::size_t b = 1; b < slices[0].size(); ++b) {
       const double o = overlap(slices[1][a], slices[0][b]);
       if (o <= 0.0) continue;
-      if (o > bestYOverlap[a]) { bestYOverlap[a] = o; bestY[a] = static_cast<int>(b); }
-      if (o > bestXOverlap[b]) { bestXOverlap[b] = o; bestX[b] = static_cast<int>(a); }
+      const int score = byCoincidence ? coincidencePlanes(a, b) : 0;
+      if (byCoincidence && score < minCoincidencePlanes) continue;
+      if (score > bestYScore[a] || (score == bestYScore[a] && o > bestYOverlap[a])) {
+        bestYScore[a] = score; bestYOverlap[a] = o; bestY[a] = static_cast<int>(b);
+      }
+      if (score > bestXScore[b] || (score == bestXScore[b] && o > bestXOverlap[b])) {
+        bestXScore[b] = score; bestXOverlap[b] = o; bestX[b] = static_cast<int>(a);
+      }
     }
-  // PerViewBestLinkMatching (default): every view slice adds its own best link,
-  // so an interaction whose view was cut into several slices can reassemble;
-  // one link per slice chains far less than linking every overlap. Otherwise
-  // only mutual best pairs are linked -- tested 2026-09-27 and worse: ~40% of
-  // slices were left single-view and 18% of muons had their views split.
+  // Coincidence / BestOverlap: every view slice adds its own best link, so an
+  // interaction whose view was cut into several slices can reassemble.
+  // MutualOverlap links only mutual best pairs -- tested 2026-09-27 and worse:
+  // ~40% of slices were left single-view and ~30% of muons had their views in
+  // different slices.
+  const bool mutualOnly = matching == "MutualOverlap";
   for (std::size_t a = 1; a < slices[1].size(); ++a) {
     const int b = bestY[a];
-    if (b > 0 && (bestLinkMatching || bestX[b] == static_cast<int>(a))) parent[find(offset + static_cast<int>(a))] = find(b);
+    if (b > 0 && (!mutualOnly || bestX[b] == static_cast<int>(a))) parent[find(offset + static_cast<int>(a))] = find(b);
   }
-  if (bestLinkMatching)
+  if (!mutualOnly)
     for (std::size_t b = 1; b < slices[0].size(); ++b) {
       const int a = bestX[b];
       if (a > 0) parent[find(static_cast<int>(b))] = find(offset + a);
