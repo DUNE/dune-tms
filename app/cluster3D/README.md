@@ -1,9 +1,12 @@
 # app/cluster3D — validation and diagnostic tools for the Cluster3D pipeline
 
 These programs exercise the space-point reconstruction in `src/Cluster3D/`
-(space points → DBSCAN + PCA → graph search → Kalman follower → split step;
-see `src/Cluster3D/README.md` for the pipeline itself). None of them are
-part of production reconstruction. Most read space points back out of a
+(space points → DBSCAN + PCA → cluster linking → Kalman follower and split
+step → shadow absorption and stitching; see `src/Cluster3D/README.md` for the
+pipeline itself). None of them are part of production reconstruction, but
+`Cluster3DRecoTruth` runs exactly the stage conversion runs
+(`TMS_Cluster3DReco::Run()`); the older tools assemble their own variants of
+it. Most read space points back out of a
 `Reco_Tree` that `ConvertToTMSTree` already wrote and compare against the
 truth stored in the same file.
 
@@ -22,12 +25,51 @@ means the library default.
 
 | If you want to… | Use |
 |---|---|
+| score the production Cluster3D reconstruction: every track and every true muon | `Cluster3DRecoTruth` |
 | measure how often each true muon is found and how well it is fitted | `KalmanFollowerTruthEfficiency` |
 | count *every* fitted track, including fakes and duplicates | `TrackFindingObjectTruth` |
 | look at one slice in detail (every candidate, every χ²) | `KalmanFollowerSliceTest` |
 | study the clustering stage alone | `ClusterTruthEfficiency` |
 
 ## Truth-validation tools
+
+### `Cluster3DRecoTruth`
+```
+Cluster3DRecoTruth <geom.root> <reco.root> <tracks.csv> <muons.csv>
+```
+Object-first, hit-level validation of `TMS_Cluster3DReco::Run()` as
+conversion runs it (the slice's hits for the hit-level fit and orphan pickup,
+the X/Y time term), with no truth input. Truth only scores afterwards, from
+the energy shares of the hits the tracks used:
+- a track's owner is the particle with the largest summed share, if that is
+  more than half the hits, otherwise the track is junk ("mixed");
+- a true muon (\|PDG\| 13, at least 5 true hits in the slice) is found if it
+  owns a track; its best track gives completeness and purity; further owned
+  tracks are duplicates.
+
+One row per track (owner, purity, hits per view and the owner's share of each,
+start/end, stop reason, chi2, timing) and one row per slice × muon (outcome,
+where its space points went among the DBSCAN clusters, and for a track ending
+early, where the rest of the muon went). A muon cut across two slices has a
+row in each, so count distinct muons by their main slice (most true hits).
+- Reconstruction settings: `CLUSTER3D_LINK`, `CLUSTER3D_GRAPH` (and
+  `_GRAPH_MIN_CLUSTER`, `_GRAPH_MIN_LAYERS`, `_GRAPH_MIN_HITS`),
+  `CLUSTER3D_MIN_HITS`, `CLUSTER3D_SHADOW` (`_SHADOW_FRAC`, `_SHADOW_TOL`),
+  `CLUSTER3D_STITCH` (`_STITCH_GAP`, `_STITCH_ANGLE`, `_STITCH_MISS_BASE`,
+  `_STITCH_MISS_PER_M`), `CLUSTER3D_LINK_MAX_GAP`, `_LINK_MAX_ANGLE`,
+  `_LINK_MISS_BASE`, `_LINK_MISS_PER_M`, and the follower's
+  `CLUSTER3D_EXTEND` (`_EXTEND_GAP`, `_EXTEND_CHI2`),
+  `CLUSTER3D_RESEED_FACTOR` (`_RESEED_SIGMA`, `_RESEED_PASSES`),
+  `CLUSTER3D_RANGE_SEEDED`, `CLUSTER3D_RANGE_SEED_REL_SIGMA`,
+  `CLUSTER3D_MAX_BEYOND_SEED`, `CLUSTER3D_STOP_ON_RANGE_OUT`,
+  `CLUSTER3D_XYTIME_SIGMA`, `CLUSTER3D_XYTIME_GATE` (see
+  `TMS_Cluster3DReco::Config` and `TMS_KalmanFollower::Config`). The
+  conversion's own `[Recon.Cluster3D]` settings are not read: set
+  `CLUSTER3D_LINK=1` to match a conversion with `LinkClusters = true`.
+- `C3D_POINT_DUMP=1` also writes `<tracks.csv>.points.csv`: every track's
+  chosen points with their transit-corrected X/Y time difference, both hits'
+  truth, and whether a point built from two of the owner's hits was among the
+  node's candidates (the view-mismatch study, 2026-09-28).
 
 ### `ClusterTruthEfficiency`
 ```
