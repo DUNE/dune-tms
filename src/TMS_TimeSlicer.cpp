@@ -1,10 +1,53 @@
 #include <cmath>
+#include <functional>
+#include <map>
 #include <vector>
 
 #include "TMS_TimeSlicer.h"
 #include "TMS_Event.h"
 #include "TMS_Hit.h"
 #include "TMS_Manager.h"
+
+#include <algorithm>
+#include <numeric>
+#include <utility>
+
+namespace {
+
+// The energy-window slicing of RunTimeSlicer(), on any subset of hits: label
+// each DT-wide time unit with a slice index (0 = none). A slice opens when the
+// energy in a sliding window of slidingWindowWidth units reaches thresholdStart,
+// runs at least minimumSliceWidth units, and closes once the window's energy
+// drops below thresholdEnd. Returns the number of slices found.
+int WindowSlices(const std::vector<const TMS_Hit *> &hits, double DT, int nUnits, double thresholdStart,
+                 double thresholdEnd, int slidingWindowWidth, int minimumSliceWidth, std::vector<int> &labels) {
+  std::vector<double> energy(nUnits, 0.0);
+  for (const TMS_Hit *hit : hits) {
+    const int index = hit->GetT() / DT;
+    if (index >= 0 && index < nUnits) energy[index] += hit->GetE();
+  }
+  labels.assign(nUnits, 0);
+  int minimumIndex = 0, sliceIndex = 1;
+  bool inSlice = false;
+  for (int i = 0; i < nUnits; i++) {
+    double inWindow = 0;
+    for (int j = 0; i + j + slidingWindowWidth < nUnits && j < slidingWindowWidth; j++) inWindow += energy[i + j];
+    if (!inSlice && inWindow >= thresholdStart) {
+      inSlice = true;
+      minimumIndex = i + minimumSliceWidth;
+    }
+    if (inSlice && inWindow < thresholdEnd && i > minimumIndex) {
+      inSlice = false;
+      for (int j = 0; i + j + slidingWindowWidth < nUnits && j < slidingWindowWidth - 1; j++) labels[i + j] = sliceIndex;
+      i += slidingWindowWidth - 1;
+      sliceIndex += 1;
+    }
+    if (inSlice) labels[i] = sliceIndex;
+  }
+  return sliceIndex - 1 + (inSlice ? 1 : 0);
+}
+
+}  // namespace
 
 int TMS_TimeSlicer::SimpleTimeSlicer(TMS_Event &event) {
   int nslices = 1;
@@ -83,6 +126,8 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     return nslices;
   }
   if (RunTimeSlicer && RunSimpleTimeSlicer) nslices = SimpleTimeSlicer(event);
+  if (RunTimeSlicer && !RunSimpleTimeSlicer && TMS_Manager::GetInstance().Get_RECO_TIME_PerViewSlicing())
+    return PerViewTimeSlicer(event);
   if (RunTimeSlicer && !RunSimpleTimeSlicer) {
     // Here are all the constants
     double threshold1 = TMS_Manager::GetInstance().Get_RECO_TIME_TimeSlicerThresholdStart();
@@ -208,5 +253,165 @@ int TMS_TimeSlicer::RunTimeSlicer(TMS_Event &event) {
     event.SetHitsRaw(changed_hits);
     event.AddTimeSliceInformation(slice_bounds);
   }
+  return nslices;
+}
+
+// Per-view slicing ([Recon.Time] PerViewSlicing).
+//
+// Why (2026-09-27, 15 MiniProdN5 files): a hit's time includes the light's
+// travel along its bar to the readout, and the two views' bars run in
+// different directions -- the x-measuring hits of a muon are delayed by
+// ~6-8 ns per meter of its height, the y-measuring ones barely at all -- so a
+// muon's two views can sit 20-40 ns apart. With slices ~55 ns wide, a slice
+// boundary between them split 2.8% of all muons by view (all x-measuring hits
+// in one slice, all y-measuring in the next); neither slice can pair them into
+// space points, and ~90% of those muons were lost (2.1% of ND-LAr muons, a
+// quarter of all the missed ones). Within one view the delays are consistent.
+//
+// So: run the energy-window slicer on each view's hits separately (thresholds
+// scaled per view, below), then link each view slice to the other view's slice
+// it overlaps most in time (widened by PerViewMatchToleranceNs) among those
+// overlapping it in z (within PerViewMatchZMarginMM): the connected groups are
+// the slices. Two unrelated interactions overlapping in both time and z can end
+// up in one slice -- the trackers still separate them in 3D.
+//
+// Files 1-15 (best-link matching, automatic thresholds) vs. RunTimeSlicer:
+// Cluster3D found 91.1 -> 93.0% of ND-LAr muons, single-view slices 3.1 ->
+// 1.6%, but 83 vs. 110 slices per spill, so more slices hold >1 interaction.
+int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  const double SPILL_LENGTH = manager.Get_RECO_TIME_TimeSlicerMaxTime();
+  const double DT = manager.Get_RECO_TIME_TimeSlicerSliceUnit();
+  const int nUnits = std::ceil(SPILL_LENGTH / DT);
+  const double scaleSetting = manager.Get_RECO_TIME_PerViewThresholdScale();
+  const bool bestLinkMatching = manager.Get_RECO_TIME_PerViewBestLinkMatching();
+  const int windowWidth = manager.Get_RECO_TIME_TimeSlicerEnergyWindowInUnits();
+  const int minimumWidth = manager.Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
+  const double tolerance = manager.Get_RECO_TIME_PerViewMatchToleranceNs();
+  const double zMargin = manager.Get_RECO_TIME_PerViewMatchZMarginMM();
+
+  std::vector<TMS_Hit> hits = event.GetHitsRaw();
+  // View 0: y-measuring hits (X-type bars); view 1: everything else (x-measuring).
+  auto viewOf = [](const TMS_Hit &hit) { return hit.GetBar().GetBarType() == TMS_Bar::kXBar ? 0 : 1; };
+  std::vector<const TMS_Hit *> viewHits[2];
+  for (const TMS_Hit &hit : hits)
+    if (!hit.GetPedSup()) viewHits[viewOf(hit)].push_back(&hit);
+
+  // Per-view slices: labels per time unit, and each slice's time and z range.
+  struct ViewSlice {
+    double t0 = 1e30, t1 = -1e30, z0 = 1e30, z1 = -1e30;
+  };
+  // Each view's thresholds: the full-detector ones scaled by PerViewThresholdScale,
+  // or -- if that is <= 0 -- by the view's own share of this spill's hit
+  // energy. The views are not equal: y-measuring hits come from 30 of the 82
+  // planes, so a muon leaves ~37% of its energy there, and a common factor of
+  // 0.5 under-triggered the y view (2026-09-27: 41% of slices single-view).
+  double viewEnergy[2] = {0.0, 0.0};
+  for (int v = 0; v < 2; ++v)
+    for (const TMS_Hit *hit : viewHits[v]) viewEnergy[v] += hit->GetE();
+  std::vector<int> labels[2];
+  std::vector<ViewSlice> slices[2];
+  for (int v = 0; v < 2; ++v) {
+    const double total = viewEnergy[0] + viewEnergy[1];
+    const double scale = scaleSetting > 0.0 ? scaleSetting : (total > 0.0 ? viewEnergy[v] / total : 0.5);
+    const double thresholdStart = scale * manager.Get_RECO_TIME_TimeSlicerThresholdStart();
+    const double thresholdEnd = scale * manager.Get_RECO_TIME_TimeSlicerThresholdEnd();
+    const int n = WindowSlices(viewHits[v], DT, nUnits, thresholdStart, thresholdEnd, windowWidth, minimumWidth, labels[v]);
+    slices[v].assign(n + 1, ViewSlice());  // index 0 unused
+    for (int i = 0; i < nUnits; ++i) {
+      const int l = labels[v][i];
+      if (l <= 0 || l > n) continue;
+      slices[v][l].t0 = std::min(slices[v][l].t0, i * DT);
+      slices[v][l].t1 = std::max(slices[v][l].t1, (i + 1) * DT);
+    }
+    for (const TMS_Hit *hit : viewHits[v]) {
+      const int index = hit->GetT() / DT;
+      if (index < 0 || index >= nUnits) continue;
+      const int l = labels[v][index];
+      if (l <= 0 || l > n) continue;
+      slices[v][l].z0 = std::min(slices[v][l].z0, hit->GetZ());
+      slices[v][l].z1 = std::max(slices[v][l].z1, hit->GetZ());
+    }
+  }
+
+  // For every view slice, find its best partner in the other view: the one it
+  // overlaps most in time (after widening by the tolerance, and requiring z
+  // overlap). Linking every overlapping pair instead let pairs chain (x1-y1-x2-
+  // y2...) and glued successive interactions into one slice: half as many
+  // slices on the first spill tried (46 vs 99). The goal is one slice per
+  // interaction.
+  const int offset = slices[0].size();
+  std::vector<int> parent(offset + slices[1].size());
+  std::iota(parent.begin(), parent.end(), 0);
+  std::function<int(int)> find = [&](int a) { return parent[a] == a ? a : parent[a] = find(parent[a]); };
+  auto overlap = [&](const ViewSlice &x, const ViewSlice &y) {
+    if (x.z0 > x.z1 || y.z0 > y.z1) return 0.0;  // no hits
+    if (!(x.z0 - zMargin < y.z1 && y.z0 < x.z1 + zMargin)) return 0.0;
+    return std::max(0.0, std::min(x.t1 + tolerance, y.t1) - std::max(x.t0 - tolerance, y.t0));
+  };
+  std::vector<int> bestY(slices[1].size(), -1), bestX(slices[0].size(), -1);
+  std::vector<double> bestYOverlap(slices[1].size(), 0.0), bestXOverlap(slices[0].size(), 0.0);
+  for (std::size_t a = 1; a < slices[1].size(); ++a)
+    for (std::size_t b = 1; b < slices[0].size(); ++b) {
+      const double o = overlap(slices[1][a], slices[0][b]);
+      if (o <= 0.0) continue;
+      if (o > bestYOverlap[a]) { bestYOverlap[a] = o; bestY[a] = static_cast<int>(b); }
+      if (o > bestXOverlap[b]) { bestXOverlap[b] = o; bestX[b] = static_cast<int>(a); }
+    }
+  // PerViewBestLinkMatching (default): every view slice adds its own best link,
+  // so an interaction whose view was cut into several slices can reassemble;
+  // one link per slice chains far less than linking every overlap. Otherwise
+  // only mutual best pairs are linked -- tested 2026-09-27 and worse: ~40% of
+  // slices were left single-view and 18% of muons had their views split.
+  for (std::size_t a = 1; a < slices[1].size(); ++a) {
+    const int b = bestY[a];
+    if (b > 0 && (bestLinkMatching || bestX[b] == static_cast<int>(a))) parent[find(offset + static_cast<int>(a))] = find(b);
+  }
+  if (bestLinkMatching)
+    for (std::size_t b = 1; b < slices[0].size(); ++b) {
+      const int a = bestX[b];
+      if (a > 0) parent[find(static_cast<int>(b))] = find(offset + a);
+    }
+
+  // Final slices: the groups, numbered 1.. in order of their start time.
+  std::map<int, std::pair<double, double>> groupTimes;  // root -> (start, end)
+  for (int v = 0; v < 2; ++v)
+    for (std::size_t l = 1; l < slices[v].size(); ++l) {
+      if (slices[v][l].z0 > slices[v][l].z1) continue;
+      const int root = find(v == 0 ? static_cast<int>(l) : offset + static_cast<int>(l));
+      auto it = groupTimes.find(root);
+      if (it == groupTimes.end()) groupTimes[root] = {slices[v][l].t0, slices[v][l].t1};
+      else {
+        it->second.first = std::min(it->second.first, slices[v][l].t0);
+        it->second.second = std::max(it->second.second, slices[v][l].t1);
+      }
+    }
+  std::vector<std::pair<double, int>> order;
+  for (const auto &kv : groupTimes) order.push_back({kv.second.first, kv.first});
+  std::sort(order.begin(), order.end());
+  std::map<int, int> sliceOfRoot;
+  std::vector<std::pair<double, double>> sliceBounds;
+  sliceBounds.push_back(std::make_pair(0.0, SPILL_LENGTH));  // slice 0
+  for (std::size_t k = 0; k < order.size(); ++k) {
+    sliceOfRoot[order[k].second] = static_cast<int>(k) + 1;
+    sliceBounds.push_back(groupTimes[order[k].second]);
+  }
+
+  // Each hit takes the final slice of its own view's slice at its time
+  // (pedestal-suppressed hits too, as RunTimeSlicer labels every hit).
+  for (TMS_Hit &hit : hits) {
+    const int v = viewOf(hit);
+    const int index = hit.GetT() / DT;
+    int slice = 0;
+    if (index >= 0 && index < nUnits) {
+      const int l = labels[v][index];
+      if (l > 0 && l < static_cast<int>(slices[v].size()) && slices[v][l].z0 <= slices[v][l].z1)
+        slice = sliceOfRoot[find(v == 0 ? l : offset + l)];
+    }
+    hit.SetSlice(slice);
+  }
+  event.SetHitsRaw(hits);
+  event.AddTimeSliceInformation(sliceBounds);
+  const int nslices = static_cast<int>(order.size()) + 1;
   return nslices;
 }

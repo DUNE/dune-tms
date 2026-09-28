@@ -43,6 +43,12 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_TimeSlicerEnergyWindowInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerEnergyWindowInUnits");
   _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
   _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
+  // Per-view slicing keys are optional so that older config files keep working (defaults = off / tuned values).
+  _RECO_TIME_PerViewSlicing = toml::find_or<bool>(data, "Recon", "Time", "PerViewSlicing", false);
+  _RECO_TIME_PerViewThresholdScale = toml::find_or<double>(data, "Recon", "Time", "PerViewThresholdScale", 0.0);
+  _RECO_TIME_PerViewMatchToleranceNs = toml::find_or<double>(data, "Recon", "Time", "PerViewMatchToleranceNs", 40.0);
+  _RECO_TIME_PerViewMatchZMarginMM = toml::find_or<double>(data, "Recon", "Time", "PerViewMatchZMarginMM", 200.0);
+  _RECO_TIME_PerViewBestLinkMatching = toml::find_or<bool>(data, "Recon", "Time", "PerViewBestLinkMatching", true);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
