@@ -45,4 +45,12 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_NOISE_DarkNoiseMinPE = toml::find<double>(data, "Sim", "Noise", "DarkNoiseMinPE");
 
   _SIM_DETSIM_UseResponseElements = toml::find<bool>(data, "Sim", "DetSim", "UseResponseElements");
+  _SIM_DETSIM_DepositBinLength = toml::find<double>(data, "Sim", "DetSim", "DepositBinLength");
+  _SIM_DETSIM_PassageMaxGap = toml::find<double>(data, "Sim", "DetSim", "PassageMaxGap");
+
+  _SIM_TIMING_ScintillatorDecayTime = toml::find<double>(data, "Sim", "Timing", "ScintillatorDecayTime");
+  _SIM_TIMING_WLSDecayTime = toml::find<double>(data, "Sim", "Timing", "WLSDecayTime");
+  _SIM_TIMING_FiberRefractiveIndex = toml::find<double>(data, "Sim", "Timing", "FiberRefractiveIndex");
+  _SIM_TIMING_ElectronicTimeNoise = toml::find<double>(data, "Sim", "Timing", "ElectronicTimeNoise");
+  _SIM_TIMING_MaxTimingPhotons = toml::find<int>(data, "Sim", "Timing", "MaxTimingPhotons");
 }
