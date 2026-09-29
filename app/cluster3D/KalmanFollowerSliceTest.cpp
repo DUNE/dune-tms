@@ -643,6 +643,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_TIME_GATE")) followerConfig.TimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("KF_ORPHANS")) followerConfig.PickUpOrphanHits = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_XYTIME_GATE")) followerConfig.XYTimeGateNSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_XYTIME_ALT")) followerConfig.XYTimeGateNeedsAlternative = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_RANGE_TABLES")) followerConfig.RangeTableEnergyLoss = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_EXPECTED_STOP")) followerConfig.ExpectedStopRange = std::atoi(v) != 0;
   TMS_KalmanFollower::Follower follower(followerConfig, field);
@@ -762,6 +763,9 @@ int main(int argc, char **argv) {
                   << " chi2=" << node.CandidateChi2[k]
                   << (node.CandidateTimeChi2.empty() ? "" : " tchi2=")
                   << (node.CandidateTimeChi2.empty() ? std::string() : std::to_string(node.CandidateTimeChi2[k]))
+                  << (node.CandidateXYTimeChi2.empty() ? "" : " xy_dt=")
+                  << (node.CandidateXYTimeChi2.empty() ? std::string()
+                                                       : std::to_string(std::sqrt(node.CandidateXYTimeChi2[k]) * followerConfig.XYTimeSigmaNs))
                   << " X=(" << lx.vgid << "," << lx.trackid << ")"
                   << " Y=(" << ly.vgid << "," << ly.trackid << ")"
                   << (lx == target && ly == target ? " TARGET" : "") << '\n';

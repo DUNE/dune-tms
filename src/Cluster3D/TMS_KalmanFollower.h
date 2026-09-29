@@ -332,6 +332,16 @@ struct Config {
   // those 6.0 -> 2.6%, ND muons ending correctly 522 -> 529 of 566, junk
   // tracks -24%, duplicates -38%, found unchanged; 4.4 ns lost ~100 muons.
   double XYTimeGateNSigma = 2.0;
+  // Shared-bar exemption from that gate. A bar crossed by two particles reports
+  // the earlier one's time, so all points built from the later particle's other
+  // hit fail the gate -- including its genuine one -- and the layer is lost
+  // (2026-09-29, case H: 45 -> 32 of 50 layers). When on, a candidate is exempt
+  // (judged on position and track time only) if one hit has no time-consistent
+  // partner at the layer, the other does, and that other hit is the earlier one
+  // (a shared hit can only look early). Case H: 48/50 at 100% purity. 15 files:
+  // muon tracks with mismatched views 2.4 -> 3.2%, junk tracks +10%,
+  // duplicates +18%, ND muons ending correctly 531 -> 530. Off until decided.
+  bool XYTimeGateNeedsAlternative = false;
 
   // What the fit updates with.
   //  SpacePoint: each accepted space point as one 2D (x, y) measurement at

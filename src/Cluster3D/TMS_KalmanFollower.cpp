@@ -619,6 +619,9 @@ struct TimeContext {
   const XYTimeDifferenceFn *XYTimeDifference = nullptr;
   double XYTimeVar = 0.0;         // ns^2
   double XYTimeGateNSigma = 0.0;  // 0 = no X/Y time gate
+  // Config::XYTimeGateNeedsAlternative: gate a candidate only if both its hits
+  // also form a time-consistent point with some candidate of this layer.
+  bool XYTimeGateNeedsAlternative = false;
 };
 
 // hits: non-null for the hit-level model -- each candidate is then scored on
@@ -630,6 +633,24 @@ GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_
                          const std::vector<FitHit> *hits) {
   GateResult result;
   double bestScore = std::numeric_limits<double>::infinity();
+  // Shared-bar exemption (Config::XYTimeGateNeedsAlternative): a bar crossed by
+  // two particles reports the EARLIER particle's time, so every point built from
+  // the later particle's other hit fails the gate, including its genuine one,
+  // and the layer is lost (case H, 2026-09-29: 13 of 50 layers, a companion muon
+  // ~11 ns earlier crossing the same horizontal bars). Marks the hits that form
+  // a time-consistent point with some candidate of this layer.
+  std::set<int> hitsWithGoodPartner;
+  const double xyGateChi2 = time.XYTimeGateNSigma * time.XYTimeGateNSigma;
+  if (time.XYTimeDifference != nullptr && time.XYTimeGateNSigma > 0.0 && time.XYTimeGateNeedsAlternative) {
+    for (std::size_t index : candidatesAtLayer) {
+      const TMS_SpacePoint &candidate = allSpacePoints[index];
+      double dt = 0.0;
+      if ((*time.XYTimeDifference)(candidate, dt) && dt * dt / time.XYTimeVar <= xyGateChi2) {
+        hitsWithGoodPartner.insert(candidate.GetXHitIndex());
+        hitsWithGoodPartner.insert(candidate.GetYHitIndex());
+      }
+    }
+  }
   for (std::size_t index : candidatesAtLayer) {
     const TMS_SpacePoint &candidate = allSpacePoints[index];
     const TMatrixD measurementCov = BuildMeasurementCovariance(barPitchMM);
@@ -656,8 +677,22 @@ GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_
       double dt = 0.0;
       const double xyChi2 = (*time.XYTimeDifference)(candidate, dt) ? dt * dt / time.XYTimeVar : 0.0;
       result.CandidateXYTimeChi2.push_back(xyChi2);
-      score += xyChi2;
-      if (time.XYTimeGateNSigma > 0.0 && xyChi2 > time.XYTimeGateNSigma * time.XYTimeGateNSigma) passes = false;
+      // Exempt only the pattern a shared bar produces: one hit with no
+      // time-consistent partner at all (the later particle's own hit), the other
+      // hit consistent elsewhere (the shared bar) AND the earlier of the two -- a
+      // bar crossed twice reports the earliest arrival, so a shared hit can only
+      // look early. dt = tX - tY (X-bar hit minus Y-bar hit, transit-corrected).
+      bool timeCanArbitrate = true;
+      if (time.XYTimeGateNeedsAlternative) {
+        const bool xGood = hitsWithGoodPartner.count(candidate.GetXHitIndex()) > 0;
+        const bool yGood = hitsWithGoodPartner.count(candidate.GetYHitIndex()) > 0;
+        if (xGood && !yGood && dt < 0.0) timeCanArbitrate = false;  // X-bar hit shared, earlier
+        if (yGood && !xGood && dt > 0.0) timeCanArbitrate = false;  // Y-bar hit shared, earlier
+      }
+      if (timeCanArbitrate) {
+        score += xyChi2;
+        if (time.XYTimeGateNSigma > 0.0 && xyChi2 > xyGateChi2) passes = false;
+      }
     }
     if (passes && score < bestScore) {
       bestScore = score;
@@ -1061,6 +1096,7 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
       time.XYTimeDifference = &fXYTimeDifference;
       time.XYTimeVar = fConfig.XYTimeSigmaNs * fConfig.XYTimeSigmaNs;
       time.XYTimeGateNSigma = fConfig.XYTimeGateNSigma;
+      time.XYTimeGateNeedsAlternative = fConfig.XYTimeGateNeedsAlternative;
     }
     const GateResult gate = ResolveLayer(predicted, candidates, allSpacePoints, fConfig.AssumedBarPitchMM,
                                          fConfig.ChiSquareGateMax, time, hits);
