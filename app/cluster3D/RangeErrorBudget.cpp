@@ -167,7 +167,8 @@ int main(int argc, char **argv) {
 
   std::ofstream out(argv[4]);
   out << "sourcefile,vgid,trackid,p_true_enter,p_reco_range,found,true_last_hit_z,best_last_hit_z,"
-         "z_first_hit,z_last_hit,z_entry,z_stop,p_true_path,p_from_first_hit,p_hits,p_straight\n";
+         "z_first_hit,z_last_hit,z_entry,z_stop,p_true_path,p_from_first_hit,p_hits,p_straight,"
+         "p_true_first_hit,p_path_first_hit,p_hits_first_hit\n";
   for (const auto &kv : muons) {
     const auto &v = kv.second;
     rt->GetEntry(std::stoll(v[col["entry"]]));
@@ -182,10 +183,12 @@ int main(int argc, char **argv) {
     events->GetEntry(local_vertex);
     TMS_Event tms_event(*event, true);
     std::vector<TMS_TrueParticle> parts = tms_event.GetTrueParticles();
-    std::vector<TVector3> pts;
+    std::vector<TVector3> pts, allPts, allMom;
     for (TMS_TrueParticle &part : parts)
       if (part.GetTrackId() == kv.first.second && std::abs(part.GetPDG()) == 13) {
         pts = part.GetPositionPoints(-1.0e6, 1.0e6, true);
+        for (const TLorentzVector &x : part.GetPositionPoints()) allPts.push_back(x.Vect());
+        allMom = part.GetMomentumPoints();
         break;
       }
     if (pts.size() < 2) continue;
@@ -194,6 +197,23 @@ int main(int argc, char **argv) {
     const double p_first = RangeMomentum(Clip(pts, zmin, 1e9));
     const double p_hits = RangeMomentum(Clip(pts, zmin, zmax));
     const double p_straight = RangeMomentum({pts.front(), pts.back()});
+    // The reconstruction reports its range momentum at its first hit, but the truth's "momentum
+    // entering the TMS" is at the first stored trajectory point inside the TMS box -- a median
+    // 138 mm (84%: 268 mm) further in, since Geant4 stores points sparsely. So also: the true
+    // momentum interpolated at the first hit's z along the full trajectory, and the range walks
+    // from there.
+    double p_true_first_hit = -1.0;
+    if (allPts.size() == allMom.size())
+      for (std::size_t i = 1; i < allPts.size(); ++i)
+        if (allPts[i - 1].Z() <= zmin && allPts[i].Z() > zmin) {
+          const double t = (zmin - allPts[i - 1].Z()) / (allPts[i].Z() - allPts[i - 1].Z());
+          p_true_first_hit = allMom[i - 1].Mag() + t * (allMom[i].Mag() - allMom[i - 1].Mag());
+          break;
+        }
+    const std::vector<TVector3> fromFirst = Clip(allPts, zmin, pts.back().Z());
+    const double p_path_first_hit = fromFirst.size() >= 2 ? RangeMomentum(fromFirst) : -1.0;
+    const std::vector<TVector3> hitsOnly = Clip(allPts, zmin, zmax);
+    const double p_hits_first_hit = hitsOnly.size() >= 2 ? RangeMomentum(hitsOnly) : -1.0;
     if (std::getenv("RANGE_BUDGET_DEBUG")) {
       // Path length, and areal density per material, along the trajectory and along the chord.
       auto budget = [](const std::vector<TVector3> &p, const char *what) {
@@ -220,7 +240,8 @@ int main(int argc, char **argv) {
     out << v[col["sourcefile"]] << "," << kv.first.first << "," << kv.first.second << "," << v[col["true_momentum_tms_mev"]] << ","
         << v[col["best_range_momentum_mev"]] << "," << v[col["found"]] << "," << v[col["true_last_hit_z"]] << ","
         << v[col["best_last_hit_z"]] << "," << zmin << "," << zmax << "," << zentry << "," << zstop << "," << p_path << ","
-        << p_first << "," << p_hits << "," << p_straight << "\n";
+        << p_first << "," << p_hits << "," << p_straight << "," << p_true_first_hit << "," << p_path_first_hit << ","
+        << p_hits_first_hit << "\n";
   }
   return 0;
 }

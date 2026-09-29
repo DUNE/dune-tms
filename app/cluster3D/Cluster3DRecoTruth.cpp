@@ -146,6 +146,8 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_LINK_MAX_GAP")) config.Linker.MaxGapMM = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_XYTIME_SIGMA")) config.Follower.XYTimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_XYTIME_GATE")) config.Follower.XYTimeGateNSigma = std::atof(v);
+  if (const char *v = std::getenv("CLUSTER3D_RANGE_TABLES")) config.Follower.RangeTableEnergyLoss = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_EXPECTED_STOP")) config.Follower.ExpectedStopRange = std::atoi(v) != 0;
   const RegionFieldModel field;
 
   TFile input(input_filename.c_str());

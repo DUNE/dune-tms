@@ -116,6 +116,65 @@ double DensityGCm3(const TGeoMaterial *material) {
   return material->GetDensity() / (CLHEP::g / CLHEP::cm3) / std::pow(scaleFactor, 3);
 }
 
+// Mean energy loss by range-energy tables (Config::RangeTableEnergyLoss). A
+// step's loss evaluated as dE/dx(E) x thickness at one end of the step is only
+// right while dE/dx is nearly constant across it. Near a stopping point -- where
+// the backward range walk starts, at tens of MeV/c -- dE/dx changes by several
+// times within one steel plate, and the one-point estimate overshot the energy by
+// 2.5-12% on true muon trajectories (2026-09-29, app RangeErrorBudget). With each
+// material's CSDA range R(E) (g/cm^2, integrated once from the same Bethe-Bloch
+// dE/dx) a step of any thickness is exact:
+//   upstream:   E_before = E(R(E_after) + rho t);   downstream: E_after = E(R(E_before) - rho t).
+// Tables are built lazily per density (the Material(density) bridge picks the
+// material from the density), with R = 0 at the kMinMomentumMeV floor.
+struct RangeTable {
+  std::vector<double> energy, range;  // total energy (MeV), CSDA range above the floor (g/cm^2)
+  double RangeAt(double e) const {
+    if (e <= energy.front()) return 0.0;
+    if (e >= energy.back()) return range.back();
+    const std::size_t i = std::upper_bound(energy.begin(), energy.end(), e) - energy.begin();
+    const double t = (e - energy[i - 1]) / (energy[i] - energy[i - 1]);
+    return range[i - 1] + t * (range[i] - range[i - 1]);
+  }
+  double EnergyAt(double r) const {
+    if (r <= 0.0) return energy.front();
+    if (r >= range.back()) return energy.back();
+    const std::size_t i = std::upper_bound(range.begin(), range.end(), r) - range.begin();
+    const double t = (r - range[i - 1]) / (range[i] - range[i - 1]);
+    return energy[i - 1] + t * (energy[i] - energy[i - 1]);
+  }
+};
+const RangeTable &RangeTableFor(double density) {
+  static std::map<long, RangeTable> tables;
+  const long key = std::lround(density * 1000.0);
+  auto it = tables.find(key);
+  if (it != tables.end()) return it->second;
+  RangeTable table;
+  BetheBloch_Calculator bethe(Material::kPolyStyrene);
+  bethe.fMaterial = Material(density);  // callers only reach here for densities Material accepts
+  const double eFloor = std::sqrt(kMinMomentumMeV * kMinMomentumMeV + BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
+  const double eMax = 50000.0;
+  const int n = 6000;  // log-spaced in kinetic energy above the floor
+  const double tFloor = eFloor - BetheBloch_Utils::Mm, tMax = eMax - BetheBloch_Utils::Mm;
+  double previousE = eFloor, previousS = bethe.Calc_dEdx(eFloor), r = 0.0;
+  table.energy.push_back(eFloor);
+  table.range.push_back(0.0);
+  for (int i = 1; i <= n; ++i) {
+    const double e = BetheBloch_Utils::Mm + tFloor * std::pow(tMax / tFloor, static_cast<double>(i) / n);
+    const double stoppingPower = bethe.Calc_dEdx(e);  // MeV cm^2 / g
+    r += (e - previousE) * 0.5 * (1.0 / stoppingPower + 1.0 / previousS);
+    table.energy.push_back(e);
+    table.range.push_back(r);
+    previousE = e;
+    previousS = stoppingPower;
+  }
+  return tables.emplace(key, std::move(table)).first->second;
+}
+
+// Set from Config::RangeTableEnergyLoss at the start of each Follower run: the
+// swimmer's static step functions have no access to the follower's config.
+bool gRangeTableEnergyLoss = true;
+
 // Fraction of a step's path length in magnetized steel. The TMS field lives
 // in the steel plates only (edep-sim's GDML field is attached to the steel
 // volumes): measured 2026-09-25 from G4 truth, the field per unit steel is
@@ -184,7 +243,12 @@ TMatrixD ApplyMaterialSteps(const MaterialSteps &materials,
 
     // Walking forward (low->high z) energy decreases; walking upstream (the
     // backward pass) it is restored.
-    if (upstream) {
+    if (gRangeTableEnergyLoss) {
+      const RangeTable &table = RangeTableFor(density);
+      const double r = table.RangeAt(energy) + (upstream ? 1.0 : -1.0) * density * thickness;
+      // Ranged out inside this step: just below the floor, so the check below flags it.
+      energy = r > 0.0 ? table.EnergyAt(r) : energyFloor * (1.0 - 1e-12);
+    } else if (upstream) {
       energy += bethe.Calc_dEdx(energy) * density * thickness;
     } else {
       energy -= bethe.Calc_dEdx(energy) * density * thickness;
@@ -730,8 +794,68 @@ double RangeMomentumMeV(const TVector3 &start, const TVector3 &end) {
     } catch (const std::invalid_argument &) {
       continue;
     }
+    if (gRangeTableEnergyLoss) {
+      const RangeTable &table = RangeTableFor(density);
+      energy = table.EnergyAt(table.RangeAt(energy) + density * thickness);
+      continue;
+    }
     const double loss = bethe.Calc_dEdx(energy) * density * thickness;
     if (std::isfinite(loss)) energy += loss;
+  }
+  return BetheBloch_Utils::EnergyToMomentum(BetheBloch_Utils::Mm, energy);
+}
+
+// Expected momentum (MeV/c) at a stopping track's last hit (Config::ExpectedStopRange).
+// The muon reached the last hit's scintillator and not the next one, so it
+// stopped somewhere in the material between -- usually the steel -- and nothing
+// says where (true stops: median 39 mm past the last hit plane, 2026-09-29). The
+// best estimate is halfway through that material in areal density; starting the
+// range walk at the floor instead (stopping AT the last hit) read ~2% low. Walks
+// the materials from (x, y, z) along (dxdz, dydz) up to the next scintillator
+// after steel, and returns the momentum that crosses the first half and stops.
+// Returns kMinMomentumMeV if no such layer lies within 400 mm (the back of the TMS).
+double ExpectedStopMomentumMeV(double x, double y, double z, double dxdz, double dydz) {
+  const double reach = 400.0;
+  const TVector3 start(x, y, z), end(x + dxdz * reach, y + dydz * reach, z + reach);
+  const MaterialSteps steps = TMS_Geom::GetInstance().GetMaterials(start, end);
+  // Scintillator by density (~1.0-1.1 g/cm^3); steel above 5 g/cm^3.
+  MaterialSteps unseen;
+  bool steelSeen = false, nextLayer = false;
+  for (const auto &step : steps) {
+    const double density = DensityGCm3(step.first);
+    if (density > 5.0) steelSeen = true;
+    if (steelSeen && density > 0.9 && density < 1.2) { nextLayer = true; break; }
+    unseen.push_back(step);
+  }
+  if (!nextLayer) return kMinMomentumMeV;
+  double total = 0.0;
+  for (const auto &step : unseen) total += DensityGCm3(step.first) * step.second / 10.0;
+  // The first half (g/cm^2) of the unseen material, then the momentum to cross it and stop.
+  MaterialSteps half;
+  double sum = 0.0;
+  for (const auto &step : unseen) {
+    const double gcm2 = DensityGCm3(step.first) * step.second / 10.0;
+    if (sum + gcm2 >= 0.5 * total) {
+      const double fraction = gcm2 > 0.0 ? (0.5 * total - sum) / gcm2 : 0.0;
+      half.push_back(std::make_pair(step.first, step.second * fraction));
+      break;
+    }
+    half.push_back(step);
+    sum += gcm2;
+  }
+  BetheBloch_Calculator bethe(Material::kPolyStyrene);
+  double energy = std::sqrt(kMinMomentumMeV * kMinMomentumMeV + BetheBloch_Utils::Mm * BetheBloch_Utils::Mm);
+  for (auto it = half.rbegin(); it != half.rend(); ++it) {
+    const double density = DensityGCm3(it->first);
+    const double thickness = TMS_Geom::GetInstance().Scale(it->second / 10.0);
+    try {
+      Material matter(density);
+      bethe.fMaterial = matter;
+    } catch (const std::invalid_argument &) {
+      continue;
+    }
+    const RangeTable &table = RangeTableFor(density);
+    energy = table.EnergyAt(table.RangeAt(energy) + density * thickness);
   }
   return BetheBloch_Utils::EnergyToMomentum(BetheBloch_Utils::Mm, energy);
 }
@@ -747,6 +871,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
 
 FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, const std::vector<std::size_t> &seedPath,
                             double seedMomentumOverrideMeV, double qpRelSigmaOverride) const {
+  gRangeTableEnergyLoss = fConfig.RangeTableEnergyLoss;
   FitResult result;
   if (seedPath.size() < 2 || allSpacePoints.empty()) return result;
 
@@ -1234,7 +1359,12 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
             // not at the forward walk's final state, which can lie up to
             // MaxGapMM past it after gap layers.
             *range = back;
-            range->qp = (back.qp >= 0.0 ? 1.0 : -1.0) / fConfig.RangeStopMomentumMeV;
+            const double stopMomentum =
+                fConfig.ExpectedStopRange
+                    ? std::max(fConfig.RangeStopMomentumMeV,
+                               ExpectedStopMomentumMeV(back.x, back.y, measurement.first, back.dxdz, back.dydz))
+                    : fConfig.RangeStopMomentumMeV;
+            range->qp = (back.qp >= 0.0 ? 1.0 : -1.0) / stopMomentum;
           } else {
             // Energy loss only (no field, no measurement updates on q/p), then
             // back onto the fitted trajectory -- position, direction and

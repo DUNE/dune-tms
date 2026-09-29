@@ -372,6 +372,16 @@ struct Config {
   // matters). Right for a muon that stops just past its last hit; low for one
   // that leaves the detector or whose track ends early.
   double RangeStopMomentumMeV = 20.0;
+  // Mean energy loss by each material's range-energy table instead of dE/dx at one
+  // end of each material step (exact for any step; the one-point estimate read
+  // 2.5-12% high near stopping points, 2026-09-29). See RangeTable in the .cpp.
+  bool RangeTableEnergyLoss = true;
+  // Start the backward range walk at the expected momentum for a muon that stopped
+  // halfway (in areal density) through the material between the last hit and the
+  // next scintillator layer, instead of at RangeStopMomentumMeV (stopping at the
+  // last hit). The halfway point is the best estimate: nothing says where in that
+  // material it stopped.
+  bool ExpectedStopRange = true;
 
   // Also run a range-SEEDED backward Kalman pass (FitResult::
   // RangeSeededMomentumMeV): the backward pass started at the last
