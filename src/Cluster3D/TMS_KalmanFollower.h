@@ -444,8 +444,17 @@ struct Config {
   // 91.5%, purity unchanged, junk tracks -125 and duplicates -159 of ~2200 /
   // ~780 (the extension takes hits that used to become their own tracks);
   // all muons found -27 of ~11600.
+  //
+  // ExtendChi2Max 9 -> 25 (2026-09-29): the prediction uses the fit's momentum
+  // at the track end (typically 0.4-1.3 GeV/c), so it expects almost no
+  // scattering, but a muon about to stop is at tens of MeV/c and its last hit
+  // lands 50-100 mm off (chi2 9-40). Of 38 stopping muons whose tracks ended
+  // 1-2 planes early, 33 truly reached that plane. 15 files: tracks ending
+  // within 5 cm of the muon's last hit 447 -> 468 of 565, 1-2 planes early 38
+  // -> 22, more than 15 cm late 18 -> 21, range-momentum 68% half-width 5.4 ->
+  // 5.2%, junk -18, duplicates -9. 50: no further gain, more late ends.
   bool ExtendOnHits = true;
-  double ExtendChi2Max = 9.0;
+  double ExtendChi2Max = 25.0;
   double ExtendTimeWindowNs = 20.0;
   double ExtendMaxGapMM = 400.0;
 

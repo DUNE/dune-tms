@@ -1196,6 +1196,13 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
       const double trackT0 = t0Sum / t0Count;
       const double seedZ = firstPoint.GetZ();
       double lastTakenZ = lastHitZ;
+      // C3D_EXTEND_DEBUG=1: print each extension's start state and, for the first
+      // 300 mm past the last hit, every hit's prediction, sigma and chi2.
+      static const bool extendDebug = std::getenv("C3D_EXTEND_DEBUG") != nullptr;
+      if (extendDebug)
+        std::cout << "EXT lastHitZ=" << lastHitZ << " x=" << state.x << " y=" << state.y << " dxdz=" << state.dxdz
+                  << " dydz=" << state.dydz << " p=" << (std::abs(state.qp) > 0 ? 1.0 / std::abs(state.qp) : 0.0)
+                  << " planes=" << ordered.size() << "\n";
       StepState extensionEnd;
       for (const auto &plane : ordered) {
         if (plane.first - lastTakenZ > fConfig.ExtendMaxGapMM) break;
@@ -1208,12 +1215,20 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
           if (fConfig.ExtendTimeWindowNs > 0.0) {
             const double pathMM = (hit.Z - seedZ) *
                 std::sqrt(1.0 + predicted.dxdz * predicted.dxdz + predicted.dydz * predicted.dydz);
-            if (std::abs(hit.Time - (trackT0 + pathMM / kSpeedOfLightMMPerNs)) > fConfig.ExtendTimeWindowNs) continue;
+            if (std::abs(hit.Time - (trackT0 + pathMM / kSpeedOfLightMMPerNs)) > fConfig.ExtendTimeWindowNs) {
+              if (extendDebug && plane.first - lastHitZ < 300.0)
+                std::cout << "EXT   z=" << plane.first << " coord=" << hit.Coordinate << " TIME REJECT dt="
+                          << hit.Time - (trackT0 + pathMM / kSpeedOfLightMMPerNs) << "\n";
+              continue;
+            }
           }
           double predictedCoordinate = 0.0, residualVar = 0.0;
           ProjectToHit(predicted, hit, predictedCoordinate, residualVar);
           const double residual = hit.Coordinate - predictedCoordinate;
           const double chi2 = residual * residual / residualVar;
+          if (extendDebug && plane.first - lastHitZ < 300.0)
+            std::cout << "EXT   z=" << plane.first << (hit.MeasuresX ? " x-meas" : " y-meas") << " coord=" << hit.Coordinate
+                      << " pred=" << predictedCoordinate << " sigma=" << std::sqrt(residualVar) << " chi2=" << chi2 << "\n";
           if (chi2 > fConfig.ExtendChi2Max) continue;
           FitResult::OrphanHit taken;
           taken.HitIndex = index;
