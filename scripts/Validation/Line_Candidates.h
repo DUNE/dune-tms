@@ -75,9 +75,9 @@ public:
   Float_t TotalTrackEnergyY[20];     //[nLinesY]
   Bool_t TrackStoppingY[20];         //[nLinesY]
   Int_t nHitsInTrackY[20];           //[nLinesY]
-  Float_t TrackHitEnergyY[10][500];
-  Float_t TrackHitPosY[10][500][2];
-  Float_t TrackHitTimeY[10][500];
+  Float_t TrackHitEnergyY[10][200];
+  Float_t TrackHitPosY[10][200][2];
+  Float_t TrackHitTimeY[10][200];
   Int_t nClustersY;
   Float_t ClusterEnergyY[25];        //[nClustersY]
   Float_t ClusterTimeY[25];          //[nClustersY]
@@ -147,15 +147,15 @@ public:
   Int_t nHitsInTrackU[20];       //[nLinesU]
   Int_t nHitsInTrackV[20];       //[nLinesV]
   Int_t nHitsInTrackX[20];       //[nLinesX]
-  Float_t TrackHitEnergyU[10][500];
-  Float_t TrackHitEnergyV[10][500];
-  Float_t TrackHitEnergyX[10][500];
-  Float_t TrackHitPosU[10][500][2];
-  Float_t TrackHitPosV[10][500][2];
-  Float_t TrackHitPosX[10][500][2];
-  Float_t TrackHitTimeU[10][500];
-  Float_t TrackHitTimeV[10][500];
-  Float_t TrackHitTimeX[10][500];
+  Float_t TrackHitEnergyU[10][200];
+  Float_t TrackHitEnergyV[10][200];
+  Float_t TrackHitEnergyX[10][200];
+  Float_t TrackHitPosU[10][200][2];
+  Float_t TrackHitPosV[10][200][2];
+  Float_t TrackHitPosX[10][200][2];
+  Float_t TrackHitTimeU[10][200];
+  Float_t TrackHitTimeV[10][200];
+  Float_t TrackHitTimeX[10][200];
   /*Int_t           nClustersU;
   Int_t           nClustersV;
   Int_t           nClusterX;
