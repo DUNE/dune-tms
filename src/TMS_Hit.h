@@ -160,8 +160,9 @@ class TMS_Hit {
     // The timing of the hit
     double Time;
     // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
-    double RecoX, RecoY; // Only to be filled after tracking performed
-    double RecoXUncertainty, RecoYUncertainty;
+    // Only to be filled after tracking performed; -999 means "not set" (checked in TMS_ChargeID)
+    double RecoX = -999, RecoY = -999;
+    double RecoXUncertainty = -999, RecoYUncertainty = -999;
     
     int Slice;
 
