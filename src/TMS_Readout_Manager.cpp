@@ -27,6 +27,7 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   
   // Parameters related to readout, used in TMS_Event::SimulateOpticalModel()
   _SIM_OPTICAL_ShouldSimulatePoisson = toml::find<bool>(data, "Sim", "Optical", "ShouldSimulatePoisson");
+  _SIM_OPTICAL_PoissonAfterAttenuation = toml::find<bool>(data, "Sim", "Optical", "PoissonAfterAttenuation");
   _SIM_OPTICAL_BirksConstant = toml::find<double>(data, "Sim", "Optical", "BirksConstant");
   
   _SIM_OPTICAL_ShouldSimulateFiberLengths = toml::find<bool>(data, "Sim", "Optical", "ShouldSimulateFiberLengths");

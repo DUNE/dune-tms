@@ -67,9 +67,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
   // Steps:
   // Loop over hits
   // Convert hit E -> PE
-  // Do a poisson throw to get the number of PE
   // Apply some effect of PE capture into the fiber (assumed to be part of E -> PE conversion)
-  // Split PE in two randomly for short path vs the long way.
+  // Default: do a poisson throw to get the number of PE, split it in two randomly for the
+  // short path vs the long way, then attenuate each path.
+  // Sim.Optical.PoissonAfterAttenuation: attenuate the expected PE of each path first, then
+  // do a poisson throw per path.
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
   // TODO add second exponential term using fast decay length
@@ -88,6 +90,7 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
   const double optic_fiber_length = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_AdditionalFiberLength();
 
   const double readout_coupling_eff = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_ReadoutCouplingEff();
+  const bool poisson_after_attenuation = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_PoissonAfterAttenuation();
 
   for (auto& hit : TMS_Hits) {
     double pe = hit.GetPE();
@@ -105,20 +108,13 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     else dedx = de / 1.0;
     pe *= 1.0 / (1.0 + birks_constant * dedx);
 
-    double pe_short = pe;
-    double pe_long = 0;
-    if (should_simulate_poisson_throws) {
-      // Do a poisson throw to get the number of PE
-      std::poisson_distribution<int> poisson(pe);
-      pe = poisson(generator);
-      // Now split the photons into the long and short paths with 50% chance of each
-      std::binomial_distribution<int> binomial(pe, 0.5);
-      pe_short = binomial(generator);
-      pe_long = pe - pe_short;
-    }
-
+    // Path efficiencies: WLS attenuation (and end reflection for the long way), optional
+    // additional optical fiber, then fiber-to-readout coupling. Applied as a sequence of
+    // multiplications so the default (draw-then-attenuate) path reproduces the previous
+    // arithmetic exactly.
+    double distance_from_end = 0;
+    double long_way_distance_from_end = 0;
     if (should_simulate_fiber_lengths) {
-
       // Calculate the long and short path lengths
 #ifdef USE_OLD_CODE
       double true_y = true_hit->GetY() / 1000.0; // m
@@ -128,31 +124,62 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
-      double distance_from_end = distance_from_middle + 2;
-      double long_way_distance_from_end = 4 + (4 - distance_from_end);
+      distance_from_end = distance_from_middle + 2;
+      long_way_distance_from_end = 4 + (4 - distance_from_end);
 #else
-      double distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
-      double long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
 #endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
       distance_from_end *= wsf_length_multiplier;
       long_way_distance_from_end *= wsf_length_multiplier;
-
-      // Now do exponential decay
-      pe_short = pe_short * std::exp(-wsf_decay_constant * distance_from_end);
-      pe_long = pe_long * std::exp(-wsf_decay_constant * long_way_distance_from_end) * wsf_fiber_reflection_eff;
-
-      // Now possibly couple to a regular optical fiber
-      if (optic_fiber_length > 0) {
-        pe_short = fiber_coupling_eff * pe_short * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
-        pe_long = fiber_coupling_eff * pe_long * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
-      }
     }
+    auto attenuate_short = [&](double x) {
+      if (should_simulate_fiber_lengths) {
+        // Now do exponential decay
+        x = x * std::exp(-wsf_decay_constant * distance_from_end);
+        // Now possibly couple to a regular optical fiber
+        if (optic_fiber_length > 0) x = fiber_coupling_eff * x * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
+      }
+      // Now couple between the fibers and the readout
+      return x * readout_coupling_eff;
+    };
+    auto attenuate_long = [&](double x) {
+      if (should_simulate_fiber_lengths) {
+        x = x * std::exp(-wsf_decay_constant * long_way_distance_from_end) * wsf_fiber_reflection_eff;
+        if (optic_fiber_length > 0) x = fiber_coupling_eff * x * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
+      }
+      return x * readout_coupling_eff;
+    };
+    // std::poisson_distribution requires a positive mean
+    auto poisson_draw = [&](double mean) {
+      if (mean <= 0) return 0.0;
+      std::poisson_distribution<int> poisson(mean);
+      return static_cast<double>(poisson(generator));
+    };
 
-    // Now couple between the fibers and the readout
-    pe_long = pe_long * readout_coupling_eff;
-    pe_short = pe_short * readout_coupling_eff;
+    double pe_short = pe;
+    double pe_long = 0;
+    if (should_simulate_poisson_throws && poisson_after_attenuation) {
+      // Photons are produced and each one independently survives to the sensor, so the
+      // number detected on each path is Poisson with the fully attenuated expected mean
+      // (half the produced light goes each way). Integer PE, same mean as below.
+      pe_short = poisson_draw(attenuate_short(0.5 * pe));
+      pe_long = poisson_draw(attenuate_long(0.5 * pe));
+    } else {
+      if (should_simulate_poisson_throws) {
+        // Do a poisson throw to get the number of PE
+        std::poisson_distribution<int> poisson(pe);
+        pe = poisson(generator);
+        // Now split the photons into the long and short paths with 50% chance of each
+        std::binomial_distribution<int> binomial(pe, 0.5);
+        pe_short = binomial(generator);
+        pe_long = pe - pe_short;
+      }
+      pe_short = attenuate_short(pe_short);
+      pe_long = attenuate_long(pe_long);
+    }
 
     // Now save this information
     pe = pe_long + pe_short;
