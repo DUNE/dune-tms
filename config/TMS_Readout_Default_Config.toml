@@ -16,6 +16,12 @@
     
   [Sim.Optical]
     ShouldSimulatePoisson = true
+    # Order of the photon-statistics draw in SimulateOpticalModel(). false (current default):
+    # Poisson-draw the produced PE, split it between the short and long fiber paths, then
+    # scale each path by attenuation/reflection/coupling (fractional PE). true: apply all of
+    # those efficiencies to the expected PE first and Poisson-draw each path from its own
+    # expected mean (integer PE, photon-counting variance). Same mean either way.
+    PoissonAfterAttenuation = false
     BirksConstant =  0.0905 # mm / MeV
     
     ShouldSimulateFiberLengths = true

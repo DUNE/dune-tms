@@ -27,6 +27,7 @@ class TMS_Readout_Manager {
     double Get_Sim_Readout_PedestalSubtractionThreshold() { return _SIM_READOUT_PedestalSubtractionThreshold; };
     
     bool Get_Sim_Optical_ShouldSimulatePoisson() { return _SIM_OPTICAL_ShouldSimulatePoisson; };
+    bool Get_Sim_Optical_PoissonAfterAttenuation() { return _SIM_OPTICAL_PoissonAfterAttenuation; };
     double Get_Sim_Optical_BirksConstant() { return _SIM_OPTICAL_BirksConstant; };
     bool Get_Sim_Optical_ShouldSimulateFiberLengths() { return _SIM_OPTICAL_ShouldSimulateFiberLengths; };
     double Get_Sim_Optical_WSFAttenuationLength() { return _SIM_OPTICAL_WSFAttenuationLength; };
@@ -66,6 +67,7 @@ class TMS_Readout_Manager {
   
   // Parameters related to optical model, used in TMS_Event::SimulateOpticalModel()
   bool _SIM_OPTICAL_ShouldSimulatePoisson;
+  bool _SIM_OPTICAL_PoissonAfterAttenuation;
   double _SIM_OPTICAL_BirksConstant;
   bool _SIM_OPTICAL_ShouldSimulateFiberLengths;
   double _SIM_OPTICAL_WSFAttenuationLength;
