@@ -29,6 +29,7 @@ add_executable(KalmanFollowerTruthEfficiency cluster3D/KalmanFollowerTruthEffici
 add_executable(TrackFindingObjectTruth cluster3D/TrackFindingObjectTruth.cpp)
 add_executable(Cluster3DRecoTruth cluster3D/Cluster3DRecoTruth.cpp)
 add_executable(DumpTrueTrajectory cluster3D/DumpTrueTrajectory.cpp)
+add_executable(RangeErrorBudget cluster3D/RangeErrorBudget.cpp)
 
 target_link_libraries(BField_tester LINK_PUBLIC TMS_Prod ROOT::EG)
 target_link_libraries(BetheBloch_Example LINK_PUBLIC TMS_Prod)
@@ -59,6 +60,7 @@ target_link_libraries(Cluster3DRecoTruth LINK_PUBLIC TMS_Prod)
 # never trip the code path that needs it.
 find_library(TBB_LIBRARY NAMES tbb)
 target_link_libraries(DumpTrueTrajectory LINK_PUBLIC TMS_Prod ${TBB_LIBRARY})
+target_link_libraries(RangeErrorBudget LINK_PUBLIC TMS_Prod ${TBB_LIBRARY})
 
 install(TARGETS BField_tester RUNTIME DESTINATION bin)
 install(TARGETS BetheBloch_Example RUNTIME DESTINATION bin)
@@ -83,3 +85,4 @@ install(TARGETS KalmanFollowerTruthEfficiency RUNTIME DESTINATION bin)
 install(TARGETS TrackFindingObjectTruth RUNTIME DESTINATION bin)
 install(TARGETS Cluster3DRecoTruth RUNTIME DESTINATION bin)
 install(TARGETS DumpTrueTrajectory RUNTIME DESTINATION bin)
+install(TARGETS RangeErrorBudget RUNTIME DESTINATION bin)
