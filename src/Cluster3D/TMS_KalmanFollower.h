@@ -340,8 +340,9 @@ struct Config {
   // partner at the layer, the other does, and that other hit is the earlier one
   // (a shared hit can only look early). Case H: 48/50 at 100% purity. 15 files:
   // muon tracks with mismatched views 2.4 -> 3.2%, junk tracks +10%,
-  // duplicates +18%, ND muons ending correctly 531 -> 530. Off until decided.
-  bool XYTimeGateNeedsAlternative = false;
+  // duplicates +18%, ND muons ending correctly 531 -> 530. On (2026-09-29):
+  // overlapping particles are what high-rate running will stress most.
+  bool XYTimeGateNeedsAlternative = true;
 
   // What the fit updates with.
   //  SpacePoint: each accepted space point as one 2D (x, y) measurement at
