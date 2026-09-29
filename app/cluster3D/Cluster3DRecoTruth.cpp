@@ -148,6 +148,7 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("CLUSTER3D_XYTIME_GATE")) config.Follower.XYTimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("CLUSTER3D_RANGE_TABLES")) config.Follower.RangeTableEnergyLoss = std::atoi(v) != 0;
   if (const char *v = std::getenv("CLUSTER3D_EXPECTED_STOP")) config.Follower.ExpectedStopRange = std::atoi(v) != 0;
+  if (const char *v = std::getenv("CLUSTER3D_MAX_GAP")) config.Follower.MaxGapMM = std::atof(v);
   const RegionFieldModel field;
 
   TFile input(input_filename.c_str());

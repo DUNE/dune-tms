@@ -642,6 +642,9 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_TIME_SIGMA")) followerConfig.TimeSigmaNs = std::atof(v);
   if (const char *v = std::getenv("KF_TIME_GATE")) followerConfig.TimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("KF_ORPHANS")) followerConfig.PickUpOrphanHits = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_XYTIME_GATE")) followerConfig.XYTimeGateNSigma = std::atof(v);
+  if (const char *v = std::getenv("KF_RANGE_TABLES")) followerConfig.RangeTableEnergyLoss = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_EXPECTED_STOP")) followerConfig.ExpectedStopRange = std::atoi(v) != 0;
   TMS_KalmanFollower::Follower follower(followerConfig, field);
   if (have_hit_table) {
     follower.SetHits(&fit_hits);
@@ -843,6 +846,7 @@ int main(int argc, char **argv) {
     json << ",\"kalman_fit\":{\"converged\":" << (fit.Converged ? "true" : "false")
          << ",\"momentum_mev\":" << fit.MomentumMeV << ",\"charge\":" << fit.Charge
          << ",\"start_momentum_mev\":" << (fit.HasStartState ? fit.StartMomentumMeV : 0.0)
+         << ",\"range_momentum_mev\":" << fit.RangeMomentumMeV
          << ",\"start_charge\":" << (fit.HasStartState ? fit.StartCharge : 0.0)
          << ",\"start_z\":" << (fit.HasStartState ? fit.StartZ : 0.0)
          << ",\"hit_level\":" << (have_hit_table ? "true" : "false")
