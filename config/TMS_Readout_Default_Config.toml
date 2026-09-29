@@ -39,12 +39,26 @@
     DarkNoiseRate = 2550.0 # hz
     DarkNoiseMinPE = 3.5 # pe
 
+  [Sim.Timing]
+    # Constants of SimulateTimingModel()
+    ScintillatorDecayTime = 3.0 # ns
+    WLSDecayTime = 20.0 # ns
+    FiberRefractiveIndex = 1.5
+    ElectronicTimeNoise = 1.0 # ns, Gaussian sigma added to each hit time
+    MaxTimingPhotons = 300 # per path; photons drawn for the first-arrival time (default pipeline only)
+
   [Sim.DetSim]
     # Gate for the detector-response redesign, built out behind this flag phase by phase.
-    # Currently: merge same-bar Geant4 fragments before the optical/timing draws so hit
-    # timing no longer depends on how many steps Geant4 used. Later phases add fixed-scale
-    # re-segmentation and local Birks/optical response. Default false = existing behavior.
+    # Currently: merge same-bar Geant4 fragments before the optical/timing draws, then
+    # stitch each hit's Geant4 steps into passages, re-slice them into fixed-length optical
+    # deposits, and simulate light per deposit (local Birks, attenuation from the deposit's
+    # own position, Poisson draw per deposit and path after attenuation, explicit photon
+    # arrival times). Default false = existing behavior.
     UseResponseElements = false
+    # Length of the optical deposits a passage is re-sliced into
+    DepositBinLength = 1.0 # mm
+    # Consecutive steps of one trajectory in one bar further apart than this start a new passage
+    PassageMaxGap = 0.5 # mm
     
     
     

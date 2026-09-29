@@ -14,6 +14,7 @@
 #include <map>
 #include <random>
 #include "TMS_Track.h"
+#include "TMS_Passage.h"
 
 // The edep-sim event class
 #include "EDepSim/TG4Event.h"
@@ -143,6 +144,25 @@ class TMS_Event {
       dest.insert(dest.end(), itMerged->second.begin(), itMerged->second.end());
       PhotonArrivalsByHitId.erase(itMerged);
     };
+    // Response-element pipeline (Sim.DetSim.UseResponseElements): the raw edep-sim steps
+    // behind each hit, same side-table pattern and lifecycle as PhotonArrivalsByHitId (merged
+    // in MergeCoincidentHits, re-keyed in AddEvent). SimulateOpticalModel() stitches them into
+    // passages and optical deposits. Empty unless the flag is on.
+    const std::vector<TMS_Passage::Segment>* GetResponseSegments(int hitId) const {
+      auto it = ResponseSegmentsByHitId.find(hitId);
+      return it == ResponseSegmentsByHitId.end() ? nullptr : &it->second;
+    };
+    void AddResponseSegment(int hitId, const TMS_Passage::Segment& segment) {
+      ResponseSegmentsByHitId[hitId].push_back(segment);
+    };
+    void EraseResponseSegments(int hitId) { ResponseSegmentsByHitId.erase(hitId); };
+    void MergeResponseSegments(int survivingHitId, int mergedAwayHitId) {
+      auto itMerged = ResponseSegmentsByHitId.find(mergedAwayHitId);
+      if (itMerged == ResponseSegmentsByHitId.end()) return;
+      auto& dest = ResponseSegmentsByHitId[survivingHitId];
+      dest.insert(dest.end(), itMerged->second.begin(), itMerged->second.end());
+      ResponseSegmentsByHitId.erase(itMerged);
+    };
     // Reference access for TMS_DetectorSimulation/TMS_SignalProcessing to mutate hits in place
     // without the copy cost of GetHitsRaw()/SetHitsRaw().
     std::vector<TMS_Hit>& GetHitsRawRef() { return TMS_Hits; };
@@ -269,6 +289,8 @@ class TMS_Event {
     std::map<int, TMS_TrueHit> TrueHitByHitId;
     // See GetPhotonArrivals(int)/AddPhotonArrival(...) above.
     std::map<int, std::vector<TMS_PhotonArrival>> PhotonArrivalsByHitId;
+    // See GetResponseSegments(int)/AddResponseSegment(...) above.
+    std::map<int, std::vector<TMS_Passage::Segment>> ResponseSegmentsByHitId;
 
     int GetPrimaryLeptonOfGlobalVertexID(long long vertexglobalid);
     void RebuildTrueParticleIndex();

@@ -43,6 +43,7 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
         // merge above, since TMS_TrueHit is no longer embedded in TMS_Hit.
         event.MergeTrueHit((*it).GetHitId(), hit2.GetHitId());
         event.MergePhotonArrivals((*it).GetHitId(), hit2.GetHitId());
+        event.MergeResponseSegments((*it).GetHitId(), hit2.GetHitId());
         // todo, we may want to store an array of true hits. One way would be to move the merging code within the hit class
         duplicates.push_back(jt);
       }
@@ -62,6 +63,7 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
     } else {
       event.EraseTrueHit(hit.GetHitId());
       event.ErasePhotonArrivals(hit.GetHitId());
+      event.EraseResponseSegments(hit.GetHitId());
     }
   }
   TMS_Hits = std::move(remaining_hits);

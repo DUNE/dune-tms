@@ -320,6 +320,22 @@ void TMS_Event::ProcessTG4Event(TG4Event &event, bool FillEvent) {
         }
         SaveKeyVertexInfo(t);
         SetTrueHit(hit.GetHitId(), t);
+        if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+          // Keep the raw step for the response-element optical model (see
+          // TMS_DetectorSimulation::SimulateOpticalModel()). Times use the same in-spill
+          // convention as TMS_TrueHit.
+          TMS_Passage::Segment segment;
+          const TLorentzVector& start = edep_hit.GetStart();
+          const TLorentzVector& stop = edep_hit.GetStop();
+          segment.start = {start.X(), start.Y(), start.Z()};
+          segment.stop = {stop.X(), stop.Y(), stop.Z()};
+          segment.t_start = std::fmod(start.T(), TMS_Manager::GetInstance().Get_Nersc_Spill_Period());
+          segment.t_stop = segment.t_start + (stop.T() - start.T());
+          segment.energy = edep_hit.GetEnergyDeposit();
+          segment.bar_key = 0; // all steps recorded for one hit are in the same bar
+          segment.trajectory_id = edep_hit.GetPrimaryId();
+          AddResponseSegment(hit.GetHitId(), segment);
+        }
         TMS_Hits.push_back(std::move(hit));
 
         // todo, maybe skip for michel electrons or late neutrons
@@ -606,6 +622,8 @@ void TMS_Event::AddEvent(TMS_Event &Other_Event) {
     int newHitId = NextHitId();
     const TMS_TrueHit* true_hit = Other_Event.GetTrueHit(oldHitId);
     if (true_hit != nullptr) SetTrueHit(newHitId, *true_hit);
+    const std::vector<TMS_Passage::Segment>* segments = Other_Event.GetResponseSegments(oldHitId);
+    if (segments != nullptr) ResponseSegmentsByHitId[newHitId] = *segments;
     hit.SetHitId(newHitId);
     TMS_Hits.emplace_back(std::move(hit));
   }
