@@ -151,6 +151,21 @@ int main(int argc, char **argv) {
   }
   std::cout << muons.size() << " stopping ND-LAr muons in " << reco_base << "\n";
 
+  // Optional (RANGE_BUDGET_RECO_ENDS=<csv: sourcefile,vgid,trackid,reco_first_z,reco_last_z>): the
+  // first and last hit z of each muon's reconstructed track, to also walk the TRUE path between the
+  // RECONSTRUCTED ends -- separating endpoint errors from the reconstruction's walk itself.
+  std::map<std::pair<long long, int>, std::pair<double, double> > recoEnds;
+  if (const char *path = std::getenv("RANGE_BUDGET_RECO_ENDS")) {
+    std::ifstream ends(path);
+    std::string l;
+    std::getline(ends, l);
+    while (std::getline(ends, l)) {
+      const auto v = Split(l);
+      if (v.size() < 5 || v[0] != reco_base) continue;
+      recoEnds[std::make_pair(std::stoll(v[1]), std::stoi(v[2]))] = std::make_pair(std::stod(v[3]), std::stod(v[4]));
+    }
+  }
+
   // Their hits' z range, from the reco file's per-hit table.
   TFile reco(reco_name.c_str());
   TTree *rt = (TTree *)reco.Get("Reco_Tree");
@@ -168,7 +183,7 @@ int main(int argc, char **argv) {
   std::ofstream out(argv[4]);
   out << "sourcefile,vgid,trackid,p_true_enter,p_reco_range,found,true_last_hit_z,best_last_hit_z,"
          "z_first_hit,z_last_hit,z_entry,z_stop,p_true_path,p_from_first_hit,p_hits,p_straight,"
-         "p_true_first_hit,p_path_first_hit,p_hits_first_hit\n";
+         "p_true_first_hit,p_path_first_hit,p_hits_first_hit,reco_first_z,reco_last_z,p_true_path_reco_ends\n";
   for (const auto &kv : muons) {
     const auto &v = kv.second;
     rt->GetEntry(std::stoll(v[col["entry"]]));
@@ -214,6 +229,16 @@ int main(int argc, char **argv) {
     const double p_path_first_hit = fromFirst.size() >= 2 ? RangeMomentum(fromFirst) : -1.0;
     const std::vector<TVector3> hitsOnly = Clip(allPts, zmin, zmax);
     const double p_hits_first_hit = hitsOnly.size() >= 2 ? RangeMomentum(hitsOnly) : -1.0;
+    double reco_first = -1.0, reco_last = -1.0, p_reco_ends = -1.0;
+    {
+      auto it = recoEnds.find(kv.first);
+      if (it != recoEnds.end()) {
+        reco_first = it->second.first;
+        reco_last = it->second.second;
+        const std::vector<TVector3> between = Clip(allPts, reco_first, reco_last);
+        if (between.size() >= 2) p_reco_ends = RangeMomentum(between);
+      }
+    }
     if (std::getenv("RANGE_BUDGET_DEBUG")) {
       // Path length, and areal density per material, along the trajectory and along the chord.
       auto budget = [](const std::vector<TVector3> &p, const char *what) {
@@ -241,7 +266,7 @@ int main(int argc, char **argv) {
         << v[col["best_range_momentum_mev"]] << "," << v[col["found"]] << "," << v[col["true_last_hit_z"]] << ","
         << v[col["best_last_hit_z"]] << "," << zmin << "," << zmax << "," << zentry << "," << zstop << "," << p_path << ","
         << p_first << "," << p_hits << "," << p_straight << "," << p_true_first_hit << "," << p_path_first_hit << ","
-        << p_hits_first_hit << "\n";
+        << p_hits_first_hit << "," << reco_first << "," << reco_last << "," << p_reco_ends << "\n";
   }
   return 0;
 }
