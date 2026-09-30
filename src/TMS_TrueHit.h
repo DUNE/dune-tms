@@ -33,6 +33,12 @@ class TMS_TrueHit {
           peAfterFibers = other.peAfterFibers;
           peAfterFibersLongPath = other.peAfterFibersLongPath;
           peAfterFibersShortPath = other.peAfterFibersShortPath;
+          NPhotons = other.NPhotons;
+          PrimaryIdByLight = other.PrimaryIdByLight;
+          VertexGlobalIdByLight = other.VertexGlobalIdByLight;
+          LightShare = other.LightShare;
+          FirstPhotonPrimaryId = other.FirstPhotonPrimaryId;
+          FirstPhotonVertexGlobalId = other.FirstPhotonVertexGlobalId;
         }
     }
     
@@ -53,6 +59,12 @@ class TMS_TrueHit {
           peAfterFibers = other.peAfterFibers;
           peAfterFibersLongPath = other.peAfterFibersLongPath;
           peAfterFibersShortPath = other.peAfterFibersShortPath;
+          NPhotons = other.NPhotons;
+          PrimaryIdByLight = other.PrimaryIdByLight;
+          VertexGlobalIdByLight = other.VertexGlobalIdByLight;
+          LightShare = other.LightShare;
+          FirstPhotonPrimaryId = other.FirstPhotonPrimaryId;
+          FirstPhotonVertexGlobalId = other.FirstPhotonVertexGlobalId;
         }
         return *this;
     }
@@ -74,6 +86,12 @@ class TMS_TrueHit {
           peAfterFibers = other.peAfterFibers;
           peAfterFibersLongPath = other.peAfterFibersLongPath;
           peAfterFibersShortPath = other.peAfterFibersShortPath;
+          NPhotons = other.NPhotons;
+          PrimaryIdByLight = other.PrimaryIdByLight;
+          VertexGlobalIdByLight = other.VertexGlobalIdByLight;
+          LightShare = other.LightShare;
+          FirstPhotonPrimaryId = other.FirstPhotonPrimaryId;
+          FirstPhotonVertexGlobalId = other.FirstPhotonVertexGlobalId;
         }
         return *this;
     }
@@ -116,6 +134,21 @@ class TMS_TrueHit {
       }
       return best;
     };
+    // Light provenance of the readout this true hit belongs to (response-element pipeline only,
+    // filled by TMS_Event::FillLightProvenance(); -999 otherwise): number of detected photons,
+    // the particle (trajectory, vertex) that produced the most of them and its fraction, and the
+    // particle that produced the first one (which sets the hit time).
+    void SetLightProvenance(int n_photons, int primary_id, long long vertex_id, double share,
+                            int first_primary_id, long long first_vertex_id) {
+      NPhotons = n_photons; PrimaryIdByLight = primary_id; VertexGlobalIdByLight = vertex_id;
+      LightShare = share; FirstPhotonPrimaryId = first_primary_id; FirstPhotonVertexGlobalId = first_vertex_id;
+    };
+    int GetNPhotons() const { return NPhotons; };
+    int GetPrimaryIdByLight() const { return PrimaryIdByLight; };
+    long long GetVertexGlobalIdByLight() const { return VertexGlobalIdByLight; };
+    double GetLightShare() const { return LightShare; };
+    int GetFirstPhotonPrimaryId() const { return FirstPhotonPrimaryId; };
+    long long GetFirstPhotonVertexGlobalId() const { return FirstPhotonVertexGlobalId; };
     int GetPrimaryIdByEnergy() const { return PrimaryIds.at(IndexOfHighestEnergyContributor()); };
     long long GetVertexGlobalIdByEnergy() const { return VertexGlobalIds.at(IndexOfHighestEnergyContributor()); };
     double GetEnergySharePortion(int index) const { return EnergyShare.at(index) / GetE(); };
@@ -151,6 +184,14 @@ class TMS_TrueHit {
     double peAfterFibers;
     double peAfterFibersLongPath;
     double peAfterFibersShortPath;
+
+    // See SetLightProvenance()
+    int NPhotons = -999;
+    int PrimaryIdByLight = -999;
+    long long VertexGlobalIdByLight = -999;
+    double LightShare = -999;
+    int FirstPhotonPrimaryId = -999;
+    long long FirstPhotonVertexGlobalId = -999;
     
     // Store individual particles for later particle identication
     std::vector<int> PrimaryIds;

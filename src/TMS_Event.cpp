@@ -541,6 +541,7 @@ void TMS_Event::ApplyReconstructionEffects() {
     // A5202 timing mode: discriminator on the summed fast-shaper pulses per channel gives the
     // hits, their time stamps and times over threshold; no separate window, noise or threshold
     TMS_DetectorSimulation::GetInstance().SimulateFrontEndTimingMode(*this, generator);
+    FillLightProvenance();
     return;
   }
   if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
@@ -548,6 +549,7 @@ void TMS_Event::ApplyReconstructionEffects() {
     TMS_DetectorSimulation::GetInstance().SimulateChannelReadout(*this, generator);
     TMS_DetectorSimulation::GetInstance().SimulateReadoutNoise(*this, generator);
     TMS_SignalProcessing::GetInstance().SimulatePedestalSubtraction(*this);
+    FillLightProvenance();
     return;
   }
   // Simulate deadtime if needed
@@ -558,6 +560,29 @@ void TMS_Event::ApplyReconstructionEffects() {
   TMS_DetectorSimulation::GetInstance().SimulateReadoutNoise(*this, generator);
   // Simulate pedestal subtraction where any hit under Get_Sim_Readout_PedestalSubtractionThreshold is removed
   TMS_SignalProcessing::GetInstance().SimulatePedestalSubtraction(*this);
+}
+
+void TMS_Event::FillLightProvenance() {
+  for (const auto& hit : TMS_Hits) {
+    TMS_TrueHit* truth = GetAdjustableTrueHit(hit.GetHitId());
+    const std::vector<TMS_PhotonArrival>* arrivals = GetPhotonArrivals(hit.GetHitId());
+    if (truth == nullptr || arrivals == nullptr || arrivals->empty()) continue;
+    // Photons per (vertex, trajectory); ties go to the smallest (vertex, trajectory), as in
+    // TMS_TrueHit::IndexOfHighestEnergyContributor()
+    std::map<std::pair<long long, int>, int> photons;
+    const TMS_PhotonArrival* first = &arrivals->front();
+    for (const auto& a : *arrivals) {
+      photons[{a.VertexGlobalId, a.TrajectoryId}]++;
+      if (a.Time < first->Time) first = &a;
+    }
+    auto best = photons.begin();
+    for (auto it = photons.begin(); it != photons.end(); ++it) {
+      if (it->second > best->second) best = it;
+    }
+    truth->SetLightProvenance(static_cast<int>(arrivals->size()), best->first.second, best->first.first,
+                              static_cast<double>(best->second) / arrivals->size(),
+                              first->TrajectoryId, first->VertexGlobalId);
+  }
 }
 
 const std::vector<TMS_Hit> TMS_Event::GetHits(int slice, bool include_ped_sup) {
