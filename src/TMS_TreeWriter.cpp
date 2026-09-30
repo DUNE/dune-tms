@@ -693,6 +693,12 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueHitView",   &TrueHitView,   "TrueHitView[NTrueHits]/I");
   Truth_Info->Branch("TrueHitPrimaryId", &TrueHitPrimaryId, "TrueHitPrimaryId[NTrueHits]/I");
   Truth_Info->Branch("TrueHitVertexId",  &TrueHitVertexId,  "TrueHitVertexId[NTrueHits]/L");
+  Truth_Info->Branch("TrueHitNPhotons", &TrueHitNPhotons, "TrueHitNPhotons[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitPrimaryIdByLight", &TrueHitPrimaryIdByLight, "TrueHitPrimaryIdByLight[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitVertexIdByLight", &TrueHitVertexIdByLight, "TrueHitVertexIdByLight[NTrueHits]/L");
+  Truth_Info->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -2004,6 +2010,12 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         TrueHadronicEnergy[index] = true_hit->GetHadronicEnergy();
         TrueHitPrimaryId[index] = true_hit->GetPrimaryIdByEnergy();
         TrueHitVertexId[index] = true_hit->GetVertexGlobalIdByEnergy();
+        TrueHitNPhotons[index] = true_hit->GetNPhotons();
+        TrueHitPrimaryIdByLight[index] = true_hit->GetPrimaryIdByLight();
+        TrueHitVertexIdByLight[index] = true_hit->GetVertexGlobalIdByLight();
+        TrueHitLightShare[index] = true_hit->GetLightShare();
+        TrueHitFirstPhotonPrimaryId[index] = true_hit->GetFirstPhotonPrimaryId();
+        TrueHitFirstPhotonVertexId[index] = true_hit->GetFirstPhotonVertexGlobalId();
         
         // Reco info
         TrueRecoHitX[index] = hit.GetX();

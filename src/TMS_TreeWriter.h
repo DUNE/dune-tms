@@ -612,6 +612,14 @@ class TMS_TreeWriter {
     // instead of the first-merged contributor.
     INTMYVAR(TrueHitPrimaryId);
     Long64_t TrueHitVertexId[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    // Light provenance (response-element pipeline; -999 otherwise) -- see
+    // TMS_TrueHit::SetLightProvenance()
+    INTMYVAR(TrueHitNPhotons);
+    INTMYVAR(TrueHitPrimaryIdByLight);
+    Long64_t TrueHitVertexIdByLight[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    MYVAR(TrueHitLightShare);
+    INTMYVAR(TrueHitFirstPhotonPrimaryId);
+    Long64_t TrueHitFirstPhotonVertexId[__MAX_TRUE_TREE_ARRAY_LENGTH__];
     MYVAR(TrueLeptonicEnergy);
     MYVAR(TrueHadronicEnergy);
     

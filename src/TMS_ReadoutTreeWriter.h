@@ -60,6 +60,12 @@ class TMS_ReadoutTreeWriter {
     VAR(TrueHitPEAfterFibers);
     VAR(TrueHitPEAfterFibersLongPath);
     VAR(TrueHitPEAfterFibersShortPath);
+    INTVAR(TrueHitNPhotons);
+    INTVAR(TrueHitPrimaryIdByLight);
+    Long64_t TrueHitVertexIdByLight[__MAX_READOUT_TREE_ARRAY_LENGTH__];
+    VAR(TrueHitLightShare);
+    INTVAR(TrueHitFirstPhotonPrimaryId);
+    Long64_t TrueHitFirstPhotonVertexId[__MAX_READOUT_TREE_ARRAY_LENGTH__];
     
     // Reco hit branches
     int NRecoHits;

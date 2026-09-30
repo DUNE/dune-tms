@@ -148,6 +148,7 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
   const double speed_of_light_in_fiber = SPEED_OF_LIGHT / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_FiberRefractiveIndex();
   std::exponential_distribution<double> exp_scint(1 / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ScintillatorDecayTime());
   std::exponential_distribution<double> exp_wsf(1 / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_WLSDecayTime());
+  std::uniform_real_distribution<double> uniform_share(0.0, 1.0);
 
   for (auto& hit : TMS_Hits) {
     if (use_response_elements) {
@@ -155,6 +156,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       if (segments == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no recorded steps while Sim.DetSim.UseResponseElements is on");
       double pe_short = 0;
       double pe_long = 0;
+      // Vertex of each contributing trajectory, for per-photon provenance
+      std::map<int, long long> vertex_of_trajectory;
+      if (const TMS_TrueHit* truth = event.GetTrueHit(hit.GetHitId())) {
+        for (size_t i = 0; i < truth->GetNTrueParticles(); ++i) vertex_of_trajectory[truth->GetPrimaryIds(i)] = truth->GetVertexGlobalIds(i);
+      }
       for (const auto& passage_indices : TMS_Passage::BuildPassages(*segments, passage_max_gap)) {
         std::vector<TMS_Passage::Segment> passage;
         for (size_t i : passage_indices) passage.push_back((*segments)[i]);
@@ -179,16 +185,33 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
           const double n_long = should_simulate_poisson_throws ? poisson_draw(mean_long) : mean_long;
           pe_short += n_short;
           pe_long += n_long;
+          // Particle that produced each photon: drawn in proportion to the deposit's energy shares
+          // (no draw when there is a single contributor)
+          auto photon_source = [&]() {
+            int trajectory = deposit.shares.empty() ? -999 : deposit.shares.front().first;
+            if (deposit.shares.size() > 1) {
+              double pick = uniform_share(generator) * deposit.energy;
+              for (const auto& share : deposit.shares) {
+                trajectory = share.first;
+                pick -= share.second;
+                if (pick <= 0) break;
+              }
+            }
+            const auto it = vertex_of_trajectory.find(trajectory);
+            return std::make_pair(trajectory, it == vertex_of_trajectory.end() ? -999LL : it->second);
+          };
           // Arrival time at the sensor, corrected to the strip center as in SimulateTimingModel()
           const int photons_short = static_cast<int>(std::ceil(n_short));
           const int photons_long = static_cast<int>(std::ceil(n_long));
           for (int i = 0; i < photons_short; ++i) {
             const double t = deposit.t + middle / speed_of_light_in_fiber + exp_scint(generator) + exp_wsf(generator);
-            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), false);
+            const auto source = photon_source();
+            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), false, source.first, source.second);
           }
           for (int i = 0; i < photons_long; ++i) {
             const double t = deposit.t + long_middle / speed_of_light_in_fiber + exp_scint(generator) + exp_wsf(generator);
-            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), true);
+            const auto source = photon_source();
+            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), true, source.first, source.second);
           }
         }
       }

@@ -30,6 +30,10 @@ struct TMS_PhotonArrival {
     double Time;
     int SourceHitId;
     bool LongPath;
+    // Trajectory (edep-sim track id) and global vertex id of the particle whose energy deposit
+    // produced this photon; -999 where not tracked (default pipeline).
+    int TrajectoryId;
+    long long VertexGlobalId;
 };
 
 // One electronics readout channel: a scintillator bar (or, for the split X-bars, one bar half,
