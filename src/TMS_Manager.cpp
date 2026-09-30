@@ -72,6 +72,9 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_PerViewHitCountThresholdEnd = toml::find_or<double>(data, "Recon", "Time", "PerViewHitCountThresholdEnd", 1.5);
   _RECO_TIME_PerViewGapNs = toml::find_or<double>(data, "Recon", "Time", "PerViewGapNs", 10.0);
   _RECO_TIME_PerViewGapMaxDurationNs = toml::find_or<double>(data, "Recon", "Time", "PerViewGapMaxDurationNs", 100.0);
+  _RECO_TIME_PerViewOrphanPickupNs = toml::find_or<double>(data, "Recon", "Time", "PerViewOrphanPickupNs", 0.0);
+  _RECO_TIME_PerViewOrphanPickupDzMM = toml::find_or<double>(data, "Recon", "Time", "PerViewOrphanPickupDzMM", 200.0);
+  _RECO_TIME_PerViewOrphanPickupDNotZMM = toml::find_or<double>(data, "Recon", "Time", "PerViewOrphanPickupDNotZMM", 150.0);
 
   _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
   _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");

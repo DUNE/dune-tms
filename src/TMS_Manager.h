@@ -109,6 +109,9 @@ class TMS_Manager {
     double Get_RECO_TIME_PerViewHitCountThresholdEnd() { return _RECO_TIME_PerViewHitCountThresholdEnd; };
     double Get_RECO_TIME_PerViewGapNs() { return _RECO_TIME_PerViewGapNs; };
     double Get_RECO_TIME_PerViewGapMaxDurationNs() { return _RECO_TIME_PerViewGapMaxDurationNs; };
+    double Get_RECO_TIME_PerViewOrphanPickupNs() { return _RECO_TIME_PerViewOrphanPickupNs; };
+    double Get_RECO_TIME_PerViewOrphanPickupDzMM() { return _RECO_TIME_PerViewOrphanPickupDzMM; };
+    double Get_RECO_TIME_PerViewOrphanPickupDNotZMM() { return _RECO_TIME_PerViewOrphanPickupDNotZMM; };
 
     double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
     const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
@@ -281,6 +284,9 @@ class TMS_Manager {
     double _RECO_TIME_PerViewHitCountThresholdEnd;
     double _RECO_TIME_PerViewGapNs;
     double _RECO_TIME_PerViewGapMaxDurationNs;
+    double _RECO_TIME_PerViewOrphanPickupNs;
+    double _RECO_TIME_PerViewOrphanPickupDzMM;
+    double _RECO_TIME_PerViewOrphanPickupDNotZMM;
 
     double _RECO_SPACEPOINTS_TimingWindow;
     std::string _RECO_SPACEPOINTS_Pairing;

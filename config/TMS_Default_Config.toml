@@ -193,6 +193,13 @@
     PerViewHitCountThresholdEnd = 1.5
     PerViewGapNs = 10.0
     PerViewGapMaxDurationNs = 100.0
+    # Orphan pickup (off at 0): a hit in no slice joins a slice ending or starting
+    # within PerViewOrphanPickupNs of it that already has a hit near it in space
+    # (same view: within PerViewOrphanPickupDzMM in z and PerViewOrphanPickupDNotZMM
+    # along the measured coordinate; other view: within PerViewOrphanPickupDzMM in z).
+    PerViewOrphanPickupNs = 0.0
+    PerViewOrphanPickupDzMM = 200.0
+    PerViewOrphanPickupDNotZMM = 150.0
 
   [Recon.SpacePoints]
     # Timing window for pairing X and Y hits (in nanoseconds)

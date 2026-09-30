@@ -563,6 +563,49 @@ int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
     }
     hit.SetSlice(slice);
   }
+
+  // Orphan pickup (PerViewOrphanPickupNs > 0): a hit left in no slice joins a
+  // slice that ends (or starts) within PerViewOrphanPickupNs of it, if that slice
+  // already holds a hit near it in space -- same view within
+  // PerViewOrphanPickupDzMM in z and PerViewOrphanPickupDNotZMM along the
+  // measured coordinate, or the other view within PerViewOrphanPickupDzMM in z.
+  // Of several such slices, the nearest in time. No time coincidence is asked
+  // for: the hits this is for are mostly late (low-PE time slew), past the
+  // window that closed the slice (2026-09-27 fragment study: a 10 ns
+  // coincidence partner existed for only 28% of them).
+  const double pickupNs = manager.Get_RECO_TIME_PerViewOrphanPickupNs();
+  if (pickupNs > 0.0) {
+    const double pickupDz = manager.Get_RECO_TIME_PerViewOrphanPickupDzMM();
+    const double pickupDNotZ = manager.Get_RECO_TIME_PerViewOrphanPickupDNotZMM();
+    // (TMS_Hit::GetSlice() is not const, hence the non-const pointers.)
+    std::vector<std::vector<TMS_Hit *>> finalHits(sliceBounds.size());
+    for (TMS_Hit &hit : hits)
+      if (!hit.GetPedSup() && hit.GetSlice() > 0 && hit.GetSlice() < static_cast<int>(finalHits.size()))
+        finalHits[hit.GetSlice()].push_back(&hit);
+    std::vector<std::pair<std::size_t, int>> moves;
+    for (std::size_t i = 0; i < hits.size(); ++i) {
+      TMS_Hit &orphan = hits[i];
+      if (orphan.GetPedSup() || orphan.GetSlice() != 0) continue;
+      const double t = orphan.GetT();
+      int best = 0;
+      double bestDt = 1e30;
+      for (std::size_t s = 1; s < sliceBounds.size(); ++s) {
+        const double dt = t > sliceBounds[s].second ? t - sliceBounds[s].second
+                          : t < sliceBounds[s].first ? sliceBounds[s].first - t : 0.0;
+        if (dt > pickupNs || dt >= bestDt) continue;
+        bool near = false;
+        for (TMS_Hit *h : finalHits[s]) {
+          if (std::fabs(h->GetZ() - orphan.GetZ()) > pickupDz) continue;
+          if (viewOf(*h) != viewOf(orphan) || std::fabs(h->GetNotZ() - orphan.GetNotZ()) <= pickupDNotZ) { near = true; break; }
+        }
+        if (near) { best = static_cast<int>(s); bestDt = dt; }
+      }
+      if (best > 0) moves.push_back({i, best});
+    }
+    // Applied after the search, so a picked-up hit can't vouch for another orphan.
+    for (const auto &m : moves) hits[m.first].SetSlice(m.second);
+  }
+
   event.SetHitsRaw(hits);
   event.AddTimeSliceInformation(sliceBounds);
   const int nslices = static_cast<int>(order.size()) + 1;
