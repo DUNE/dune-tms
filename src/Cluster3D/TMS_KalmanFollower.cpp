@@ -174,6 +174,10 @@ const RangeTable &RangeTableFor(double density) {
 // Set from Config::RangeTableEnergyLoss at the start of each Follower run: the
 // swimmer's static step functions have no access to the follower's config.
 bool gRangeTableEnergyLoss = true;
+// Config::RangeTableStoppingPowerScale, set the same way. A table built from
+// s * dE/dx has range R(E) / s, so every use below scales the areal density
+// walked by s instead of rebuilding the tables.
+double gRangeTableScale = 1.0;
 
 // Fraction of a step's path length in magnetized steel. The TMS field lives
 // in the steel plates only (edep-sim's GDML field is attached to the steel
@@ -245,7 +249,7 @@ TMatrixD ApplyMaterialSteps(const MaterialSteps &materials,
     // backward pass) it is restored.
     if (gRangeTableEnergyLoss) {
       const RangeTable &table = RangeTableFor(density);
-      const double r = table.RangeAt(energy) + (upstream ? 1.0 : -1.0) * density * thickness;
+      const double r = table.RangeAt(energy) + (upstream ? 1.0 : -1.0) * gRangeTableScale * density * thickness;
       // Ranged out inside this step: just below the floor, so the check below flags it.
       energy = r > 0.0 ? table.EnergyAt(r) : energyFloor * (1.0 - 1e-12);
     } else if (upstream) {
@@ -831,7 +835,7 @@ double RangeMomentumMeV(const TVector3 &start, const TVector3 &end) {
     }
     if (gRangeTableEnergyLoss) {
       const RangeTable &table = RangeTableFor(density);
-      energy = table.EnergyAt(table.RangeAt(energy) + density * thickness);
+      energy = table.EnergyAt(table.RangeAt(energy) + gRangeTableScale * density * thickness);
       continue;
     }
     const double loss = bethe.Calc_dEdx(energy) * density * thickness;
@@ -890,7 +894,7 @@ double ExpectedStopMomentumMeV(double x, double y, double z, double dxdz, double
       continue;
     }
     const RangeTable &table = RangeTableFor(density);
-    energy = table.EnergyAt(table.RangeAt(energy) + density * thickness);
+    energy = table.EnergyAt(table.RangeAt(energy) + gRangeTableScale * density * thickness);
   }
   return BetheBloch_Utils::EnergyToMomentum(BetheBloch_Utils::Mm, energy);
 }
@@ -907,6 +911,7 @@ FitResult Follower::Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
 FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, const std::vector<std::size_t> &seedPath,
                             double seedMomentumOverrideMeV, double qpRelSigmaOverride) const {
   gRangeTableEnergyLoss = fConfig.RangeTableEnergyLoss;
+  gRangeTableScale = fConfig.RangeTableStoppingPowerScale;
   FitResult result;
   if (seedPath.size() < 2 || allSpacePoints.empty()) return result;
 
@@ -1422,8 +1427,12 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
             // covariance: the walk's own covariance means nothing (at tens of
             // MeV its scattering term alone would trip Predict()'s variance
             // guard within a few steps).
+            // The range walk has its own energy-loss switch (Config::RangeTableRangeMomentum);
+            // the Kalman steps around it keep the tracking one.
+            gRangeTableEnergyLoss = fConfig.RangeTableRangeMomentum;
             StepState stepped = Predict(*range, measurement.first, noField, fConfig.MaxSubstepLengthMM, false,
                                         /*varianceGuard=*/false);
+            gRangeTableEnergyLoss = fConfig.RangeTableEnergyLoss;
             if (stepped.Diverged) {
               rangeOk = false;
             } else {

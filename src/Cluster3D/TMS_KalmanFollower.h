@@ -386,7 +386,20 @@ struct Config {
   // Mean energy loss by each material's range-energy table instead of dE/dx at one
   // end of each material step (exact for any step; the one-point estimate read
   // 2.5-12% high near stopping points, 2026-09-29). See RangeTable in the .cpp.
-  bool RangeTableEnergyLoss = true;
+  // RangeTableEnergyLoss applies it to the tracking itself (the forward walk, the
+  // backward Kalman pass, the range-seeded refits); RangeTableRangeMomentum only to
+  // the range walk that gives RangeMomentumMeV. Off for tracking since 2026-09-29:
+  // on 51 files it cost 28 correctly ended stopping muons of 2,477 and added ~4%
+  // junk tracks (where the forward walk ranges out moved), with no gain in range
+  // momentum resolution; the range walk alone is not part of pattern recognition.
+  bool RangeTableEnergyLoss = false;
+  bool RangeTableRangeMomentum = true;
+  // Scale on the stopping power behind the range tables. Our Bethe-Bloch (steel as
+  // pure iron, no radiative terms) loses energy faster than Geant4: along the TRUE
+  // Geant4 trajectories of 565 stopping muons (RangeErrorBudget, 1 mm steps), the
+  // range momentum from the first hit read +1.7% at scale 1 and -0.1% at 0.98
+  // (2026-09-29). Applies wherever the tables are used.
+  double RangeTableStoppingPowerScale = 0.98;
   // Start the backward range walk at the expected momentum for a muon that stopped
   // halfway (in areal density) through the material between the last hit and the
   // next scintillator layer, instead of at RangeStopMomentumMeV (stopping at the

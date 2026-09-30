@@ -645,6 +645,8 @@ int main(int argc, char **argv) {
   if (const char *v = std::getenv("KF_XYTIME_GATE")) followerConfig.XYTimeGateNSigma = std::atof(v);
   if (const char *v = std::getenv("KF_XYTIME_ALT")) followerConfig.XYTimeGateNeedsAlternative = std::atoi(v) != 0;
   if (const char *v = std::getenv("KF_RANGE_TABLES")) followerConfig.RangeTableEnergyLoss = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_RANGE_TABLES_MOMENTUM")) followerConfig.RangeTableRangeMomentum = std::atoi(v) != 0;
+  if (const char *v = std::getenv("KF_RANGE_TABLES_SCALE")) followerConfig.RangeTableStoppingPowerScale = std::atof(v);
   if (const char *v = std::getenv("KF_EXPECTED_STOP")) followerConfig.ExpectedStopRange = std::atoi(v) != 0;
   TMS_KalmanFollower::Follower follower(followerConfig, field);
   if (have_hit_table) {

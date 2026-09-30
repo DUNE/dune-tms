@@ -50,6 +50,13 @@ double StepMM() {
   return step;
 }
 
+// Scale on the Bethe-Bloch stopping power (RANGE_BUDGET_DEDX_SCALE, 1 by default): used to measure
+// what scale would bring the true-path range momentum onto Geant4's (the floor read +1.7%, 2026-09-29).
+double DEdxScale() {
+  static const double s = std::getenv("RANGE_BUDGET_DEDX_SCALE") ? std::atof(std::getenv("RANGE_BUDGET_DEDX_SCALE")) : 1.0;
+  return s;
+}
+
 // Momentum (MeV/c) at the start of a polyline that stops exactly at its end: energy loss through
 // the geometry's materials, walked backward from the floor, as TMS_KalmanFollower's
 // RangeMomentumMeV() does for a straight segment.
@@ -76,7 +83,7 @@ double RangeMomentum(const std::vector<TVector3> &points) {
     // whole material step at the energy of its downstream end overestimates the loss.
     const int n = std::max(1, static_cast<int>(std::ceil(thickness * 10.0 / StepMM())));
     for (int k = 0; k < n; ++k) {
-      const double loss = bethe.Calc_dEdx(energy) * density * thickness / n;
+      const double loss = DEdxScale() * bethe.Calc_dEdx(energy) * density * thickness / n;
       if (std::isfinite(loss)) energy += loss;
     }
   }

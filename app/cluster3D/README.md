@@ -62,7 +62,9 @@ row in each, so count distinct muons by their main slice (most true hits).
   `CLUSTER3D_RESEED_FACTOR` (`_RESEED_SIGMA`, `_RESEED_PASSES`),
   `CLUSTER3D_RANGE_SEEDED`, `CLUSTER3D_RANGE_SEED_REL_SIGMA`,
   `CLUSTER3D_MAX_BEYOND_SEED`, `CLUSTER3D_STOP_ON_RANGE_OUT`,
-  `CLUSTER3D_XYTIME_SIGMA`, `CLUSTER3D_XYTIME_GATE` (see
+  `CLUSTER3D_XYTIME_SIGMA`, `CLUSTER3D_XYTIME_GATE`, `CLUSTER3D_XYTIME_ALT`,
+  `CLUSTER3D_RANGE_TABLES` (tracking), `CLUSTER3D_RANGE_TABLES_MOMENTUM` (range
+  walk), `CLUSTER3D_RANGE_TABLES_SCALE` (stopping-power scale), `CLUSTER3D_EXPECTED_STOP`, `CLUSTER3D_MAX_GAP` (see
   `TMS_Cluster3DReco::Config` and `TMS_KalmanFollower::Config`). The
   conversion's own `[Recon.Cluster3D]` settings are not read: set
   `CLUSTER3D_LINK=1` to match a conversion with `LinkClusters = true`.
