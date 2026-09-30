@@ -536,6 +536,13 @@ void TMS_Event::ApplyReconstructionEffects() {
   TMS_DetectorSimulation::GetInstance().SimulateDarkCount(*this);
   // Simulate a timing model
   TMS_DetectorSimulation::GetInstance().SimulateTimingModel(*this, generator);
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+    // Readout windows, deadtime and merging per electronics channel in one step
+    TMS_DetectorSimulation::GetInstance().SimulateChannelReadout(*this, generator);
+    TMS_DetectorSimulation::GetInstance().SimulateReadoutNoise(*this, generator);
+    TMS_SignalProcessing::GetInstance().SimulatePedestalSubtraction(*this);
+    return;
+  }
   // Simulate deadtime if needed
   TMS_DetectorSimulation::GetInstance().SimulateDeadtime(*this);
   // Merge hits that happened in the same scintillator strip and within the same readout time window
