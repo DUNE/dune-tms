@@ -60,6 +60,18 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_PerViewCoincidenceWindowNs = toml::find_or<double>(data, "Recon", "Time", "PerViewCoincidenceWindowNs", 10.0);
   _RECO_TIME_PerViewCoincidenceDzMM = toml::find_or<double>(data, "Recon", "Time", "PerViewCoincidenceDzMM", 200.0);
   _RECO_TIME_PerViewFiberDelayNsPerMM = toml::find_or<double>(data, "Recon", "Time", "PerViewFiberDelayNsPerMM", 0.009);
+  // Per-view slicing algorithm studies (2026-09-30); the defaults are the original window slicer.
+  const std::string defaultSliceAlgorithm = "Window";
+  _RECO_TIME_PerViewSliceAlgorithm = toml::find_or(data, "Recon", "Time", "PerViewSliceAlgorithm", defaultSliceAlgorithm);
+  if (_RECO_TIME_PerViewSliceAlgorithm != "Window" && _RECO_TIME_PerViewSliceAlgorithm != "WindowNoSkip" &&
+      _RECO_TIME_PerViewSliceAlgorithm != "Gap")
+    throw std::runtime_error("Recon.Time.PerViewSliceAlgorithm must be Window, WindowNoSkip or Gap, not " +
+                             _RECO_TIME_PerViewSliceAlgorithm);
+  _RECO_TIME_PerViewSliceCountHits = toml::find_or<bool>(data, "Recon", "Time", "PerViewSliceCountHits", false);
+  _RECO_TIME_PerViewHitCountThresholdStart = toml::find_or<double>(data, "Recon", "Time", "PerViewHitCountThresholdStart", 3.0);
+  _RECO_TIME_PerViewHitCountThresholdEnd = toml::find_or<double>(data, "Recon", "Time", "PerViewHitCountThresholdEnd", 1.5);
+  _RECO_TIME_PerViewGapNs = toml::find_or<double>(data, "Recon", "Time", "PerViewGapNs", 10.0);
+  _RECO_TIME_PerViewGapMaxDurationNs = toml::find_or<double>(data, "Recon", "Time", "PerViewGapMaxDurationNs", 100.0);
 
   _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
   _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");

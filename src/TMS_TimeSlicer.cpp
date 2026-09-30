@@ -20,32 +20,97 @@ namespace {
 // energy in a sliding window of slidingWindowWidth units reaches thresholdStart,
 // runs at least minimumSliceWidth units, and closes once the window's energy
 // drops below thresholdEnd. Returns the number of slices found.
+//
+// The window looks FORWARD from unit i (units i .. i+W-1). On closing, the
+// original code also labels the rest of that last window (W-1 units) into the
+// closing slice and skips past it without testing, so no new slice can open
+// inside that tail. noSkip (PerViewSliceAlgorithm = "WindowNoSkip") keeps the
+// tail's hits with the closing slice but tests every unit: a unit in the tail
+// whose window reaches thresholdStart opens the next slice at once.
+// countHits: each hit counts 1 instead of its energy (thresholds in hits).
 int WindowSlices(const std::vector<const TMS_Hit *> &hits, double DT, int nUnits, double thresholdStart,
-                 double thresholdEnd, int slidingWindowWidth, int minimumSliceWidth, std::vector<int> &labels) {
+                 double thresholdEnd, int slidingWindowWidth, int minimumSliceWidth, std::vector<int> &labels,
+                 bool noSkip = false, bool countHits = false) {
   std::vector<double> energy(nUnits, 0.0);
   for (const TMS_Hit *hit : hits) {
     const int index = hit->GetT() / DT;
-    if (index >= 0 && index < nUnits) energy[index] += hit->GetE();
+    if (index >= 0 && index < nUnits) energy[index] += countHits ? 1.0 : hit->GetE();
   }
   labels.assign(nUnits, 0);
   int minimumIndex = 0, sliceIndex = 1;
   bool inSlice = false;
+  int tailUntil = -1;  // noSkip: last unit of the closed slice's tail
   for (int i = 0; i < nUnits; i++) {
     double inWindow = 0;
     for (int j = 0; i + j + slidingWindowWidth < nUnits && j < slidingWindowWidth; j++) inWindow += energy[i + j];
     if (!inSlice && inWindow >= thresholdStart) {
       inSlice = true;
       minimumIndex = i + minimumSliceWidth;
+      tailUntil = -1;
     }
     if (inSlice && inWindow < thresholdEnd && i > minimumIndex) {
       inSlice = false;
+      if (noSkip) {
+        // The tail belongs to this slice unless a new slice opens inside it.
+        labels[i] = sliceIndex;
+        tailUntil = i + slidingWindowWidth - 2;
+        sliceIndex += 1;
+        continue;
+      }
       for (int j = 0; i + j + slidingWindowWidth < nUnits && j < slidingWindowWidth - 1; j++) labels[i + j] = sliceIndex;
       i += slidingWindowWidth - 1;
       sliceIndex += 1;
     }
     if (inSlice) labels[i] = sliceIndex;
+    else if (i <= tailUntil) labels[i] = sliceIndex - 1;
   }
   return sliceIndex - 1 + (inSlice ? 1 : 0);
+}
+
+// Gap slicing (PerViewSliceAlgorithm = "Gap"): no bins or window. Sort the hits
+// in time and start a new group wherever two consecutive hits are more than
+// gapNs apart. A group longer than maxDurationNs is split at its largest
+// internal gap, repeatedly (continuous activity must not chain interactions into
+// one long slice). Groups whose energy (or hit count, countHits) reaches
+// thresholdStart become slices, labeled over their units; the rest stay 0.
+int GapSlices(const std::vector<const TMS_Hit *> &hits, double DT, int nUnits, double thresholdStart, double gapNs,
+              double maxDurationNs, std::vector<int> &labels, bool countHits) {
+  labels.assign(nUnits, 0);
+  std::vector<std::pair<double, double> > th;  // (time, weight)
+  for (const TMS_Hit *hit : hits) th.push_back({hit->GetT(), countHits ? 1.0 : hit->GetE()});
+  std::sort(th.begin(), th.end());
+  // Group boundaries as [first, last] index ranges.
+  std::vector<std::pair<std::size_t, std::size_t> > groups, work;
+  for (std::size_t i = 0; i < th.size(); ++i) {
+    if (i == 0 || th[i].first - th[i - 1].first > gapNs) work.push_back({i, i});
+    else work.back().second = i;
+  }
+  while (!work.empty()) {
+    const auto g = work.back();
+    work.pop_back();
+    if (th[g.second].first - th[g.first].first <= maxDurationNs || g.second == g.first) {
+      groups.push_back(g);
+      continue;
+    }
+    std::size_t cut = g.first;
+    double widest = -1.0;
+    for (std::size_t i = g.first; i < g.second; ++i)
+      if (th[i + 1].first - th[i].first > widest) { widest = th[i + 1].first - th[i].first; cut = i; }
+    work.push_back({g.first, cut});
+    work.push_back({cut + 1, g.second});
+  }
+  std::sort(groups.begin(), groups.end());
+  int sliceIndex = 0;
+  for (const auto &g : groups) {
+    double sum = 0.0;
+    for (std::size_t i = g.first; i <= g.second; ++i) sum += th[i].second;
+    if (sum < thresholdStart) continue;
+    ++sliceIndex;
+    const int u0 = std::max(0, static_cast<int>(th[g.first].first / DT));
+    const int u1 = std::min(nUnits - 1, static_cast<int>(th[g.second].first / DT));
+    for (int u = u0; u <= u1; ++u) labels[u] = sliceIndex;
+  }
+  return sliceIndex;
 }
 
 }  // namespace
@@ -295,6 +360,10 @@ int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
   const int minimumWidth = manager.Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits();
   const double tolerance = manager.Get_RECO_TIME_PerViewMatchToleranceNs();
   const double zMargin = manager.Get_RECO_TIME_PerViewMatchZMarginMM();
+  const std::string algorithm = manager.Get_RECO_TIME_PerViewSliceAlgorithm();
+  const bool countHits = manager.Get_RECO_TIME_PerViewSliceCountHits();
+  const double gapNs = manager.Get_RECO_TIME_PerViewGapNs();
+  const double gapMaxDuration = manager.Get_RECO_TIME_PerViewGapMaxDurationNs();
 
   std::vector<TMS_Hit> hits = event.GetHitsRaw();
   // View 0: y-measuring hits (X-type bars); view 1: everything else (x-measuring).
@@ -320,9 +389,15 @@ int TMS_TimeSlicer::PerViewTimeSlicer(TMS_Event &event) {
   for (int v = 0; v < 2; ++v) {
     const double total = viewEnergy[0] + viewEnergy[1];
     const double scale = scaleSetting > 0.0 ? scaleSetting : (total > 0.0 ? viewEnergy[v] / total : 0.5);
-    const double thresholdStart = scale * manager.Get_RECO_TIME_TimeSlicerThresholdStart();
-    const double thresholdEnd = scale * manager.Get_RECO_TIME_TimeSlicerThresholdEnd();
-    const int n = WindowSlices(viewHits[v], DT, nUnits, thresholdStart, thresholdEnd, windowWidth, minimumWidth, labels[v]);
+    // Energy thresholds (MeV), or hit counts with PerViewSliceCountHits.
+    const double thresholdStart = scale * (countHits ? manager.Get_RECO_TIME_PerViewHitCountThresholdStart()
+                                                     : manager.Get_RECO_TIME_TimeSlicerThresholdStart());
+    const double thresholdEnd = scale * (countHits ? manager.Get_RECO_TIME_PerViewHitCountThresholdEnd()
+                                                   : manager.Get_RECO_TIME_TimeSlicerThresholdEnd());
+    const int n = algorithm == "Gap"
+                      ? GapSlices(viewHits[v], DT, nUnits, thresholdStart, gapNs, gapMaxDuration, labels[v], countHits)
+                      : WindowSlices(viewHits[v], DT, nUnits, thresholdStart, thresholdEnd, windowWidth, minimumWidth,
+                                     labels[v], algorithm == "WindowNoSkip", countHits);
     slices[v].assign(n + 1, ViewSlice());  // index 0 unused
     for (int i = 0; i < nUnits; ++i) {
       const int l = labels[v][i];

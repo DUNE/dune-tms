@@ -178,6 +178,21 @@
     PerViewCoincidenceWindowNs = 10.0
     PerViewCoincidenceDzMM = 200.0
     PerViewFiberDelayNsPerMM = 0.009
+    # Slicing algorithm per view (studies, 2026-09-30): "Window" (the original
+    # forward 10-unit window: open at TimeSlicerThresholdStart, close below
+    # ...End, keep a W-1 unit tail and skip it untested); "WindowNoSkip" (the
+    # same, but every unit is tested, so a slice can open inside the previous
+    # one's tail); "Gap" (no window: a new slice wherever consecutive hits are
+    # more than PerViewGapNs apart, groups longer than PerViewGapMaxDurationNs
+    # split at their largest internal gap, groups below the start threshold
+    # dropped). PerViewSliceCountHits: thresholds count hits instead of MeV
+    # (PerViewHitCountThresholdStart/End, scaled per view like the MeV ones).
+    PerViewSliceAlgorithm = "Window"
+    PerViewSliceCountHits = false
+    PerViewHitCountThresholdStart = 3.0
+    PerViewHitCountThresholdEnd = 1.5
+    PerViewGapNs = 10.0
+    PerViewGapMaxDurationNs = 100.0
 
   [Recon.SpacePoints]
     # Timing window for pairing X and Y hits (in nanoseconds)

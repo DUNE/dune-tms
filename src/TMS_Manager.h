@@ -103,6 +103,12 @@ class TMS_Manager {
     double Get_RECO_TIME_PerViewCoincidenceWindowNs() { return _RECO_TIME_PerViewCoincidenceWindowNs; };
     double Get_RECO_TIME_PerViewCoincidenceDzMM() { return _RECO_TIME_PerViewCoincidenceDzMM; };
     double Get_RECO_TIME_PerViewFiberDelayNsPerMM() { return _RECO_TIME_PerViewFiberDelayNsPerMM; };
+    const std::string &Get_RECO_TIME_PerViewSliceAlgorithm() { return _RECO_TIME_PerViewSliceAlgorithm; };
+    bool Get_RECO_TIME_PerViewSliceCountHits() { return _RECO_TIME_PerViewSliceCountHits; };
+    double Get_RECO_TIME_PerViewHitCountThresholdStart() { return _RECO_TIME_PerViewHitCountThresholdStart; };
+    double Get_RECO_TIME_PerViewHitCountThresholdEnd() { return _RECO_TIME_PerViewHitCountThresholdEnd; };
+    double Get_RECO_TIME_PerViewGapNs() { return _RECO_TIME_PerViewGapNs; };
+    double Get_RECO_TIME_PerViewGapMaxDurationNs() { return _RECO_TIME_PerViewGapMaxDurationNs; };
 
     double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
     const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
@@ -269,6 +275,12 @@ class TMS_Manager {
     double _RECO_TIME_PerViewCoincidenceWindowNs;
     double _RECO_TIME_PerViewCoincidenceDzMM;
     double _RECO_TIME_PerViewFiberDelayNsPerMM;
+    std::string _RECO_TIME_PerViewSliceAlgorithm;
+    bool _RECO_TIME_PerViewSliceCountHits;
+    double _RECO_TIME_PerViewHitCountThresholdStart;
+    double _RECO_TIME_PerViewHitCountThresholdEnd;
+    double _RECO_TIME_PerViewGapNs;
+    double _RECO_TIME_PerViewGapMaxDurationNs;
 
     double _RECO_SPACEPOINTS_TimingWindow;
     std::string _RECO_SPACEPOINTS_Pairing;
