@@ -25,6 +25,11 @@ class TMS_DetectorSimulation {
     // zombie time per TMS_ChannelId, replacing SimulateDeadtime() + the post-simulation
     // MergeCoincidentHits(). Adds the electronic time noise once per readout.
     void SimulateChannelReadout(TMS_Event &event, std::default_random_engine &generator);
+    // A5202 timing mode (Sim.DetSim.FrontEndTimingMode, with UseResponseElements): per channel,
+    // sums the photons' fast-shaper pulses; each discriminator pulse becomes a hit with the
+    // threshold-crossing time and time over threshold in TDC steps. Replaces
+    // SimulateChannelReadout(), SimulateReadoutNoise() and the pedestal threshold.
+    void SimulateFrontEndTimingMode(TMS_Event &event, std::default_random_engine &generator);
     void SimulateReadoutNoise(TMS_Event &event, std::default_random_engine &generator);
 
   private:

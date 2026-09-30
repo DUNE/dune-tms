@@ -536,6 +536,13 @@ void TMS_Event::ApplyReconstructionEffects() {
   TMS_DetectorSimulation::GetInstance().SimulateDarkCount(*this);
   // Simulate a timing model
   TMS_DetectorSimulation::GetInstance().SimulateTimingModel(*this, generator);
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements() &&
+      TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_FrontEndTimingMode()) {
+    // A5202 timing mode: discriminator on the summed fast-shaper pulses per channel gives the
+    // hits, their time stamps and times over threshold; no separate window, noise or threshold
+    TMS_DetectorSimulation::GetInstance().SimulateFrontEndTimingMode(*this, generator);
+    return;
+  }
   if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
     // Readout windows, deadtime and merging per electronics channel in one step
     TMS_DetectorSimulation::GetInstance().SimulateChannelReadout(*this, generator);
