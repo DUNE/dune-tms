@@ -319,13 +319,12 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
 
   if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
     // Response-element path: SimulateOpticalModel() already generated every detected photon
-    // with its sensor arrival time; the hit time is the first arrival plus electronic noise.
+    // with its sensor arrival time; the hit time is the first arrival. The electronic time noise
+    // is added once per readout in SimulateChannelReadout().
     for (auto& hit : TMS_Hits) {
-      double t = hit.GetT();
       const std::vector<TMS_PhotonArrival>* arrivals = event.GetPhotonArrivals(hit.GetHitId());
       // No detected photons: keep the true time, as the default path does
-      if (arrivals != nullptr && !arrivals->empty()) t = arrivals->front().Time;
-      hit.SetT(t + noise_distribution(generator));
+      if (arrivals != nullptr && !arrivals->empty()) hit.SetT(arrivals->front().Time);
     }
     return;
   }
@@ -564,6 +563,84 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
     std::cout<<"N dead hits: "<<n_dead_hits<<" out of "<<TMS_Hits.size()<<" hits. That's "<<n_dead_hits_as_percent<<"%"<<std::endl;
     if (zombie_time > 0) std::cout<<"N zombie hits: "<<n_zombie_hits<<std::endl;
   }
+}
+
+void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::default_random_engine &generator) {
+  // Same readout model as SimulateDeadtime() + TMS_SignalProcessing::MergeCoincidentHits(), done
+  // once per channel:  |----  readout -----|------- deadtime ----{zombie time}]
+  // The first hit in a channel opens a readout window of Sim.Readout.ReadoutTime; later hits in
+  // the window are merged into it. The channel is then dead for Sim.Readout.Deadtime (if > 0):
+  // hits in the deadtime are lost, except that hits in the final Sim.Readout.ZombieTime (if > 0)
+  // are read at the end of the deadtime as the start of the next readout.
+  std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
+  const double readout_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ReadoutTime();
+  const double deadtime = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_Deadtime();
+  const double zombie_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ZombieTime();
+  std::normal_distribution<double> time_noise(0.0, TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise());
+
+  std::map<TMS_ChannelId, std::vector<size_t>> hits_by_channel;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (TMS_Hits[i].GetPedSup()) continue;
+    hits_by_channel[TMS_Hits[i].GetChannelId()].push_back(i);
+  }
+
+  std::vector<bool> remove(TMS_Hits.size(), false);
+  std::vector<size_t> readouts;
+  for (auto& channel : hits_by_channel) {
+    std::vector<size_t>& idx = channel.second;
+    std::stable_sort(idx.begin(), idx.end(), [&](size_t a, size_t b) { return TMS_Hits[a].GetT() < TMS_Hits[b].GetT(); });
+    bool open = false;
+    size_t current = 0;
+    double t_read = 0, t_dead = 0;
+    auto start_readout = [&](size_t i, double t) {
+      current = i;
+      open = true;
+      readouts.push_back(i);
+      t_read = t + readout_time;
+      t_dead = t_read + std::max(deadtime, 0.0);
+      if (deadtime > 0) {
+        const TMS_Hit& hit = TMS_Hits[i];
+        event.AddDeadtimeChannelRecord(std::make_pair(hit.GetNotZ(), hit.GetZ()), std::make_pair(t_read, t_dead), std::make_pair(t, t_read));
+      }
+    };
+    for (size_t i : idx) {
+      TMS_Hit& hit = TMS_Hits[i];
+      const double t = hit.GetT();
+      if (!open || t >= t_dead) {
+        start_readout(i, t);
+      } else if (t < t_read) {
+        TMS_Hits[current].MergeWith(hit);
+        event.MergeTrueHit(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        event.MergePhotonArrivals(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        event.MergeResponseSegments(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        remove[i] = true;
+      } else if (zombie_time > 0 && t >= t_dead - zombie_time) {
+        // Read at the end of the deadtime, as the start of the next readout
+        hit.SetT(t_dead);
+        start_readout(i, t_dead);
+      } else {
+        // Lost in the deadtime
+        remove[i] = true;
+      }
+    }
+  }
+
+  // One electronic time measurement per readout
+  for (size_t i : readouts) TMS_Hits[i].SetT(TMS_Hits[i].GetT() + time_noise(generator));
+
+  std::vector<TMS_Hit> remaining_hits;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (!remove[i]) {
+      remaining_hits.push_back(TMS_Hits[i]);
+    } else {
+      event.EraseTrueHit(TMS_Hits[i].GetHitId());
+      event.ErasePhotonArrivals(TMS_Hits[i].GetHitId());
+      event.EraseResponseSegments(TMS_Hits[i].GetHitId());
+    }
+  }
+  // Same final ordering as MergeCoincidentHits()
+  std::sort(remaining_hits.begin(), remaining_hits.end(), TMS_Hit::SortByZThenT);
+  TMS_Hits = std::move(remaining_hits);
 }
 
 void TMS_DetectorSimulation::SimulateReadoutNoise(TMS_Event &event, std::default_random_engine &generator) {
