@@ -50,6 +50,16 @@ class TMS_Readout_Manager {
     bool Get_Sim_DetSim_UseResponseElements() { return _SIM_DETSIM_UseResponseElements; };
     double Get_Sim_DetSim_DepositBinLength() { return _SIM_DETSIM_DepositBinLength; };
     double Get_Sim_DetSim_PassageMaxGap() { return _SIM_DETSIM_PassageMaxGap; };
+    bool Get_Sim_DetSim_FrontEndTimingMode() { return _SIM_DETSIM_FrontEndTimingMode; };
+
+    double Get_Sim_FrontEnd_FastShaperPeakingTime() { return _SIM_FRONTEND_FastShaperPeakingTime; };
+    int Get_Sim_FrontEnd_FastShaperOrder() { return _SIM_FRONTEND_FastShaperOrder; };
+    double Get_Sim_FrontEnd_DiscriminatorThreshold() { return _SIM_FRONTEND_DiscriminatorThreshold; };
+    double Get_Sim_FrontEnd_TDCStep() { return _SIM_FRONTEND_TDCStep; };
+    double Get_Sim_FrontEnd_TimingJitter() { return _SIM_FRONTEND_TimingJitter; };
+    double Get_Sim_FrontEnd_SiPMCrosstalkProbability() { return _SIM_FRONTEND_SiPMCrosstalkProbability; };
+    int Get_Sim_FrontEnd_SiPMPixels() { return _SIM_FRONTEND_SiPMPixels; };
+    bool Get_Sim_FrontEnd_EnergyFromToT() { return _SIM_FRONTEND_EnergyFromToT; };
 
     double Get_Sim_Timing_ScintillatorDecayTime() { return _SIM_TIMING_ScintillatorDecayTime; };
     double Get_Sim_Timing_WLSDecayTime() { return _SIM_TIMING_WLSDecayTime; };
@@ -95,6 +105,24 @@ class TMS_Readout_Manager {
   double _SIM_DETSIM_DepositBinLength;
 
   double _SIM_DETSIM_PassageMaxGap;
+
+  bool _SIM_DETSIM_FrontEndTimingMode;
+
+  double _SIM_FRONTEND_FastShaperPeakingTime;
+
+  int _SIM_FRONTEND_FastShaperOrder;
+
+  double _SIM_FRONTEND_DiscriminatorThreshold;
+
+  double _SIM_FRONTEND_TDCStep;
+
+  double _SIM_FRONTEND_TimingJitter;
+
+  double _SIM_FRONTEND_SiPMCrosstalkProbability;
+
+  int _SIM_FRONTEND_SiPMPixels;
+
+  bool _SIM_FRONTEND_EnergyFromToT;
 
 
   double _SIM_TIMING_ScintillatorDecayTime;

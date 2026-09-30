@@ -643,6 +643,189 @@ void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::defau
   TMS_Hits = std::move(remaining_hits);
 }
 
+void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::default_random_engine &generator) {
+  std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
+  TMS_Readout_Manager& config = TMS_Readout_Manager::GetInstance();
+  const double peaking_time = config.Get_Sim_FrontEnd_FastShaperPeakingTime();
+  const int order = config.Get_Sim_FrontEnd_FastShaperOrder();
+  const double threshold = config.Get_Sim_FrontEnd_DiscriminatorThreshold();
+  const double tdc_step = config.Get_Sim_FrontEnd_TDCStep();
+  const double crosstalk = config.Get_Sim_FrontEnd_SiPMCrosstalkProbability();
+  const double pixels = config.Get_Sim_FrontEnd_SiPMPixels();
+  const bool energy_from_tot = config.Get_Sim_FrontEnd_EnergyFromToT();
+  const double calibration = TMS_Manager::GetInstance().Get_RECO_CALIBRATION_EnergyCalibration();
+  std::normal_distribution<double> jitter(0.0, config.Get_Sim_FrontEnd_TimingJitter());
+  std::uniform_real_distribution<double> uniform(0.0, 1.0);
+
+  // Single-photoelectron fast-shaper pulse, unit height at t = peaking_time
+  auto pulse = [&](double dt) {
+    if (dt <= 0) return 0.0;
+    const double x = dt / peaking_time;
+    return std::pow(x, order) * std::exp(order * (1.0 - x));
+  };
+  // Beyond this a pulse contributes < 1e-4 pe
+  double tail = peaking_time;
+  while (pulse(tail) > 1e-4) tail += 0.1 * peaking_time;
+  const double grid = 0.1; // ns, waveform sampling
+  auto floor_to_tdc = [&](double t) { return std::floor(t / tdc_step) * tdc_step; };
+
+  // For EnergyFromToT: time over threshold of the mean waveform of A photoelectrons, tabulated once.
+  // The mean single-photoelectron waveform is the fast-shaper pulse convolved with the photon
+  // arrival-time spread (scintillator and WLS decay times, as in SimulateOpticalModel()), since
+  // that spread lengthens the time over threshold; a real-data ToT calibration contains it too.
+  // Depends only on the configuration, which is fixed for the job: build it once.
+  static std::vector<std::pair<double, double>> tot_of_charge;
+  if (energy_from_tot && tot_of_charge.empty()) {
+    const double tau_scint = config.Get_Sim_Timing_ScintillatorDecayTime();
+    const double tau_wls = config.Get_Sim_Timing_WLSDecayTime();
+    auto arrival_pdf = [&](double s) {
+      if (s <= 0) return 0.0;
+      if (std::fabs(tau_wls - tau_scint) < 1e-9) return s * std::exp(-s / tau_wls) / (tau_wls * tau_wls);
+      return (std::exp(-s / tau_wls) - std::exp(-s / tau_scint)) / (tau_wls - tau_scint);
+    };
+    const double step = 0.05; // ns
+    const double span = tail + 15 * std::max(tau_scint, tau_wls);
+    std::vector<double> mean_waveform;
+    for (double t = 0; t < span; t += step) {
+      double v = 0;
+      for (double u = 0; u <= t; u += step) v += pulse(t - u) * arrival_pdf(u) * step;
+      mean_waveform.push_back(v);
+    }
+    for (double a = threshold; a < 1e5; a *= 1.02) {
+      int i0 = -1, i1 = -1;
+      for (size_t i = 0; i < mean_waveform.size(); ++i) {
+        const bool above = a * mean_waveform[i] >= threshold;
+        if (above && i0 < 0) i0 = static_cast<int>(i);
+        if (!above && i0 >= 0) { i1 = static_cast<int>(i); break; }
+      }
+      if (i0 >= 0 && i1 > i0) tot_of_charge.push_back({(i1 - i0) * step, a});
+    }
+  }
+  auto charge_from_tot = [&](double tot) {
+    if (tot_of_charge.empty() || tot <= tot_of_charge.front().first) return tot_of_charge.empty() ? threshold : tot_of_charge.front().second;
+    for (size_t k = 1; k < tot_of_charge.size(); ++k) {
+      if (tot <= tot_of_charge[k].first) {
+        const auto& lo = tot_of_charge[k - 1];
+        const auto& hi = tot_of_charge[k];
+        return lo.second + (hi.second - lo.second) * (tot - lo.first) / (hi.first - lo.first);
+      }
+    }
+    return tot_of_charge.back().second;
+  };
+
+  std::map<TMS_ChannelId, std::vector<size_t>> hits_by_channel;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (TMS_Hits[i].GetPedSup()) continue;
+    hits_by_channel[TMS_Hits[i].GetChannelId()].push_back(i);
+  }
+
+  // Hits merged into another hit's discriminator pulse are removed; hits whose photons never
+  // crossed the threshold stay, flagged as suppressed like the default pedestal threshold does.
+  std::vector<bool> merged_away(TMS_Hits.size(), false);
+  std::vector<bool> fired(TMS_Hits.size(), false);
+  for (auto& channel : hits_by_channel) {
+    // Every photoelectron in the channel: (arrival time, charge in pe including crosstalk, hit)
+    struct Photoelectron { double t; double charge; size_t hit; };
+    std::vector<Photoelectron> pes;
+    for (size_t i : channel.second) {
+      const std::vector<TMS_PhotonArrival>* arrivals = event.GetPhotonArrivals(TMS_Hits[i].GetHitId());
+      if (arrivals == nullptr) continue;
+      for (const auto& a : *arrivals) {
+        double charge = 1;
+        while (uniform(generator) < crosstalk) charge += 1;
+        pes.push_back({a.Time, charge, i});
+      }
+    }
+    if (pes.empty()) continue;
+    std::sort(pes.begin(), pes.end(), [](const Photoelectron& a, const Photoelectron& b) { return a.t < b.t; });
+
+    // Discriminator pulses: [t_up, t_down) where the summed waveform is at or above threshold
+    struct DiscriminatorPulse { double t_up; double t_down; };
+    std::vector<DiscriminatorPulse> pulses;
+    size_t first = 0; // earliest photoelectron still within `tail` of the sampling time
+    size_t next = 0;  // next photoelectron not yet started
+    bool above = false;
+    double t_up = 0;
+    double t = pes.front().t;
+    while (true) {
+      while (next < pes.size() && pes[next].t <= t) ++next;
+      while (first < next && t - pes[first].t > tail) ++first;
+      if (first == next && !above) {
+        // Nothing contributing: jump to the next photoelectron
+        if (next >= pes.size()) break;
+        t = pes[next].t;
+        continue;
+      }
+      double v = 0;
+      for (size_t k = first; k < next; ++k) v += pes[k].charge * pulse(t - pes[k].t);
+      if (!above && v >= threshold) { above = true; t_up = t; }
+      else if (above && v < threshold) { above = false; pulses.push_back({t_up, t}); }
+      t += grid;
+    }
+
+    // Photoelectrons belong to the pulse they arrive before the end of (after the previous one)
+    std::vector<std::map<size_t, double>> charge_by_hit(pulses.size());
+    std::vector<double> pulse_charge(pulses.size(), 0);
+    size_t p = 0;
+    for (const auto& pe : pes) {
+      while (p < pulses.size() && pe.t >= pulses[p].t_down) ++p;
+      if (p == pulses.size()) break;
+      charge_by_hit[p][pe.hit] += pe.charge;
+      pulse_charge[p] += pe.charge;
+    }
+    // Each original hit goes (with its truth) to the pulse holding most of its charge; a pulse
+    // no hit is assigned to (e.g. a late retrigger on one hit's tail) is dropped.
+    std::map<size_t, size_t> pulse_of_hit;
+    std::map<size_t, double> best_charge;
+    for (size_t k = 0; k < pulses.size(); ++k) {
+      for (const auto& hc : charge_by_hit[k]) {
+        if (hc.second > best_charge[hc.first]) { best_charge[hc.first] = hc.second; pulse_of_hit[hc.first] = k; }
+      }
+    }
+    for (size_t k = 0; k < pulses.size(); ++k) {
+      size_t survivor = TMS_Hits.size();
+      double survivor_charge = -1;
+      for (const auto& hp : pulse_of_hit) {
+        if (hp.second == k && charge_by_hit[k][hp.first] > survivor_charge) { survivor = hp.first; survivor_charge = charge_by_hit[k][hp.first]; }
+      }
+      if (survivor == TMS_Hits.size()) continue;
+      TMS_Hit& hit = TMS_Hits[survivor];
+      for (const auto& hp : pulse_of_hit) {
+        if (hp.second != k || hp.first == survivor) continue;
+        merged_away[hp.first] = true;
+        event.MergeTrueHit(hit.GetHitId(), TMS_Hits[hp.first].GetHitId());
+        event.MergePhotonArrivals(hit.GetHitId(), TMS_Hits[hp.first].GetHitId());
+        event.MergeResponseSegments(hit.GetHitId(), TMS_Hits[hp.first].GetHitId());
+      }
+      const double t_stamp = floor_to_tdc(pulses[k].t_up + jitter(generator));
+      const double tot = floor_to_tdc(pulses[k].t_down) - floor_to_tdc(pulses[k].t_up);
+      // SiPM pixel saturation
+      const double pe = pixels * (1.0 - std::exp(-pulse_charge[k] / pixels));
+      hit.SetT(t_stamp);
+      hit.SetToT(tot);
+      hit.SetPE(pe);
+      const double energy = (energy_from_tot ? charge_from_tot(tot) : pe) * calibration;
+      hit.SetE(energy);
+      hit.SetEVis(energy);
+      fired[survivor] = true;
+    }
+  }
+
+  std::vector<TMS_Hit> remaining_hits;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (merged_away[i]) {
+      event.EraseTrueHit(TMS_Hits[i].GetHitId());
+      event.ErasePhotonArrivals(TMS_Hits[i].GetHitId());
+      event.EraseResponseSegments(TMS_Hits[i].GetHitId());
+      continue;
+    }
+    if (!fired[i]) TMS_Hits[i].SetPedSup(true);
+    remaining_hits.push_back(TMS_Hits[i]);
+  }
+  std::sort(remaining_hits.begin(), remaining_hits.end(), TMS_Hit::SortByZThenT);
+  TMS_Hits = std::move(remaining_hits);
+}
+
 void TMS_DetectorSimulation::SimulateReadoutNoise(TMS_Event &event, std::default_random_engine &generator) {
   // Only want to simulate the little bit of electronic noise from reading out after merging hits
   // Otherwise we're adding together a bunch of random numbers centered around zero, leading to an average of zero

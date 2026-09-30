@@ -56,6 +56,7 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
   TMS_Readout->Branch("RecoHitT", &RecoHitT, "RecoHitT[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitE", &RecoHitE, "RecoHitE[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitPE", &RecoHitPE, "RecoHitPE[NRecoHits]/F");
+  TMS_Readout->Branch("RecoHitToT", &RecoHitToT, "RecoHitToT[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitIsPedSupped", &RecoHitIsPedSupped, "RecoHitIsPedSupped[NRecoHits]/O");
   TMS_Readout->Branch("RecoHitBar", &RecoHitBar, "RecoHitBar[NRecoHits]/I");
   TMS_Readout->Branch("RecoHitPlane", &RecoHitPlane, "RecoHitPlane[NRecoHits]/I");
@@ -114,6 +115,7 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
       RecoHitT[index] = hit.GetT();
       RecoHitE[index] = hit.GetE();
       RecoHitPE[index] = hit.GetPE();
+      RecoHitToT[index] = hit.GetToT();
       RecoHitIsPedSupped[index] = hit.GetPedSup();
       RecoHitBar[index] = hit.GetBarNumber();
       RecoHitPlane[index] = hit.GetPlaneNumber();

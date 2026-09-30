@@ -70,6 +70,7 @@ class TMS_ReadoutTreeWriter {
     VAR(RecoHitT);
     VAR(RecoHitE);
     VAR(RecoHitPE);
+    VAR(RecoHitToT);
     bool RecoHitIsPedSupped[__MAX_READOUT_TREE_ARRAY_LENGTH__];
     INTVAR(RecoHitBar);
     INTVAR(RecoHitPlane);

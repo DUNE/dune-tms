@@ -59,6 +59,29 @@
     DepositBinLength = 1.0 # mm
     # Consecutive steps of one trajectory in one bar further apart than this start a new passage
     PassageMaxGap = 0.5 # mm
+    # A5202 timing-mode front end (needs UseResponseElements = true): per channel, the photons'
+    # fast-shaper pulses are summed and a discriminator gives the hit time (threshold crossing)
+    # and time over threshold, both in TDC steps; replaces the readout-window model.
+    FrontEndTimingMode = false
+
+  [Sim.FrontEnd]
+    # Citiroc-1A fast shaper: 15 ns peaking time, not programmable (CAEN Citiroc-1A datasheet).
+    FastShaperPeakingTime = 15.0 # ns
+    # ASSUMPTION (no source): pulse shape (t/tp)^n exp(n(1 - t/tp)), unit height per photoelectron
+    # at t = tp. The order n sets the tail length and hence the time over threshold.
+    FastShaperOrder = 1
+    # Discriminator threshold in photoelectrons of pulse height. The chip allows down to 1/3 pe;
+    # 3.0 keeps the default pipeline's 3 PE pedestal threshold for comparison (TMS setting TBD).
+    DiscriminatorThreshold = 3.0 # pe
+    TDCStep = 0.5 # ns, time stamp and ToT granularity (A5202)
+    TimingJitter = 0.1 # ns, Gaussian (Citiroc-1A: < 100 ps RMS)
+    # Hamamatsu S13360-2050VE (DUNE ND PDR Table 1.16)
+    SiPMCrosstalkProbability = 0.03
+    SiPMPixels = 1584
+    # Estimate the hit energy from its ToT (inverting the mean waveform: fast-shaper pulse smeared
+    # by the scintillator and WLS decay times) instead of from the detected photon count, as real
+    # timing-mode data would have to
+    EnergyFromToT = false
     
     
     
