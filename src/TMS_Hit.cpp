@@ -50,6 +50,7 @@ void TMS_Hit::Print() const {
 
 void TMS_Hit::MergeWith(TMS_Hit& hit) {
   SetE(GetE() + hit.GetE());
+  SetEVis(GetEVis() + hit.GetEVis());
   SetPE(GetPE() + hit.GetPE());
   SetT(std::min(GetT(), hit.GetT()));
   // Truth-side merge (TMS_TrueHit::MergeWith by HitId) now happens in
