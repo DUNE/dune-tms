@@ -605,6 +605,7 @@ class TMS_TreeWriter {
     MYVAR(TrueHitT);
     MYVAR(TrueHitE);
     MYVAR(TrueHitPE);
+    MYVAR(TrueHitDx);
     MYVAR(TrueHitPEAfterFibers);
     MYVAR(TrueHitPEAfterFibersLongPath);
     MYVAR(TrueHitPEAfterFibersShortPath);
