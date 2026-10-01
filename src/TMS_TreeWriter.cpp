@@ -667,6 +667,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueHitT",  &TrueHitT,  "TrueHitT[NTrueHits]/F");
   Truth_Info->Branch("TrueHitE",  &TrueHitE,  "TrueHitE[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitDx", &TrueHitDx, "TrueHitDx[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibers",          &TrueHitPEAfterFibers,          "TrueHitPEAfterFibers[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibersLongPath",  &TrueHitPEAfterFibersLongPath,  "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
@@ -1999,6 +2000,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         TrueHitT[index] = true_hit->GetT();
         TrueHitE[index] = true_hit->GetE();
         TrueHitPE[index] = true_hit->GetPE();
+        TrueHitDx[index] = true_hit->GetdX();
         TrueHitPEAfterFibers[index] = true_hit->GetPEAfterFibers();
         TrueHitPEAfterFibersLongPath[index] = true_hit->GetPEAfterFibersLongPath();
         TrueHitPEAfterFibersShortPath[index] = true_hit->GetPEAfterFibersShortPath();
