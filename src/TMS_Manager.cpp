@@ -79,6 +79,11 @@ TMS_Manager::TMS_Manager() {
   _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
   _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");
   _RECO_SPACEPOINTS_PairingFallback = toml::find<bool>(data, "Recon", "SpacePoints", "PairingFallback");
+  // Optional, so older config files keep working (default on).
+  _RECO_SPACEPOINTS_PairingRequireCrossing =
+      toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingRequireCrossing", true);
+  _RECO_SPACEPOINTS_PairingCrossingSlope =
+      toml::find_or<double>(data, "Recon", "SpacePoints", "PairingCrossingSlope", 1.0);
   _RECO_CLUSTER3D_Enabled = toml::find<bool>(data, "Recon", "Cluster3D", "Enabled");
   _RECO_CLUSTER3D_GraphSearch = toml::find<bool>(data, "Recon", "Cluster3D", "GraphSearch");
   _RECO_CLUSTER3D_LinkClusters = toml::find<bool>(data, "Recon", "Cluster3D", "LinkClusters");

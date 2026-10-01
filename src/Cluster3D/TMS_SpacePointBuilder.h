@@ -25,6 +25,14 @@ class TMS_SpacePointBuilder {
     // use_fallback: after the primary pairs, let a hit that found no partner
     //   in any of its primary pairs pair across its fallback pairs instead
     //   (see TMS_PlanePairing.h). Ignored if the table has no fallback pairs.
+    // require_crossing: pair two hits only if their bars physically cross --
+    //   the Y-bar's x (plus/minus half its width) must lie within the X-bar's
+    //   own x extent. X-bars are split at x = 0 into two separate bars read out
+    //   at opposite sides, so without this an X-bar hit on one side also pairs
+    //   with Y-bar hits on the other side: points no particle could have made.
+    // crossing_slope: with require_crossing, the largest sideways slope
+    //   (dx/dz) a track may have between the two hits' planes; the allowed
+    //   overlap is half the Y-bar's width plus this times the planes' z gap.
     // Returns one TMS_SpacePoint per accepted pair of hits, with z and layer
     // from its plane pair. A single hit can end up in more than one space
     // point if several partners fall inside the window -- that combinatorial
@@ -32,7 +40,9 @@ class TMS_SpacePointBuilder {
     static std::vector<TMS_SpacePoint> Build(const std::vector<TMS_Hit> &hits,
                                               double timing_window,
                                               const TMS_PlanePairing::Table &pairing,
-                                              bool use_fallback);
+                                              bool use_fallback,
+                                              bool require_crossing = false,
+                                              double crossing_slope = 1.0);
 };
 
 #endif

@@ -1207,5 +1207,7 @@ void TMS_Event::BuildSpacePoints() {
   const double timing_window = manager.Get_RECO_SPACEPOINTS_TimingWindow();
   const TMS_PlanePairing::Table pairing = TMS_PlanePairing::BuildFromGeometry();
   TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window, pairing,
-                                                 manager.Get_RECO_SPACEPOINTS_PairingFallback());
+                                                 manager.Get_RECO_SPACEPOINTS_PairingFallback(),
+                                                 manager.Get_RECO_SPACEPOINTS_PairingRequireCrossing(),
+                                                 manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope());
 }

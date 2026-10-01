@@ -1,6 +1,7 @@
 #include "TMS_SpacePointBuilder.h"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <utility>
 
@@ -39,7 +40,8 @@ void PairWithinWindow(const TimeSortedHits &x_bar_hits, const TimeSortedHits &y_
 
 std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
     const std::vector<TMS_Hit> &hits, double timing_window,
-    const TMS_PlanePairing::Table &pairing, bool use_fallback) {
+    const TMS_PlanePairing::Table &pairing, bool use_fallback, bool require_crossing,
+    double crossing_slope) {
   std::vector<TMS_SpacePoint> space_points;
 
   // Bucket hits by plane, time-sorted. Only X-bar and Y-bar planes take part
@@ -65,6 +67,23 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
     auto it = hits_by_plane.find(plane);
     return it == hits_by_plane.end() ? kNoHits : it->second;
   };
+  // Could one particle have crossed both bars? An X-bar spans x in
+  // [center - length/2, center + length/2] (its own half of the detector when
+  // it is one of the two halves split at x = 0); the Y-bar at x = GetNotZ()
+  // is GetXw() wide. The two bars sit in different planes, so a track moves
+  // sideways between them: allow crossing_slope times the planes' z gap on
+  // top of the Y-bar's half width.
+  const auto bars_cross = [&](int x_idx, int y_idx) {
+    if (!require_crossing) return true;
+    const TMS_Bar &x_bar = hits[x_idx].GetBar();
+    const TMS_Bar &y_bar = hits[y_idx].GetBar();
+    const double x_center = x_bar.GetAxisReadoutCenter();
+    const double x_half_length = 0.5 * x_bar.GetBarLength();
+    const double y_bar_x = y_bar.GetNotZ();
+    const double margin = 0.5 * y_bar.GetXw() + crossing_slope * std::abs(x_bar.GetZ() - y_bar.GetZ());
+    return y_bar_x + margin >= x_center - x_half_length &&
+           y_bar_x - margin <= x_center + x_half_length;
+  };
   const auto make_point = [&](int x_idx, int y_idx, const TMS_PlanePairing::PlanePair &pair) {
     // An X-bar measures y (GetNotZ() returns it); a Y-bar measures x.
     const TMS_Hit &x_bar_hit = hits[x_idx];
@@ -80,6 +99,7 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
     if (pair.Fallback) continue;
     PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), timing_window,
                      [&](int x_idx, int y_idx) {
+                       if (!bars_cross(x_idx, y_idx)) return;
                        make_point(x_idx, y_idx, pair);
                        paired[x_idx] = 1;
                        paired[y_idx] = 1;
@@ -96,6 +116,7 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
     PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), timing_window,
                      [&](int x_idx, int y_idx) {
                        if (paired[x_idx] && paired[y_idx]) return;
+                       if (!bars_cross(x_idx, y_idx)) return;
                        make_point(x_idx, y_idx, pair);
                      });
   }
