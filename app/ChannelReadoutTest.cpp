@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
     second.t = dt;
     cases.push_back({"same_bar_dt" + std::to_string(static_cast<int>(dt)), {kRefBar, second}, ExpectedSameChannelReadouts(dt)});
   }
-  // Split X-bar halves at the same time: two channels. The default pipeline's (z, NotZ)-keyed
+  // Split X-bar halves at the same time: two channels. The legacy pipeline's (z, NotZ)-keyed
   // merge combines them (reported, not required, with the flag off).
   cases.push_back({"xbar_halves_dt0", {kXBarNeg, kXBarPos}, 2});
 

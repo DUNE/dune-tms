@@ -45,16 +45,17 @@
     WLSDecayTime = 20.0 # ns
     FiberRefractiveIndex = 1.5
     ElectronicTimeNoise = 1.0 # ns, Gaussian sigma added to each hit time
-    MaxTimingPhotons = 300 # per path; photons drawn for the first-arrival time (default pipeline only)
+    MaxTimingPhotons = 300 # per path; photons drawn for the first-arrival time (legacy pipeline only, UseResponseElements = false)
 
   [Sim.DetSim]
-    # Gate for the detector-response redesign, built out behind this flag phase by phase.
-    # Currently: merge same-bar Geant4 fragments before the optical/timing draws, then
-    # stitch each hit's Geant4 steps into passages, re-slice them into fixed-length optical
-    # deposits, and simulate light per deposit (local Birks, attenuation from the deposit's
-    # own position, Poisson draw per deposit and path after attenuation, explicit photon
-    # arrival times). Default false = existing behavior.
-    UseResponseElements = false
+    # Detector-response pipeline. true (default): merge same-bar Geant4 fragments before the
+    # optical/timing draws, stitch each hit's Geant4 steps into passages, re-slice them into
+    # fixed-length optical deposits, and simulate light per deposit (local Birks, attenuation
+    # from the deposit's own position, Poisson draw per deposit and path after attenuation,
+    # explicit photon arrival times with the producing particle); then read out per electronics
+    # channel (readout window from the first hit, deadtime). false: the legacy per-hit pipeline,
+    # kept for comparison until it is removed.
+    UseResponseElements = true
     # Length of the optical deposits a passage is re-sliced into
     DepositBinLength = 1.0 # mm
     # Consecutive steps of one trajectory in one bar further apart than this start a new passage
@@ -71,7 +72,7 @@
     # at t = tp. The order n sets the tail length and hence the time over threshold.
     FastShaperOrder = 1
     # Discriminator threshold in photoelectrons of pulse height. The chip allows down to 1/3 pe;
-    # 3.0 keeps the default pipeline's 3 PE pedestal threshold for comparison (TMS setting TBD).
+    # 3.0 matches the readout-window model's 3 PE pedestal threshold for comparison (TMS setting TBD).
     DiscriminatorThreshold = 3.0 # pe
     TDCStep = 0.5 # ns, time stamp and ToT granularity (A5202)
     TimingJitter = 0.1 # ns, Gaussian (Citiroc-1A: < 100 ps RMS)

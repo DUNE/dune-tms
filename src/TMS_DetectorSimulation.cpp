@@ -346,7 +346,7 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     // is added once per readout in SimulateChannelReadout().
     for (auto& hit : TMS_Hits) {
       const std::vector<TMS_PhotonArrival>* arrivals = event.GetPhotonArrivals(hit.GetHitId());
-      // No detected photons: keep the true time, as the default path does
+      // No detected photons: keep the true time, as the legacy path does
       if (arrivals != nullptr && !arrivals->empty()) hit.SetT(arrivals->front().Time);
     }
     return;

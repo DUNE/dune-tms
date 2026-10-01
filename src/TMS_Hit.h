@@ -31,7 +31,7 @@ struct TMS_PhotonArrival {
     int SourceHitId;
     bool LongPath;
     // Trajectory (edep-sim track id) and global vertex id of the particle whose energy deposit
-    // produced this photon; -999 where not tracked (default pipeline).
+    // produced this photon; -999 where not tracked (legacy pipeline).
     int TrajectoryId;
     long long VertexGlobalId;
 };
@@ -129,7 +129,7 @@ class TMS_Hit {
     void SetPE(double pe) { PE = pe; };
     double GetPE() const { return PE; };
     // Time over threshold of the channel's fast-shaper discriminator (A5202 timing mode), ns.
-    // -999 = not measured (the default pipeline, and hits built without the timing-mode model).
+    // -999 = not measured (the legacy pipeline, and hits built without the timing-mode model).
     void SetToT(double tot) { ToT = tot; };
     double GetToT() const { return ToT; };
 
