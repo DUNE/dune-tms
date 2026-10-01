@@ -94,6 +94,15 @@ class TMS_Manager {
     int Get_RECO_TIME_TimeSlicerEnergyWindowInUnits() { return _RECO_TIME_TimeSlicerEnergyWindowInUnits; };
     int Get_RECO_TIME_TimeSlicerMinimumSliceWidthInUnits() { return _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits; };
     double Get_RECO_TIME_TimeSlicerMaxTime() { return _RECO_TIME_TimeSlicerMaxTime; };
+    bool Get_RECO_TIME_PerViewSlicing() { return _RECO_TIME_PerViewSlicing; };
+    double Get_RECO_TIME_PerViewThresholdScale() { return _RECO_TIME_PerViewThresholdScale; };
+    double Get_RECO_TIME_PerViewMatchToleranceNs() { return _RECO_TIME_PerViewMatchToleranceNs; };
+    double Get_RECO_TIME_PerViewMatchZMarginMM() { return _RECO_TIME_PerViewMatchZMarginMM; };
+    const std::string &Get_RECO_TIME_PerViewMatching() { return _RECO_TIME_PerViewMatching; };
+    int Get_RECO_TIME_PerViewMinCoincidencePlanes() { return _RECO_TIME_PerViewMinCoincidencePlanes; };
+    double Get_RECO_TIME_PerViewCoincidenceWindowNs() { return _RECO_TIME_PerViewCoincidenceWindowNs; };
+    double Get_RECO_TIME_PerViewCoincidenceDzMM() { return _RECO_TIME_PerViewCoincidenceDzMM; };
+    double Get_RECO_TIME_PerViewFiberDelayNsPerMM() { return _RECO_TIME_PerViewFiberDelayNsPerMM; };
     
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -238,6 +247,15 @@ class TMS_Manager {
     int _RECO_TIME_TimeSlicerEnergyWindowInUnits;
     int _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits;
     double _RECO_TIME_TimeSlicerMaxTime;
+    bool _RECO_TIME_PerViewSlicing;
+    double _RECO_TIME_PerViewThresholdScale;
+    double _RECO_TIME_PerViewMatchToleranceNs;
+    double _RECO_TIME_PerViewMatchZMarginMM;
+    std::string _RECO_TIME_PerViewMatching;
+    int _RECO_TIME_PerViewMinCoincidencePlanes;
+    double _RECO_TIME_PerViewCoincidenceWindowNs;
+    double _RECO_TIME_PerViewCoincidenceDzMM;
+    double _RECO_TIME_PerViewFiberDelayNsPerMM;
     
     double _RECO_CALIBRATION_EnergyCalibration;
     

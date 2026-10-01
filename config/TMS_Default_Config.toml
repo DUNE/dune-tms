@@ -141,6 +141,41 @@
     TimeSlicerMinimumSliceWidthInUnits = 19 # units, the minimum width of a slice in time
     TimeSlicerMaxTime = 10000.0 # ns, how far in time to search for slices
     RunSimpleTimeSlicer = false # Whether to run a simple time slicer which splits slices into X slices
+    # Per-view slicing: run the slicer on each view's hits separately, then link
+    # each x-view slice to one y-view slice and vice versa; linked groups become
+    # the slices. Candidates must overlap in time within PerViewMatchToleranceNs
+    # and in z within PerViewMatchZMarginMM.
+    # Motivation (2026-09-27): light travel along the bars puts a muon's two views
+    # up to 20-40 ns apart, so a slice boundary can fall between them; a muon split
+    # by view gets no space points and is usually lost.
+    # PerViewThresholdScale multiplies the start/end energy thresholds for each
+    # view; a value <= 0 (a float -- toml11 rejects a bare 0 here) scales them
+    # instead by that view's share of the spill's energy (recommended; a fixed 0.5
+    # under-triggers the y view, which has ~37% of the energy).
+    # PerViewMatching picks each view slice's partner:
+    #   "Coincidence" (recommended): the candidate with the most planes holding
+    #     x/y hit pairs (within PerViewCoincidenceDzMM in z) whose times agree
+    #     within PerViewCoincidenceWindowNs after correcting each hit for light
+    #     travel along its bar (PerViewFiberDelayNsPerMM, using the partner hit's
+    #     coordinate) and for flight time; at least PerViewMinCoincidencePlanes.
+    #     The fiber delay matches the simulation's (1.8 x path at c/1.5); real
+    #     data would need it calibrated.
+    #   "BestOverlap": the candidate overlapping most in time.
+    #   "MutualOverlap": as BestOverlap, but only mutual best pairs (worse).
+    # Files 1-15 vs. the standard slicer: Coincidence gives 120 vs. 110 slices per
+    # spill, muons with views in different slices 1.2 vs. 5.3%, Cluster3D found
+    # 91.1 -> 93.5%, legacy unchanged; BestOverlap: 83 slices, legacy -1.6 pp.
+    # On by default (requested at the 2026-10-01 TMS studies meeting); false
+    # restores the original single slicer, whose output is unchanged.
+    PerViewSlicing = true
+    PerViewThresholdScale = 0.0
+    PerViewMatchToleranceNs = 40.0
+    PerViewMatchZMarginMM = 200.0
+    PerViewMatching = "Coincidence"
+    PerViewMinCoincidencePlanes = 3
+    PerViewCoincidenceWindowNs = 10.0
+    PerViewCoincidenceDzMM = 200.0
+    PerViewFiberDelayNsPerMM = 0.009
     
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE

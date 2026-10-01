@@ -12,6 +12,9 @@ class TMS_TimeSlicer {
 
     int RunTimeSlicer(TMS_Event &event);
     int SimpleTimeSlicer(TMS_Event &event);
+    // [Recon.Time] PerViewSlicing: slice each view on its own, then merge the
+    // x- and y-view slices that overlap in time and z (see the .cpp).
+    int PerViewTimeSlicer(TMS_Event &event);
     
 };
 #endif
