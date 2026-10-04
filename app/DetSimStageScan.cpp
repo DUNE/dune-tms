@@ -7,10 +7,14 @@
 //   path  Perpendicular crossings of the reference bar at minimum-ionizing dE/dx, scanning the
 //         path length through the bar (and, for a full crossing, the deposited energy). One row
 //         per throw: the light before and after the threshold, the hit time, ToT and photon count.
+//   position  Full-thickness MIP crossings of the reference bar at a series of distances from its
+//         readout end, along the bar. One row per throw: the light and hit time, and the distance
+//         from the readout as the simulation itself computes it (for the PE-vs-position check
+//         against the PDR light-yield expectation, and the fiber propagation delay).
 //   pair  Two crossings of the reference bar a time dt apart, scanning dt, plus the two halves of
 //         a split X-bar crossed at once. One row per throw: the number of readouts.
 //
-// Usage: DetSimStageScan <path|pair> <edep_sim_file_for_geometry> <output_csv> [nthrows]
+// Usage: DetSimStageScan <path|position|pair> <edep_sim_file_for_geometry> <output_csv> [nthrows]
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +32,7 @@
 #include "EDepSim/TG4PrimaryVertex.h"
 #include "EDepSim/TG4HitSegment.h"
 
+#include "TMS_Bar.h"
 #include "TMS_Event.h"
 #include "TMS_Geom.h"
 #include "TMS_Manager.h"
@@ -144,6 +149,62 @@ void RunPathScan(std::ofstream& out, int nthrows) {
   std::cout << "path scan: " << cells.size() << " cells x " << nthrows << " throws\n";
 }
 
+void RunPositionScan(std::ofstream& out, int nthrows) {
+  out << "distance_mm,x,y,bar_type,bar_number,bar_length_mm,throw_index,n_hits_surviving,pe_all,pe_surviving,"
+         "hit_time,true_time\n";
+  // Find the reference bar's type, length and readout end from a probe event, then walk the
+  // crossing along the bar axis using the same readout-end definition as TMS_DetectorSimulation
+  bool is_xbar = false;
+  double length = 0, center = 0;
+  {
+    TG4Event event = BuildEvent({kRefBar}, 0);
+    TMS_Event tms_event(event);
+    tms_event.FinalizeEvent();
+    auto hits = tms_event.GetHits(-1, /*include_ped_sup=*/true);
+    if (hits.empty()) { std::cerr << "probe crossing made no hit\n"; return; }
+    const TMS_Bar& bar = hits.front().GetBar();
+    is_xbar = bar.GetBarType() == TMS_Bar::kXBar;
+    length = bar.GetBarLength();
+    center = bar.GetAxisReadoutCenter();
+  }
+  const TMS_Geom& geo = TMS_Geom::GetInstance();
+  // Distance from the readout end d -> coordinate along the bar. The reference X-bar sits at x < 0.
+  auto coordinate = [&](double d) {
+    if (is_xbar) return (kRefBar.x < 0) ? geo.XBarNegReadoutLocation(center, length) + d
+                                        : geo.XBarPosReadoutLocation(center, length) - d;
+    return geo.YBarReadoutLocation(center, length) - d;
+  };
+  std::vector<double> distances;
+  for (double f : {0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98}) distances.push_back(f * length);
+  int event_id = 0;
+  for (double d : distances) {
+    Crossing c = kRefBar;
+    (is_xbar ? c.x : c.y) = coordinate(d);
+    for (int t = 0; t < nthrows; ++t) {
+      TG4Event event = BuildEvent({c}, event_id++);
+      TMS_Event tms_event(event);
+      tms_event.FinalizeEvent();
+      int n_surviving = 0, bar_number = -1;
+      double pe_all = 0, pe_surviving = 0, hit_time = 0, true_time = -999;
+      for (const auto& hit : tms_event.GetHits(-1, /*include_ped_sup=*/true)) {
+        if (hit.GetBarNumber() < 0) continue;
+        bar_number = hit.GetBarNumber();
+        pe_all += hit.GetPE();
+        const TMS_TrueHit* true_hit = tms_event.GetTrueHit(hit.GetHitId());
+        if (true_hit) true_time = true_hit->GetT();
+        if (hit.GetPedSup()) continue;
+        n_surviving++;
+        pe_surviving += hit.GetPE();
+        hit_time = hit.GetT();
+      }
+      out << d << "," << c.x << "," << c.y << "," << (is_xbar ? "X" : "Y") << "," << bar_number << "," << length << ","
+          << t << "," << n_surviving << "," << pe_all << "," << pe_surviving << "," << hit_time << "," << true_time << "\n";
+    }
+  }
+  std::cout << "position scan: " << distances.size() << " positions x " << nthrows << " throws, bar type "
+            << (is_xbar ? "X" : "Y") << ", length " << length << " mm\n";
+}
+
 void RunPairScan(std::ofstream& out, int nthrows) {
   out << "case,dt,throw_index,n_readouts,n_channels,pe_surviving\n";
   std::vector<double> delays;
@@ -179,14 +240,14 @@ void RunPairScan(std::ofstream& out, int nthrows) {
 
 int main(int argc, char** argv) {
   if (argc < 4) {
-    std::cerr << "Usage: " << argv[0] << " <path|pair> <edep_sim_file_for_geometry> <output_csv> [nthrows]\n";
+    std::cerr << "Usage: " << argv[0] << " <path|position|pair> <edep_sim_file_for_geometry> <output_csv> [nthrows]\n";
     return 1;
   }
   const std::string mode = argv[1];
   const std::string geom_file = argv[2];
   const std::string out_csv = argv[3];
-  const int nthrows = (argc >= 5) ? std::atoi(argv[4]) : (mode == "pair" ? 200 : 2000);
-  if (mode != "path" && mode != "pair") {
+  const int nthrows = (argc >= 5) ? std::atoi(argv[4]) : (mode == "pair" ? 200 : mode == "position" ? 1000 : 2000);
+  if (mode != "path" && mode != "position" && mode != "pair") {
     std::cerr << "Unknown mode " << mode << "\n";
     return 1;
   }
@@ -202,6 +263,7 @@ int main(int argc, char** argv) {
 
   std::ofstream out(out_csv);
   if (mode == "path") RunPathScan(out, nthrows);
+  else if (mode == "position") RunPositionScan(out, nthrows);
   else RunPairScan(out, nthrows);
   out.close();
   std::cout << "Wrote " << out_csv << "\n";
