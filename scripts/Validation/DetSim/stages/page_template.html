@@ -116,7 +116,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
 </header>
 
 <nav class="pipe" aria-label="Simulation stages">
-  <a href="#s1"><div class="k">STAGE 1</div><div class="t">Passages</div><div class="d">Geant4 steps → physical passages → 1 mm deposits</div></a>
+  <a href="#s1"><div class="k">STAGE 1</div><div class="t">Passages</div><div class="d">edep-sim (Geant4) steps → physical passages → 1 mm deposits</div></a>
   <a href="#s2"><div class="k">STAGE 2</div><div class="t">Optical model</div><div class="d">Birks, fiber attenuation, photon statistics</div></a>
   <a href="#s3"><div class="k">STAGE 3</div><div class="t">Photon timing</div><div class="d">Scintillator + WLS decay, fiber transit, first photon</div></a>
   <a href="#s4"><div class="k">STAGE 4</div><div class="t">Channel readout</div><div class="d">Per channel: readout window, deadtime, threshold</div></a>
@@ -132,7 +132,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
 
 <section id="s1">
   <h2><span class="num">1</span>Passages and resegmentation</h2>
-  <p>One fixed muon crossing of one bar (plane 28, bar 28), cut by hand into 1, 2, 5, 10 or 20 Geant4 steps. The physics is identical in every case, so any change with the step count is an artifact of the bookkeeping. 5000 throws per point (<code>ArtificialResegmentationTest</code>).</p>
+  <p>One fixed muon crossing of one bar (plane 28, bar 28), cut by hand, in the test code, into 1, 2, 5, 10 or 20 equal segments that stand in for the steps Geant4 would write (the test does not run Geant4). The physics is identical in every case, so any change with the segment count is an artifact of the bookkeeping. 5000 throws per point (<code>ArtificialResegmentationTest</code>).</p>
   <div class="ctl"><span>Crossing</span><div class="seg" id="scen" role="group" aria-label="Crossing scenario"></div></div>
   <div class="grid2">
     <div class="card"><h3>Light above threshold</h3><p>Mean PE in hits above the 3 PE threshold, per crossing.</p><div class="chart" id="c1_pe"></div></div>
@@ -176,10 +176,10 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
   <h2><span class="num">3</span>Photon timing</h2>
   <p>Hit time minus the true deposit time: scintillator and WLS decay, transit along the fiber to the readout, and the earliest photon. The bar and position are fixed, so the fiber delay is a constant offset.</p>
   <div class="grid2">
-    <div class="card"><h3>Hit time vs Geant4 step count</h3><p>Same crossings as stage 1 (crossing selected above). Bars: ±1 standard error.</p><div class="chart" id="c3_nseg"></div></div>
+    <div class="card"><h3>Hit time vs segments per crossing</h3><p>Same crossings as stage 1 (crossing selected above). Bars: ±1 standard error.</p><div class="chart" id="c3_nseg"></div></div>
     <div class="card"><h3>Hit time vs light</h3><p>Path-length and energy scans pooled, binned in the hit's PE. Bars: ±1 standard error.</p><div class="chart" id="c3_pe"></div></div>
     <div class="card"><h3>Time spread vs light</h3><p>RMS of hit time minus true time; the first photon arrives earlier and more consistently as the photon count rises.</p><div class="chart" id="c3_rms"></div></div>
-    <div class="card"><h3>Real spills: hit time vs number of Geant4 contributions</h3><p>Muon-dominated crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
+    <div class="card"><h3>Real spills: hit time vs number of Geant4 steps in the hit</h3><p>Muon-dominated crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
   </div>
   <p id="n3" class="full"></p>
 </section>
@@ -326,7 +326,7 @@ function niceRange(vals, pad=0.15, step){ const lo=Math.min(...vals), hi=Math.ma
   const thr=D.timing.thresholds, t05=thr.find(t=>t.thr===0.5), t3=thr.find(t=>t.thr===3);
   const P=D.provenance_spills;
   const tiles=[
-    ['1','Hit-time swing over 1–20 Geant4 steps, same crossing', PIPE.map(([k,n,c])=>[n,c,f1(swing(k))+' ns'])],
+    ['1','Hit-time swing over 1–20 segments, same crossing', PIPE.map(([k,n,c])=>[n,c,f1(swing(k))+' ns'])],
     ['2','Photon statistics at a full 16 mm crossing (variance / mean; Poisson = 1)', PIPE.map(([k,n,c])=>[n,c,f2(full(k).fano)])],
     ['2','Survival of a 1 mm grazing crossing', PIPE.map(([k,n,c])=>[n,c,pc(D.path[k].find(p=>p.path===1).surv)])],
     ['4','Readouts when both halves of a split X-bar fire', PIPE.map(([k,n,c])=>[n,c,String(D.pairs[k].xbar.readouts)])],
@@ -342,14 +342,14 @@ const NSEG=[1,2,5,10,20];
 function drawScenario(sc){
   const S=k=>D.reseg[k][sc];
   const pe=PIPE.flatMap(([k])=>S(k).map(r=>r.pe));
-  chart('c1_pe',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Mean PE above threshold',...niceRange(pe,0.6),yfmt:y=>+y.toFixed(2)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.pe,lo:r.pe-r.pe_err,hi:r.pe+r.pe_err,tip:`${r.nseg} steps<br>${r.pe.toFixed(2)} ± ${r.pe_err.toFixed(2)} PE<br>survival ${pc(r.surv)}`}))})));
-  chart('c1_hits',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Readouts per crossing',ymin:0.98,ymax:1.08,yticks:[0.98,1,1.02,1.04,1.06,1.08],yfmt:y=>y.toFixed(2)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.hits_total,tip:`${r.nseg} steps<br>${r.hits_total.toFixed(3)} readouts, all<br>${r.hits.toFixed(3)} above threshold`}))})));
+  chart('c1_pe',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Mean PE above threshold',...niceRange(pe,0.6),yfmt:y=>+y.toFixed(2)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.pe,lo:r.pe-r.pe_err,hi:r.pe+r.pe_err,tip:`${r.nseg} segments<br>${r.pe.toFixed(2)} ± ${r.pe_err.toFixed(2)} PE<br>survival ${pc(r.surv)}`}))})));
+  chart('c1_hits',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Readouts per crossing',ymin:0.98,ymax:1.08,yticks:[0.98,1,1.02,1.04,1.06,1.08],yfmt:y=>y.toFixed(2)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.hits_total,tip:`${r.nseg} segments<br>${r.hits_total.toFixed(3)} readouts, all<br>${r.hits.toFixed(3)} above threshold`}))})));
   const dts=PIPE.flatMap(([k])=>S(k).map(r=>r.dt));
-  chart('c3_nseg',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Hit time − true time (ns)',...niceRange(dts,0.2),yfmt:y=>+y.toFixed(1)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.dt,lo:r.dt-r.dt_err,hi:r.dt+r.dt_err,tip:`${r.nseg} steps<br>${r.dt.toFixed(2)} ± ${r.dt_err.toFixed(2)} ns<br>RMS ${r.dt_rms.toFixed(1)} ns`}))})));
-  let t='<details><summary>All four crossings, table</summary><table><tr><th>crossing</th><th>steps</th>'+PIPE.map(([k,n])=>`<th>${n}: PE</th><th>energy in hits</th><th>readouts</th><th>time (ns)</th>`).join('')+'</tr>';
+  chart('c3_nseg',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Hit time − true time (ns)',...niceRange(dts,0.2),yfmt:y=>+y.toFixed(1)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.dt,lo:r.dt-r.dt_err,hi:r.dt+r.dt_err,tip:`${r.nseg} segments<br>${r.dt.toFixed(2)} ± ${r.dt_err.toFixed(2)} ns<br>RMS ${r.dt_rms.toFixed(1)} ns`}))})));
+  let t='<details><summary>All four crossings, table</summary><table><tr><th>crossing</th><th>segments</th>'+PIPE.map(([k,n])=>`<th>${n}: PE</th><th>energy in hits</th><th>readouts</th><th>time (ns)</th>`).join('')+'</tr>';
   for(const [s2,lab] of SCEN) NSEG.forEach((ns,i)=>{ t+=`<tr><td>${i?'':lab}</td><td>${ns}</td>`+PIPE.map(([k])=>{ const r=D.reseg[k][s2][i]; return `<td>${r.pe.toFixed(2)}</td><td>${pc(r.efrac)}</td><td>${r.hits_total.toFixed(3)}</td><td>${r.dt.toFixed(2)}</td>`; }).join('')+'</tr>'; });
   document.getElementById('t1').innerHTML=t+'</table></details>';
 }
@@ -370,8 +370,8 @@ if(D.spills){
   const RS=[['off','Legacy','--leg'],['on','New','--new']];
   chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
     RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].survival_vs_dx.filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
-  chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 contributions to the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},
-    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} contributions<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
+  chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 steps merged into the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},
+    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} steps<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
 }
 
 // ---- position along the bar
