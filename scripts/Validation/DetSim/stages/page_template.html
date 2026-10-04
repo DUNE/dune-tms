@@ -1,0 +1,404 @@
+<title>TMS Detector Simulation by Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f7f8f9; --panel:#ffffff; --ink:#111418; --ink2:#4a5058; --muted:#7a818a;
+  --rule:#dde1e5; --grid:#e9ecef; --band:#eef2f7;
+  --new:#2a78d6; --leg:#eb6834; --s3:#1baf7a; --s4:#eda100; --warn:#9a5b00; --ref:#9aa1a9;
+  --t1:#86b6ef; --t2:#5598e7; --t3:#2a78d6; --t4:#256abf; --t5:#184f95; --t6:#0d366b;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#141619; --panel:#1b1e22; --ink:#f1f3f5; --ink2:#b9bfc6; --muted:#8a919a;
+    --rule:#2d3238; --grid:#262a2f; --band:#1f2a38;
+    --new:#3987e5; --leg:#d95926; --s3:#199e70; --s4:#c98500; --warn:#e0a24a; --ref:#6b727a;
+    --t1:#184f95; --t2:#256abf; --t3:#2a78d6; --t4:#3987e5; --t5:#6da7ec; --t6:#b7d3f6;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#141619; --panel:#1b1e22; --ink:#f1f3f5; --ink2:#b9bfc6; --muted:#8a919a;
+  --rule:#2d3238; --grid:#262a2f; --band:#1f2a38;
+  --new:#3987e5; --leg:#d95926; --s3:#199e70; --s4:#c98500; --warn:#e0a24a; --ref:#6b727a;
+  --t1:#184f95; --t2:#256abf; --t3:#2a78d6; --t4:#3987e5; --t5:#6da7ec; --t6:#b7d3f6;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 64px}
+header{border-bottom:1px solid var(--rule);padding-bottom:18px;margin-bottom:22px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:28px;line-height:1.2;margin:.45em 0 .35em;text-wrap:balance;font-weight:600}
+h2{font-size:19px;margin:0 0 .4em;font-weight:600;text-wrap:balance;display:flex;gap:10px;align-items:baseline}
+h2 .num{font:500 13px var(--mono);color:var(--muted)}
+h3{font-size:15px;margin:0 0 .3em;font-weight:600}
+p{margin:.4em 0 .8em;max-width:70ch;color:var(--ink2)}
+p strong{color:var(--ink)}
+.meta{font:13px/1.5 var(--mono);color:var(--muted);white-space:pre-line}
+section{margin:38px 0;scroll-margin-top:12px}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin:2px 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sw.dash{background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 7px)!important}
+/* pipeline strip */
+.pipe{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:18px 0 6px;counter-reset:st}
+.pipe a{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;position:relative}
+.pipe a:hover,.pipe a:focus-visible{border-color:var(--new);outline:none}
+.pipe a:not(:last-child)::after{content:"";position:absolute;right:-8px;top:50%;width:8px;height:1px;background:var(--rule)}
+.pipe .k{font:500 11px var(--mono);color:var(--muted);letter-spacing:.06em}
+.pipe .t{font-size:13.5px;font-weight:600;line-height:1.3;margin-top:3px}
+.pipe .d{font-size:12px;color:var(--ink2);line-height:1.35;margin-top:4px}
+.pipe a.opt{border-style:dashed}
+@media (max-width:820px){.pipe{grid-template-columns:repeat(3,1fr)} .pipe a::after{display:none}}
+@media (max-width:480px){.pipe{grid-template-columns:repeat(2,1fr)}}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0 8px}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.tile .lab{font-size:13px;color:var(--ink2);min-height:2.6em}
+.tile .lab b{font:500 11px var(--mono);color:var(--muted);margin-right:4px}
+.tile .vals{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:8px;font-variant-numeric:tabular-nums;align-items:baseline}
+.tile .vals .k{font:12px var(--sans);color:var(--muted);display:flex;align-items:center;gap:6px}
+.tile .vals .v{font:500 14px var(--mono);color:var(--ink2);text-align:right}
+.tile .vals .v.now{font:600 20px var(--mono);color:var(--ink)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px;min-width:0}
+.card p{font-size:13.5px;margin:.2em 0 .6em}
+.card.wide{grid-column:1/-1}
+.card.wide p{max-width:none}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font:11px var(--mono)}
+.chart .axlab{fill:var(--ink2);font:12px var(--sans)}
+.chart .reflab{fill:var(--muted);font:10.5px var(--mono)}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:6px 9px;font:12px/1.45 var(--mono);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--rule);border-radius:7px;overflow:hidden;margin:4px 0 12px;background:var(--panel)}
+.seg button{font:13px var(--sans);color:var(--ink2);background:none;border:0;padding:6px 12px;cursor:pointer;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--band);color:var(--ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--new);outline-offset:-2px}
+.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+details{margin-top:8px}
+summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;font:12.5px/1.4 var(--mono);font-variant-numeric:tabular-nums;margin-top:6px}
+th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--grid)}
+th{color:var(--ink2);font-weight:500}
+th:first-child,td:first-child{text-align:left}
+.note{border-left:3px solid var(--warn);padding:6px 14px;background:var(--panel);border-radius:0 6px 6px 0;margin:12px 0}
+.note p{margin:.3em 0}
+.src{font:12px/1.5 var(--mono);color:var(--muted);margin:2px 0 12px}
+ol,ul{padding-left:1.3em;color:var(--ink2);max-width:72ch}
+li{margin:.35em 0}
+p.full,section > p{max-width:none}
+.tl{margin:10px 0 4px}
+.tl .bar{position:relative;height:30px;border-radius:4px;background:var(--grid);overflow:hidden}
+.tl .seg2{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font:11px var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden}
+.tl .ax{position:relative;height:16px;font:10.5px var(--mono);color:var(--muted)}
+.tl .ax span{position:absolute;transform:translateX(-50%)}
+.tl .cap{font-size:12.5px;color:var(--ink2);margin:2px 0 10px}
+.expl{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 24px;margin:6px 0 0;padding:0;list-style:none;max-width:none}
+.expl li{font-size:13.5px;color:var(--ink2);margin:.25em 0}
+.expl b{color:var(--ink)}
+code{font:13px var(--mono);background:var(--grid);padding:1px 4px;border-radius:3px}
+pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;overflow-x:auto;color:var(--ink2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">DUNE ND · TMS detector simulation · validation by stage</div>
+  <h1>The detector simulation, one stage at a time</h1>
+  <p id="intro"></p>
+  <div class="legend" style="margin-top:10px"><span><i class="sw" style="background:var(--leg)"></i>Legacy pipeline (<code>UseResponseElements = false</code>)</span><span><i class="sw" style="background:var(--new)"></i>New pipeline (default)</span></div>
+  <div class="meta" id="meta"></div>
+</header>
+
+<nav class="pipe" aria-label="Simulation stages">
+  <a href="#s1"><div class="k">STAGE 1</div><div class="t">Passages</div><div class="d">Geant4 steps → physical passages → 1 mm deposits</div></a>
+  <a href="#s2"><div class="k">STAGE 2</div><div class="t">Optical model</div><div class="d">Birks, fiber attenuation, photon statistics</div></a>
+  <a href="#s3"><div class="k">STAGE 3</div><div class="t">Photon timing</div><div class="d">Scintillator + WLS decay, fiber transit, first photon</div></a>
+  <a href="#s4"><div class="k">STAGE 4</div><div class="t">Channel readout</div><div class="d">Per channel: readout window, deadtime, threshold</div></a>
+  <a href="#s5" class="opt"><div class="k">STAGE 5 · OPTION</div><div class="t">Timing-mode front end</div><div class="d">A5202 fast shaper, discriminator, ToT</div></a>
+  <a href="#s6"><div class="k">STAGE 6</div><div class="t">Truth provenance</div><div class="d">Which particle made the light</div></a>
+</nav>
+<p class="src">Stage 5 is an alternative to the readout window of stage 4, off by default (<code>FrontEndTimingMode</code>).</p>
+
+<section>
+  <h2>Headline numbers</h2>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section id="s1">
+  <h2><span class="num">1</span>Passages and resegmentation</h2>
+  <p>One fixed muon crossing of one bar (plane 28, bar 28), cut by hand into 1, 2, 5, 10 or 20 Geant4 steps. The physics is identical in every case, so any change with the step count is an artifact of the bookkeeping. 5000 throws per point (<code>ArtificialResegmentationTest</code>).</p>
+  <div class="ctl"><span>Crossing</span><div class="seg" id="scen" role="group" aria-label="Crossing scenario"></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Light above threshold</h3><p>Mean PE in hits above the 3 PE threshold, per crossing.</p><div class="chart" id="c1_pe"></div></div>
+    <div class="card"><h3>Readouts per crossing</h3><p>All readouts of the bar, including those below threshold. Above threshold it is exactly 1 in both pipelines.</p><div class="chart" id="c1_hits"></div></div>
+  </div>
+  <div class="tbl" id="t1"></div>
+  <p id="n1" class="full"></p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span>Optical model</h2>
+  <p>Perpendicular crossings of the same bar at minimum-ionizing dE/dx (0.179 MeV/mm), scanning the path length in the bar from 0.25 to 9 mm. 4000 throws per point (<code>DetSimStageScan path</code>).</p>
+  <div class="grid2">
+    <div class="card"><h3>Hit survival vs path length</h3><p>Fraction of crossings with a hit above 3 PE.</p><div class="chart" id="c2_surv"></div></div>
+    <div class="card"><h3>Mean light vs path length</h3><p>PE of the bar's readouts before the threshold.</p><div class="chart" id="c2_pe"></div></div>
+    <div class="card"><h3>Photon statistics: variance / mean</h3><p>1 for photon counting (Poisson). Legacy scales a Poisson draw by the attenuation, which narrows the spread.</p><div class="chart" id="c2_fano"></div></div>
+    <div class="card"><h3>Real spills: survival vs true path length</h3><p>All muon-dominated true hits, all angles and positions, 100 MiniProdN5 files.</p><div class="chart" id="c2_real"></div></div>
+  </div>
+  <p id="n2" class="full"></p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span>Photon timing</h2>
+  <p>Hit time minus the true deposit time: scintillator and WLS decay, transit along the fiber to the readout, and the earliest photon. The bar and position are fixed, so the fiber delay is a constant offset.</p>
+  <div class="grid2">
+    <div class="card"><h3>Hit time vs Geant4 step count</h3><p>Same crossings as stage 1 (crossing selected above). Bars: ±1 standard error.</p><div class="chart" id="c3_nseg"></div></div>
+    <div class="card"><h3>Hit time vs light</h3><p>Path-length and energy scans pooled, binned in the hit's PE. Bars: ±1 standard error.</p><div class="chart" id="c3_pe"></div></div>
+    <div class="card"><h3>Time spread vs light</h3><p>RMS of hit time minus true time; the first photon arrives earlier and more consistently as the photon count rises.</p><div class="chart" id="c3_rms"></div></div>
+    <div class="card"><h3>Real spills: hit time vs number of Geant4 contributions</h3><p>Muon-dominated full crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
+  </div>
+  <p id="n3" class="full"></p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span>Channel readout</h2>
+  <p>How one electronics channel turns light into hits. Two muons cross the <em>same bar</em>, the second one a time Δt after the first, and we count the hits the channel reports: 1 means the two crossings were combined into one hit (or the second was lost), 2 means they were read out separately. Δt is scanned from 0 to 1000 ns in 10 ns steps, 100 throws per step (<code>DetSimStageScan pair</code>).</p>
+  <div class="grid2">
+    <div class="card wide">
+      <h3>What the channel does after the first crossing (t = 0)</h3>
+      <div class="tl" id="tl"></div>
+      <ul class="expl">
+        <li><b>Readout window, 0–120 ns.</b> Light arriving in the window is added to the hit that opened it. A second crossing here gives no new hit: <b>1 hit</b>.</li>
+        <li><b>Deadtime, 120–620 ns</b> (only when configured; off by default). The channel is busy and a crossing is lost: still <b>1 hit</b>.</li>
+        <li><b>Zombie time, the last 100 ns of the deadtime</b> (only when configured). A crossing there is not lost; it is read out as a new hit when the channel comes back at 620 ns: <b>2 hits</b>.</li>
+        <li><b>After that</b> the channel is free and the second crossing opens its own window: <b>2 hits</b>.</li>
+      </ul>
+    </div>
+    <div class="card"><h3>Default readout: legacy and new</h3><p>120 ns window, no deadtime. The two pipelines agree, so the orange dashed line runs along the blue one.</p><div class="chart" id="c4_def"></div></div>
+    <div class="card"><h3>New pipeline with 500 ns deadtime</h3><p>Not the default; run to test the channel model. The second crossing is lost until 620 ns.</p><div class="chart" id="c4_dead"></div></div>
+    <div class="card"><h3>New pipeline with 500 ns deadtime and 100 ns zombie time</h3><p>Crossings from 520 ns on are read out when the channel comes back.</p><div class="chart" id="c4_zomb"></div></div>
+    <div class="card"><h3>Where the second hit appears</h3><div class="tbl" id="t4_steps"></div></div>
+    <div class="card wide"><h3>Split X-bar, both halves crossed at once</h3><div class="tbl" id="t4_xbar"></div><p id="n4x" class="full" style="margin-top:8px"></p></div>
+  </div>
+  <p id="n4" class="full"></p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span>Timing-mode front end (option)</h2>
+  <p>With <code>FrontEndTimingMode = true</code>, each channel's photons are summed through the Citiroc-1A fast shaper (15 ns peaking) and a discriminator gives the hit time and time over threshold (ToT) in 0.5 ns TDC steps. Scanned over the discriminator threshold; 2000 throws per point.</p>
+  <div class="grid2">
+    <div class="card"><h3>Time resolution vs threshold, full MIP crossing</h3><p>9 mm, about 12 photoelectrons. The DUNE ND PDR quotes 2–3 ns.</p><div class="chart" id="c5_res"></div></div>
+    <div class="card"><h3>Hit time offset vs threshold</h3><p>Mean hit time minus true time, same crossings. A higher threshold is crossed later on the pulse.</p><div class="chart" id="c5_off"></div></div>
+    <div class="card"><h3>Survival vs path length, by threshold</h3><div class="chart" id="c5_surv"></div></div>
+    <div class="card"><h3>Time over threshold vs photon count</h3><p>Median and 16–84% band. The pulse shape is an assumption until there is bench data.</p><div class="chart" id="c5_tot"></div></div>
+  </div>
+  <p id="n5" class="full"></p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span>Truth provenance</h2>
+  <p>The new pipeline tags each photon with the particle that produced it, so a hit can be credited to the particle that made most of its <em>light</em> as well as the one that deposited most of its <em>energy</em>. Real spills, hits above threshold with more than one contributing particle.</p>
+  <div class="grid2">
+    <div class="card"><h3>Agreement vs the top particle's light share</h3><div class="chart" id="c6_agree"></div></div>
+    <div class="card"><h3>Distribution of the top particle's light share</h3><div class="chart" id="c6_share"></div></div>
+  </div>
+  <p id="n6" class="full"></p>
+</section>
+
+<section>
+  <h2>Open items</h2>
+  <ol id="open"></ol>
+</section>
+
+<section>
+  <h2>Regenerating this page</h2>
+  <div id="regen"></div>
+</section>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+const swatch = (col,dash) => `<i class="sw${dash?' dash':''}" style="background:var(${col});--c:var(${col})"></i>`;
+const f1 = v => v==null?'–':(+v).toFixed(1), f2 = v => v==null?'–':(+v).toFixed(2), pc = v => v==null?'–':(100*v).toFixed(1)+'%';
+const PIPE = [['legacy','Legacy','--leg'],['new','New','--new']];
+
+// ---- one chart: series of points (optionally with error bars, steps, bars), reference lines
+function chart(id, o, series, refs=[]){
+  const host=document.getElementById(id); host.innerHTML='';
+  if(series.length>1) host.insertAdjacentHTML('beforeend','<div class="legend">'+series.map(s=>`<span>${swatch(s.col,s.dash)}${s.name}</span>`).join('')+'</div>');
+  const W=460,H=270,m={l:50,r:14,t:12,b:40};
+  const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':o.aria||''},null); host.appendChild(svg);
+  const xi = o.xcat ? (x=>o.xcat.indexOf(x)) : (x=>x);
+  const [x0,x1] = o.xcat ? [-0.5,o.xcat.length-0.5] : [o.xmin,o.xmax];
+  const sx=x=>m.l+(xi(x)-x0)/(x1-x0)*(W-m.l-m.r), sy=y=>H-m.b-(y-o.ymin)/(o.ymax-o.ymin)*(H-m.t-m.b);
+  const cy=y=>sy(Math.max(o.ymin,Math.min(o.ymax,y)));
+  for(const y of o.yticks){ el('line',{x1:m.l,x2:W-m.r,y1:sy(y),y2:sy(y),stroke:css('--grid'),'stroke-width':1},svg); const t=el('text',{x:m.l-6,y:sy(y)+4,'text-anchor':'end'},svg); t.textContent=o.yfmt?o.yfmt(y):y; }
+  for(const x of (o.xcat||o.xticks)){ const t=el('text',{x:sx(x),y:H-m.b+16,'text-anchor':'middle'},svg); t.textContent=o.xfmt?o.xfmt(x):x; }
+  el('line',{x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b,stroke:css('--rule')},svg);
+  const xl=el('text',{x:(m.l+W-m.r)/2,y:H-6,'text-anchor':'middle',class:'axlab'},svg); xl.textContent=o.xlab;
+  const yl=el('text',{x:12,y:(m.t+H-m.b)/2,'text-anchor':'middle',class:'axlab',transform:`rotate(-90 12 ${(m.t+H-m.b)/2})`},svg); yl.textContent=o.ylab;
+  for(const r of refs){
+    if(r.y!==undefined){ el('line',{x1:m.l,x2:W-m.r,y1:sy(r.y),y2:sy(r.y),stroke:css('--ref'),'stroke-width':1,'stroke-dasharray':'4 3'},svg); const t=el('text',{x:W-m.r-2,y:sy(r.y)-4,'text-anchor':'end',class:'reflab'},svg); t.textContent=r.label||''; }
+    if(r.x!==undefined){ el('line',{x1:sx(r.x),x2:sx(r.x),y1:m.t,y2:H-m.b,stroke:css('--ref'),'stroke-width':1,'stroke-dasharray':'4 3'},svg); const t=el('text',{x:sx(r.x)+4,y:m.t+10,class:'reflab'},svg); t.textContent=r.label||''; }
+  }
+  const tip=document.createElement('div'); tip.className='tip'; tip.hidden=true; host.appendChild(tip);
+  const show=(evt,html)=>{ tip.innerHTML=html; tip.hidden=false; const rr=host.getBoundingClientRect(); let x=evt.clientX-rr.left+12; if(x>rr.width-210) x=evt.clientX-rr.left-220; tip.style.left=Math.max(0,x)+'px'; tip.style.top=(evt.clientY-rr.top-10)+'px'; };
+  svg.addEventListener('mouseleave',()=>tip.hidden=true);
+  const ns=series.length;
+  series.forEach((s,k)=>{
+    const col=css(s.col), pts=s.pts.filter(p=>p.y!=null);
+    const off = o.xcat && ns>1 && !s.noOffset ? (k-(ns-1)/2)*0.08*(W-m.l-m.r)/(x1-x0) : 0;
+    if(s.bars){
+      for(const p of pts){ const xa=sx(p.lo)+1, xb=sx(p.hi)-1, top=cy(p.y);
+        el('rect',{x:xa,width:Math.max(1,xb-xa),y:top,height:Math.max(0,H-m.b-top),fill:col,rx:2},svg);
+        const hit=el('rect',{x:xa,width:Math.max(1,xb-xa),y:m.t,height:H-m.b-m.t,fill:'transparent'},svg);
+        hit.addEventListener('mousemove',e=>show(e,p.tip)); }
+      return;
+    }
+    let d='';
+    pts.forEach((p,i)=>{ const X=sx(p.x)+off, Y=cy(p.y);
+      if(s.step && i){ const Yp=cy(pts[i-1].y); d+='L'+X+','+Yp+'L'+X+','+Y; } else d+=(i?'L':'M')+X+','+Y; });
+    el('path',{d,fill:'none',stroke:col,'stroke-width':s.width||2,'stroke-opacity':s.marker===false?1:.55,'stroke-dasharray':s.dash?'6 4':'none','stroke-linejoin':'round'},svg);
+    if(s.band){ let up='',dn=''; pts.forEach((p,i)=>{ up+=(i?'L':'M')+(sx(p.x)+off)+','+cy(p.hi); }); pts.slice().reverse().forEach(p=>{ dn+='L'+(sx(p.x)+off)+','+cy(p.lo); });
+      el('path',{d:up+dn+'Z',fill:col,'fill-opacity':.14,stroke:'none'},svg); }
+    for(const p of pts){ const X=sx(p.x)+off;
+      if(p.lo!=null && !s.band) el('line',{x1:X,x2:X,y1:cy(p.lo),y2:cy(p.hi),stroke:col,'stroke-width':1.5},svg);
+      if(s.marker!==false) el('circle',{cx:X,cy:cy(p.y),r:4,fill:col,stroke:css('--panel'),'stroke-width':1.5},svg);
+      const hit=el('rect',{x:X-7,width:14,y:cy(p.y)-12,height:24,fill:'transparent'},svg);
+      hit.addEventListener('mousemove',e=>show(e,`<b>${s.name}</b><br>${p.tip}`)); }
+  });
+}
+const ticks=(a,b,s)=>{ const t=[]; for(let v=a; v<=b+1e-9; v+=s) t.push(+v.toFixed(6)); return t; };
+function niceRange(vals, pad=0.15, step){ const lo=Math.min(...vals), hi=Math.max(...vals), sp=(hi-lo)||Math.abs(hi)*0.05||1;
+  const st=step||Math.pow(10,Math.floor(Math.log10(sp*1.6)))/(sp*1.6/Math.pow(10,Math.floor(Math.log10(sp*1.6)))>5?1:2);
+  return {ymin:Math.floor((lo-sp*pad)/st)*st, ymax:Math.ceil((hi+sp*pad)/st)*st, yticks:ticks(Math.floor((lo-sp*pad)/st)*st, Math.ceil((hi+sp*pad)/st)*st, st)}; }
+
+// ---- headline tiles
+(function(){
+  const rs=D.reseg, perp=k=>rs[k].perpendicular_full_thickness;
+  const swing=k=>{ const r=perp(k); return Math.max(...r.map(x=>x.dt))-Math.min(...r.map(x=>x.dt)); };
+  const full=k=>D.path[k].find(p=>p.path===9);
+  const thr=D.timing.thresholds, t05=thr.find(t=>t.thr===0.5), t3=thr.find(t=>t.thr===3);
+  const P=D.provenance_spills;
+  const tiles=[
+    ['1','Hit-time swing over 1–20 Geant4 steps, same crossing', PIPE.map(([k,n,c])=>[n,c,f1(swing(k))+' ns'])],
+    ['2','Photon statistics at a full crossing (variance / mean; Poisson = 1)', PIPE.map(([k,n,c])=>[n,c,f2(full(k).fano)])],
+    ['2','Survival of a 1 mm grazing crossing', PIPE.map(([k,n,c])=>[n,c,pc(D.path[k].find(p=>p.path===1).surv)])],
+    ['4','Readouts when both halves of a split X-bar fire', PIPE.map(([k,n,c])=>[n,c,String(D.pairs[k].xbar.readouts)])],
+    ['5','Timing mode: time resolution (RMS) at a full crossing', [['0.5 pe threshold','--t2',f1(t05.dt_rms)+' ns'],['3 pe threshold','--t5',f1(t3.dt_rms)+' ns']]],
+    ['6','Hits whose most-light particle is the most-energy particle', [['New, multi-particle hits','--new',pc(P.same)]]],
+  ];
+  document.getElementById('tiles').innerHTML=tiles.map(([st,lab,rows])=>`<div class="tile"><div class="lab"><b>${st}</b>${lab}</div><div class="vals">${rows.map(([n,c,v],i)=>`<span class="k">${swatch(c)}${n}</span><span class="v${i==rows.length-1?' now':''}">${v}</span>`).join('')}</div></div>`).join('');
+})();
+
+// ---- stage 1 + stage 3 step-count chart, per scenario
+const SCEN=[['perpendicular_full_thickness','Perpendicular, 9 mm'],['tilted_25deg','Tilted 25°'],['higher_dedx','2× dE/dx'],['grazing_short_path','Grazing, 1.5 mm']];
+const NSEG=[1,2,5,10,20];
+function drawScenario(sc){
+  const S=k=>D.reseg[k][sc];
+  const pe=PIPE.flatMap(([k])=>S(k).map(r=>r.pe));
+  chart('c1_pe',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Mean PE above threshold',...niceRange(pe,0.6),yfmt:y=>+y.toFixed(2)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.pe,lo:r.pe-r.pe_err,hi:r.pe+r.pe_err,tip:`${r.nseg} steps<br>${r.pe.toFixed(2)} ± ${r.pe_err.toFixed(2)} PE<br>survival ${pc(r.surv)}`}))})));
+  chart('c1_hits',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Readouts per crossing',ymin:0.98,ymax:1.08,yticks:[0.98,1,1.02,1.04,1.06,1.08],yfmt:y=>y.toFixed(2)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.hits_total,tip:`${r.nseg} steps<br>${r.hits_total.toFixed(3)} readouts, all<br>${r.hits.toFixed(3)} above threshold`}))})));
+  const dts=PIPE.flatMap(([k])=>S(k).map(r=>r.dt));
+  chart('c3_nseg',{xcat:NSEG,xlab:'Geant4 steps per crossing',ylab:'Hit time − true time (ns)',...niceRange(dts,0.2),yfmt:y=>+y.toFixed(1)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.dt,lo:r.dt-r.dt_err,hi:r.dt+r.dt_err,tip:`${r.nseg} steps<br>${r.dt.toFixed(2)} ± ${r.dt_err.toFixed(2)} ns<br>RMS ${r.dt_rms.toFixed(1)} ns`}))})));
+  let t='<details><summary>All four crossings, table</summary><table><tr><th>crossing</th><th>steps</th>'+PIPE.map(([k,n])=>`<th>${n}: PE</th><th>energy in hits</th><th>readouts</th><th>time (ns)</th>`).join('')+'</tr>';
+  for(const [s2,lab] of SCEN) NSEG.forEach((ns,i)=>{ t+=`<tr><td>${i?'':lab}</td><td>${ns}</td>`+PIPE.map(([k])=>{ const r=D.reseg[k][s2][i]; return `<td>${r.pe.toFixed(2)}</td><td>${pc(r.efrac)}</td><td>${r.hits_total.toFixed(3)}</td><td>${r.dt.toFixed(2)}</td>`; }).join('')+'</tr>'; });
+  document.getElementById('t1').innerHTML=t+'</table></details>';
+}
+const segEl=document.getElementById('scen');
+segEl.innerHTML=SCEN.map(([k,l],i)=>`<button type="button" id="scen_${k}" aria-pressed="${i==0}" data-k="${k}">${l}</button>`).join('');
+segEl.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; segEl.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); drawScenario(b.dataset.k); });
+drawScenario(SCEN[0][0]);
+
+// ---- stage 2
+const PATHT=[0,1,2,3,4,5,6,7,8,9];
+chart('c2_surv',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${p.path} mm<br>${pc(p.surv)} of ${p.n}<br>mean ${p.pe.toFixed(2)} PE`}))})));
+chart('c2_pe',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Mean PE (before threshold)',ymin:0,ymax:14,yticks:ticks(0,14,2)},
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.pe,tip:`${p.path} mm<br>${p.pe.toFixed(3)} ± ${p.pe_err.toFixed(3)} PE`}))})),[{y:3,label:'3 PE threshold'}]);
+chart('c2_fano',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Variance / mean of PE',ymin:0,ymax:1.4,yticks:ticks(0,1.4,.2),yfmt:y=>y.toFixed(1)},
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.fano,tip:`${p.path} mm<br>variance ${p.var.toFixed(2)}, mean ${p.pe.toFixed(2)}<br>ratio ${p.fano.toFixed(3)}`}))})),[{y:1,label:'Poisson'}]);
+if(D.spills){
+  const RS=[['off','Legacy','--leg'],['on','New','--new']];
+  chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].survival_vs_dx.filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
+  chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 contributions to the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},
+    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} contributions<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
+}
+
+// ---- stage 3
+chart('c3_pe',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'Hit time − true time (ns)',ymin:8,ymax:18,yticks:ticks(8,18,2)},
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt,lo:b.dt-b.dt_err,hi:b.dt+b.dt_err,tip:`${b.lo}–${b.hi} PE<br>${b.dt.toFixed(2)} ± ${b.dt_err.toFixed(2)} ns<br>${b.n} hits`}))})));
+chart('c3_rms',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'RMS of hit time (ns)',ymin:0,ymax:7,yticks:ticks(0,7,1)},
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt_rms,tip:`${b.lo}–${b.hi} PE<br>RMS ${b.dt_rms.toFixed(2)} ns`}))})));
+
+// ---- stage 4
+const PAIRS=[['legacy','Legacy','--leg'],['new','New','--new'],['new_dead500','New, 500 ns deadtime','--s3'],['new_dead500_zombie100','New, 500 ns deadtime + 100 ns zombie','--s4']].filter(([k])=>D.pairs[k]);
+const expHits=(k,dt)=>{ const p=D.readout[k], rt=p.ReadoutTime, de=p.Deadtime, zo=p.ZombieTime; if(dt<rt) return 1; if(de>0&&dt<rt+de){ return (zo>0&&dt>=rt+de-zo)?2:1; } return 2; };
+function pairChart(id, keys, refs){
+  const ser=[{name:'Expected from the settings',col:'--ref',dash:true,step:true,marker:false,width:1.5,pts:D.pairs[keys[0][0]].scan.map(r=>({x:r.dt,y:expHits(keys[0][0],r.dt),tip:`Δt ${r.dt} ns<br>expected ${expHits(keys[0][0],r.dt)}`}))}];
+  for(const [k,n,c,dash] of keys) ser.push({name:n+' (measured)',col:c,dash,step:true,marker:false,width:dash?1.75:3.5,pts:D.pairs[k].scan.map(r=>({x:r.dt,y:r.mean,tip:`Δt ${r.dt} ns<br>${r.mean.toFixed(2)} hits (mean of ${100} throws)`}))});
+  chart(id,{xmin:0,xmax:1000,xticks:ticks(0,1000,200),xlab:'Δt between the two crossings (ns)',ylab:'Hits from the channel',ymin:0.5,ymax:2.4,yticks:[1,2]},ser,refs);
+}
+pairChart('c4_def',[['new','New','--new',false],['legacy','Legacy','--leg',true]],[{x:120,label:'120 ns'}]);
+if(D.pairs.new_dead500) pairChart('c4_dead',[['new_dead500','New, 500 ns deadtime','--s3',false]],[{x:120,label:'120'},{x:620,label:'620 ns'}]);
+if(D.pairs.new_dead500_zombie100) pairChart('c4_zomb',[['new_dead500_zombie100','New, deadtime + zombie','--s4',false]],[{x:120,label:'120'},{x:520,label:'520 ns'}]);
+(function(){
+  const p=D.readout.new_dead500_zombie100||{ReadoutTime:120,Deadtime:500,ZombieTime:100}, rt=p.ReadoutTime, de=p.Deadtime, zo=p.ZombieTime, X=1000, pc=v=>(100*v/X)+'%';
+  const segs=[[0,rt,'--new','window: same hit'],[rt,rt+de-zo,'--s3','deadtime: lost'],[rt+de-zo,rt+de,'--s4','zombie'],[rt+de,X,'--panel','free: new hit']];
+  document.getElementById('tl').innerHTML='<div class="bar">'+segs.map(([a,b,c,l])=>`<div class="seg2" style="left:${pc(a)};width:${pc(b-a)};background:color-mix(in srgb,var(${c}) 28%,var(--panel))" title="${a}–${b} ns: ${l}">${l}</div>`).join('')+'</div>'
+    +'<div class="ax">'+[0,rt,rt+de-zo,rt+de,X].map(t=>`<span style="left:${pc(t)}">${t}</span>`).join('')+'</div>'
+    +'<div class="cap">Time of the second crossing after the first (ns), with deadtime and zombie time switched on as in the third panel. In the default configuration only the first segment exists: anything after 120 ns is a new hit.</div>';
+})();
+(function(){
+  const firstTwo=(rows,f)=>{ const r=rows.find(r=>f(r)>=1.5); return r?r.dt:null; };
+  let t='<table><tr><th></th><th>expected</th><th>measured</th><th>mean hits there</th></tr>';
+  for(const [k,n,c] of PAIRS){ const rows=D.pairs[k].scan, e=firstTwo(rows,r=>expHits(k,r.dt)), mrow=rows.find(r=>r.mean>1.1&&r.dt>=e-20);
+    t+=`<tr><td>${swatch(c)} ${n}</td><td>${e} ns</td><td>${mrow.dt} ns</td><td>${mrow.mean.toFixed(2)}</td></tr>`; }
+  document.getElementById('t4_steps').innerHTML=t+'</table><p style="font-size:12.5px;margin-top:6px">The first Δt (10 ns steps) with a second hit. At exactly the edge, the photon arrival times decide which side each throw falls on, so the mean there is between 1 and 2.</p>';
+  document.getElementById('t4_xbar').innerHTML='<table><tr><th></th><th>hits</th><th>channels</th></tr>'+PAIRS.slice(0,2).map(([k,n,c])=>`<tr><td>${swatch(c)} ${n}</td><td>${D.pairs[k].xbar.readouts}</td><td>${D.pairs[k].xbar.channels}</td></tr>`).join('')+'</table>';
+})();
+
+// ---- stage 5
+const TH=D.timing.thresholds, TCOL=['--t1','--t2','--t3','--t4','--t5','--t6'];
+chart('c5_res',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Time resolution (ns)',ymin:0,ymax:6,yticks:ticks(0,6,1)},
+  [{name:'RMS',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt_rms,tip:`${t.thr} pe<br>RMS ${t.dt_rms.toFixed(2)} ns`}))},
+   {name:'Half-width of the central 68%',col:'--s3',pts:TH.map(t=>({x:t.thr,y:t.dt_hw68,tip:`${t.thr} pe<br>68% half-width ${t.dt_hw68.toFixed(2)} ns`}))}],
+  [{y:2,label:''},{y:3,label:'PDR 2–3 ns'}]);
+chart('c5_off',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Hit time − true time (ns)',ymin:10,ymax:24,yticks:ticks(10,24,2)},
+  [{name:'Timing mode',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt,tip:`${t.thr} pe<br>${t.dt.toFixed(2)} ns<br>survival ${pc(t.surv)}`}))}],
+  [{y:D.path.new.find(p=>p.path===9).dt,label:'readout-window model'}]);
+chart('c5_surv',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+  [...TH.map((t,i)=>({name:t.thr+' pe',col:TCOL[i],pts:D.timing.survival[t.thr.toFixed(1)].map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))})),
+   {name:'Readout window, 3 PE',col:'--ref',dash:true,marker:false,pts:D.path.new.map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))}]);
+chart('c5_tot',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'Photoelectrons in the channel',ylab:'Time over threshold (ns)',ymin:0,ymax:200,yticks:ticks(0,200,40)},
+  [['1.0',1],['3.0',5]].map(([t,i])=>({name:t+' pe threshold',col:TCOL[i],band:true,pts:D.timing.tot[t].map(b=>({x:b.x,y:b.tot,lo:b.q16,hi:b.q84,tip:`${b.lo}–${b.hi} photons<br>mean ToT ${b.tot.toFixed(1)} ns<br>16–84%: ${b.q16.toFixed(1)}–${b.q84.toFixed(1)} ns`}))})));
+
+// ---- stage 6
+if(D.provenance_spills){
+  const P=D.provenance_spills, B=P.bins;
+  chart('c6_agree',{xmin:0.3,xmax:1,xticks:[0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],xlab:'Light share of the particle that made most of the light',ylab:'Agreement',ymin:0.2,ymax:1,yticks:ticks(0.2,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+    [{name:'Most light = most energy',col:'--new',pts:B.map(b=>({x:(b.lo+b.hi)/2,y:b.same,tip:`share ${b.lo}–${b.hi}<br>${pc(b.same)} of ${b.n.toLocaleString()}`}))},
+     {name:'First photon from the most-light particle',col:'--s3',pts:B.map(b=>({x:(b.lo+b.hi)/2,y:b.first,tip:`share ${b.lo}–${b.hi}<br>${pc(b.first)} of ${b.n.toLocaleString()}`}))}]);
+  const below=B.filter(b=>b.hi<0.951);
+  chart('c6_share',{xmin:0.3,xmax:0.95,xticks:[0.3,0.4,0.5,0.6,0.7,0.8,0.9],xlab:'Light share of the top particle (the 0.95–1 bin, '+pc(B[B.length-1].frac)+', is not drawn)',ylab:'Fraction of hits',ymin:0,ymax:0.03,yticks:ticks(0,0.03,0.005),yfmt:y=>(100*y).toFixed(1)+'%'},
+    [{name:'New',col:'--new',bars:true,pts:below.map(b=>({lo:b.lo,hi:b.hi,x:(b.lo+b.hi)/2,y:b.frac,tip:`share ${b.lo}–${b.hi}<br>${pc(b.frac)} of hits (${b.n.toLocaleString()})`}))}]);
+}
+
+for(const k of ['INTRO','META','N1','N2','N3','N4','N4X','N5','N6','OPEN','REGEN']){
+  const target={INTRO:'intro',META:'meta',N1:'n1',N2:'n2',N3:'n3',N4:'n4',N4X:'n4x',N5:'n5',N6:'n6',OPEN:'open',REGEN:'regen'}[k];
+  document.getElementById(target).innerHTML=(D.notes||{})[k]||'';
+}
+</script>
