@@ -186,6 +186,16 @@ Writes the Geant4 trajectory points of one or more true particles inside the
 TMS, read from the raw `TG4Event`. It uses no reconstruction at all; this is
 the "true trajectory" overlay in the Kalman event displays.
 
+### `DumpSpillTrajectories`
+```
+DumpSpillTrajectories <spill_file.root> <spillNumber> <out.json>
+```
+Writes every charged Geant4 trajectory that reaches the TMS in one spill, with
+its PDG code, parent, initial momentum and all of its points (times relative
+to the spill start), read from the raw `TG4Event`. Interactions are grouped
+into spills exactly as `ConvertToTMSTree` does, so `spillNumber` matches the
+converter's `SpillNumber`. Built for a whole-spill truth display.
+
 ### `DumpHitPE`
 ```
 DumpHitPE <input.EDEPSIM_SPILLS.root> <hits.csv>
