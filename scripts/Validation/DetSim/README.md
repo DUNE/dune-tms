@@ -24,3 +24,19 @@ What it measures (muon-dominated hits: `TrueLeptonicEnergy / TrueHitE > 0.95`):
 | 7 | light provenance (`UseResponseElements = true` only): photon count vs PE, most-light vs most-energy particle | `light_share.png` |
 
 `TrueHitDx` is not written by default; without it, sections 2-4 use deposited-energy bands instead of path length.
+
+## Stage-by-stage scans (`stages/`)
+
+Controlled checks of each simulation stage on its own, legacy vs new pipeline: synthetic crossings of one known bar
+through the real `TMS_Event::FinalizeEvent()` (`ArtificialResegmentationTest` and `DetSimStageScan`), reduced to a
+self-contained HTML page.
+
+```
+stages/run_stage_scans.sh <build dir> <edep-sim file for the geometry> <out>/scans      # ~1 min on 16 cores
+python3 stages/stage_page_data.py --scans <out>/scans [--spills <new-pipeline run> --files 1-20] \
+    [--metrics <detsim_validation.py metrics.json>] --out <out>/page_data.json
+python3 stages/build_stage_page.py <out>/page_data.json notes.json <out>/detsim_stages.html
+```
+
+`notes.json` holds the page's prose (keys INTRO, META, N1-N6, N4X, OPEN, REGEN); it quotes numbers, so check it against
+a new `page_data.json`.
