@@ -43,6 +43,7 @@ pids=()
 for c in legacy new; do
   run $c reseg_$c $B/app/ArtificialResegmentationTest "$GEOM" "$OUT/reseg_$c.csv" $(n 5000) & pids+=($!)
   run $c path_$c $B/app/DetSimStageScan path "$GEOM" "$OUT/path_$c.csv" $(n 4000) & pids+=($!)
+  run $c position_$c $B/app/DetSimStageScan position "$GEOM" "$OUT/position_$c.csv" $(n 2000) & pids+=($!)
 done
 for c in legacy new new_dead500 new_dead500_zombie100; do
   run $c pair_$c $B/app/DetSimStageScan pair "$GEOM" "$OUT/pair_$c.csv" $(n 100) & pids+=($!)
