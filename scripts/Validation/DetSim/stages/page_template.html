@@ -152,6 +152,16 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Real spills: survival vs true path length</h3><p>All muon-dominated true hits, all angles and positions, 100 MiniProdN5 files.</p><div class="chart" id="c2_real"></div></div>
   </div>
   <p id="n2" class="full"></p>
+  <div id="pos" hidden>
+    <h3 style="margin-top:22px">Position along the bar</h3>
+    <p>The same 9 mm full crossing at 13 distances from the readout end of the 3.5 m reference bar, 2000 throws each (<code>DetSimStageScan position</code>). The harness crossing used in the other scans sits 2.7 m from the readout.</p>
+    <div class="grid2">
+      <div class="card"><h3>Mean light vs distance from the readout</h3><p>PE before the threshold. Shaded: the PDR light-yield expectation per MIP, 22–25 PE initially and 13–15 PE after 15 years.</p><div class="chart" id="c2_pos"></div></div>
+      <div class="card"><h3>Full-crossing survival vs distance</h3><p>Fraction of crossings with a hit above 3 PE.</p><div class="chart" id="c2_possurv"></div></div>
+      <div class="card"><h3>Hit time vs distance</h3><p>Hit time minus true time: the fiber propagation delay (stage 3).</p><div class="chart" id="c3_pos"></div></div>
+    </div>
+    <p id="n2p" class="full"></p>
+  </div>
 </section>
 
 <section id="s3">
@@ -247,6 +257,7 @@ function chart(id, o, series, refs=[]){
   const xl=el('text',{x:(m.l+W-m.r)/2,y:H-6,'text-anchor':'middle',class:'axlab'},svg); xl.textContent=o.xlab;
   const yl=el('text',{x:12,y:(m.t+H-m.b)/2,'text-anchor':'middle',class:'axlab',transform:`rotate(-90 12 ${(m.t+H-m.b)/2})`},svg); yl.textContent=o.ylab;
   for(const r of refs){
+    if(r.y0!==undefined){ const ya=sy(Math.min(o.ymax,r.y1)), yb=sy(Math.max(o.ymin,r.y0)); el('rect',{x:m.l,width:W-m.l-m.r,y:ya,height:Math.max(0,yb-ya),fill:css('--ref'),'fill-opacity':.18},svg); const t=el('text',{x:W-m.r-2,y:ya+11,'text-anchor':'end',class:'reflab'},svg); t.textContent=r.label||''; continue; }
     if(r.y!==undefined){ el('line',{x1:m.l,x2:W-m.r,y1:sy(r.y),y2:sy(r.y),stroke:css('--ref'),'stroke-width':1,'stroke-dasharray':'4 3'},svg); const t=el('text',{x:W-m.r-2,y:sy(r.y)-4,'text-anchor':'end',class:'reflab'},svg); t.textContent=r.label||''; }
     if(r.x!==undefined){ el('line',{x1:sx(r.x),x2:sx(r.x),y1:m.t,y2:H-m.b,stroke:css('--ref'),'stroke-width':1,'stroke-dasharray':'4 3'},svg); const t=el('text',{x:sx(r.x)+4,y:m.t+10,class:'reflab'},svg); t.textContent=r.label||''; }
   }
@@ -338,6 +349,20 @@ if(D.spills){
     RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} contributions<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
 }
 
+// ---- position along the bar
+if(D.position){
+  document.getElementById('pos').hidden=false;
+  const PX=PIPE.flatMap(([k])=>D.position[k]), Lmax=Math.max(...PX.map(p=>p.length));
+  const PXT=ticks(0,3500,500), PXF=x=>(x/1000).toFixed(1), PD={xmin:0,xmax:Lmax,xticks:PXT,xfmt:PXF,xlab:'Distance from the readout end (m)'};
+  chart('c2_pos',{...PD,ylab:'Mean PE (before threshold)',ymin:0,ymax:45,yticks:ticks(0,45,5)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.pe,lo:p.pe-p.pe_err,hi:p.pe+p.pe_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.pe.toFixed(2)} ± ${p.pe_err.toFixed(2)} PE`}))})),
+    [{y0:22,y1:25,label:'PDR initial 22–25'},{y0:13,y1:15,label:'PDR aged 13–15'}]);
+  chart('c2_possurv',{...PD,ylab:'Survival',ymin:0.9,ymax:1,yticks:ticks(0.9,1,.02),yfmt:y=>Math.round(y*100)+'%'},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${(p.d/1000).toFixed(2)} m<br>${pc(p.surv)} of ${p.n}<br>mean ${p.pe.toFixed(1)} PE`}))})));
+  chart('c3_pos',{...PD,ylab:'Hit time − true time (ns)',ymin:-15,ymax:25,yticks:ticks(-15,25,10)},
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.dt,lo:p.dt-p.dt_err,hi:p.dt+p.dt_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.dt.toFixed(2)} ± ${p.dt_err.toFixed(2)} ns<br>RMS ${p.dt_rms.toFixed(1)} ns`}))})));
+}
+
 // ---- stage 3
 chart('c3_pe',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'Hit time − true time (ns)',ymin:8,ymax:18,yticks:ticks(8,18,2)},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt,lo:b.dt-b.dt_err,hi:b.dt+b.dt_err,tip:`${b.lo}–${b.hi} PE<br>${b.dt.toFixed(2)} ± ${b.dt_err.toFixed(2)} ns<br>${b.n} hits`}))})));
@@ -397,8 +422,8 @@ if(D.provenance_spills){
     [{name:'New',col:'--new',bars:true,pts:below.map(b=>({lo:b.lo,hi:b.hi,x:(b.lo+b.hi)/2,y:b.frac,tip:`share ${b.lo}–${b.hi}<br>${pc(b.frac)} of hits (${b.n.toLocaleString()})`}))}]);
 }
 
-for(const k of ['INTRO','META','N1','N2','N3','N4','N4X','N5','N6','OPEN','REGEN']){
-  const target={INTRO:'intro',META:'meta',N1:'n1',N2:'n2',N3:'n3',N4:'n4',N4X:'n4x',N5:'n5',N6:'n6',OPEN:'open',REGEN:'regen'}[k];
+for(const k of ['INTRO','META','N1','N2','N2P','N3','N4','N4X','N5','N6','OPEN','REGEN']){
+  const target={INTRO:'intro',META:'meta',N1:'n1',N2:'n2',N2P:'n2p',N3:'n3',N4:'n4',N4X:'n4x',N5:'n5',N6:'n6',OPEN:'open',REGEN:'regen'}[k];
   document.getElementById(target).innerHTML=(D.notes||{})[k]||'';
 }
 </script>
