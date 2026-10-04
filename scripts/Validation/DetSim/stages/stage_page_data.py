@@ -46,6 +46,20 @@ def path_scan(df):
     return rows
 
 
+def position_scan(df):
+    """Full MIP crossing vs distance from the readout end (DetSimStageScan position)."""
+    rows = []
+    for d, g in df.groupby("distance_mm"):
+        surv = g.n_hits_surviving > 0
+        s = g[surv]
+        dt = s.hit_time - s.true_time
+        rows.append(dict(d=r(d, 1), n=len(g), bar=f"{g.bar_type.iloc[0]}{int(g.bar_number.iloc[0])}", length=r(g.bar_length_mm.iloc[0], 0),
+                         pe=r(g.pe_all.mean()), pe_err=r(sem(g.pe_all)), surv=r(surv.mean()),
+                         surv_err=r(np.sqrt(surv.mean() * (1 - surv.mean()) / len(g))),
+                         dt=r(dt.mean()), dt_err=r(sem(dt)), dt_rms=r(dt.std())))
+    return rows
+
+
 def time_vs_pe(df, edges):
     """Hit time - true time of surviving throws, binned in the light of the surviving hit (all scan cells)."""
     s = df[df.n_hits_surviving > 0]
@@ -176,6 +190,8 @@ def main():
     page["path"] = {k: path_scan(v) for k, v in paths.items()}
     pe_edges = [3, 5, 7, 9, 11, 13, 15, 18, 21, 25, 30, 36, 42, 50, 60, 70, 80, 90, 105]
     page["time_vs_pe"] = {k: time_vs_pe(v, pe_edges) for k, v in paths.items()}
+    if all(os.path.exists(f"{S}/position_{k}.csv") for k in (LEGACY, NEW)):
+        page["position"] = {k: position_scan(pd.read_csv(f"{S}/position_{k}.csv")) for k in (LEGACY, NEW)}
     page["pairs"] = pairs(S)
     page["readout"] = {k: readout_params(f"{S}/configs/readout_{k}.toml") for k in page["pairs"]}
     page["timing"] = timing(S)
