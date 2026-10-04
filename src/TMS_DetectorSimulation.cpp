@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <tuple>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -319,13 +320,16 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
 
     // These store the end time for each window by the per-channel id.
     // If there's no matching id, then we haven't seen that id yet and this hit can be the start of a readout window.
-    std::map<int, double> readout_map;
-    std::map<int, double> deadtime_map;
-    std::map<int, double> zombie_map;
-    std::map<int, bool> has_zombie_map;
-    std::map<int, double> x_map;
-    std::map<int, double> z_map;
-    std::map<int, double> t_map;
+    // Channel = (plane, bar, view). (z, NotZ) alone does not separate the two halves of a split
+    // X-bar, which are read out at opposite ends.
+    using ChannelKey = std::tuple<int, int, int>;
+    std::map<ChannelKey, double> readout_map;
+    std::map<ChannelKey, double> deadtime_map;
+    std::map<ChannelKey, double> zombie_map;
+    std::map<ChannelKey, bool> has_zombie_map;
+    std::map<ChannelKey, double> x_map;
+    std::map<ChannelKey, double> z_map;
+    std::map<ChannelKey, double> t_map;
     //for (auto& hit : TMS_Hits) {
     for (size_t i = 0; i < TMS_Hits.size(); ++i) {
       auto& hit = TMS_Hits[i];
@@ -333,7 +337,7 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
       // For a per-channel deadtime, this is a unique id for a channel.
       // But some detectors have deadtime for a whole board, in which case this should
       // return a single id for the whole board.
-      const int id = hit.GetNotZ() + 100000 * hit.GetZ(); // TODO make sure it's unique
+      const ChannelKey id(hit.GetPlaneNumber(), hit.GetBarNumber(), hit.GetBar().GetBarTypeNumber());
       auto it_read = readout_map.find(id);
       auto it_dead = deadtime_map.find(id);
       auto it_zombie = zombie_map.find(id);
@@ -348,7 +352,7 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
         double t_read = it_read->second;
         double t_dead = it_dead->second;
         double t_zombie = it_zombie->second;
-        if (deadtime_verbose) std::cout<<"Found channel we found already with Notz: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", id: "<<id<<"\n";
+        if (deadtime_verbose) std::cout<<"Found channel we found already with Notz: "<<hit.GetNotZ()<<", z: "<<hit.GetZ()<<", plane: "<<std::get<0>(id)<<", bar: "<<std::get<1>(id)<<", view: "<<std::get<2>(id)<<"\n";
         if (deadtime_verbose) std::cout<<"Compare with previous channel Notz: "<<x_map[id]<<", z: "<<z_map[id]<<", t: "<<t_map[id]<<"\n";
         if (x_map[id] != hit.GetNotZ() || z_map[id] != hit.GetZ()) std::cout<<"\n** Found mismatch in Notz,z **\n"<<std::endl;
         if (deadtime_verbose) std::cout<<"i="<<i<<", t="<<t<<", t_read="<<t_read<<", t_dead="<<t_dead<<", t_zombie="<<t_zombie<<", dt="<<(t-t_read+readout_time)<<", dt_map: "<<(t-t_map[id])<<std::endl;
