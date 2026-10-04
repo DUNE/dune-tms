@@ -509,6 +509,17 @@ void FillRecoEff(ValidationContext &ctx) {
         GetHist("reco_eff__multi_reco__probability_multi_reco_numerator",
                 "Chance of Getting Reco'd more than Once", "ke_tms_enter")
             ->Fill(particle_starting_ke);
+        // The same, restricted to muons from the ND-LAr fiducial volume, and
+        // to the ND physics sample (ND-LAr fiducial, ending in the TMS, quiet
+        // outer shell): the rate above counts muons of any origin.
+        if (truth.RecoTrackPrimaryParticleLArFiducialStart[it])
+          GetHist("reco_eff__multi_reco__probability_multi_reco_lar_fiducial_numerator",
+                  "Chance of Getting Reco'd more than Once, ND-LAr Fiducial Muons", "ke_tms_enter")
+              ->Fill(particle_starting_ke);
+        if (NDPhysicsMuon(truth, reco, it))
+          GetHist("reco_eff__multi_reco__probability_multi_reco_nd_physics_numerator",
+                  "Chance of Getting Reco'd more than Once, ND Physics Muons", "ke_tms_enter")
+              ->Fill(particle_starting_ke);
       } else
         GetHist("reco_eff__multi_reco__nonmuon",
                 "Non-muons which were reconstructed more than once", "ke_tms")
@@ -559,6 +570,14 @@ void FillRecoEff(ValidationContext &ctx) {
       GetHist("reco_eff__multi_reco__probability_multi_reco_denominator",
               "Chance of Getting Reco'd more than Once", "ke_tms_enter")
           ->Fill(particle_starting_ke);
+      if (truth.RecoTrackPrimaryParticleLArFiducialStart[it])
+        GetHist("reco_eff__multi_reco__probability_multi_reco_lar_fiducial_denominator",
+                "Chance of Getting Reco'd more than Once, ND-LAr Fiducial Muons", "ke_tms_enter")
+            ->Fill(particle_starting_ke);
+      if (NDPhysicsMuon(truth, reco, it))
+        GetHist("reco_eff__multi_reco__probability_multi_reco_nd_physics_denominator",
+                "Chance of Getting Reco'd more than Once, ND Physics Muons", "ke_tms_enter")
+            ->Fill(particle_starting_ke);
 
       GetHist("reco_eff__endpoint__muon_endpoint_x_numerator",
               "Reconstruction Efficiency: Numerator", "muon_endpoint_x")
