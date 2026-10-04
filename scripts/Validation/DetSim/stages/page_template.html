@@ -144,7 +144,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
 
 <section id="s2">
   <h2><span class="num">2</span>Optical model</h2>
-  <p>Perpendicular crossings of the same bar at minimum-ionizing dE/dx (0.179 MeV/mm), scanning the path length in the bar from 0.25 to 9 mm. 4000 throws per point (<code>DetSimStageScan path</code>).</p>
+  <p>Perpendicular crossings of the same bar at minimum-ionizing dE/dx (0.179 MeV/mm), scanning the path length in the bar from 0.25 mm to the full 16 mm thickness. 4000 throws per point (<code>DetSimStageScan path</code>).</p>
   <div class="grid2">
     <div class="card"><h3>Hit survival vs path length</h3><p>Fraction of crossings with a hit above 3 PE.</p><div class="chart" id="c2_surv"></div></div>
     <div class="card"><h3>Mean light vs path length</h3><p>PE of the bar's readouts before the threshold.</p><div class="chart" id="c2_pe"></div></div>
@@ -154,10 +154,9 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
   <p id="n2" class="full"></p>
   <div id="pos" hidden>
     <h3 style="margin-top:22px">Position along the bar</h3>
-    <p>The same 9 mm full crossing at 13 distances from the readout end of the 3.5 m reference bar, 2000 throws each (<code>DetSimStageScan position</code>). The harness crossing used in the other scans sits 2.7 m from the readout.</p>
+    <p>A full 16 mm perpendicular crossing at 13 distances from the readout end of the 3.5 m reference bar, 2000 throws each (<code>DetSimStageScan position</code>). The reference position of the other scans is 2.7 m from the readout.</p>
     <div class="grid2">
       <div class="card"><h3>Mean light vs distance from the readout</h3><p>PE before the threshold. Shaded: the PDR light-yield expectation per MIP, 22–25 PE initially and 13–15 PE after 15 years.</p><div class="chart" id="c2_pos"></div></div>
-      <div class="card"><h3>Full-crossing survival vs distance</h3><p>Fraction of crossings with a hit above 3 PE.</p><div class="chart" id="c2_possurv"></div></div>
       <div class="card"><h3>Hit time vs distance</h3><p>Hit time minus true time: the fiber propagation delay (stage 3).</p><div class="chart" id="c3_pos"></div></div>
     </div>
     <p id="n2p" class="full"></p>
@@ -171,7 +170,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Hit time vs Geant4 step count</h3><p>Same crossings as stage 1 (crossing selected above). Bars: ±1 standard error.</p><div class="chart" id="c3_nseg"></div></div>
     <div class="card"><h3>Hit time vs light</h3><p>Path-length and energy scans pooled, binned in the hit's PE. Bars: ±1 standard error.</p><div class="chart" id="c3_pe"></div></div>
     <div class="card"><h3>Time spread vs light</h3><p>RMS of hit time minus true time; the first photon arrives earlier and more consistently as the photon count rises.</p><div class="chart" id="c3_rms"></div></div>
-    <div class="card"><h3>Real spills: hit time vs number of Geant4 contributions</h3><p>Muon-dominated full crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
+    <div class="card"><h3>Real spills: hit time vs number of Geant4 contributions</h3><p>Muon-dominated crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
   </div>
   <p id="n3" class="full"></p>
 </section>
@@ -203,7 +202,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
   <h2><span class="num">5</span>Timing-mode front end (option)</h2>
   <p>With <code>FrontEndTimingMode = true</code>, each channel's photons are summed through the Citiroc-1A fast shaper (15 ns peaking) and a discriminator gives the hit time and time over threshold (ToT) in 0.5 ns TDC steps. Scanned over the discriminator threshold; 2000 throws per point.</p>
   <div class="grid2">
-    <div class="card"><h3>Time resolution vs threshold, full MIP crossing</h3><p>9 mm, about 12 photoelectrons. The DUNE ND PDR quotes 2–3 ns.</p><div class="chart" id="c5_res"></div></div>
+    <div class="card"><h3>Time resolution vs threshold, full MIP crossing</h3><p>16 mm, about 22 photoelectrons. The DUNE ND PDR quotes 2–3 ns.</p><div class="chart" id="c5_res"></div></div>
     <div class="card"><h3>Hit time offset vs threshold</h3><p>Mean hit time minus true time, same crossings. A higher threshold is crossed later on the pulse.</p><div class="chart" id="c5_off"></div></div>
     <div class="card"><h3>Survival vs path length, by threshold</h3><div class="chart" id="c5_surv"></div></div>
     <div class="card"><h3>Time over threshold vs photon count</h3><p>Median and 16–84% band. The pulse shape is an assumption until there is bench data.</p><div class="chart" id="c5_tot"></div></div>
@@ -297,15 +296,15 @@ function niceRange(vals, pad=0.15, step){ const lo=Math.min(...vals), hi=Math.ma
 (function(){
   const rs=D.reseg, perp=k=>rs[k].perpendicular_full_thickness;
   const swing=k=>{ const r=perp(k); return Math.max(...r.map(x=>x.dt))-Math.min(...r.map(x=>x.dt)); };
-  const full=k=>D.path[k].find(p=>p.path===9);
+  const full=k=>D.path[k].find(p=>p.path===16);
   const thr=D.timing.thresholds, t05=thr.find(t=>t.thr===0.5), t3=thr.find(t=>t.thr===3);
   const P=D.provenance_spills;
   const tiles=[
     ['1','Hit-time swing over 1–20 Geant4 steps, same crossing', PIPE.map(([k,n,c])=>[n,c,f1(swing(k))+' ns'])],
-    ['2','Photon statistics at a full crossing (variance / mean; Poisson = 1)', PIPE.map(([k,n,c])=>[n,c,f2(full(k).fano)])],
+    ['2','Photon statistics at a full 16 mm crossing (variance / mean; Poisson = 1)', PIPE.map(([k,n,c])=>[n,c,f2(full(k).fano)])],
     ['2','Survival of a 1 mm grazing crossing', PIPE.map(([k,n,c])=>[n,c,pc(D.path[k].find(p=>p.path===1).surv)])],
     ['4','Readouts when both halves of a split X-bar fire', PIPE.map(([k,n,c])=>[n,c,String(D.pairs[k].xbar.readouts)])],
-    ['5','Timing mode: time resolution (RMS) at a full crossing', [['0.5 pe threshold','--t2',f1(t05.dt_rms)+' ns'],['3 pe threshold','--t5',f1(t3.dt_rms)+' ns']]],
+    ['5','Timing mode: time resolution (RMS) at a full 16 mm crossing', [['0.5 pe threshold','--t2',f1(t05.dt_rms)+' ns'],['3 pe threshold','--t5',f1(t3.dt_rms)+' ns']]],
     ['6','Hits whose most-light particle is the most-energy particle', [['New, multi-particle hits','--new',pc(P.same)]]],
   ];
   document.getElementById('tiles').innerHTML=tiles.map(([st,lab,rows])=>`<div class="tile"><div class="lab"><b>${st}</b>${lab}</div><div class="vals">${rows.map(([n,c,v],i)=>`<span class="k">${swatch(c)}${n}</span><span class="v${i==rows.length-1?' now':''}">${v}</span>`).join('')}</div></div>`).join('');
@@ -334,12 +333,12 @@ segEl.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) r
 drawScenario(SCEN[0][0]);
 
 // ---- stage 2
-const PATHT=[0,1,2,3,4,5,6,7,8,9];
-chart('c2_surv',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+const PATHT=[0,2,4,6,8,10,12,14,16];
+chart('c2_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${p.path} mm<br>${pc(p.surv)} of ${p.n}<br>mean ${p.pe.toFixed(2)} PE`}))})));
-chart('c2_pe',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Mean PE (before threshold)',ymin:0,ymax:14,yticks:ticks(0,14,2)},
+chart('c2_pe',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Mean PE (before threshold)',ymin:0,ymax:24,yticks:ticks(0,24,4)},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.pe,tip:`${p.path} mm<br>${p.pe.toFixed(3)} ± ${p.pe_err.toFixed(3)} PE`}))})),[{y:3,label:'3 PE threshold'}]);
-chart('c2_fano',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Variance / mean of PE',ymin:0,ymax:1.4,yticks:ticks(0,1.4,.2),yfmt:y=>y.toFixed(1)},
+chart('c2_fano',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Variance / mean of PE',ymin:0,ymax:1.4,yticks:ticks(0,1.4,.2),yfmt:y=>y.toFixed(1)},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.fano,tip:`${p.path} mm<br>variance ${p.var.toFixed(2)}, mean ${p.pe.toFixed(2)}<br>ratio ${p.fano.toFixed(3)}`}))})),[{y:1,label:'Poisson'}]);
 if(D.spills){
   const RS=[['off','Legacy','--leg'],['on','New','--new']];
@@ -354,11 +353,9 @@ if(D.position){
   document.getElementById('pos').hidden=false;
   const PX=PIPE.flatMap(([k])=>D.position[k]), Lmax=Math.max(...PX.map(p=>p.length));
   const PXT=ticks(0,3500,500), PXF=x=>(x/1000).toFixed(1), PD={xmin:0,xmax:Lmax,xticks:PXT,xfmt:PXF,xlab:'Distance from the readout end (m)'};
-  chart('c2_pos',{...PD,ylab:'Mean PE (before threshold)',ymin:0,ymax:45,yticks:ticks(0,45,5)},
+  chart('c2_pos',{...PD,ylab:'Mean PE (before threshold)',ymin:0,ymax:70,yticks:ticks(0,70,10)},
     PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.pe,lo:p.pe-p.pe_err,hi:p.pe+p.pe_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.pe.toFixed(2)} ± ${p.pe_err.toFixed(2)} PE`}))})),
     [{y0:22,y1:25,label:'PDR initial 22–25'},{y0:13,y1:15,label:'PDR aged 13–15'}]);
-  chart('c2_possurv',{...PD,ylab:'Survival',ymin:0.9,ymax:1,yticks:ticks(0.9,1,.02),yfmt:y=>Math.round(y*100)+'%'},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${(p.d/1000).toFixed(2)} m<br>${pc(p.surv)} of ${p.n}<br>mean ${p.pe.toFixed(1)} PE`}))})));
   chart('c3_pos',{...PD,ylab:'Hit time − true time (ns)',ymin:-15,ymax:25,yticks:ticks(-15,25,10)},
     PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.dt,lo:p.dt-p.dt_err,hi:p.dt+p.dt_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.dt.toFixed(2)} ± ${p.dt_err.toFixed(2)} ns<br>RMS ${p.dt_rms.toFixed(1)} ns`}))})));
 }
@@ -404,8 +401,8 @@ chart('c5_res',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminat
   [{y:2,label:''},{y:3,label:'PDR 2–3 ns'}]);
 chart('c5_off',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Hit time − true time (ns)',ymin:10,ymax:24,yticks:ticks(10,24,2)},
   [{name:'Timing mode',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt,tip:`${t.thr} pe<br>${t.dt.toFixed(2)} ns<br>survival ${pc(t.surv)}`}))}],
-  [{y:D.path.new.find(p=>p.path===9).dt,label:'readout-window model'}]);
-chart('c5_surv',{xmin:0,xmax:9.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+  [{y:D.path.new.find(p=>p.path===16).dt,label:'readout-window model'}]);
+chart('c5_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
   [...TH.map((t,i)=>({name:t.thr+' pe',col:TCOL[i],pts:D.timing.survival[t.thr.toFixed(1)].map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))})),
    {name:'Readout window, 3 PE',col:'--ref',dash:true,marker:false,pts:D.path.new.map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))}]);
 chart('c5_tot',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'Photoelectrons in the channel',ylab:'Time over threshold (ns)',ymin:0,ymax:200,yticks:ticks(0,200,40)},

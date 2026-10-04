@@ -18,7 +18,7 @@ import pandas as pd
 
 LEGACY, NEW = "legacy", "new"
 THRESHOLDS = ["0.5", "1.0", "1.5", "2.0", "2.5", "3.0"]
-FULL_PATH = 9.0  # mm, the full crossing of the scans
+FULL_PATH = 16.0  # mm, the full thickness of the bar
 
 
 def sem(x):

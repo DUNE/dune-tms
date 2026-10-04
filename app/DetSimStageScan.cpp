@@ -5,9 +5,10 @@
 //
 // Modes:
 //   path  Perpendicular crossings of the reference bar at minimum-ionizing dE/dx, scanning the
-//         path length through the bar (and, for a full crossing, the deposited energy). One row
+//         path length through the bar, up to its full 16 mm thickness (and, for a 9 mm crossing, the
+//         deposited energy). One row
 //         per throw: the light before and after the threshold, the hit time, ToT and photon count.
-//   position  Full-thickness MIP crossings of the reference bar at a series of distances from its
+//   position  Full-thickness (16 mm) MIP crossings of the reference bar at a series of distances from its
 //         readout end, along the bar. One row per throw: the light and hit time, and the distance
 //         from the readout as the simulation itself computes it (for the PE-vs-position check
 //         against the PDR light-yield expectation, and the fiber propagation delay).
@@ -52,9 +53,12 @@ struct Crossing {
   double edep_MeV;
 };
 
-// Same reference bar as ArtificialResegmentationTest (plane 28, bar 28, view 1); a 9 mm path
-// centered on it stays inside the 10 mm bar
-const Crossing kRefBar = {-2434.968, -2302.8132, 12935.819, 0.0, 9.0, 9.0 * kMipdEdx_MeV_per_mm};
+// Same reference bar as ArtificialResegmentationTest (plane 28, bar 28, view 1), but centered on the
+// bar in z. The scintillator is 16 mm thick (z = 12924.5 to 12940.5 mm, center 12932.5, from the
+// geometry), so a 16 mm path is a full perpendicular crossing; the 9 mm default path, kept for the
+// scans that compare against ArtificialResegmentationTest, is 56% of it.
+constexpr double kBarThickness_mm = 16.0;
+const Crossing kRefBar = {-2434.968, -2302.8132, 12932.5, 0.0, 9.0, 9.0 * kMipdEdx_MeV_per_mm};
 // The two halves of split X-bar row y=-744.23 in plane 81 (bar 128 at x<0, bar 129 at x>0)
 const Crossing kXBarNeg = {-1000.0, -744.23, 18502.5, 0.0, 9.0, 9.0 * kMipdEdx_MeV_per_mm};
 const Crossing kXBarPos = {1000.0, -744.23, 18502.5, 0.0, 9.0, 9.0 * kMipdEdx_MeV_per_mm};
@@ -103,9 +107,9 @@ TG4Event BuildEvent(const std::vector<Crossing>& crossings, int event_id) {
 void RunPathScan(std::ofstream& out, int nthrows) {
   out << "path_mm,edep_MeV,throw_index,n_hits_total,n_hits_surviving,pe_all,pe_surviving,reco_energy,"
          "hit_time,true_time,tot,n_photons\n";
-  // (path, energy scale): the path-length scan at MIP dE/dx, then brighter full crossings for ToT
+  // (path, energy scale): the path-length scan at MIP dE/dx, then brighter 9 mm crossings for ToT
   std::vector<std::pair<double, double>> cells;
-  for (double p : {0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 9.0}) cells.push_back({p, 1.0});
+  for (double p : {0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 9.0, 12.0, kBarThickness_mm}) cells.push_back({p, 1.0});
   for (double s : {2.0, 3.0, 4.0, 6.0, 8.0}) cells.push_back({9.0, s});
   int event_id = 0;
   for (const auto& cell : cells) {
@@ -179,6 +183,8 @@ void RunPositionScan(std::ofstream& out, int nthrows) {
   int event_id = 0;
   for (double d : distances) {
     Crossing c = kRefBar;
+    c.path_mm = kBarThickness_mm;
+    c.edep_MeV = kBarThickness_mm * kMipdEdx_MeV_per_mm;
     (is_xbar ? c.x : c.y) = coordinate(d);
     for (int t = 0; t < nthrows; ++t) {
       TG4Event event = BuildEvent({c}, event_id++);
