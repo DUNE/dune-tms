@@ -161,6 +161,15 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     </div>
     <p id="n2p" class="full"></p>
   </div>
+  <div id="bins" hidden>
+    <h3 style="margin-top:22px">Response-grid convergence</h3>
+    <p>The new pipeline simulates light per fixed-length deposit (<code>DepositBinLength</code>, 1 mm by default). The path scan of the new pipeline repeated with 0.5 mm and 2 mm deposits, shown as the difference to 1 mm. Below the bin length the deposit is the whole path, so the results are identical by construction. 4000 throws per point; bars are ±1 standard error of the difference.</p>
+    <div class="grid2">
+      <div class="card"><h3>Mean light: difference to the 1 mm grid</h3><p>Percent, PE before the threshold.</p><div class="chart" id="c2_binpe"></div></div>
+      <div class="card"><h3>Survival: difference to the 1 mm grid</h3><p>Percentage points, hits above 3 PE.</p><div class="chart" id="c2_binsurv"></div></div>
+    </div>
+    <p id="n2b" class="full"></p>
+  </div>
 </section>
 
 <section id="s3">
@@ -195,6 +204,17 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Where the second hit appears</h3><div class="tbl" id="t4_steps"></div></div>
     <div class="card wide"><h3>Split X-bar, both halves crossed at once</h3><div class="tbl" id="t4_xbar"></div><p id="n4x" class="full" style="margin-top:8px"></p></div>
   </div>
+  <div id="pile" hidden>
+    <h3 style="margin-top:22px">Several particles in one channel</h3>
+    <p>Two to four particles cross the same bar, each a full 16 mm crossing, a time Δt apart. <em>Equal</em>: every particle deposits the same energy. <em>Bright first</em> and <em>bright last</em>: energies 1, ½, ¼, ⅛ of a MIP in time order or reversed. 400 throws per point (<code>DetSimStageScan pileup</code>).</p>
+    <div class="grid2">
+      <div class="card"><h3>Readouts vs Δt, equal energies</h3><p>Dashed: the number of readout windows the settings give (120 ns from the first crossing).</p><div class="chart" id="c4_pn"></div></div>
+      <div class="card"><h3>Light and energy relative to the sum of the parts</h3><p>Four particles. Below 1 where the faintest crossings fall under the 3 PE threshold by themselves.</p><div class="chart" id="c4_ppe"></div></div>
+      <div class="card"><h3>Who gets the credit</h3><p>Four particles, in the brightest readout. Fraction in which the most-light particle is the most-energy one (bright first), and the first photon comes from the earliest particle in the readout (equal energies).</p><div class="chart" id="c4_pprov"></div></div>
+      <div class="card"><h3>Light share of the top particle</h3><div class="tbl" id="t4_pshare"></div></div>
+    </div>
+    <p id="n4p" class="full"></p>
+  </div>
   <p id="n4" class="full"></p>
 </section>
 
@@ -203,6 +223,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
   <p>With <code>FrontEndTimingMode = true</code>, each channel's photons are summed through the Citiroc-1A fast shaper (15 ns peaking) and a discriminator gives the hit time and time over threshold (ToT) in 0.5 ns TDC steps. Scanned over the discriminator threshold; 2000 throws per point.</p>
   <div class="grid2">
     <div class="card"><h3>Time resolution vs threshold, full MIP crossing</h3><p>16 mm, about 22 photoelectrons. The DUNE ND PDR quotes 2–3 ns.</p><div class="chart" id="c5_res"></div></div>
+    <div class="card" id="far_card" hidden><h3>Time resolution at the far end</h3><p>RMS, full 16 mm and 9 mm crossings at 2.7 m (reference) and 3.43 m (far end) from the readout.</p><div class="chart" id="c5_far"></div></div>
     <div class="card"><h3>Hit time offset vs threshold</h3><p>Mean hit time minus true time, same crossings. A higher threshold is crossed later on the pulse.</p><div class="chart" id="c5_off"></div></div>
     <div class="card"><h3>Survival vs path length, by threshold</h3><div class="chart" id="c5_surv"></div></div>
     <div class="card"><h3>Time over threshold vs photon count</h3><p>Median and 16–84% band. The pulse shape is an assumption until there is bench data.</p><div class="chart" id="c5_tot"></div></div>
@@ -218,6 +239,11 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Distribution of the top particle's light share</h3><div class="chart" id="c6_share"></div></div>
   </div>
   <p id="n6" class="full"></p>
+  <div id="contrib" hidden>
+    <h3 style="margin-top:22px">Full light breakdown in the output</h3>
+    <p id="n6c" class="full"></p>
+    <div class="tbl" id="t6_contrib"></div>
+  </div>
 </section>
 
 <section>
@@ -360,6 +386,16 @@ if(D.position){
     PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.dt,lo:p.dt-p.dt_err,hi:p.dt+p.dt_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.dt.toFixed(2)} ± ${p.dt_err.toFixed(2)} ns<br>RMS ${p.dt_rms.toFixed(1)} ns`}))})));
 }
 
+// ---- response-grid convergence
+if(D.bins){
+  document.getElementById('bins').hidden=false;
+  const BS=[['0.5','0.5 mm deposits','--s3'],['2.0','2 mm deposits','--s4']];
+  const mk=(key,err,unit,digs)=>BS.map(([b,n,c],k)=>({name:n,col:c,pts:D.bins.paths.map(p=>({x:p.path,y:p[b][key],lo:p[b][key]-p[b][err],hi:p[b][key]+p[b][err],tip:`${p.path} mm<br>${p[b][key].toFixed(digs)} ± ${p[b][err].toFixed(digs)} ${unit}`}))}));
+  const bx={xmin:0,xmax:16.5,xticks:[0,2,4,6,8,10,12,14,16],xlab:'Path length in the bar (mm)'};
+  chart('c2_binpe',{...bx,ylab:'ΔPE / PE (%)',ymin:-8,ymax:8,yticks:ticks(-8,8,4)},mk('dpe','dpe_err','%',2),[{y:0,label:''}]);
+  chart('c2_binsurv',{...bx,ylab:'Δ survival (pp)',ymin:-4,ymax:4,yticks:ticks(-4,4,2)},mk('dsurv','dsurv_err','pp',2),[{y:0,label:''}]);
+}
+
 // ---- stage 3
 chart('c3_pe',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'Hit time − true time (ns)',ymin:8,ymax:18,yticks:ticks(8,18,2)},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt,lo:b.dt-b.dt_err,hi:b.dt+b.dt_err,tip:`${b.lo}–${b.hi} PE<br>${b.dt.toFixed(2)} ± ${b.dt_err.toFixed(2)} ns<br>${b.n} hits`}))})));
@@ -408,7 +444,43 @@ chart('c5_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)
 chart('c5_tot',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'Photoelectrons in the channel',ylab:'Time over threshold (ns)',ymin:0,ymax:200,yticks:ticks(0,200,40)},
   [['1.0',1],['3.0',5]].map(([t,i])=>({name:t+' pe threshold',col:TCOL[i],band:true,pts:D.timing.tot[t].map(b=>({x:b.x,y:b.tot,lo:b.q16,hi:b.q84,tip:`${b.lo}–${b.hi} photons<br>mean ToT ${b.tot.toFixed(1)} ns<br>16–84%: ${b.q16.toFixed(1)}–${b.q84.toFixed(1)} ns`}))})));
 
+// ---- pileup in one channel
+if(D.pileup && D.pileup.new){
+  document.getElementById('pile').hidden=false;
+  const R=D.pileup.new.rows, DT=[0,5,20,50,100,150,250], PC=['--new','--s3','--s4'];
+  const sel=(pat,n)=>R.filter(r=>r.pattern===pat&&r.n===n).sort((a,b)=>a.dt-b.dt);
+  const px={xmin:-10,xmax:260,xticks:[0,50,100,150,200,250],xlab:'Δt between consecutive particles (ns)'};
+  const ser=[]; [2,3,4].forEach((n,i)=>{ ser.push({name:n+' particles, expected',col:PC[i],dash:true,step:true,marker:false,width:1.5,pts:sel('equal',n).map(r=>({x:r.dt,y:r.expected,tip:`Δt ${r.dt} ns<br>expected ${r.expected}`}))});
+    ser.push({name:n+' particles',col:PC[i],pts:sel('equal',n).map(r=>({x:r.dt,y:r.readouts,tip:`${n} particles, Δt ${r.dt} ns<br>${r.readouts.toFixed(2)} readouts`}))}); });
+  chart('c4_pn',{...px,ylab:'Readouts',ymin:0.5,ymax:4.5,yticks:[1,2,3,4]},ser);
+  const PAT=[['equal','Equal','--new'],['bright_first','Bright first','--s3'],['bright_last','Bright last','--s4']];
+  chart('c4_ppe',{...px,ylab:'Detected / sum of single crossings',ymin:0.9,ymax:1.05,yticks:[0.9,0.95,1,1.05],yfmt:y=>y.toFixed(2)},
+    PAT.flatMap(([k,n,c])=>[{name:n+', light',col:c,pts:sel(k,4).map(r=>({x:r.dt,y:r.pe_ratio,tip:`${n}, Δt ${r.dt} ns<br>light ${r.pe_ratio.toFixed(3)}<br>energy ${r.e_ratio.toFixed(3)}<br>${pc(r.lost)} with no readout`}))}]),[{y:1,label:''}]);
+  chart('c4_pprov',{...px,ylab:'Fraction',ymin:0,ymax:1.05,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
+    [{name:'Most light = most energy (bright first)',col:'--new',pts:sel('bright_first',4).filter(r=>r.top_is_max_energy!=null).map(r=>({x:r.dt,y:r.top_is_max_energy,tip:`Δt ${r.dt} ns<br>${pc(r.top_is_max_energy)}`}))},
+     {name:'First photon from the earliest particle (equal)',col:'--s3',pts:sel('equal',4).filter(r=>r.first_is_earliest!=null).map(r=>({x:r.dt,y:r.first_is_earliest,tip:`Δt ${r.dt} ns<br>${pc(r.first_is_earliest)}`}))}]);
+  let t='<table><tr><th>pattern</th><th>particles</th><th>measured share</th><th>by energy</th></tr>';
+  for(const [k,n] of PAT) for(const np of [2,3,4]){ const r=sel(k,np).find(r=>r.dt===20); if(r&&r.top_share!=null) t+=`<tr><td>${n}</td><td>${np}</td><td>${r.top_share.toFixed(2)}</td><td>${r.top_share_expected.toFixed(2)}</td></tr>`; }
+  document.getElementById('t4_pshare').innerHTML=t+'</table><p style="font-size:12.5px;margin-top:6px">Δt = 20 ns, everything in one readout. The measured share of the most-light particle runs above the energy share when the energies are equal because the largest of several Poisson counts is picked.</p>';
+}
+
+// ---- timing mode at the far end
+if(D.timing_grid && D.timing_grid.some(r=>r.pos==='far')){
+  document.getElementById('far_card').hidden=false;
+  const G=D.timing_grid, line=(pos,path,name,col,dash)=>({name,col,dash,pts:G.filter(r=>r.pos===pos&&r.path===path).map(r=>({x:r.thr,y:r.dt_rms,tip:`${name}<br>${r.thr} pe: RMS ${r.dt_rms.toFixed(2)} ns<br>${r.pe.toFixed(1)} PE, survival ${pc(r.surv)}`}))});
+  chart('c5_far',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Time resolution, RMS (ns)',ymin:0,ymax:9,yticks:ticks(0,9,1)},
+    [line('ref',16,'16 mm, 2.7 m','--new'),line('far',16,'16 mm, far end','--new',true),line('ref',9,'9 mm, 2.7 m','--s4'),line('far',9,'9 mm, far end','--s4',true)],[{y:2,label:''},{y:3,label:'PDR 2–3 ns'}]);
+}
+
 // ---- stage 6
+if(D.contrib){
+  document.getElementById('contrib').hidden=false;
+  const C=D.contrib, keys=['1','2','3','4+'];
+  document.getElementById('t6_contrib').innerHTML='<table><tr><th>particles with light in the hit</th>'+keys.map(k=>`<th>${k}</th>`).join('')+'</tr><tr><td>hits</td>'+keys.map(k=>`<td>${(C.by_n[k]||0).toLocaleString()} (${pc((C.by_n[k]||0)/C.with_light)})</td>`).join('')+'</tr></table>'
+    +`<p style="font-size:12.5px;margin-top:6px">${C.hits.toLocaleString()} true hits, ${C.with_light.toLocaleString()} with light information. Photon counts disagree with the hit's total in ${C.bad_sum} hits and the largest entry disagrees with the single-particle branches in ${C.bad_top} of ${C.multi.toLocaleString()} multi-particle hits.</p>`;
+}
+
+// ---- stage 6 charts
 if(D.provenance_spills){
   const P=D.provenance_spills, B=P.bins;
   chart('c6_agree',{xmin:0.3,xmax:1,xticks:[0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],xlab:'Light share of the particle that made most of the light',ylab:'Agreement',ymin:0.2,ymax:1,yticks:ticks(0.2,1,.2),yfmt:y=>Math.round(y*100)+'%'},
@@ -419,8 +491,8 @@ if(D.provenance_spills){
     [{name:'New',col:'--new',bars:true,pts:below.map(b=>({lo:b.lo,hi:b.hi,x:(b.lo+b.hi)/2,y:b.frac,tip:`share ${b.lo}–${b.hi}<br>${pc(b.frac)} of hits (${b.n.toLocaleString()})`}))}]);
 }
 
-for(const k of ['INTRO','META','N1','N2','N2P','N3','N4','N4X','N5','N6','OPEN','REGEN']){
-  const target={INTRO:'intro',META:'meta',N1:'n1',N2:'n2',N2P:'n2p',N3:'n3',N4:'n4',N4X:'n4x',N5:'n5',N6:'n6',OPEN:'open',REGEN:'regen'}[k];
+for(const k of ['INTRO','META','N1','N2','N2P','N2B','N3','N4','N4P','N4X','N5','N6','N6C','OPEN','REGEN']){
+  const target={INTRO:'intro',META:'meta',N1:'n1',N2:'n2',N2P:'n2p',N2B:'n2b',N3:'n3',N4:'n4',N4P:'n4p',N4X:'n4x',N5:'n5',N6:'n6',N6C:'n6c',OPEN:'open',REGEN:'regen'}[k];
   document.getElementById(target).innerHTML=(D.notes||{})[k]||'';
 }
 </script>

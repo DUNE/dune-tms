@@ -31,7 +31,10 @@ mkconf legacy UseResponseElements=false
 mkconf new UseResponseElements=true
 mkconf new_dead500 UseResponseElements=true Deadtime=500.0
 mkconf new_dead500_zombie100 UseResponseElements=true Deadtime=500.0 ZombieTime=100.0
+# deposit bin length 0.5 and 2 mm around the default 1 mm, for the response-grid convergence check
+for b in 0.5 2.0; do mkconf new_bin$b UseResponseElements=true DepositBinLength=$b; done
 THRS="0.5 1.0 1.5 2.0 2.5 3.0"
+FAR=3430  # mm from the readout end of the 3.5 m reference bar: the far end
 for t in $THRS; do mkconf timing_thr$t UseResponseElements=true FrontEndTimingMode=true DiscriminatorThreshold=$t; done
 
 run() {  # config, log name, command...
@@ -41,6 +44,8 @@ run() {  # config, log name, command...
 }
 pids=()
 for c in legacy new; do
+  run $c path_far_$c $B/app/DetSimStageScan path "$GEOM" "$OUT/path_far_$c.csv" $(n 4000) $FAR & pids+=($!)
+  run $c pileup_$c $B/app/DetSimStageScan pileup "$GEOM" "$OUT/pileup_$c.csv" $(n 400) & pids+=($!)
   run $c reseg_$c $B/app/ArtificialResegmentationTest "$GEOM" "$OUT/reseg_$c.csv" $(n 5000) & pids+=($!)
   run $c path_$c $B/app/DetSimStageScan path "$GEOM" "$OUT/path_$c.csv" $(n 4000) & pids+=($!)
   run $c position_$c $B/app/DetSimStageScan position "$GEOM" "$OUT/position_$c.csv" $(n 2000) & pids+=($!)
@@ -48,8 +53,13 @@ done
 for c in legacy new new_dead500 new_dead500_zombie100; do
   run $c pair_$c $B/app/DetSimStageScan pair "$GEOM" "$OUT/pair_$c.csv" $(n 100) & pids+=($!)
 done
+for b in 0.5 2.0; do
+  run new_bin$b path_new_bin$b $B/app/DetSimStageScan path "$GEOM" "$OUT/path_new_bin$b.csv" $(n 4000) & pids+=($!)
+  run new_bin$b reseg_new_bin$b $B/app/ArtificialResegmentationTest "$GEOM" "$OUT/reseg_new_bin$b.csv" $(n 5000) & pids+=($!)
+done
 for t in $THRS; do
   run timing_thr$t path_timing_thr$t $B/app/DetSimStageScan path "$GEOM" "$OUT/path_timing_thr$t.csv" $(n 2000) & pids+=($!)
+  run timing_thr$t path_timing_thr${t}_far $B/app/DetSimStageScan path "$GEOM" "$OUT/path_timing_thr${t}_far.csv" $(n 2000) $FAR & pids+=($!)
 done
 fail=0; for p in "${pids[@]}"; do wait $p || fail=1; done
 ( cd "$SRC" && echo "source: $(git rev-parse --short HEAD)$(git diff --quiet HEAD -- src app config || echo ' + uncommitted changes')" ) > "$OUT/provenance.txt"
