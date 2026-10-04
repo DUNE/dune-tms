@@ -43,6 +43,23 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_TimeSlicerEnergyWindowInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerEnergyWindowInUnits");
   _RECO_TIME_TimeSlicerMinimumSliceWidthInUnits = toml::find<int>(data, "Recon", "Time", "TimeSlicerMinimumSliceWidthInUnits");
   _RECO_TIME_TimeSlicerMaxTime = toml::find<double>(data, "Recon", "Time", "TimeSlicerMaxTime");
+  // Per-view slicing keys are optional so that older config files keep working (defaults = on / tuned values).
+  _RECO_TIME_PerViewSlicing = toml::find_or<bool>(data, "Recon", "Time", "PerViewSlicing", true);
+  _RECO_TIME_PerViewThresholdScale = toml::find_or<double>(data, "Recon", "Time", "PerViewThresholdScale", 0.0);
+  _RECO_TIME_PerViewMatchToleranceNs = toml::find_or<double>(data, "Recon", "Time", "PerViewMatchToleranceNs", 40.0);
+  _RECO_TIME_PerViewMatchZMarginMM = toml::find_or<double>(data, "Recon", "Time", "PerViewMatchZMarginMM", 200.0);
+  // toml11's find_or returns strings by reference (to the table entry or to the
+  // default), so the default must be a named variable, not a temporary from a literal.
+  const std::string defaultPerViewMatching = "Coincidence";
+  _RECO_TIME_PerViewMatching = toml::find_or(data, "Recon", "Time", "PerViewMatching", defaultPerViewMatching);
+  if (_RECO_TIME_PerViewMatching != "Coincidence" && _RECO_TIME_PerViewMatching != "BestOverlap" &&
+      _RECO_TIME_PerViewMatching != "MutualOverlap")
+    throw std::runtime_error("Recon.Time.PerViewMatching must be Coincidence, BestOverlap or MutualOverlap, not " +
+                             _RECO_TIME_PerViewMatching);
+  _RECO_TIME_PerViewMinCoincidencePlanes = toml::find_or<int>(data, "Recon", "Time", "PerViewMinCoincidencePlanes", 3);
+  _RECO_TIME_PerViewCoincidenceWindowNs = toml::find_or<double>(data, "Recon", "Time", "PerViewCoincidenceWindowNs", 10.0);
+  _RECO_TIME_PerViewCoincidenceDzMM = toml::find_or<double>(data, "Recon", "Time", "PerViewCoincidenceDzMM", 200.0);
+  _RECO_TIME_PerViewFiberDelayNsPerMM = toml::find_or<double>(data, "Recon", "Time", "PerViewFiberDelayNsPerMM", 0.009);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
