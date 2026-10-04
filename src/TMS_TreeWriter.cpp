@@ -700,6 +700,12 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
   Truth_Info->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
   Truth_Info->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
+  Truth_Info->Branch("TrueHitLightContribOffset", &TrueHitLightContribOffset, "TrueHitLightContribOffset[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitNLightContrib", &TrueHitNLightContrib, "TrueHitNLightContrib[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitLightContribPrimaryId", &TrueHitLightContribPrimaryId);
+  Truth_Info->Branch("TrueHitLightContribVertexId", &TrueHitLightContribVertexId);
+  Truth_Info->Branch("TrueHitLightContribPhotons", &TrueHitLightContribPhotons);
+  Truth_Info->Branch("TrueHitLightContribShare", &TrueHitLightContribShare);
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -1977,6 +1983,10 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   
   // Clear branches
   NTrueHits = 0;
+  TrueHitLightContribPrimaryId.clear();
+  TrueHitLightContribVertexId.clear();
+  TrueHitLightContribPhotons.clear();
+  TrueHitLightContribShare.clear();
   int index = 0;
   for (auto& hit : event.GetHitsRaw()) {
     if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
@@ -2018,6 +2028,14 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         TrueHitLightShare[index] = true_hit->GetLightShare();
         TrueHitFirstPhotonPrimaryId[index] = true_hit->GetFirstPhotonPrimaryId();
         TrueHitFirstPhotonVertexId[index] = true_hit->GetFirstPhotonVertexGlobalId();
+        TrueHitLightContribOffset[index] = TrueHitLightContribPhotons.size();
+        TrueHitNLightContrib[index] = true_hit->GetNLightContributions();
+        for (size_t c = 0; c < true_hit->GetNLightContributions(); c++) {
+          TrueHitLightContribPrimaryId.push_back(true_hit->GetLightContributionPrimaryId(c));
+          TrueHitLightContribVertexId.push_back(true_hit->GetLightContributionVertexGlobalId(c));
+          TrueHitLightContribPhotons.push_back(true_hit->GetLightContributionPhotons(c));
+          TrueHitLightContribShare.push_back(static_cast<float>(true_hit->GetLightContributionPhotons(c)) / true_hit->GetNPhotons());
+        }
         
         // Reco info
         TrueRecoHitX[index] = hit.GetX();

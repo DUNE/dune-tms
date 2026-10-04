@@ -51,6 +51,12 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
     TMS_Readout->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
     TMS_Readout->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
     TMS_Readout->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
+    TMS_Readout->Branch("TrueHitLightContribOffset", &TrueHitLightContribOffset, "TrueHitLightContribOffset[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitNLightContrib", &TrueHitNLightContrib, "TrueHitNLightContrib[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitLightContribPrimaryId", &TrueHitLightContribPrimaryId);
+    TMS_Readout->Branch("TrueHitLightContribVertexId", &TrueHitLightContribVertexId);
+    TMS_Readout->Branch("TrueHitLightContribPhotons", &TrueHitLightContribPhotons);
+    TMS_Readout->Branch("TrueHitLightContribShare", &TrueHitLightContribShare);
   }
   
   // Reco branches
@@ -77,6 +83,10 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
   // Clear branches
   NRecoHits = 0;
   NTrueHits = 0;
+  TrueHitLightContribPrimaryId.clear();
+  TrueHitLightContribVertexId.clear();
+  TrueHitLightContribPhotons.clear();
+  TrueHitLightContribShare.clear();
 
   // Now fill branches
   // Get all hits including ped supped ones
@@ -114,6 +124,14 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
         TrueHitLightShare[true_index] = true_hit->GetLightShare();
         TrueHitFirstPhotonPrimaryId[true_index] = true_hit->GetFirstPhotonPrimaryId();
         TrueHitFirstPhotonVertexId[true_index] = true_hit->GetFirstPhotonVertexGlobalId();
+        TrueHitLightContribOffset[true_index] = TrueHitLightContribPhotons.size();
+        TrueHitNLightContrib[true_index] = true_hit->GetNLightContributions();
+        for (size_t c = 0; c < true_hit->GetNLightContributions(); c++) {
+          TrueHitLightContribPrimaryId.push_back(true_hit->GetLightContributionPrimaryId(c));
+          TrueHitLightContribVertexId.push_back(true_hit->GetLightContributionVertexGlobalId(c));
+          TrueHitLightContribPhotons.push_back(true_hit->GetLightContributionPhotons(c));
+          TrueHitLightContribShare.push_back(static_cast<float>(true_hit->GetLightContributionPhotons(c)) / true_hit->GetNPhotons());
+        }
         true_index += 1;
         NTrueHits += 1;
       }

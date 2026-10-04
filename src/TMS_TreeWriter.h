@@ -621,6 +621,14 @@ class TMS_TreeWriter {
     MYVAR(TrueHitLightShare);
     INTMYVAR(TrueHitFirstPhotonPrimaryId);
     Long64_t TrueHitFirstPhotonVertexId[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    // Full light breakdown per true hit: entries [TrueHitLightContribOffset, +TrueHitNLightContrib)
+    // of the flat TrueHitLightContrib* vectors, one per particle that produced detected photons
+    INTMYVAR(TrueHitLightContribOffset);
+    INTMYVAR(TrueHitNLightContrib);
+    std::vector<int> TrueHitLightContribPrimaryId;
+    std::vector<Long64_t> TrueHitLightContribVertexId;
+    std::vector<int> TrueHitLightContribPhotons;
+    std::vector<float> TrueHitLightContribShare;
     MYVAR(TrueLeptonicEnergy);
     MYVAR(TrueHadronicEnergy);
     

@@ -579,6 +579,14 @@ void TMS_Event::FillLightProvenance() {
     for (auto it = photons.begin(); it != photons.end(); ++it) {
       if (it->second > best->second) best = it;
     }
+    std::vector<int> contrib_primary, contrib_counts;
+    std::vector<long long> contrib_vertex;
+    for (const auto& kv : photons) {
+      contrib_vertex.push_back(kv.first.first);
+      contrib_primary.push_back(kv.first.second);
+      contrib_counts.push_back(kv.second);
+    }
+    truth->SetLightContributions(std::move(contrib_primary), std::move(contrib_vertex), std::move(contrib_counts));
     truth->SetLightProvenance(static_cast<int>(arrivals->size()), best->first.second, best->first.first,
                               static_cast<double>(best->second) / arrivals->size(),
                               first->TrajectoryId, first->VertexGlobalId);

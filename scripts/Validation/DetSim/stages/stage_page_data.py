@@ -175,12 +175,134 @@ def provenance(run_dir, files):
                 same=r(same.mean()), first=r(first.mean()), below_half=r((share < 0.5).mean()), bins=rows)
 
 
+def bin_convergence(scans):
+    """Mean PE and survival vs path length for deposit bin lengths 0.5 / 1 / 2 mm (new pipeline), as the difference to
+    the default 1 mm, plus the largest differences of the resegmentation scenarios."""
+    cells = {"0.5": "path_new_bin0.5", "1.0": "path_new", "2.0": "path_new_bin2.0"}
+    rows = {b: {p["path"]: p for p in path_scan(pd.read_csv(f"{scans}/{f}.csv"))} for b, f in cells.items()}
+    out = dict(paths=[], reseg={})
+    for p, ref in rows["1.0"].items():
+        row = dict(path=p, n=ref["n"])
+        for b in ("0.5", "2.0"):
+            o = rows[b][p]
+            row[b] = dict(dpe=r(100 * (o["pe"] / ref["pe"] - 1), 3),
+                          dpe_err=r(100 * o["pe"] / ref["pe"] * np.hypot(o["pe_err"] / o["pe"], ref["pe_err"] / ref["pe"]), 3),
+                          dsurv=r(100 * (o["surv"] - ref["surv"]), 3), dsurv_err=r(100 * np.hypot(o["surv_err"], ref["surv_err"]), 3))
+        out["paths"].append(row)
+    rs = {b: reseg(pd.read_csv(f"{scans}/{f}.csv")) for b, f in (("0.5", "reseg_new_bin0.5"), ("1.0", "reseg_new"), ("2.0", "reseg_new_bin2.0"))}
+    for b in ("0.5", "2.0"):
+        dpe, ddt, dsv, zpe, zdt = [], [], [], [], []
+        for sc in rs["1.0"]:
+            for a, o in zip(rs["1.0"][sc], rs[b][sc]):
+                zpe.append((o["pe"] - a["pe"]) / np.hypot(o["pe_err"], a["pe_err"]))
+                zdt.append((o["dt"] - a["dt"]) / np.hypot(o["dt_err"], a["dt_err"]))
+                dpe.append(100 * (o["pe"] / a["pe"] - 1))
+                ddt.append(o["dt"] - a["dt"])
+                dsv.append(100 * (o["surv"] - a["surv"]))
+        out["reseg"][b] = dict(max_dpe=r(max(abs(x) for x in dpe), 2), rms_dpe=r(float(np.sqrt(np.mean(np.square(dpe)))), 2),
+                               max_ddt=r(max(abs(x) for x in ddt), 2), max_dsurv=r(max(abs(x) for x in dsv), 2), n=len(dpe),
+                               max_zpe=r(max(abs(x) for x in zpe), 2), rms_zpe=r(float(np.sqrt(np.mean(np.square(zpe)))), 2),
+                               max_zdt=r(max(abs(x) for x in zdt), 2), rms_zdt=r(float(np.sqrt(np.mean(np.square(zdt)))), 2))
+    return out
+
+
+def timing_grid(scans):
+    """Timing-mode resolution vs threshold for the 9 and 16 mm crossings at the reference position and at the far end."""
+    rows = []
+    for t in THRESHOLDS:
+        for pos, suf in (("ref", ""), ("far", "_far")):
+            f = f"{scans}/path_timing_thr{t}{suf}.csv"
+            if not os.path.exists(f):
+                continue
+            df = pd.read_csv(f)
+            for p in (9.0, 16.0):
+                g = df[(df.path_mm == p) & (df.edep_MeV == df[df.path_mm == p].edep_MeV.min())]
+                s = g[g.n_hits_surviving > 0]
+                dt = s.hit_time - s.true_time
+                q16, q84 = np.percentile(dt, [16, 84])
+                rows.append(dict(thr=float(t), pos=pos, path=p, n=len(g), surv=r(g.n_hits_surviving.gt(0).mean()), pe=r(g.pe_all.mean(), 2),
+                                 dt=r(dt.mean()), dt_rms=r(dt.std()), dt_hw68=r((q84 - q16) / 2)))
+    return rows
+
+
+def expected_readouts(n, dt, window):
+    """Readouts of one channel for n crossings dt apart: a window opens at the first and takes everything within it."""
+    count, start = 0, None
+    for i in range(n):
+        t = i * dt
+        if start is None or t >= start + window:
+            count, start = count + 1, t
+    return count
+
+
+def pileup(scans, window):
+    out = {}
+    scale = {"equal": [1, 1, 1, 1], "bright_first": [1, .5, .25, .125], "bright_last": [.125, .25, .5, 1]}
+    for k in (LEGACY, NEW):
+        f = f"{scans}/pileup_{k}.csv"
+        if not os.path.exists(f):
+            continue
+        df = pd.read_csv(f)
+        single = df[df.n_particles == 1]
+        pe1, e1 = single.pe_surviving.mean(), single.reco_energy.mean()
+        rows = []
+        for (pat, n, dt), g in df[df.n_particles > 1].groupby(["pattern", "n_particles", "dt"]):
+            tot = sum(scale[pat][:int(n)])
+            alive = g[g.n_readouts > 0]
+            bright = alive[alive.top_light_share > 0]  # light provenance exists (new pipeline only)
+            row = dict(pattern=pat, n=int(n), dt=float(dt), throws=len(g), readouts=r(g.n_readouts.mean(), 3),
+                       expected=expected_readouts(int(n), float(dt), window),
+                       pe_ratio=r(g.pe_surviving.mean() / (pe1 * tot), 4), e_ratio=r(g.reco_energy.mean() / (e1 * tot), 4),
+                       lost=r((g.n_readouts == 0).mean(), 4))
+            if len(bright):
+                ex = max(scale[pat][:int(n)]) / tot
+                row.update(top_is_max_energy=r((bright.top_light_id == bright.max_energy_id).mean(), 3),
+                           top_share=r(bright.top_light_share.mean(), 3), top_share_expected=r(ex, 3),
+                           first_is_earliest=r((bright.first_photon_id == bright.min_contrib_id).mean(), 3),
+                           n_contrib=r(bright.n_contrib.mean(), 2))
+            rows.append(row)
+        out[k] = dict(single_pe=r(pe1, 2), single_e=r(e1, 3), rows=rows)
+    return out
+
+
+def contribution_stats(readout_root, tree="TMS"):
+    """Consistency of the per-particle light breakdown in a ConvertToTMSTree readout file."""
+    import uproot
+    cols = ["NTrueHits", "TrueHitNPhotons", "TrueHitPrimaryIdByLight", "TrueHitLightShare", "TrueHitLightContribOffset",
+            "TrueHitNLightContrib", "TrueHitLightContribPrimaryId", "TrueHitLightContribPhotons", "TrueHitLightContribShare"]
+    a = uproot.open(readout_root)[tree].arrays(cols, library="np")
+    n_hits = n_light = bad_sum = multi = bad_top = 0
+    counts = {}
+    for ev in range(len(a["NTrueHits"])):
+        for i in range(int(a["NTrueHits"][ev])):
+            n_hits += 1
+            nc = int(a["TrueHitNLightContrib"][ev][i])
+            if nc == 0:
+                continue
+            n_light += 1
+            off = int(a["TrueHitLightContribOffset"][ev][i])
+            ph = a["TrueHitLightContribPhotons"][ev][off:off + nc]
+            sh = a["TrueHitLightContribShare"][ev][off:off + nc]
+            pid = a["TrueHitLightContribPrimaryId"][ev][off:off + nc]
+            key = str(nc) if nc < 4 else "4+"
+            counts[key] = counts.get(key, 0) + 1
+            if ph.sum() != a["TrueHitNPhotons"][ev][i] or abs(sh.sum() - 1) > 1e-4:
+                bad_sum += 1
+            if nc > 1:
+                multi += 1
+                j = int(np.argmax(ph))
+                if abs(sh[j] - a["TrueHitLightShare"][ev][i]) > 1e-4 or pid[j] != a["TrueHitPrimaryIdByLight"][ev][i]:
+                    bad_top += 1
+    return dict(hits=n_hits, with_light=n_light, by_n=counts, multi=multi, bad_sum=bad_sum, bad_top=bad_top)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--scans", required=True)
     ap.add_argument("--spills")
     ap.add_argument("--files", default="1-20")
     ap.add_argument("--metrics")
+    ap.add_argument("--contrib", help="a ConvertToTMSTree *_Readout.root file, for the light-breakdown consistency check")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     S = a.scans
@@ -195,6 +317,12 @@ def main():
     page["pairs"] = pairs(S)
     page["readout"] = {k: readout_params(f"{S}/configs/readout_{k}.toml") for k in page["pairs"]}
     page["timing"] = timing(S)
+    if os.path.exists(f"{S}/path_new_bin0.5.csv"):
+        page["bins"] = bin_convergence(S)
+    page["timing_grid"] = timing_grid(S)
+    page["pileup"] = pileup(S, page["readout"]["new"]["ReadoutTime"])
+    if a.contrib:
+        page["contrib"] = contribution_stats(a.contrib)
     if a.spills:
         lo, _, hi = a.files.partition("-")
         page["provenance_spills"] = provenance(a.spills, list(range(int(lo), int(hi or lo) + 1)))

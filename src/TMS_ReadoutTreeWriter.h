@@ -66,6 +66,14 @@ class TMS_ReadoutTreeWriter {
     VAR(TrueHitLightShare);
     INTVAR(TrueHitFirstPhotonPrimaryId);
     Long64_t TrueHitFirstPhotonVertexId[__MAX_READOUT_TREE_ARRAY_LENGTH__];
+    // Full light breakdown per true hit: entries [TrueHitLightContribOffset, +TrueHitNLightContrib)
+    // of the flat TrueHitLightContrib* vectors (see TMS_TreeWriter.h)
+    INTVAR(TrueHitLightContribOffset);
+    INTVAR(TrueHitNLightContrib);
+    std::vector<int> TrueHitLightContribPrimaryId;
+    std::vector<Long64_t> TrueHitLightContribVertexId;
+    std::vector<int> TrueHitLightContribPhotons;
+    std::vector<float> TrueHitLightContribShare;
     
     // Reco hit branches
     int NRecoHits;
