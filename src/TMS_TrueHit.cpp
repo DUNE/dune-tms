@@ -82,6 +82,7 @@ void TMS_TrueHit::MergeWith(TMS_TrueHit& hit) {
   SetE(new_true_e);
   SetT(new_true_t);
   SetPE(new_true_pe);
+  SetPEAfterFibers(new_true_short_path_pe + new_true_long_path_pe);
   SetPEAfterFibersShortPath(new_true_short_path_pe);
   SetPEAfterFibersLongPath(new_true_long_path_pe);
   
