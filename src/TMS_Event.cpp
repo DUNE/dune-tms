@@ -1,4 +1,5 @@
 #include "TMS_Event.h"
+#include "TMS_StageTimer.h"
 #include "TMS_Readout_Manager.h"
 #include "TMS_VertexId.h"
 #include "TMS_DetectorSimulation.h"
@@ -1042,10 +1043,13 @@ void TMS_Event::RunCluster3DReco() {
   const TVector3 tmsLo = TMS_Geom::GetInstance().GetStartOfTMS(), tmsHi = TMS_Geom::GetInstance().GetEndOfTMS();
   static const RegionFieldModel field;
 
+  TMS_StageTimer::Clock lap;
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
   const std::vector<TMS_KalmanFollower::FitHit> fitHits = TMS_Cluster3DReco::BuildFitHits(TMS_Hits, barPitch);
+  lap.Lap("c3d/fit_hits");
   const std::vector<TMS_Cluster3DReco::Track> tracks =
       TMS_Cluster3DReco::Run(TMS_SpacePoints, fitHits, config, field);
+  lap.Skip();  // Run times its own stages (c3d/setup ... c3d/shadow_absorption)
 
   Cluster3DTracks.clear();
   for (const TMS_Cluster3DReco::Track &track : tracks) {
@@ -1192,6 +1196,7 @@ void TMS_Event::RunCluster3DReco() {
     out.NOrphanHits = static_cast<int>(fit.Orphans.size());
     Cluster3DTracks.push_back(out);
   }
+  lap.Lap("c3d/to_tms_track");
 }
 
 void TMS_Event::BuildSpacePoints() {

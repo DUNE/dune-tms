@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include "TMS_StageTimer.h"
 #include <stdexcept>
 #include "TMS_VertexId.h"
 #include "TMS_Reco.h"
@@ -749,6 +750,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
 void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &tracks, TTree *reco, TTree *truth,
                                bool fillLines) {
+  TMS_StageTimer::Clock lap;
   // Clear old info
   Clear();
 
@@ -756,7 +758,9 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   int nLastHits = TMS_Manager::GetInstance().Get_Reco_STOPPING_nLastHits();
   double EnergyCut = TMS_Manager::GetInstance().Get_Reco_STOPPING_EnergyCut();
   
+  lap.Lap("tw/clear");
   FillTruthInfo(event);
+  lap.Skip();  // FillTruthInfo times its own stages (tw/ti_*)
 
 
   // Fill the truth info
@@ -803,6 +807,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   //Muon_TrueTrackLength = -999.99;
   Muon_TrueKE = event.GetMuonTrueKE();
   
+  lap.Lap("tw/truth_branches");
   // Fill LAr hit outer shell energy info
   // Case 1: All energy in outer shell, useful only for single event interactions
   // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
@@ -814,6 +819,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
   TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexGlobalIDOfMostEnergyInEvent);
 
+  lap.Lap("tw/lar_shell");
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*>> HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
@@ -864,6 +870,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   }
 
   int it = 0;
+  lap.Lap("tw/reco_setup");
   for (auto &Lines: HoughLinesU) {
     // Get the slopes saved down
     InterceptU[it] = Lines.second->GetParameter(0);
@@ -1047,6 +1054,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   TMS_Hit *FirstTrack = NULL;
 
   it = 0;
+  lap.Lap("tw/hough_lines");
   for (auto &Candidates: HoughCandsU) {
     // Loop over hits
     for (auto &hit: Candidates) {
@@ -1383,6 +1391,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   int stdit = 0;
   // Calculate the cluster by cluster summaries
   // e.g. total energy in cluster, cluster position, and cluster standard deviation
+  lap.Lap("tw/hough_candidates");
   for (auto itU = ClustersU.begin(); itU != ClustersU.end(); ++itU, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
@@ -1577,6 +1586,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   }
   stdit = 0;
   const auto TrueParticles = event.GetTrueParticles();
+  lap.Lap("tw/clusters");
   for (auto itH = CleanedHits.begin(); itH != CleanedHits.end(); ++itH, ++stdit) {
     RecoHitPos[stdit][0] = (*itH).GetX();
     RecoHitPos[stdit][1] = (*itH).GetY();
@@ -1614,10 +1624,12 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
+  lap.Lap("tw/cleaned_hits");
   // Fill up the info only if all above has passed
   if (fillLines) Branch_Lines->Fill();
 
 
+  lap.Lap("tw/lines_fill");
   // Fill the 3D Tracks
   // First get the tracks for this event:
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
@@ -1945,6 +1957,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   // Clear branches
   NTrueHits = 0;
   int index = 0;
+  lap.Lap("tw/tracks_3d");
   for (auto& hit : event.GetHitsRaw()) {
     if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
       std::cout<<"TMS_TreeWriter WARNING: Too many hits in event. Increase __MAX_TRUE_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
@@ -1999,6 +2012,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
+  lap.Lap("tw/raw_hits");
   // Fill space point information
   const std::vector<TMS_SpacePoint>& space_points = event.GetSpacePoints();
   // Clamp to the fixed array size: nSpacePoints drives the branch's leafcount
@@ -2075,8 +2089,11 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
+  lap.Lap("tw/space_points");
   reco->Fill();
+  lap.Lap("tw/tree_fill_reco");
   truth->Fill();
+  lap.Lap("tw/tree_fill_truth");
 }
 
 void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
@@ -2109,7 +2126,9 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
   
   // Get the truth info
+  TMS_StageTimer::Clock lap;
   std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  lap.Lap("tw/ti_copy_particles");
   nParticles = TrueParticles.size();
   // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
@@ -2135,6 +2154,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     Muon_Death[3] = (*it).GetDeathPosition().T();
   }
     
+  lap.Lap("tw/ti_muon_search");
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
   nTrueForgottenParticles = event.GetNTrueForgottenParticles();
@@ -2174,6 +2194,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TrueNHits[index] = (*it).GetNTrueHits(false);
     TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
     TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
+    lap.Lap("tw/ti_basic");
 
     TVector3 location_birth = (*it).GetBirthPosition().Vect();
     TVector3 location_death = (*it).GetDeathPosition().Vect();
@@ -2183,6 +2204,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
     LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
     LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
+    lap.Lap("tw/ti_fiducial");
     
     setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
     setPosition(BirthPosition[index], (*it).GetBirthPosition());
@@ -2197,6 +2219,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
         TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
     TruePathLengthInTMSIgnoreY[index] =
         TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
+    lap.Lap("tw/ti_path_lengths");
 
     setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
     setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
@@ -2224,6 +2247,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     
     setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
     setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
+    lap.Lap("tw/ti_positions_momenta");
   }
 
   auto vtx_info = event.GetVertexInfo();
@@ -2267,6 +2291,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     // Finally update index
     true_vtx_index++;
   }
+  lap.Lap("tw/ti_vertex_info");
 }
 
 void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {
