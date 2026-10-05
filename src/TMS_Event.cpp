@@ -415,7 +415,10 @@ TMS_Event::TMS_Event(TG4Event event, bool FillEvent) {
   EventCounter++;
 }
 
-TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)), NonTMS_Hits(event.NonTMS_Hits),
+TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice, true)),
+      // The spill's non-TMS (LAr) hits are not copied into every slice: the slice reads the
+      // spill's vector in place (see TMS_Event::NonTMSHitsSource), which outlives it.
+      NonTMSHitsSource(event.NonTMSHitsSource != nullptr ? event.NonTMSHitsSource : &event.NonTMS_Hits),
       // Phase III: TrueHitByHitId is deliberately NOT copied wholesale here -- see the
       // filtering loop in the constructor body below, which populates it with only the
       // entries this slice's TMS_Hits actually need (flagged by Copilot review as an
@@ -800,7 +803,7 @@ void TMS_Event::Print() {
 }
 
 double TMS_Event::GetMuonTrueKE() {
-  std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
+  const std::vector<TMS_TrueParticle> &TrueParticles = GetTrueParticles();
   double HighestKE = -999.99;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
@@ -818,7 +821,7 @@ double TMS_Event::GetMuonTrueKE() {
 }
 
 double TMS_Event::GetMuonTrueTrackLength() {
-  std::vector<TMS_TrueParticle> TrueParticles = GetTrueParticles();
+  const std::vector<TMS_TrueParticle> &TrueParticles = GetTrueParticles();
   double total = 0;
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
     // Only save muon info for now
@@ -826,7 +829,7 @@ double TMS_Event::GetMuonTrueTrackLength() {
     // Also make sure it's a fundamental muon
     if ((*it).GetParent() != -1) continue;
 
-    std::vector<TLorentzVector> pos = (*it).GetPositionPoints();
+    const std::vector<TLorentzVector> &pos = (*it).GetPositionPoints();
     int num = 0;
     for (auto pnt = pos.begin(); (pnt+1) != pos.end(); ++pnt, ++num) {
       auto nextpnt = *(pnt+1);
@@ -908,7 +911,7 @@ void TMS_Event::SetLeptonInfoUsingGlobalVertexID(long long vertexglobalid) {
 double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, long long vertexglobalid) {
   double out = 0;
   // Lar doesn't have good timing info, so we want all non tms hits, not just in this slice
-  for (const auto& hit : NonTMS_Hits) {
+  for (const auto& hit : NonTMSHits()) {
     if (vertexglobalid < 0 || hit.GetVertexGlobalIds(0) == vertexglobalid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
       if (TMS_Geom::GetInstance().IsInsideLAr(position) && !TMS_Geom::GetInstance().IsInsideLAr(position, thickness)) {
@@ -921,7 +924,7 @@ double TMS_Event::CalculateEnergyInLArOuterShell(double thickness, long long ver
 
 double TMS_Event::CalculateEnergyInLAr(long long vertexglobalid) {
   double out = 0;
-  for (const auto& hit : NonTMS_Hits) {
+  for (const auto& hit : NonTMSHits()) {
     if (hit.GetVertexGlobalIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexGlobalId"<<std::endl;
     if (vertexglobalid < 0 || hit.GetVertexGlobalIds(0) == vertexglobalid) {
       TVector3 position(hit.GetX(), hit.GetY(), hit.GetZ());
@@ -935,7 +938,7 @@ double TMS_Event::CalculateEnergyInLAr(long long vertexglobalid) {
 
 double TMS_Event::CalculateTotalNonTMSEnergy(long long vertexglobalid) {
   double out = 0;
-  for (const auto& hit : NonTMS_Hits) {
+  for (const auto& hit : NonTMSHits()) {
     if (hit.GetVertexGlobalIds(0) < 0) std::cout<<"Warning: found true hit with < 0 VertexGlobalId"<<std::endl;
     if (vertexglobalid < 0 || hit.GetVertexGlobalIds(0) == vertexglobalid) out += hit.GetHadronicEnergy();
   }
