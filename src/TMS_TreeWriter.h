@@ -1,6 +1,10 @@
 #ifndef __TMS_TREEWRITER_H__
 #define __TMS_TREEWRITER_H__
 #include <iostream>
+#include <map>
+#include <optional>
+#include <utility>
+#include <vector>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -166,6 +170,18 @@ class TMS_TreeWriter {
                    bool fillLines);
     TTree* Truth_Spill; // Truth spill
     TTree* Meta; // Metadata
+
+    // Per-spill caches for FillTruthInfo and FillSlice (see there): truth that is
+    // the same in every slice of a spill is computed once.
+    template <typename Apply> void ForEachCachedParticleField(int index, Apply apply);
+    int ParticleTruthCacheSpill = -1;
+    size_t ParticleTruthCacheBytes = 0;
+    std::vector<std::pair<long long, int>> ParticleTruthCacheKeys;
+    std::vector<unsigned char> ParticleTruthCache;
+    struct LArEnergySums { double OuterShell; double Total; double NonTMS; };
+    int LArEnergyCacheSpill = -1;
+    std::optional<LArEnergySums> LArEnergyAll;
+    std::map<long long, LArEnergySums> LArEnergyByVertex;
 
     void Clear();
     void MakeBranches(); // Make the output branches
