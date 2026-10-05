@@ -482,6 +482,18 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
+  // The response-element redesign (stitched physical passages, fixed-scale
+  // re-segmentation, local Birks/optical response before thresholding) is being built
+  // out behind this flag phase by phase -- see
+  // reports/2026-09-04_detector_response_restructuring_proposal/. Fail loudly rather
+  // than silently falling through to the old pipeline if someone flips this on before
+  // a later phase actually implements it.
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+    throw std::runtime_error(
+        "Sim.DetSim.UseResponseElements is set but the response-element pipeline is not "
+        "yet implemented -- leave this false until a later redesign phase lands.");
+  }
+
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
   // Sim-only steps (TMS_DetectorSimulation) and real-or-simulated steps (TMS_SignalProcessing)
   // are interleaved in this exact order deliberately: SimulateReadoutNoise() must run after

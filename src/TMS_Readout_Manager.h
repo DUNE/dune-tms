@@ -41,6 +41,14 @@ class TMS_Readout_Manager {
     double Get_Sim_Noise_DarkNoiseRate() { return _SIM_NOISE_DarkNoiseRate; };
     double Get_Sim_Noise_DarkNoiseMinPE() { return _SIM_NOISE_DarkNoiseMinPE; };
 
+    // Gate for the detector-response redesign (stitch physical passages, re-segment on
+    // a fixed spatial scale, apply Birks/optical response locally before thresholding --
+    // see reports/2026-09-04_detector_response_restructuring_proposal/). Defaults to
+    // false, i.e. no behavior change: the new pipeline doesn't exist yet, it's being
+    // built out behind this flag phase by phase so it can be validated incrementally
+    // against the existing pipeline before cutover.
+    bool Get_Sim_DetSim_UseResponseElements() { return _SIM_DETSIM_UseResponseElements; };
+
 
   private:
     TMS_Readout_Manager();
@@ -72,6 +80,8 @@ class TMS_Readout_Manager {
   
   double _SIM_NOISE_DarkNoiseRate;
   double _SIM_NOISE_DarkNoiseMinPE;
+
+  bool _SIM_DETSIM_UseResponseElements;
 };
 
 #endif
