@@ -35,7 +35,9 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
       double t2 = hit2.GetT();
 
       // Merge
-      if (z == z2 && y == y2 && fabs(t2-t) < readout_time) {
+      // Same z and NotZ is not enough: the two halves of a split X-bar share both but are
+      // separate channels (different bar numbers), read out at opposite ends.
+      if (z == z2 && y == y2 && (*it).GetBarNumber() == hit2.GetBarNumber() && fabs(t2-t) < readout_time) {
         (*it).MergeWith(hit2);
         // Phase III: merge the event-level truth side table by HitId alongside the reco-level
         // merge above, since TMS_TrueHit is no longer embedded in TMS_Hit.

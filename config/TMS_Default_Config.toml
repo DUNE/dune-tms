@@ -169,7 +169,9 @@
     # Files 1-15 vs. the standard slicer: Coincidence gives 120 vs. 110 slices per
     # spill, muons with views in different slices 1.2 vs. 5.3%, Cluster3D found
     # 91.1 -> 93.5%, legacy unchanged; BestOverlap: 83 slices, legacy -1.6 pp.
-    PerViewSlicing = true # on for the Cluster3D work on this branch; off on feature/usher_perview_slicing
+    # On by default (requested at the 2026-10-01 TMS studies meeting); false
+    # restores the original single slicer, whose output is unchanged.
+    PerViewSlicing = true
     PerViewThresholdScale = 0.0
     PerViewMatchToleranceNs = 40.0
     PerViewMatchZMarginMM = 200.0
