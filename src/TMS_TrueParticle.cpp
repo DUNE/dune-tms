@@ -45,7 +45,7 @@ void TMS_TrueParticle::Print(bool small) {
   }
 }
 
-TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
+TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) const {
   // Finds the true momentum of the particle at z.
   // If z is outside the true range of the particle, will still return edges if within range + max_z_dist.
   // This is useful because reco only measures z in the middle of the scintillator, but the true particle
@@ -114,7 +114,7 @@ TLorentzVector TMS_TrueParticle::GetMomentumAtZ(double z, double max_z_dist) {
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
-std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS) {
+std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS) const {
   std::vector<TVector3> out;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     double z = GetPositionPoints()[i].Z();
@@ -134,7 +134,7 @@ std::vector<TVector3> TMS_TrueParticle::GetPositionPoints(double z_start, double
 }
 
 
-TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
+TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) const {
   // Finds the true position of the particle at z.
   // If z is outside the true range of the particle, will still return edges if within range + max_z_dist.
   // This is useful because reco only measures z in the middle of the scintillator, but the true particle
@@ -197,7 +197,7 @@ TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) {
   return out;
 }
 
-TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInside) const {
   TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                      TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
@@ -210,7 +210,7 @@ TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInsi
   return out;
 }
 
-TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInside) const {
   TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                      TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   bool areInside = false;
@@ -234,7 +234,7 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
   return out;
 }
 
-TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) const {
   TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                TMS_INVALID_TRUTH_VALUE);
   bool foundInside = false;
@@ -254,7 +254,7 @@ TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInsi
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
-TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) {
+TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) const {
   TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                TMS_INVALID_TRUTH_VALUE);
   bool areInside = false;
@@ -286,7 +286,7 @@ TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInsid
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
-bool TMS_TrueParticle::EntersVolume(IsInsideFunctionType isInside) {
+bool TMS_TrueParticle::EntersVolume(IsInsideFunctionType isInside) const {
   bool out = false;
   for (size_t i = 0; i < GetPositionPoints().size(); i++) {
     if (isInside(GetPositionPoints()[i].Vect())) {

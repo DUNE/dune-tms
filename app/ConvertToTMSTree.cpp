@@ -245,7 +245,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       TMS_Event tms_event_slice;
       // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
       if (!TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer()) tms_event_slice = tms_event;
-      else tms_event_slice = TMS_Event(tms_event, slice);
+      else {
+        TMS_Event built(tms_event, slice);
+        lap.Lap("slice_ctor_total");
+        tms_event_slice = std::move(built);
+      }
+      lap.Lap("slice_assign");
 
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
       if (gRoo && (slice != 0 || nslices == 1)) {
@@ -265,7 +270,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
         }
       }
       
-      lap.Lap("slice_build_and_truth");
+      lap.Lap("slice_truth");
       event_counter += 1;
 
       // Try finding some tracks

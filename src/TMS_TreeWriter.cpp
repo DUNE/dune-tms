@@ -2184,8 +2184,8 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   
   // Get the truth info
   TMS_StageTimer::Clock lap;
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
-  lap.Lap("tw/ti_copy_particles");
+  const std::vector<TMS_TrueParticle> &TrueParticles = event.GetTrueParticles();
+  lap.Lap("tw/ti_particles");
   nParticles = TrueParticles.size();
   // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
