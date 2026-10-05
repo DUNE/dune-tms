@@ -23,6 +23,7 @@
 #include "TMS_Reco.h"
 // Time slicer
 #include "TMS_TimeSlicer.h"
+#include "TMS_StageTimer.h"
 // TTree writer
 #include "TMS_TreeWriter.h"
 // TTree writer for det sim
@@ -148,7 +149,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
   }
   int current_spill_number = 0;
 
+  TMS_StageTimer::Clock lap;
   for (; i < N_entries; ++i) {
+    lap.Skip();
     if (N_entries <= 10 || i % (N_entries/10) == 0) {
       std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
     }
@@ -164,6 +167,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
     //if (event->Primaries.size() > 0)
     //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
 
+    lap.Lap("read_input");
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
     tms_event.SetSpillNumber(i);
@@ -172,6 +176,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
     }
 
+    lap.Lap("event_build");
     // Keep filling up the vector and move on to the next event
     if (Overlay && i % nOverlays != 0) {
       overlay_events.push_back(tms_event);
@@ -208,23 +213,29 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       tms_event = last_event;
     }
     
+    lap.Lap("spill_assembly");
     // Apply detector effects and connect truth and reco info
     tms_event.FinalizeEvent();
+    lap.Lap("det_sim");
 
     // Dump information
     //tms_event.Print();
 
     // Calculate the mapping between vertex ID and visible energy for the primary event
     tms_event.GetVertexIdOfMostVisibleEnergy();
+    lap.Lap("truth_energy_map");
     
     // Save det sim information
     TMS_ReadoutTreeWriter::GetWriter().Fill(tms_event);
+    lap.Lap("write_readout");
     
     int nslices = TMS_TimeSlicer::GetSlicer().RunTimeSlicer(tms_event);
+    lap.Lap("slicing");
     std::cout<<"Sliced event "<<i<<" into "<<nslices<<" slices"<<std::endl;
     
     TMS_TreeWriter::GetWriter().FillSpill(tms_event, truth_info_entry_number, nslices);
     truth_info_entry_number += nslices;
+    lap.Lap("write_spill");
     
     // Could save per spill info here
     
@@ -234,7 +245,11 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       TMS_Event tms_event_slice;
       // If the time slicer is off, use the entire old TMS_Event. That way muon KE branch is copied.
       if (!TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer()) tms_event_slice = tms_event;
-      else tms_event_slice = TMS_Event(tms_event, slice);
+      else {
+        TMS_Event built(tms_event, slice);
+        lap.Lap("slice_build");
+        tms_event_slice = std::move(built);
+      }
 
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
       if (gRoo && (slice != 0 || nslices == 1)) {
@@ -254,10 +269,12 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
         }
       }
       
+      lap.Lap("slice_truth");
       event_counter += 1;
       
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
+      lap.Lap("legacy_reco");
 
 #ifdef DUNEANAOBJ_ENABLED
       caf::SRTMS srtms = TMS_Utils::ConvertEvent();
@@ -268,11 +285,13 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       if (DrawPDF) TMS_EventViewer::GetViewer().Draw(tms_event_slice);
       // Write it
       TMS_TreeWriter::GetWriter().Fill(tms_event_slice);
+      lap.Lap("write_slice");
     }
   } // End loop over all the events
 
   Timer.Stop();
   std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
+  TMS_StageTimer::PrintSummary(Timer.RealTime(), i);
 
   TMS_TreeWriter::GetWriter().Write();
   TMS_ReadoutTreeWriter::GetWriter().Write();
