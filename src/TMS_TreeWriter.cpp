@@ -1,4 +1,5 @@
 #include "TMS_TreeWriter.h"
+#include <cstring>
 #include <stdexcept>
 #include "TMS_VertexId.h"
 #include "TMS_Reco.h"
@@ -747,12 +748,29 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   // Case 1: All energy in outer shell, useful only for single event interactions
   // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
   double thickness = TMS_Manager::GetInstance().Get_LAR_OUTER_SHELL_THICKNESS(); // mm
-  LArOuterShellEnergy = event.CalculateEnergyInLArOuterShell(thickness);
-  LArOuterShellEnergyFromVertex = event.CalculateEnergyInLArOuterShell(thickness, VertexGlobalIDOfMostEnergyInEvent);
-  LArTotalEnergy = event.CalculateEnergyInLAr();
-  LArTotalEnergyFromVertex = event.CalculateEnergyInLAr(VertexGlobalIDOfMostEnergyInEvent);
-  TotalNonTMSEnergy = event.CalculateTotalNonTMSEnergy();
-  TotalNonTMSEnergyFromVertex = event.CalculateTotalNonTMSEnergy(VertexGlobalIDOfMostEnergyInEvent);
+  // These sum over the spill's non-TMS hits, which every slice of the spill
+  // shares, and (about 12% of a run) so are computed once per spill: the three
+  // sums over all hits once, the three from one vertex once per vertex.
+  if (LArEnergyCacheSpill != event.GetSpillNumber()) {
+    LArEnergyCacheSpill = event.GetSpillNumber();
+    LArEnergyAll.reset();
+    LArEnergyByVertex.clear();
+  }
+  if (!LArEnergyAll) {
+    LArEnergyAll = {event.CalculateEnergyInLArOuterShell(thickness), event.CalculateEnergyInLAr(), event.CalculateTotalNonTMSEnergy()};
+  }
+  auto fromVertex = LArEnergyByVertex.find(VertexGlobalIDOfMostEnergyInEvent);
+  if (fromVertex == LArEnergyByVertex.end()) {
+    const long long vertex = VertexGlobalIDOfMostEnergyInEvent;
+    fromVertex = LArEnergyByVertex.emplace(vertex, LArEnergySums{event.CalculateEnergyInLArOuterShell(thickness, vertex),
+                                                              event.CalculateEnergyInLAr(vertex), event.CalculateTotalNonTMSEnergy(vertex)}).first;
+  }
+  LArOuterShellEnergy = LArEnergyAll->OuterShell;
+  LArOuterShellEnergyFromVertex = fromVertex->second.OuterShell;
+  LArTotalEnergy = LArEnergyAll->Total;
+  LArTotalEnergyFromVertex = fromVertex->second.Total;
+  TotalNonTMSEnergy = LArEnergyAll->NonTMS;
+  TotalNonTMSEnergyFromVertex = fromVertex->second.NonTMS;
 
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
@@ -1940,6 +1958,45 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   Truth_Info->Fill();
 }
 
+// Calls apply(field) on the element `index` of every per-particle branch whose
+// value depends only on the particle (see FillTruthInfo). One list serves both
+// the sizing, the packing into and the unpacking from the per-spill cache.
+template <typename Apply>
+void TMS_TreeWriter::ForEachCachedParticleField(int index, Apply apply) {
+  apply(TMSFiducialStart[index]);
+  apply(TMSFiducialTouch[index]);
+  apply(TMSFiducialEnd[index]);
+  apply(LArFiducialStart[index]);
+  apply(LArFiducialTouch[index]);
+  apply(LArFiducialEnd[index]);
+  apply(BirthMomentum[index]);
+  apply(BirthPosition[index]);
+  apply(DeathMomentum[index]);
+  apply(DeathPosition[index]);
+  apply(TruePathLength[index]);
+  apply(TruePathLengthIgnoreY[index]);
+  apply(TruePathLengthInTMS[index]);
+  apply(TruePathLengthInTMSIgnoreY[index]);
+  apply(MomentumZIsLArEnd[index]);
+  apply(PositionZIsLArEnd[index]);
+  apply(MomentumZIsTMSStart[index]);
+  apply(PositionZIsTMSStart[index]);
+  apply(MomentumZIsTMSEnd[index]);
+  apply(PositionZIsTMSEnd[index]);
+  apply(MomentumLArStart[index]);
+  apply(PositionLArStart[index]);
+  apply(MomentumLArEnd[index]);
+  apply(PositionLArEnd[index]);
+  apply(MomentumTMSStart[index]);
+  apply(PositionTMSStart[index]);
+  apply(MomentumTMSEnd[index]);
+  apply(PositionTMSEnd[index]);
+  apply(MomentumTMSThinEnd[index]);
+  apply(PositionTMSThinEnd[index]);
+  apply(MomentumTMSFirstTwoModulesEnd[index]);
+  apply(PositionTMSFirstTwoModulesEnd[index]);
+}
+
 void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   // Common code between Fill (which fills Truth_Info) and FillSpill (which fills Truth_Spill)
   
@@ -1970,7 +2027,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
   
   // Get the truth info
-  std::vector<TMS_TrueParticle> TrueParticles = event.GetTrueParticles();
+  const std::vector<TMS_TrueParticle> &TrueParticles = event.GetTrueParticles();
   nParticles = TrueParticles.size();
   // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
@@ -2011,6 +2068,34 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     
   }
 
+  // The per-particle truth that depends only on the particle (fiducial flags,
+  // path lengths, positions and momenta at the detector boundaries) is the
+  // same in every slice of a spill, yet it costs more than everything else
+  // here (about 55% of a whole run, measured 2026-10-04). So it is computed
+  // once per spill and copied from a cache for every later slice and for the
+  // second (Cluster3D) tree. The cache is trusted only if the spill number and
+  // every particle's (global vertex id, track id) match.
+  const size_t nStored = std::min<size_t>(TrueParticles.size(), __TMS_MAX_TRUE_PARTICLES__);
+  size_t bytesPerParticle = 0;
+  ForEachCachedParticleField(0, [&](auto &field) { bytesPerParticle += sizeof(field); });
+  bool cacheValid = ParticleTruthCacheSpill == event.GetSpillNumber() && ParticleTruthCacheKeys.size() == nStored &&
+                    ParticleTruthCacheBytes == bytesPerParticle;
+  std::vector<std::pair<long long, int>> particleKeys(nStored);
+  for (size_t i = 0; i < nStored; ++i) {
+    const TMS_TrueParticle &particle = TrueParticles[i];
+    particleKeys[i] = std::make_pair(TMS_MakeGlobalVertexID(particle.GetRunID(), particle.GetVertexID()), particle.GetTrackId());
+    if (cacheValid && particleKeys[i] != ParticleTruthCacheKeys[i]) cacheValid = false;
+  }
+  if (!cacheValid) ParticleTruthCache.assign(nStored * bytesPerParticle, 0);
+  auto PackParticleTruth = [&](int index) {
+    unsigned char *destination = ParticleTruthCache.data() + index * bytesPerParticle;
+    ForEachCachedParticleField(index, [&](auto &field) { std::memcpy(destination, &field, sizeof(field)); destination += sizeof(field); });
+  };
+  auto UnpackParticleTruth = [&](int index) {
+    const unsigned char *source = ParticleTruthCache.data() + index * bytesPerParticle;
+    ForEachCachedParticleField(index, [&](auto &field) { std::memcpy(&field, source, sizeof(field)); source += sizeof(field); });
+  };
+
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
   nTrueForgottenParticles = event.GetNTrueForgottenParticles();
@@ -2036,57 +2121,67 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TrueVisibleEnergyInSlice[index] = (*it).GetTrueVisibleEnergy(true);
     TrueNHitsInSlice[index] = (*it).GetNTrueHits(true);
 
-    TVector3 location_birth = (*it).GetBirthPosition().Vect();
-    TVector3 location_death = (*it).GetDeathPosition().Vect();
-    TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
-    TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
-    TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
-    LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
-    LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
-    LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
+    if (cacheValid) {
+      UnpackParticleTruth(index);
+    } else {
+      TVector3 location_birth = (*it).GetBirthPosition().Vect();
+      TVector3 location_death = (*it).GetDeathPosition().Vect();
+      TMSFiducialStart[index] = TMS_Geom::GetInstance().IsInsideTMS(location_birth);
+      TMSFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideTMS);
+      TMSFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideTMS(location_death);
+      LArFiducialStart[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_birth);
+      LArFiducialTouch[index] = (*it).EntersVolume(TMS_Geom::StaticIsInsideLarFiducial);
+      LArFiducialEnd[index] = TMS_Geom::GetInstance().IsInsideLarFiducial(location_death);
     
-    setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
-    setPosition(BirthPosition[index], (*it).GetBirthPosition());
+      setMomentum(BirthMomentum[index], (*it).GetBirthMomentum(), (*it).GetBirthEnergy());
+      setPosition(BirthPosition[index], (*it).GetBirthPosition());
     
-    setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
-    setPosition(DeathPosition[index], (*it).GetDeathPosition());
+      setMomentum(DeathMomentum[index], (*it).GetDeathMomentum(), (*it).GetDeathEnergy());
+      setPosition(DeathPosition[index], (*it).GetDeathPosition());
 
-    TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
-    TruePathLengthIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
-    TruePathLengthInTMS[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
-    TruePathLengthInTMSIgnoreY[index] =
-        TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
+      TruePathLength[index] = TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]));
+      TruePathLengthIgnoreY[index] =
+          TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2]), true);
+      TruePathLengthInTMS[index] =
+          TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true));
+      TruePathLengthInTMSIgnoreY[index] =
+          TMS_Geom::GetInstance().GetTrackLength((*it).GetPositionPoints(BirthPosition[index][2], DeathPosition[index][2], true), true);
 
-    setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
-    setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
+      setMomentum(MomentumZIsLArEnd[index], (*it).GetMomentumZIsLArEnd());
+      setPosition(PositionZIsLArEnd[index], (*it).GetPositionZIsLArEnd());
     
-    setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
-    setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
+      setMomentum(MomentumZIsTMSStart[index], (*it).GetMomentumZIsTMSStart());
+      setPosition(PositionZIsTMSStart[index], (*it).GetPositionZIsTMSStart());
     
-    setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
-    setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
+      setMomentum(MomentumZIsTMSEnd[index], (*it).GetMomentumZIsTMSEnd());
+      setPosition(PositionZIsTMSEnd[index], (*it).GetPositionZIsTMSEnd());
     
-    setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
-    setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
+      setMomentum(MomentumLArStart[index], (*it).GetMomentumEnteringLAr());
+      setPosition(PositionLArStart[index], (*it).GetPositionEnteringLAr());
     
-    setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
-    setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
+      setMomentum(MomentumLArEnd[index], (*it).GetMomentumLeavingLAr());
+      setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
     
-    setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
-    setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
+      setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
+      setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
     
-    setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
-    setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
+      setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
+      setPosition(PositionTMSEnd[index], (*it).GetPositionLeavingTMS());
     
-    setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
-    setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
+      setMomentum(MomentumTMSThinEnd[index], (*it).GetMomentumLeavingTMSThin());
+      setPosition(PositionTMSThinEnd[index], (*it).GetPositionLeavingTMSThin());
     
-    setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
-    setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
+      setMomentum(MomentumTMSFirstTwoModulesEnd[index], (*it).GetMomentumLeavingTMSFirstTwoModules());
+      setPosition(PositionTMSFirstTwoModulesEnd[index], (*it).GetPositionLeavingTMSFirstTwoModules());
+      PackParticleTruth(index);
+    }
   }
 
+  if (!cacheValid) {
+    ParticleTruthCacheKeys = particleKeys;
+    ParticleTruthCacheSpill = event.GetSpillNumber();
+    ParticleTruthCacheBytes = bytesPerParticle;
+  }
   auto vtx_info = event.GetVertexInfo();
   TrueVtxN = std::min((int)vtx_info.size(), __TMS_MAX_TRUE_VERTICES__);
   int true_vtx_index = 0;

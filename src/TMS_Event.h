@@ -245,6 +245,12 @@ class TMS_Event {
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
     std::vector<TMS_TrueHit> NonTMS_Hits;
+    // A slice event (TMS_Event(event, slice)) does not copy the spill's NonTMS_Hits (about
+    // 40% of the cost of making a slice) but points at the spill event's vector, which
+    // outlives its slices. Only the slice-time readers (the CalculateEnergy* functions)
+    // use it; everything that fills or modifies NonTMS_Hits works on the spill event.
+    const std::vector<TMS_TrueHit> *NonTMSHitsSource = nullptr;
+    const std::vector<TMS_TrueHit> &NonTMSHits() const { return NonTMSHitsSource != nullptr ? *NonTMSHitsSource : NonTMS_Hits; }
 
     // See NextHitId()/GetTrueHit(int)/SetTrueHit(int, ...) above.
     int HitIdCounter = 0;

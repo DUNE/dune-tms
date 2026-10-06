@@ -127,7 +127,9 @@ class TMS_TrueParticle {
     void SetNTrueHits(int n, bool slice) { if (slice) { NTrueHitsSlice = n; } else { NTrueHits = n; } };
 
     std::vector<TLorentzVector> &GetPositionPoints() { return PositionPoints; };
+    const std::vector<TLorentzVector> &GetPositionPoints() const { return PositionPoints; };
     std::vector<TVector3> &GetMomentumPoints() { return MomentumPoints; };
+    const std::vector<TVector3> &GetMomentumPoints() const { return MomentumPoints; };
     std::vector<int> &GetProcessPoints() { return Process; };
     std::vector<int> &GetSubprocessPoints() { return Subprocess; };
 
@@ -142,52 +144,56 @@ class TMS_TrueParticle {
     void SetDeathPosition(TLorentzVector deathpos) { DeathPosition = TLorentzVector(deathpos); };
 
     TVector3       &GetBirthMomentum() { return BirthMomentum; };
-    TLorentzVector GetBirthMomentumAsLorentz() 
+    const TVector3 &GetBirthMomentum() const { return BirthMomentum; };
+    TLorentzVector GetBirthMomentumAsLorentz() const 
       { auto mom = GetBirthMomentum(); auto en = GetBirthEnergy(); return TLorentzVector(mom.X(), mom.Y(), mom.Z(), en); };
     TLorentzVector &GetBirthPosition() { return BirthPosition; };
+    const TLorentzVector &GetBirthPosition() const { return BirthPosition; };
 
     TVector3       &GetDeathMomentum() { return DeathMomentum; };
+    const TVector3 &GetDeathMomentum() const { return DeathMomentum; };
     TLorentzVector &GetDeathPosition() { return DeathPosition; };
+    const TLorentzVector &GetDeathPosition() const { return DeathPosition; };
 
     TVector3       &GetInitialMomentum() { return MomentumPoints.back(); };
     TLorentzVector &GetInitialPoint() { return PositionPoints.back(); };
     
-    TLorentzVector GetPositionAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
-    TLorentzVector GetPositionZIsLArEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
-    TLorentzVector GetPositionZIsTMSStart() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
-    TLorentzVector GetPositionZIsTMSEnd() { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
-    TLorentzVector GetPositionEntering(IsInsideFunctionType isInside);
-    TLorentzVector GetPositionLeaving(IsInsideFunctionType isInside);
-    TLorentzVector GetPositionEnteringTMS() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMS); };
-    TLorentzVector GetPositionLeavingTMS() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMS); };
-    TLorentzVector GetPositionEnteringTMSThin() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSThin); };
-    TLorentzVector GetPositionLeavingTMSThin() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSThin); };
-    TLorentzVector GetPositionEnteringTMSFirstTwoModules() { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TLorentzVector GetPositionLeavingTMSFirstTwoModules() { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TLorentzVector GetPositionEnteringLAr() { return GetPositionEntering(TMS_Geom::StaticIsInsideLAr); };
-    TLorentzVector GetPositionLeavingLAr() { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetPositionAtZ(double z, double max_z_dist = 220) const; // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
+    TLorentzVector GetPositionZIsLArEnd() const { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
+    TLorentzVector GetPositionZIsTMSStart() const { return GetPositionAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
+    TLorentzVector GetPositionZIsTMSEnd() const { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
+    TLorentzVector GetPositionEntering(IsInsideFunctionType isInside) const;
+    TLorentzVector GetPositionLeaving(IsInsideFunctionType isInside) const;
+    TLorentzVector GetPositionEnteringTMS() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetPositionLeavingTMS() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetPositionEnteringTMSThin() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetPositionLeavingTMSThin() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetPositionEnteringTMSFirstTwoModules() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetPositionLeavingTMSFirstTwoModules() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetPositionEnteringLAr() const { return GetPositionEntering(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetPositionLeavingLAr() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideLAr); };
     
-    std::vector<TVector3> GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS = false);
+    std::vector<TVector3> GetPositionPoints(double z_start, double z_end, bool onlyInsideTMS = false) const;
     
-    TLorentzVector GetMomentumAtZ(double z, double max_z_dist = 220); // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
-    TLorentzVector GetMomentumZIsLArEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
-    TLorentzVector GetMomentumZIsTMSStart() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
-    TLorentzVector GetMomentumZIsTMSEnd() { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
+    TLorentzVector GetMomentumAtZ(double z, double max_z_dist = 220) const; // About 2 planes in either direction is the max z distance we'll tolerate, 110mm / thick plane
+    TLorentzVector GetMomentumZIsLArEnd() const { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfLAr()); };
+    TLorentzVector GetMomentumZIsTMSStart() const { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZStartOfTMS()); };
+    TLorentzVector GetMomentumZIsTMSEnd() const { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
     
-    TLorentzVector GetMomentumEntering(IsInsideFunctionType isInside);
-    TLorentzVector GetMomentumLeaving(IsInsideFunctionType isInside);
-    TLorentzVector GetMomentumEnteringTMS() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
-    TLorentzVector GetMomentumLeavingTMS() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
-    TLorentzVector GetMomentumEnteringTMSThin() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
-    TLorentzVector GetMomentumLeavingTMSThin() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
-    TLorentzVector GetMomentumEnteringTMSFirstTwoModules() { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TLorentzVector GetMomentumLeavingTMSFirstTwoModules() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
-    TLorentzVector GetMomentumEnteringLAr() { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
-    TLorentzVector GetMomentumLeavingLAr() { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetMomentumEntering(IsInsideFunctionType isInside) const;
+    TLorentzVector GetMomentumLeaving(IsInsideFunctionType isInside) const;
+    TLorentzVector GetMomentumEnteringTMS() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetMomentumLeavingTMS() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetMomentumEnteringTMSThin() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetMomentumLeavingTMSThin() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
+    TLorentzVector GetMomentumEnteringTMSFirstTwoModules() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetMomentumLeavingTMSFirstTwoModules() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };
+    TLorentzVector GetMomentumEnteringLAr() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideLAr); };
+    TLorentzVector GetMomentumLeavingLAr() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideLAr); };
     
-    bool EntersVolume(IsInsideFunctionType isInside);
+    bool EntersVolume(IsInsideFunctionType isInside) const;
     
-    double GetEnergyFromMomentum(TVector3 momentum) {
+    double GetEnergyFromMomentum(TVector3 momentum) const {
       if (momentum.X() == TMS_INVALID_TRUTH_VALUE &&
           momentum.Y() == TMS_INVALID_TRUTH_VALUE &&
           momentum.Z() == TMS_INVALID_TRUTH_VALUE) {
@@ -197,11 +203,11 @@ class TMS_TrueParticle {
       return sqrt(momentum.Mag2()+mass*mass);
     }
 
-    double GetBirthEnergy() { 
+    double GetBirthEnergy() const { 
       return GetEnergyFromMomentum(BirthMomentum);
     }
 
-    double GetDeathEnergy() { 
+    double GetDeathEnergy() const { 
       return GetEnergyFromMomentum(DeathMomentum);
     }
 
