@@ -31,7 +31,7 @@ EDEP_INC = -I$(EDEPSIM_INC) -I$(CLHEP_INC)
 endif
 
 # The TMS includes
-TMS_INC = -I../src
+TMS_INC = -I../src -I../src/Cluster3D
 
 TOML_INC = -isystem ../toml11
 
