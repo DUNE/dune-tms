@@ -85,7 +85,11 @@
     # How many bars can the ends/starts of the two simple tracks be away from each other?
     BarLimit = 12
     # How many ns can the ends/starts of the two simple tracks be away from each other?
-    TimeLimit = 16  #30
+    # 30 (was 16): in the X/Y geometry the two views of one muon are read out at different ends of their bars
+    # (y-measuring bars at the sides, x-measuring bars at the top), so light travel puts their times up to
+    # 20-40 ns apart near the detector corners; 16 ns rejects those pairs. 2026-10-05, 24 files: legacy found
+    # 74.5 -> 82.8% of ND-LAr muons, good reconstruction 53.0 -> 59.7%, duplicate tracks not worse.
+    TimeLimit = 30
     # How many ns can the ends/starts of a X simple track be away from U simple track?
     XTimeLimit = 40 #15 # (~10 ns time difference for 3.1m long bars both, plus a bit extra)
     # What is the 'anchor point' of the scintillator bars in y [mm]?
