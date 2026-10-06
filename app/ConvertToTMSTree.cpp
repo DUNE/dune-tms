@@ -271,10 +271,13 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       
       lap.Lap("slice_truth");
       event_counter += 1;
-      
+
       // Try finding some tracks
       TMS_TrackFinder::GetFinder().FindTracks(tms_event_slice);
       lap.Lap("legacy_reco");
+
+      // Build 3D space points from X-Y hit pairs
+      tms_event_slice.BuildSpacePoints();
 
 #ifdef DUNEANAOBJ_ENABLED
       caf::SRTMS srtms = TMS_Utils::ConvertEvent();

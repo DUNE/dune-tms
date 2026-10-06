@@ -21,6 +21,7 @@
 #define __TMS_MAX_HITS__ 20000 // Maximum number of hits in an event
 #define __TMS_MAX_LINE_HITS__ 200 // Maximum number of hits in a track
 #define __TMS_MAX_CLUSTERS__ 500 // Maximum number of clusters in an event
+#define __TMS_MAX_SPACEPOINTS__ 10000 // Maximum number of 3D space points in an event
 #define __TMS_AUTOSAVE__ 1000 // Auto save to root file
 #define __TMS_MAX_TRUE_PARTICLES__ 20000 // Maximum number of true particles to save info about
 #define __TMS_MAX_TRUE_VERTICES__ 5000 // Maximum number of true vertices to save info about, a spill has 400-2500 (not 100% sure right now), but 5k should be okay
@@ -84,6 +85,61 @@ class TMS_TreeWriter {
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
+
+    // 3D Space Point Info
+    int nSpacePoints;
+    float SpacePointX[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointY[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointZ[__TMS_MAX_SPACEPOINTS__];
+    float SpacePointTime[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointXHitIndex[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointYHitIndex[__TMS_MAX_SPACEPOINTS__];
+    // Point layer of each space point (TMS_SpacePoint::GetLayer()): which
+    // plane pair it was built from, z-ordered.
+    int SpacePointLayer[__TMS_MAX_SPACEPOINTS__];
+    // Look-aside table for SpacePointX/YHitIndex: the slice's full raw hit
+    // list (TMS_Event::GetHitsRawRef(), pedestal-suppressed hits included),
+    // in the same order the space-point builder indexed it. Lets a reader get
+    // each space point's two component hits -- e.g. both hit times, where
+    // SpacePointTime only keeps their average -- without changing
+    // TMS_SpacePoint. Neither Line_Candidates' RecoHit* (the track finder's
+    // cleaned hits) nor Truth_Info's TrueRecoHit* (compacted: hits with truth
+    // and > 0.5 PE only) is indexed this way.
+    int nSpacePointHits;
+    float SpacePointHitTime[__TMS_MAX_HITS__];
+    float SpacePointHitNotZ[__TMS_MAX_HITS__];
+    float SpacePointHitZ[__TMS_MAX_HITS__];
+    float SpacePointHitPE[__TMS_MAX_HITS__];
+    int SpacePointHitView[__TMS_MAX_HITS__];     // TMS_Bar bar-type number
+    int SpacePointHitPedSup[__TMS_MAX_HITS__];   // 1 = pedestal-suppressed
+    // Ground truth per hit (same TMS_Utils::GetPrimaryIdsByEnergy lookup as
+    // SpacePointX/YTrue* below): covers every hit, including ones that never
+    // made it into a space point -- needed to study alternative X/Y pairings
+    // and to validate a hit-level fit. -1 / -999 = no truth.
+    Long64_t SpacePointHitTrueVertexGlobalId[__TMS_MAX_HITS__];
+    int SpacePointHitTrueTrackId[__TMS_MAX_HITS__];
+    // How the hit's energy is shared between true primary particles (the
+    // same GetPrimaryIdsByEnergy sums, which fold a particle's own
+    // secondaries -- delta rays -- into it): the fraction carried by the
+    // largest contributor above, the second-largest contributor and its
+    // fraction, and how many primaries contributed. Two muons crossing the
+    // same bar leave ONE hit, genuinely shared; hit-level truth metrics
+    // should credit both. -1 / -999 / 0 = none.
+    float SpacePointHitTrueEnergyFrac[__TMS_MAX_HITS__];
+    Long64_t SpacePointHitTrue2VertexGlobalId[__TMS_MAX_HITS__];
+    int SpacePointHitTrue2TrackId[__TMS_MAX_HITS__];
+    float SpacePointHitTrue2EnergyFrac[__TMS_MAX_HITS__];
+    int SpacePointHitNTrueParticles[__TMS_MAX_HITS__];
+    // Exact ground truth for each space point's two component hits (same
+    // TMS_Utils::GetPrimaryIdsByEnergy lookup RecoHitPrimary* already uses for
+    // Line_Candidates) -- a space point is genuinely from one particle iff
+    // (SpacePointXTrueVertexGlobalId, SpacePointXTrueTrackId) ==
+    // (SpacePointYTrueVertexGlobalId, SpacePointYTrueTrackId), no distance
+    // threshold needed.
+    Long64_t SpacePointXTrueVertexGlobalId[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointXTrueTrackId[__TMS_MAX_SPACEPOINTS__];
+    Long64_t SpacePointYTrueVertexGlobalId[__TMS_MAX_SPACEPOINTS__];
+    int SpacePointYTrueTrackId[__TMS_MAX_SPACEPOINTS__];
 
   private:
     TMS_TreeWriter();

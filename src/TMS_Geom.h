@@ -329,6 +329,57 @@ class TMS_Geom {
       return geom->GetCurrentNode()->GetNumber();
     }
 
+    // Nearest z-ordered plane index (the same indexing GetPlaneNumberForCurrentNode()/
+    // TMS_Bar::GetPlaneNumber() use) for an arbitrary Z position, found by binary
+    // search into the sorted per-plane Z-center table. Used by space-point
+    // clustering to derive "how many real planes apart" two points are directly
+    // from their Z coordinate, since a space point's Z is always exactly some
+    // plane's Z by construction. Returns -1 if no geometry has been surveyed.
+    int GetPlaneIndexNearestZ(double z) {
+      EnsurePlaneLookup();
+      if (PlaneZByIndex.empty()) return -1;
+
+      auto it = std::lower_bound(PlaneZByIndex.begin(), PlaneZByIndex.end(), z);
+      if (it == PlaneZByIndex.begin()) return 0;
+      if (it == PlaneZByIndex.end()) return static_cast<int>(PlaneZByIndex.size()) - 1;
+
+      int after_index = static_cast<int>(it - PlaneZByIndex.begin());
+      int before_index = after_index - 1;
+      double after_dist = std::fabs(PlaneZByIndex[after_index] - z);
+      double before_dist = std::fabs(PlaneZByIndex[before_index] - z);
+      return (before_dist <= after_dist) ? before_index : after_index;
+    }
+
+    // Z-center (mm) of each plane, indexed like GetPlaneIndexNearestZ() /
+    // TMS_Bar::GetPlaneNumber(). Empty if no geometry has been surveyed.
+    const std::vector<double> &GetPlaneZs() {
+      EnsurePlaneLookup();
+      return PlaneZByIndex;
+    }
+
+    // Bar orientation of each plane, as the same number
+    // TMS_Bar::GetBarTypeNumber() gives its bars (0 = kXBar, 1 = kYBar,
+    // 2 = kUBar, 3 = kVBar), -1 if the plane's module-layer name matches none
+    // of the configured orientations or its modules disagree. Read from the
+    // module-layer volume names with the same rule TMS_Bar::FindModules()
+    // uses, so it agrees with every hit's own bar type. Lets code that pairs
+    // planes (space-point building) work from the geometry instead of
+    // assuming a fixed x/y layout.
+    const std::vector<int> &GetPlaneOrientations() {
+      EnsurePlaneLookup();
+      return PlaneOrientationByIndex;
+    }
+
+    // Largest gap between consecutive real plane Z-centers anywhere in the
+    // surveyed geometry (mm) -- e.g. the double-thick region's ~130mm pitch.
+    // Intended as an upper bound for sizing a broad-phase spatial-search radius
+    // when the true tolerance is expressed in "planes", not mm. Returns -1 if
+    // fewer than 2 planes have been surveyed.
+    double GetMaxPlanePitch() {
+      EnsurePlaneLookup();
+      return MaxPlanePitch;
+    }
+
     // Bar copy numbers reset in each geometry module.  Build a contiguous
     // transverse ordering from the actual bar placements instead.
     int GetBarNumberForCurrentNode() {
@@ -338,6 +389,18 @@ class TMS_Geom {
       auto it = BarIndexByPath.find(std::string(geom->GetPath()));
       if (it == BarIndexByPath.end()) return -1;
       return it->second;
+    }
+
+    // Largest per-plane median bar-to-bar spacing (mm) found anywhere in the
+    // surveyed geometry -- a conservative real "bar width" figure (median, not
+    // max, so an occasional bigger gap at a module boundary within a plane
+    // doesn't skew it). Intended as the quantization unit for a transverse
+    // clustering tolerance that scales with plane-index gap, the same role
+    // GetMaxPlanePitch() plays for the Z direction. Returns -1 if fewer than 2
+    // bars were found in any surveyed plane.
+    double GetMaxBarPitch() {
+      EnsureBarLookup();
+      return MaxBarPitch;
     }
 
     void SetFileName(std::string filename) {
@@ -829,12 +892,26 @@ class TMS_Geom {
       }
     }
 
+    // Bar-type number (see GetPlaneOrientations()) for a module-layer volume
+    // name. Checks U, V, X, Y in that order, exactly as TMS_Bar::FindModules().
+    static int PlaneOrientationFromName(const std::string &name) {
+      TMS_Manager &manager = TMS_Manager::GetInstance();
+      if (name.find(manager.Get_GEOMETRY_VOLUME_ModuleLayerU()) != std::string::npos) return 2;
+      if (name.find(manager.Get_GEOMETRY_VOLUME_ModuleLayerV()) != std::string::npos) return 3;
+      if (name.find(manager.Get_GEOMETRY_VOLUME_ModuleLayerX()) != std::string::npos) return 0;
+      if (name.find(manager.Get_GEOMETRY_VOLUME_ModuleLayerY()) != std::string::npos) return 1;
+      return -1;
+    }
+
     void EnsurePlaneLookup() {
       if (PlaneLookupBuilt) return;
       PlaneLookupBuilt = true;
       PlaneIndexByNodeName.clear();
       PlaneIndexByPath.clear();
       PlaneCount = 0;
+      PlaneZByIndex.clear();
+      PlaneOrientationByIndex.clear();
+      MaxPlanePitch = -1;
 
       if (geom == NULL || geom->GetTopNode() == NULL) return;
 
@@ -856,11 +933,22 @@ class TMS_Geom {
           plane_index += 1;
           prev_z = record.ZCenter;
           have_prev_z = true;
+          PlaneZByIndex.push_back(record.ZCenter);
+          PlaneOrientationByIndex.push_back(PlaneOrientationFromName(record.NodeName));
+        } else if (PlaneOrientationByIndex.back() != PlaneOrientationFromName(record.NodeName)) {
+          // Modules at one z disagreeing on orientation: not a plane any
+          // pairing logic can treat as a single view.
+          PlaneOrientationByIndex.back() = -1;
         }
         PlaneIndexByPath[record.NodePath] = plane_index;
         PlaneIndexByNodeName[record.NodeName] = plane_index;
       }
       PlaneCount = plane_index + 1;
+
+      for (size_t i = 1; i < PlaneZByIndex.size(); ++i) {
+        double pitch = PlaneZByIndex[i] - PlaneZByIndex[i - 1];
+        if (pitch > MaxPlanePitch) MaxPlanePitch = pitch;
+      }
     }
 
     void BuildBarLookupRecursive(TGeoNode *node, const TGeoHMatrix &parent, const std::string &parent_path,
@@ -900,6 +988,7 @@ class TMS_Geom {
       if (BarLookupBuilt) return;
       BarLookupBuilt = true;
       BarIndexByPath.clear();
+      MaxBarPitch = -1;
       EnsurePlaneLookup();
       if (geom == NULL || geom->GetTopNode() == NULL) return;
 
@@ -923,6 +1012,21 @@ class TMS_Geom {
         for (size_t index = 0; index < bars.size(); ++index) {
           BarIndexByPath[bars[index].NodePath] = index;
         }
+
+        // Median (not max) consecutive spacing within this plane -- robust
+        // against the occasional larger gap at a module boundary, which isn't
+        // the real single-bar pitch. Track the largest such per-plane median
+        // across all planes as a conservative single "bar width" figure.
+        if (bars.size() >= 2) {
+          std::vector<double> diffs;
+          diffs.reserve(bars.size() - 1);
+          for (size_t index = 1; index < bars.size(); ++index) {
+            diffs.push_back(bars[index].TransverseCenter - bars[index - 1].TransverseCenter);
+          }
+          std::sort(diffs.begin(), diffs.end());
+          double median_pitch = diffs[diffs.size() / 2];
+          if (median_pitch > MaxBarPitch) MaxBarPitch = median_pitch;
+        }
       }
     }
 
@@ -933,7 +1037,9 @@ class TMS_Geom {
       ScaleFactor = 1;
       PlaneLookupBuilt = false;
       PlaneCount = 0;
+      MaxPlanePitch = -1;
       BarLookupBuilt = false;
+      MaxBarPitch = -1;
       fWarnedNoSurvey = false;
     };
 
@@ -959,8 +1065,12 @@ class TMS_Geom {
     std::map<std::string, int> PlaneIndexByPath;
     std::map<std::string, int> PlaneIndexByNodeName;
     int PlaneCount;
+    std::vector<double> PlaneZByIndex;
+    std::vector<int> PlaneOrientationByIndex;  // see GetPlaneOrientations()
+    double MaxPlanePitch;
     bool BarLookupBuilt;
     std::map<std::string, int> BarIndexByPath;
+    double MaxBarPitch;
 
     TMS_GeometryLayout fLayout;
     mutable bool fWarnedNoSurvey;

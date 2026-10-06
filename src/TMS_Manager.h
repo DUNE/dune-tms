@@ -103,7 +103,13 @@ class TMS_Manager {
     double Get_RECO_TIME_PerViewCoincidenceWindowNs() { return _RECO_TIME_PerViewCoincidenceWindowNs; };
     double Get_RECO_TIME_PerViewCoincidenceDzMM() { return _RECO_TIME_PerViewCoincidenceDzMM; };
     double Get_RECO_TIME_PerViewFiberDelayNsPerMM() { return _RECO_TIME_PerViewFiberDelayNsPerMM; };
-    
+
+    double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
+    const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
+    bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
+    bool Get_RECO_SPACEPOINTS_PairingRequireCrossing() { return _RECO_SPACEPOINTS_PairingRequireCrossing; };
+    double Get_RECO_SPACEPOINTS_PairingCrossingSlope() { return _RECO_SPACEPOINTS_PairingCrossingSlope; };
+
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
     double Get_FIDUCIAL_TMS_START_X() { return _FIDUCIAL_TMS_START_X; };
@@ -256,7 +262,13 @@ class TMS_Manager {
     double _RECO_TIME_PerViewCoincidenceWindowNs;
     double _RECO_TIME_PerViewCoincidenceDzMM;
     double _RECO_TIME_PerViewFiberDelayNsPerMM;
-    
+
+    double _RECO_SPACEPOINTS_TimingWindow;
+    std::string _RECO_SPACEPOINTS_Pairing;
+    bool _RECO_SPACEPOINTS_PairingFallback;
+    bool _RECO_SPACEPOINTS_PairingRequireCrossing;
+    double _RECO_SPACEPOINTS_PairingCrossingSlope;
+
     double _RECO_CALIBRATION_EnergyCalibration;
     
     double _FIDUCIAL_TMS_START_X;

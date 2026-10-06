@@ -84,6 +84,7 @@ TMS_TreeWriter::TMS_TreeWriter() {
 
 
   MakeBranches();
+
   FillMetadata();
 }
 
@@ -380,7 +381,34 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
 
-  
+  // Space point branches
+  Reco_Tree->Branch("nSpacePoints", &nSpacePoints, "nSpacePoints/I");
+  Reco_Tree->Branch("SpacePointX", SpacePointX, "SpacePointX[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointY", SpacePointY, "SpacePointY[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointZ", SpacePointZ, "SpacePointZ[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointTime", SpacePointTime, "SpacePointTime[nSpacePoints]/F");
+  Reco_Tree->Branch("SpacePointXHitIndex", SpacePointXHitIndex, "SpacePointXHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointYHitIndex", SpacePointYHitIndex, "SpacePointYHitIndex[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointLayer", SpacePointLayer, "SpacePointLayer[nSpacePoints]/I");
+  Reco_Tree->Branch("nSpacePointHits", &nSpacePointHits, "nSpacePointHits/I");
+  Reco_Tree->Branch("SpacePointHitTime", SpacePointHitTime, "SpacePointHitTime[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitNotZ", SpacePointHitNotZ, "SpacePointHitNotZ[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitZ", SpacePointHitZ, "SpacePointHitZ[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitPE", SpacePointHitPE, "SpacePointHitPE[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitView", SpacePointHitView, "SpacePointHitView[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitPedSup", SpacePointHitPedSup, "SpacePointHitPedSup[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrueVertexGlobalId", SpacePointHitTrueVertexGlobalId, "SpacePointHitTrueVertexGlobalId[nSpacePointHits]/L");
+  Reco_Tree->Branch("SpacePointHitTrueTrackId", SpacePointHitTrueTrackId, "SpacePointHitTrueTrackId[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrueEnergyFrac", SpacePointHitTrueEnergyFrac, "SpacePointHitTrueEnergyFrac[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitTrue2VertexGlobalId", SpacePointHitTrue2VertexGlobalId, "SpacePointHitTrue2VertexGlobalId[nSpacePointHits]/L");
+  Reco_Tree->Branch("SpacePointHitTrue2TrackId", SpacePointHitTrue2TrackId, "SpacePointHitTrue2TrackId[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointHitTrue2EnergyFrac", SpacePointHitTrue2EnergyFrac, "SpacePointHitTrue2EnergyFrac[nSpacePointHits]/F");
+  Reco_Tree->Branch("SpacePointHitNTrueParticles", SpacePointHitNTrueParticles, "SpacePointHitNTrueParticles[nSpacePointHits]/I");
+  Reco_Tree->Branch("SpacePointXTrueVertexGlobalId", SpacePointXTrueVertexGlobalId, "SpacePointXTrueVertexGlobalId[nSpacePoints]/L");
+  Reco_Tree->Branch("SpacePointXTrueTrackId", SpacePointXTrueTrackId, "SpacePointXTrueTrackId[nSpacePoints]/I");
+  Reco_Tree->Branch("SpacePointYTrueVertexGlobalId", SpacePointYTrueVertexGlobalId, "SpacePointYTrueVertexGlobalId[nSpacePoints]/L");
+  Reco_Tree->Branch("SpacePointYTrueTrackId", SpacePointYTrueTrackId, "SpacePointYTrueTrackId[nSpacePoints]/I");
+
   Reco_Tree->Branch("TimeSliceStartTime", &TimeSliceStartTime, "TimeSliceStartTime/F");
   Reco_Tree->Branch("TimeSliceEndTime",   &TimeSliceEndTime,   "TimeSliceEndTime/F");
 
@@ -1953,6 +1981,91 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
   }
 
+  // Fill space point information
+  const std::vector<TMS_SpacePoint>& space_points = event.GetSpacePoints();
+  // Clamp to the fixed array size: nSpacePoints drives the branch's leafcount
+  // ("SpacePointX[nSpacePoints]/F"), so leaving it unclamped while the loop
+  // below stops at __TMS_MAX_SPACEPOINTS__ would make TTree::Fill() read past
+  // the end of these arrays for any event with more than __TMS_MAX_SPACEPOINTS__
+  // space points.
+  nSpacePoints = std::min((int)space_points.size(), __TMS_MAX_SPACEPOINTS__);
+  const std::vector<TMS_Hit>& raw_hits_for_sp = event.GetHitsRawRef();
+  // Look-aside hit table (see TMS_TreeWriter.h), clamped like nSpacePoints.
+  nSpacePointHits = std::min((int)raw_hits_for_sp.size(), __TMS_MAX_HITS__);
+  // Both tables are fixed-size arrays. A slice with more is written truncated: points beyond the limit are dropped
+  // and SpacePointX/YHitIndex can then point past nSpacePointHits, so a reader should treat an index >= nSpacePointHits
+  // as "hit not in the table". In the 250-file production this happened in 5 of 345,626 entries, all SliceNo == 0 (the
+  // hits outside every slice); say so, so it is not silent.
+  if ((int)space_points.size() > __TMS_MAX_SPACEPOINTS__ || (int)raw_hits_for_sp.size() > __TMS_MAX_HITS__) {
+    static int nTruncationWarnings = 0;
+    if (nTruncationWarnings++ < 10)
+      std::cout<<"Warning: slice "<<event.GetSliceNumber()<<" has "<<space_points.size()<<" space points and "<<raw_hits_for_sp.size()
+               <<" hits; the space-point branches hold at most "<<__TMS_MAX_SPACEPOINTS__<<" and "<<__TMS_MAX_HITS__<<", the rest are not written"<<std::endl;
+  }
+  for (int i_h = 0; i_h < nSpacePointHits; ++i_h) {
+    const TMS_Hit &hit = raw_hits_for_sp[i_h];
+    SpacePointHitTime[i_h] = hit.GetT();
+    SpacePointHitNotZ[i_h] = hit.GetNotZ();
+    SpacePointHitZ[i_h] = hit.GetZ();
+    SpacePointHitPE[i_h] = hit.GetPE();
+    SpacePointHitView[i_h] = hit.GetBar().GetBarTypeNumber();
+    SpacePointHitPedSup[i_h] = hit.GetPedSup() ? 1 : 0;
+    SpacePointHitTrueVertexGlobalId[i_h] = -1;
+    SpacePointHitTrueTrackId[i_h] = -999;
+    SpacePointHitTrueEnergyFrac[i_h] = 0;
+    SpacePointHitTrue2VertexGlobalId[i_h] = -1;
+    SpacePointHitTrue2TrackId[i_h] = -999;
+    SpacePointHitTrue2EnergyFrac[i_h] = 0;
+    SpacePointHitNTrueParticles[i_h] = 0;
+    const auto hit_info = TMS_Utils::GetPrimaryIdsByEnergy({hit}, event);
+    if (!hit_info.energies.empty()) {
+      // Contributors come sorted by energy, largest first.
+      const double total = hit_info.total_energy > 0 ? hit_info.total_energy : 1.0;
+      SpacePointHitTrueVertexGlobalId[i_h] = hit_info.vertexglobalids[0];
+      SpacePointHitTrueTrackId[i_h] = hit_info.trackids[0];
+      SpacePointHitTrueEnergyFrac[i_h] = hit_info.energies[0] / total;
+      SpacePointHitNTrueParticles[i_h] = (int)hit_info.energies.size();
+      if (hit_info.energies.size() > 1) {
+        SpacePointHitTrue2VertexGlobalId[i_h] = hit_info.vertexglobalids[1];
+        SpacePointHitTrue2TrackId[i_h] = hit_info.trackids[1];
+        SpacePointHitTrue2EnergyFrac[i_h] = hit_info.energies[1] / total;
+      }
+    }
+  }
+  for (int i_sp = 0; i_sp < nSpacePoints; ++i_sp) {
+    SpacePointX[i_sp] = space_points[i_sp].GetX();
+    SpacePointY[i_sp] = space_points[i_sp].GetY();
+    SpacePointZ[i_sp] = space_points[i_sp].GetZ();
+    SpacePointTime[i_sp] = space_points[i_sp].GetTime();
+    SpacePointXHitIndex[i_sp] = space_points[i_sp].GetXHitIndex();
+    SpacePointYHitIndex[i_sp] = space_points[i_sp].GetYHitIndex();
+    SpacePointLayer[i_sp] = space_points[i_sp].GetLayer();
+
+    // Exact ground truth for the two hits that formed this space point (same
+    // lookup RecoHitPrimary* uses above) -- lets a downstream consumer check
+    // whether a space point is genuinely from one particle by comparing IDs
+    // directly, instead of a distance-to-true-hit approximation.
+    SpacePointXTrueVertexGlobalId[i_sp] = -1;
+    SpacePointXTrueTrackId[i_sp] = -999;
+    SpacePointYTrueVertexGlobalId[i_sp] = -1;
+    SpacePointYTrueTrackId[i_sp] = -999;
+    const int x_idx = SpacePointXHitIndex[i_sp];
+    const int y_idx = SpacePointYHitIndex[i_sp];
+    if (x_idx >= 0 && static_cast<size_t>(x_idx) < raw_hits_for_sp.size()) {
+      const auto x_info = TMS_Utils::GetPrimaryIdsByEnergy({raw_hits_for_sp[x_idx]}, event);
+      if (!x_info.energies.empty()) {
+        SpacePointXTrueVertexGlobalId[i_sp] = x_info.vertexglobalids[0];
+        SpacePointXTrueTrackId[i_sp] = x_info.trackids[0];
+      }
+    }
+    if (y_idx >= 0 && static_cast<size_t>(y_idx) < raw_hits_for_sp.size()) {
+      const auto y_info = TMS_Utils::GetPrimaryIdsByEnergy({raw_hits_for_sp[y_idx]}, event);
+      if (!y_info.energies.empty()) {
+        SpacePointYTrueVertexGlobalId[i_sp] = y_info.vertexglobalids[0];
+        SpacePointYTrueTrackId[i_sp] = y_info.trackids[0];
+      }
+    }
+  }
 
   Reco_Tree->Fill();
   Truth_Info->Fill();
@@ -2559,7 +2672,23 @@ void TMS_TreeWriter::Clear() {
     RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
   }
-  
+
+  // Reset space point information
+  nSpacePoints = DEFAULT_CLEARING_FLOAT;
+  nSpacePointHits = 0;
+  for (int i = 0; i < __TMS_MAX_SPACEPOINTS__; ++i) {
+    SpacePointX[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointY[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointZ[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointTime[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXHitIndex[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYHitIndex[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXTrueVertexGlobalId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointXTrueTrackId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYTrueVertexGlobalId[i] = DEFAULT_CLEARING_FLOAT;
+    SpacePointYTrueTrackId[i] = DEFAULT_CLEARING_FLOAT;
+  }
+
   RecoTrackN = 0;
   for (int i = 0; i < __TMS_MAX_LINES__; ++i) {
     RecoTrackTrueVisibleEnergy[i] = DEFAULT_CLEARING_FLOAT;
