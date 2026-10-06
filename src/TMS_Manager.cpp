@@ -72,6 +72,17 @@ TMS_Manager::TMS_Manager() {
       toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingRequireCrossing", true);
   _RECO_SPACEPOINTS_PairingCrossingSlope =
       toml::find_or<double>(data, "Recon", "SpacePoints", "PairingCrossingSlope", 1.0);
+  // [Recon.Cluster3D] is optional (config files that predate it keep working, with Cluster3D off); the defaults
+  // are the values in config/TMS_Default_Config.toml.
+  _RECO_CLUSTER3D_Enabled = toml::find_or<bool>(data, "Recon", "Cluster3D", "Enabled", false);
+  _RECO_CLUSTER3D_GraphSearch = toml::find_or<bool>(data, "Recon", "Cluster3D", "GraphSearch", false);
+  _RECO_CLUSTER3D_LinkClusters = toml::find_or<bool>(data, "Recon", "Cluster3D", "LinkClusters", false);
+  _RECO_CLUSTER3D_MomentumFromRange = toml::find_or<bool>(data, "Recon", "Cluster3D", "MomentumFromRange", false);
+  _RECO_CLUSTER3D_RangeContainmentMarginXY = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginXY", 100.0);
+  _RECO_CLUSTER3D_RangeContainmentMarginZ = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginZ", 100.0);
+  _RECO_CLUSTER3D_RangeReseedFactor = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeReseedFactor", 1.5);
+  _RECO_CLUSTER3D_XYTimeSigmaNs = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeSigmaNs", 3.7);
+  _RECO_CLUSTER3D_XYTimeGateNSigma = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeGateNSigma", 2.0);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");

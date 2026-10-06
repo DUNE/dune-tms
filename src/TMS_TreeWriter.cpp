@@ -85,6 +85,24 @@ TMS_TreeWriter::TMS_TreeWriter() {
 
   MakeBranches();
 
+  if (TMS_Manager::GetInstance().Get_RECO_CLUSTER3D_Enabled()) {
+    // Same branches at the same addresses (CloneTree copies only active
+    // branches and shares their addresses), minus the space-point families,
+    // which are identical to Reco_Tree's and large.
+    Reco_Tree->SetBranchStatus("SpacePoint*", 0);
+    Reco_Tree->SetBranchStatus("nSpacePoint*", 0);
+    Reco_Tree_C3D = Reco_Tree->CloneTree(0);
+    Reco_Tree->SetBranchStatus("*", 1);
+    Reco_Tree_C3D->SetName("Reco_Tree_C3D");
+    Reco_Tree_C3D->SetTitle("Reco_Tree with Cluster3D tracks");
+    Reco_Tree_C3D->SetDirectory(Output);
+    Reco_Tree_C3D->SetAutoSave(__TMS_AUTOSAVE__);
+    Truth_Info_C3D = Truth_Info->CloneTree(0);
+    Truth_Info_C3D->SetName("Truth_Info_C3D");
+    Truth_Info_C3D->SetTitle("Truth_Info with Cluster3D track truth");
+    Truth_Info_C3D->SetDirectory(Output);
+    Truth_Info_C3D->SetAutoSave(__TMS_AUTOSAVE__);
+  }
   FillMetadata();
 }
 
@@ -377,6 +395,10 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("Chi2",           RecoTrackChi2,            "Chi2[nTracks]/F");
   Reco_Tree->Branch("Chi2_minus",     RecoTrackChi2_minus,      "Chi2_minus[nTracks]/F");
   Reco_Tree->Branch("Chi2_plus",      RecoTrackChi2_plus,       "Chi2_plus[nTracks]/F");
+  Reco_Tree->Branch("NDoF",           RecoTrackNDoF,            "NDoF[nTracks]/I");
+  Reco_Tree->Branch("NLayersWalked",  RecoTrackNLayersWalked,   "NLayersWalked[nTracks]/I");
+  Reco_Tree->Branch("NGapLayers",     RecoTrackNGapLayers,      "NGapLayers[nTracks]/I");
+  Reco_Tree->Branch("NOrphanHits",    RecoTrackNOrphanHits,     "NOrphanHits[nTracks]/I");
 
   Reco_Tree->Branch("TrackHitEnergies", RecoTrackHitEnergies,   "TrackHitEnergies[nTracks][200]/F");
   Reco_Tree->Branch("TrackHitBarType",  RecoTrackHitBarType,    "RecoTrackHitBarType[nTracks][200]/I");
@@ -718,6 +740,16 @@ static int normalizeRunNumber(int run) {
 }
 
 void TMS_TreeWriter::Fill(TMS_Event &event) {
+  // The legacy reconstruction's tracks into the legacy trees; then, if
+  // enabled, the same slice again with the Cluster3D tracks into the C3D
+  // trees (every non-track branch recomputed identically).
+  FillSlice(event, TMS_TrackFinder::GetFinder().GetHoughTracks3D(), Reco_Tree, Truth_Info, true);
+  if (Reco_Tree_C3D && Truth_Info_C3D)
+    FillSlice(event, event.GetCluster3DTracks(), Reco_Tree_C3D, Truth_Info_C3D, false);
+}
+
+void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &tracks, TTree *reco, TTree *truth,
+                               bool fillLines) {
   // Clear old info
   Clear();
 
@@ -1601,7 +1633,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   }
 
   // Fill up the info only if all above has passed
-  Branch_Lines->Fill();
+  if (fillLines) Branch_Lines->Fill();
 
 
   // Fill the 3D Tracks
@@ -1609,16 +1641,24 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
 
   int itTrack= 0;
-  std::vector<TMS_Track> Reco_Tracks = TMS_TrackFinder::GetFinder().GetHoughTracks3D();
-  nTracks = Reco_Tracks.size();
+  const std::vector<TMS_Track> &Reco_Tracks = tracks;
+  // The per-track branches are fixed-size arrays (__TMS_MAX_TRACKS__ tracks, __TMS_MAX_LINE_HITS__ hits and
+  // Kalman nodes each) and nTracks, nHitsIn3DTrack and nKalmanNodes are their leaf counts, so clamp all of them:
+  // an event with more would otherwise write past the arrays. (Production slices have at most 13 tracks and 53
+  // nodes, far below the limits, so this changes nothing there.)
+  nTracks = std::min((int)Reco_Tracks.size(), __TMS_MAX_TRACKS__);
   RecoTrackN = Reco_Tracks.size();
   
   TimeSliceStartTime = event.GetTimeSliceBounds().first;
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    if (itTrack >= __TMS_MAX_TRACKS__) {
+      std::cout<<"Warning: more than __TMS_MAX_TRACKS__ = "<<__TMS_MAX_TRACKS__<<" tracks in a slice, the rest are not written. If this happens often, increase __TMS_MAX_TRACKS__"<<std::endl;
+      break;
+    }
+    nHitsIn3DTrack[itTrack]         = std::min((int) RecoTrack->Hits.size(), __TMS_MAX_LINE_HITS__);
+    nKalmanNodes[itTrack]           = std::min((int) RecoTrack->KalmanNodes.size(), __TMS_MAX_LINE_HITS__);
     const float raw_3d_length = RecoTrack->Length;
     const float fallback_2d_length =
         TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
@@ -1649,6 +1689,10 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     RecoTrackChi2[itTrack]          = RecoTrack->Chi2;
     RecoTrackChi2_minus[itTrack]    = RecoTrack->Chi2_minus;
     RecoTrackChi2_plus[itTrack]     = RecoTrack->Chi2_plus;
+    RecoTrackNDoF[itTrack]          = RecoTrack->NDoF;
+    RecoTrackNLayersWalked[itTrack] = RecoTrack->NLayersWalked;
+    RecoTrackNGapLayers[itTrack]    = RecoTrack->NGapLayers;
+    RecoTrackNOrphanHits[itTrack]   = RecoTrack->NOrphanHits;
     
     for (int j = 0; j < 4; j++) {
       RecoTrackStartPos[itTrack][j]  = RecoTrack->Start[j];
@@ -1686,7 +1730,7 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
 
-    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size() && j < __TMS_MAX_LINE_HITS__; ++j) {
       //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
       //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
@@ -2067,8 +2111,8 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
     }
   }
 
-  Reco_Tree->Fill();
-  Truth_Info->Fill();
+  reco->Fill();
+  truth->Fill();
 }
 
 // Calls apply(field) on the element `index` of every per-particle branch whose
@@ -2671,6 +2715,10 @@ void TMS_TreeWriter::Clear() {
     RecoTrackChi2[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_minus[i] = DEFAULT_CLEARING_FLOAT;
     RecoTrackChi2_plus[i] = DEFAULT_CLEARING_FLOAT;
+    RecoTrackNDoF[i] = -1;
+    RecoTrackNLayersWalked[i] = -1;
+    RecoTrackNGapLayers[i] = -1;
+    RecoTrackNOrphanHits[i] = -1;
   }
 
   // Reset space point information

@@ -109,6 +109,15 @@ class TMS_Manager {
     bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
     bool Get_RECO_SPACEPOINTS_PairingRequireCrossing() { return _RECO_SPACEPOINTS_PairingRequireCrossing; };
     double Get_RECO_SPACEPOINTS_PairingCrossingSlope() { return _RECO_SPACEPOINTS_PairingCrossingSlope; };
+    bool Get_RECO_CLUSTER3D_Enabled() { return _RECO_CLUSTER3D_Enabled; };
+    bool Get_RECO_CLUSTER3D_GraphSearch() { return _RECO_CLUSTER3D_GraphSearch; };
+    bool Get_RECO_CLUSTER3D_LinkClusters() { return _RECO_CLUSTER3D_LinkClusters; };
+    bool Get_RECO_CLUSTER3D_MomentumFromRange() { return _RECO_CLUSTER3D_MomentumFromRange; };
+    double Get_RECO_CLUSTER3D_RangeContainmentMarginXY() { return _RECO_CLUSTER3D_RangeContainmentMarginXY; };
+    double Get_RECO_CLUSTER3D_RangeContainmentMarginZ() { return _RECO_CLUSTER3D_RangeContainmentMarginZ; };
+    double Get_RECO_CLUSTER3D_RangeReseedFactor() { return _RECO_CLUSTER3D_RangeReseedFactor; };
+    double Get_RECO_CLUSTER3D_XYTimeSigmaNs() { return _RECO_CLUSTER3D_XYTimeSigmaNs; };
+    double Get_RECO_CLUSTER3D_XYTimeGateNSigma() { return _RECO_CLUSTER3D_XYTimeGateNSigma; };
 
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -268,6 +277,15 @@ class TMS_Manager {
     bool _RECO_SPACEPOINTS_PairingFallback;
     bool _RECO_SPACEPOINTS_PairingRequireCrossing;
     double _RECO_SPACEPOINTS_PairingCrossingSlope;
+    bool _RECO_CLUSTER3D_Enabled;
+    bool _RECO_CLUSTER3D_GraphSearch;
+    bool _RECO_CLUSTER3D_LinkClusters;
+    bool _RECO_CLUSTER3D_MomentumFromRange;
+    double _RECO_CLUSTER3D_RangeContainmentMarginXY;
+    double _RECO_CLUSTER3D_RangeContainmentMarginZ;
+    double _RECO_CLUSTER3D_RangeReseedFactor;
+    double _RECO_CLUSTER3D_XYTimeSigmaNs;
+    double _RECO_CLUSTER3D_XYTimeGateNSigma;
 
     double _RECO_CALIBRATION_EnergyCalibration;
     

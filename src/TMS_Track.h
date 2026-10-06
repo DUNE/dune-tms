@@ -36,6 +36,22 @@ class TMS_Track {
     double Chi2;
     double Chi2_minus;
     double Chi2_plus;
+    // Fit-quality counts, filled by the Cluster3D reconstruction (-1 = not
+    // filled, e.g. legacy tracks): the fit's degrees of freedom (Chi2 / NDoF
+    // is its chi2 per degree of freedom), the point layers the Kalman walk
+    // stepped through, how many of those had no accepted hit, and the hits
+    // taken outside any space point (orphan pickup and the single-hit
+    // extension). 2026-09-27, 15 files: tracks whose hits no single particle
+    // owns have a median chi2/ndf of 6.1 (muon tracks 1.4) and gap fraction
+    // NGapLayers / NLayersWalked of 0.33 (muons 0); chi2/ndf > 6 flags half of
+    // them at a cost of 5% of muon tracks (and 36% of real pion/proton tracks,
+    // which look much like them).
+    // NDoF is the number of measurements minus 5, so it can be 0 or negative for very short tracks; a track that was
+    // not fitted by Cluster3D has -1 here AND in NLayersWalked.
+    int NDoF = -1;
+    int NLayersWalked = -1;
+    int NGapLayers = -1;
+    int NOrphanHits = -1;
     
 
 

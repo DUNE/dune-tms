@@ -279,6 +279,10 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       // Build 3D space points from X-Y hit pairs
       tms_event_slice.BuildSpacePoints();
 
+      // Cluster3D reconstruction over those space points ([Recon.Cluster3D]);
+      // its tracks go to the Reco_Tree_C3D / Truth_Info_C3D trees.
+      if (TMS_Manager::GetInstance().Get_RECO_CLUSTER3D_Enabled()) tms_event_slice.RunCluster3DReco();
+
 #ifdef DUNEANAOBJ_ENABLED
       caf::SRTMS srtms = TMS_Utils::ConvertEvent();
 #endif
