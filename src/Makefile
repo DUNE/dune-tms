@@ -30,6 +30,11 @@ endif
 
 TOML_INC = -isystem ../toml11/
 
+# Sources in subdirectories (src/Cluster3D/): make finds the .cpp through VPATH; -I. lets them include headers
+# from src/, -I$(CLUSTER3D_DIR) lets src/ include theirs.
+CLUSTER3D_DIR = Cluster3D
+VPATH = $(CLUSTER3D_DIR)
+
 CXXFLAGS = -Wall -Wextra -g -fPIC -Wno-free-nonheap-object # free nonheap obj warnings are mostly bugs in gcc 12 apparently
 ifdef DEBUG
   CXXFLAGS+=-Og
@@ -39,7 +44,7 @@ endif
 ifdef VERBOSE
   CXXFLAGS+=-DDEBUG
 endif
-CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TOML_INC)
+CXXFLAGS += $(ROOT_INC) $(EDEP_INC) $(TOML_INC) -I. -I$(CLUSTER3D_DIR)
 
 # Replace and create
 ARFLAGS = rc
@@ -55,7 +60,7 @@ MKDIR_P := mkdir -p
 # Library directory where we build to
 LIB_DIR=../lib
 
-TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_Track.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_ChargeID.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o TMS_Utils.o TMS_TimeSlicer.o TMS_Geom.o TMS_DetectorSimulation.o TMS_SignalProcessing.o
+TMS_OBJ = TMS_Bar.o TMS_Hit.o TMS_TrueHit.o TMS_Event.o TMS_Track.o TMS_TrueParticle.o TMS_EventViewer.o TMS_Reco.o TMS_ChargeID.o TMS_Kalman.o TMS_TreeWriter.o TMS_ReadoutTreeWriter.o TMS_Manager.o TMS_Readout_Manager.o BField_Handler.o TMS_Utils.o TMS_TimeSlicer.o TMS_Geom.o TMS_DetectorSimulation.o TMS_SignalProcessing.o TMS_PlanePairing.o TMS_SpacePointBuilder.o TMS_SpacePointTiming.o TMS_LayerGrouping.o TMS_ClusterLinker.o TMS_IterativeTrackFit.o TMS_KalmanFollower.o TMS_GraphTrackFinder.o TMS_Cluster3DReco.o
 
 # Our lovely collection of libs
 LIB_OBJ = $(EDEP_LIBS) $(ROOT_LIBS)

@@ -247,10 +247,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       if (!TMS_Manager::GetInstance().Get_Reco_TIME_RunTimeSlicer()) tms_event_slice = tms_event;
       else {
         TMS_Event built(tms_event, slice);
-        lap.Lap("slice_ctor_total");
+        lap.Lap("slice_build");
         tms_event_slice = std::move(built);
       }
-      lap.Lap("slice_assign");
 
       // Fill truth info, but only for slice != 0 (but with no time slicer, all slices = 1 so do it anyway.
       if (gRoo && (slice != 0 || nslices == 1)) {

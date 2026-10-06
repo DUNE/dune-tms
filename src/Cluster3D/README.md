@@ -97,21 +97,11 @@ decision is made.
 
 ## Validation
 
-- **In conversion.** With `Enabled = true`, the validation suite
-  (`scripts/Validation/Tracking_Validation`) reads the Cluster3D trees when
-  run with `TMS_VALIDATION_RECO_TREE=Reco_Tree_C3D
-  TMS_VALIDATION_TRUTH_TREE=Truth_Info_C3D`, so both trackers get the same
-  plots from the same files.
-- **Truth tools** in `app/cluster3D/`: see `app/cluster3D/README.md` for what
-  each does, its command line and its environment hooks.
-  `Cluster3DRecoTruth` runs exactly the production stage and scores every
-  track and every true muon. Their binaries build into `build/app/` like
-  every other app. They read space points back out of a `Reco_Tree` that
-  `ConvertToTMSTree` already wrote, and tools that fit tracks also need a
-  separate geometry-bearing file (the input `*.EDEPSIM_SPILLS.root`), since
-  `TMS_Geom::GetMaterials`'s material stepping needs a live `TGeoManager`
-  that the standard `Reco_Tree` file doesn't embed.
-
-An interactive diagram of an earlier stage of the pipeline (before cluster
-linking, stitching and per-view slicing), with a legacy-path comparison:
-https://claude.ai/code/artifact/2fc47021-a70f-42bf-87b8-5d5c7a9a32c2
+- **In conversion.** With `Enabled = true`, the Cluster3D tracks are written to
+  `Reco_Tree_C3D` / `Truth_Info_C3D`, which carry every branch of the legacy
+  `Reco_Tree` / `Truth_Info` (including the truth), slice by slice, so any
+  analysis that reads the legacy trees can read these instead and compare the
+  two trackers on the same slices.
+- The truth-matching tools (which score every track and every true muon), the
+  validation-suite hooks that read the Cluster3D trees, and the research apps
+  are not part of this change; they come separately.

@@ -442,8 +442,6 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       TimeSliceBounds(event.TimeSliceBounds), info_about_vtx(event.info_about_vtx),
       generator(event.generator) {
   // Create an event from a slice of another event
-  // (the member initializers above, which copy the spill's particles and non-TMS hits, run before this clock starts)
-  TMS_StageTimer::Clock lap;
   RunNumber = event.RunNumber;
   // Was left uninitialized for slices, so Truth_Info's nPrimaryVertices and
   // HasPileup held garbage for every slice (found 2026-09-25 when the output
@@ -462,14 +460,12 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
   }
 
 
-  lap.Lap("ctor/truth_table");
   nTrueTrajectories = -999;
   nVertices = -999;
   VertexIdOfMostEnergyInEvent = -9991;
   VertexGlobalIdOfMostEnergyInEvent = -9991;
   LightWeight = true;
   GetVertexIdOfMostVisibleEnergy();
-  lap.Lap("ctor/vertex_id");
   
   // Todo, did I copy everything
   // Update event counter if slice != 0, and keep old event number for slice 0.
@@ -492,13 +488,23 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
     else { Reaction = "NA"; std::cout<<"Warning: couldn't find reaction for primary vertex"<<std::endl; }
   }
 
-  lap.Lap("ctor/lepton_reaction");
   // Update the counts per slice
   ConnectTrueHitWithTrueParticle(true);
-  lap.Lap("ctor/connect_true_particles");
 }
 
 void TMS_Event::ApplyReconstructionEffects() {
+  // The response-element redesign (stitched physical passages, fixed-scale
+  // re-segmentation, local Birks/optical response before thresholding) is being built
+  // out behind this flag phase by phase -- see
+  // reports/2026-09-04_detector_response_restructuring_proposal/. Fail loudly rather
+  // than silently falling through to the old pipeline if someone flips this on before
+  // a later phase actually implements it.
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+    throw std::runtime_error(
+        "Sim.DetSim.UseResponseElements is set but the response-element pipeline is not "
+        "yet implemented -- leave this false until a later redesign phase lands.");
+  }
+
   // First apply energy and timing models. Then merge hits. Then do a pedestal subtraction.
   // Sim-only steps (TMS_DetectorSimulation) and real-or-simulated steps (TMS_SignalProcessing)
   // are interleaved in this exact order deliberately: SimulateReadoutNoise() must run after
@@ -1054,6 +1060,15 @@ void TMS_Event::RunCluster3DReco() {
 
   TMS_StageTimer::Clock lap;
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  if (barPitch <= 0.0) {
+    // GetMaxBarPitch() is -1 when the geometry survey found no bars. The clustering tolerance and every hit's
+    // position uncertainty come from it, so rather than run with negative values, write no Cluster3D tracks.
+    static bool warned = false;
+    if (!warned) std::cerr << "Warning: no bar pitch from the geometry survey, so no Cluster3D tracks are made." << std::endl;
+    warned = true;
+    Cluster3DTracks.clear();
+    return;
+  }
   const std::vector<TMS_KalmanFollower::FitHit> fitHits = TMS_Cluster3DReco::BuildFitHits(TMS_Hits, barPitch);
   lap.Lap("c3d/fit_hits");
   const std::vector<TMS_Cluster3DReco::Track> tracks =

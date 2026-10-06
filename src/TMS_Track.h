@@ -46,6 +46,8 @@ class TMS_Track {
     // NGapLayers / NLayersWalked of 0.33 (muons 0); chi2/ndf > 6 flags half of
     // them at a cost of 5% of muon tracks (and 36% of real pion/proton tracks,
     // which look much like them).
+    // NDoF is the number of measurements minus 5, so it can be 0 or negative for very short tracks; a track that was
+    // not fitted by Cluster3D has -1 here AND in NLayersWalked.
     int NDoF = -1;
     int NLayersWalked = -1;
     int NGapLayers = -1;

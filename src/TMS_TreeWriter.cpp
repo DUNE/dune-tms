@@ -1,6 +1,5 @@
 #include "TMS_TreeWriter.h"
 #include <cstring>
-#include "TMS_StageTimer.h"
 #include <stdexcept>
 #include "TMS_VertexId.h"
 #include "TMS_Reco.h"
@@ -751,7 +750,6 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
 
 void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &tracks, TTree *reco, TTree *truth,
                                bool fillLines) {
-  TMS_StageTimer::Clock lap;
   // Clear old info
   Clear();
 
@@ -759,9 +757,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   int nLastHits = TMS_Manager::GetInstance().Get_Reco_STOPPING_nLastHits();
   double EnergyCut = TMS_Manager::GetInstance().Get_Reco_STOPPING_EnergyCut();
   
-  lap.Lap("tw/clear");
   FillTruthInfo(event);
-  lap.Skip();  // FillTruthInfo times its own stages (tw/ti_*)
 
 
   // Fill the truth info
@@ -808,7 +804,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   //Muon_TrueTrackLength = -999.99;
   Muon_TrueKE = event.GetMuonTrueKE();
   
-  lap.Lap("tw/truth_branches");
   // Fill LAr hit outer shell energy info
   // Case 1: All energy in outer shell, useful only for single event interactions
   // Case 2: All energy from primary vertex, useful for pileup. We're assuming reco can distinguish
@@ -837,7 +832,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   TotalNonTMSEnergy = LArEnergyAll->NonTMS;
   TotalNonTMSEnergyFromVertex = fromVertex->second.NonTMS;
 
-  lap.Lap("tw/lar_shell");
   // Fill the reco info
   std::vector<std::pair<bool, TF1*>> HoughLinesU = TMS_TrackFinder::GetFinder().GetHoughLinesU();
   std::vector<std::pair<bool, TF1*>> HoughLinesV = TMS_TrackFinder::GetFinder().GetHoughLinesV();
@@ -888,7 +882,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   }
 
   int it = 0;
-  lap.Lap("tw/reco_setup");
   for (auto &Lines: HoughLinesU) {
     // Get the slopes saved down
     InterceptU[it] = Lines.second->GetParameter(0);
@@ -1072,7 +1065,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   TMS_Hit *FirstTrack = NULL;
 
   it = 0;
-  lap.Lap("tw/hough_lines");
   for (auto &Candidates: HoughCandsU) {
     // Loop over hits
     for (auto &hit: Candidates) {
@@ -1409,7 +1401,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   int stdit = 0;
   // Calculate the cluster by cluster summaries
   // e.g. total energy in cluster, cluster position, and cluster standard deviation
-  lap.Lap("tw/hough_candidates");
   for (auto itU = ClustersU.begin(); itU != ClustersU.end(); ++itU, ++stdit) {
     double total_energy = 0;
     // Mean of cluster in z and not z
@@ -1604,7 +1595,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   }
   stdit = 0;
   const auto TrueParticles = event.GetTrueParticles();
-  lap.Lap("tw/clusters");
   for (auto itH = CleanedHits.begin(); itH != CleanedHits.end(); ++itH, ++stdit) {
     RecoHitPos[stdit][0] = (*itH).GetX();
     RecoHitPos[stdit][1] = (*itH).GetY();
@@ -1642,27 +1632,33 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
-  lap.Lap("tw/cleaned_hits");
   // Fill up the info only if all above has passed
   if (fillLines) Branch_Lines->Fill();
 
 
-  lap.Lap("tw/lines_fill");
   // Fill the 3D Tracks
   // First get the tracks for this event:
   //TODO: Function here that uses the info from ^^^^^ to fill the 3DTrack objects
 
   int itTrack= 0;
   const std::vector<TMS_Track> &Reco_Tracks = tracks;
-  nTracks = Reco_Tracks.size();
+  // The per-track branches are fixed-size arrays (__TMS_MAX_TRACKS__ tracks, __TMS_MAX_LINE_HITS__ hits and
+  // Kalman nodes each) and nTracks, nHitsIn3DTrack and nKalmanNodes are their leaf counts, so clamp all of them:
+  // an event with more would otherwise write past the arrays. (Production slices have at most 13 tracks and 53
+  // nodes, far below the limits, so this changes nothing there.)
+  nTracks = std::min((int)Reco_Tracks.size(), __TMS_MAX_TRACKS__);
   RecoTrackN = Reco_Tracks.size();
   
   TimeSliceStartTime = event.GetTimeSliceBounds().first;
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    if (itTrack >= __TMS_MAX_TRACKS__) {
+      std::cout<<"Warning: more than __TMS_MAX_TRACKS__ = "<<__TMS_MAX_TRACKS__<<" tracks in a slice, the rest are not written. If this happens often, increase __TMS_MAX_TRACKS__"<<std::endl;
+      break;
+    }
+    nHitsIn3DTrack[itTrack]         = std::min((int) RecoTrack->Hits.size(), __TMS_MAX_LINE_HITS__);
+    nKalmanNodes[itTrack]           = std::min((int) RecoTrack->KalmanNodes.size(), __TMS_MAX_LINE_HITS__);
     const float raw_3d_length = RecoTrack->Length;
     const float fallback_2d_length =
         TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
@@ -1734,7 +1730,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
 
-    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size() && j < __TMS_MAX_LINE_HITS__; ++j) {
       //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
       //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();
@@ -1975,7 +1971,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   // Clear branches
   NTrueHits = 0;
   int index = 0;
-  lap.Lap("tw/tracks_3d");
   for (auto& hit : event.GetHitsRaw()) {
     if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
       std::cout<<"TMS_TreeWriter WARNING: Too many hits in event. Increase __MAX_TRUE_TREE_ARRAY_LENGTH__. Saving partial event"<<std::endl;
@@ -2030,7 +2025,6 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
-  lap.Lap("tw/raw_hits");
   // Fill space point information
   const std::vector<TMS_SpacePoint>& space_points = event.GetSpacePoints();
   // Clamp to the fixed array size: nSpacePoints drives the branch's leafcount
@@ -2042,6 +2036,16 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   const std::vector<TMS_Hit>& raw_hits_for_sp = event.GetHitsRawRef();
   // Look-aside hit table (see TMS_TreeWriter.h), clamped like nSpacePoints.
   nSpacePointHits = std::min((int)raw_hits_for_sp.size(), __TMS_MAX_HITS__);
+  // Both tables are fixed-size arrays. A slice with more is written truncated: points beyond the limit are dropped
+  // and SpacePointX/YHitIndex can then point past nSpacePointHits, so a reader should treat an index >= nSpacePointHits
+  // as "hit not in the table". In the 250-file production this happened in 5 of 345,626 entries, all SliceNo == 0 (the
+  // hits outside every slice); say so, so it is not silent.
+  if ((int)space_points.size() > __TMS_MAX_SPACEPOINTS__ || (int)raw_hits_for_sp.size() > __TMS_MAX_HITS__) {
+    static int nTruncationWarnings = 0;
+    if (nTruncationWarnings++ < 10)
+      std::cout<<"Warning: slice "<<event.GetSliceNumber()<<" has "<<space_points.size()<<" space points and "<<raw_hits_for_sp.size()
+               <<" hits; the space-point branches hold at most "<<__TMS_MAX_SPACEPOINTS__<<" and "<<__TMS_MAX_HITS__<<", the rest are not written"<<std::endl;
+  }
   for (int i_h = 0; i_h < nSpacePointHits; ++i_h) {
     const TMS_Hit &hit = raw_hits_for_sp[i_h];
     SpacePointHitTime[i_h] = hit.GetT();
@@ -2107,11 +2111,8 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
   }
 
-  lap.Lap("tw/space_points");
   reco->Fill();
-  lap.Lap("tw/tree_fill_reco");
   truth->Fill();
-  lap.Lap("tw/tree_fill_truth");
 }
 
 // Calls apply(field) on the element `index` of every per-particle branch whose
@@ -2183,9 +2184,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   InteractionLArFiducial = TMS_Geom::GetInstance().IsInsideLarFiducial(interaction_location);
   
   // Get the truth info
-  TMS_StageTimer::Clock lap;
   const std::vector<TMS_TrueParticle> &TrueParticles = event.GetTrueParticles();
-  lap.Lap("tw/ti_particles");
   nParticles = TrueParticles.size();
   // Just trying to find the true muon here from the fundamental vertex
   for (auto it = TrueParticles.begin(); it != TrueParticles.end(); ++it) {
@@ -2211,7 +2210,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     Muon_Death[3] = (*it).GetDeathPosition().T();
   }
     
-  lap.Lap("tw/ti_muon_search");
   nTrueParticles = TrueParticles.size();
   nTruePrimaryParticles = 0;
   nTrueForgottenParticles = event.GetNTrueForgottenParticles();
@@ -2341,7 +2339,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     ParticleTruthCacheSpill = event.GetSpillNumber();
     ParticleTruthCacheBytes = bytesPerParticle;
   }
-  lap.Lap("tw/ti_particle_loop");
   auto vtx_info = event.GetVertexInfo();
   TrueVtxN = std::min((int)vtx_info.size(), __TMS_MAX_TRUE_VERTICES__);
   int true_vtx_index = 0;
@@ -2383,7 +2380,6 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     // Finally update index
     true_vtx_index++;
   }
-  lap.Lap("tw/ti_vertex_info");
 }
 
 void TMS_TreeWriter::FillSpill(TMS_Event &event, int truth_info_entry_number, int truth_info_n_slices) {

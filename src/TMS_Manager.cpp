@@ -76,21 +76,26 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_PerViewOrphanPickupDzMM = toml::find_or<double>(data, "Recon", "Time", "PerViewOrphanPickupDzMM", 200.0);
   _RECO_TIME_PerViewOrphanPickupDNotZMM = toml::find_or<double>(data, "Recon", "Time", "PerViewOrphanPickupDNotZMM", 150.0);
 
-  _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
-  _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");
-  _RECO_SPACEPOINTS_PairingFallback = toml::find<bool>(data, "Recon", "SpacePoints", "PairingFallback");
+  // Optional, like the per-view slicing keys, so that config files that predate [Recon.SpacePoints] keep working
+  // (the defaults are the values in config/TMS_Default_Config.toml).
+  _RECO_SPACEPOINTS_TimingWindow = toml::find_or<double>(data, "Recon", "SpacePoints", "TimingWindow", 30.0);
+  const std::string defaultSpacePointPairing = "NearestY";
+  _RECO_SPACEPOINTS_Pairing = toml::find_or(data, "Recon", "SpacePoints", "Pairing", defaultSpacePointPairing);
+  _RECO_SPACEPOINTS_PairingFallback = toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingFallback", true);
   // Optional, so older config files keep working (default on).
   _RECO_SPACEPOINTS_PairingRequireCrossing =
       toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingRequireCrossing", true);
   _RECO_SPACEPOINTS_PairingCrossingSlope =
       toml::find_or<double>(data, "Recon", "SpacePoints", "PairingCrossingSlope", 1.0);
-  _RECO_CLUSTER3D_Enabled = toml::find<bool>(data, "Recon", "Cluster3D", "Enabled");
-  _RECO_CLUSTER3D_GraphSearch = toml::find<bool>(data, "Recon", "Cluster3D", "GraphSearch");
-  _RECO_CLUSTER3D_LinkClusters = toml::find<bool>(data, "Recon", "Cluster3D", "LinkClusters");
-  _RECO_CLUSTER3D_MomentumFromRange = toml::find<bool>(data, "Recon", "Cluster3D", "MomentumFromRange");
-  _RECO_CLUSTER3D_RangeContainmentMarginXY = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginXY");
-  _RECO_CLUSTER3D_RangeContainmentMarginZ = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginZ");
-  _RECO_CLUSTER3D_RangeReseedFactor = toml::find<double>(data, "Recon", "Cluster3D", "RangeReseedFactor");
+  // [Recon.Cluster3D] is optional (config files that predate it keep working, with Cluster3D off); the defaults
+  // are the values in config/TMS_Default_Config.toml.
+  _RECO_CLUSTER3D_Enabled = toml::find_or<bool>(data, "Recon", "Cluster3D", "Enabled", false);
+  _RECO_CLUSTER3D_GraphSearch = toml::find_or<bool>(data, "Recon", "Cluster3D", "GraphSearch", false);
+  _RECO_CLUSTER3D_LinkClusters = toml::find_or<bool>(data, "Recon", "Cluster3D", "LinkClusters", false);
+  _RECO_CLUSTER3D_MomentumFromRange = toml::find_or<bool>(data, "Recon", "Cluster3D", "MomentumFromRange", false);
+  _RECO_CLUSTER3D_RangeContainmentMarginXY = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginXY", 100.0);
+  _RECO_CLUSTER3D_RangeContainmentMarginZ = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginZ", 100.0);
+  _RECO_CLUSTER3D_RangeReseedFactor = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeReseedFactor", 1.5);
   _RECO_CLUSTER3D_XYTimeSigmaNs = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeSigmaNs", 3.7);
   _RECO_CLUSTER3D_XYTimeGateNSigma = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeGateNSigma", 2.0);
 

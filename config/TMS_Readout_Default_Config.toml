@@ -32,6 +32,14 @@
   [Sim.Noise]
     DarkNoiseRate = 2550.0 # hz
     DarkNoiseMinPE = 3.5 # pe
+
+  [Sim.DetSim]
+    # Gate for the detector-response redesign (stitched physical passages, fixed-scale
+    # re-segmentation, local Birks/optical response before thresholding). The new
+    # pipeline is being built out behind this flag phase by phase; leave false until a
+    # later phase actually implements it -- flipping this on before then currently
+    # raises "not yet implemented" from TMS_Event::ApplyReconstructionEffects().
+    UseResponseElements = false
     
     
     

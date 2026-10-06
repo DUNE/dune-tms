@@ -42,8 +42,6 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   
   _SIM_NOISE_DarkNoiseRate = toml::find<double>(data, "Sim", "Noise", "DarkNoiseRate");
   _SIM_NOISE_DarkNoiseMinPE = toml::find<double>(data, "Sim", "Noise", "DarkNoiseMinPE");
-  
-  
-  
-  
+
+  _SIM_DETSIM_UseResponseElements = toml::find<bool>(data, "Sim", "DetSim", "UseResponseElements");
 }
