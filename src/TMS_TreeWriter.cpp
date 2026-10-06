@@ -1624,15 +1624,23 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
 
   int itTrack= 0;
   const std::vector<TMS_Track> &Reco_Tracks = tracks;
-  nTracks = Reco_Tracks.size();
+  // The per-track branches are fixed-size arrays (__TMS_MAX_TRACKS__ tracks, __TMS_MAX_LINE_HITS__ hits and
+  // Kalman nodes each) and nTracks, nHitsIn3DTrack and nKalmanNodes are their leaf counts, so clamp all of them:
+  // an event with more would otherwise write past the arrays. (Production slices have at most 13 tracks and 53
+  // nodes, far below the limits, so this changes nothing there.)
+  nTracks = std::min((int)Reco_Tracks.size(), __TMS_MAX_TRACKS__);
   RecoTrackN = Reco_Tracks.size();
   
   TimeSliceStartTime = event.GetTimeSliceBounds().first;
   TimeSliceEndTime = event.GetTimeSliceBounds().second;
 
   for (auto RecoTrack = Reco_Tracks.begin(); RecoTrack != Reco_Tracks.end(); ++RecoTrack, ++itTrack) {
-    nHitsIn3DTrack[itTrack]         = (int) RecoTrack->Hits.size(); // Do we need to cast it? idk
-    nKalmanNodes[itTrack]           = (int) RecoTrack->KalmanNodes.size();
+    if (itTrack >= __TMS_MAX_TRACKS__) {
+      std::cout<<"Warning: more than __TMS_MAX_TRACKS__ = "<<__TMS_MAX_TRACKS__<<" tracks in a slice, the rest are not written. If this happens often, increase __TMS_MAX_TRACKS__"<<std::endl;
+      break;
+    }
+    nHitsIn3DTrack[itTrack]         = std::min((int) RecoTrack->Hits.size(), __TMS_MAX_LINE_HITS__);
+    nKalmanNodes[itTrack]           = std::min((int) RecoTrack->KalmanNodes.size(), __TMS_MAX_LINE_HITS__);
     const float raw_3d_length = RecoTrack->Length;
     const float fallback_2d_length =
         TMS_TrackFinder::GetFinder().CalculateTrackLength(RecoTrack->Hits);
@@ -1704,7 +1712,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
       RecoTrackKalmanLastPlaneBarViewTrue[itTrack][2] = last_bar_true.GetBarTypeNumber();
     }
 
-    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size(); ++j) {
+    for (unsigned int j = 0; j < RecoTrack->KalmanNodes.size() && j < __TMS_MAX_LINE_HITS__; ++j) {
       //if (RecoTrack->Hits[j].GetBar().GetBarType() != TMS_Bar::kXBar) {
       //} else if (RecoTrack->Hits[j].GetBar().GetBarType() == TMS_Bar::kXBar) {
         //RecoTrackKalmanPos[itTrack][j][0] = RecoTrack->[j].GetRecoX();

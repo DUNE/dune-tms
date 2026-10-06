@@ -161,6 +161,9 @@ class TMS_SpacePointDBScan {
       }
 
       // FindNeighbours includes the query point itself, so this also labels the seed.
+      // (Like the legacy TMS_DBScan this also relabels neighbours that already belong to an earlier cluster, so a
+      // border point reachable from two clusters goes to the later one, where classic DBSCAN keeps it with the
+      // first. The validated results use this behavior, so it is kept.)
       for (int idx : neighbours) {
         cluster_id_of_point[idx] = cluster_id;
       }

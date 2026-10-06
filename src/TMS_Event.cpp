@@ -1055,6 +1055,15 @@ void TMS_Event::RunCluster3DReco() {
   static const RegionFieldModel field;
 
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  if (barPitch <= 0.0) {
+    // GetMaxBarPitch() is -1 when the geometry survey found no bars. The clustering tolerance and every hit's
+    // position uncertainty come from it, so rather than run with negative values, write no Cluster3D tracks.
+    static bool warned = false;
+    if (!warned) std::cerr << "Warning: no bar pitch from the geometry survey, so no Cluster3D tracks are made." << std::endl;
+    warned = true;
+    Cluster3DTracks.clear();
+    return;
+  }
   const std::vector<TMS_KalmanFollower::FitHit> fitHits = TMS_Cluster3DReco::BuildFitHits(TMS_Hits, barPitch);
   const std::vector<TMS_Cluster3DReco::Track> tracks =
       TMS_Cluster3DReco::Run(TMS_SpacePoints, fitHits, config, field);

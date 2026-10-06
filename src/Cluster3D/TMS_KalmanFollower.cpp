@@ -650,8 +650,9 @@ GateResult ResolveLayer(const StepState &predicted, const std::vector<std::size_
       const TMS_SpacePoint &candidate = allSpacePoints[index];
       double dt = 0.0;
       if ((*time.XYTimeDifference)(candidate, dt) && dt * dt / time.XYTimeVar <= xyGateChi2) {
-        hitsWithGoodPartner.insert(candidate.GetXHitIndex());
-        hitsWithGoodPartner.insert(candidate.GetYHitIndex());
+        // (A point without a hit has index -1; it must not make every other index-less hit look like a partner.)
+        if (candidate.GetXHitIndex() >= 0) hitsWithGoodPartner.insert(candidate.GetXHitIndex());
+        if (candidate.GetYHitIndex() >= 0) hitsWithGoodPartner.insert(candidate.GetYHitIndex());
       }
     }
   }
