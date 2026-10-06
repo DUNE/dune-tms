@@ -6,6 +6,7 @@
 #include "TMS_SignalProcessing.h"
 #include "TMS_SpacePointBuilder.h"
 #include "TMS_Cluster3DReco.h"
+#include "TMS_Decoder.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -541,14 +542,16 @@ void TMS_Event::ApplyReconstructionEffects() {
     // A5202 timing mode: discriminator on the summed fast-shaper pulses per channel gives the
     // hits, their time stamps and times over threshold; no separate window, noise or threshold
     TMS_DetectorSimulation::GetInstance().SimulateFrontEndTimingMode(*this, generator);
+    DecodeRawReadouts();
     FillLightProvenance();
     return;
   }
   if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
-    // Readout windows, deadtime and merging per electronics channel in one step
+    // Readout windows, deadtime and merging per electronics channel in one step. The pedestal
+    // threshold is not part of the electronics simulation: the decoder applies it.
     TMS_DetectorSimulation::GetInstance().SimulateChannelReadout(*this, generator);
     TMS_DetectorSimulation::GetInstance().SimulateReadoutNoise(*this, generator);
-    TMS_SignalProcessing::GetInstance().SimulatePedestalSubtraction(*this);
+    DecodeRawReadouts();
     FillLightProvenance();
     return;
   }
@@ -1309,3 +1312,17 @@ void TMS_Event::BuildSpacePoints() {
                                                  manager.Get_RECO_SPACEPOINTS_PairingRequireCrossing(),
                                                  manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope());
 }
+
+// The electronics simulation leaves its readouts in TMS_Hits, which it uses as its working
+// container: one entry per channel readout, carrying the hit id of its truth. Hand them on as raw
+// readouts, and decode those into the TMS_Hits that reconstruction uses.
+void TMS_Event::DecodeRawReadouts() {
+  RawReadouts.clear();
+  RawReadouts.reserve(TMS_Hits.size());
+  for (const TMS_Hit& hit : TMS_Hits) {
+    RawReadouts.emplace_back(hit.GetChannelId(), hit.GetBar(), hit.GetHitId(), hit.GetT(), hit.GetPE(),
+                             hit.GetToT(), hit.GetE(), hit.GetEVis(), !hit.GetPedSup());
+  }
+  TMS_Hits = TMS_MCDecoder::Decode(RawReadouts);
+}
+

@@ -8,6 +8,7 @@
 // Include the constants
 #include "TMS_Constants.h"
 #include "TMS_Hit.h"
+#include "TMS_RawReadout.h"
 #include "TMS_TrueParticle.h"
 #include "TMS_Geom.h"
 #include "TMS_SpacePoint.h"
@@ -129,6 +130,10 @@ class TMS_Event {
     // most photons and its share, particle giving the first photon) onto its TMS_TrueHit, which,
     // unlike the photon lists, is carried into the time slices written to Truth_Info.
     void FillLightProvenance();
+    // Response-element pipeline: the readouts the electronics simulation produced, and the step
+    // that decodes them into TMS_Hits (see TMS_MCDecoder)
+    const std::vector<TMS_RawReadout>& GetRawReadouts() const { return RawReadouts; };
+    void DecodeRawReadouts();
     void SortPhotonArrivals(int hitId) {
       auto it = PhotonArrivalsByHitId.find(hitId);
       if (it == PhotonArrivalsByHitId.end()) return;
@@ -281,6 +286,8 @@ class TMS_Event {
 
     // Hits
     std::vector<TMS_Hit> TMS_Hits;
+    // The electronics simulation's output, before decoding (Sim.DetSim.UseResponseElements only)
+    std::vector<TMS_RawReadout> RawReadouts;
     std::vector<TMS_TrueHit> NonTMS_Hits;
     // A slice event (TMS_Event(event, slice)) does not copy the spill's NonTMS_Hits (about
     // 40% of the cost of making a slice) but points at the spill event's vector, which
