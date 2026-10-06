@@ -150,6 +150,9 @@ class TMS_Event {
     std::vector<TMS_Track> GetTracks() {return TMS_Tracks;}; // Needs filled
     // Reconstructed 3D space points
     const std::vector<TMS_SpacePoint>& GetSpacePoints() const { return TMS_SpacePoints; };
+    // Tracks from the Cluster3D reconstruction (RunCluster3DReco()), in the
+    // legacy TMS_Track format, written to the Reco_Tree_C3D/Truth_Info_C3D trees.
+    const std::vector<TMS_Track>& GetCluster3DTracks() const { return Cluster3DTracks; };
     void SetSpacePoints(const std::vector<TMS_SpacePoint>& spacepoints) { TMS_SpacePoints = spacepoints; };
     // The true particles
     const std::vector<TMS_TrueParticle> &GetTrueParticles() const { return TMS_TrueParticles; };
@@ -228,6 +231,9 @@ class TMS_Event {
     void ApplyReconstructionEffects();
 
     void BuildSpacePoints();
+    // The truth-free Cluster3D reconstruction (TMS_Cluster3DReco) over this
+    // event's space points and hits; call after BuildSpacePoints().
+    void RunCluster3DReco();
     
     void SetLeptonInfoUsingGlobalVertexID(long long vertexglobalid);
     
@@ -276,6 +282,7 @@ class TMS_Event {
 
     // Reconstructed 3D space points from X-Y hit pairs
     std::vector<TMS_SpacePoint> TMS_SpacePoints;
+    std::vector<TMS_Track> Cluster3DTracks;
 
     // The number of true trajectories right out of edep-sim
     // No energy cuts, or number of deposits etc checked

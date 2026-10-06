@@ -1,0 +1,684 @@
+#ifndef _TMS_KALMANFOLLOWER_H_SEEN_
+#define _TMS_KALMANFOLLOWER_H_SEEN_
+
+#include <cstddef>
+#include <functional>
+#include <vector>
+
+#include "TMatrixD.h"
+
+#include "TMS_FieldModel.h"
+#include "TMS_SpacePoint.h"
+
+// A Kalman "follower": takes a topologically-found seed path (an ordered,
+// z-increasing list of space-point indices, e.g. TMS_GraphTrackFinder::Path
+// or a DBSCAN+PCA track-like cluster's own points) and re-walks it
+// plane-by-plane with a physics-based filter that (a) fits position,
+// direction, momentum and charge, and (b) resolves hit ambiguity at each
+// plane -- when several candidate space points ("ghosts", see
+// TMS_SpacePointBuilder.h) share a z-layer, picks the one consistent with
+// the fit via a proper chi2 gate, instead of the legacy TMS_Kalman's
+// behavior of silently keeping only the last hit per z and dropping the
+// rest (TMS_Kalman.cpp:73-84).
+//
+// Unlike the legacy Kalman, this module actually applies magnetic-field
+// bending during propagation (see TMS_FieldModel.h) -- legacy computes a
+// deflection term and never adds it into the propagated state
+// (TMS_Kalman.cpp:252-253).
+//
+// Forward-pass only for now (no RTS smoother yet -- see the project plan).
+namespace TMS_KalmanFollower {
+
+// One detector hit as a 1D measurement, for the hit-level fit
+// (Config::Measurement = Hits). The caller builds a vector of these indexed
+// exactly like TMS_SpacePoint::GetXHitIndex()/GetYHitIndex() (the slice's raw
+// hit list) and hands it over with Follower::SetHits().
+struct FitHit {
+  double Z = 0.0;           // the hit's own plane z (mm)
+  double Coordinate = 0.0;  // what the bar measures (mm): x for a Y-bar hit, y for an X-bar hit
+  bool MeasuresX = false;   // true for a Y-bar (x-measuring) hit
+  double SigmaMM = 0.0;     // measurement resolution (mm)
+  // False for hits no fit may use (pedestal-suppressed, or a bar orientation
+  // the fit doesn't handle); only orphan-hit pickup consults it, since every
+  // other hit reaches the fit through a space point, which never contains one.
+  bool Usable = true;
+  // Hit time (ns), as the space points' times; only orphan-hit pickup uses it.
+  double Time = 0.0;
+};
+
+struct Config {
+  // A candidate's chi2 (2 DoF: x, y position residual) must be below this
+  // to be accepted at all. Tuned empirically 2026-09-15 against the 15-file
+  // truth population (app/cluster3D/KalmanFollowerTruthEfficiency): the 2-DoF
+  // statistical reference value (~9.21 @ 99% CL) was rejecting real
+  // truth-matched hits outright -- 66.7% of all gap layers had the truth
+  // point evaluated but chi2-gated out, not missing. Swept 9.21/15/25/40/60;
+  // completeness rose monotonically the whole way (64.4%->71.2%) with
+  // purity also improving slightly at every step (87.7%->88.5%, never
+  // trading off) -- but gains halved at each step (+3.2/+1.8/+1.1/+0.7pp),
+  // and by 60 the gate barely constrains anything statistically (ambiguous-
+  // layer accuracy stayed flat at ~96.4% the entire sweep, since argmin-chi2
+  // already picks correctly among candidates regardless of the gate value --
+  // the gate only controls whether a hit is recorded at all). 25 keeps the
+  // gate a real threshold while capturing 73% of the measured gain
+  // (5.0/6.8pp). See kalman_follower memory for the full sweep table.
+  double ChiSquareGateMax = 25.0;
+
+  // Predict() sub-steps a layer-to-layer propagation into pieces no longer
+  // than this, rather than one linearized jump. Needed for real numerical
+  // stability, not just accuracy: the curvature Jacobian's position<->q/p
+  // coupling term is quadratic in the step length, so one big ~100-200mm
+  // plane-to-plane jump gives q/p an artificially outsized lever arm on
+  // position -- discovered on the flagship real-data case, where a single
+  // big jump let one ordinary ~45mm position residual (typical
+  // quantization+scattering noise, not a real momentum signal) collapse
+  // the fitted momentum to its floor in one update. ~1 bar pitch is a
+  // reasonable scale (fine enough that the linearization stays valid,
+  // coarse enough not to multiply the number of TMS_Geom::GetMaterials
+  // calls unreasonably).
+  double MaxSubstepLengthMM = 40.0;
+
+  // How far (mm of z) past its last accepted point the follower keeps going
+  // through layers where no candidate is accepted, before giving up
+  // (FitResult::Converged = false). Mirrors
+  // TMS_GraphTrackFinder::Config::MaxGapMM's role. Was a count of 3 gap
+  // layers until 2026-09-25 (up to ~1.56 m in the back on the old points).
+  // 650 mm (first mm value) vs 1000 mm, 15 files: early stops (before the
+  // muon's last layer) 2.6% -> 1.6% of fits (ND-LAr fiducial 1.1 -> 0.7%),
+  // hit completeness and purity unchanged.
+  double MaxGapMM = 1000.0;
+
+  // How far (mm of z) past the seed path's OWN last point the follower will
+  // keep walking. A generous margin (this lets the follower genuinely
+  // recover real continuation the seed's finder missed, not just replay
+  // it), but bounded: without this, a slice with a lot of unrelated
+  // structure elsewhere (a big shower, other tracks) can keep presenting
+  // some candidate that passes the chi2 gate at every subsequent layer
+  // clear to the end of the slice's z-range, each one a real (slow)
+  // TMS_Geom::GetMaterials navigation call -- discovered on the flagship
+  // real-data case, which has activity across most of the detector's 82
+  // planes even though the target muon only touches 14 of them. Was 15
+  // layers until 2026-09-25 (1.95 m in the front, 5.85 m in the back on the
+  // old points); 3 m keeps the walk bounded while still reaching well past
+  // the seed.
+  double MaxDistanceBeyondSeedMM = 3000.0;
+
+  // MUST match whatever TMS_LayerGrouping::Build() tolerance the seed path
+  // was grouped with (e.g. TMS_GraphTrackFinder::Config::LayerZTolerance),
+  // or "gather every candidate at this layer" can silently mean a
+  // different layer than what the seed path assumed at tolerance edges.
+  double LayerZTolerance = 1.0;  // mm
+
+  // Initial state covariance (diagonal), used only for the seed path's
+  // first node. Position variance is deliberately wide -- standard Kalman
+  // practice is to start uncertain and let the filter converge, rather
+  // than bias early picks with an overconfident prior.
+  double InitialCovXX = 200.0;       // mm^2
+  double InitialCovYY = 1.0e3;       // mm^2
+  // Slope variance is NOT deliberately wide -- unlike position, the
+  // initial slope isn't a blind guess: SeedDirection() fits it from the
+  // seed path's own first ~3 real points. TMS_Kalman.cpp:389-393's
+  // hardcoded 1.5/2.5 (sigma~1.2-1.6, i.e. tens of degrees of "we have no
+  // idea") were tried first here too, copied without checking they still
+  // made sense for THIS module's different Update()/Jacobian structure --
+  // combined with a comparatively tight InitialCovXX, that mismatch let
+  // the Kalman gain badly over-correct direction on the very first real
+  // position update (observed on the flagship real-data case: the fit
+  // diverged after only 2 nodes, reproducing identically with the field
+  // model swapped to zero, which is what isolated this from the separate
+  // q/p-scale bug documented below). 0.1 rad-ish (sigma~0.1) is still
+  // generous next to this project's real observed muon angular spread
+  // (median ~12 deg, 90th percentile ~20 deg, max observed ~33 deg, i.e.
+  // dxdz/dydz well under 0.6) without being so wide it swamps a real
+  // 3-point seed fit's own information.
+  double InitialCovDXDZDXDZ = 0.01;
+  double InitialCovDYDZDYDZ = 0.01;
+  // (e/MeV)^2. sigma_qp=0.01 matches this project's real observed muon
+  // population's low-momentum end (q/p down to ~1/100 MeV for a ~100 MeV
+  // muon) -- wide enough to comfortably cover the whole realistic range up
+  // to a few GeV without biasing early picks, but NOT the literal value of
+  // 1.0 first tried here: that's sigma_qp=1 e/MeV, i.e. "momentum could be
+  // 1 MeV at 1-sigma" -- an unphysically wide prior that, combined with
+  // the field-bending Jacobian's qp<->position coupling (Predict()'s
+  // transfer(0,4)/transfer(2,4)), let a single real position measurement's
+  // Kalman gain swing q/p by orders of magnitude on the very first real
+  // update (observed: fitted momentum collapsed to ~0.0002 MeV on node 2
+  // of the flagship real-data validation run before this fix).
+  double InitialCovQPQP = 1.0e-4;
+
+  // Momentum prior for the first node, used only to seed q/p before any
+  // real fitting has happened. No range-based or other data-driven seed
+  // exists anywhere in this repo (legacy's GetKEEstimateFromLength() is
+  // dead in practice, see TMS_Kalman.cpp:15's hardcoded ForwardFitting =
+  // false); a fixed, loosely-covaried prior is the standard fallback.
+  double InitialMomentumSeedMeV = 1000.0;
+
+  // If > 0, sigma(q/p) of the first node is this fraction of the seed
+  // |q/p| instead of the fixed sqrt(InitialCovQPQP). The fixed value is 10x
+  // the seed q/p at 1000 MeV, i.e. an almost uninformative prior: ordinary
+  // position noise then drags q/p to a few hundred MeV within one or two
+  // layers (2026-09-21: a 2.4 GeV muon's fit went 2131 -> 231 MeV on a
+  // chi2 of 3.7), after which real energy loss ranges the fit out while the
+  // true track continues.
+  //
+  // Default 1.0 (with RangeSeedMargin below): 15-file sweep 2026-09-21
+  // (reports/2026-09-21_kalman_prior_sweep/): completeness 75.2% -> 82.6%,
+  // purity 86.4% -> 87.0%, ND-LAr-fiducial completeness 83.2% -> 92.4%.
+  // A tight sigma on the plain 1000 MeV seed (0.3x) was WORSE (67.7% on file
+  // 9) -- the tight prior is only safe once the seed itself is sensible.
+  double InitialQPRelSigma = 1.0;
+
+  // If > 0, seed the momentum with max(InitialMomentumSeedMeV, this *
+  // p_range), where p_range is the smallest momentum that could carry a
+  // muon across the seed object's own z-extent through the real material
+  // budget (Bethe-Bloch energy loss walked backwards from the momentum
+  // floor). A track that visibly spans N steel layers cannot have less
+  // momentum than that; it is a lower bound, computed from reconstructed
+  // quantities only.
+  //
+  // Default 1.5: the range is a lower bound and a candidate can be
+  // truncated, so a margin above 1 compensates. File-9 sweep of the margin
+  // (sigma(q/p)=1x): completeness 81.8 / 82.3 / 82.6 / 82.5% for margin
+  // 1.0 / 1.5 / 2.0 / 3.0, but seeds more than 1.5x too high rise 9 / 17 /
+  // 44 / 58%; 1.5 gives a median seed ~1.0x the true momentum.
+  double RangeSeedMargin = 1.5;
+
+  // End the walk when energy loss carries the fit to the momentum floor
+  // (StopReason::RangedOut, counted as converged). The fitted momentum is
+  // only as good as its seed, so this can fire while the true muon carries
+  // on: with the defaults above 30% of ranged-out fits still have truth
+  // planes beyond the stop. Set false to keep walking with the floor state.
+  bool StopOnRangeOut = true;
+
+  // RunBestSeed() also tries seeds that skip the object's first 1..MaxHeadSkip
+  // layers, keeping whichever hypothesis IsBetterFit prefers. Guards against
+  // an object whose head belongs to a different particle (see RunBestSeed).
+  // 0 = only the original first-layer anchors.
+  //
+  // Default 2: near a vertex the first layers mix the muon with same-vertex
+  // hadrons, so a seed built there can lock the fit onto the wrong particle
+  // (case E: 0/16 -> 16/16 target planes). 15-file sweep 2026-09-21
+  // (reports/2026-09-21_kalman_prior_sweep/), skip 0 / 1 / 2: completeness
+  // 82.6 / 85.8 / 86.6%, purity 87.0 / 89.0 / 89.7%. Cost: up to 3x the fits
+  // per muon (runtime not yet optimised), and a tail of 21 short tracks
+  // (0.15%) lose >= 50 pp completeness because IsBetterFit counts hits
+  // without checking they belong to one particle.
+  int MaxHeadSkip = 2;
+
+  // RunBestSeed() ranks its hypotheses (IsBetterFit) by: [converged, only if
+  // this is true], then most hits, then lowest chi2/ndof. Default false.
+  // With RangedOut and the gap-limit stop, "converged" stopped being a
+  // quality signal: a prematurely ranged-out fit (counted converged) could
+  // beat a longer fit that merely ended at the gap limit, and head-skip
+  // hypotheses that filled gaps with high-chi2 wrong hits could win. Dropping
+  // it (2026-09-21 hypothesis study, reports/2026-09-21_kalman_hypothesis_selection/,
+  // 13,249 muons, files 1-7 vs 8-15 agree within 0.2 pp): completeness 88.6 ->
+  // 89.2%, purity unchanged, muons losing >= 50 pp vs skip-0 21 -> 14, losing
+  // >= 20 pp 115 -> 29. An oracle that sees the truth would reach 91.0% /
+  // 95.7%, so the ranking still has headroom that reco-only hit counts and
+  // chi2 do not reach.
+  bool RankHypothesesByConvergence = false;
+
+  // Measurement uncertainty (mm) in a space point's own not-Z coordinate.
+  // A per-hit lookup (TMS_Bar::GetNotZw()) would be more precise, but
+  // needs a real, geometry-backed TMS_Hit for every candidate -- this
+  // follower deliberately works from TMS_SpacePoint alone (see the
+  // TMS_SpacePointBuilder ghosting comment above), so it uses the same
+  // ~1-bar-pitch scale already validated empirically for this exact
+  // purpose (TMS_GraphTrackFinder::Config::PositionQuantizationX/Y).
+  double AssumedBarPitchMM = 36.0;
+
+  // RunBestSeed()'s head-skip hypotheses (above) only ever vary the ANCHOR
+  // point (the object's own first-layer candidate); the next ~2 points that
+  // SeedDirection() actually averages to get the initial slope are always
+  // whichever sort first in global z order -- never explored as
+  // alternatives, even when that layer has several candidates. Triplet
+  // hypotheses fix that directly: at each skip level, enumerate every
+  // (layer0, layer1, layer2) candidate combination, keep only the
+  // MaxTripletHypotheses most nearly collinear (TripletCollinearityToleranceMM),
+  // and run a full fit on each survivor. The collinearity prune is cheap
+  // (arithmetic only); only the survivors pay for a real Kalman walk, so
+  // this stays bounded even in a dense slice with hundreds of candidates
+  // per layer (see the header comment above on TMS_SpacePointBuilder
+  // ghosting for why a single layer can have that many). Purely additive to
+  // the existing head-skip hypotheses -- worst case it finds nothing better
+  // and IsBetterFit keeps the old winner.
+  //
+  // Default 5: 15-file sweep 2026-09-23 (reports/2026-09-21_kalman_prior_sweep/,
+  // muons_triplets5.csv vs muons_rank_noconv.csv), on top of head-skip=2:
+  // completeness 87.10 -> 88.95%, purity 89.68 -> 90.11%, ND-LAr-fiducial
+  // completeness 94.53 -> 95.42% (purity also up), TMS-start completeness
+  // 80.12 -> 83.20% (the largest single gain). Per muon: 996 better, 111
+  // worse (27 lose >= 50pp completeness, almost all short dbscan_direct
+  // tracks around 6 target planes -- the same known IsBetterFit short-track
+  // weakness head-skip already has, not a new failure mode). Runtime cost
+  // measured at ~1.4% (solo file-9 timing, 7m12s -> 7m18s) -- far cheaper
+  // than head-skip's ~3x, for a larger completeness gain.
+  int MaxTripletHypotheses = 5;
+
+  // Max transverse deviation (mm) of the middle point from the straight
+  // line through the first and third, for a (layer0,layer1,layer2)
+  // candidate combination to be considered collinear enough to try. A few
+  // bar pitches (AssumedBarPitchMM=36mm) -- wide enough to admit a real
+  // muon's genuine multiple-scattering kink over 2 layers, tight enough to
+  // reject combinations that are obviously not one particle.
+  double TripletCollinearityToleranceMM = 100.0;
+
+  // Time as a second discriminant in per-layer candidate selection. When on,
+  // the follower keeps a running estimate of the track's time origin t0 --
+  // the mean of (t - s/c) over accepted points, s = path length walked from
+  // the seed, c = speed of light (muons treated as beta~1) -- and ranks each
+  // candidate by position chi2 + time chi2, with time chi2 =
+  // r^2 / (sigma_t^2 + sigma_t^2/n), r = (t - s/c) - t0, n = accepted points
+  // so far. The acceptance gate itself stays the position-only
+  // ChiSquareGateMax, unless TimeGateNSigma > 0 adds a separate |r| cut.
+  //
+  // Motivation (2026-09-24, reports/2026-09-24_caseH_timing_pca/): muons from
+  // DIFFERENT interactions that DBSCAN merges into one cluster reach the TMS
+  // a median 23 ns apart, and a ghost space point pairing one muon's X hit
+  // with the other's Y hit carries the AVERAGE of the two hit times, so it
+  // sits half that offset away. Position alone cannot separate them where the
+  // two tracks come within a bar pitch of each other.
+  //
+  // Default on: 15-file truth run 2026-09-24 (reports/2026-09-24_kalman_timing/,
+  // 16,369 muons), on vs off: +0.1 to +0.3 pp completeness and purity in every
+  // population, strict (both-views) metrics included -- all: completeness
+  // 88.95 -> 89.05%, purity 90.11 -> 90.16%; ND-LAr-fiducial 95.42 -> 95.60% /
+  // 97.33 -> 97.59%. Per muon it is mixed (673 better, 544 worse, 36 lose
+  // >= 50 pp strict completeness), and it cannot rescue a seed that started on
+  // the wrong particle -- it keeps a fit consistent with its own start.
+  bool UseTimeInSelection = true;
+  // Per-space-point time resolution (ns) after the path-length TOF
+  // correction. Measured 2026-09-24 on 120k X/Y-truth-agreeing muon space
+  // points (files 1-4): pooled sd 5.85 ns, MAD-sigma 5.66 ns, only 0.18% of
+  // points beyond 20 ns (i.e. close to Gaussian, no heavy tail to guard).
+  double TimeSigmaNs = 5.8;
+  // If > 0, also reject any candidate with |r| > TimeGateNSigma *
+  // sqrt(sigma_t^2 + sigma_t^2/n). 0 = time only ranks, never gates.
+  double TimeGateNSigma = 0.0;
+
+  // X/Y hit-time agreement as a ghost discriminant in per-layer candidate
+  // selection. A space point pairs an X-view and a Y-view hit; if both came
+  // from one particle their times agree once each hit's light-transit delay
+  // along its bar is removed (TMS_SpacePointTiming), while a ghost pairing
+  // two particles' hits keeps their real time difference. When on, and a
+  // source has been given with Follower::SetXYTimeDifferenceSource(), each
+  // candidate's score gains dt^2 / XYTimeSigmaNs^2. Unlike the time term
+  // above it needs no track context -- it is a property of the point itself.
+  // Candidates whose dt is unavailable get no penalty.
+  //
+  // Motivation (2026-09-24, reports/2026-09-24_reco_hit_lookaside/):
+  // transit-corrected |dt| <= 10 ns keeps 84% of genuine points but only 71%
+  // of same-interaction ghosts and 37.5% of different-interaction ghosts.
+  //
+  // Default on: 15-file truth run 2026-09-24 (reports/2026-09-24_kalman_xytime/,
+  // 16,544 muons), sigma 3.7 vs off: strict (both-views) completeness /
+  // purity 74.94/75.69 -> 75.91/76.57% overall, +1.2 to +1.5 pp in
+  // multi-muon slices and TMS-start tracks; loose metrics flat (+/-0.1).
+  // Wider sigma (5.1, 8.9) gave monotonically less. Per muon: 904 better,
+  // 432 worse, 19 lose >= 50 pp strict completeness. Only has an effect
+  // when a source is set (SetXYTimeDifferenceSource) and a layer has more
+  // than one passing candidate -- it ranks, it doesn't gate.
+  bool UseXYTimeInSelection = true;
+  // Width of the genuine-point transit-corrected dt distribution (ns): its
+  // MAD-sigma with the physics transit correction (TMS_SpacePointTiming).
+  // The tails are wider (sd 8.9 ns), so this may need relaxing.
+  double XYTimeSigmaNs = 3.7;
+  // If > 0, also reject any candidate with |dt| > XYTimeGateNSigma *
+  // XYTimeSigmaNs. 0 = ranks only, never gates. Ranking alone let 6% of muon
+  // tracks follow ghost points pairing the muon's hits in one view with
+  // another particle's in the other (once on that branch, the position chi2
+  // outweighs the time penalty). 15 files, 2026-09-28, 2 sigma (7.4 ns):
+  // those 6.0 -> 2.6%, ND muons ending correctly 522 -> 529 of 566, junk
+  // tracks -24%, duplicates -38%, found unchanged; 4.4 ns lost ~100 muons.
+  double XYTimeGateNSigma = 2.0;
+  // Shared-bar exemption from that gate. A bar crossed by two particles reports
+  // the earlier one's time, so all points built from the later particle's other
+  // hit fail the gate -- including its genuine one -- and the layer is lost
+  // (2026-09-29, case H: 45 -> 32 of 50 layers). When on, a candidate is exempt
+  // (judged on position and track time only) if one hit has no time-consistent
+  // partner at the layer, the other does, and that other hit is the earlier one
+  // (a shared hit can only look early). Case H: 48/50 at 100% purity. 15 files:
+  // muon tracks with mismatched views 2.4 -> 3.2%, junk tracks +10%,
+  // duplicates +18%, ND muons ending correctly 531 -> 530. On (2026-09-29):
+  // overlapping particles are what high-rate running will stress most.
+  bool XYTimeGateNeedsAlternative = true;
+
+  // What the fit updates with.
+  //  SpacePoint: each accepted space point as one 2D (x, y) measurement at
+  //    the point's z. With NearestY points that z is the midpoint between the
+  //    two hits' planes, so x and y are each off by slope * half the plane
+  //    separation -- in the back section alternately +-65 mm, a zigzag of
+  //    ~30 mm rms on real muons (2026-09-25, reports/2026-09-25_phase1_baselines/
+  //    scripts/zigzag_check.py), which cost ~9 pp of fit convergence.
+  //  Hits: candidates are still chosen per point layer, but scored on each
+  //    of the point's two hits at the hit's own plane z, and the chosen
+  //    point's hits are applied as two 1D updates in z order, stepping field
+  //    and material plane by plane. A hit shared by two layers (a y-measuring
+  //    plane serves both neighbors in the back section) is applied once.
+  //    Needs Follower::SetHits(); without it the fit falls back to SpacePoint.
+  //
+  // Default Hits since 2026-09-25 (reports/2026-09-25_phase2_hitfit/, 15
+  // files, 16,544 muons, NearestY points, steel-only field): vs SpacePoint,
+  // same hit-level purity (83.4 vs 83.2%) and completeness (68.4%), strict
+  // layer completeness 73.6 -> 74.8%, start-momentum resolution (MAD) 0.36 ->
+  // 0.32 (exiting) / 0.45 -> 0.42 (stopping); cheated-fit pulls mean -0.02,
+  // MAD-sigma 0.99 over 450k hits.
+  enum class MeasurementModel { SpacePoint, Hits };
+  MeasurementModel Measurement = MeasurementModel::Hits;
+
+  // Backward pass after the forward walk (see FitResult::StartMomentumMeV):
+  // refits the accepted measurements from last to first, starting from the
+  // forward result with its covariance scaled by BackwardCovScale.
+  bool BackwardPass = true;
+  double BackwardCovScale = 100.0;
+
+  // Range momentum (FitResult::RangeMomentumMeV), computed with the backward
+  // pass: the momentum a muon needs to cross exactly the material between the
+  // first and last accepted measurement and stop at the last -- the legacy
+  // TMS_Kalman's estimate (its "fit" momentum is this: it walks the hits from
+  // last to first starting at 20 MeV/c, adding Bethe-Bloch loss, and never
+  // updates q/p from the measurements). Stepped along the backward pass's own
+  // filtered trajectory, field off (only the path through the material
+  // matters). Right for a muon that stops just past its last hit; low for one
+  // that leaves the detector or whose track ends early.
+  double RangeStopMomentumMeV = 20.0;
+  // Mean energy loss by each material's range-energy table instead of dE/dx at one
+  // end of each material step (exact for any step; the one-point estimate read
+  // 2.5-12% high near stopping points, 2026-09-29). See RangeTable in the .cpp.
+  // RangeTableEnergyLoss applies it to the tracking itself (the forward walk, the
+  // backward Kalman pass, the range-seeded refits); RangeTableRangeMomentum only to
+  // the range walk that gives RangeMomentumMeV. Off for tracking since 2026-09-29:
+  // on 51 files it cost 28 correctly ended stopping muons of 2,477 and added ~4%
+  // junk tracks (where the forward walk ranges out moved), with no gain in range
+  // momentum resolution; the range walk alone is not part of pattern recognition.
+  bool RangeTableEnergyLoss = false;
+  bool RangeTableRangeMomentum = true;
+  // Scale on the stopping power behind the range tables. Our Bethe-Bloch (steel as
+  // pure iron, no radiative terms) loses energy faster than Geant4: along the TRUE
+  // Geant4 trajectories of 565 stopping muons (RangeErrorBudget, 1 mm steps), the
+  // range momentum from the first hit read +1.7% at scale 1 and -0.1% at 0.98
+  // (2026-09-29). Applies wherever the tables are used.
+  double RangeTableStoppingPowerScale = 0.98;
+  // Start the backward range walk at the expected momentum for a muon that stopped
+  // halfway (in areal density) through the material between the last hit and the
+  // next scintillator layer, instead of at RangeStopMomentumMeV (stopping at the
+  // last hit). The halfway point is the best estimate: nothing says where in that
+  // material it stopped.
+  bool ExpectedStopRange = true;
+
+  // Also run a range-SEEDED backward Kalman pass (FitResult::
+  // RangeSeededMomentumMeV): the backward pass started at the last
+  // measurement with |p| = RangeStopMomentumMeV and a tight q/p prior
+  // (RangeSeedQPRelSigma of the seed q/p) instead of the forward result, then
+  // updated by the measurements as usual. Diagnostic only: on 15 files
+  // (2026-09-26) it lands on the curvature answer (stopping muons median
+  // -22% vs -21%, range +6.4%) -- once the curvature updates are allowed
+  // they pull q/p away from the range seed. Use RangeMomentumMeV instead.
+  bool RangeSeededBackwardPass = false;
+  double RangeSeedQPRelSigma = 0.1;
+
+  // Range re-seed (RunBestSeed only): after the best hypothesis is chosen,
+  // walk its seed again with the momentum seeded at RangeReseedFactor x its
+  // own range momentum at the start (FitResult::RangeMomentumMeV) and a
+  // tighter prior (RangeReseedQPRelSigma of the seed q/p), and keep the new
+  // fit if it reaches further downstream without ranking worse; repeat up to
+  // RangeReseedMaxPasses times while the end keeps moving. Motivation
+  // (2026-09-27): most tracks that end early stop because the walk "ranged
+  // out" -- its momentum, seeded from the seed object's length and pulled low
+  // by the curvature updates, ran down to the floor while the muon went on --
+  // and the range momentum of the first fit is a better seed. A factor above
+  // 1 lets the walk arrive at the first fit's end with momentum to spare, so
+  // it can continue if hits are there (the gap limit and chi2 gate stop it
+  // otherwise). 0 = off.
+  //
+  // Default 1.5 (15 files, 2026-09-27, suite ND-physics muons, 616): tracks
+  // ending correctly 459 -> 476, early ends inside the track's own object
+  // 19 -> 7, hit completeness 90.0 -> 90.6%, range momentum within 10% 79 ->
+  // 82%, no more junk. 1.2 / 2.0 give the same within a few tracks.
+  double RangeReseedFactor = 1.5;
+  double RangeReseedQPRelSigma = 0.2;
+  int RangeReseedMaxPasses = 2;
+
+  // Extension past the walk's end on single hits (Hits model only): from the
+  // last accepted node, step plane by plane through the slice's usable hits
+  // beyond the last applied hit, take the best hit at each plane whose 1D
+  // chi2 <= ExtendChi2Max and whose time is within ExtendTimeWindowNs of the
+  // track's (as orphan pickup), skip a plane with two separated passing hits,
+  // and stop once ExtendMaxGapMM of z passes with nothing taken. For a
+  // muon's last planes that have hits but no space points (one view only).
+  // The hits are recorded as orphans (FitResult::Orphans), so the backward
+  // pass, the range momentum and hit claiming use them;
+  // FitResult::ExtensionEnd* is where the extension ended.
+  //
+  // Default on (15 files, 2026-09-27, suite ND-physics muons, 616): tracks
+  // ending correctly 481 -> 492, early ends with no space points in the tail
+  // 7 -> 2 and inside the track's own object 6 -> 2, hit completeness 90.6 ->
+  // 91.5%, purity unchanged, junk tracks -125 and duplicates -159 of ~2200 /
+  // ~780 (the extension takes hits that used to become their own tracks);
+  // all muons found -27 of ~11600.
+  //
+  // ExtendChi2Max 9 -> 25 (2026-09-29): the prediction uses the fit's momentum
+  // at the track end (typically 0.4-1.3 GeV/c), so it expects almost no
+  // scattering, but a muon about to stop is at tens of MeV/c and its last hit
+  // lands 50-100 mm off (chi2 9-40). Of 38 stopping muons whose tracks ended
+  // 1-2 planes early, 33 truly reached that plane. 15 files: tracks ending
+  // within 5 cm of the muon's last hit 447 -> 468 of 565, 1-2 planes early 38
+  // -> 22, more than 15 cm late 18 -> 21, range-momentum 68% half-width 5.4 ->
+  // 5.2%, junk -18, duplicates -9. 50: no further gain, more late ends.
+  bool ExtendOnHits = true;
+  double ExtendChi2Max = 25.0;
+  double ExtendTimeWindowNs = 20.0;
+  double ExtendMaxGapMM = 400.0;
+
+  // Orphan-hit pickup (Hits model only): after the forward walk, add hits the
+  // track crosses that are in no chosen space point -- ~10% of a muon's
+  // x-plane crossings have no y partner in time, so they are in no genuine
+  // point at all (2026-09-25 pairing study). Every usable, not-yet-applied
+  // hit within OrphanZMarginMM of the applied hits' z range is projected
+  // against the nearest filtered state; per plane the best one with 1D chi2
+  // <= OrphanChi2Max is taken, plus any passing hit in the next bar over (a
+  // muon crossing a bar boundary lights both). They enter the backward pass
+  // (so the track-start state uses them) and FitResult::Orphans, not the
+  // forward walk.
+  //
+  // Default on since 2026-09-25 (reports/2026-09-25_orphan_benchmark/, 15
+  // files, with OrphanTimeWindowNs 20 and OrphanSkipAmbiguousPlanes): hit
+  // completeness 75.1 -> 86.1%, purity 92.0 -> 90.0% (ND-LAr fiducial 81.7 ->
+  // 91.2% at 97.3 -> 97.0%; TMS-vertex muons 85.7 -> 81.7% purity, where
+  // hadron hits sit on the muon's path); 82% of orphans the muon's, ~5 per
+  // fit. Finding, early stops, momentum and charge unchanged.
+  bool PickUpOrphanHits = true;
+  double OrphanChi2Max = 9.0;
+  double OrphanZMarginMM = 150.0;
+  // If > 0, a candidate must also be within this many ns of the track's
+  // expected time at its plane (TrackT0Ns + path length / c). Hit times still
+  // carry the light-transit delay along the bar (up to ~+-15 ns), hence the
+  // loose window. 0 = no time requirement.
+  double OrphanTimeWindowNs = 20.0;
+  // If true, a plane where more hits pass than the best one and its
+  // neighbor-bar hit gives no orphans at all: several particles are there
+  // and the pickup cannot tell which is the track's. (File 7: wrong orphans
+  // concentrate near TMS vertices -- hadrons -- where only 27-37% of picked
+  // hits were the muon's, vs 89-95% for muons entering the TMS.)
+  bool OrphanSkipAmbiguousPlanes = true;
+};
+
+// Transit-corrected X-hit minus Y-hit time (ns) for a space point; returns
+// false if it can't be computed for that point.
+using XYTimeDifferenceFn = std::function<bool(const TMS_SpacePoint &, double &)>;
+
+// One followed plane: which candidate (if any) was chosen, the filtered
+// state there, and every candidate's chi2 (not just the chosen one) so
+// validation tooling can measure ambiguity-resolution accuracy without
+// re-running the fit.
+struct FollowedNode {
+  std::size_t Layer = 0;
+  double Z = 0.0;
+  bool HasHit = false;  // false = gap: no candidate passed the chi2 gate
+
+  // Indices into the SAME allSpacePoints vector passed to Follower::Run(),
+  // i.e. every space point seen at this layer, not just the seed's pick.
+  std::vector<std::size_t> CandidateIndices;
+  std::vector<double> CandidateChi2;  // parallel to CandidateIndices (position-only chi2)
+  // Parallel to CandidateIndices: each candidate's time chi2 against the
+  // running track t0 (see Config::UseTimeInSelection). Filled only when
+  // time is in use; empty otherwise.
+  std::vector<double> CandidateTimeChi2;
+  // Parallel to CandidateIndices: each candidate's X/Y time-agreement chi2
+  // (see Config::UseXYTimeInSelection), 0 where unavailable. Filled only
+  // when that term is in use; empty otherwise.
+  std::vector<double> CandidateXYTimeChi2;
+  std::size_t ChosenSpacePointIndex = 0;  // valid only if HasHit
+  double Chi2AtChosen = 0.0;
+
+  double FilteredX = 0.0;
+  double FilteredY = 0.0;
+  double FilteredDXDZ = 0.0;
+  double FilteredDYDZ = 0.0;
+  double FilteredQP = 0.0;  // charge[e] / momentum[MeV/c]
+  TMatrixD FilteredCovariance{5, 5};
+  // Hits model only: z of the filtered state above (the last hit applied at
+  // this node; Z above stays the point layer's z).
+  double FilteredZ = 0.0;
+
+  // Hits model only: the chosen point's hits, in the order considered.
+  struct HitUpdate {
+    int HitIndex = -1;
+    double Z = 0.0;
+    double Residual = 0.0;     // measured - predicted, before the update (mm)
+    double ResidualVar = 0.0;  // predicted variance of that residual (mm^2): pull = Residual / sqrt(ResidualVar)
+    bool Applied = false;      // false: already applied at an earlier node (shared hit), or behind the state
+  };
+  std::vector<HitUpdate> Hits;
+};
+
+struct FitResult {
+  // Why the walk actually ended -- added to distinguish "ran out of search
+  // budget" (GapLimit/RangeEnd, tunable via Config) from "the numerical
+  // guards added during Phase 1's momentum-collapse debugging kicked in"
+  // (Diverged, not a search-budget question at all). See kalman_follower
+  // memory, "investigate the completeness ceiling" (2026-09-15).
+  // RangedOut: the muon's own energy loss through the material to the next
+  // layer took it to the momentum floor, i.e. it physically stops before
+  // reaching that layer. A normal termination (Converged stays true), not a
+  // failure -- it is reported separately from ReachedRangeEnd only because
+  // the walk ended before running out of layers. The result keeps every node
+  // up to the last layer actually reached.
+  enum class StopReason { NotStarted, ReachedRangeEnd, GapLimitExceeded, Diverged, RangedOut };
+  StopReason Stop = StopReason::NotStarted;
+
+  bool Converged = false;
+  std::vector<FollowedNode> Nodes;  // one per z-layer walked, low->high z
+
+  double MomentumMeV = 0.0;  // from the final node's filtered q/p (at the track's END)
+  double Charge = 0.0;       // sign of the final node's filtered q/p
+  // Track-start state from the backward pass (Config::BackwardPass), at the
+  // first accepted measurement: every measurement informs it, unlike the
+  // forward walk's first node (which is only the seed).
+  // Orphan hits picked up after the walk (Config::PickUpOrphanHits): index
+  // into the hit list, residual against the nearest filtered state and its
+  // variance.
+  struct OrphanHit {
+    int HitIndex = -1;
+    double Z = 0.0;
+    double Residual = 0.0;
+    double ResidualVar = 0.0;
+  };
+  std::vector<OrphanHit> Orphans;
+
+  bool HasStartState = false;
+  double StartX = 0.0, StartY = 0.0, StartZ = 0.0;
+  double StartDXDZ = 0.0, StartDYDZ = 0.0;
+  double StartMomentumMeV = 0.0;
+  double StartCharge = 0.0;
+  // Range momentum at the track start (Config::RangeStopMomentumMeV); 0 if
+  // the backward pass did not run.
+  double RangeMomentumMeV = 0.0;
+  // Range-seeded backward pass (Config::RangeSeededBackwardPass); 0 if off.
+  double RangeSeededMomentumMeV = 0.0;
+  // Extension on single hits (Config::ExtendOnHits): hits taken, and the
+  // filtered position at the last of them (0 if none).
+  int NExtensionHits = 0;
+  double ExtensionEndX = 0.0, ExtensionEndY = 0.0, ExtensionEndZ = 0.0;
+  double TotalChi2 = 0.0;
+  int NDoF = 0;
+  int NGapsFilled = 0;             // layers skipped for lack of a good candidate
+  int NAmbiguousLayersResolved = 0;  // layers where >1 candidate existed
+  int HeadSkip = 0;  // RunBestSeed(): leading object layers this hypothesis's seed skipped
+  // Running track time origin, mean of (t - s/c) over accepted points (ns).
+  // Always computed, whether or not time is used in selection.
+  double TrackT0Ns = 0.0;
+};
+
+class Follower {
+  public:
+    Follower(const Config &config, const IFieldModel &field);
+
+    // allSpacePoints: the FULL pool the seed was drawn from -- ambiguity
+    //   resolution needs to see ghosts the seed path didn't pick.
+    // seedPath: indices into allSpacePoints, low->high z (as produced by
+    //   TMS_GraphTrackFinder::Path::SpacePointIndices, or a DBSCAN
+    //   track-like cluster's own z-ordering). Only its first few points
+    //   are used, to seed the initial position/direction -- everything
+    //   after that is re-derived layer by layer from the full pool.
+    FitResult Run(const std::vector<TMS_SpacePoint> &allSpacePoints,
+                  const std::vector<std::size_t> &seedPath) const;
+
+    // Multi-hypothesis seeding ("combinatorial Kalman filter" seeding, the
+    // standard ATLAS/CMS/ACTS pattern for exactly this problem): for a
+    // found track-like object whose points came from DBSCAN+PCA or a
+    // merge-and-re-PCA (i.e. NOT already ordered by a directed search the
+    // way TMS_GraphTrackFinder::Path is), z-sorting the object's points and
+    // always starting from whichever one lands first can pick a bad anchor
+    // when the object's own first z-layer has more than one point at
+    // (near-)identical z -- discovered on real slices: one such object's
+    // naive seed diverged after a single node, while a hand-picked
+    // different first-layer point on the SAME object converged cleanly.
+    // Run() itself can't distinguish these (it only ever sees one seedPath),
+    // so this spawns one hypothesis per candidate at the object's own first
+    // z-layer, fits each with Run(), and keeps the best -- reusing
+    // Converged/NDoF/TotalChi2 as the ready-made selection signal rather
+    // than inventing a new search. Prefer this over Run() for DBSCAN-direct
+    // and merged-cluster seeds; TMS_GraphTrackFinder::Path seeds already
+    // went through a directed graph search that resolved this same
+    // ambiguity, so they should keep calling Run() directly.
+    //
+    // objectIndices: the found object's own point indices into
+    // allSpacePoints, in ANY order (unlike seedPath above, this is not
+    // expected to be pre-sorted).
+    //
+    // allHypotheses / bestIndex (both optional): every hypothesis' FitResult in
+    // the order tried, and the index of the one returned -- for studying how
+    // the hypotheses are ranked (see IsBetterFit in the .cpp).
+    FitResult RunBestSeed(const std::vector<TMS_SpacePoint> &allSpacePoints,
+                          const std::vector<std::size_t> &objectIndices,
+                          std::vector<FitResult> *allHypotheses = nullptr,
+                          std::size_t *bestIndex = nullptr) const;
+
+    // Where Config::UseXYTimeInSelection gets each point's transit-corrected
+    // X/Y time difference. The follower only sees TMS_SpacePoint, which keeps
+    // the average of its two hit times; the caller, which has the hits,
+    // supplies the difference (typically keyed on the point's hit indices).
+    void SetXYTimeDifferenceSource(XYTimeDifferenceFn source) { fXYTimeDifference = std::move(source); }
+
+    // The slice's hits for Config::Measurement = Hits, indexed like the space
+    // points' hit indices. Not owned: must outlive every Run()/RunBestSeed()
+    // call that uses it. nullptr = no hits (the fit uses space points).
+    void SetHits(const std::vector<FitHit> *hits) { fHits = hits; }
+
+  private:
+    // Run() with an optional seed-momentum override (> 0) and q/p prior
+    // (relative sigma, > 0), for the range re-seed.
+    FitResult RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, const std::vector<std::size_t> &seedPath,
+                      double seedMomentumOverrideMeV, double qpRelSigmaOverride) const;
+
+    Config fConfig;
+    const IFieldModel &fField;
+    XYTimeDifferenceFn fXYTimeDifference;
+    const std::vector<FitHit> *fHits = nullptr;
+};
+
+}  // namespace TMS_KalmanFollower
+
+#endif

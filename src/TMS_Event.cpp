@@ -4,6 +4,7 @@
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
 #include "TMS_SpacePointBuilder.h"
+#include "TMS_Cluster3DReco.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -1035,6 +1036,173 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
   if (TMS_Geom::GetInstance().IsInsideLAr(position)) {
     hadronic_energy_tms += hadronic_energy;
     true_visible_energy_tms += energy;
+  }
+}
+
+void TMS_Event::RunCluster3DReco() {
+  // Settings: the library defaults, plus [Recon.Cluster3D] from the config.
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  TMS_Cluster3DReco::Config config;
+  config.UseGraphSearch = manager.Get_RECO_CLUSTER3D_GraphSearch();
+  config.UseClusterLinking = manager.Get_RECO_CLUSTER3D_LinkClusters();
+  config.Follower.RangeReseedFactor = manager.Get_RECO_CLUSTER3D_RangeReseedFactor();
+  config.Follower.XYTimeSigmaNs = manager.Get_RECO_CLUSTER3D_XYTimeSigmaNs();
+  config.Follower.XYTimeGateNSigma = manager.Get_RECO_CLUSTER3D_XYTimeGateNSigma();
+  const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
+  const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
+  const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();
+  const TVector3 tmsLo = TMS_Geom::GetInstance().GetStartOfTMS(), tmsHi = TMS_Geom::GetInstance().GetEndOfTMS();
+  static const RegionFieldModel field;
+
+  const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();
+  const std::vector<TMS_KalmanFollower::FitHit> fitHits = TMS_Cluster3DReco::BuildFitHits(TMS_Hits, barPitch);
+  const std::vector<TMS_Cluster3DReco::Track> tracks =
+      TMS_Cluster3DReco::Run(TMS_SpacePoints, fitHits, config, field);
+
+  Cluster3DTracks.clear();
+  for (const TMS_Cluster3DReco::Track &track : tracks) {
+    const TMS_KalmanFollower::FitResult &fit = track.Fit;
+    TMS_Track out;
+    for (int h : track.HitIndices) out.Hits.push_back(TMS_Hits[h]);
+    out.nHits = static_cast<int>(out.Hits.size());
+    double deposit = 0.0;
+    for (const TMS_Hit &hit : out.Hits) deposit += hit.GetE();
+    out.EnergyDeposit = deposit;
+
+    // Kalman nodes: the filtered state at each accepted point. RecoX/RecoY is
+    // that state's position (as the legacy fit's nodes carry its prediction);
+    // TrueX/TrueY the true position of the chosen point's y-measuring (X-bar)
+    // and x-measuring (Y-bar) hits. Cluster3D fits once, so the legacy fit's
+    // separate plus/minus-charge node lists are copies of the same nodes.
+    for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+      if (!node.HasHit) continue;
+      const double z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+      TMS_KalmanNode kn(node.FilteredX, node.FilteredY, z, 0.0, node.FilteredDXDZ, node.FilteredDYDZ);
+      kn.RecoX = node.FilteredX;
+      kn.RecoY = node.FilteredY;
+      kn.MeasurementVec[0] = node.FilteredX;
+      kn.MeasurementVec[1] = node.FilteredY;
+      kn.TrueX = kn.TrueY = -999999.0;
+      const TMS_SpacePoint &point = TMS_SpacePoints[node.ChosenSpacePointIndex];
+      if (point.GetXHitIndex() >= 0) {
+        const TMS_TrueHit *trueHit = GetTrueHit(TMS_Hits[point.GetXHitIndex()].GetHitId());
+        if (trueHit != nullptr) kn.TrueY = trueHit->GetY();
+      }
+      if (point.GetYHitIndex() >= 0) {
+        const TMS_TrueHit *trueHit = GetTrueHit(TMS_Hits[point.GetYHitIndex()].GetHitId());
+        if (trueHit != nullptr) kn.TrueX = trueHit->GetX();
+      }
+      out.KalmanNodes.push_back(kn);
+    }
+    out.KalmanNodes_plus = out.KalmanNodes;
+    out.KalmanNodes_minus = out.KalmanNodes;
+
+    // Each hit's reconstructed position (TMS_Hit::RecoX/RecoY, what the
+    // writer stores as the track's hit positions): the filtered state
+    // nearest the hit's plane, transported straight to it.
+    for (TMS_Hit &hit : out.Hits) {
+      const TMS_KalmanFollower::FollowedNode *nearest = nullptr;
+      double nearestZ = 0.0;
+      for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes) {
+        if (!node.HasHit) continue;
+        const double z = node.FilteredZ != 0.0 ? node.FilteredZ : node.Z;
+        if (!nearest || std::abs(z - hit.GetZ()) < std::abs(nearestZ - hit.GetZ())) {
+          nearest = &node;
+          nearestZ = z;
+        }
+      }
+      if (!nearest) continue;
+      const double dz = hit.GetZ() - nearestZ;
+      hit.SetRecoX(nearest->FilteredX + nearest->FilteredDXDZ * dz);
+      hit.SetRecoY(nearest->FilteredY + nearest->FilteredDYDZ * dz);
+      hit.SetRecoXUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(0, 0))));
+      hit.SetRecoYUncertainty(std::sqrt(std::max(0.0, nearest->FilteredCovariance(1, 1))));
+    }
+
+    // Length as the legacy fit reports it: areal density in g/cm^2, walked
+    // through the geometry -- what the range-to-energy conversions downstream
+    // (EnergyRange, the validation suite) expect, not a path length in mm.
+    // Walked hit to hit in z, at each hit's reconstructed position, through
+    // every hit the track uses (orphans and the single-hit extension
+    // included), so it covers the same stretch as the range momentum. (It was
+    // summed node to node over the walked nodes only, missing the extension:
+    // 2026-09-27, the suite's length-based energy read -9% for stopping
+    // muons while the range momentum read +2%.)
+    {
+      std::vector<const TMS_Hit *> byZ;
+      for (const TMS_Hit &hit : out.Hits) byZ.push_back(&hit);
+      std::sort(byZ.begin(), byZ.end(), [](const TMS_Hit *a, const TMS_Hit *b) { return a->GetZ() < b->GetZ(); });
+      double length = 0.0;
+      const TMS_Hit *previous = nullptr;
+      for (const TMS_Hit *hit : byZ) {
+        if (previous && hit->GetZ() - previous->GetZ() > 1e-3)
+          length += TMS_Geom::GetInstance().GetTrackLength(
+              TVector3(previous->GetRecoX(), previous->GetRecoY(), previous->GetZ()),
+              TVector3(hit->GetRecoX(), hit->GetRecoY(), hit->GetZ()));
+        if (!previous || hit->GetZ() - previous->GetZ() > 1e-3) previous = hit;
+      }
+      out.Length = length;
+    }
+
+    // Start: the backward pass's state at the first measurement; end: the
+    // forward walk's last accepted node. Times: the track's t0.
+    const auto direction = [](double dxdz, double dydz, double out3[3]) {
+      const double norm = std::sqrt(1.0 + dxdz * dxdz + dydz * dydz);
+      out3[0] = dxdz / norm;
+      out3[1] = dydz / norm;
+      out3[2] = 1.0 / norm;
+    };
+    const TMS_KalmanFollower::FollowedNode *last = nullptr;
+    for (const TMS_KalmanFollower::FollowedNode &node : fit.Nodes)
+      if (node.HasHit) last = &node;
+    if (fit.HasStartState) {
+      out.SetStartPosition(fit.StartX, fit.StartY, fit.StartZ);
+      direction(fit.StartDXDZ, fit.StartDYDZ, out.StartDirection);
+      // The track's momentum. With [Recon.Cluster3D] MomentumFromRange: its
+      // range (legacy's definition -- see TMS_KalmanFollower::Config::
+      // RangeStopMomentumMeV) if the track stops inside the TMS -- its fitted
+      // end at least RangeContainmentMarginXY from the x/y faces of the bar
+      // region and RangeContainmentMarginZ before its back face -- else the
+      // curvature fit's, since range is only a lower bound for a muon that
+      // leaves. Otherwise always the curvature fit's.
+      bool stopsInside = false;
+      if (last != nullptr) {
+        // The fitted end: the extension's, if the fit extended past its last
+        // node on single hits (TMS_KalmanFollower::Config::ExtendOnHits).
+        const bool extended = fit.NExtensionHits > 0;
+        const double ex = extended ? fit.ExtensionEndX : last->FilteredX;
+        const double ey = extended ? fit.ExtensionEndY : last->FilteredY;
+        const double ez = extended ? fit.ExtensionEndZ : (last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
+        stopsInside = ex > tmsLo.X() + containXY && ex < tmsHi.X() - containXY && ey > tmsLo.Y() + containXY &&
+                      ey < tmsHi.Y() - containXY && ez < tmsHi.Z() - containZ;
+      }
+      out.Momentum = (momentumFromRange && stopsInside && fit.RangeMomentumMeV > 0.0) ? fit.RangeMomentumMeV
+                                                                                     : fit.StartMomentumMeV;
+      // Charge in the legacy tracks' PDG convention: 13 = mu- (physical
+      // charge -1), -13 = mu+ -- what the validation suite expects.
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.StartCharge < 0 ? 13 : -13;
+    } else if (!fit.Nodes.empty()) {
+      const TMS_KalmanFollower::FollowedNode &first = fit.Nodes.front();
+      out.SetStartPosition(first.FilteredX, first.FilteredY, first.FilteredZ != 0.0 ? first.FilteredZ : first.Z);
+      direction(first.FilteredDXDZ, first.FilteredDYDZ, out.StartDirection);
+      out.Momentum = fit.MomentumMeV;
+      out.Charge = out.Charge_Kalman = out.Charge_Kalman_curvature = fit.Charge < 0 ? 13 : -13;
+    }
+    if (last != nullptr) {
+      // End position: the single-hit extension's end if the fit extended.
+      if (fit.NExtensionHits > 0)
+        out.SetEndPosition(fit.ExtensionEndX, fit.ExtensionEndY, fit.ExtensionEndZ);
+      else
+        out.SetEndPosition(last->FilteredX, last->FilteredY, last->FilteredZ != 0.0 ? last->FilteredZ : last->Z);
+      direction(last->FilteredDXDZ, last->FilteredDYDZ, out.EndDirection);
+    }
+    out.Start[3] = out.End[3] = out.Time = fit.TrackT0Ns;
+    out.Chi2 = out.Chi2_plus = out.Chi2_minus = fit.TotalChi2;
+    out.NDoF = fit.NDoF;
+    out.NLayersWalked = static_cast<int>(fit.Nodes.size());
+    out.NGapLayers = fit.NGapsFilled;
+    out.NOrphanHits = static_cast<int>(fit.Orphans.size());
+    Cluster3DTracks.push_back(out);
   }
 }
 

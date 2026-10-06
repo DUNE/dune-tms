@@ -204,6 +204,48 @@
     # With PairingRequireCrossing: the largest sideways slope (dx/dz) allowed
     # between the two hits' planes (they are 65-130 mm apart in z).
     PairingCrossingSlope = 1.0
+  [Recon.Cluster3D]
+    # Run the Cluster3D reconstruction (space points -> DBSCAN -> Kalman
+    # follower, TMS_Cluster3DReco) on every slice and write its tracks, in the
+    # legacy track format, to the Reco_Tree_C3D / Truth_Info_C3D trees next
+    # to the legacy Reco_Tree / Truth_Info. Off until validated.
+    Enabled = false
+    # Stage 2: graph search inside clusters that are not track-like. Off: as
+    # first designed it adds few muons and many non-muon tracks (2026-09-25).
+    GraphSearch = false
+    # Link DBSCAN clusters that are pieces of one track (ordered in z, colinear,
+    # same time) and fit each chain as one object (TMS_ClusterLinker). 15 files,
+    # 2026-09-26: suite ND-physics muons ending correctly 405 -> 443 of 616,
+    # duplicate tracks halved, +5% non-muon tracks. Off until validated.
+    LinkClusters = false
+    # Cluster3D track momentum from range (the momentum needed to cross exactly
+    # the material between its first and last hit and stop), as the legacy
+    # fit's Momentum is defined -- for tracks that stop inside the TMS; tracks
+    # that leave keep the curvature fit's (range is only a lower bound there).
+    # "Stops inside": the fitted end at least RangeContainmentMarginXY (mm)
+    # from the x/y faces of the bar region and RangeContainmentMarginZ (mm)
+    # before its back face. 15 files, 2026-09-27: 98% of stopping muons keep
+    # range (+0.7% median), 81% of leaving muons switch to curvature (median
+    # -56% -> -16%). Off: always the curvature fit's.
+    MomentumFromRange = false
+    RangeContainmentMarginXY = 100.0
+    RangeContainmentMarginZ = 100.0
+    # Re-walk each Cluster3D track seeded with this factor x its own range
+    # momentum, keeping the new fit if it reaches further (0 = off). 15 files,
+    # 2026-09-27: tracks ending correctly 459 -> 476 of 616, early ends inside
+    # the track's own object 19 -> 7, no more junk.
+    RangeReseedFactor = 1.5
+    # Follower candidate choice by each space point's transit-corrected X/Y hit
+    # time difference (TMS_SpacePointTiming): each candidate's score gains
+    # (dt / XYTimeSigmaNs)^2, and candidates with |dt| > XYTimeGateNSigma x
+    # XYTimeSigmaNs are rejected (0 = rank only). Without the gate, 6% of muon
+    # tracks paired the muon's hits in one view with another particle's in the
+    # other ("view mismatch"): once on that branch, position outweighs the time
+    # penalty. 15 files, 2026-09-28, gate 2 (7.4 ns): mismatched muon tracks
+    # 6.0 -> 2.6%, ND muons ending correctly 522 -> 529 of 566, junk tracks
+    # -24%, duplicates -38%, muons found unchanged; tighter gates lose muons.
+    XYTimeSigmaNs = 3.7
+    XYTimeGateNSigma = 2.0
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

@@ -41,6 +41,8 @@ class TMS_TreeWriter {
       Branch_Lines->Write();
       Reco_Tree->Write();
       Truth_Info->Write();
+      if (Reco_Tree_C3D) Reco_Tree_C3D->Write();
+      if (Truth_Info_C3D) Truth_Info_C3D->Write();
       Truth_Spill->Write();
       Meta->Write();
       std::cout << "TMS_TreeWriter wrote output to " << Output->GetName() << std::endl;
@@ -78,6 +80,11 @@ class TMS_TreeWriter {
     float RecoTrackChi2[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_minus[__TMS_MAX_TRACKS__];
     float RecoTrackChi2_plus[__TMS_MAX_TRACKS__];
+    // Fit-quality counts (TMS_Track::NDoF etc.; -1 when not filled).
+    int RecoTrackNDoF[__TMS_MAX_TRACKS__];
+    int RecoTrackNLayersWalked[__TMS_MAX_TRACKS__];
+    int RecoTrackNGapLayers[__TMS_MAX_TRACKS__];
+    int RecoTrackNOrphanHits[__TMS_MAX_TRACKS__];
     int RecoTrackCharge[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman[__TMS_MAX_TRACKS__];
     int RecoTrackCharge_Kalman_curvature[__TMS_MAX_TRACKS__];
@@ -148,6 +155,15 @@ class TMS_TreeWriter {
     TTree* Branch_Lines; // The TTree
     TTree* Reco_Tree; // The TTree 
     TTree* Truth_Info; // Truth info
+    // Cluster3D reconstruction output ([Recon.Cluster3D] Enabled): clones of
+    // Reco_Tree / Truth_Info (minus the space-point branches) sharing their
+    // branch addresses, filled with TMS_Event::GetCluster3DTracks() as the
+    // tracks -- everything else identical to the legacy trees, slice by slice.
+    TTree* Reco_Tree_C3D = nullptr;
+    TTree* Truth_Info_C3D = nullptr;
+    // One slice into one pair of trees, with the given tracks.
+    void FillSlice(TMS_Event &event, const std::vector<TMS_Track> &tracks, TTree *reco, TTree *truth,
+                   bool fillLines);
     TTree* Truth_Spill; // Truth spill
     TTree* Meta; // Metadata
 

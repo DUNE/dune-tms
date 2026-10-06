@@ -486,83 +486,40 @@ class TMS_Geom {
       // To step through the volumes, can't use IsSameLocation because the volume between LAr and TMS is same as the volume after/next to TMS and in front/beside LAr.
       // Instead check the step size and current Point, making sure it doesn't pass point2
       double target_dist = (point2-point1).Mag();
-      double dist = 0;
 
-      double step = geom->GetStep();
-
-      // Count up the total length for debugging
-      double total = 0;
-      // Walk through until we're in the same volume as our final point
-      while (step < Unscale(__GEOM_LARGE_STEP__) && target_dist-dist > 0) {
-        // Get the material of the current point
-        TGeoMaterial *mat = geom->GetCurrentNode()->GetMedium()->GetMaterial();
-        // Get the position
-        const double *pt = geom->GetCurrentPoint();
-        // How far have we gone along the current direction
-        TVector3 pt_vec(pt[0], pt[1], pt[2]);
-        // How far is this boundary from the starting point
-        dist = (pt_vec-point1).Mag();
-
-        // Step into the next volume
-        geom->FindNextBoundaryAndStep();
-        // Go down to the deepest node
-        geom->FindNode();
-        // How big was the step in this material
-        step = geom->GetStep();
-        //std::cout<<"Current total: "<<total<<", det "<<GetNameOfDetector(pt_vec)<<", step="<<step<<std::endl;
+      // Walk from point1 to point2 volume by volume, each step capped at the
+      // distance still to go (FindNextBoundaryAndStep(stepmax) stops at
+      // stepmax when no boundary comes first), so the pieces add up to exactly
+      // |point2 - point1|.
+      //
+      // The loop this replaced tested "not there yet"
+      // with the distance BEFORE each step, so after the step that crossed
+      // point2 it ran once more from beyond point2 and added that overshoot
+      // (in the next volume's material) as extra path. Every call over-counted
+      // by up to a volume's thickness, so the total depended on how finely a
+      // path was cut: along real muon tracks, steel +1.3% in 130 mm pieces and
+      // +9.1% in 40 mm pieces (the Kalman follower's sub-step), scintillator
+      // +26% / +41% (2026-09-26, reports/2026-09-26_c3d_range/geom_test).
+      double travelled = 0.0;
+      int guard = 0;
+      while (travelled < target_dist - 1e-9 && guard++ < 100000) {
+        TGeoNode *node = geom->GetCurrentNode();
+        if (node == nullptr) break;  // left the world
+        TGeoMaterial *mat = node->GetMedium()->GetMaterial();
+        const double remaining = target_dist - travelled;
+        geom->FindNextBoundaryAndStep(remaining);
+        double step = geom->GetStep();
         if (step < Unscale(__GEOM_TINY_STEP__)) {
-          geom->SetStep(Unscale(__GEOM_SMALL_STEP__));
-          // Step into the next volume
+          // Sitting on a boundary: nudge through it.
+          geom->SetStep(std::min(Unscale(__GEOM_SMALL_STEP__), remaining));
           geom->Step();
-          // Go down to the deepest node
-          geom->FindNode();
-          // How big was the step in this material
           step = geom->GetStep();
         }
-
-        // This step might take us beyond our target, so modify the step size to be from boundary up until point2
-        if (dist+step > target_dist) {
-          step = (point2-pt_vec).Mag();
-        }
-
-        // Push back the information
-        std::pair<TGeoMaterial*, double> temp(mat, Scale(step));
-        Materials.push_back(temp);
-        total += step;
+        geom->FindNode();
+        step = std::min(step, remaining);
+        Materials.push_back(std::pair<TGeoMaterial*, double>(mat, Scale(step)));
+        travelled += step;
       }
-
-      /*
-         if (total > 7*1000*10) {
-         std::cerr << "Very long distance between points: " << total << std::endl;
-         Materials.clear();
-         return Materials;
-         }
-         */
-
-      /*
-      // Then finally add in the last material from the boundary to the current point
-      // Get the last point
-      geom->FindNode(point2.X(), point2.Y(), point2.Z());
-      TVector3 temp(curpt[0], curpt[1], curpt[2]);
-      // The distance between the 
-      double extra = (temp-point2).Mag();
-      // Change the point to get the material
-      geom->SetCurrentPoint(point2.X(), point2.Y(), point2.Z());
-      // Update material
-      TGeoMaterial *mat = geom->GetCurrentNode()->GetMedium()->GetMaterial();
-      std::pair<TGeoMaterial*, double> mypair(mat, extra);
-      Materials.push_back(mypair);
-
-      if (fabs(total+extra - (point2-point1).Mag()) > 1E-3) {
-      std::cout << "Total: " << total << std::endl;
-      std::cout << "extra: " << extra << std::endl;
-      std::cout << "total+extra: " << total+extra << std::endl;
-      std::cout << "Intended: " << (point2-point1).Mag() << std::endl;
-      std::cout << "N materials: " << Materials.size() << std::endl;
-      throw;
-      }
-      */
-
       return Materials;
     }
 

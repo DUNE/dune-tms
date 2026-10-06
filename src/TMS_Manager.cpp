@@ -72,6 +72,15 @@ TMS_Manager::TMS_Manager() {
       toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingRequireCrossing", true);
   _RECO_SPACEPOINTS_PairingCrossingSlope =
       toml::find_or<double>(data, "Recon", "SpacePoints", "PairingCrossingSlope", 1.0);
+  _RECO_CLUSTER3D_Enabled = toml::find<bool>(data, "Recon", "Cluster3D", "Enabled");
+  _RECO_CLUSTER3D_GraphSearch = toml::find<bool>(data, "Recon", "Cluster3D", "GraphSearch");
+  _RECO_CLUSTER3D_LinkClusters = toml::find<bool>(data, "Recon", "Cluster3D", "LinkClusters");
+  _RECO_CLUSTER3D_MomentumFromRange = toml::find<bool>(data, "Recon", "Cluster3D", "MomentumFromRange");
+  _RECO_CLUSTER3D_RangeContainmentMarginXY = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginXY");
+  _RECO_CLUSTER3D_RangeContainmentMarginZ = toml::find<double>(data, "Recon", "Cluster3D", "RangeContainmentMarginZ");
+  _RECO_CLUSTER3D_RangeReseedFactor = toml::find<double>(data, "Recon", "Cluster3D", "RangeReseedFactor");
+  _RECO_CLUSTER3D_XYTimeSigmaNs = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeSigmaNs", 3.7);
+  _RECO_CLUSTER3D_XYTimeGateNSigma = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeGateNSigma", 2.0);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
