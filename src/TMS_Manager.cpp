@@ -61,6 +61,15 @@ TMS_Manager::TMS_Manager() {
   _RECO_TIME_PerViewCoincidenceDzMM = toml::find_or<double>(data, "Recon", "Time", "PerViewCoincidenceDzMM", 200.0);
   _RECO_TIME_PerViewFiberDelayNsPerMM = toml::find_or<double>(data, "Recon", "Time", "PerViewFiberDelayNsPerMM", 0.009);
 
+  _RECO_SPACEPOINTS_TimingWindow = toml::find<double>(data, "Recon", "SpacePoints", "TimingWindow");
+  _RECO_SPACEPOINTS_Pairing = toml::find<std::string>(data, "Recon", "SpacePoints", "Pairing");
+  _RECO_SPACEPOINTS_PairingFallback = toml::find<bool>(data, "Recon", "SpacePoints", "PairingFallback");
+  // Optional, so older config files keep working (default on).
+  _RECO_SPACEPOINTS_PairingRequireCrossing =
+      toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingRequireCrossing", true);
+  _RECO_SPACEPOINTS_PairingCrossingSlope =
+      toml::find_or<double>(data, "Recon", "SpacePoints", "PairingCrossingSlope", 1.0);
+
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
   _RECO_TRACKSMOOTHING_MaxYDistanceBetweenUVTransitionPoints =

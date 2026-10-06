@@ -3,6 +3,7 @@
 #include "TMS_VertexId.h"
 #include "TMS_DetectorSimulation.h"
 #include "TMS_SignalProcessing.h"
+#include "TMS_SpacePointBuilder.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -437,6 +438,11 @@ TMS_Event::TMS_Event(TMS_Event &event, int slice) : TMS_Hits(event.GetHits(slice
       generator(event.generator) {
   // Create an event from a slice of another event
   RunNumber = event.RunNumber;
+  // Was left uninitialized for slices, so Truth_Info's nPrimaryVertices and
+  // HasPileup held garbage for every slice (found 2026-09-25 when the output
+  // of two identical runs differed in that one leaf). The parent event's
+  // (the spill's) count, like the other inherited fields here.
+  nVertices = event.nVertices;
   SliceNumber = slice;
   SpillNumber = event.SpillNumber;
 
@@ -1030,4 +1036,22 @@ void Vtx_Info::AddEnergyFromHit(const TMS_TrueHit& hit, int index) {
     hadronic_energy_tms += hadronic_energy;
     true_visible_energy_tms += energy;
   }
+}
+
+void TMS_Event::BuildSpacePoints() {
+  // The actual pairing logic lives in TMS_SpacePointBuilder (src/Cluster3D/)
+  // so it can be read, tested, and tuned independently of TMS_Event. This
+  // method just supplies this event's hits and the configured timing window.
+  // TMS_Hits (for a per-slice event) includes pedestal-suppressed hits -- the
+  // slice constructor deliberately keeps them (GetHits(slice, true)) for
+  // other consumers -- TMS_SpacePointBuilder::Build() skips them itself.
+  // Which planes pair with which comes from the loaded geometry and the
+  // configured [Recon.SpacePoints] Pairing scheme (see TMS_PlanePairing.h).
+  TMS_Manager &manager = TMS_Manager::GetInstance();
+  const double timing_window = manager.Get_RECO_SPACEPOINTS_TimingWindow();
+  const TMS_PlanePairing::Table pairing = TMS_PlanePairing::BuildFromGeometry();
+  TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window, pairing,
+                                                 manager.Get_RECO_SPACEPOINTS_PairingFallback(),
+                                                 manager.Get_RECO_SPACEPOINTS_PairingRequireCrossing(),
+                                                 manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope());
 }

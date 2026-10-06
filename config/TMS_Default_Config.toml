@@ -176,7 +176,34 @@
     PerViewCoincidenceWindowNs = 10.0
     PerViewCoincidenceDzMM = 200.0
     PerViewFiberDelayNsPerMM = 0.009
-    
+
+  [Recon.SpacePoints]
+    # Timing window for pairing X and Y hits (in nanoseconds)
+    # Based on DUNE RF bucket spacing (19 ns) + transit time margin
+    TimingWindow = 30.0 # ns
+    # Which planes' hits are paired into space points (TMS_PlanePairing):
+    #  "NearestY"       -- each x-measuring plane with its nearest y-measuring plane
+    #                      (front-section ties -> downstream), point z = midpoint of
+    #                      the two planes; one point layer per x-measuring plane.
+    #  "BothNeighbors" -- the original scheme: each y-measuring plane with the
+    #                      x-measuring planes on both sides, point z = the
+    #                      y-measuring plane's z. Kept only until NearestY is
+    #                      validated (2026-09-25 plan), then to be removed.
+    Pairing = "NearestY"
+    # NearestY only: a hit left with no partner in its own plane pair may pair
+    # across its other adjacent x/y gap instead (recovers crossings where the
+    # partner plane's hit is missing).
+    PairingFallback = true
+    # Pair two hits only if one particle could have crossed both bars: an X-bar
+    # (measuring y) is split at x = 0 into two bars read out at opposite sides,
+    # so a hit in one half cannot belong with a Y-bar hit far on the other side.
+    # Files 1-15 (2026-10-01): removes 9.7% of space points, 97% of them ghosts;
+    # muon tracks mixing two particles' x and y hits 3.0 -> 1.6%, duplicate
+    # muon tracks -34%, efficiency unchanged. false: pair them anyway.
+    PairingRequireCrossing = true
+    # With PairingRequireCrossing: the largest sideways slope (dx/dz) allowed
+    # between the two hits' planes (they are 65-130 mm apart in z).
+    PairingCrossingSlope = 1.0
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

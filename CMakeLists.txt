@@ -36,7 +36,9 @@ set(TOML_INCLUDES "${PROJECT_SOURCE_DIR}/toml11")
 
 # Define the options that can be set in the cache, or on the cmake
 # command line.
-set(CMAKE_BUILD_TYPE Debug)
+# Debug unless the cmake command line chooses another type (e.g. -DCMAKE_BUILD_TYPE=RelWithDebInfo for an
+# optimized "prof" build with symbols): a cache default, where a plain set() would override the command line.
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type: Debug, RelWithDebInfo, Release")
 set(TMS_USE_NEST TRUE CACHE BOOL
   "If true, then make the NEST model available to be directly used")
 
