@@ -1974,6 +1974,16 @@ void TMS_TreeWriter::Fill(TMS_Event &event) {
   const std::vector<TMS_Hit>& raw_hits_for_sp = event.GetHitsRawRef();
   // Look-aside hit table (see TMS_TreeWriter.h), clamped like nSpacePoints.
   nSpacePointHits = std::min((int)raw_hits_for_sp.size(), __TMS_MAX_HITS__);
+  // Both tables are fixed-size arrays. A slice with more is written truncated: points beyond the limit are dropped
+  // and SpacePointX/YHitIndex can then point past nSpacePointHits, so a reader should treat an index >= nSpacePointHits
+  // as "hit not in the table". In the 250-file production this happened in 5 of 345,626 entries, all SliceNo == 0 (the
+  // hits outside every slice); say so, so it is not silent.
+  if ((int)space_points.size() > __TMS_MAX_SPACEPOINTS__ || (int)raw_hits_for_sp.size() > __TMS_MAX_HITS__) {
+    static int nTruncationWarnings = 0;
+    if (nTruncationWarnings++ < 10)
+      std::cout<<"Warning: slice "<<event.GetSliceNumber()<<" has "<<space_points.size()<<" space points and "<<raw_hits_for_sp.size()
+               <<" hits; the space-point branches hold at most "<<__TMS_MAX_SPACEPOINTS__<<" and "<<__TMS_MAX_HITS__<<", the rest are not written"<<std::endl;
+  }
   for (int i_h = 0; i_h < nSpacePointHits; ++i_h) {
     const TMS_Hit &hit = raw_hits_for_sp[i_h];
     SpacePointHitTime[i_h] = hit.GetT();
