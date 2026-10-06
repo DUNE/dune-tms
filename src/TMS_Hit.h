@@ -68,6 +68,10 @@ class TMS_Hit {
     // same as the MC constructor -- there's nothing to insert into TrueHitByHitId for this hit.
     TMS_Hit(double x, double y, double z, double energy, double time, double pe);
 
+    // Decoder construction path (TMS_MCDecoder): the bar is already known, from the readout's
+    // channel. Caller still needs SetHitId(), SetEVis() and SetToT().
+    TMS_Hit(const TMS_Bar &bar, double energy, double time, double pe);
+
     const TMS_Bar &GetBar() const { return Bar; };
     void SetBar(TMS_Bar bar) { Bar = bar; };
 

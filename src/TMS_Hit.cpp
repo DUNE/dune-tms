@@ -79,3 +79,17 @@ TMS_Hit::TMS_Hit(double x, double y, double z, double energy, double time, doubl
 
 
 
+
+// Decoder path: the bar is given, nothing is looked up
+TMS_Hit::TMS_Hit(const TMS_Bar &bar, double energy, double time, double pe) :
+  Bar(bar),
+  EnergyDeposit(energy),
+  Time(time),
+  Slice(0),
+  #ifdef RECORD_HIT_DEADTIME
+  DeadtimeStart(-999.0),
+  DeadtimeStop(-999.0),
+  #endif
+  PedSuppressed(false),
+  PE(pe) {
+}
