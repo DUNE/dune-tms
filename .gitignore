@@ -2,3 +2,8 @@ build/
 .vscode/
 linux/
 *.root
+# Build leftovers: scripts/Validation builds in place (make there), and python leaves caches
+*.o
+*.d
+__pycache__/
+scripts/Validation/Tracking_Validation

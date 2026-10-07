@@ -53,10 +53,10 @@ All in `config/TMS_Default_Config.toml`, read with defaults where noted.
 
 | Section / key | What it sets |
 |---|---|
-| `[Recon.Cluster3D] Enabled` | Run Cluster3D in conversion at all (off by default). |
-| `LinkClusters` | Chain DBSCAN clusters into one object before fitting (`TMS_ClusterLinker`). |
+| `[Recon.Cluster3D] Enabled` | Run Cluster3D in conversion at all (on by default; `false` skips it and the C3D trees). |
+| `LinkClusters` | Chain DBSCAN clusters into one object before fitting (`TMS_ClusterLinker`; on by default). |
 | `GraphSearch` | Stage 2: graph search in non-track-like clusters (off: few muons, many fakes). |
-| `MomentumFromRange`, `RangeContainmentMarginXY/Z` | Report range momentum for tracks that end at least the margins inside the bar region, the curvature fit's otherwise. |
+| `MomentumFromRange`, `RangeContainmentMarginXY/Z` | (On by default.) Report range momentum for tracks that end at least the margins inside the bar region, the curvature fit's otherwise. |
 | `RangeReseedFactor` | Re-walk each track seeded at this factor times its range momentum, keeping the fit if it reaches further (0 = off). |
 | `XYTimeSigmaNs`, `XYTimeGateNSigma` | Width of the X/Y hit-time term in the follower's candidate choice, and the gate (in sigmas) beyond which a candidate is rejected. |
 | `[Recon.SpacePoints] Pairing`, `PairingFallback`, `TimingWindow` | Which planes' hits are paired into points, and the X/Y time window. |

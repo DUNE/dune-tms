@@ -234,16 +234,18 @@
     # Run the Cluster3D reconstruction (space points -> DBSCAN -> Kalman
     # follower, TMS_Cluster3DReco) on every slice and write its tracks, in the
     # legacy track format, to the Reco_Tree_C3D / Truth_Info_C3D trees next
-    # to the legacy Reco_Tree / Truth_Info. Off until validated.
-    Enabled = false
+    # to the legacy Reco_Tree / Truth_Info. On by default so it runs side by side
+    # with the legacy reconstruction (validated on 248 production files,
+    # 2026-10-06); false skips it and the C3D trees.
+    Enabled = true
     # Stage 2: graph search inside clusters that are not track-like. Off: as
     # first designed it adds few muons and many non-muon tracks (2026-09-25).
     GraphSearch = false
     # Link DBSCAN clusters that are pieces of one track (ordered in z, colinear,
     # same time) and fit each chain as one object (TMS_ClusterLinker). 15 files,
     # 2026-09-26: suite ND-physics muons ending correctly 405 -> 443 of 616,
-    # duplicate tracks halved, +5% non-muon tracks. Off until validated.
-    LinkClusters = false
+    # duplicate tracks halved, +5% non-muon tracks. On, as validated.
+    LinkClusters = true
     # Cluster3D track momentum from range (the momentum needed to cross exactly
     # the material between its first and last hit and stop), as the legacy
     # fit's Momentum is defined -- for tracks that stop inside the TMS; tracks
@@ -252,8 +254,8 @@
     # from the x/y faces of the bar region and RangeContainmentMarginZ (mm)
     # before its back face. 15 files, 2026-09-27: 98% of stopping muons keep
     # range (+0.7% median), 81% of leaving muons switch to curvature (median
-    # -56% -> -16%). Off: always the curvature fit's.
-    MomentumFromRange = false
+    # -56% -> -16%). On, as validated; off: always the curvature fit's.
+    MomentumFromRange = true
     RangeContainmentMarginXY = 100.0
     RangeContainmentMarginZ = 100.0
     # Re-walk each Cluster3D track seeded with this factor x its own range
