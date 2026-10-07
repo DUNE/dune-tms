@@ -10,6 +10,7 @@
 #include "TMS_Hit.h"
 #include "TMS_SpacePointCluster.h"
 #include "TMS_SpacePointTiming.h"
+#include "TMS_StageTimer.h"
 
 namespace TMS_Cluster3DReco {
 
@@ -58,6 +59,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
   std::vector<Track> tracks;
   if (info) *info = RunInfo();
   if (points.empty()) return tracks;
+  TMS_StageTimer::Clock lap;
 
   // DBSCAN tolerance: the geometry's bar pitch as the base, unless set.
   TMS_SpacePointDBScan::Tolerance tolerance = config.DBScanTolerance;
@@ -87,10 +89,12 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
     });
   }
 
+  lap.Lap("c3d/setup");
   // DBSCAN; which objects are track-like.
   TMS_SpacePointDBScan dbscan(points, config.DBScanMinPoints, tolerance);
   const std::vector<std::vector<int>> dbscanClusters = dbscan.RunAndGetClusterIndices();
 
+  lap.Lap("c3d/dbscan");
   // The objects to fit: DBSCAN's clusters, or with linking, each chain of
   // linked clusters merged into one object and every unlinked cluster as is.
   std::vector<std::vector<int>> clusters;
@@ -116,6 +120,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
     info->DBScanClusters = dbscanClusters;
     info->Chains = chains;
   }
+  lap.Lap("c3d/linking");
   std::vector<std::size_t> trackLike, other;
   for (std::size_t c = 0; c < clusters.size(); ++c) {
     TMS_SpacePointCluster cluster(points, clusters[c]);
@@ -138,6 +143,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
 
   TMS_IterativeTrackFit::ClaimedHits claimed;
 
+  lap.Lap("c3d/classify");
   // --- Stage 1: track-like clusters. ---
   for (std::size_t c : trackLike) {
     for (TMS_IterativeTrackFit::Track &fitted : TMS_IterativeTrackFit::FitCluster(points, clusters[c], follower, split, claimed)) {
@@ -154,6 +160,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
     }
   }
 
+  lap.Lap("c3d/fit_track_like");
   // --- Stage 2: graph search inside clusters that are not track-like. ---
   if (config.UseGraphSearch) {
     const TMS_GraphTrackFinder::Finder finder(config.Graph);
@@ -189,6 +196,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
       }
     }
   }
+  lap.Lap("c3d/graph_search");
   // --- Stitching of sequential pieces (Config::StitchSequentialTracks). ---
   if (config.StitchSequentialTracks && tracks.size() > 1) {
     // A track's end state (its last accepted node, or its single-hit
@@ -304,6 +312,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
     }
   }
 
+  lap.Lap("c3d/stitching");
   // --- Shadow-track absorption (Config::AbsorbShadowTracks). ---
   if (config.AbsorbShadowTracks && !hits.empty() && tracks.size() > 1) {
     // A track's coordinate at z in one view: its fitted node nearest in z,
@@ -373,6 +382,7 @@ std::vector<Track> Run(const std::vector<TMS_SpacePoint> &points,
       if (!removed[i]) kept.push_back(std::move(tracks[i]));
     tracks.swap(kept);
   }
+  lap.Lap("c3d/shadow_absorption");
   return tracks;
 }
 
