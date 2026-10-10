@@ -10,7 +10,7 @@
 //   ...second stage...
 //   lap.Lap("slicing");
 //   ...
-//   TMS_StageTimer::PrintSummary();     // once, at the end of the run
+//   TMS_StageTimer::PrintSummary(totalSeconds, nEntries);  // once, at the end of the run
 //
 // Stage names may be hierarchical ("c3d/dbscan"); a name is charged however
 // many times and from wherever it is lapped, and the summary lists stages in
