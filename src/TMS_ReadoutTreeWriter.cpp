@@ -1,5 +1,6 @@
 #include "TMS_ReadoutTreeWriter.h"
 #include "TMS_Hit.h"
+#include "TMS_Utils.h"
 
 // Saves every n events
 #define __TMS_READOUT_AUTOSAVE__ 1000
@@ -26,6 +27,8 @@ TMS_ReadoutTreeWriter::TMS_ReadoutTreeWriter() {
   TMS_Readout->SetDirectory(Output);
   TMS_Readout->SetAutoSave(__TMS_READOUT_AUTOSAVE__);
   
+  writeHitTruth = hasTruth && TMS_Manager::GetInstance().Get_Truth_ReadoutHitTruth();
+
   // Now make the branches
   MakeBranches();
 }
@@ -59,6 +62,15 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
   TMS_Readout->Branch("RecoHitIsPedSupped", &RecoHitIsPedSupped, "RecoHitIsPedSupped[NRecoHits]/O");
   TMS_Readout->Branch("RecoHitBar", &RecoHitBar, "RecoHitBar[NRecoHits]/I");
   TMS_Readout->Branch("RecoHitPlane", &RecoHitPlane, "RecoHitPlane[NRecoHits]/I");
+  if (writeHitTruth) {
+    TMS_Readout->Branch("RecoHitTrueVertexGlobalId", &RecoHitTrueVertexGlobalId, "RecoHitTrueVertexGlobalId[NRecoHits]/L");
+    TMS_Readout->Branch("RecoHitTrueTrackId", &RecoHitTrueTrackId, "RecoHitTrueTrackId[NRecoHits]/I");
+    TMS_Readout->Branch("RecoHitTrueEnergyFrac", &RecoHitTrueEnergyFrac, "RecoHitTrueEnergyFrac[NRecoHits]/F");
+    TMS_Readout->Branch("RecoHitTrue2VertexGlobalId", &RecoHitTrue2VertexGlobalId, "RecoHitTrue2VertexGlobalId[NRecoHits]/L");
+    TMS_Readout->Branch("RecoHitTrue2TrackId", &RecoHitTrue2TrackId, "RecoHitTrue2TrackId[NRecoHits]/I");
+    TMS_Readout->Branch("RecoHitTrue2EnergyFrac", &RecoHitTrue2EnergyFrac, "RecoHitTrue2EnergyFrac[NRecoHits]/F");
+    TMS_Readout->Branch("RecoHitNTrueParticles", &RecoHitNTrueParticles, "RecoHitNTrueParticles[NRecoHits]/I");
+  }
   #ifdef RECORD_HIT_DEADTIME
   TMS_Readout->Branch("RecoHitDeadtimeStart", &RecoHitDeadtimeStart, "RecoHitDeadtimeStart[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitDeadtimeStop", &RecoHitDeadtimeStop, "RecoHitDeadtimeStop[NRecoHits]/F");
@@ -117,6 +129,29 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
       RecoHitIsPedSupped[index] = hit.GetPedSup();
       RecoHitBar[index] = hit.GetBarNumber();
       RecoHitPlane[index] = hit.GetPlaneNumber();
+      if (writeHitTruth) {
+        RecoHitTrueVertexGlobalId[index] = -1;
+        RecoHitTrueTrackId[index] = -999;
+        RecoHitTrueEnergyFrac[index] = 0;
+        RecoHitTrue2VertexGlobalId[index] = -1;
+        RecoHitTrue2TrackId[index] = -999;
+        RecoHitTrue2EnergyFrac[index] = 0;
+        RecoHitNTrueParticles[index] = 0;
+        const auto hit_info = TMS_Utils::GetPrimaryIdsByEnergy({hit}, event);
+        if (!hit_info.energies.empty()) {
+          // Contributors come sorted by energy, largest first.
+          const double total = hit_info.total_energy > 0 ? hit_info.total_energy : 1.0;
+          RecoHitTrueVertexGlobalId[index] = hit_info.vertexglobalids[0];
+          RecoHitTrueTrackId[index] = hit_info.trackids[0];
+          RecoHitTrueEnergyFrac[index] = hit_info.energies[0] / total;
+          RecoHitNTrueParticles[index] = (int)hit_info.energies.size();
+          if (hit_info.energies.size() > 1) {
+            RecoHitTrue2VertexGlobalId[index] = hit_info.vertexglobalids[1];
+            RecoHitTrue2TrackId[index] = hit_info.trackids[1];
+            RecoHitTrue2EnergyFrac[index] = hit_info.energies[1] / total;
+          }
+        }
+      }
       #ifdef RECORD_HIT_DEADTIME
       RecoHitDeadtimeStart[index] = hit.GetDeadtimeStart();
       RecoHitDeadtimeStop[index] = hit.GetDeadtimeStop();
