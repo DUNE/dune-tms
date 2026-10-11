@@ -511,12 +511,16 @@ void FillRecoEff(ValidationContext &ctx) {
             ->Fill(particle_starting_ke);
         // The same, restricted to muons from the ND-LAr fiducial volume, and
         // to the ND physics sample (ND-LAr fiducial, ending in the TMS, quiet
-        // outer shell): the rate above counts muons of any origin.
-        if (truth.RecoTrackPrimaryParticleLArFiducialStart[it])
+        // outer shell): the rate above counts muons of any origin. Filled when
+        // the fingerprint count first reaches 2, so a muon reconstructed three
+        // times enters these numerators once, as it enters the denominators.
+        if (particle_fingerprints_reconstructed[particle_fingerprint] == 2 &&
+            truth.RecoTrackPrimaryParticleLArFiducialStart[it])
           GetHist("reco_eff__multi_reco__probability_multi_reco_lar_fiducial_numerator",
                   "Chance of Getting Reco'd more than Once, ND-LAr Fiducial Muons", "ke_tms_enter")
               ->Fill(particle_starting_ke);
-        if (NDPhysicsMuon(truth, reco, it))
+        if (particle_fingerprints_reconstructed[particle_fingerprint] == 2 &&
+            NDPhysicsMuon(truth, reco, it))
           GetHist("reco_eff__multi_reco__probability_multi_reco_nd_physics_numerator",
                   "Chance of Getting Reco'd more than Once, ND Physics Muons", "ke_tms_enter")
               ->Fill(particle_starting_ke);
