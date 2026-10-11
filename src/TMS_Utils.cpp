@@ -166,8 +166,14 @@ namespace TMS_Utils {
       vertexglobalid(i.first), trackid(i.second), energy(e) {}
   };
 
+  // Largest energy first. std::sort is not stable, so exact energy ties (physically possible, e.g. two
+  // contributors of equal deposited energy) are broken on (vertexglobalid, trackid) ascending, the same
+  // preference as TMS_TrueHit::IndexOfHighestEnergyContributor(); otherwise which of two tied particles is
+  // listed first can differ between STL implementations and builds.
   static bool CompareByEnergy(const ParticlePair& a, const ParticlePair& b) {
-      return a.energy > b.energy;
+      if (a.energy != b.energy) return a.energy > b.energy;
+      if (a.vertexglobalid != b.vertexglobalid) return a.vertexglobalid < b.vertexglobalid;
+      return a.trackid < b.trackid;
   }
 
 
