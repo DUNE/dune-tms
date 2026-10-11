@@ -281,6 +281,13 @@ void FillRecoEff(ValidationContext &ctx) {
                            9, "# truth particles");
       }
 
+      // Muons from interactions inside the TMS (born in its fiducial volume).
+      if (ismuon && truth_spill.TMSFiducialStart[ip])
+        GetHist("reco_eff__tms_vertex_muon_ke_tms_enter_denominator",
+                "Reco Efficiency vs True KE, Muons from TMS Interactions: Denominator",
+                "ke_tms_enter")
+            ->Fill(particle_starting_ke);
+
       if (ismuon && should_include) {
         GetHist("reco_eff__no_lar_tms_cuts__all_muon_ke_tms_enter_denominator",
                 "Reconstruction Efficiency: Denominator", "ke_tms_enter")
@@ -502,6 +509,21 @@ void FillRecoEff(ValidationContext &ctx) {
         GetHist("reco_eff__multi_reco__probability_multi_reco_numerator",
                 "Chance of Getting Reco'd more than Once", "ke_tms_enter")
             ->Fill(particle_starting_ke);
+        // The same, restricted to muons from the ND-LAr fiducial volume, and
+        // to the ND physics sample (ND-LAr fiducial, ending in the TMS, quiet
+        // outer shell): the rate above counts muons of any origin. Filled when
+        // the fingerprint count first reaches 2, so a muon reconstructed three
+        // times enters these numerators once, as it enters the denominators.
+        if (particle_fingerprints_reconstructed[particle_fingerprint] == 2 &&
+            truth.RecoTrackPrimaryParticleLArFiducialStart[it])
+          GetHist("reco_eff__multi_reco__probability_multi_reco_lar_fiducial_numerator",
+                  "Chance of Getting Reco'd more than Once, ND-LAr Fiducial Muons", "ke_tms_enter")
+              ->Fill(particle_starting_ke);
+        if (particle_fingerprints_reconstructed[particle_fingerprint] == 2 &&
+            NDPhysicsMuon(truth, reco, it))
+          GetHist("reco_eff__multi_reco__probability_multi_reco_nd_physics_numerator",
+                  "Chance of Getting Reco'd more than Once, ND Physics Muons", "ke_tms_enter")
+              ->Fill(particle_starting_ke);
       } else
         GetHist("reco_eff__multi_reco__nonmuon",
                 "Non-muons which were reconstructed more than once", "ke_tms")
@@ -535,6 +557,11 @@ void FillRecoEff(ValidationContext &ctx) {
               "ke_tms_enter")
           ->Fill(particle_starting_ke);
     }
+    if (ismuon && not_double_reco && truth.RecoTrackPrimaryParticleTMSFiducialStart[it])
+      GetHist("reco_eff__tms_vertex_muon_ke_tms_enter_numerator",
+              "Reco Efficiency vs True KE, Muons from TMS Interactions: Numerator",
+              "ke_tms_enter")
+          ->Fill(particle_starting_ke);
     if (ismuon && not_double_reco) {
       GetHist("reco_eff__all_muon_ke_tms_enter_numerator",
               "Reco Efficiency vs True TMS-Entering KE, All Muons: Numerator",
@@ -547,6 +574,14 @@ void FillRecoEff(ValidationContext &ctx) {
       GetHist("reco_eff__multi_reco__probability_multi_reco_denominator",
               "Chance of Getting Reco'd more than Once", "ke_tms_enter")
           ->Fill(particle_starting_ke);
+      if (truth.RecoTrackPrimaryParticleLArFiducialStart[it])
+        GetHist("reco_eff__multi_reco__probability_multi_reco_lar_fiducial_denominator",
+                "Chance of Getting Reco'd more than Once, ND-LAr Fiducial Muons", "ke_tms_enter")
+            ->Fill(particle_starting_ke);
+      if (NDPhysicsMuon(truth, reco, it))
+        GetHist("reco_eff__multi_reco__probability_multi_reco_nd_physics_denominator",
+                "Chance of Getting Reco'd more than Once, ND Physics Muons", "ke_tms_enter")
+            ->Fill(particle_starting_ke);
 
       GetHist("reco_eff__endpoint__muon_endpoint_x_numerator",
               "Reconstruction Efficiency: Numerator", "muon_endpoint_x")
