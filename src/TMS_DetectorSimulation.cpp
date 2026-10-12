@@ -680,6 +680,8 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
   const double peaking_time = config.Get_Sim_FrontEnd_FastShaperPeakingTime();
   const int order = config.Get_Sim_FrontEnd_FastShaperOrder();
   const double threshold = config.Get_Sim_FrontEnd_DiscriminatorThreshold();
+  const double stop_threshold = config.Get_Sim_FrontEnd_DiscriminatorStopThreshold() > 0 ? config.Get_Sim_FrontEnd_DiscriminatorStopThreshold() : threshold;
+  const double tot_max = config.Get_Sim_FrontEnd_ToTMax();
   const double tdc_step = config.Get_Sim_FrontEnd_TDCStep();
   const double crosstalk = config.Get_Sim_FrontEnd_SiPMCrosstalkProbability();
   const double pixels = config.Get_Sim_FrontEnd_SiPMPixels();
@@ -790,7 +792,7 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
       double v = 0;
       for (size_t k = first; k < next; ++k) v += pes[k].charge * pulse(t - pes[k].t);
       if (!above && v >= threshold) { above = true; t_up = t; }
-      else if (above && v < threshold) { above = false; pulses.push_back({t_up, t}); }
+      else if (above && v < stop_threshold) { above = false; pulses.push_back({t_up, t}); }
       t += grid;
     }
 
@@ -829,7 +831,8 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
         event.MergeResponseSegments(hit.GetHitId(), TMS_Hits[hp.first].GetHitId());
       }
       const double t_stamp = floor_to_tdc(pulses[k].t_up + jitter(generator));
-      const double tot = floor_to_tdc(pulses[k].t_down) - floor_to_tdc(pulses[k].t_up);
+      // The board stores the ToT in a fixed number of bits: clip to the largest value it can hold
+      const double tot = std::min(floor_to_tdc(pulses[k].t_down) - floor_to_tdc(pulses[k].t_up), tot_max);
       // SiPM pixel saturation
       const double pe = pixels * (1.0 - std::exp(-pulse_charge[k] / pixels));
       hit.SetT(t_stamp);

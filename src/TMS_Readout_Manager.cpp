@@ -55,6 +55,8 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_FRONTEND_FastShaperPeakingTime = toml::find<double>(data, "Sim", "FrontEnd", "FastShaperPeakingTime");
   _SIM_FRONTEND_FastShaperOrder = toml::find<int>(data, "Sim", "FrontEnd", "FastShaperOrder");
   _SIM_FRONTEND_DiscriminatorThreshold = toml::find<double>(data, "Sim", "FrontEnd", "DiscriminatorThreshold");
+  _SIM_FRONTEND_DiscriminatorStopThreshold = toml::find_or<double>(data, "Sim", "FrontEnd", "DiscriminatorStopThreshold", -1.0);
+  _SIM_FRONTEND_ToTMax = toml::find_or<double>(data, "Sim", "FrontEnd", "ToTMax", 255.5);
   _SIM_FRONTEND_TDCStep = toml::find<double>(data, "Sim", "FrontEnd", "TDCStep");
   _SIM_FRONTEND_TimingJitter = toml::find<double>(data, "Sim", "FrontEnd", "TimingJitter");
   _SIM_FRONTEND_SiPMCrosstalkProbability = toml::find<double>(data, "Sim", "FrontEnd", "SiPMCrosstalkProbability");

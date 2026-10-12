@@ -67,12 +67,24 @@
   [Sim.FrontEnd]
     # Citiroc-1A fast shaper: 15 ns peaking time, not programmable (CAEN Citiroc-1A datasheet).
     FastShaperPeakingTime = 15.0 # ns
-    # ASSUMPTION (no source): pulse shape (t/tp)^n exp(n(1 - t/tp)), unit height per photoelectron
-    # at t = tp. The order n sets the tail length and hence the time over threshold.
-    FastShaperOrder = 1
-    # Discriminator threshold in photoelectrons of pulse height. The chip allows down to 1/3 pe;
-    # 3.0 keeps the default pipeline's 3 PE pedestal threshold for comparison (TMS setting TBD).
-    DiscriminatorThreshold = 3.0 # pe
+    # Pulse shape (t/tp)^n exp(n(1 - t/tp)), unit height per photoelectron at t = tp. The order n sets the tail
+    # length and hence the time over threshold. n = 2 is a fit to the ToT-versus-injected-charge curve measured with
+    # the A5202 in timing mode (CAEN UM7945 rev. 4 sec. 9.3.2, ToT = 31.514 ln(Qin/pC) + 45.127 in 0.5 ns steps,
+    # Qin 0.5-13.5 pC): rms residual 2.8 ns, against 11.8 ns for n = 1; it also fixes the bench threshold at a pulse
+    # height of 0.48 pC, i.e. 1.7 pe at the S13360-2050VE gain of 1.7e6 (0.272 pC per pe). The fit is
+    # scripts/Validation/DetSim/fit_tot_curve.py. It assumes a unipolar pulse, no fast-shaper undershoot.
+    FastShaperOrder = 2
+    # Discriminator threshold in photoelectrons of pulse height. The chip allows down to 1/3 pe. 1.7 pe is what the
+    # bench fit gives for the A5202 "TD Coarse Threshold" of 290 (the manual's examples use 290-300; the TMS setting
+    # is still TBD, to be set from a dark-count staircase). Earlier versions used 3.0 to match the 3 PE pedestal
+    # threshold of the readout-window model.
+    DiscriminatorThreshold = 1.7 # pe
+    # Threshold below which the pulse ends (discriminator hysteresis). <= 0: same as DiscriminatorThreshold (no
+    # hysteresis). The A5202 manual gives no value; to be filled in from the electronics group.
+    DiscriminatorStopThreshold = -1.0 # pe
+    # The A5202 stores the ToT in 9 bits (0.5 ns steps) in timing mode with ToT enabled (UM7945 sec. 8.5.3):
+    # longer ToTs are clipped to this value. What the board does on overflow (clip or wrap) is not documented.
+    ToTMax = 255.5 # ns
     TDCStep = 0.5 # ns, time stamp and ToT granularity (A5202)
     TimingJitter = 0.1 # ns, Gaussian (Citiroc-1A: < 100 ps RMS)
     # Hamamatsu S13360-2050VE (DUNE ND PDR Table 1.16)

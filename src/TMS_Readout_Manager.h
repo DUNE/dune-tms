@@ -55,6 +55,8 @@ class TMS_Readout_Manager {
     double Get_Sim_FrontEnd_FastShaperPeakingTime() { return _SIM_FRONTEND_FastShaperPeakingTime; };
     int Get_Sim_FrontEnd_FastShaperOrder() { return _SIM_FRONTEND_FastShaperOrder; };
     double Get_Sim_FrontEnd_DiscriminatorThreshold() { return _SIM_FRONTEND_DiscriminatorThreshold; };
+    double Get_Sim_FrontEnd_DiscriminatorStopThreshold() { return _SIM_FRONTEND_DiscriminatorStopThreshold; };
+    double Get_Sim_FrontEnd_ToTMax() { return _SIM_FRONTEND_ToTMax; };
     double Get_Sim_FrontEnd_TDCStep() { return _SIM_FRONTEND_TDCStep; };
     double Get_Sim_FrontEnd_TimingJitter() { return _SIM_FRONTEND_TimingJitter; };
     double Get_Sim_FrontEnd_SiPMCrosstalkProbability() { return _SIM_FRONTEND_SiPMCrosstalkProbability; };
@@ -113,6 +115,10 @@ class TMS_Readout_Manager {
   int _SIM_FRONTEND_FastShaperOrder;
 
   double _SIM_FRONTEND_DiscriminatorThreshold;
+
+  double _SIM_FRONTEND_DiscriminatorStopThreshold;
+
+  double _SIM_FRONTEND_ToTMax;
 
   double _SIM_FRONTEND_TDCStep;
 
