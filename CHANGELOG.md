@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to a modified version of [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 
+## [1.2.0] - Unreleased
+
+### Added
+
+- Adds `.github/copilot-instructions.md` to guide Copilot reviews with repo-specific conventions (search before claiming something is unused, cite file/line, separate bugs from style). ([#339](https://github.com/DUNE/dune-tms/pull/339))
+- Adds per-stage wall-clock timers around the space-point builder and Cluster3D reconstruction in the converter, and adds build artifact patterns to `.gitignore`. ([#337](https://github.com/DUNE/dune-tms/pull/337))
+- Introduces the full Cluster3D pipeline (DBSCAN clustering, cluster linking, Kalman-follower with hit-time gating, range/curvature momentum) running alongside legacy tracking and writing to `Reco_Tree_C3D`/`Truth_Info_C3D`; disabled by default, with significant efficiency gains when enabled (93.1% vs 82.6% ND-LAr muons found). ([#336](https://github.com/DUNE/dune-tms/pull/336))
+- Introduces `TMS_SpacePoint` to match X- and Y-view hits from the same plane into 3D space points needed by the Cluster3D reconstruction; no effect on any existing output branch. ([#334](https://github.com/DUNE/dune-tms/pull/334))
+- First scaffold of the detector-response redesign: adds a disabled `Sim.DetSim.UseResponseElements` config flag and an `ArtificialResegmentationTest` benchmark that exposes hit-time drift as a function of hit-segment count, with no change to simulation output. ([#331](https://github.com/DUNE/dune-tms/pull/331))
+- Replaces the single energy-window slicer with a view-aware `PerViewTimeSlicer` that slices X and Y hits separately then links them via light-travel-corrected hit-time coincidences, reducing muons split across views from 5.3% to 1.1%. ([#329](https://github.com/DUNE/dune-tms/pull/329))
+- Adds order-independent `GetPrimaryIdByEnergy()`/`GetVertexGlobalIdByEnergy()` to `TMS_TrueHit`, selecting the highest-energy contributor instead of whichever was first-merged, and exposes them as new `TrueHitPrimaryId`/`TrueHitVertexId` branches in `Truth_Info` (purely additive). ([#321](https://github.com/DUNE/dune-tms/pull/321))
+
+
+### Changed
+
+- Ports Cluster3D validation support onto `main` (configurable tree names, `--cluster3d` flag, FNAL-directory guard) and adds momentum-resolution and ND-LAr muon efficiency/duplicate-rate plots to `Tracking_Validation`. ([#341](https://github.com/DUNE/dune-tms/pull/341))
+- Sets `[Recon.Cluster3D] Enabled = true` as the default config so the Cluster3D and legacy reconstructors run in parallel and both write output trees on every conversion. ([#338](https://github.com/DUNE/dune-tms/pull/338))
+- Raises the 3D track-matching coincidence window from 16 to 30 ns to recover muons whose X and Y view hit times differ due to fiber-travel delay in the X/Y geometry, gaining ~8 percentage points of ND-LAr muon efficiency. ([#333](https://github.com/DUNE/dune-tms/pull/333))
+- Reduces per-event loop overhead in `ConvertToTMSTree` by ~65% through algorithmic improvements, with output that is bit-for-bit identical to the previous version. ([#332](https://github.com/DUNE/dune-tms/pull/332))
+
+
+### Fixed
+
+- Corrects the comment-only `PrintSummary()` usage example in `TMS_StageTimer.h`, which incorrectly showed no arguments instead of the required `(totalSeconds, nEntries)`. ([#340](https://github.com/DUNE/dune-tms/pull/340))
+- Fixes an off-by-one in the `GetMaterials()` material-walk loop that accumulated extra path beyond the endpoint, causing step-size-dependent material integrals; reduces the legacy range-momentum bias from +1.4% to −3.9% and corrects Cluster3D's range momentum. ([#335](https://github.com/DUNE/dune-tms/pull/335))
+- Fixes `MergeCoincidentHits()` and `SimulateDeadtime()` to distinguish split X-bar halves by bar number rather than just `(z, NotZ)`, preventing incorrect hit merging and deadtime cross-contamination between physically separate channels (~1% more tracks reconstructed). ([#328](https://github.com/DUNE/dune-tms/pull/328))
+- Ensures `VisibleE` is properly accumulated in `TMS_TrueHit::MergeWith()`, preventing visible energy from being silently dropped when true hits are combined. ([#327](https://github.com/DUNE/dune-tms/pull/327))
+- Fixes `TMS_TrueHit::MergeWith()` to recompute `PEAfterFibers` as the sum of short- and long-path PE components rather than leaving the value stale after a merge. ([#326](https://github.com/DUNE/dune-tms/pull/326))
+- Defaults `TMS_Hit::RecoX/Y` and their uncertainties to `-999` and initialises `nVertices = -999` in the slice constructor, eliminating uninitialised-memory reads that were silently corrupting five `Truth_Info` branches on every spill entry. ([#325](https://github.com/DUNE/dune-tms/pull/325))
+- Corrects the validation reader headers to declare `StartPos`/`EndPos` as `[nTracks][4]` (matching the tree's actual layout since May 2025) rather than `[MAX_TRACKS][3]`, fixing silently shifted position reads for all tracks after the first in a slice. ([#324](https://github.com/DUNE/dune-tms/pull/324))
+- Resets the Y-candidate iterator to `begin()` after `erase()` whenever the list is non-empty, eliminating a dangling-iterator dereference that made 3D track finding nondeterministically dependent on heap contents. ([#323](https://github.com/DUNE/dune-tms/pull/323))
+- Guards `RunKalman()` and `runRTSSmoother()` against tracks with fewer than two Kalman nodes, eliminating a deterministic heap corruption and `TMatrixT` abort on certain spill files. ([#322](https://github.com/DUNE/dune-tms/pull/322))
+
+
 ## [1.1.0] - Unreleased
 
 ## [MAIN] - Unreleased
