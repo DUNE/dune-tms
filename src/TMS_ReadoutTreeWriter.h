@@ -43,6 +43,8 @@ class TMS_ReadoutTreeWriter {
     
     // Want ability to think only about reco when dealing with real data
     bool hasTruth = true;
+    // Per-hit RecoHitTrue* branches in the Readout file, set from [Truth] ReadoutHitTruth (default off). Needs hasTruth.
+    bool writeHitTruth = false;
     
     // Ideally I'd use std::vector<Float_t> but they don't fill with the right info
     #define __MAX_READOUT_TREE_ARRAY_LENGTH__ 100000
@@ -73,6 +75,16 @@ class TMS_ReadoutTreeWriter {
     bool RecoHitIsPedSupped[__MAX_READOUT_TREE_ARRAY_LENGTH__];
     INTVAR(RecoHitBar);
     INTVAR(RecoHitPlane);
+    // Ground truth per reco hit (same TMS_Utils::GetPrimaryIdsByEnergy lookup as the SpacePointHitTrue* branches in
+    // TMS_TreeWriter), written for every hit of the spill, not only those in space points. Vertex id -1 / track id -999 =
+    // no truth (noise hit). The first contributor is the one with the most energy, the second the next largest.
+    long long RecoHitTrueVertexGlobalId[__MAX_READOUT_TREE_ARRAY_LENGTH__];
+    INTVAR(RecoHitTrueTrackId);
+    VAR(RecoHitTrueEnergyFrac);
+    long long RecoHitTrue2VertexGlobalId[__MAX_READOUT_TREE_ARRAY_LENGTH__];
+    INTVAR(RecoHitTrue2TrackId);
+    VAR(RecoHitTrue2EnergyFrac);
+    INTVAR(RecoHitNTrueParticles);
     #ifdef RECORD_HIT_DEADTIME
     VAR(RecoHitDeadtimeStart);
     VAR(RecoHitDeadtimeStop);

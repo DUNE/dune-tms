@@ -200,6 +200,8 @@ TMS_Manager::TMS_Manager() {
   _ND_PHYSICS_MUON_LAR_SHELL_CUT_ENERGY = toml::find<double>(data, "Fiducial", "LAr", "CutEnergy");
 
   _TRUTH_LIGHTWEIGHT = toml::find<bool> (data, "Truth", "LightWeight");
+  // Optional so that older config files keep working (default off).
+  _TRUTH_READOUT_HIT_TRUTH = toml::find_or<bool>(data, "Truth", "ReadoutHitTruth", false);
 
   _APPLICATIONS_DrawPDF =  toml::find<bool> (data, "Applications", "DrawPDF");
   
