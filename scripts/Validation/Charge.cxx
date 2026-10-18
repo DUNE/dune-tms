@@ -21,6 +21,12 @@
       {
         const auto &p = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it];
         double angle_xz_deg = atan2(p[0], p[2]) * 180.0 / M_PI;
+        // Component 3 of this branch is the muon's TOTAL energy (sqrt(p^2 + m^2)), as are the
+        // KE values the 1D histograms in this file and Reco_Eff.cxx / EnergyResolution.cxx fill
+        // (so those axes sit 105.7 MeV above the true kinetic energy). These maps use the real
+        // kinetic energy.
+        const double kMuonMassMeV = 105.6584;
+        const double ke_mev = p[3] - kMuonMassMeV;
         const char *species = ismuon ? "muon" : "antimuon";
         auto fill2d = [&](const char *selection, bool selected) {
           if (!selected)
@@ -36,8 +42,7 @@
                   ";True KE entering TMS (MeV);True x-z angle entering TMS (deg)",
                   50, 0, 5000, 60, -60, 60);
             }
-            ((TH2D *)mapForGetHist[name])->Fill(particle_starting_ke * 1000.0,
-                                                angle_xz_deg);
+            ((TH2D *)mapForGetHist[name])->Fill(ke_mev, angle_xz_deg);
           }
         };
         fill2d("ndphys", nd_physics_muon);

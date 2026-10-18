@@ -1,5 +1,7 @@
 #include "TMS_SpacePointTiming.h"
 
+#include <algorithm>
+
 #include "TMS_Geom.h"
 #include "TMS_Readout_Manager.h"
 
@@ -38,12 +40,20 @@ double TransitDelayNs(const TMS_Bar &bar, double alongBarMM) {
   const double barLength = bar.GetBarLength();
   const double barCenter = bar.GetAxisReadoutCenter();
   const TMS_Geom &geom = TMS_Geom::GetInstance();
+  // The position along the bar is where the particle crossed it, so it lies inside the bar. A
+  // caller that takes it from the PARTNER hit's bar (the corrected pairing in
+  // TMS_SpacePointBuilder) can land just outside it for a particle crossing x = 0 between two
+  // planes (the partner Y-bar on the other side of the gap), so clamp it into the bar.
+  const double barLow = barCenter - 0.5 * barLength, barHigh = barCenter + 0.5 * barLength;
+  const double along = std::min(std::max(alongBarMM, barLow), barHigh);
   double distanceFromReadout;
   if (bar.GetBarType() == TMS_Bar::kXBar) {
-    if (alongBarMM < 0) distanceFromReadout = alongBarMM - geom.XBarNegReadoutLocation(barCenter, barLength);
-    else distanceFromReadout = geom.XBarPosReadoutLocation(barCenter, barLength) - alongBarMM;
+    // Which end is the readout is a property of the bar (its half of the detector), NOT of
+    // the sign of the position: for a bar crossed near x = 0 the two can differ.
+    if (barCenter < 0) distanceFromReadout = along - geom.XBarNegReadoutLocation(barCenter, barLength);
+    else distanceFromReadout = geom.XBarPosReadoutLocation(barCenter, barLength) - along;
   } else {
-    distanceFromReadout = geom.YBarReadoutLocation(barCenter, barLength) - alongBarMM;
+    distanceFromReadout = geom.YBarReadoutLocation(barCenter, barLength) - along;
   }
   const double distanceFromMiddleM = (distanceFromReadout - 0.5 * barLength) * 1e-3;
   return distanceFromMiddleM * nsPerMeter;
