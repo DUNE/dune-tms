@@ -1238,5 +1238,6 @@ void TMS_Event::BuildSpacePoints() {
   TMS_SpacePoints = TMS_SpacePointBuilder::Build(TMS_Hits, timing_window, pairing,
                                                  manager.Get_RECO_SPACEPOINTS_PairingFallback(),
                                                  manager.Get_RECO_SPACEPOINTS_PairingRequireCrossing(),
-                                                 manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope());
+                                                 manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope(),
+                                                 manager.Get_RECO_SPACEPOINTS_CorrectedTimingWindow());
 }

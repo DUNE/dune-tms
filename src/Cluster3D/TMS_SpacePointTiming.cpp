@@ -5,12 +5,32 @@
 
 namespace TMS_SpacePointTiming {
 
-double TransitDelayNs(const TMS_Bar &bar, double alongBarMM) {
-  // Constants as in TMS_DetectorSimulation::SimulateTimingModel().
+namespace {
+// Light-transit time per meter of bar (ns/m), including the wavelength-shifting
+// fiber length multiplier. Constants as in
+// TMS_DetectorSimulation::SimulateTimingModel().
+double TransitNsPerMeter() {
   const double kSpeedOfLightMPerNs = 0.2998;
   const double kFiberIndex = 1.5;
   const double speedInFiberMPerNs = kSpeedOfLightMPerNs / kFiberIndex;
   const double lengthMultiplier = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_WSFLengthMultiplier();
+  return lengthMultiplier / speedInFiberMPerNs;
+}
+}  // namespace
+
+double MaxTransitDelayNs(const TMS_Bar &bar) {
+  // The delay is measured from the bar's midpoint (zero there, linear along
+  // the bar, see TransitDelayNs), so its magnitude peaks at the two ends.
+  return 0.5 * bar.GetBarLength() * 1e-3 * TransitNsPerMeter();
+}
+
+double PairedHitsTimeDifference(const TMS_Bar &xBar, double x, double tXHit,
+                                const TMS_Bar &yBar, double y, double tYHit) {
+  return (tXHit - TransitDelayNs(xBar, x)) - (tYHit - TransitDelayNs(yBar, y));
+}
+
+double TransitDelayNs(const TMS_Bar &bar, double alongBarMM) {
+  const double nsPerMeter = TransitNsPerMeter();
 
   // Distance to the readout end, as GetTrueDistanceFromReadout() in
   // TMS_DetectorSimulation.cpp: X-bars are read out at whichever side of
@@ -26,7 +46,7 @@ double TransitDelayNs(const TMS_Bar &bar, double alongBarMM) {
     distanceFromReadout = geom.YBarReadoutLocation(barCenter, barLength) - alongBarMM;
   }
   const double distanceFromMiddleM = (distanceFromReadout - 0.5 * barLength) * 1e-3;
-  return distanceFromMiddleM * lengthMultiplier / speedInFiberMPerNs;
+  return distanceFromMiddleM * nsPerMeter;
 }
 
 bool CorrectedXYTimeDifference(double x, double y,

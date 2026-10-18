@@ -105,6 +105,7 @@ class TMS_Manager {
     double Get_RECO_TIME_PerViewFiberDelayNsPerMM() { return _RECO_TIME_PerViewFiberDelayNsPerMM; };
 
     double Get_RECO_SPACEPOINTS_TimingWindow() { return _RECO_SPACEPOINTS_TimingWindow; };
+    double Get_RECO_SPACEPOINTS_CorrectedTimingWindow() { return _RECO_SPACEPOINTS_CorrectedTimingWindow; };
     const std::string &Get_RECO_SPACEPOINTS_Pairing() { return _RECO_SPACEPOINTS_Pairing; };
     bool Get_RECO_SPACEPOINTS_PairingFallback() { return _RECO_SPACEPOINTS_PairingFallback; };
     bool Get_RECO_SPACEPOINTS_PairingRequireCrossing() { return _RECO_SPACEPOINTS_PairingRequireCrossing; };
@@ -273,6 +274,7 @@ class TMS_Manager {
     double _RECO_TIME_PerViewFiberDelayNsPerMM;
 
     double _RECO_SPACEPOINTS_TimingWindow;
+    double _RECO_SPACEPOINTS_CorrectedTimingWindow;
     std::string _RECO_SPACEPOINTS_Pairing;
     bool _RECO_SPACEPOINTS_PairingFallback;
     bool _RECO_SPACEPOINTS_PairingRequireCrossing;

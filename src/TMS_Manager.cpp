@@ -64,6 +64,8 @@ TMS_Manager::TMS_Manager() {
   // Optional, like the per-view slicing keys, so that config files that predate [Recon.SpacePoints] keep working
   // (the defaults are the values in config/TMS_Default_Config.toml).
   _RECO_SPACEPOINTS_TimingWindow = toml::find_or<double>(data, "Recon", "SpacePoints", "TimingWindow", 30.0);
+  _RECO_SPACEPOINTS_CorrectedTimingWindow =
+      toml::find_or<double>(data, "Recon", "SpacePoints", "CorrectedTimingWindow", 0.0);
   const std::string defaultSpacePointPairing = "NearestY";
   _RECO_SPACEPOINTS_Pairing = toml::find_or(data, "Recon", "SpacePoints", "Pairing", defaultSpacePointPairing);
   _RECO_SPACEPOINTS_PairingFallback = toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingFallback", true);
