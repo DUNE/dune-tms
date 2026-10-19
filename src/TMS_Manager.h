@@ -23,6 +23,8 @@ class TMS_Manager {
     // Geometry loading configuration
     bool Get_Geometry_UseGDMLFile() { return _GEOMETRY_UseGDMLFile; };
     std::string Get_Geometry_GDMLFilePath() { return _GEOMETRY_GDMLFilePath; };
+    // List of electronics channels the decoder drops (see TMS_BadChannels); "" = none
+    std::string Get_Decoder_BadChannelFile() { return _DECODER_BadChannelFile; };
 
     int Get_Reco_MinHits() { return _RECO_MinHits; };
 
@@ -193,6 +195,7 @@ class TMS_Manager {
     // Geometry loading options
     bool _GEOMETRY_UseGDMLFile;
     std::string _GEOMETRY_GDMLFilePath;
+    std::string _DECODER_BadChannelFile;
 
     int _RECO_MinHits;
 

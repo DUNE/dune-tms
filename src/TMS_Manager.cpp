@@ -32,6 +32,11 @@ TMS_Manager::TMS_Manager() {
     // to defaults.
   }
 
+  // Bad channel list used by the decoder; the key is optional so older TOMLs load (they get the shipped list).
+  // toml11's find_or returns strings by reference, so the default must be a named variable.
+  const std::string defaultBadChannelFile = "config/TMS_BadChannels_Default.toml";
+  _DECODER_BadChannelFile = toml::find_or(data, "Decoder", "BadChannelFile", defaultBadChannelFile);
+
   // The minimum hits needed to run reconstruction in a TMS event
   _RECO_MinHits = toml::find<int>(data, "Recon", "MinHits");
   

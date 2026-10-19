@@ -12,7 +12,8 @@
 // defined.
 class TMS_MCDecoder {
   public:
-    // One hit per raw readout, in the same order, carrying the readout's HitId. Hits whose
+    // One hit per raw readout, in the same order, carrying the readout's HitId, except that
+    // readouts from channels in the bad channel list (TMS_BadChannels) make no hit. Hits whose
     // channel did not trigger, and (in the charge mode) hits below Sim.Readout.PedestalSubtractionThreshold,
     // are kept and flagged as pedestal suppressed, as the simulation has always done. The
     // A5202 timing mode has no separate threshold: its discriminator is the threshold.

@@ -1,0 +1,12 @@
+# Electronics channels that give no usable readout; the decoder makes no TMS hit for them
+# (see src/TMS_BadChannels.h). Empty: no channel is excluded.
+#
+# One entry per channel. Bar numbers are unique only within a plane and view, and the two halves of
+# a split X-bar are separate channels with their own bar numbers.
+#
+# [[BadChannel]]
+#   Plane = 12
+#   Bar = 40
+#   View = 3
+#   Status = "dead"       # "missing" (no such bar) or "dead" (bar does not report)
+#   Reason = "example: broken WLS fiber"   # optional
