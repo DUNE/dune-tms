@@ -72,6 +72,9 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
   // enough to contain every pair the corrected test could accept: the raw
   // difference differs from the corrected one by at most the two hits' largest
   // possible transit delays. The corrected test in accept() then makes the cut.
+  // The bound is exact even for pairs that bars_cross() admits slightly outside the
+  // X-bar's ends (width/slope margin) or with crossing checks off: TransitDelayNs clamps
+  // the along-bar position into the bar, so |delay| <= MaxTransitDelayNs(bar) always.
   const bool use_corrected = corrected_timing_window > 0.0;
   double scan_window = timing_window;
   if (use_corrected) {
