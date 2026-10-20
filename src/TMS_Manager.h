@@ -78,6 +78,8 @@ class TMS_Manager {
 
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
+    bool Get_Truth_InterpolateEntering() { return _TRUTH_InterpolateEntering; };
+    double Get_Truth_EnteringTMSFrontZ() { return _TRUTH_EnteringTMSFrontZ; };
 
     bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
     std::string Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy() { return _RECO_TRACKSMOOTHING_TrackSmoothingStrategy; };
@@ -253,6 +255,8 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
+    bool _TRUTH_InterpolateEntering;
+    double _TRUTH_EnteringTMSFrontZ;
     
     bool _RECO_TIME_RunTimeSlicer;
     bool _RECO_TIME_RunSimpleTimeSlicer;
