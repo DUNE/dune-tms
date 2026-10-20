@@ -202,6 +202,17 @@ class TMS_Geom {
       { return TMS_Geom::GetInstance().IsInsideLarFiducial(position); };
     bool IsInsideTMS(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFiducial()); };
     static bool StaticIsInsideTMS(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMS(position); };
+    // The volume a particle "enters" when it enters the TMS (true position/momentum entering the TMS): the
+    // fiducial box, but with its upstream face moved to the front of the detector, [Truth] EnteringTMSFrontZ
+    // (default: the surveyed front of the bar region, GetZStartOfTMS()). The fiducial box itself starts at a
+    // preliminary z that lies behind the first scintillator plane, so entering it would skip the first plane.
+    bool IsInsideTMSEntry(TVector3 position) const {
+      const double configured = TMS_Manager::GetInstance().Get_Truth_EnteringTMSFrontZ();
+      TVector3 start = GetStartOfTMSFiducial();
+      start.SetZ(configured > 0 ? configured : GetZStartOfTMS());
+      return IsInsideBox(position, start, GetEndOfTMSFiducial());
+    };
+    static bool StaticIsInsideTMSEntry(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSEntry(position); };
     bool IsInsideTMSThin(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSThin()); };
     static bool StaticIsInsideTMSThin(TVector3 position) { return TMS_Geom::GetInstance().IsInsideTMSThin(position); };
     bool IsInsideTMSFirstTwoModules(TVector3 position) const { return IsInsideBox(position, GetStartOfTMSFiducial(), GetEndOfTMSFirstTwoModules()); };

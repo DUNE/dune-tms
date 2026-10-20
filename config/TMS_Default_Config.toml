@@ -318,6 +318,15 @@
 [Truth]
   LightWeight = false
   LArFiducialCut = 200.0 # mm
+  # "Entering" a volume (true position/momentum entering the TMS or ND-LAr): interpolate to the boundary crossing
+  # between the last stored trajectory point outside and the first inside (true), or take the first stored point
+  # inside (false, the old behavior; that point lies downstream of the real entry by up to the spacing of the stored
+  # points, so the energy there is too low, roughly 1-2% on average for muons entering the TMS)
+  InterpolateEntering = true
+  # z (mm) of the TMS front face used for "entering the TMS". Negative (default) = the surveyed front of the bar
+  # region (about 11104.5 mm). The fiducial box starts at 11134 mm, behind the first scintillator plane (11112 mm),
+  # so use 11134 here to reproduce the old behavior.
+  EnteringTMSFrontZ = -1.0
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]

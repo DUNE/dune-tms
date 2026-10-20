@@ -164,7 +164,7 @@ class TMS_TrueParticle {
     TLorentzVector GetPositionZIsTMSEnd() const { return GetPositionAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
     TLorentzVector GetPositionEntering(IsInsideFunctionType isInside) const;
     TLorentzVector GetPositionLeaving(IsInsideFunctionType isInside) const;
-    TLorentzVector GetPositionEnteringTMS() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetPositionEnteringTMS() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSEntry); };
     TLorentzVector GetPositionLeavingTMS() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMS); };
     TLorentzVector GetPositionEnteringTMSThin() const { return GetPositionEntering(TMS_Geom::StaticIsInsideTMSThin); };
     TLorentzVector GetPositionLeavingTMSThin() const { return GetPositionLeaving(TMS_Geom::StaticIsInsideTMSThin); };
@@ -182,7 +182,7 @@ class TMS_TrueParticle {
     
     TLorentzVector GetMomentumEntering(IsInsideFunctionType isInside) const;
     TLorentzVector GetMomentumLeaving(IsInsideFunctionType isInside) const;
-    TLorentzVector GetMomentumEnteringTMS() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
+    TLorentzVector GetMomentumEnteringTMS() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSEntry); };
     TLorentzVector GetMomentumLeavingTMS() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
     TLorentzVector GetMomentumEnteringTMSThin() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
     TLorentzVector GetMomentumLeavingTMSThin() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
@@ -212,6 +212,13 @@ class TMS_TrueParticle {
     }
 
   private:
+    // Where the particle first crosses into the volume, and its momentum there. With the config key
+    // [Truth] InterpolateEntering on (default) this is the boundary crossing, found by bisecting the segment between
+    // the last stored point outside the volume and the first stored point inside it, interpolating position and
+    // momentum linearly along the segment. With it off it is the first stored point inside the volume (the old
+    // behavior), which lies downstream of the real entry by up to the spacing of the stored trajectory points. Returns
+    // false if no stored point is inside the volume.
+    bool FindEntering(IsInsideFunctionType isInside, TLorentzVector &position, TVector3 &momentum) const;
     int RunID;
     int VertexID;
     int Parent;
