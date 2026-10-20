@@ -218,7 +218,9 @@ class TMS_TrueParticle {
     // momentum linearly along the segment. With it off it is the first stored point inside the volume (the old
     // behavior), which lies downstream of the real entry by up to the spacing of the stored trajectory points. Returns
     // false if no stored point is inside the volume.
-    bool FindEntering(IsInsideFunctionType isInside, TLorentzVector &position, TVector3 &momentum) const;
+    // Particles built with the position-only AddPoint() have no momentum points: then haveMomentum comes back false,
+    // the position is still found (and interpolated), and momentum is left untouched.
+    bool FindEntering(IsInsideFunctionType isInside, TLorentzVector &position, TVector3 &momentum, bool &haveMomentum) const;
     int RunID;
     int VertexID;
     int Parent;

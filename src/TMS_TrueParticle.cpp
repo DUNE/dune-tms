@@ -198,14 +198,20 @@ TLorentzVector TMS_TrueParticle::GetPositionAtZ(double z, double max_z_dist) con
   return out;
 }
 
-bool TMS_TrueParticle::FindEntering(IsInsideFunctionType isInside, TLorentzVector &position, TVector3 &momentum) const {
+bool TMS_TrueParticle::FindEntering(IsInsideFunctionType isInside, TLorentzVector &position, TVector3 &momentum, bool &haveMomentum) const {
   const std::vector<TLorentzVector> &positions = GetPositionPoints();
   const std::vector<TVector3> &momenta = GetMomentumPoints();
+  // Position-only trajectories (AddPoint(TLorentzVector)) leave the momentum points empty.
+  const bool momentaMatch = momenta.size() == positions.size();
+  haveMomentum = false;
   for (size_t i = 0; i < positions.size(); i++) {
     // First time this is true means we are inside the volume
     if (!isInside(positions[i].Vect())) continue;
     position = positions[i];
-    momentum = momenta[i];
+    if (momentaMatch) {
+      momentum = momenta[i];
+      haveMomentum = true;
+    }
     // The stored points are sparse along a straight track, so this point can be well downstream of where the
     // particle actually crossed the boundary (and the particle loses energy in between). The previous stored point is
     // outside the volume, so the crossing lies on the segment between the two: bisect it. This assumes the volume is
@@ -220,7 +226,7 @@ bool TMS_TrueParticle::FindEntering(IsInsideFunctionType isInside, TLorentzVecto
         else lo = mid;
       }
       position = outside + (inside - outside) * hi;
-      momentum = momenta[i - 1] + (momenta[i] - momenta[i - 1]) * hi;
+      if (momentaMatch) momentum = momenta[i - 1] + (momenta[i] - momenta[i - 1]) * hi;
     }
     return true;
   }
@@ -231,7 +237,8 @@ TLorentzVector TMS_TrueParticle::GetPositionEntering(IsInsideFunctionType isInsi
   TLorentzVector out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                      TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   TVector3 momentum;
-  FindEntering(isInside, out, momentum);
+  bool haveMomentum = false;
+  FindEntering(isInside, out, momentum, haveMomentum);
   return out;
 }
 
@@ -262,7 +269,8 @@ TLorentzVector TMS_TrueParticle::GetPositionLeaving(IsInsideFunctionType isInsid
 TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInside) const {
   TLorentzVector position;
   TVector3 out;
-  if (!FindEntering(isInside, position, out)) {
+  bool haveMomentum = false;
+  if (!FindEntering(isInside, position, out, haveMomentum) || !haveMomentum) {
     return TLorentzVector(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                           TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
   }
