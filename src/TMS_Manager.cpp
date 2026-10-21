@@ -64,6 +64,8 @@ TMS_Manager::TMS_Manager() {
   // Optional, like the per-view slicing keys, so that config files that predate [Recon.SpacePoints] keep working
   // (the defaults are the values in config/TMS_Default_Config.toml).
   _RECO_SPACEPOINTS_TimingWindow = toml::find_or<double>(data, "Recon", "SpacePoints", "TimingWindow", 30.0);
+  _RECO_SPACEPOINTS_CorrectedTimingWindow =
+      toml::find_or<double>(data, "Recon", "SpacePoints", "CorrectedTimingWindow", 0.0);
   const std::string defaultSpacePointPairing = "NearestY";
   _RECO_SPACEPOINTS_Pairing = toml::find_or(data, "Recon", "SpacePoints", "Pairing", defaultSpacePointPairing);
   _RECO_SPACEPOINTS_PairingFallback = toml::find_or<bool>(data, "Recon", "SpacePoints", "PairingFallback", true);
@@ -83,6 +85,10 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTER3D_RangeReseedFactor = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeReseedFactor", 1.5);
   _RECO_CLUSTER3D_XYTimeSigmaNs = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeSigmaNs", 3.7);
   _RECO_CLUSTER3D_XYTimeGateNSigma = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeGateNSigma", 2.0);
+  // Optional, so older config files keep working (the defaults are the Follower::Config defaults: off).
+  _RECO_CLUSTER3D_OrphanUpstreamMarginMM = toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMM", -1.0);
+  _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ =
+      toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMaxFirstZ", 0.0);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");

@@ -185,6 +185,24 @@
     # Timing window for pairing X and Y hits (in nanoseconds)
     # Based on DUNE RF bucket spacing (19 ns) + transit time margin
     TimingWindow = 30.0 # ns
+    # If > 0, pair on the light-transit-corrected X/Y time difference instead:
+    # a pair is accepted when |(tX - delay_X) - (tY - delay_Y)| <= this (ns), with
+    # each delay evaluated at the candidate point's position along its bar, and
+    # TimingWindow is then unused. Light takes ~9 ns per meter of bar (WSF length
+    # multiplier 1.8), so a hit at the far end of a ~3 m bar is up to ~13-15 ns
+    # later than one at its midpoint, and a pair's raw X/Y difference can carry
+    # ~28 ns of pure transit delay; a raw window loose enough to keep those pairs
+    # also admits many ghosts. 0 = off (raw window; a config file without this key also
+    # keeps the raw window). ON by default as of 2026-10-21 at 15 ns. 100 spills
+    # (MiniProdN5p3), full pipeline against the raw 30 ns window: ND-LAr fiducial muons found
+    # 93.10 -> 93.53%, good reco 76.20 -> 77.02%, all muons entering found +1.0%, duplicate
+    # tracks -22%, points per slice 110 -> 93; energy, charge-ID and front-face resolutions
+    # unchanged within errors (mu- charge mis-ID 8.39 -> 8.66%, +0.3 pp on ~2,750 muons, within
+    # the ~0.5 pp statistical error). The 10-25 ns scan is flat. This relies on the
+    # simulation's light-transit model (~9 ns/m, WSF multiplier 1.8): a real detector's
+    # propagation speed or per-bar timing offsets that differ from it would cost genuine pairs,
+    # so it needs checking on data.
+    CorrectedTimingWindow = 15.0 # ns
     # Which planes' hits are paired into space points (TMS_PlanePairing):
     #  "NearestY"       -- each x-measuring plane with its nearest y-measuring plane
     #                      (front-section ties -> downstream), point z = midpoint of
@@ -252,6 +270,19 @@
     # -24%, duplicates -38%, muons found unchanged; tighter gates lose muons.
     XYTimeSigmaNs = 3.7
     XYTimeGateNSigma = 2.0
+    # How far upstream (lower z) of a track's first hit orphan-hit pickup looks, in mm (negative = the normal 150 mm
+    # margin on both sides, i.e. off), and, if > 0, the first-hit z (mm) up to which the wider margin applies (0 = every
+    # track). A track that starts at the TMS front can have its first layers skipped, and two skipped layers span 260 mm,
+    # beyond 150 mm, so its first plane or two are lost. ON by default as of 2026-10-21: 400 mm, for tracks whose first
+    # hit is at z <= 11400 mm (plane 0 is at 11112 mm); the limit keeps the wider reach away from TMS vertices, where it
+    # would pick up hadron hits (unrestricted, TMS-vertex hit purity fell 85.0 -> 84.2%).
+    # 100 spills, MiniProdN5p3, ND-LAr muons p >= 1 GeV truly starting in plane 0 (n = 2891): first-plane efficiency
+    # 94.3 -> 96.2%, purity of "first hit in plane 0" unchanged at 99.6%; only 1.9% of those muons change and none of
+    # the TMS-vertex muons. Full pipeline (ConvertToTMSTree + Tracking_Validation + requirements scorecard): found,
+    # good reco, duplicates, momentum, charge and front-face resolutions unchanged. Set -1.0 / 0.0 to turn off.
+    # A config file without these keys keeps the old behavior (off).
+    OrphanUpstreamMarginMM = 400.0
+    OrphanUpstreamMarginMaxFirstZ = 11400.0
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

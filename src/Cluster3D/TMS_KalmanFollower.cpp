@@ -1308,7 +1308,13 @@ FitResult Follower::RunImpl(const std::vector<TMS_SpacePoint> &allSpacePoints, c
       zLow = std::min(zLow, (*hits)[index].Z);
       zHigh = std::max(zHigh, (*hits)[index].Z);
     }
-    zLow -= fConfig.OrphanZMarginMM;
+    // The upstream side can have its own, larger margin, limited to tracks whose
+    // first applied hit is at the front face (Config::OrphanUpstreamMarginMM).
+    double upstreamMargin = fConfig.OrphanZMarginMM;
+    if (fConfig.OrphanUpstreamMarginMM >= 0.0 &&
+        (fConfig.OrphanUpstreamMarginMaxFirstZ <= 0.0 || zLow <= fConfig.OrphanUpstreamMarginMaxFirstZ))
+      upstreamMargin = fConfig.OrphanUpstreamMarginMM;
+    zLow -= upstreamMargin;
     zHigh += fConfig.OrphanZMarginMM;
     // Passing candidates per plane (plane z, and which coordinate it measures).
     std::map<std::pair<long long, bool>, std::vector<std::pair<double, FitResult::OrphanHit>>> passing;

@@ -13,6 +13,41 @@
     double particle_starting_ke =
         truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
     if (ismuon || isantimuon) {
+      // Correct-charge fraction in the plane of true KE and true x-z angle at
+      // the TMS front face (the ND PDR muon-spectrometer figure). Numerator and
+      // denominator are kept as separate 2D histograms so files can be merged
+      // with hadd and divided afterwards. Filled for two selections: "ndphys"
+      // (ND-physics muons) and "touch" (any muon with enough TMS energy).
+      {
+        const auto &p = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it];
+        double angle_xz_deg = atan2(p[0], p[2]) * 180.0 / M_PI;
+        // Component 3 of this branch is the muon's TOTAL energy (sqrt(p^2 + m^2)), as are the
+        // KE values the 1D histograms in this file and Reco_Eff.cxx / EnergyResolution.cxx fill
+        // (so those axes sit 105.7 MeV above the true kinetic energy). These maps use the real
+        // kinetic energy.
+        const double kMuonMassMeV = 105.6584;
+        const double ke_mev = p[3] - kMuonMassMeV;
+        const char *species = ismuon ? "muon" : "antimuon";
+        auto fill2d = [&](const char *selection, bool selected) {
+          if (!selected)
+            return;
+          for (const char *kind : {"den", "num"}) {
+            if (kind[0] == 'n' && !correct_charge_id)
+              continue;
+            std::string name = std::string("charge_id__angle_ke__") + selection +
+                               "_" + species + "_" + kind;
+            if (mapForGetHist.find(name) == mapForGetHist.end()) {
+              mapForGetHist[name] = new TH2D(
+                  name.c_str(),
+                  ";True KE entering TMS (MeV);True x-z angle entering TMS (deg)",
+                  50, 0, 5000, 60, -60, 60);
+            }
+            ((TH2D *)mapForGetHist[name])->Fill(ke_mev, angle_xz_deg);
+          }
+        };
+        fill2d("ndphys", nd_physics_muon);
+        fill2d("touch", tms_touch);
+      }
       // incorrect charge id
       if (nd_physics_muon && ismuon && correct_charge_id)
         GetSpecialHist("special__charge_id_muon_numerator",

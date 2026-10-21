@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "TMS_Hit.h"
+#include "TMS_SpacePointTiming.h"
 
 namespace {
 
@@ -41,7 +42,7 @@ void PairWithinWindow(const TimeSortedHits &x_bar_hits, const TimeSortedHits &y_
 std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
     const std::vector<TMS_Hit> &hits, double timing_window,
     const TMS_PlanePairing::Table &pairing, bool use_fallback, bool require_crossing,
-    double crossing_slope) {
+    double crossing_slope, double corrected_timing_window) {
   std::vector<TMS_SpacePoint> space_points;
 
   // Bucket hits by plane, time-sorted. Only X-bar and Y-bar planes take part
@@ -66,6 +67,38 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
   const auto plane_hits = [&](int plane) -> const TimeSortedHits & {
     auto it = hits_by_plane.find(plane);
     return it == hits_by_plane.end() ? kNoHits : it->second;
+  };
+  // With a corrected window the scan runs on raw times, so it has to be wide
+  // enough to contain every pair the corrected test could accept: the raw
+  // difference differs from the corrected one by at most the two hits' largest
+  // possible transit delays. The corrected test in accept() then makes the cut.
+  // The bound is exact even for pairs that bars_cross() admits slightly outside the
+  // X-bar's ends (width/slope margin) or with crossing checks off: TransitDelayNs clamps
+  // the along-bar position into the bar, so |delay| <= MaxTransitDelayNs(bar) always.
+  const bool use_corrected = corrected_timing_window > 0.0;
+  double scan_window = timing_window;
+  if (use_corrected) {
+    double max_x_delay = 0.0, max_y_delay = 0.0;
+    for (const auto &entry : hits_by_plane) {
+      for (const auto &timed_hit : entry.second) {
+        const TMS_Bar &bar = hits[timed_hit.second].GetBar();
+        double &max_delay = bar.GetBarType() == TMS_Bar::kXBar ? max_x_delay : max_y_delay;
+        max_delay = std::max(max_delay, TMS_SpacePointTiming::MaxTransitDelayNs(bar));
+      }
+    }
+    scan_window = corrected_timing_window + max_x_delay + max_y_delay;
+  }
+  // Does this pair pass the corrected time cut? (Always true with the raw
+  // window, which the scan itself already applied.)
+  const auto passes_time_cut = [&](int x_idx, int y_idx) {
+    if (!use_corrected) return true;
+    const TMS_Hit &x_bar_hit = hits[x_idx];
+    const TMS_Hit &y_bar_hit = hits[y_idx];
+    // The candidate point: x is where the Y-bar sits, y where the X-bar sits.
+    const double dt = TMS_SpacePointTiming::PairedHitsTimeDifference(
+        x_bar_hit.GetBar(), y_bar_hit.GetNotZ(), x_bar_hit.GetT(),
+        y_bar_hit.GetBar(), x_bar_hit.GetNotZ(), y_bar_hit.GetT());
+    return std::abs(dt) <= corrected_timing_window;
   };
   // Could one particle have crossed both bars? An X-bar spans x in
   // [center - length/2, center + length/2] (its own half of the detector when
@@ -97,9 +130,9 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
   std::vector<char> paired(hits.size(), 0);
   for (const TMS_PlanePairing::PlanePair &pair : pairing.Pairs) {
     if (pair.Fallback) continue;
-    PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), timing_window,
+    PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), scan_window,
                      [&](int x_idx, int y_idx) {
-                       if (!bars_cross(x_idx, y_idx)) return;
+                       if (!bars_cross(x_idx, y_idx) || !passes_time_cut(x_idx, y_idx)) return;
                        make_point(x_idx, y_idx, pair);
                        paired[x_idx] = 1;
                        paired[y_idx] = 1;
@@ -113,10 +146,10 @@ std::vector<TMS_SpacePoint> TMS_SpacePointBuilder::Build(
   // unpaired hits is made once.
   for (const TMS_PlanePairing::PlanePair &pair : pairing.Pairs) {
     if (!pair.Fallback) continue;
-    PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), timing_window,
+    PairWithinWindow(plane_hits(pair.XBarPlane), plane_hits(pair.YBarPlane), scan_window,
                      [&](int x_idx, int y_idx) {
                        if (paired[x_idx] && paired[y_idx]) return;
-                       if (!bars_cross(x_idx, y_idx)) return;
+                       if (!bars_cross(x_idx, y_idx) || !passes_time_cut(x_idx, y_idx)) return;
                        make_point(x_idx, y_idx, pair);
                      });
   }
