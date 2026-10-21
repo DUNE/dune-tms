@@ -261,6 +261,19 @@
     # -24%, duplicates -38%, muons found unchanged; tighter gates lose muons.
     XYTimeSigmaNs = 3.7
     XYTimeGateNSigma = 2.0
+    # How far upstream (lower z) of a track's first hit orphan-hit pickup looks, in mm (negative = the normal 150 mm
+    # margin on both sides, i.e. off), and, if > 0, the first-hit z (mm) up to which the wider margin applies (0 = every
+    # track). A track that starts at the TMS front can have its first layers skipped, and two skipped layers span 260 mm,
+    # beyond 150 mm, so its first plane or two are lost. ON by default as of 2026-10-21: 400 mm, for tracks whose first
+    # hit is at z <= 11400 mm (plane 0 is at 11112 mm); the limit keeps the wider reach away from TMS vertices, where it
+    # would pick up hadron hits (unrestricted, TMS-vertex hit purity fell 85.0 -> 84.2%).
+    # 100 spills, MiniProdN5p3, ND-LAr muons p >= 1 GeV truly starting in plane 0 (n = 2891): first-plane efficiency
+    # 94.3 -> 96.2%, purity of "first hit in plane 0" unchanged at 99.6%; only 1.9% of those muons change and none of
+    # the TMS-vertex muons. Full pipeline (ConvertToTMSTree + Tracking_Validation + requirements scorecard): found,
+    # good reco, duplicates, momentum, charge and front-face resolutions unchanged. Set -1.0 / 0.0 to turn off.
+    # A config file without these keys keeps the old behavior (off).
+    OrphanUpstreamMarginMM = 400.0
+    OrphanUpstreamMarginMaxFirstZ = 11400.0
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     

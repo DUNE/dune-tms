@@ -1052,6 +1052,8 @@ void TMS_Event::RunCluster3DReco() {
   config.Follower.RangeReseedFactor = manager.Get_RECO_CLUSTER3D_RangeReseedFactor();
   config.Follower.XYTimeSigmaNs = manager.Get_RECO_CLUSTER3D_XYTimeSigmaNs();
   config.Follower.XYTimeGateNSigma = manager.Get_RECO_CLUSTER3D_XYTimeGateNSigma();
+  config.Follower.OrphanUpstreamMarginMM = manager.Get_RECO_CLUSTER3D_OrphanUpstreamMarginMM();
+  config.Follower.OrphanUpstreamMarginMaxFirstZ = manager.Get_RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ();
   const bool momentumFromRange = manager.Get_RECO_CLUSTER3D_MomentumFromRange();
   const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
   const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();

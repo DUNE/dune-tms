@@ -85,6 +85,10 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTER3D_RangeReseedFactor = toml::find_or<double>(data, "Recon", "Cluster3D", "RangeReseedFactor", 1.5);
   _RECO_CLUSTER3D_XYTimeSigmaNs = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeSigmaNs", 3.7);
   _RECO_CLUSTER3D_XYTimeGateNSigma = toml::find_or<double>(data, "Recon", "Cluster3D", "XYTimeGateNSigma", 2.0);
+  // Optional, so older config files keep working (the defaults are the Follower::Config defaults: off).
+  _RECO_CLUSTER3D_OrphanUpstreamMarginMM = toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMM", -1.0);
+  _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ =
+      toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMaxFirstZ", 0.0);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
