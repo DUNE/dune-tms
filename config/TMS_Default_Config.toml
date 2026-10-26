@@ -318,6 +318,10 @@
 [Truth]
   LightWeight = false
   LArFiducialCut = 200.0 # mm
+  # Also write the per-hit ground truth (RecoHitTrue* branches: the two largest energy contributors of every reco
+  # hit, their energy fractions and the number of contributors) to the Readout file. For building hit-level ML
+  # data sets; off by default because it adds a truth lookup per hit.
+  ReadoutHitTruth = false
 
 # Draw PDF of "event display". Slows down reco considerably
 [Applications]

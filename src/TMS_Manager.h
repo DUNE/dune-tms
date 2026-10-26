@@ -78,6 +78,7 @@ class TMS_Manager {
 
 
     bool Get_LightWeight_Truth() { return _TRUTH_LIGHTWEIGHT; };
+    bool Get_Truth_ReadoutHitTruth() { return _TRUTH_READOUT_HIT_TRUTH; };
 
     bool Get_Reco_TRACKSMOOTHING_UseTrackSmoothing() { return _RECO_TRACKSMOOTHING_UseTrackSmoothing; };
     std::string Get_Reco_TRACKSMOOTHING_TrackSmoothingStrategy() { return _RECO_TRACKSMOOTHING_TrackSmoothingStrategy; };
@@ -253,6 +254,7 @@ class TMS_Manager {
 
     // Lightweight trajectory saving (ignore small trajectories and gammas)
     bool _TRUTH_LIGHTWEIGHT;
+    bool _TRUTH_READOUT_HIT_TRUTH;
     
     bool _RECO_TIME_RunTimeSlicer;
     bool _RECO_TIME_RunSimpleTimeSlicer;
