@@ -6,7 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to a modified version of [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Geometry releases will be tagged as `Descriptive_tag_v_X.Y.Z`.
 
-## [1.2.0] - Unreleased
+## [1.3.0] - 2026-10-25
+
+### Added
+
+- Adds steel-corrected true momentum entering the TMS (`MomentumTMSStartSteelCorrected` in `Truth_Spill`, `RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected` in `Truth_Info`), which adds back the energy lost (1.75 MeV per g/cm²) between the TMS face and edep-sim's first, often distant, stored trajectory point inside it; `run_validation.sh --steel-corrected-truth` uses it for the energy-resolution, selection-efficiency and momentum-resolution plots. Existing branches are unchanged. ([#347](https://github.com/DUNE/dune-tms/pull/347))
+- Adds optional per-hit ground truth to the Readout tree (`RecoHitTrue*` branches: the two largest energy contributors of each reco hit, with vertex global ID, track ID and energy fraction, plus the contributor count) for building hit-level ML datasets; enabled with `[Truth] ReadoutHitTruth`, off by default, and the key is optional so older configs still load. ([#342](https://github.com/DUNE/dune-tms/pull/342))
+- Adds 2D correct-charge-ID numerator/denominator histograms in true KE entering the TMS vs true x–z angle (`charge_id__angle_ke__*`) to `scripts/Validation/Charge.cxx`, the equivalent of ND PDR Fig. 1.25. ([#345](https://github.com/DUNE/dune-tms/pull/345))
+
+### Changed
+
+- Cluster3D space points now pair X and Y hits on their light-transit-corrected time difference (`[Recon.SpacePoints] CorrectedTimingWindow = 15` ns in the shipped config; configs without the key keep the raw 30 ns window), and tracks starting at the TMS front face get a 400 mm upstream orphan margin (new `[Recon.Cluster3D]` keys `OrphanUpstreamMarginMM`/`OrphanUpstreamMarginMaxFirstZ`, set to 400/11400 mm). On 100 MiniProdN5p3 spills, ND-LAr fiducial muons found rise from 93.10% to 93.53%, good reconstruction from 76.20% to 77.02%, and duplicate tracks fall by 22%; legacy output is unchanged. ([#345](https://github.com/DUNE/dune-tms/pull/345))
+
+### Fixed
+
+- `TMS_Utils::GetSumAndHighest` breaks exact energy ties on (vertex global ID, track ID), so the leading and second truth contributors no longer depend on the STL implementation's unstable sort. ([#342](https://github.com/DUNE/dune-tms/pull/342))
+
+## [1.2.0] - 2026-10-15
 
 ### Added
 
