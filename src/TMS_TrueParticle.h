@@ -181,9 +181,21 @@ class TMS_TrueParticle {
     TLorentzVector GetMomentumZIsTMSEnd() const { return GetMomentumAtZ(TMS_Geom::GetInstance().GetZEndOfTMS()); };
     
     TLorentzVector GetMomentumEntering(IsInsideFunctionType isInside) const;
+	
+	// As GetMomentumEntering, but corrected for the energy lost between the volume boundary and the first
+    // stored trajectory point inside it. edep-sim stores trajectory points sparsely (often tens of cm apart),
+    // so the first point inside can be well past the boundary. The boundary crossing is located on the
+    // segment between the last point outside and the first point inside, and kSteelCorrectionMeVPerGCm2 is
+    // added back for each g/cm2 of material between the crossing and that point. A particle born inside
+    // the volume returns its birth momentum, as GetMomentumEntering does.
+    TLorentzVector GetMomentumEnteringSteelCorrected(IsInsideFunctionType isInside) const;
+	
     TLorentzVector GetMomentumLeaving(IsInsideFunctionType isInside) const;
     TLorentzVector GetMomentumEnteringTMS() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMS); };
-    TLorentzVector GetMomentumLeavingTMS() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
+    
+	TLorentzVector GetMomentumEnteringTMSSteelCorrected() const { return GetMomentumEnteringSteelCorrected(TMS_Geom::StaticIsInsideTMSMass); };
+	
+	TLorentzVector GetMomentumLeavingTMS() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMS); };
     TLorentzVector GetMomentumEnteringTMSThin() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSThin); };
     TLorentzVector GetMomentumLeavingTMSThin() const { return GetMomentumLeaving(TMS_Geom::StaticIsInsideTMSThin); };
     TLorentzVector GetMomentumEnteringTMSFirstTwoModules() const { return GetMomentumEntering(TMS_Geom::StaticIsInsideTMSFirstTwoModules); };

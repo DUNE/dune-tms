@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./run_validation.sh [--cluster3d] <input file|filelist.txt|glob|directory> [output name|output.root] [num_events] [max_slices]
+  ./run_validation.sh [--cluster3d] [--steel-corrected-truth] <input file|filelist.txt|glob|directory> [output name|output.root] [num_events] [max_slices]
   ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices]
   ./run_validation.sh <input file|filelist.txt|glob|directory> [num_events] [max_slices] [output name|output.root]
 
@@ -16,6 +16,13 @@ Text-file inputs are treated as one ROOT file path or URL per line.
 it reads Reco_Tree_C3D / Truth_Info_C3D (written by ConvertToTMSTree with
 [Recon.Cluster3D] Enabled). Equivalent to setting TMS_VALIDATION_RECO_TREE and
 TMS_VALIDATION_TRUTH_TREE.
+
+--steel-corrected-truth takes the true momentum entering the TMS from the
+steel-corrected truth branches (RecoTrackPrimaryParticleTrueMomentumEnteringTMS-
+SteelCorrected, MomentumTMSStartSteelCorrected), which only files reconstructed
+with them have. Used by the energy resolution, selection efficiency and
+momentum resolution plots. Appends _steelcorr to the default output name.
+Equivalent to setting TMS_VALIDATION_STEEL_CORRECTED_TRUTH=1.
 EOF
 }
 
@@ -25,11 +32,28 @@ is_integer() {
 
 validation_dir="/exp/dune/data/users/${USER}/dune-tms/Validation/Tracking_Validation"
 
-if [[ $# -gt 0 ]] && [[ "$1" == "--cluster3d" ]]; then
-  export TMS_VALIDATION_RECO_TREE=Reco_Tree_C3D
-  export TMS_VALIDATION_TRUTH_TREE=Truth_Info_C3D
-  shift
-fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cluster3d)
+      export TMS_VALIDATION_RECO_TREE=Reco_Tree_C3D
+      export TMS_VALIDATION_TRUTH_TREE=Truth_Info_C3D
+      shift
+      ;;
+    --steel-corrected-truth)
+      export TMS_VALIDATION_STEEL_CORRECTED_TRUTH=1
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# Same test as UseSteelCorrectedTruth() in Tracking_Validation.cpp
+case "${TMS_VALIDATION_STEEL_CORRECTED_TRUTH:-0}" in
+  ""|0) steel_corrected_truth=false ;;
+  *) steel_corrected_truth=true ;;
+esac
 
 if [[ $# -lt 1 ]]; then
   usage >&2
@@ -70,6 +94,9 @@ if [[ -z "$output_name" ]]; then
   base_filename=$(basename "$infile")
   output_name="${base_filename%.root}"
   output_name="${output_name%.txt}"
+  if [[ "$steel_corrected_truth" == true ]]; then
+    output_name="${output_name}_steelcorr"
+  fi
 fi
 
 if [[ "$output_name" == */* ]]; then

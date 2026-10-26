@@ -476,6 +476,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("MomentumLArEnd", MomentumLArEnd, "MomentumLArEnd[nTrueParticles][4]/F");
   Truth_Spill->Branch("PositionLArEnd", PositionLArEnd, "PositionLArEnd[nTrueParticles][4]/F");
   Truth_Spill->Branch("MomentumTMSStart", MomentumTMSStart, "MomentumTMSStart[nTrueParticles][4]/F");
+  Truth_Spill->Branch("MomentumTMSStartSteelCorrected", MomentumTMSStartSteelCorrected, "MomentumTMSStartSteelCorrected[nTrueParticles][4]/F");
   Truth_Spill->Branch("PositionTMSStart", PositionTMSStart, "PositionTMSStart[nTrueParticles][4]/F");
   Truth_Spill->Branch("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, "MomentumTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
   Truth_Spill->Branch("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, "PositionTMSFirstTwoModulesEnd[nTrueParticles][4]/F");
@@ -608,6 +609,8 @@ void TMS_TreeWriter::MakeBranches() {
                      "RecoTrackPrimaryParticleTrueTrackLengthInTMS[RecoTrackN]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumEnteringTMS", RecoTrackPrimaryParticleTrueMomentumEnteringTMS,
                      "RecoTrackPrimaryParticleTrueMomentumEnteringTMS[RecoTrackN][4]/F"); 
+  Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected", RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected,
+                     "RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected[RecoTrackN][4]/F");
   Truth_Info->Branch("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS,
                      "RecoTrackPrimaryParticleTrueMomentumLeavingTMS[RecoTrackN][4]/F"); 
   
@@ -1883,7 +1886,10 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         setPosition(RecoTrackPrimaryParticleTruePositionEnd[itTrack], tp.GetDeathPosition());
         
         setMomentum(RecoTrackPrimaryParticleTrueMomentumEnteringTMS[itTrack], tp.GetMomentumEnteringTMS());
-        setPosition(RecoTrackPrimaryParticleTruePositionEnteringTMS[itTrack], tp.GetPositionEnteringTMS());
+        
+		setMomentum(RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected[itTrack], tp.GetMomentumEnteringTMSSteelCorrected());
+		
+		setPosition(RecoTrackPrimaryParticleTruePositionEnteringTMS[itTrack], tp.GetPositionEnteringTMS());
         setMomentum(RecoTrackPrimaryParticleTrueMomentumLeavingTMS[itTrack], tp.GetMomentumLeavingTMS());
         setPosition(RecoTrackPrimaryParticleTruePositionLeavingTMS[itTrack], tp.GetPositionLeavingTMS());
         setMomentum(RecoTrackPrimaryParticleTrueMomentumLeavingLAr[itTrack], tp.GetMomentumLeavingLAr());
@@ -2145,6 +2151,7 @@ void TMS_TreeWriter::ForEachCachedParticleField(int index, Apply apply) {
   apply(MomentumLArEnd[index]);
   apply(PositionLArEnd[index]);
   apply(MomentumTMSStart[index]);
+  apply(MomentumTMSStartSteelCorrected[index]);
   apply(PositionTMSStart[index]);
   apply(MomentumTMSEnd[index]);
   apply(PositionTMSEnd[index]);
@@ -2320,6 +2327,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
       setPosition(PositionLArEnd[index], (*it).GetPositionLeavingLAr());
     
       setMomentum(MomentumTMSStart[index], (*it).GetMomentumEnteringTMS());
+      setMomentum(MomentumTMSStartSteelCorrected[index], (*it).GetMomentumEnteringTMSSteelCorrected());
       setPosition(PositionTMSStart[index], (*it).GetPositionEnteringTMS());
     
       setMomentum(MomentumTMSEnd[index], (*it).GetMomentumLeavingTMS());
@@ -2785,6 +2793,9 @@ void TMS_TreeWriter::Clear() {
       RecoTrackPrimaryParticleTruePositionStart[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackPrimaryParticleTruePositionEnd[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackPrimaryParticleTrueMomentumEnteringTMS[i][j] = DEFAULT_CLEARING_FLOAT;
+	  
+	  RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected[i][j] = DEFAULT_CLEARING_FLOAT;
+	  
       RecoTrackPrimaryParticleTruePositionEnteringTMS[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackPrimaryParticleTrueMomentumLeavingTMS[i][j] = DEFAULT_CLEARING_FLOAT;
       RecoTrackPrimaryParticleTruePositionLeavingTMS[i][j] = DEFAULT_CLEARING_FLOAT;
@@ -2843,6 +2854,7 @@ void TMS_TreeWriter::Clear() {
       MomentumZIsTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
       PositionZIsTMSEnd[i][j] = DEFAULT_CLEARING_FLOAT;
       MomentumTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
+      MomentumTMSStartSteelCorrected[i][j] = DEFAULT_CLEARING_FLOAT;
       PositionTMSStart[i][j] = DEFAULT_CLEARING_FLOAT;
       MomentumTMSFirstTwoModulesEnd[i][j] = DEFAULT_CLEARING_FLOAT;
       PositionTMSFirstTwoModulesEnd[i][j] = DEFAULT_CLEARING_FLOAT;

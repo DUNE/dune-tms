@@ -508,6 +508,7 @@ class TMS_TreeWriter {
     float PositionZIsTMSEnd[__TMS_MAX_TRUE_PARTICLES__][4];
 
     float MomentumTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
+    float MomentumTMSStartSteelCorrected[__TMS_MAX_TRUE_PARTICLES__][4];
     float PositionTMSStart[__TMS_MAX_TRUE_PARTICLES__][4];
 
     float MomentumTMSFirstTwoModulesEnd[__TMS_MAX_TRUE_PARTICLES__][4];
@@ -539,6 +540,9 @@ class TMS_TreeWriter {
     float RecoTrackPrimaryParticleTrueTrackLength[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[__TMS_MAX_LINES__];
     float RecoTrackPrimaryParticleTrueMomentumEnteringTMS[__TMS_MAX_LINES__][4];
+	
+	float RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected[__TMS_MAX_LINES__][4];
+	
     float RecoTrackPrimaryParticleTruePositionEnteringTMS[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTrueMomentumLeavingTMS[__TMS_MAX_LINES__][4];
     float RecoTrackPrimaryParticleTruePositionLeavingTMS[__TMS_MAX_LINES__][4];

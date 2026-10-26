@@ -254,6 +254,39 @@ TLorentzVector TMS_TrueParticle::GetMomentumEntering(IsInsideFunctionType isInsi
   return TLorentzVector(out.Px(), out.Py(), out.Pz(), energy);
 }
 
+// Average energy loss per areal density used to correct the entering momentum, as in the length-to-energy
+// estimates elsewhere (e.g. EstimateKEFromRange)
+static const double kSteelCorrectionMeVPerGCm2 = 1.75;
+
+TLorentzVector TMS_TrueParticle::GetMomentumEnteringSteelCorrected(IsInsideFunctionType isInside) const {
+  const TLorentzVector invalid(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
+                               TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE);
+  for (size_t i = 0; i < GetPositionPoints().size(); i++) {
+    // First time this is true means we are inside the volume
+    if (!isInside(GetPositionPoints()[i].Vect())) continue;
+    TVector3 momentum = GetMomentumPoints()[i];
+    // Born inside: nothing to correct
+    if (i == 0) return TLorentzVector(momentum.Px(), momentum.Py(), momentum.Pz(), GetEnergyFromMomentum(momentum));
+    // Find where the straight segment from the last point outside crosses into the volume (bisection, to < 0.1 mm)
+    TVector3 outside = GetPositionPoints()[i-1].Vect();
+    TVector3 inside = GetPositionPoints()[i].Vect();
+    while ((inside - outside).Mag() > 0.1) {
+      TVector3 middle = 0.5 * (outside + inside);
+      if (isInside(middle)) inside = middle;
+      else outside = middle;
+    }
+    // Add back the energy lost between the crossing and the first point inside
+    double areal_density = TMS_Geom::GetInstance().GetTrackLength(inside, GetPositionPoints()[i].Vect()); // g/cm^2
+    double mass = TMS_KinConst::GetMass(PDG);
+    double kinetic_energy = GetEnergyFromMomentum(momentum) - mass + kSteelCorrectionMeVPerGCm2 * areal_density;
+    double energy = kinetic_energy + mass;
+    double p = sqrt(energy * energy - mass * mass);
+    if (momentum.Mag() > 0) momentum.SetMag(p);
+    return TLorentzVector(momentum.Px(), momentum.Py(), momentum.Pz(), energy);
+  }
+  return invalid;
+}
+
 TLorentzVector TMS_TrueParticle::GetMomentumLeaving(IsInsideFunctionType isInside) const {
   TVector3 out(TMS_INVALID_TRUTH_VALUE, TMS_INVALID_TRUTH_VALUE,
                TMS_INVALID_TRUTH_VALUE);

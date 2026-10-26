@@ -5,8 +5,10 @@
 // (the one holding most of the muon's visible energy), so a muon split into
 // fragments contributes once, through its best piece. Momentum is the track's
 // fitted momentum (reco.Momentum) against the magnitude of the true momentum
-// entering the TMS, split into muons that stop in the TMS (contained) and
-// ones that leave it (exiting). Completeness is the muon's visible energy on
+// entering the TMS (with --steel-corrected-truth, corrected back to the TMS
+// face for the steel crossed before the first stored trajectory point), split
+// into muons that stop in the TMS (contained) and ones that leave it (exiting).
+// Completeness is the muon's visible energy on
 // the track over its visible energy in the whole spill -- the counterpart of
 // reco_track__cleanliness_energy (purity).
 // Add scope to avoid cross talk with other scripts
@@ -46,12 +48,16 @@
           ->Fill(truth.RecoTrackPrimaryParticleTrueVisibleEnergy[it] / truth_spill.TrueVisibleEnergy[ip]);
 
     // Fitted momentum.
-    const double px = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][0];
-    const double py = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][1];
-    const double pz = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][2];
+    const float *p_enter =
+        (UseSteelCorrectedTruth()
+             ? truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected
+             : truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS)[it];
+    const double px = p_enter[0];
+    const double py = p_enter[1];
+    const double pz = p_enter[2];
     const double p_true = std::sqrt(px * px + py * py + pz * pz);  // MeV
     const double p_fit = reco.Momentum[it];                         // MeV
-    if (!(p_true > 0) || !(p_fit > 0) || !std::isfinite(p_fit)) continue;
+    if (px < -1e7 || !(p_true > 0) || !(p_fit > 0) || !std::isfinite(p_fit)) continue;
     const double resolution = (p_fit - p_true) / p_true;
     GetHist("momentum__resolution__" + sample, "Fitted Momentum Resolution, " + sample,
             "momentum_resolution", "#N Muons")
