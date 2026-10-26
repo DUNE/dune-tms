@@ -491,6 +491,26 @@ struct Config {
   bool PickUpOrphanHits = true;
   double OrphanChi2Max = 9.0;
   double OrphanZMarginMM = 150.0;
+  // How far upstream (lower z) of the first applied hit orphan pickup looks, if
+  // >= 0; the downstream side always uses OrphanZMarginMM. A track that starts
+  // at the TMS front face can have its first layers skipped (MaxHeadSkip), and two
+  // skipped layers span 260 mm, beyond the 150 mm margin. A 400 mm margin recovers
+  // them -- but near a TMS vertex it also picks up hadron hits, so
+  // OrphanUpstreamMarginMaxFirstZ limits it to tracks that begin at the front face.
+  // < 0 = use OrphanZMarginMM (the struct default, off). The production reconstruction sets it from
+  // [Recon.Cluster3D] OrphanUpstreamMarginMM / OrphanUpstreamMarginMaxFirstZ; the shipped config turns it on
+  // (400 mm, first hit z <= 11400 mm), a config file without the keys keeps it off.
+  // 2026-10-18, MiniProdN5p3 spills 1-15, ND-LAr muons p >= 1 GeV starting in plane 0
+  // (n = 344): first-plane efficiency 94.8 -> 96.2% (400 mm, first hit z <= 11400 mm,
+  // plane 0 is at z = 11112 mm), TMS-vertex hit purity and everything else unchanged;
+  // unrestricted, TMS-vertex purity 85.0 -> 84.2%. (An independent 21-file study with
+  // truth-free production reconstruction found 93.8 -> 96.2%.)
+  // 2026-10-20/21, 100 spills with the corrected truth: 94.3 -> 96.2% (n = 2891); full pipeline: found, good reco,
+  // duplicates and momentum/charge/front-face resolutions unchanged.
+  double OrphanUpstreamMarginMM = -1.0;
+  // If > 0, OrphanUpstreamMarginMM applies only when the track's first applied hit
+  // is at z <= this (mm); other tracks keep OrphanZMarginMM. 0 = no restriction.
+  double OrphanUpstreamMarginMaxFirstZ = 0.0;
   // If > 0, a candidate must also be within this many ns of the track's
   // expected time at its plane (TrackT0Ns + path length / c). Hit times still
   // carry the light-transit delay along the bar (up to ~+-15 ns), hence the

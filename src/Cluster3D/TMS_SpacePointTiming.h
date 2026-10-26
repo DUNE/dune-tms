@@ -30,6 +30,17 @@ namespace TMS_SpacePointTiming {
 // multiplier / speed of light in fiber.
 double TransitDelayNs(const TMS_Bar &bar, double alongBarMM);
 
+// The largest |TransitDelayNs| a hit on this bar can have (the bar's ends).
+double MaxTransitDelayNs(const TMS_Bar &bar);
+
+// Transit-corrected (tX - tY) for an X-bar hit and a Y-bar hit whose bars are
+// already known (a TMS_Hit carries its own bar, so unlike
+// CorrectedXYTimeDifference() this needs no geometry lookup). (x, y) is the
+// candidate space point: the X-bar runs along x, the Y-bar along y, so x is
+// the X-bar hit's position along its bar and y the Y-bar hit's.
+double PairedHitsTimeDifference(const TMS_Bar &xBar, double x, double tXHit,
+                                const TMS_Bar &yBar, double y, double tYHit);
+
 // Transit-corrected (tX - tY) for a space point at (x, y) built from an
 // X-view hit (bar center transverse coordinate xHitNotZ, z xHitZ, time
 // tXHit) and a Y-view hit (yHitNotZ, yHitZ, tYHit). Each hit's bar is

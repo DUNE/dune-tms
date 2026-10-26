@@ -33,6 +33,15 @@ class TMS_SpacePointBuilder {
     // crossing_slope: with require_crossing, the largest sideways slope
     //   (dx/dz) a track may have between the two hits' planes; the allowed
     //   overlap is half the Y-bar's width plus this times the planes' z gap.
+    // corrected_timing_window: if > 0, pair on the light-transit-corrected X/Y
+    //   time difference instead of the raw one, accepting a pair when
+    //   |(tX - delay_X) - (tY - delay_Y)| <= this many ns (timing_window is then
+    //   unused). Each hit's delay is evaluated at the candidate point's position
+    //   along its bar (TMS_SpacePointTiming). The raw difference of a genuine
+    //   pair carries up to the two bars' transit delays (~9 ns per meter of
+    //   bar, so up to ~28 ns for hits far from both readout ends), so a raw
+    //   window tight enough to reject ghosts loses real pairs there; the
+    //   corrected window does not.
     // Returns one TMS_SpacePoint per accepted pair of hits, with z and layer
     // from its plane pair. A single hit can end up in more than one space
     // point if several partners fall inside the window -- that combinatorial
@@ -42,7 +51,8 @@ class TMS_SpacePointBuilder {
                                               const TMS_PlanePairing::Table &pairing,
                                               bool use_fallback,
                                               bool require_crossing = false,
-                                              double crossing_slope = 1.0);
+                                              double crossing_slope = 1.0,
+                                              double corrected_timing_window = 0.0);
 };
 
 #endif
