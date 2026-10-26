@@ -65,7 +65,11 @@
       // bool end_tms = true; // isTMSContained(end_pos) == 0;
       bool end_tms = truth_spill.TMSFiducialEnd[ip];
       if (start_lar && end_tms && abs(truth_spill.PDG[ip]) == 13) {
-        double particle_starting_ke = truth_spill.MomentumTMSStart[ip][3] * GEV;
+        // Same truth as true_muon_starting_ke (the numerator) below
+        double particle_starting_ke =
+            (UseSteelCorrectedTruth() ? truth_spill.MomentumTMSStartSteelCorrected
+                                      : truth_spill.MomentumTMSStart)[ip][3] *
+            GEV;
         GetHist("energy_resolution__selection_eff__selection_eff_ke_tms_enter_"
                 "denominator",
                 "Selection Efficiency vs True TMS-Entering KE: Denominator",
@@ -87,7 +91,10 @@
       has_muon = true;
 
       double true_muon_starting_ke =
-          truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * 1e-3;
+          (UseSteelCorrectedTruth()
+               ? truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected
+               : truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS)[it][3] *
+          1e-3;
       if (highest_true_muon_starting_ke < true_muon_starting_ke) {
         highest_true_muon_starting_ke = true_muon_starting_ke;
         true_areal_density_of_highest =

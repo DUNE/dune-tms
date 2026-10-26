@@ -43,6 +43,15 @@ std::string save_location = "";
 
 const bool only_nd_physics = false;
 
+// TMS_VALIDATION_STEEL_CORRECTED_TRUTH=1 (run_validation.sh
+// --steel-corrected-truth) takes the true momentum entering the TMS from the
+// ...SteelCorrected branches, corrected back to the TMS face for the steel
+// crossed before the first stored trajectory point, instead of from that point.
+bool UseSteelCorrectedTruth() {
+  const char *value = std::getenv("TMS_VALIDATION_STEEL_CORRECTED_TRUTH");
+  return value && std::string(value) != "" && std::string(value) != "0";
+}
+
 const double CM = 0.1; // cm per mm
 const double DEG = 360 / TAU;
 const double GEV = 1e-3; // GeV per MEV
@@ -1399,6 +1408,8 @@ std::string getOutputFilename(const std::string &inputFilename) {
     filename += "_only_nd_physics.root";
     std::cout << "Saving in filename: " << filename << std::endl;
   }
+  if (UseSteelCorrectedTruth())
+    filename = filename.substr(0, filename.size() - 5) + "_steelcorr.root";
   return filename;
 }
 
@@ -1635,6 +1646,22 @@ int main(int argc, char *argv[]) {
   std::cout << "About to load Line_Candidates" << std::endl;
   static Line_Candidates li(line_candidates);
   std::cout << "Loaded Line_Candidates" << std::endl;
+
+  // The steel-corrected truth branches only exist in files reconstructed with
+  // them; stop rather than plot unfilled values.
+  if (UseSteelCorrectedTruth()) {
+    if (!ti.HasBranch("RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected") ||
+        !tsi.HasBranch("MomentumTMSStartSteelCorrected")) {
+      std::cerr << inputFiles.Description()
+                << " has no steel-corrected truth branches "
+                   "(RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected, "
+                   "MomentumTMSStartSteelCorrected). Reprocess it with "
+                   "ConvertToTMSTree, or run without --steel-corrected-truth."
+                << std::endl;
+      throw std::runtime_error("Missing steel-corrected truth branches");
+    }
+    std::cout << "Using steel-corrected true momentum entering the TMS" << std::endl;
+  }
 
   SetEnergyFunctionBasedOnInputFile(inputFilename);
 

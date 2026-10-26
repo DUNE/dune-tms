@@ -92,6 +92,7 @@ public :
    Float_t         RecoTrackPrimaryParticleTrueTrackLengthIgnoreY[kMaxRecoTracks];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueTrackLengthInTMS[kMaxRecoTracks];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumEnteringTMS[kMaxRecoTracks][4];   //[RecoTrackN]
+   Float_t         RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected[kMaxRecoTracks][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTrueMomentumLeavingTMS[kMaxRecoTracks][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTruePositionEnteringTMS[kMaxRecoTracks][4];   //[RecoTrackN]
    Float_t         RecoTrackPrimaryParticleTruePositionLeavingTMS[kMaxRecoTracks][4];   //[RecoTrackN]
@@ -204,6 +205,7 @@ public :
    TBranch        *b_RecoTrackPrimaryParticleTrueTrackLengthIgnoreY;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueTrackLengthInTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumEnteringTMS;   //!
+   TBranch        *b_RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected;   //!
    TBranch        *b_RecoTrackPrimaryParticleTrueMomentumLeavingTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTruePositionEnteringTMS;   //!
    TBranch        *b_RecoTrackPrimaryParticleTruePositionLeavingTMS;   //!
@@ -383,6 +385,9 @@ void Truth_Info::Init(TTree *tree)
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueTrackLengthIgnoreY", RecoTrackPrimaryParticleTrueTrackLengthIgnoreY, &b_RecoTrackPrimaryParticleTrueTrackLengthIgnoreY);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueTrackLengthInTMS", RecoTrackPrimaryParticleTrueTrackLengthInTMS, &b_RecoTrackPrimaryParticleTrueTrackLengthInTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumEnteringTMS", RecoTrackPrimaryParticleTrueMomentumEnteringTMS, &b_RecoTrackPrimaryParticleTrueMomentumEnteringTMS);
+   // Only in files reconstructed with the steel correction
+   if (fChain->GetBranch("RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected"))
+      fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected", RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected, &b_RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTrueMomentumLeavingTMS", RecoTrackPrimaryParticleTrueMomentumLeavingTMS, &b_RecoTrackPrimaryParticleTrueMomentumLeavingTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTruePositionEnteringTMS", RecoTrackPrimaryParticleTruePositionEnteringTMS, &b_RecoTrackPrimaryParticleTruePositionEnteringTMS);
    fChain->SetBranchAddress("RecoTrackPrimaryParticleTruePositionLeavingTMS", RecoTrackPrimaryParticleTruePositionLeavingTMS, &b_RecoTrackPrimaryParticleTruePositionLeavingTMS);

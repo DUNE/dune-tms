@@ -77,6 +77,7 @@ public :
    Float_t         MomentumLArEnd[kMaxTrueParticles][4];   //[nTrueParticles]
    Float_t         PositionLArEnd[kMaxTrueParticles][4];   //[nTrueParticles]
    Float_t         MomentumTMSStart[kMaxTrueParticles][4];   //[nTrueParticles]
+   Float_t         MomentumTMSStartSteelCorrected[kMaxTrueParticles][4];   //[nTrueParticles]
    Float_t         PositionTMSStart[kMaxTrueParticles][4];   //[nTrueParticles]
    Float_t         MomentumTMSFirstTwoModulesEnd[kMaxTrueParticles][4];   //[nTrueParticles]
    Float_t         PositionTMSFirstTwoModulesEnd[kMaxTrueParticles][4];   //[nTrueParticles]
@@ -159,6 +160,7 @@ public :
    TBranch        *b_MomentumLArEnd;   //!
    TBranch        *b_PositionLArEnd;   //!
    TBranch        *b_MomentumTMSStart;   //!
+   TBranch        *b_MomentumTMSStartSteelCorrected;   //!
    TBranch        *b_PositionTMSStart;   //!
    TBranch        *b_MomentumTMSFirstTwoModulesEnd;   //!
    TBranch        *b_PositionTMSFirstTwoModulesEnd;   //!
@@ -309,6 +311,9 @@ void Truth_Spill::Init(TTree *tree)
    fChain->SetBranchAddress("MomentumLArEnd", MomentumLArEnd, &b_MomentumLArEnd);
    fChain->SetBranchAddress("PositionLArEnd", PositionLArEnd, &b_PositionLArEnd);
    fChain->SetBranchAddress("MomentumTMSStart", MomentumTMSStart, &b_MomentumTMSStart);
+   // Only in files reconstructed with the steel correction
+   if (fChain->GetBranch("MomentumTMSStartSteelCorrected"))
+      fChain->SetBranchAddress("MomentumTMSStartSteelCorrected", MomentumTMSStartSteelCorrected, &b_MomentumTMSStartSteelCorrected);
    fChain->SetBranchAddress("PositionTMSStart", PositionTMSStart, &b_PositionTMSStart);
    fChain->SetBranchAddress("MomentumTMSFirstTwoModulesEnd", MomentumTMSFirstTwoModulesEnd, &b_MomentumTMSFirstTwoModulesEnd);
    fChain->SetBranchAddress("PositionTMSFirstTwoModulesEnd", PositionTMSFirstTwoModulesEnd, &b_PositionTMSFirstTwoModulesEnd);
