@@ -1,0 +1,18 @@
+# Diagnostic muon through the TMS mapped magnetic field
+
+/gps/particle mu-
+/gps/energy 5000 MeV
+
+# Start upstream of the field-map Z range
+/gps/position 500 -2202.23 11000 mm
+
+# Travel downstream along +Z
+/gps/direction 0 0 1
+
+# One primary per event
+/generator/count/fixed/number 1
+/generator/count/set fixed
+/generator/add
+
+# Initialize Geant4 before event generation
+/run/initialize
