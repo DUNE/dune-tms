@@ -6,11 +6,20 @@ import os
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
-FN = "analysis/neutrino.2000_2009.merged.edep_TMS_RecoCandidates_Hough_Cluster1.root"
+FN = (
+    "/exp/dune/app/users/sushils/dune-tms/bin/"
+    "neutrino.1001_1005.merged.edep_TMS_RecoCandidates_Hough_Cluster1.root"
+)
 
-MAP = "Mapper_global_DIAGNOSTIC.txt"
+MAP = (
+    "/exp/dune/app/users/sushils/TMS_MAPPER_RUN/"
+    "Mapper_global_DIAGNOSTIC.txt"
+)
 
-OUT = "plots/RECO_V3_OCT2026_PRELIMINARY"
+OUT = (
+    "/exp/dune/app/users/sushils/AUTO_SANDBOX/"
+    "RECO_FIELDAWARE_SIGNED_DISTANCE"
+)
 
 os.makedirs(OUT, exist_ok=True)
 
@@ -165,9 +174,6 @@ if not f or f.IsZombie():
 
 r = f.Get("Reco_Tree")
 t = f.Get("Truth_Info")
-s = f.Get("Truth_Spill")
-if not s:
-    raise RuntimeError("Truth_Spill not found")
 
 if not r:
     raise RuntimeError("Reco_Tree not found")
@@ -239,7 +245,10 @@ LAR_ZMIN =  4179.24 + 500.0
 LAR_ZMAX =  9135.88 - 1500.0
 
 
-OUTDIR_V3 = "plots/RECO_V3_OCT2026_PRELIMINARY/V3"
+OUTDIR_V3 = (
+    "/exp/dune/app/users/sushils/AUTO_SANDBOX/"
+    "RECO_V3_INCLUSIVE_UNIQUE_MUON"
+)
 
 os.makedirs(OUTDIR_V3, exist_ok=True)
 
@@ -322,38 +331,107 @@ def in_lar_fiducial(p):
 # TRUE-MUON MATCHING
 # ============================================================
 
-def spill4(name, i):
-    leaf = s.GetLeaf(name)
-    return [float(leaf.GetValue(4*i+k)) for k in range(4)]
-
-
 def find_true_muon_index(truth):
-    mu4 = [float(truth.GetLeaf("MuonP4").GetValue(k)) for k in range(4)]
+
+    mu4 = get4(
+        truth.MuonP4
+    )
+
     if not valid4(mu4):
         return None
-    leaf = s.GetLeaf("PDG")
-    best_j, best_d = -1, float("inf")
-    for j in range(int(s.GetLeaf("nTrueParticles").GetValue())):
-        if abs(int(leaf.GetValue(j))) != 13:
-            continue
-        birth4 = spill4("BirthMomentum", j)
+
+    best_j = -1
+    best_d = float("inf")
+
+    for j in range(
+        int(truth.nTrueParticles)
+    ):
+
+        birth4 = get4(
+            truth.BirthMomentum,
+            j
+        )
+
         if not valid4(birth4):
             continue
-        d = dist4(birth4, mu4)
+
+        d = dist4(
+            birth4,
+            mu4
+        )
+
         if d < best_d:
-            best_j, best_d = j, d
-    return best_j if best_j >= 0 and best_d <= 1.0e-2 else None
+            best_d = d
+            best_j = j
+
+    if best_j < 0:
+        return None
+
+    # Audited: matched values are essentially exact.
+    if best_d > 1.0e-2:
+        return None
+
+    pdg = int(
+        truth.PDG[best_j]
+    )
+
+    if abs(pdg) != 13:
+        return None
+
+    return best_j
 
 
-def make_unique_muon_key(truth, mu_index):
-    pdg = int(s.GetLeaf("PDG").GetValue(mu_index))
-    mu4 = [float(truth.GetLeaf("MuonP4").GetValue(k)) for k in range(4)]
-    birth = spill4("BirthPosition", mu_index)
-    vertex_id = int(s.GetLeaf("VertexID").GetValue(mu_index))
-    track_id = int(s.GetLeaf("TrackId").GetValue(mu_index))
-    return (int(s.GetLeaf("RunNo").GetValue()), int(s.GetLeaf("SpillNo").GetValue()), vertex_id, track_id, pdg,
-            *(round(v, 3) for v in birth[:3]),
-            *(round(v, 3) for v in mu4))
+def make_unique_muon_key(
+    truth,
+    mu_index
+):
+
+    pdg = int(
+        truth.PDG[mu_index]
+    )
+
+    mu4 = get4(
+        truth.MuonP4
+    )
+
+    birth = get4(
+        truth.BirthPosition,
+        mu_index
+    )
+
+    try:
+        vertex_id = int(
+            truth.VertexID[
+                mu_index
+            ]
+        )
+    except Exception:
+        vertex_id = -999999
+
+    track_id = int(
+        truth.TrackId[
+            mu_index
+        ]
+    )
+
+    # EventNo deliberately excluded:
+    # repeated slices can have different EventNo.
+    return (
+        int(truth.RunNo),
+        int(truth.SpillNo),
+        vertex_id,
+        track_id,
+        pdg,
+
+        round(birth[0], 3),
+        round(birth[1], 3),
+        round(birth[2], 3),
+
+        round(mu4[0], 3),
+        round(mu4[1], 3),
+        round(mu4[2], 3),
+        round(mu4[3], 3),
+    )
 
 
 # ============================================================
@@ -364,11 +442,11 @@ def reco_track_length3d(reco, j):
 
     try:
         return float(
-            reco.GetLeaf("Length_3D").GetValue(j)
+            reco.Length_3D[j]
         )
     except Exception:
         return float(
-            reco.GetLeaf("Length").GetValue(j)
+            reco.Length[j]
         )
 
 
@@ -389,30 +467,50 @@ def compute_v2_for_track(
     """
 
     nreco = int(
-        reco.GetLeaf("nTracks").GetValue()
+        reco.nTracks
     )
 
     if j < 0 or j >= nreco:
         return None
 
-    start = np.fromiter((reco.GetLeaf("StartPos").GetValue(k) for k in range(nreco*4)), dtype=np.float32, count=nreco*4).reshape(
+    start = np.frombuffer(
+        reco.StartPos,
+        dtype=np.float32,
+        count=nreco*4
+    ).reshape(
         nreco,
         4
     )
 
-    end = np.fromiter((reco.GetLeaf("EndPos").GetValue(k) for k in range(nreco*4)), dtype=np.float32, count=nreco*4).reshape(
+    end = np.frombuffer(
+        reco.EndPos,
+        dtype=np.float32,
+        count=nreco*4
+    ).reshape(
         nreco,
         4
     )
 
-    direction = np.fromiter((reco.GetLeaf("StartDirection").GetValue(k) for k in range(nreco*3)), dtype=np.float32, count=nreco*3).reshape(
+    direction = np.frombuffer(
+        reco.StartDirection,
+        dtype=np.float32,
+        count=nreco*3
+    ).reshape(
         nreco,
         3
     )
 
-    nhits = np.fromiter((reco.GetLeaf("nHits").GetValue(k) for k in range(nreco)), dtype=np.int32, count=nreco)
+    nhits = np.frombuffer(
+        reco.nHits,
+        dtype=np.int32,
+        count=nreco
+    )
 
-    hits_all = np.fromiter((reco.GetLeaf("TrackHitPos").GetValue(k) for k in range(nreco*200*4)), dtype=np.float32, count=nreco*200*4).reshape(
+    hits_all = np.frombuffer(
+        reco.TrackHitPos,
+        dtype=np.float32,
+        count=nreco*200*4
+    ).reshape(
         nreco,
         200,
         4
@@ -746,64 +844,110 @@ def compute_v2_for_track(
 
 unique_muons = {}
 
-truth_entries_total = int(t.GetEntries())
-spill_entries_total = int(s.GetEntries())
+truth_entries_total = int(
+    t.GetEntries()
+)
 
-for ispill in range(spill_entries_total):
-    if ispill % 100 == 0:
-        print(f"PASS 1: spill {ispill}/{spill_entries_total}", flush=True)
-    s.GetEntry(ispill)
-    first = int(s.GetLeaf("TruthInfoIndex").GetValue())
-    count = int(s.GetLeaf("TruthInfoNSlices").GetValue())
+for ievt in range(
+    truth_entries_total
+):
 
-    for ievt in range(first, first + count):
-        if not (0 <= ievt < truth_entries_total):
-            continue
+    t.GetEntry(
+        ievt
+    )
 
-        t.GetEntry(ievt)
-        if int(t.GetLeaf("RunNo").GetValue()) != int(s.GetLeaf("RunNo").GetValue()) or int(t.GetLeaf("SpillNo").GetValue()) != int(s.GetLeaf("SpillNo").GetValue()):
-            continue
+    mu_index = (
+        find_true_muon_index(
+            t
+        )
+    )
 
-        mu_index = find_true_muon_index(t)
-        if mu_index is None:
-            continue
+    if mu_index is None:
+        continue
 
-        pdg = int(s.GetLeaf("PDG").GetValue(mu_index))
-        birth = spill4("BirthPosition", mu_index)
+    pdg = int(
+        t.PDG[
+            mu_index
+        ]
+    )
 
-        if not valid4(birth) or not in_lar_fiducial(birth):
-            continue
+    birth = get4(
+        t.BirthPosition,
+        mu_index
+    )
 
-        ptms4 = spill4("MomentumTMSStart", mu_index)
-        if not valid4(ptms4):
-            continue
+    if not valid4(birth):
+        continue
 
-        ptms = p3mag(ptms4)
-        if not math.isfinite(ptms) or ptms <= 0:
-            continue
+    if not in_lar_fiducial(
+        birth
+    ):
+        continue
 
-        mu4 = [float(t.GetLeaf("MuonP4").GetValue(k)) for k in range(4)]
-        ke = float(mu4[3]) - MU_MASS_MEV
-        if not math.isfinite(ke) or ke <= 0:
-            continue
+    ptms4 = get4(
+        t.MomentumTMSStart,
+        mu_index
+    )
 
-        key = make_unique_muon_key(t, mu_index)
+    if not valid4(ptms4):
+        continue
 
-        if key not in unique_muons:
-            unique_muons[key] = {
-                "pdg": pdg,
-                "ke": ke,
-                "ptms": ptms,
-                "birth": tuple(birth[:3]),
-                "slice_entries": [],
-                "spill_entry": ispill,
-                "mu_index": mu_index,
-                "candidate_count": 0,
-                "valid_candidate_count": 0,
-                "best": None,
-            }
+    ptms = p3mag(
+        ptms4
+    )
 
-        unique_muons[key]["slice_entries"].append(ievt)
+    if not (
+        math.isfinite(ptms)
+        and
+        ptms > 0.0
+    ):
+        continue
+
+    mu4 = get4(
+        t.MuonP4
+    )
+
+    ke = (
+        float(mu4[3]) -
+        MU_MASS_MEV
+    )
+
+    if not (
+        math.isfinite(ke)
+        and
+        ke > 0.0
+    ):
+        continue
+
+    key = (
+        make_unique_muon_key(
+            t,
+            mu_index
+        )
+    )
+
+    if key not in unique_muons:
+
+        unique_muons[key] = {
+            "pdg": pdg,
+            "ke": ke,
+            "ptms": ptms,
+            "birth": tuple(
+                birth[:3]
+            ),
+            "slice_entries": [],
+            "candidate_count": 0,
+            "valid_candidate_count": 0,
+            "best": None,
+        }
+
+    unique_muons[
+        key
+    ][
+        "slice_entries"
+    ].append(
+        int(ievt)
+    )
 
 
 # ============================================================
@@ -818,15 +962,11 @@ for ispill in range(spill_entries_total):
 # We do NOT pick the candidate whose sign agrees with truth.
 # ============================================================
 
-print("PASS 1 COMPLETE - ENTERING PASS 2", flush=True)
 for key, rec in (
     unique_muons.items()
 ):
 
     candidates = []
-
-    s.GetEntry(int(rec["spill_entry"]))
-    mu_index = int(rec["mu_index"])
 
     for ievt in rec[
         "slice_entries"
@@ -840,12 +980,21 @@ for key, rec in (
             ievt
         )
 
+        mu_index = (
+            find_true_muon_index(
+                t
+            )
+        )
+
+        if mu_index is None:
+            continue
+
         nreco = int(
-            r.GetLeaf("nTracks").GetValue()
+            r.nTracks
         )
 
         ntruth_reco = int(
-            t.GetLeaf("RecoTrackN").GetValue()
+            t.RecoTrackN
         )
 
         # Same structural sanity condition used by frozen V2.
@@ -861,9 +1010,10 @@ for key, rec in (
 
             try:
                 primary_index = int(
-                    t.GetLeaf(
-                        "RecoTrackPrimaryParticleIndex"
-                    ).GetValue(j)
+                    t.
+                    RecoTrackPrimaryParticleIndex[
+                        j
+                    ]
                 )
             except Exception:
                 continue
