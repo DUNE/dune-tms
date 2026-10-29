@@ -324,7 +324,7 @@ StepState PredictSubstep(const StepState &previous, double subDz, const IFieldMo
   const TVector3 straightEnd(previous.x + previous.dxdz * subDz, previous.y + previous.dydz * subDz,
                              previous.z + subDz);
   const MaterialSteps materials = TMS_Geom::GetInstance().GetMaterials(startPos, straightEnd);
-  const double fieldY = field.GetField(midpoint).Y() * SteelFraction(materials);
+  const double fieldY = field.GetMeanField(startPos, straightEnd).Y() * (field.SteelFractionApplies() ? SteelFraction(materials) : 1.0);
   const double kappa = Kappa(previous.qp, fieldY);
 
   predicted.dxdz = previous.dxdz + kappa * subDz;

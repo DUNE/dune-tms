@@ -283,9 +283,9 @@
     # A config file without these keys keeps the old behavior (off).
     OrphanUpstreamMarginMM = 400.0
     OrphanUpstreamMarginMaxFirstZ = 11400.0
-    # Gridded magnetic-field map (text, "x y z Bx By Bz" per line, mm and Tesla, lab frame; see TMS_MapFieldModel.h)
+    # edep-sim ArbBField magnetic-field map (the Mapper.txt of the realistic field mapper; see TMS_MapFieldModel.h)
     # for the Kalman follower, replacing the built-in +-1.0 T piecewise-constant RegionFieldModel. Empty = built-in.
-    # NOTE: the follower scales the field by the fraction of each step in steel, so the map must hold the in-steel field.
+    # A map is the true field at every point (zero in the gaps), so the follower does not scale it by the steel fraction.
     FieldMapFile = ""
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE

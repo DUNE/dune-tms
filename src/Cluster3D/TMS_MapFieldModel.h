@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -15,19 +16,19 @@
 
 // Field lookup from a gridded field-map text file, trilinearly interpolated.
 //
-// File format (ASSUMED -- check against edep-sim's ArbBField reader and the
-// realistic-field-mapper's Mapper.txt before relying on it): plain text, one
-// grid point per line, whitespace-separated "x y z Bx By Bz"; blank lines and
-// lines starting with '#' are skipped. Positions are in mm, the field in
-// Tesla, both in the same frame as the positions passed to GetField()
-// (the lab/global frame). The points must fill a regular (but not
-// necessarily evenly spaced) x-y-z grid, in any row order.
+// File format: the edep-sim ArbBField text map, as written by the realistic
+// field mapper (mapper_integration/tms_mapper, PR #350). '#' comment lines and
+// blank lines are skipped. The first other line is the grid header
+// "offset_x offset_y offset_z dx dy dz" (mm); every later line is a grid point
+// "x y z Bx By Bz Bmag" (mm, Tesla, global frame -- the same frame as the
+// positions passed to GetField()). The points must fill a complete x-y-z grid;
+// row order is not relied on (edep-sim itself wants z fastest, then y, then x).
 //
-// Like the field it replaces, GetField() is what the Kalman follower calls,
-// and the follower then scales it by the fraction of each step spent in
-// steel. So until that is settled, this model is only consistent if the map
-// holds the field INSIDE the steel (see IFieldModel::GetField). Outside the
-// grid the field is zero.
+// That map is the TRUE field at every point: zero in the gaps between steel
+// plates, nonzero only inside them. So SteelFractionApplies() is false and the
+// follower uses the value as is, instead of scaling it by the steel fraction
+// of the step (which would apply the gap suppression twice). Outside the grid
+// the field is zero.
 class MapFieldModel : public IFieldModel {
   public:
     explicit MapFieldModel(const std::string &filename) { Load(filename); }
@@ -54,6 +55,19 @@ class MapFieldModel : public IFieldModel {
           }
       return result;
     }
+
+    // A step can be longer than the steel plates and the gaps between them, so average the map along it
+    // (midpoint rule, at least two samples per smallest grid spacing along the step).
+    TVector3 GetMeanField(const TVector3 &start, const TVector3 &end) const override {
+      const double length = (end - start).Mag();
+      const double cell = std::min({MinSpacing(fX), MinSpacing(fY), MinSpacing(fZ)});
+      const int n = std::max(1, static_cast<int>(std::ceil(2.0 * length / cell)));
+      TVector3 sum(0.0, 0.0, 0.0);
+      for (int i = 0; i < n; ++i) sum += GetField(start + (i + 0.5) / n * (end - start));
+      return (1.0 / n) * sum;
+    }
+
+    bool SteelFractionApplies() const override { return false; }
 
     size_t NPoints() const { return fB.size(); }
     // Axis ranges (mm), for printing and sanity checks.
@@ -84,6 +98,13 @@ class MapFieldModel : public IFieldModel {
       return true;
     }
 
+    // Smallest gap between neighbouring nodes on an axis (infinite for a single node).
+    static double MinSpacing(const std::vector<double> &axis) {
+      double smallest = std::numeric_limits<double>::infinity();
+      for (size_t i = 1; i < axis.size(); ++i) smallest = std::min(smallest, axis[i] - axis[i - 1]);
+      return smallest;
+    }
+
     static std::vector<double> UniqueSorted(std::vector<double> values) {
       std::sort(values.begin(), values.end());
       values.erase(std::unique(values.begin(), values.end()), values.end());
@@ -95,17 +116,34 @@ class MapFieldModel : public IFieldModel {
       if (!input.is_open()) throw std::runtime_error("MapFieldModel: could not open field map " + filename);
       std::vector<TVector3> positions, fields;
       std::string line;
+      bool haveHeader = false;
+      double spacing[3] = {0.0, 0.0, 0.0};
       while (std::getline(input, line)) {
         const size_t first = line.find_first_not_of(" \t\r");
         if (first == std::string::npos || line[first] == '#') continue;
         std::istringstream row(line);
-        double x, y, z, bx, by, bz;
-        if (!(row >> x >> y >> z >> bx >> by >> bz))
-          throw std::runtime_error("MapFieldModel: expected 'x y z Bx By Bz' in " + filename + ", got: " + line);
+        if (!haveHeader) {
+          double ox, oy, oz;
+          if (!(row >> ox >> oy >> oz >> spacing[0] >> spacing[1] >> spacing[2]) || spacing[0] <= 0 ||
+              spacing[1] <= 0 || spacing[2] <= 0)
+            throw std::runtime_error("MapFieldModel: first line of " + filename +
+                                     " must be the header 'offset_x offset_y offset_z dx dy dz', got: " + line);
+          haveHeader = true;
+          continue;
+        }
+        double x, y, z, bx, by, bz, bmag;
+        if (!(row >> x >> y >> z >> bx >> by >> bz >> bmag))
+          throw std::runtime_error("MapFieldModel: expected 'x y z Bx By Bz Bmag' in " + filename + ", got: " + line);
         positions.emplace_back(x, y, z);
         fields.emplace_back(bx, by, bz);
       }
+      if (!haveHeader) throw std::runtime_error("MapFieldModel: no grid header found in " + filename);
       Build(positions, fields);
+      // The declared spacing must be the grid's own, or the file is not what its header says.
+      const std::vector<double> *axes[3] = {&fX, &fY, &fZ};
+      for (int i = 0; i < 3; ++i)
+        if (axes[i]->size() > 1 && std::abs((*axes[i])[1] - (*axes[i])[0] - spacing[i]) > 1e-6 * spacing[i])
+          throw std::runtime_error("MapFieldModel: grid spacing in " + filename + " disagrees with its header");
     }
 
     void Build(const std::vector<TVector3> &positions, const std::vector<TVector3> &fields) {

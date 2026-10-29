@@ -20,6 +20,18 @@ class IFieldModel {
     // follower scales this by the fraction of each propagation step spent in
     // steel (see SteelFraction() in TMS_KalmanFollower.cpp).
     virtual TVector3 GetField(const TVector3 &position) const = 0;
+
+    // Mean field along the straight segment from start to end. The follower uses this for each propagation
+    // sub-step. The default is the field at the midpoint, which is exact for a field that is constant over the
+    // step; a model with structure on a scale below the step length (a plate-by-plate map) overrides it.
+    virtual TVector3 GetMeanField(const TVector3 &start, const TVector3 &end) const {
+      return GetField(0.5 * (start + end));
+    }
+
+    // Whether the follower must scale GetField() by the fraction of each step spent in steel. True for models
+    // that give the in-steel value (RegionFieldModel); false for a model that already is the true field at every
+    // point, zero in the gaps included (a map), where scaling would suppress the gaps twice.
+    virtual bool SteelFractionApplies() const { return true; }
 };
 
 // No field at all -- lets Predict()/ResolveLayer() be exercised and
