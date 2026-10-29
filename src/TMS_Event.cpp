@@ -6,6 +6,7 @@
 #include "TMS_SignalProcessing.h"
 #include "TMS_SpacePointBuilder.h"
 #include "TMS_Cluster3DReco.h"
+#include "TMS_MapFieldModel.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -1058,7 +1059,19 @@ void TMS_Event::RunCluster3DReco() {
   const double containXY = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginXY();
   const double containZ = manager.Get_RECO_CLUSTER3D_RangeContainmentMarginZ();
   const TVector3 tmsLo = TMS_Geom::GetInstance().GetStartOfTMS(), tmsHi = TMS_Geom::GetInstance().GetEndOfTMS();
-  static const RegionFieldModel field;
+  // The field model is chosen once: the gridded map named by [Recon.Cluster3D] FieldMapFile if set, else the built-in
+  // piecewise-constant RegionFieldModel. A map that cannot be read is fatal rather than silently replaced.
+  static const std::unique_ptr<const IFieldModel> fieldModel = [&manager]() -> std::unique_ptr<const IFieldModel> {
+    const std::string mapFile = manager.Get_RECO_CLUSTER3D_FieldMapFile();
+    if (mapFile.empty()) {
+      std::cout << "Cluster3D field model: built-in RegionFieldModel (+-1.0 T)" << std::endl;
+      return std::make_unique<RegionFieldModel>();
+    }
+    auto map = std::make_unique<MapFieldModel>(mapFile);
+    std::cout << "Cluster3D field model: map " << mapFile << " (" << map->NPoints() << " points)" << std::endl;
+    return map;
+  }();
+  const IFieldModel &field = *fieldModel;
 
   TMS_StageTimer::Clock lap;
   const double barPitch = TMS_Geom::GetInstance().GetMaxBarPitch();

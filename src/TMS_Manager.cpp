@@ -89,6 +89,9 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTER3D_OrphanUpstreamMarginMM = toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMM", -1.0);
   _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ =
       toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMaxFirstZ", 0.0);
+  // Optional; empty (the default) keeps the built-in piecewise-constant RegionFieldModel.
+  const std::string defaultFieldMapFile = "";
+  _RECO_CLUSTER3D_FieldMapFile = toml::find_or(data, "Recon", "Cluster3D", "FieldMapFile", defaultFieldMapFile);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");

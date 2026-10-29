@@ -57,7 +57,7 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe $(EXE_DIR)/RealDataSmokeTest.exe
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe $(EXE_DIR)/RealDataSmokeTest.exe $(EXE_DIR)/MapFieldModel_test.exe
 
 # Sanitize target
 sanitize: CXXFLAGS += -fsanitize=address
@@ -82,6 +82,9 @@ $(EXE_DIR)/BetheBloch_Example.exe: BetheBloch_Example.cpp
 
 $(EXE_DIR)/DBSCAN_test.exe: DBSCAN_test.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ $(ROOT_LIBS)
+
+$(EXE_DIR)/MapFieldModel_test.exe: MapFieldModel_test.cpp
+	$(CXX) $(CXXFLAGS) $(ROOT_INC) $(TMS_INC) -o $@ $^ $(ROOT_LIBS)
 
 $(EXE_DIR)/DrawEvents.exe: DrawEvents.cpp
 	$(CXX) $(CXXFLAGS) $(ROOT_INC) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)

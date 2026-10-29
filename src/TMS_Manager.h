@@ -122,6 +122,7 @@ class TMS_Manager {
     double Get_RECO_CLUSTER3D_XYTimeGateNSigma() { return _RECO_CLUSTER3D_XYTimeGateNSigma; };
     double Get_RECO_CLUSTER3D_OrphanUpstreamMarginMM() { return _RECO_CLUSTER3D_OrphanUpstreamMarginMM; };
     double Get_RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ() { return _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ; };
+    std::string Get_RECO_CLUSTER3D_FieldMapFile() { return _RECO_CLUSTER3D_FieldMapFile; };
 
     double Get_RECO_CALIBRATION_EnergyCalibration() { return _RECO_CALIBRATION_EnergyCalibration; };
     
@@ -294,6 +295,7 @@ class TMS_Manager {
     double _RECO_CLUSTER3D_XYTimeGateNSigma;
     double _RECO_CLUSTER3D_OrphanUpstreamMarginMM;
     double _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ;
+    std::string _RECO_CLUSTER3D_FieldMapFile;
 
     double _RECO_CALIBRATION_EnergyCalibration;
     
