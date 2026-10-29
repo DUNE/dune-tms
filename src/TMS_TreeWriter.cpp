@@ -24,6 +24,12 @@ namespace {
     return 82.0f + 1.75f * length;
   }
 
+  // Kinetic energy (MeV) of a muon with momentum p (MeV/c).
+  float MuonKEFromMomentum(float p) {
+    constexpr float kMuonMassMeV = 105.6584f;
+    return std::sqrt(p * p + kMuonMassMeV * kMuonMassMeV) - kMuonMassMeV;
+  }
+
 }
 
 TMS_TreeWriter::TMS_TreeWriter() {
@@ -1682,6 +1688,14 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
     }
 
     RecoTrackEnergyRange[itTrack]   = EstimateKEFromRange(RecoTrackLength[itTrack]);
+    // Cluster3D (fillLines is false for its tree): the range-table momentum is accurate (-1.3% median, flat in p)
+    // while the straight line above is not (+12.5%, worst at low p), so take the kinetic energy from the
+    // momentum when there is one. fillLines is true only for the legacy tree, whose momentum has its own known
+    // deficit, so it keeps the line.
+    if (!fillLines && TMS_Manager::GetInstance().Get_RECO_CLUSTER3D_EnergyRangeFromMomentum() &&
+        std::isfinite(RecoTrack->Momentum) && RecoTrack->Momentum > 0.0) {
+      RecoTrackEnergyRange[itTrack] = MuonKEFromMomentum(RecoTrack->Momentum);
+    }
     RecoTrackLength_3D[itTrack]     = raw_3d_length;
     RecoTrackEnergyDeposit[itTrack] = RecoTrack->EnergyDeposit;
     RecoTrackMomentum[itTrack]      = RecoTrack->Momentum;
