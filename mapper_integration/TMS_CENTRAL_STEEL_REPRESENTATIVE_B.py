@@ -105,6 +105,35 @@ class Plate:
 # Mapper / plate geometry helpers
 # ---------------------------------------------------------------------------
 
+
+def require_plate_coverage(rows, label):
+    """Reject missing plate samples before canonical averaging."""
+    rows = list(rows)
+    if not rows:
+        raise ValueError(f"{label}: no physical plates selected")
+
+    missing = [
+        r["plate"] for r in rows
+        if r.get("n_geometry_cells", r.get("n_cells", 0)) <= 0
+    ]
+    if missing:
+        raise ValueError(
+            f"{label}: missing mapper samples for "
+            f"{len(missing)} of {len(rows)} plates: {missing}"
+        )
+
+    invalid = [
+        r["plate"] for r in rows
+        if not np.isfinite(r["mean_B_T"])
+    ]
+    if invalid:
+        raise ValueError(
+            f"{label}: non-finite field means for plates: {invalid}"
+        )
+
+    return rows
+
+
 def read_mapper_header(path: Path):
     shape = None
     header = None
@@ -433,6 +462,10 @@ def plate_rows(plates, acc):
 
 
 def summarize_section(rows, section):
+    require_plate_coverage(
+        (r for r in rows if r["section"] == section),
+        "summarize_section(rows, section)",
+    )
     selected = [
         r
         for r in rows
@@ -473,6 +506,10 @@ def summarize_section(rows, section):
 
 
 def summarize(rows):
+    require_plate_coverage(
+        (r for r in rows if True),
+        "summarize(rows)",
+    )
     sections = [
         summarize_section(
             rows,
