@@ -283,6 +283,13 @@
     # A config file without these keys keeps the old behavior (off).
     OrphanUpstreamMarginMM = 400.0
     OrphanUpstreamMarginMaxFirstZ = 11400.0
+    # Fill the Cluster3D EnergyRange branch (a kinetic energy, MeV) from the track's range-table momentum,
+    # KE = sqrt(p^2 + m_mu^2) - m_mu, instead of the straight line 82 + 1.75 * L that the legacy reconstruction
+    # uses. Measured on 21,000 front-entry stopping muons (100 spills) against the steel-corrected truth: the line
+    # overshoots true KE by +12.5% (median; +20% at 0.5-0.75 GeV/c, +4% at 3-5 GeV/c) and does the same with the TRUE
+    # length (+11%), so the constants are wrong, not the tracking; the momentum-derived KE is -1.5%, flat in p.
+    # Tracks without a valid momentum fall back to the line. Set false for the old branch contents.
+    EnergyRangeFromMomentum = true
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE
     
