@@ -285,7 +285,8 @@
     OrphanUpstreamMarginMaxFirstZ = 11400.0
     # edep-sim ArbBField magnetic-field map (the Mapper.txt of the realistic field mapper; see TMS_MapFieldModel.h)
     # for the Kalman follower, replacing the built-in +-1.0 T piecewise-constant RegionFieldModel. Empty = built-in.
-    # A map is the true field at every point (zero in the gaps), so the follower does not scale it by the steel fraction.
+    # A map is the true, physical field at every point (zero in the gaps), as edep-sim applies it, so the follower does
+    # not scale it by the steel fraction; the follower's opposite sign convention is handled inside MapFieldModel.
     FieldMapFile = ""
   [Recon.Calibration]
     EnergyCalibration = 0.08856 # MeV / PE

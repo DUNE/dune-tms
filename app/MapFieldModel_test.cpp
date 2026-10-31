@@ -1,5 +1,6 @@
-// Tests for MapFieldModel: it must read the edep-sim ArbBField map format, reproduce RegionFieldModel when
-// the map holds the same field, and average a plate-by-plate map along a step.
+// Tests for MapFieldModel: it must read the edep-sim ArbBField map format, reproduce RegionFieldModel when the map
+// holds the same field (a map holds the PHYSICAL field and the models return the follower's convention, which is the
+// opposite sign: see TMS_MapFieldModel.h), and average a plate-by-plate map along a step.
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -35,8 +36,9 @@ int main() {
   const std::string path = "MapFieldModel_test_map.txt";
   const RegionFieldModel region;
 
-  // 1. A map holding RegionFieldModel's field reproduces it away from the sign border.
-  WriteMap(path, -4000, 4000, 10, 11000, 18000, 100, [&](double x, double) { return region.GetField(TVector3(x, 0, 0)).Y(); });
+  // 1. A map holding the physical equivalent of RegionFieldModel's field (opposite sign) reproduces it away from the
+  //    sign border.
+  WriteMap(path, -4000, 4000, 10, 11000, 18000, 100, [&](double x, double) { return -region.GetField(TVector3(x, 0, 0)).Y(); });
   {
     const MapFieldModel map(path);
     check(map.NPoints() == 801 * 2 * 71, "edep-format file read with the right number of points");
@@ -50,20 +52,24 @@ int main() {
     check(map.GetField(TVector3(5000, 0, 14000)).Mag() == 0.0, "outside x range should be zero");
     check(map.GetField(TVector3(0, 0, 9000)).Mag() == 0.0, "outside z range should be zero");
     check(!map.SteelFractionApplies() && region.SteelFractionApplies(), "steel-fraction flags");
+    // the physical map field has the opposite sign to the model's (follower's) field
+    const TVector3 p(500, 0, 15000);
+    check(std::abs(map.MapField(p).Y() + region.GetField(p).Y()) < 1e-9 && std::abs(map.GetField(p).Y() - region.GetField(p).Y()) < 1e-9,
+          "GetField is minus the physical map field");
   }
 
   // 2. A plate-by-plate map (1 T in a plate 40 mm thick, 0 in a 40 mm gap, period 80 mm, 5 mm grid). The mean over a
   //    full period is 0.5 T wherever it starts; a 40 mm step starting 10 mm into a plate has 30 mm of steel, so 0.75 T,
-  //    where a single midpoint sample (30 mm into the plate) would give 1 T.
+  //    where a single midpoint sample (30 mm into the plate) would give 1 T. (Signs are the follower's: minus the map.)
   WriteMap(path, 0, 100, 50, 10000, 12000, 5, [](double, double z) { return std::fmod(z - 10000.0, 80.0) < 40.0 ? 1.0 : 0.0; });
   {
     const MapFieldModel map(path);
     for (double z0 : {10000.0, 10010.0, 10033.0, 10080.0, 10555.0})
-      check(std::abs(map.GetMeanField(TVector3(50, 0, z0), TVector3(50, 0, z0 + 80.0)).Y() - 0.5) < 0.03,
+      check(std::abs(map.GetMeanField(TVector3(50, 0, z0), TVector3(50, 0, z0 + 80.0)).Y() + 0.5) < 0.03,
             "mean field over a full plate+gap period should be ~0.5 T");
     const double partial = map.GetMeanField(TVector3(50, 0, 10010.0), TVector3(50, 0, 10050.0)).Y();
-    check(std::abs(partial - 0.75) < 0.1, "mean over a step with 30 of 40 mm in steel should be ~0.75 T (grid-edge smearing allows ~0.69)");
-    check(std::abs(map.GetField(TVector3(50, 0, 10030.0)).Y() - 1.0) < 1e-9, "the midpoint sample alone would say 1 T");
+    check(std::abs(partial + 0.75) < 0.1, "mean over a step with 30 of 40 mm in steel should be ~0.75 T (grid-edge smearing allows ~0.69)");
+    check(std::abs(map.GetField(TVector3(50, 0, 10030.0)).Y() + 1.0) < 1e-9, "the midpoint sample alone would say 1 T");
   }
 
   // 3. Malformed files are rejected.

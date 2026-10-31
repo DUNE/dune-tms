@@ -24,6 +24,13 @@
 // positions passed to GetField()). The points must fill a complete x-y-z grid;
 // row order is not relied on (edep-sim itself wants z fastest, then y, then x).
 //
+// SIGN CONVENTION. The map holds the physical field, as edep-sim applies it. The Kalman follower, though, swims with
+// kappa = +0.2998 * B * q/p, whereas the Lorentz force gives d(dx/dz)/dz = -0.2998 * q * B_y / p for a particle moving
+// along +z, so the follower's field has the opposite sign to the physical one (RegionFieldModel's signs were chosen
+// empirically to match the simulation, which is why its central region reads +1 T where edep-sim has -1 T there).
+// GetField() therefore returns the NEGATED map field, in the follower's convention. Checked on 400 mu- and 400 mu+
+// simulated in the real mapped field: charge correct 0.3% without the negation, ~97% with it.
+//
 // That map is the TRUE field at every point: zero in the gaps between steel
 // plates, nonzero only inside them. So SteelFractionApplies() is false and the
 // follower uses the value as is, instead of scaling it by the steel fraction
@@ -39,6 +46,11 @@ class MapFieldModel : public IFieldModel {
     }
 
     TVector3 GetField(const TVector3 &position) const override {
+      return -1.0 * MapField(position);  // see SIGN CONVENTION above
+    }
+
+    // The physical field of the map, as edep-sim applies it, with no change of sign.
+    TVector3 MapField(const TVector3 &position) const {
       size_t ix, iy, iz;
       double fx, fy, fz;
       if (!Locate(fX, position.X(), ix, fx) || !Locate(fY, position.Y(), iy, fy) ||
@@ -63,7 +75,7 @@ class MapFieldModel : public IFieldModel {
       const double cell = std::min({MinSpacing(fX), MinSpacing(fY), MinSpacing(fZ)});
       const int n = std::max(1, static_cast<int>(std::ceil(2.0 * length / cell)));
       TVector3 sum(0.0, 0.0, 0.0);
-      for (int i = 0; i < n; ++i) sum += GetField(start + (i + 0.5) / n * (end - start));
+      for (int i = 0; i < n; ++i) sum += GetField(start + (i + 0.5) / n * (end - start));  // already in the follower's sign
       return (1.0 / n) * sum;
     }
 

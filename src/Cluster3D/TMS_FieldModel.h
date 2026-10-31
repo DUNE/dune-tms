@@ -11,6 +11,11 @@
 // follower only ever calls GetField() -- swapping RegionFieldModel for a
 // real interpolated field map later is a one-line change at construction,
 // not a redesign.
+//
+// Sign: the follower bends a track by kappa = +0.2998 * B_y * q/p (TMS_KalmanFollower.cpp, Kappa()). The physical
+// Lorentz force on a particle moving along +z is d(dx/dz)/dz = -0.2998 * q * B_y / p, so a model returns the field in
+// the FOLLOWER's convention, which is minus the physical B_y that edep-sim applies. RegionFieldModel's signs already
+// are; MapFieldModel negates its (physical) map.
 class IFieldModel {
   public:
     virtual ~IFieldModel() = default;
