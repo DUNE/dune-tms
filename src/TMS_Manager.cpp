@@ -89,6 +89,9 @@ TMS_Manager::TMS_Manager() {
   _RECO_CLUSTER3D_OrphanUpstreamMarginMM = toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMM", -1.0);
   _RECO_CLUSTER3D_OrphanUpstreamMarginMaxFirstZ =
       toml::find_or<double>(data, "Recon", "Cluster3D", "OrphanUpstreamMarginMaxFirstZ", 0.0);
+  // Optional; a config without the key keeps the old straight-line EnergyRange.
+  _RECO_CLUSTER3D_EnergyRangeFromMomentum =
+      toml::find_or<bool>(data, "Recon", "Cluster3D", "EnergyRangeFromMomentum", false);
 
   _RECO_TRACKSMOOTHING_UseTrackSmoothing = toml::find<bool>(data, "Recon", "TrackSmoothing", "UseTrackSmoothing");
   _RECO_TRACKSMOOTHING_TrackSmoothingStrategy = toml::find<std::string>(data, "Recon", "TrackSmoothing", "TrackSmoothingStrategy");
