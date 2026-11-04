@@ -10,8 +10,11 @@
     int true_charge = (truth.RecoTrackPrimaryParticlePDG[it] < 0) ? -1 : 1;
     int charge = reco.Charge[it];
     bool correct_charge_id = true_charge * charge > 0;
+    // [3] is the total energy, so subtract the mass to get the kinetic energy the axes are labeled with
     double particle_starting_ke =
-        truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
+        KineticEnergyMeV(truth.RecoTrackPrimaryParticlePDG[it],
+                         truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]) *
+        GEV;
     if (ismuon || isantimuon) {
       // Correct-charge fraction in the plane of true KE and true x-z angle at
       // the TMS front face (the ND PDR muon-spectrometer figure). Numerator and
@@ -21,12 +24,9 @@
       {
         const auto &p = truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it];
         double angle_xz_deg = atan2(p[0], p[2]) * 180.0 / M_PI;
-        // Component 3 of this branch is the muon's TOTAL energy (sqrt(p^2 + m^2)), as are the
-        // KE values the 1D histograms in this file and Reco_Eff.cxx / EnergyResolution.cxx fill
-        // (so those axes sit 105.7 MeV above the true kinetic energy). These maps use the real
-        // kinetic energy.
-        const double kMuonMassMeV = 105.6584;
-        const double ke_mev = p[3] - kMuonMassMeV;
+        // Component 3 of this branch is the muon's TOTAL energy (sqrt(p^2 + m^2)); the map axis
+        // is the kinetic energy.
+        const double ke_mev = KineticEnergyMeV(13, p[3]);
         const char *species = ismuon ? "muon" : "antimuon";
         auto fill2d = [&](const char *selection, bool selected) {
           if (!selected)

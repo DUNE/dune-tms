@@ -66,9 +66,12 @@
       bool end_tms = truth_spill.TMSFiducialEnd[ip];
       if (start_lar && end_tms && abs(truth_spill.PDG[ip]) == 13) {
         // Same truth as true_muon_starting_ke (the numerator) below
+        // [3] is the total energy; the denominators are binned in true kinetic energy
         double particle_starting_ke =
-            (UseSteelCorrectedTruth() ? truth_spill.MomentumTMSStartSteelCorrected
-                                      : truth_spill.MomentumTMSStart)[ip][3] *
+            KineticEnergyMeV(
+                truth_spill.PDG[ip],
+                (UseSteelCorrectedTruth() ? truth_spill.MomentumTMSStartSteelCorrected
+                                          : truth_spill.MomentumTMSStart)[ip][3]) *
             GEV;
         GetHist("energy_resolution__selection_eff__selection_eff_ke_tms_enter_"
                 "denominator",
@@ -90,10 +93,13 @@
       // Event has a muon
       has_muon = true;
 
+      // Kinetic energy (the reco side, length_to_energy(), is a kinetic energy); [3] is the total energy
       double true_muon_starting_ke =
-          (UseSteelCorrectedTruth()
-               ? truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected
-               : truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS)[it][3] *
+          KineticEnergyMeV(
+              truth.RecoTrackPrimaryParticlePDG[it],
+              (UseSteelCorrectedTruth()
+                   ? truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMSSteelCorrected
+                   : truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS)[it][3]) *
           1e-3;
       if (highest_true_muon_starting_ke < true_muon_starting_ke) {
         highest_true_muon_starting_ke = true_muon_starting_ke;
@@ -102,7 +108,9 @@
         true_pdg_of_highest = truth.RecoTrackPrimaryParticlePDG[it];
 
         true_muon_ke_lar =
-            truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * 1e-3;
+            KineticEnergyMeV(truth.RecoTrackPrimaryParticlePDG[it],
+                             truth.RecoTrackPrimaryParticleTrueMomentum[it][3]) *
+            1e-3;
         true_muon_areal_density_lar =
             truth.RecoTrackPrimaryParticleTrueTrackLength[it];
         true_muon_areal_density_lar_only =
