@@ -34,6 +34,7 @@
 #include "Reco_Tree.h"
 #include "Truth_Info.h"
 #include "Truth_Spill.h"
+#include "KineticEnergy.h"
 
 #define IS_WITHIN(x, center, tolerance)                                        \
   (std::abs((x) - (center)) <= (tolerance))
@@ -901,7 +902,9 @@ Long64_t PrimaryLoop(Truth_Info &truth, Truth_Spill &truth_spill,
       for (int it = 0; it < reco.nTracks; it++) {
         if (std::abs(truth.RecoTrackPrimaryParticlePDG[it]) == 13) {
           double muon_starting_ke =
-              truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] *
+              KineticEnergyMeV(
+                  truth.RecoTrackPrimaryParticlePDG[it],
+                  truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]) *
               1e-3;
           if (muon_starting_ke > max_muon_starting_ke) {
             max_muon_starting_ke = muon_starting_ke;

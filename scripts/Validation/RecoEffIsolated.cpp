@@ -20,6 +20,7 @@
 
 #include "Reco_Tree.h"
 #include "Truth_Info.h"
+#include "KineticEnergy.h"
 
 namespace {
 
@@ -493,7 +494,9 @@ int main(int argc, char **argv) {
           spill->BirthPositionX(ip), spill->BirthPositionY(ip),
           spill->BirthPositionZ(ip));
       const bool tms_end = spill->TMSFiducialEnd[ip];
-      const double ke_tms_enter = spill->MomentumTMSStartE(ip) * kGeV;
+      // MomentumTMSStart[3] is the total energy; the plots are in kinetic energy
+      const double ke_tms_enter =
+          KineticEnergyMeV(spill->PDG[ip], spill->MomentumTMSStartE(ip)) * kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
 
       h_den_visible->Fill(visible);
@@ -612,7 +615,9 @@ int main(int argc, char **argv) {
           truth->RecoTrackPrimaryParticleTruePositionStart[it][2]);
       const bool tms_end = truth->RecoTrackPrimaryParticleTMSFiducialEnd[it];
       const double ke_tms_enter =
-          truth->RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * kGeV;
+          KineticEnergyMeV(truth->RecoTrackPrimaryParticlePDG[it],
+                           truth->RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]) *
+          kGeV;
       const bool ke_in_bounds = InKeBounds(ke_tms_enter);
 
       h_num_visible->Fill(visible);

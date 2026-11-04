@@ -198,8 +198,11 @@ void FillRecoEff(ValidationContext &ctx) {
       const bool lar_start_branch = truth_spill.LArFiducialStart[ip];
       const bool lar_start = is_lar_start_position(truth_spill.BirthPosition[ip]);
       const bool tms_end = truth_spill.TMSFiducialEnd[ip];
-      const double particle_starting_ke = truth_spill.MomentumTMSStart[ip][3] * GEV;
-      const double particle_ke = truth_spill.BirthMomentum[ip][3] * GEV;
+      // Kinetic energies: component [3] of these branches is the total energy
+      const double particle_starting_ke =
+          KineticEnergyMeV(truth_spill.PDG[ip], truth_spill.MomentumTMSStart[ip][3]) * GEV;
+      const double particle_ke =
+          KineticEnergyMeV(truth_spill.PDG[ip], truth_spill.BirthMomentum[ip][3]) * GEV;
       const bool ke_in_bounds = particle_starting_ke >= muon_ke_bins[0] &&
                                 particle_starting_ke <
                                     muon_ke_bins[n_muon_ke_bins];
@@ -397,10 +400,15 @@ void FillRecoEff(ValidationContext &ctx) {
     const bool lar_start =
         is_lar_start_position(truth.RecoTrackPrimaryParticleTruePositionStart[it]);
     const bool tms_end = truth.RecoTrackPrimaryParticleTMSFiducialEnd[it];
+    // Kinetic energies: component [3] of these branches is the total energy
     const double particle_starting_ke =
-        truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3] * GEV;
+        KineticEnergyMeV(truth.RecoTrackPrimaryParticlePDG[it],
+                         truth.RecoTrackPrimaryParticleTrueMomentumEnteringTMS[it][3]) *
+        GEV;
     const double particle_ke =
-        truth.RecoTrackPrimaryParticleTrueMomentum[it][3] * GEV;
+        KineticEnergyMeV(truth.RecoTrackPrimaryParticlePDG[it],
+                         truth.RecoTrackPrimaryParticleTrueMomentum[it][3]) *
+        GEV;
     const bool ke_in_bounds = particle_starting_ke >= muon_ke_bins[0] &&
                               particle_starting_ke <
                                   muon_ke_bins[n_muon_ke_bins];
