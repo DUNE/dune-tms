@@ -1243,3 +1243,20 @@ void TMS_Event::BuildSpacePoints() {
                                                  manager.Get_RECO_SPACEPOINTS_PairingCrossingSlope(),
                                                  manager.Get_RECO_SPACEPOINTS_CorrectedTimingWindow());
 }
+
+void TMS_Event::SetEdepIDs(int edep_event_id, long long spill_id) {
+  for (auto& it : info_about_vtx) {
+    it.second.edep_event_id = edep_event_id;
+    it.second.spill_id = spill_id;
+  }
+}
+
+long long TMS_Event::GetSpillID() const {
+  long long spill_id = -999;
+  for (const auto& it : info_about_vtx) {
+    if (it.second.spill_id < 0) return -999;
+    if (spill_id >= 0 && it.second.spill_id != spill_id) return -999;
+    spill_id = it.second.spill_id;
+  }
+  return spill_id;
+}

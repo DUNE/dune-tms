@@ -24,7 +24,9 @@ struct Vtx_Info {
   
   int pdg { -999 };
   int run_id { -999 };
-  int vtx_id { -999 };
+  int vtx_id { -999 };            // entry index in the edep-sim spill file (ConvertToTMSTree replaces EventId with it)
+  int edep_event_id { -999 };     // edep-sim TG4Event::EventId
+  long long spill_id { -999 };    // spill-build spill ID, from the spill file's event_spill_map
   std::string reaction;
   double hadronic_energy_lar_shell {};
   double hadronic_energy_lar {};
@@ -197,6 +199,10 @@ class TMS_Event {
     
     int GetSpillNumber() const { return SpillNumber; };
     void SetSpillNumber(int spill) { SpillNumber = spill; };
+    // The edep-sim EventId and spill-build spill ID of this event's vertex
+    void SetEdepIDs(int edep_event_id, long long spill_id);
+    // The spill-build spill ID shared by all vertices of this event, or -999 if unknown or mixed
+    long long GetSpillID() const;
     
     void SortHits(bool(*comp)(TMS_Hit& a, TMS_Hit& b)) { std::sort(TMS_Hits.begin(), TMS_Hits.end(), comp); };
     

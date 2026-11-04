@@ -7,6 +7,8 @@
 #include "TGeoManager.h"
 #include "TStopwatch.h"
 #include "TParameter.h"
+#include "TMap.h"
+#include "TObjString.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
@@ -147,6 +149,9 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
     }
     TMS_Manager::GetInstance().Set_Nersc_Spill_Period(SpillPeriod);
   }
+  // spill-build's map from "RunId EventId" to its spill ID (absent from older spill files)
+  TMap* event_spill_map = dynamic_cast<TMap*>(input->Get("event_spill_map"));
+  if (!event_spill_map) std::cout<<"No event_spill_map in the input file: the SpillID branches will be -999"<<std::endl;
   int current_spill_number = 0;
 
   TMS_StageTimer::Clock lap;
@@ -161,6 +166,14 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
     if (gRoo)
       gRoo->GetEntry(i);
       
+    // Keep the edep-sim EventId and the spill-build spill ID: the EventId is replaced just below
+    const int edep_event_id = event->EventId;
+    long long spill_id = -999;
+    if (event_spill_map) {
+      auto* spill_str = dynamic_cast<TObjString*>(event_spill_map->GetValue(Form("%d %d", event->RunId, edep_event_id)));
+      if (spill_str) spill_id = std::stoll(spill_str->GetString().Data());
+    }
+
     // Todo: This should no longer be needed when this bug is fixed in the spill builder
     // https://github.com/DUNE/2x2_sim/issues/54
     event->EventId = i;
@@ -170,6 +183,7 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
     lap.Lap("read_input");
     // Make a TMS event
     TMS_Event tms_event = TMS_Event(*event);
+    tms_event.SetEdepIDs(edep_event_id, spill_id);
     tms_event.SetSpillNumber(i);
     // Fill up truth information from the GRooTracker object
     if (gRoo){
