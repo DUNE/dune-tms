@@ -220,6 +220,7 @@ class TMS_TreeWriter {
     
     int SliceNo;
     int SpillNo;
+    Long64_t SpillID;
     
     int VertexIdOfMostEnergyInEvent;
     int VertexRunNoOfMostEnergyInEvent;
@@ -648,6 +649,9 @@ class TMS_TreeWriter {
     int TrueVtxID[__TMS_MAX_TRUE_VERTICES__];
     int TrueVtxRunNo[__TMS_MAX_TRUE_VERTICES__];
     Long64_t TrueVtxGlobalID[__TMS_MAX_TRUE_VERTICES__];
+    int TrueVtxEdepEventID[__TMS_MAX_TRUE_VERTICES__];
+    Long64_t TrueVtxEdepVertexID[__TMS_MAX_TRUE_VERTICES__];
+    Long64_t TrueVtxSpillID[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELarShell[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicELAr[__TMS_MAX_TRUE_VERTICES__];
     float TrueVtxHadronicETMS[__TMS_MAX_TRUE_VERTICES__];

@@ -364,6 +364,7 @@ void TMS_TreeWriter::MakeBranches() {
   Reco_Tree->Branch("SliceNo", &SliceNo, "SliceNo/I");
   Reco_Tree->Branch("SpillNo", &SpillNo, "SpillNo/I");
   Reco_Tree->Branch("RunNo",   &RunNo,   "RunNo/I");
+  Reco_Tree->Branch("SpillID", &SpillID, "SpillID/L");
 
   Reco_Tree->Branch("nTracks",        &nTracks,                 "nTracks/I");
   Reco_Tree->Branch("nHits",          nHitsIn3DTrack,           "nHits[nTracks]/I");
@@ -509,6 +510,10 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Spill->Branch("TrueVtxID", TrueVtxID, "TrueVtxID[TrueVtxN]/I");
   Truth_Spill->Branch("TrueVtxRunNo", TrueVtxRunNo, "TrueVtxRunNo[TrueVtxN]/I");
   Truth_Spill->Branch("TrueVtxGlobalID", TrueVtxGlobalID, "TrueVtxGlobalID[TrueVtxN]/L");
+  // The vertex as edep-sim and spill-build know it: TrueVtxID is the spill-file entry index instead
+  Truth_Spill->Branch("TrueVtxEdepEventID", TrueVtxEdepEventID, "TrueVtxEdepEventID[TrueVtxN]/I");
+  Truth_Spill->Branch("TrueVtxEdepVertexID", TrueVtxEdepVertexID, "TrueVtxEdepVertexID[TrueVtxN]/L");
+  Truth_Spill->Branch("TrueVtxSpillID", TrueVtxSpillID, "TrueVtxSpillID[TrueVtxN]/L");
   Truth_Spill->Branch("TrueVtxReaction", &TrueVtxReaction);
   // Hadronic E
   Truth_Spill->Branch("TrueVtxHadronicELarShell", TrueVtxHadronicELarShell, "TrueVtxHadronicELarShell[TrueVtxN]/F");
@@ -703,6 +708,7 @@ void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
   truth->Branch("EventNo", &EventNo, "EventNo/I");
   truth->Branch("SpillNo", &SpillNo, "SpillNo/I");
   truth->Branch("RunNo", &RunNo, "RunNo/I");
+  truth->Branch("SpillID", &SpillID, "SpillID/L");
   truth->Branch("IsCC",  &IsCC,  "IsCC/O");
   truth->Branch("Interaction", &Reaction);
   truth->Branch("TruthInfoIndex",   &TruthInfoIndex,   "TruthInfoIndex/I");
@@ -768,6 +774,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
   RunNo = normalizeRunNumber(event.GetRunNumber());
+  SpillID = event.GetSpillID();
   Reaction = event.GetReaction();
 
   NeutrinoPDG = event.GetNeutrinoPDG();
@@ -2169,6 +2176,7 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
   SliceNo = event.GetSliceNumber();
   SpillNo = event.GetSpillNumber();
   RunNo = normalizeRunNumber(event.GetRunNumber());
+  SpillID = event.GetSpillID();
   Reaction = event.GetReaction();
   HasPileup = event.GetNVertices() != 1;
   nPrimaryVertices = event.GetNVertices();
@@ -2371,6 +2379,11 @@ void TMS_TreeWriter::FillTruthInfo(TMS_Event &event) {
     TrueVtxID[true_vtx_index] = vtx.vtx_id;
     TrueVtxRunNo[true_vtx_index] = vtx.run_id;
     TrueVtxGlobalID[true_vtx_index] = TMS_MakeGlobalVertexID(TrueVtxRunNo[true_vtx_index], TrueVtxID[true_vtx_index]);
+    TrueVtxEdepEventID[true_vtx_index] = vtx.edep_event_id;
+    // RunId x 1e6 + EventId, the key CAFMaker uses for edep-sim interactions
+    TrueVtxEdepVertexID[true_vtx_index] = (vtx.edep_event_id >= 0 && vtx.edep_event_id < TMS_VertexIdScale)
+        ? TMS_MakeGlobalVertexID(vtx.run_id, vtx.edep_event_id) : -999;
+    TrueVtxSpillID[true_vtx_index] = vtx.spill_id;
     TrueVtxReaction.push_back(vtx.reaction);
     // Hadronic E
     TrueVtxHadronicELarShell[true_vtx_index] = vtx.hadronic_energy_lar_shell;
@@ -2869,6 +2882,9 @@ void TMS_TreeWriter::Clear() {
     TrueVtxID[i] = DEFAULT_CLEARING_FLOAT;
     TrueVtxRunNo[i] = DEFAULT_CLEARING_FLOAT;
     TrueVtxGlobalID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    TrueVtxEdepEventID[i] = DEFAULT_CLEARING_FLOAT;
+    TrueVtxEdepVertexID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
+    TrueVtxSpillID[i] = static_cast<Long64_t>(DEFAULT_CLEARING_FLOAT);
   }
 
 }

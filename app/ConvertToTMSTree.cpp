@@ -7,6 +7,8 @@
 #include "TGeoManager.h"
 #include "TStopwatch.h"
 #include "TParameter.h"
+#include "TMap.h"
+#include "TObjString.h"
 
 // EDepSim includes
 #include "EDepSim/TG4Event.h"
@@ -147,50 +149,69 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
     }
     TMS_Manager::GetInstance().Set_Nersc_Spill_Period(SpillPeriod);
   }
+  // spill-build's map from "RunId EventId" to its spill ID (absent from older spill files)
+  TMap* event_spill_map = dynamic_cast<TMap*>(input->Get("event_spill_map"));
+  if (!event_spill_map) std::cout<<"No event_spill_map in the input file: the SpillID branches will be -999"<<std::endl;
   int current_spill_number = 0;
 
   TMS_StageTimer::Clock lap;
-  for (; i < N_entries; ++i) {
+  // One pass beyond the last entry writes out the spill that is still being collected;
+  // without it the events after the last spill boundary were never written.
+  for (; i <= N_entries; ++i) {
+    const bool flush_pass = (i == N_entries);
+    if (flush_pass && overlay_events.empty()) break;
     lap.Skip();
-    if (N_entries <= 10 || i % (N_entries/10) == 0) {
-      std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
-    }
-    
-    events->GetEntry(i);
-    // todo, gRoo has a different indexing than events with overlay
-    if (gRoo)
-      gRoo->GetEntry(i);
-      
-    // Todo: This should no longer be needed when this bug is fixed in the spill builder
-    // https://github.com/DUNE/2x2_sim/issues/54
-    event->EventId = i;
-    //if (event->Primaries.size() > 0)
-    //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
+    TMS_Event tms_event;
+    if (!flush_pass) {
+      if (N_entries <= 10 || i % (N_entries/10) == 0) {
+        std::cout << "Processed " << i << "/" << N_entries << " (" << double(i)*100./N_entries << "%)" << std::endl;
+      }
 
-    lap.Lap("read_input");
-    // Make a TMS event
-    TMS_Event tms_event = TMS_Event(*event);
-    tms_event.SetSpillNumber(i);
-    // Fill up truth information from the GRooTracker object
-    if (gRoo){
-      tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
-    }
+      events->GetEntry(i);
+      // todo, gRoo has a different indexing than events with overlay
+      if (gRoo)
+        gRoo->GetEntry(i);
 
-    lap.Lap("event_build");
-    // Keep filling up the vector and move on to the next event
-    if (Overlay && i % nOverlays != 0) {
-      overlay_events.push_back(tms_event);
-      continue;
-    }
-    
-    // Keep filling up the vector if within spill
-    if (NerscOverlay) {
-      double next_spill_time = (current_spill_number + 0.5) * TMS_Manager::GetInstance().Get_Nersc_Spill_Period();
-      double current_spill_time = event->Primaries.begin()->Position.T();
-      // Check that this neutrino is within spill, but not last event
-      if (current_spill_time < next_spill_time && i != N_entries - 1) {
+      // Keep the edep-sim EventId and the spill-build spill ID: the EventId is replaced just below
+      const int edep_event_id = event->EventId;
+      long long spill_id = -999;
+      if (event_spill_map) {
+        auto* spill_str = dynamic_cast<TObjString*>(event_spill_map->GetValue(Form("%d %d", event->RunId, edep_event_id)));
+        if (spill_str) spill_id = std::stoll(spill_str->GetString().Data());
+      }
+
+      // Todo: This should no longer be needed when this bug is fixed in the spill builder
+      // https://github.com/DUNE/2x2_sim/issues/54
+      event->EventId = i;
+      //if (event->Primaries.size() > 0)
+      //  std::cout<<"Entry "<<i<<", interaction number of vtx 0: "<<event->Primaries[0].GetInteractionNumber()<<", vs event.EventId "<<event->EventId<<std::endl;
+
+      lap.Lap("read_input");
+      // Make a TMS event
+      tms_event = TMS_Event(*event);
+      tms_event.SetEdepIDs(edep_event_id, spill_id);
+      tms_event.SetSpillNumber(i);
+      // Fill up truth information from the GRooTracker object
+      if (gRoo){
+        tms_event.FillTruthFromGRooTracker(StdHepPdg, StdHepP4, EvtVtx);
+      }
+
+      lap.Lap("event_build");
+      // Keep filling up the vector and move on to the next event
+      if (Overlay && i % nOverlays != 0) {
         overlay_events.push_back(tms_event);
         continue;
+      }
+
+      // Keep filling up the vector if within spill
+      if (NerscOverlay) {
+        double next_spill_time = (current_spill_number + 0.5) * TMS_Manager::GetInstance().Get_Nersc_Spill_Period();
+        double current_spill_time = event->Primaries.begin()->Position.T();
+        // Check that this neutrino is within spill
+        if (current_spill_time < next_spill_time) {
+          overlay_events.push_back(tms_event);
+          continue;
+        }
       }
     }
 
@@ -206,8 +227,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
       // Make sure to set the spill number correctly
       last_event.SetSpillNumber(current_spill_number);
       overlay_events.clear();
-      // Now add this event as the first event in the next set
-      overlay_events.push_back(tms_event);
+      // Now add this event as the first event in the next set (the flush pass has none)
+      if (!flush_pass) overlay_events.push_back(tms_event);
       if (NerscOverlay) current_spill_number += 1;
       // ... and make this event the combined spill called "last_event"
       tms_event = last_event;
@@ -299,8 +320,8 @@ bool ConvertToTMSTree(std::string filename, std::string output_filename, const s
   } // End loop over all the events
 
   Timer.Stop();
-  std::cout << "Event loop took " << Timer.RealTime() << "s for " << i << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
-  TMS_StageTimer::PrintSummary(Timer.RealTime(), i);
+  std::cout << "Event loop took " << Timer.RealTime() << "s for " << N_entries << " entries (" << Timer.RealTime()/N_entries << " s/entries)" << std::endl;
+  TMS_StageTimer::PrintSummary(Timer.RealTime(), N_entries);
 
   TMS_TreeWriter::GetWriter().Write();
   TMS_ReadoutTreeWriter::GetWriter().Write();
