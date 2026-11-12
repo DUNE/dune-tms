@@ -67,7 +67,12 @@ std::vector<OpticalDeposit> Resegment(const std::vector<Segment>& passage, doubl
     s1[j] = total;
   }
 
-  const int nbins = (total > 0) ? std::max(1, static_cast<int>(std::ceil(total / max_bin_length_mm))) : 1;
+  // The same path summed from different numbers of steps differs by floating-point roundoff
+  // (a 10 mm path can come out as 10.000000000000002), which must not turn 10 bins into 11.
+  // Ratios within 1e-9 of an integer (a part in 1e9, far below any geometry precision) are
+  // treated as that integer before the ceiling.
+  const double ratio = total / max_bin_length_mm;
+  const int nbins = (total > 0) ? std::max(1, static_cast<int>(std::ceil(ratio - 1e-9))) : 1;
   const double bin_len = (total > 0) ? total / nbins : 0.0;
   bins.resize(nbins);
 

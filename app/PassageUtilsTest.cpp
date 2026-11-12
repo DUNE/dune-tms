@@ -80,6 +80,34 @@ int main() {
     Check(same, "re-segmented bins identical for 1/2/5/10/20/50-step splits of the same deposit");
   }
 
+  // 3b. Same, for a tilted crossing (0,0,0) -> (6,8,0) mm: its summed length is 10 mm for one
+  //     step but 10.000000000000002 for ten, which must not change the number of 1 mm bins.
+  {
+    auto Tilted = [](int n) {
+      std::vector<Segment> segs;
+      for (int i = 0; i < n; ++i) {
+        const double f0 = static_cast<double>(i) / n, f1 = static_cast<double>(i + 1) / n;
+        Segment s = Seg(0, 0, 2.0 / n, 0, 0);
+        s.start = {6 * f0, 8 * f0, 0};
+        s.stop = {6 * f1, 8 * f1, 0};
+        s.t_start = 10 * f0 / 300.0;
+        s.t_stop = 10 * f1 / 300.0;
+        segs.push_back(s);
+      }
+      return segs;
+    };
+    auto ref = TMS_Passage::Resegment(Tilted(1), 1.0);
+    bool same = ref.size() == 10;
+    for (int n : {2, 3, 5, 7, 10, 20, 50}) {
+      auto bins = TMS_Passage::Resegment(Tilted(n), 1.0);
+      if (bins.size() != ref.size()) { same = false; continue; }
+      for (size_t i = 0; i < bins.size(); ++i) {
+        if (!Near(bins[i].energy, ref[i].energy, 1e-9) || !Near(bins[i].t, ref[i].t, 1e-9)) same = false;
+      }
+    }
+    Check(same, "tilted 6-8-10 crossing: 10 bins, identical for 1/2/3/5/7/10/20/50-step splits");
+  }
+
   // 4. Non-uniform deposit is preserved (localized high dE/dx is not smeared out).
   {
     // 1 MeV in the first 1 mm, 0.1 MeV in the other 9 mm.

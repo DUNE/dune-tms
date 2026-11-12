@@ -156,7 +156,8 @@ class TMS_Hit {
     TMS_Bar Bar;
     // The energy deposited
     double EnergyDeposit;
-    double EnergyDepositVisible;
+    // Set by the optical model; 0 until then so a merge before that stage does not sum garbage
+    double EnergyDepositVisible = 0;
     // The timing of the hit
     double Time;
     // Reconstructed position of the hit WITHIN a TMS hit, using the reconstructed track
