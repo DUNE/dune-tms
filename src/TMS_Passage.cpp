@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <stdexcept>
 
 namespace TMS_Passage {
 
@@ -56,6 +57,10 @@ std::vector<std::vector<size_t>> BuildPassages(const std::vector<Segment>& segme
 
 std::vector<OpticalDeposit> Resegment(const std::vector<Segment>& passage, double max_bin_length_mm) {
   std::vector<OpticalDeposit> bins;
+  // A zero, negative or non-finite bin length would make the bin count infinite or negative.
+  if (!(max_bin_length_mm > 0) || !std::isfinite(max_bin_length_mm)) {
+    throw std::invalid_argument("TMS_Passage::Resegment: max_bin_length_mm must be positive and finite");
+  }
   if (passage.empty()) return bins;
 
   // Arc-length coordinate of each segment along the passage.
@@ -72,6 +77,12 @@ std::vector<OpticalDeposit> Resegment(const std::vector<Segment>& passage, doubl
   // Ratios within 1e-9 of an integer (a part in 1e9, far below any geometry precision) are
   // treated as that integer before the ceiling.
   const double ratio = total / max_bin_length_mm;
+  // Refuse absurd bin counts (a tiny bin length, or a non-finite path) before the double-to-int
+  // conversion, which is undefined behavior for out of range values, and before allocating.
+  const double kMaxBins = 1e6;
+  if (!std::isfinite(ratio) || ratio > kMaxBins) {
+    throw std::length_error("TMS_Passage::Resegment: bin length too small for this passage (more than 1e6 bins)");
+  }
   const int nbins = (total > 0) ? std::max(1, static_cast<int>(std::ceil(ratio - 1e-9))) : 1;
   const double bin_len = (total > 0) ? total / nbins : 0.0;
   bins.resize(nbins);

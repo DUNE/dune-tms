@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include "TMS_Passage.h"
@@ -106,6 +107,17 @@ int main() {
       }
     }
     Check(same, "tilted 6-8-10 crossing: 10 bins, identical for 1/2/3/5/7/10/20/50-step splits");
+  }
+
+  // 3c. Bad bin lengths are rejected instead of reaching an out-of-range conversion.
+  {
+    bool ok = true;
+    for (double bad : {0.0, -1.0, 1e-12, std::numeric_limits<double>::infinity(), std::nan("")}) {
+      bool threw = false;
+      try { TMS_Passage::Resegment(UniformSplit(1), bad); } catch (const std::exception&) { threw = true; }
+      if (!threw) ok = false;
+    }
+    Check(ok, "bin length 0, negative, 1e-12, inf and nan are rejected");
   }
 
   // 4. Non-uniform deposit is preserved (localized high dE/dx is not smeared out).
