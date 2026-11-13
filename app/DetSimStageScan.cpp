@@ -153,7 +153,9 @@ void BarAxis::MoveTo(Crossing& c, double d) const {
   else c.y = geo.YBarReadoutLocation(center, length) - d;
 }
 
-void RunPathScan(std::ofstream& out, int nthrows, double distance_mm) {
+// Return false when the scan could not run (e.g. the reference bar makes no hit, as when it is a listed
+// bad channel): the CSV would hold only its header, so the program must not report success
+bool RunPathScan(std::ofstream& out, int nthrows, double distance_mm) {
   out << "path_mm,edep_MeV,throw_index,n_hits_total,n_hits_surviving,pe_all,pe_surviving,reco_energy,"
          "hit_time,true_time,tot,n_photons\n";
   // (path, energy scale): the path-length scan at MIP dE/dx, then brighter 9 mm crossings for ToT
@@ -161,7 +163,7 @@ void RunPathScan(std::ofstream& out, int nthrows, double distance_mm) {
   for (double p : {0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 9.0, 12.0, kBarThickness_mm}) cells.push_back({p, 1.0});
   for (double s : {2.0, 3.0, 4.0, 6.0, 8.0}) cells.push_back({9.0, s});
   BarAxis axis;
-  if (distance_mm > 0 && !axis.Probe()) return;
+  if (distance_mm > 0 && !axis.Probe()) return false;
   int event_id = 0;
   for (const auto& cell : cells) {
     Crossing c = kRefBar;
@@ -203,13 +205,14 @@ void RunPathScan(std::ofstream& out, int nthrows, double distance_mm) {
     }
   }
   std::cout << "path scan: " << cells.size() << " cells x " << nthrows << " throws\n";
+  return true;
 }
 
-void RunPositionScan(std::ofstream& out, int nthrows) {
+bool RunPositionScan(std::ofstream& out, int nthrows) {
   out << "distance_mm,x,y,bar_type,bar_number,bar_length_mm,throw_index,n_hits_surviving,pe_all,pe_surviving,"
          "hit_time,true_time\n";
   BarAxis axis;
-  if (!axis.Probe()) return;
+  if (!axis.Probe()) return false;
   const bool is_xbar = axis.is_xbar;
   const double length = axis.length;
   std::vector<double> distances;
@@ -243,6 +246,7 @@ void RunPositionScan(std::ofstream& out, int nthrows) {
   }
   std::cout << "position scan: " << distances.size() << " positions x " << nthrows << " throws, bar type "
             << (is_xbar ? "X" : "Y") << ", length " << length << " mm\n";
+  return true;
 }
 
 void RunPileupScan(std::ofstream& out, int nthrows) {
@@ -380,11 +384,16 @@ int main(int argc, char** argv) {
     std::cerr << "Could not open " << out_csv << " for writing\n";
     return 1;
   }
-  if (mode == "path") RunPathScan(out, nthrows, distance_mm);
-  else if (mode == "position") RunPositionScan(out, nthrows);
+  bool scanned = true;
+  if (mode == "path") scanned = RunPathScan(out, nthrows, distance_mm);
+  else if (mode == "position") scanned = RunPositionScan(out, nthrows);
   else if (mode == "pileup") RunPileupScan(out, nthrows);
   else RunPairScan(out, nthrows);
   out.close();
+  if (!scanned) {
+    std::cerr << "The " << mode << " scan could not run: " << out_csv << " has no data\n";
+    return 1;
+  }
   if (!out) {  // a full disk or I/O error leaves a truncated CSV: do not report success
     std::cerr << "Writing " << out_csv << " failed\n";
     return 1;
