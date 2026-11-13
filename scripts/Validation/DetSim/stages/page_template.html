@@ -149,7 +149,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Hit survival vs path length</h3><p>Fraction of crossings with a hit above 3 PE.</p><div class="chart" id="c2_surv"></div></div>
     <div class="card"><h3>Mean light vs path length</h3><p>PE of the bar's readouts before the threshold.</p><div class="chart" id="c2_pe"></div></div>
     <div class="card"><h3>Photon statistics: variance / mean</h3><p>1 for photon counting (Poisson). Legacy scales a Poisson draw by the attenuation, which narrows the spread.</p><div class="chart" id="c2_fano"></div></div>
-    <div class="card"><h3>Real spills: survival vs true path length</h3><p>All muon-dominated true hits, all angles and positions, 100 MiniProdN5 files.</p><div class="chart" id="c2_real"></div></div>
+    <div class="card"><h3>Real spills: survival vs true path length</h3><p>All lepton-dominated true hits, all angles and positions, 100 MiniProdN5 files.</p><div class="chart" id="c2_real"></div></div>
   </div>
   <p id="n2" class="full"></p>
   <div id="pos" hidden>
@@ -179,7 +179,7 @@ pre{font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--r
     <div class="card"><h3>Hit time vs segments per crossing</h3><p>Same crossings as stage 1 (crossing selected above). Bars: ±1 standard error.</p><div class="chart" id="c3_nseg"></div></div>
     <div class="card"><h3>Hit time vs light</h3><p>Path-length and energy scans pooled, binned in the hit's PE. Bars: ±1 standard error.</p><div class="chart" id="c3_pe"></div></div>
     <div class="card"><h3>Time spread vs light</h3><p>RMS of hit time minus true time; the first photon arrives earlier and more consistently as the photon count rises.</p><div class="chart" id="c3_rms"></div></div>
-    <div class="card"><h3>Real spills: hit time vs number of Geant4 steps in the hit</h3><p>Muon-dominated crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
+    <div class="card"><h3>Real spills: hit time vs number of Geant4 steps in the hit</h3><p>Lepton-dominated crossings (true path 8–12 mm), 100 files.</p><div class="chart" id="c3_real"></div></div>
   </div>
   <p id="n3" class="full"></p>
 </section>
@@ -369,7 +369,8 @@ chart('c2_pe',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',
 chart('c2_fano',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Variance / mean of PE',ymin:0,ymax:1.4,yticks:ticks(0,1.4,.2),yfmt:y=>y.toFixed(1)},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.fano,tip:`${p.path} mm<br>variance ${fx(p.var,2)}, mean ${fx(p.pe,2)}<br>ratio ${fx(p.fano,3)}`}))})),[{y:1,label:'Poisson'}]);
 if(D.spills){
-  const RS=[['off','Legacy','--leg'],['on','New','--new']];
+  // The comparison labels are whatever the metrics file was written with (detsim_validation.py takes any label)
+  const RS=Object.keys(D.spills).map((k,i)=>[k,k,['--leg','--new','--s3','--s4'][i%4]]);
   chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
     RS.map(([k,n,c])=>({name:n,col:c,pts:(D.spills[k].survival_vs_dx||[]).filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
   chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 steps merged into the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},

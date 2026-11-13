@@ -88,8 +88,17 @@ int main(int argc, char** argv) {
   for (const auto& kv : channels) if (kv.second > 1) ++duplicates;
 
   std::ofstream out(out_name);
+  if (!out) {
+    std::cerr << "Could not open " << out_name << " for writing\n";
+    return 1;
+  }
   out << "plane,bar,view\n";
   for (const auto& kv : channels) out << kv.first.Plane << "," << kv.first.Bar << "," << kv.first.View << "\n";
+  out.close();
+  if (!out) {  // a full disk or I/O error leaves an incomplete inventory: do not report success
+    std::cerr << "Writing " << out_name << " failed\n";
+    return 1;
+  }
 
   std::cout << centers.size() << " bar nodes, " << channels.size() << " distinct channels written to " << out_name
             << "; " << unplaced << " could not be placed, " << duplicates << " channel ids shared by more than one node\n";

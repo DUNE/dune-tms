@@ -4,8 +4,10 @@
 Compares two or more runs over the same input files (the first is the reference) and writes a Markdown report, a
 JSON file with every number in it, and a few plots. Only simulation-level quantities: no tracking or slicing.
 
-Sections (muon-dominated hits = TrueLeptonicEnergy / TrueHitE > 0.95, as in the 2026-09 segmentation benchmark):
-  1. Totals: readout hits and PE above threshold per spill; light yield (PE after fibers per MeV) for muon- and
+Sections (lepton-dominated hits = TrueLeptonicEnergy / TrueHitE > 0.95, as in the 2026-09 segmentation benchmark;
+"leptonic" is TMS_TrueParticle::IsLeptonic(): electrons, muons, neutrinos and photons. The output has no per-hit PDG
+code, so muons cannot be selected alone: on a shower-rich sample electron/photon hits are included):
+  1. Totals: readout hits and PE above threshold per spill; light yield (PE after fibers per MeV) for lepton- and
      hadron-dominated hits.
   2. Hit survival (not pedestal-suppressed) vs true path length in the bar (TrueHitDx, if the run has it) and vs true
      deposited energy.
@@ -13,7 +15,7 @@ Sections (muon-dominated hits = TrueLeptonicEnergy / TrueHitE > 0.95, as in the 
   4. Timing: mean (reco - true) hit time vs the number of Geant4 contributions (TrueNTrueParticles) at full crossings.
   5. Coincident-hit merging: groups of more than one final true hit for one particle in one bar and slice, by time gap.
      Within the readout window these are merge failures; beyond it, separate readouts by design.
-  6. Plane coverage: per (particle, plane) with >= 0.5 MeV deposited by a muon-dominated particle, the fraction with a
+  6. Plane coverage: per (particle, plane) with >= 0.5 MeV deposited by a lepton-dominated particle, the fraction with a
      surviving hit, by deposited energy.
   7. Light provenance (runs with Sim.DetSim.UseResponseElements = true): photon count vs detected PE, most-light vs
      most-energy particle, first photon vs most-light particle.
@@ -250,7 +252,7 @@ def report(res, labels, files):
     ref = labels[0]
     L = [f"# Detector-simulation validation\n", f"Runs: " + ", ".join(f"`{l}`" for l in labels) +
          f" (reference `{ref}`); files {files[0]}-{files[-1]} ({len(files)}).\n",
-         "Muon-dominated hits: TrueLeptonicEnergy / TrueHitE > 0.95.\n"]
+         "Lepton-dominated hits: TrueLeptonicEnergy / TrueHitE > 0.95.\n"]
 
     def table(title, header, rows):
         L.append(f"\n## {title}\n")
@@ -260,7 +262,7 @@ def report(res, labels, files):
 
     tk = [("spills", "spills", 0), ("readout_hits_per_spill", "readout hits / spill", 1),
           ("hits_above_thr_per_spill", "hits above threshold / spill", 1), ("pe_above_thr_per_spill", "PE above threshold / spill", 0),
-          ("pe_per_mev_muon", "PE after fibers / MeV, muon hits", 4), ("pe_per_mev_hadronic", "PE after fibers / MeV, hadronic hits", 4)]
+          ("pe_per_mev_muon", "PE after fibers / MeV, lepton hits", 4), ("pe_per_mev_hadronic", "PE after fibers / MeV, hadronic hits", 4)]
     rows = []
     for k, name, nd in tk:
         vals = [res[l]["totals"][k] for l in labels]
@@ -306,8 +308,11 @@ def report(res, labels, files):
     for i, g in enumerate(res[ref]["merging"]["by_gap"]):
         hi = "inf" if np.isinf(g["hi"]) else f"{g['hi']:g}"
         rows.append([f"  time gap {g['lo']:g}-{hi} ns"] + [str(res[l]["merging"]["by_gap"][i]["n"]) for l in labels])
-    table("5. Coincident-hit merging (muon-dominated)", ["quantity"] + labels, rows)
-    L.append("\nGaps under the readout window (120 ns by default) are merge failures; longer gaps are separate readouts.\n")
+    table("5. Close-deposit diagnostic: time gaps between final hits of one particle (lepton-dominated)", ["quantity"] + labels, rows)
+    L.append("\nThis is a diagnostic, not a pass/fail test. The gaps are between deposit (true) times, while the readout window "
+             "opens at the first detected photon, so two deposits closer than the window (120 ns by default) can still be read out "
+             "separately when their photon times differ; the pair is then split legitimately. A large count of pairs far inside the "
+             "window is what to look at; app/ChannelReadoutTest is the correctness test of the window logic.\n")
 
     rows = []
     for i, r0 in enumerate(res[ref]["plane_coverage"]["rows"]):
@@ -379,12 +384,12 @@ def plots(res, labels, out):
             axd.errorbar(xd, diff, yerr=err, capsize=2, **series(i))
     ax.set_ylim(0, 1.04)
     axd.axhline(0, color="#c3c2b7", linewidth=0.8)
-    style(ax, "", "Fraction above pedestal threshold", "Hit survival, muon-dominated hits")
+    style(ax, "", "Fraction above pedestal threshold", "Hit survival, lepton-dominated hits")
     style(axd, xl, f"minus {labels[0]} (pp)", "")
     ax.legend(frameon=False, fontsize=9)
     save(fig, "survival.png")
 
-    # PE distribution at partial fill (skipped when no run has muon-dominated hits in the partial-fill band)
+    # PE distribution at partial fill (skipped when no run has lepton-dominated hits in the partial-fill band)
     pooled = np.concatenate([res[l]["_partial_pe"] for l in labels])
     if len(pooled):
         fig, ax = plt.subplots(figsize=(6.4, 4.2))
@@ -434,7 +439,7 @@ def plots(res, labels, out):
         ax.plot(range(len(rows)), [r["eff"] for r in rows], label=l, **series(i))
     ax.set_xticks(range(len(PLANE_E_EDGES) - 1))
     ax.set_xticklabels([band_label(r) for r in res[labels[0]]["plane_coverage"]["rows"]])
-    style(ax, "Energy deposited by the particle in the plane (MeV)", "Fraction with a surviving hit", "Plane coverage, muon-dominated particles")
+    style(ax, "Energy deposited by the particle in the plane (MeV)", "Fraction with a surviving hit", "Plane coverage, lepton-dominated particles")
     ax.legend(frameon=False, fontsize=9)
     save(fig, "plane_coverage.png")
 

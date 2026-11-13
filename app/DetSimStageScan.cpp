@@ -376,11 +376,19 @@ int main(int argc, char** argv) {
   TMS_Geom::GetInstance().SetGeometry(geom);
 
   std::ofstream out(out_csv);
+  if (!out) {
+    std::cerr << "Could not open " << out_csv << " for writing\n";
+    return 1;
+  }
   if (mode == "path") RunPathScan(out, nthrows, distance_mm);
   else if (mode == "position") RunPositionScan(out, nthrows);
   else if (mode == "pileup") RunPileupScan(out, nthrows);
   else RunPairScan(out, nthrows);
   out.close();
+  if (!out) {  // a full disk or I/O error leaves a truncated CSV: do not report success
+    std::cerr << "Writing " << out_csv << " failed\n";
+    return 1;
+  }
   std::cout << "Wrote " << out_csv << "\n";
   return 0;
 }
