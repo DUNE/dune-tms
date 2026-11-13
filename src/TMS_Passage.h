@@ -10,8 +10,9 @@
 // inside one scintillator bar into physical "passages", then re-segment a passage onto a
 // fixed spatial scale so the detector model no longer depends on where Geant4 happened to
 // end a step. Deliberately free of ROOT/geometry/TMS_Event types so the arithmetic can be
-// unit-tested in isolation (see app/PassageUtilsTest.cpp). Not yet consumed by the
-// simulation itself -- the optical/timing phases that use OpticalDeposit come later.
+// unit-tested in isolation (see app/PassageUtilsTest.cpp). The response-element optical model
+// (TMS_DetectorSimulation::SimulateOpticalModel) builds its deposits from BuildPassages() and
+// Resegment(), so their behavior determines the simulated light and timing.
 namespace TMS_Passage {
 
 // One raw edep-sim step inside a bar, as plain data.
