@@ -50,7 +50,7 @@ TRUTH = ["NTrueHits", "TrueHitE", "TrueLeptonicEnergy", "TrueHitT", "TrueRecoHit
          "TrueRecoHitIsPedSupped", "TrueNTrueParticles", "TrueHitPlane", "TrueHitView", "TrueHitBar",
          "TrueHitPrimaryId", "TrueHitVertexId", "TrueHitPEAfterFibersShortPath", "TrueHitPEAfterFibersLongPath"]
 OPTIONAL = ["TrueHitDx", "TrueHitNPhotons", "TrueHitPrimaryIdByLight", "TrueHitVertexIdByLight", "TrueHitLightShare",
-            "TrueHitFirstPhotonPrimaryId", "TrueHitFirstPhotonVertexId"]
+            "TrueHitFirstPhotonPrimaryId", "TrueHitFirstPhotonVertexId", "TrueHitNLightContrib"]
 
 # Plot style: validated reference categorical slots in fixed order; marker and dash give a second encoding
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
@@ -155,7 +155,9 @@ def analyze(d, tot, has_dx):
     m["pe_by_band"] = dict(variable=var, rows=rows)
     m["integer_pe_after_fibers"] = float(np.mean(np.isclose(d["pe_fibers"], np.round(d["pe_fibers"]))))
     # 4. timing at full crossings
-    full = mu & (band_mask(d["TrueHitDx"], *FULL_DX) if has_dx else band_mask(d["TrueHitE"], *FULL_E))
+    # Surviving hits only: a pedestal-suppressed hit has no measured time (in timing mode its
+    # discriminator never fired), so its timestamp would bias the mean and rms as survival changes
+    full = mu & d["survived"] & (band_mask(d["TrueHitDx"], *FULL_DX) if has_dx else band_mask(d["TrueHitE"], *FULL_E))
     dt = d["TrueRecoHitT"] - d["TrueHitT"]
     trows = []
     for k in NSEG_BINS:
@@ -198,17 +200,23 @@ def analyze(d, tot, has_dx):
         same = (d["TrueHitPrimaryIdByLight"] == d["TrueHitPrimaryId"]) & (d["TrueHitVertexIdByLight"] == d["TrueHitVertexId"])
         first = ((d["TrueHitFirstPhotonPrimaryId"] == d["TrueHitPrimaryIdByLight"])
                  & (d["TrueHitFirstPhotonVertexId"] == d["TrueHitVertexIdByLight"]))
-        multi_c = d["TrueNTrueParticles"] > 1
         unfilled = ~f
         m["provenance"] = dict(
             filled=float(f.mean()),
             unfilled_with_zero_pe=float(np.mean(d["pe_fibers"][unfilled] == 0)) if unfilled.any() else 1.0,
             nphotons_equals_pe=float(np.mean(np.isclose(d["TrueHitNPhotons"][f], d["pe_fibers"][f]))),
-            light_eq_energy_multi=float(same[f & multi_c].mean()),
-            first_eq_light_multi=float(first[f & multi_c].mean()),
-            light_share_below_half_multi=float(np.mean(d["TrueHitLightShare"][f & multi_c] < 0.5)),
-            light_share_multi=d["TrueHitLightShare"][f & multi_c].tolist(),
         )
+        # Multi-particle statistics need the number of DISTINCT light-producing particles.
+        # TrueNTrueParticles counts merged contribution entries, so a segmented single muon would
+        # enter the sample; without TrueHitNLightContrib (older output) these metrics are omitted.
+        if "TrueHitNLightContrib" in d:
+            multi_c = d["TrueHitNLightContrib"] > 1
+            m["provenance"].update(
+                light_eq_energy_multi=float(same[f & multi_c].mean()),
+                first_eq_light_multi=float(first[f & multi_c].mean()),
+                light_share_below_half_multi=float(np.mean(d["TrueHitLightShare"][f & multi_c] < 0.5)),
+                light_share_multi=d["TrueHitLightShare"][f & multi_c].tolist(),
+            )
     # kept for plots only
     pb = mu & (band_mask(d["TrueHitDx"], *PARTIAL_DX) if has_dx else band_mask(d["TrueHitE"], *PARTIAL_E))
     m["_partial_pe"] = d["TrueRecoHitPE"][pb]
@@ -305,6 +313,7 @@ def report(res, labels, files):
                 ("light_eq_energy_multi", "most-light == most-energy particle (multi-contributor)"),
                 ("first_eq_light_multi", "first photon from most-light particle (multi-contributor)"),
                 ("light_share_below_half_multi", "most-light share < 0.5 (multi-contributor)")]
+        keys = [(k, n) for k, n in keys if all(k in res[l]["provenance"] for l in prov)]
         table("7. Light provenance", ["quantity"] + prov, [[n] + [f"{res[l]['provenance'][k]:.4f}" for l in prov] for k, n in keys])
     return "\n".join(L) + "\n"
 
@@ -347,15 +356,18 @@ def plots(res, labels, out):
     # upper panel: survival; lower panel: difference from the reference in percentage points
     xmax = 20 if key == "survival_vs_dx" else 4
     fig, (ax, axd) = plt.subplots(2, 1, figsize=(6.4, 5.4), sharex=True, gridspec_kw=dict(height_ratios=[2.2, 1]))
-    ref = [r for r in res[labels[0]][key] if r["n"] and r["hi"] <= xmax]
+    ref = {(r["lo"], r["hi"]): r for r in res[labels[0]][key] if r["n"] and r["hi"] <= xmax}
     for i, l in enumerate(labels):
         rows = [r for r in res[l][key] if r["n"] and r["hi"] <= xmax]
         x = [0.5 * (r["lo"] + r["hi"]) for r in rows]
         ax.errorbar(x, [r["eff"] for r in rows], yerr=[r["err"] for r in rows], label=l, capsize=2, **series(i))
         if i:
-            diff = [100 * (r["eff"] - r0["eff"]) for r, r0 in zip(rows, ref)]
-            err = [100 * np.hypot(r["err"], r0["err"]) for r, r0 in zip(rows, ref)]
-            axd.errorbar(x, diff, yerr=err, capsize=2, **series(i))
+            # match bins by their bounds: either run may have empty bands the other populates
+            pairs = [(r, ref[(r["lo"], r["hi"])]) for r in rows if (r["lo"], r["hi"]) in ref]
+            xd = [0.5 * (r["lo"] + r["hi"]) for r, _ in pairs]
+            diff = [100 * (r["eff"] - r0["eff"]) for r, r0 in pairs]
+            err = [100 * np.hypot(r["err"], r0["err"]) for r, r0 in pairs]
+            axd.errorbar(xd, diff, yerr=err, capsize=2, **series(i))
     ax.set_ylim(0, 1.04)
     axd.axhline(0, color="#c3c2b7", linewidth=0.8)
     style(ax, "", "Fraction above pedestal threshold", "Hit survival, muon-dominated hits")
@@ -416,7 +428,7 @@ def plots(res, labels, out):
     save(fig, "plane_coverage.png")
 
     # light share
-    prov = [l for l in labels if "provenance" in res[l]]
+    prov = [l for l in labels if "light_share_multi" in res[l].get("provenance", {})]
     if prov:
         fig, ax = plt.subplots(figsize=(6.4, 4.2))
         for i, l in enumerate(labels):

@@ -146,7 +146,7 @@ def timing(scans):
 def provenance(run_dir, files):
     import awkward as ak
     import uproot
-    cols = ["NTrueHits", "TrueNTrueParticles", "TrueHitPrimaryId", "TrueHitVertexId", "TrueRecoHitIsPedSupped",
+    cols = ["NTrueHits", "TrueNTrueParticles", "TrueHitNLightContrib", "TrueHitPrimaryId", "TrueHitVertexId", "TrueRecoHitIsPedSupped",
             "TrueHitNPhotons", "TrueHitPrimaryIdByLight", "TrueHitVertexIdByLight", "TrueHitLightShare",
             "TrueHitFirstPhotonPrimaryId", "TrueHitFirstPhotonVertexId"]
     parts = {c: [] for c in cols[1:]}
@@ -157,7 +157,7 @@ def provenance(run_dir, files):
         for c in cols[1:]:
             parts[c].append(ak.to_numpy(ak.flatten(a[c][mask])))
     d = {c: np.concatenate(v) for c, v in parts.items()}
-    sel = (d["TrueHitNPhotons"] > 0) & (d["TrueNTrueParticles"] > 1) & ~d["TrueRecoHitIsPedSupped"].astype(bool)
+    sel = (d["TrueHitNPhotons"] > 0) & (d["TrueHitNLightContrib"] > 1) & ~d["TrueRecoHitIsPedSupped"].astype(bool)
     share = d["TrueHitLightShare"][sel]
     same = ((d["TrueHitPrimaryIdByLight"] == d["TrueHitPrimaryId"]) & (d["TrueHitVertexIdByLight"] == d["TrueHitVertexId"]))[sel]
     first = ((d["TrueHitFirstPhotonPrimaryId"] == d["TrueHitPrimaryIdByLight"])
@@ -328,7 +328,9 @@ def main():
         page["provenance_spills"] = provenance(a.spills, list(range(int(lo), int(hi or lo) + 1)))
     if a.metrics:
         m = json.load(open(a.metrics))["metrics"]
-        page["spills"] = {k: dict(survival_vs_dx=v["survival_vs_dx"], pe_by_band=v["pe_by_band"], time_vs_nseg=v["time_vs_nseg"],
+        # survival_vs_dx is absent for output without TrueHitDx (detsim_validation.py falls back to
+        # energy bands): leave the path-length cross-check empty rather than mislabel energy bins
+        page["spills"] = {k: dict(survival_vs_dx=v.get("survival_vs_dx"), pe_by_band=v["pe_by_band"], time_vs_nseg=v["time_vs_nseg"],
                                   spills=v["totals"]["spills"]) for k, v in m.items()}
     json.dump(page, open(a.out, "w"), separators=(",", ":"))
     print("wrote", a.out, os.path.getsize(a.out), "bytes")

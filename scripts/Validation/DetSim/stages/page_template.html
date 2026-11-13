@@ -331,7 +331,7 @@ function niceRange(vals, pad=0.15, step){ const lo=Math.min(...vals), hi=Math.ma
     ['2','Survival of a 1 mm grazing crossing', PIPE.map(([k,n,c])=>[n,c,pc(D.path[k].find(p=>p.path===1).surv)])],
     ['4','Readouts when both halves of a split X-bar fire', PIPE.map(([k,n,c])=>[n,c,String(D.pairs[k].xbar.readouts)])],
     ['5','Timing mode: time resolution (RMS) at a full 16 mm crossing', [['0.5 pe threshold','--t2',f1(t05.dt_rms)+' ns'],['3 pe threshold','--t5',f1(t3.dt_rms)+' ns']]],
-    ['6','Hits whose most-light particle is the most-energy particle', [['New, multi-particle hits','--new',pc(P.same)]]],
+    ...(P?[['6','Hits whose most-light particle is the most-energy particle', [['New, multi-particle hits','--new',pc(P.same)]]]]:[]),
   ];
   document.getElementById('tiles').innerHTML=tiles.map(([st,lab,rows])=>`<div class="tile"><div class="lab"><b>${st}</b>${lab}</div><div class="vals">${rows.map(([n,c,v],i)=>`<span class="k">${swatch(c)}${n}</span><span class="v${i==rows.length-1?' now':''}">${v}</span>`).join('')}</div></div>`).join('');
 })();
@@ -369,7 +369,7 @@ chart('c2_fano',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)
 if(D.spills){
   const RS=[['off','Legacy','--leg'],['on','New','--new']];
   chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
-    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].survival_vs_dx.filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
+    RS.map(([k,n,c])=>({name:n,col:c,pts:(D.spills[k].survival_vs_dx||[]).filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
   chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 steps merged into the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},
     RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} steps<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
 }

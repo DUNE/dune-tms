@@ -33,7 +33,14 @@ template <typename F> bool Throws(F f) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  const std::string dir = argc > 1 ? argv[1] : ".";
+  // TMS_BadChannels resolves a relative file name under $TMS_DIR, so hand it absolute paths
+  std::string dir = argc > 1 ? argv[1] : ".";
+  if (dir.empty() || dir[0] != '/') {
+    char* resolved = realpath(dir.empty() ? "." : dir.c_str(), nullptr);
+    if (resolved == nullptr) { std::cerr << "Cannot resolve directory " << dir << "\n"; return 2; }
+    dir = resolved;
+    free(resolved);
+  }
 
   Check(TMS_BadChannels("").Size() == 0, "empty file name: no bad channels");
   Check(TMS_BadChannels(Write(dir, "bc_empty.toml", "# nothing\n")).Size() == 0, "file without entries: no bad channels");

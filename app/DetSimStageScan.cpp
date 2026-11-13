@@ -284,6 +284,7 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
         // Time and provenance of the brightest readout
         if (hit.GetPE() > best_pe) {
           best_pe = hit.GetPE();
+          min_contrib_id = -999;  // the minimum belongs to the selected readout only
           if (true_hit) {
             top_id = true_hit->GetPrimaryIdByLight();
             top_share = true_hit->GetLightShare();

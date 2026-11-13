@@ -48,7 +48,10 @@ def main():
         random.Random(seed).shuffle(order)
         for pct in args.fractions:
             k = round(pct / 100.0 * n)
-            name = f"f{int(round(pct)):02d}_s{seed}.toml"
+            # Integer percentages keep the names f05, f10, ...; a fraction keeps its decimals (f05p1)
+            # so that two fractions that round to the same integer do not overwrite each other
+            tag = f"{int(pct):02d}" if float(pct).is_integer() else f"{pct:g}".replace(".", "p").zfill(4)
+            name = f"f{tag}_s{seed}.toml"
             write(name, order[:k], f"Random bad channels, {pct:g}% of channels, seed {seed} (nested within the larger fractions of this seed).")
             print(name, k)
 
