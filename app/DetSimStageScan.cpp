@@ -261,7 +261,6 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
   int event_id = 0;
   auto run = [&](const Pattern& pat, int n, double dt) {
     std::vector<Crossing> crossings;
-    int max_energy_id = 1;
     std::vector<double> scale(pat.scale.begin(), pat.scale.begin() + n);
     if (pat.reverse) std::reverse(scale.begin(), scale.end());
     for (int i = 0; i < n; ++i) {
@@ -270,14 +269,13 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
       c.edep_MeV = kBarThickness_mm * kMipdEdx_MeV_per_mm * scale[i];
       c.t = i * dt;
       c.track_id = i + 1;
-      if (scale[i] > scale[max_energy_id - 1]) max_energy_id = i + 1;
       crossings.push_back(c);
     }
     for (int t = 0; t < nthrows; ++t) {
       TG4Event event = BuildEvent(crossings, event_id++);
       TMS_Event tms_event(event);
       tms_event.FinalizeEvent();
-      int n_readouts = 0, n_photons = 0, top_id = -999, first_id = -999, n_contrib = 0, min_contrib_id = -999;
+      int n_readouts = 0, n_photons = 0, energy_id = -999, top_id = -999, first_id = -999, n_contrib = 0, min_contrib_id = -999;
       double pe = 0, reco_e = 0, hit_time = 1e9, first_true = 1e9, top_share = -999, best_pe = -1;
       for (const auto& hit : tms_event.GetHits(-1, /*include_ped_sup=*/false)) {
         if (hit.GetBarNumber() < 0) continue;
@@ -290,7 +288,9 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
         if (hit.GetPE() > best_pe) {
           best_pe = hit.GetPE();
           min_contrib_id = -999;  // the minimum belongs to the selected readout only
+          energy_id = -999;       // as does the energy-dominant particle
           if (true_hit) {
+            energy_id = true_hit->GetPrimaryIds(true_hit->IndexOfHighestEnergyContributor());
             top_id = true_hit->GetPrimaryIdByLight();
             top_share = true_hit->GetLightShare();
             first_id = true_hit->GetFirstPhotonPrimaryId();
@@ -307,7 +307,7 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
       if (n_readouts == 0) { hit_time = -999; first_true = -999; }
       out << pat.name << "," << n << "," << dt << "," << t << "," << n_readouts << "," << pe << "," << reco_e << ","
           << hit_time << "," << first_true << "," << n_photons << "," << top_id << "," << top_share << "," << first_id
-          << "," << n_contrib << "," << min_contrib_id << "," << max_energy_id << "\n";
+          << "," << n_contrib << "," << min_contrib_id << "," << energy_id << "\n";
     }
   };
   int cells = 0;

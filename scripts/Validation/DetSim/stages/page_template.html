@@ -359,13 +359,15 @@ segEl.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) r
 drawScenario(SCEN[0][0]);
 
 // ---- stage 2
+// Statistics that a small scan cannot define (one throw, no light) arrive as null
+const fx=(v,n)=>v==null?'n/a':v.toFixed(n);
 const PATHT=[0,2,4,6,8,10,12,14,16];
 chart('c2_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
-  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${p.path} mm<br>${pc(p.surv)} of ${p.n}<br>mean ${p.pe.toFixed(2)} PE`}))})));
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${p.path} mm<br>${pc(p.surv)} of ${p.n}<br>mean ${fx(p.pe,2)} PE`}))})));
 chart('c2_pe',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Mean PE (before threshold)',ymin:0,ymax:24,yticks:ticks(0,24,4)},
-  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.pe,tip:`${p.path} mm<br>${p.pe.toFixed(3)} ± ${p.pe_err.toFixed(3)} PE`}))})),[{y:3,label:'3 PE threshold'}]);
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.pe,tip:`${p.path} mm<br>${fx(p.pe,3)} ± ${fx(p.pe_err,3)} PE`}))})),[{y:3,label:'3 PE threshold'}]);
 chart('c2_fano',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Variance / mean of PE',ymin:0,ymax:1.4,yticks:ticks(0,1.4,.2),yfmt:y=>y.toFixed(1)},
-  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.fano,tip:`${p.path} mm<br>variance ${p.var.toFixed(2)}, mean ${p.pe.toFixed(2)}<br>ratio ${p.fano.toFixed(3)}`}))})),[{y:1,label:'Poisson'}]);
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.fano,tip:`${p.path} mm<br>variance ${fx(p.var,2)}, mean ${fx(p.pe,2)}<br>ratio ${fx(p.fano,3)}`}))})),[{y:1,label:'Poisson'}]);
 if(D.spills){
   const RS=[['off','Legacy','--leg'],['on','New','--new']];
   chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
@@ -390,7 +392,7 @@ if(D.position){
 if(D.bins){
   document.getElementById('bins').hidden=false;
   const BS=[['0.5','0.5 mm deposits','--s3'],['2.0','2 mm deposits','--s4']];
-  const mk=(key,err,unit,digs)=>BS.map(([b,n,c],k)=>({name:n,col:c,pts:D.bins.paths.map(p=>({x:p.path,y:p[b][key],lo:p[b][key]-p[b][err],hi:p[b][key]+p[b][err],tip:`${p.path} mm<br>${p[b][key].toFixed(digs)} ± ${p[b][err].toFixed(digs)} ${unit}`}))}));
+  const mk=(key,err,unit,digs)=>BS.map(([b,n,c],k)=>({name:n,col:c,pts:D.bins.paths.filter(p=>p[b][key]!=null).map(p=>({x:p.path,y:p[b][key],lo:p[b][key]-p[b][err],hi:p[b][key]+p[b][err],tip:`${p.path} mm<br>${p[b][key].toFixed(digs)} ± ${p[b][err].toFixed(digs)} ${unit}`}))}));
   const bx={xmin:0,xmax:16.5,xticks:[0,2,4,6,8,10,12,14,16],xlab:'Path length in the bar (mm)'};
   chart('c2_binpe',{...bx,ylab:'ΔPE / PE (%)',ymin:-8,ymax:8,yticks:ticks(-8,8,4)},mk('dpe','dpe_err','%',2),[{y:0,label:''}]);
   chart('c2_binsurv',{...bx,ylab:'Δ survival (pp)',ymin:-4,ymax:4,yticks:ticks(-4,4,2)},mk('dsurv','dsurv_err','pp',2),[{y:0,label:''}]);
@@ -481,7 +483,7 @@ if(D.contrib){
 }
 
 // ---- stage 6 charts
-if(D.provenance_spills){
+if(D.provenance_spills && D.provenance_spills.bins.length){
   const P=D.provenance_spills, B=P.bins;
   chart('c6_agree',{xmin:0.3,xmax:1,xticks:[0.3,0.4,0.5,0.6,0.7,0.8,0.9,1],xlab:'Light share of the particle that made most of the light',ylab:'Agreement',ymin:0.2,ymax:1,yticks:ticks(0.2,1,.2),yfmt:y=>Math.round(y*100)+'%'},
     [{name:'Most light = most energy',col:'--new',pts:B.map(b=>({x:(b.lo+b.hi)/2,y:b.same,tip:`share ${b.lo}–${b.hi}<br>${pc(b.same)} of ${b.n.toLocaleString()}`}))},

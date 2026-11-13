@@ -185,8 +185,11 @@ def bin_convergence(scans):
         row = dict(path=p, n=ref["n"])
         for b in ("0.5", "2.0"):
             o = rows[b][p]
-            row[b] = dict(dpe=r(100 * (o["pe"] / ref["pe"] - 1), 3),
-                          dpe_err=r(100 * o["pe"] / ref["pe"] * np.hypot(o["pe_err"] / o["pe"], ref["pe_err"] / ref["pe"]), 3),
+            # A short path can give no light in a low-throw scan; the ratio is then undefined (None), not an error.
+            # The uncertainty is written without dividing by the comparison mean (o/ref * hypot(do/o, dref/ref))
+            ok = ref["pe"] is not None and ref["pe"] > 0 and o["pe"] is not None
+            row[b] = dict(dpe=r(100 * (o["pe"] / ref["pe"] - 1), 3) if ok else None,
+                          dpe_err=r(100 * np.hypot(o["pe_err"] / ref["pe"], o["pe"] * ref["pe_err"] / ref["pe"] ** 2), 3) if ok else None,
                           dsurv=r(100 * (o["surv"] - ref["surv"]), 3), dsurv_err=r(100 * np.hypot(o["surv_err"], ref["surv_err"]), 3))
         out["paths"].append(row)
     rs = {b: reseg(pd.read_csv(f"{scans}/{f}.csv")) for b, f in (("0.5", "reseg_new_bin0.5"), ("1.0", "reseg_new"), ("2.0", "reseg_new_bin2.0"))}
@@ -194,15 +197,21 @@ def bin_convergence(scans):
         dpe, ddt, dsv, zpe, zdt = [], [], [], [], []
         for sc in rs["1.0"]:
             for a, o in zip(rs["1.0"][sc], rs[b][sc]):
-                zpe.append((o["pe"] - a["pe"]) / np.hypot(o["pe_err"], a["pe_err"]))
-                zdt.append((o["dt"] - a["dt"]) / np.hypot(o["dt_err"], a["dt_err"]))
-                dpe.append(100 * (o["pe"] / a["pe"] - 1))
-                ddt.append(o["dt"] - a["dt"])
+                # Cells without light or without enough surviving hits have undefined entries: skip those terms
+                if None not in (o["pe"], a["pe"], o["pe_err"], a["pe_err"]):
+                    if np.hypot(o["pe_err"], a["pe_err"]) > 0:
+                        zpe.append((o["pe"] - a["pe"]) / np.hypot(o["pe_err"], a["pe_err"]))
+                    if a["pe"] > 0:
+                        dpe.append(100 * (o["pe"] / a["pe"] - 1))
+                if None not in (o["dt"], a["dt"], o["dt_err"], a["dt_err"]):
+                    if np.hypot(o["dt_err"], a["dt_err"]) > 0:
+                        zdt.append((o["dt"] - a["dt"]) / np.hypot(o["dt_err"], a["dt_err"]))
+                    ddt.append(o["dt"] - a["dt"])
                 dsv.append(100 * (o["surv"] - a["surv"]))
-        out["reseg"][b] = dict(max_dpe=r(max(abs(x) for x in dpe), 2), rms_dpe=r(float(np.sqrt(np.mean(np.square(dpe)))), 2),
-                               max_ddt=r(max(abs(x) for x in ddt), 2), max_dsurv=r(max(abs(x) for x in dsv), 2), n=len(dpe),
-                               max_zpe=r(max(abs(x) for x in zpe), 2), rms_zpe=r(float(np.sqrt(np.mean(np.square(zpe)))), 2),
-                               max_zdt=r(max(abs(x) for x in zdt), 2), rms_zdt=r(float(np.sqrt(np.mean(np.square(zdt)))), 2))
+        mx = lambda v, nd=2: r(max(abs(x) for x in v), nd) if v else None
+        rm = lambda v, nd=2: r(float(np.sqrt(np.mean(np.square(v)))), nd) if v else None
+        out["reseg"][b] = dict(max_dpe=mx(dpe), rms_dpe=rm(dpe), max_ddt=mx(ddt), max_dsurv=mx(dsv), n=len(dpe),
+                               max_zpe=mx(zpe), rms_zpe=rm(zpe), max_zdt=mx(zdt), rms_zdt=rm(zdt))
     return out
 
 
