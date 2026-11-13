@@ -869,7 +869,10 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
       const double t_stamp = floor_to_tdc(pulses[k].t_up + jitter(generator));
       // The board stores the ToT in a fixed number of bits: clip to the largest value it can hold
       const double tot = std::min(floor_to_tdc(pulses[k].t_down) - floor_to_tdc(pulses[k].t_up), tot_max);
-      // SiPM pixel saturation
+      // SiPM pixel saturation. Known limitation: it is applied to the reported PE only. The waveform,
+      // the discriminator crossings (time stamp and ToT) and the ToT-derived energy use the unsaturated
+      // charge. The effect matters only for charges of order SiPMPixels (1584) or more, far above the
+      // tens of PE of typical hits.
       const double pe = pixels * (1.0 - std::exp(-pulse_charge[k] / pixels));
       hit.SetT(t_stamp);
       hit.SetToT(tot);
