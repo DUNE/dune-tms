@@ -2,6 +2,7 @@
 #include "TMS_Readout_Manager.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -735,11 +736,19 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
   // The mean single-photoelectron waveform is the fast-shaper pulse convolved with the photon
   // arrival-time spread (scintillator and WLS decay times, as in SimulateOpticalModel()), since
   // that spread lengthens the time over threshold; a real-data ToT calibration contains it too.
-  // Depends only on the configuration, which is fixed for the job: build it once.
+  // Depends only on the settings below: rebuilt only when one of them changes (a process that
+  // loads a different configuration gets a new table), and not again when a configuration gives
+  // an empty table (no amplitude makes a closed pulse), which would redo the convolution per event.
   static std::vector<std::pair<double, double>> tot_of_charge;
-  if (energy_from_tot && tot_of_charge.empty()) {
-    const double tau_scint = config.Get_Sim_Timing_ScintillatorDecayTime();
-    const double tau_wls = config.Get_Sim_Timing_WLSDecayTime();
+  static std::array<double, 6> tot_table_key;
+  static bool tot_table_built = false;
+  const double tau_scint = config.Get_Sim_Timing_ScintillatorDecayTime();
+  const double tau_wls = config.Get_Sim_Timing_WLSDecayTime();
+  const std::array<double, 6> tot_key = {peaking_time, double(order), threshold, stop_threshold, tau_scint, tau_wls};
+  if (energy_from_tot && (!tot_table_built || tot_key != tot_table_key)) {
+    tot_table_built = true;
+    tot_table_key = tot_key;
+    tot_of_charge.clear();
     auto arrival_pdf = [&](double s) {
       if (s <= 0) return 0.0;
       if (std::fabs(tau_wls - tau_scint) < 1e-9) return s * std::exp(-s / tau_wls) / (tau_wls * tau_wls);

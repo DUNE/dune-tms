@@ -127,7 +127,7 @@ class TMS_Event {
                           int trajectory_id = -999, long long vertex_global_id = -999) {
       PhotonArrivalsByHitId[hitId].push_back({time, source_hit_id, long_path, trajectory_id, vertex_global_id});
     };
-    // Response-element pipeline: summarise each remaining hit's photons (count, particle giving the
+    // Response-element pipeline: summarize each remaining hit's photons (count, particle giving the
     // most photons and its share, particle giving the first photon) onto its TMS_TrueHit, which,
     // unlike the photon lists, is carried into the time slices written to Truth_Info.
     void FillLightProvenance();

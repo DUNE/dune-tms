@@ -66,6 +66,10 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
 
   // Settings that would make the timing-mode simulation loop forever or divide by zero fail here
   // with a clear message, instead of hanging on the first event
+  if (_SIM_DETSIM_FrontEndTimingMode && !_SIM_DETSIM_UseResponseElements) {
+    std::cerr << "Warning: Sim.DetSim.FrontEndTimingMode is set but Sim.DetSim.UseResponseElements is false: "
+                 "the legacy detector simulation runs and the timing mode (and every Sim.FrontEnd key) is ignored" << std::endl;
+  }
   if (_SIM_DETSIM_UseResponseElements && _SIM_DETSIM_FrontEndTimingMode) {
     if (_SIM_FRONTEND_FastShaperOrder <= 0) throw std::runtime_error("Sim.FrontEnd.FastShaperOrder must be positive (the pulse tail never decays otherwise)");
     if (!(_SIM_FRONTEND_FastShaperPeakingTime > 0)) throw std::runtime_error("Sim.FrontEnd.FastShaperPeakingTime must be positive");
