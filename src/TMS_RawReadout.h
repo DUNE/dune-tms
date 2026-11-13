@@ -34,6 +34,12 @@ struct TMS_RawReadout {
   // discriminator never fired). The record is kept only so decoding reproduces the hits the
   // simulation has always written, flagged as pedestal suppressed.
   bool Triggered;
+  #ifdef RECORD_HIT_DEADTIME
+  // Start and stop of the deadtime this readout opened, ns; -999 where there is none. Carried so the
+  // decoded hit keeps what the electronics simulation recorded (RecoHitDeadtimeStart/Stop).
+  double DeadtimeStart = -999.0;
+  double DeadtimeStop = -999.0;
+  #endif
 
   TMS_RawReadout(const TMS_ChannelId& channel, const TMS_Bar& bar, int hit_id, double time, double charge,
                  double tot, double energy, double energy_visible, bool triggered) :

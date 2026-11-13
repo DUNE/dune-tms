@@ -237,7 +237,13 @@ def expected_readouts(n, dt, window):
 
 def pileup(scans, window):
     out = {}
-    scale = {"equal": [1, 1, 1, 1], "bright_first": [1, .5, .25, .125], "bright_last": [.125, .25, .5, 1]}
+    # Same definition as RunPileupScan(): the first n entries, reversed for bright_last, so the two
+    # patterns of one n have the same total energy
+    base = {"equal": [1, 1, 1, 1], "bright_first": [1, .5, .25, .125], "bright_last": [1, .5, .25, .125]}
+
+    def scale_of(pat, n):
+        s = base[pat][:n]
+        return s[::-1] if pat == "bright_last" else s
     for k in (LEGACY, NEW):
         f = f"{scans}/pileup_{k}.csv"
         if not os.path.exists(f):
@@ -247,7 +253,8 @@ def pileup(scans, window):
         pe1, e1 = single.pe_surviving.mean(), single.reco_energy.mean()
         rows = []
         for (pat, n, dt), g in df[df.n_particles > 1].groupby(["pattern", "n_particles", "dt"]):
-            tot = sum(scale[pat][:int(n)])
+            sc = scale_of(pat, int(n))
+            tot = sum(sc)
             alive = g[g.n_readouts > 0]
             bright = alive[alive.top_light_share > 0]  # light provenance exists (new pipeline only)
             row = dict(pattern=pat, n=int(n), dt=float(dt), throws=len(g), readouts=r(g.n_readouts.mean(), 3),
@@ -255,7 +262,7 @@ def pileup(scans, window):
                        pe_ratio=r(g.pe_surviving.mean() / (pe1 * tot), 4), e_ratio=r(g.reco_energy.mean() / (e1 * tot), 4),
                        lost=r((g.n_readouts == 0).mean(), 4))
             if len(bright):
-                ex = max(scale[pat][:int(n)]) / tot
+                ex = max(sc) / tot
                 row.update(top_is_max_energy=r((bright.top_light_id == bright.max_energy_id).mean(), 3),
                            top_share=r(bright.top_light_share.mean(), 3), top_share_expected=r(ex, 3),
                            first_is_earliest=r((bright.first_photon_id == bright.min_contrib_id).mean(), 3),

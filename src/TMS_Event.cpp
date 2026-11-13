@@ -1348,6 +1348,10 @@ void TMS_Event::DecodeRawReadouts() {
   for (const TMS_Hit& hit : TMS_Hits) {
     RawReadouts.emplace_back(hit.GetChannelId(), hit.GetBar(), hit.GetHitId(), hit.GetT(), hit.GetPE(),
                              hit.GetToT(), hit.GetE(), hit.GetEVis(), !hit.GetPedSup());
+    #ifdef RECORD_HIT_DEADTIME
+    RawReadouts.back().DeadtimeStart = hit.GetDeadtimeStart();
+    RawReadouts.back().DeadtimeStop = hit.GetDeadtimeStop();
+    #endif
   }
   TMS_Hits = TMS_MCDecoder::Decode(RawReadouts);
 }

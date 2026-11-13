@@ -25,6 +25,10 @@ def main():
     ap.add_argument("--fractions", type=float, nargs="+", default=[5, 10, 15, 20, 25], help="percent of channels")
     ap.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3])
     args = ap.parse_args()
+    # A negative fraction would select order[:-k] (nearly everything) and above 100 everything
+    bad = [f for f in args.fractions if not 0 <= f <= 100]
+    if bad:
+        ap.error(f"--fractions must be percentages between 0 and 100, got {bad}")
 
     with open(args.channels) as f:
         rows = list(csv.DictReader(f))

@@ -249,23 +249,28 @@ void RunPileupScan(std::ofstream& out, int nthrows) {
   out << "pattern,n_particles,dt,throw_index,n_readouts,pe_surviving,reco_energy,hit_time,first_true_time,"
          "n_photons,top_light_id,top_light_share,first_photon_id,n_contrib,min_contrib_id,max_energy_id\n";
   // Energy of each particle's crossing, relative to a full MIP crossing, for each pattern
-  struct Pattern { const char* name; std::vector<double> scale; };
+  // For n particles the first n entries of `scale` are used, in reverse order for bright_last, so
+  // bright_first and bright_last of the same n have the same total energy and differ only in the
+  // order of arrival.
+  struct Pattern { const char* name; std::vector<double> scale; bool reverse; };
   const std::vector<Pattern> patterns = {
-      {"equal", {1, 1, 1, 1}},
-      {"bright_first", {1, 0.5, 0.25, 0.125}},
-      {"bright_last", {0.125, 0.25, 0.5, 1}}};
+      {"equal", {1, 1, 1, 1}, false},
+      {"bright_first", {1, 0.5, 0.25, 0.125}, false},
+      {"bright_last", {1, 0.5, 0.25, 0.125}, true}};
   const std::vector<double> delays = {0, 5, 20, 50, 100, 150, 250};
   int event_id = 0;
   auto run = [&](const Pattern& pat, int n, double dt) {
     std::vector<Crossing> crossings;
     int max_energy_id = 1;
+    std::vector<double> scale(pat.scale.begin(), pat.scale.begin() + n);
+    if (pat.reverse) std::reverse(scale.begin(), scale.end());
     for (int i = 0; i < n; ++i) {
       Crossing c = kRefBar;
       c.path_mm = kBarThickness_mm;
-      c.edep_MeV = kBarThickness_mm * kMipdEdx_MeV_per_mm * pat.scale[i];
+      c.edep_MeV = kBarThickness_mm * kMipdEdx_MeV_per_mm * scale[i];
       c.t = i * dt;
       c.track_id = i + 1;
-      if (pat.scale[i] > pat.scale[max_energy_id - 1]) max_energy_id = i + 1;
+      if (scale[i] > scale[max_energy_id - 1]) max_energy_id = i + 1;
       crossings.push_back(c);
     }
     for (int t = 0; t < nthrows; ++t) {

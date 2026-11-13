@@ -41,8 +41,8 @@ E_EDGES = [0, 0.25, 0.5, 1, 2, 4, 1e9]
 PLANE_E_EDGES = [0.5, 1, 2, 4, 1e9]
 NSEG_BINS = [1, 2, 3, 4, 5]  # last bin is 5+
 DT_EDGES = [0, 10, 120, 1000, 1e5, np.inf]  # ns; 120 ns = default readout window
-FULL_DX = (8, 12)  # mm, full crossing of a 1 cm bar
-FULL_E = (1.5, 2.5)  # MeV, used instead when the run has no TrueHitDx
+FULL_DX = (12, 20)  # mm, long paths through a 16 mm bar: near-normal full crossings (and tilted ones up to 20 mm)
+FULL_E = (2.5, 4.0)  # MeV (a 16 mm MIP crossing deposits about 3.2 MeV), used when the run has no TrueHitDx
 PARTIAL_DX = (4, 6)
 PARTIAL_E = (0.5, 1.0)
 
@@ -169,20 +169,29 @@ def analyze(d, tot, has_dx):
                           rms=float(x.std()) if len(x) else float("nan")))
     m["time_vs_nseg"] = dict(selection=f"TrueHitDx {FULL_DX} mm" if has_dx else f"TrueHitE {FULL_E} MeV", rows=trows)
     # 5. coincident-hit merging
-    idx = np.nonzero(mu)[0]
+    # Surviving hits only: a pedestal-suppressed hit (e.g. a zero-photon deposit) is not a detected
+    # readout, so it cannot fail to merge with one.
+    idx = np.nonzero(mu & d["survived"])[0]
     keys = [d[c][idx].astype(np.int64) for c in ("file", "entry", "TrueHitPlane", "TrueHitView", "TrueHitBar",
                                                   "TrueHitPrimaryId", "TrueHitVertexId")]
     order, starts, sizes = groups(keys)
-    t = d["TrueHitT"][idx][order]
-    span = np.maximum.reduceat(t, starts) - np.minimum.reduceat(t, starts)
+    # Smallest time gap between adjacent hits of each group: the total span would let an unrelated
+    # late hit hide a close pair (0, 10 and 1000 ns have a 10 ns pair, not a 1000 ns span)
+    grp = np.repeat(np.arange(len(sizes)), sizes)
+    o2 = np.lexsort((d["TrueHitT"][idx][order], grp))
+    t = d["TrueHitT"][idx][order][o2]
+    steps = np.append(np.diff(t), np.inf)
+    steps[starts + sizes - 1] = np.inf  # not a gap: crosses to the next group
+    min_gap = np.minimum.reduceat(steps, starts)
     multi = sizes > 1
-    gaps = span[multi]
+    gaps = min_gap[multi]
     m["merging"] = dict(groups=int(len(sizes)), multi_groups=int(multi.sum()),
                         rate=float(multi.mean()),
                         by_gap=[dict(lo=lo, hi=hi, n=int(band_mask(gaps, lo, hi).sum()))
                                 for lo, hi in zip(DT_EDGES[:-1], DT_EDGES[1:])],
                         gaps=gaps.tolist())
-    # 6. plane coverage
+    # 6. plane coverage (all muon deposits, surviving or not: the denominator)
+    idx = np.nonzero(mu)[0]
     keys = [d[c][idx].astype(np.int64) for c in ("file", "entry", "TrueHitPrimaryId", "TrueHitVertexId",
                                                   "TrueHitView", "TrueHitPlane")]
     order, starts, sizes = groups(keys)

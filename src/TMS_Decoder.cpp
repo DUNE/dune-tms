@@ -19,6 +19,10 @@ std::vector<TMS_Hit> TMS_MCDecoder::Decode(const std::vector<TMS_RawReadout>& re
     hit.SetHitId(readout.HitId);
     hit.SetEVis(readout.EnergyVisible);
     hit.SetToT(readout.ToT);
+    #ifdef RECORD_HIT_DEADTIME
+    hit.SetDeadtimeStart(readout.DeadtimeStart);
+    hit.SetDeadtimeStop(readout.DeadtimeStop);
+    #endif
     hit.SetPedSup(!readout.Triggered || (!timing_mode && readout.Charge < threshold));
     hits.push_back(std::move(hit));
   }
