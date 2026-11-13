@@ -566,7 +566,13 @@ void TMS_Event::FillLightProvenance() {
   for (const auto& hit : TMS_Hits) {
     TMS_TrueHit* truth = GetAdjustableTrueHit(hit.GetHitId());
     const std::vector<TMS_PhotonArrival>* arrivals = GetPhotonArrivals(hit.GetHitId());
-    if (truth == nullptr || arrivals == nullptr || arrivals->empty()) continue;
+    if (truth == nullptr) continue;
+    if (arrivals == nullptr || arrivals->empty()) {
+      // A simulated hit with no detected photon: the count is 0, not "not available" (-999); the
+      // particle ids and the share are undefined and stay at -999
+      truth->SetLightProvenance(0, -999, -999, -999, -999, -999);
+      continue;
+    }
     // Photons per (vertex, trajectory); ties go to the smallest (vertex, trajectory), as in
     // TMS_TrueHit::IndexOfHighestEnergyContributor()
     std::map<std::pair<long long, int>, int> photons;

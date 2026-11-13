@@ -64,6 +64,18 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_FRONTEND_SiPMPixels = toml::find_or<int>(data, "Sim", "FrontEnd", "SiPMPixels", 1584);
   _SIM_FRONTEND_EnergyFromToT = toml::find_or<bool>(data, "Sim", "FrontEnd", "EnergyFromToT", false);
 
+  // Settings that would make the timing-mode simulation loop forever or divide by zero fail here
+  // with a clear message, instead of hanging on the first event
+  if (_SIM_DETSIM_UseResponseElements && _SIM_DETSIM_FrontEndTimingMode) {
+    if (_SIM_FRONTEND_FastShaperOrder <= 0) throw std::runtime_error("Sim.FrontEnd.FastShaperOrder must be positive (the pulse tail never decays otherwise)");
+    if (!(_SIM_FRONTEND_FastShaperPeakingTime > 0)) throw std::runtime_error("Sim.FrontEnd.FastShaperPeakingTime must be positive");
+    if (!(_SIM_FRONTEND_DiscriminatorThreshold > 0)) throw std::runtime_error("Sim.FrontEnd.DiscriminatorThreshold must be positive");
+    if (!(_SIM_FRONTEND_TDCStep > 0)) throw std::runtime_error("Sim.FrontEnd.TDCStep must be positive");
+    if (!(_SIM_FRONTEND_SiPMCrosstalkProbability >= 0 && _SIM_FRONTEND_SiPMCrosstalkProbability < 1)) {
+      throw std::runtime_error("Sim.FrontEnd.SiPMCrosstalkProbability must be in [0, 1) (the crosstalk charge loop never ends otherwise)");
+    }
+  }
+
   _SIM_TIMING_ScintillatorDecayTime = toml::find_or<double>(data, "Sim", "Timing", "ScintillatorDecayTime", 3.0);
   _SIM_TIMING_WLSDecayTime = toml::find_or<double>(data, "Sim", "Timing", "WLSDecayTime", 20.0);
   _SIM_TIMING_FiberRefractiveIndex = toml::find_or<double>(data, "Sim", "Timing", "FiberRefractiveIndex", 1.5);
