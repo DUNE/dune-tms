@@ -264,6 +264,8 @@ const NS = 'http://www.w3.org/2000/svg';
 function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
 const swatch = (col,dash) => `<i class="sw${dash?' dash':''}" style="background:var(${col});--c:var(${col})"></i>`;
 const f1 = v => v==null?'–':(+v).toFixed(1), f2 = v => v==null?'–':(+v).toFixed(2), pc = v => v==null?'–':(100*v).toFixed(1)+'%';
+// Statistics that a small scan cannot define (one throw, no light, no survivors) arrive as null
+const fx = (v,n) => v==null?'n/a':(+v).toFixed(n);
 const PIPE = [['legacy','Legacy','--leg'],['new','New','--new']];
 
 // ---- one chart: series of points (optionally with error bars, steps, bars), reference lines
@@ -314,14 +316,14 @@ function chart(id, o, series, refs=[]){
   });
 }
 const ticks=(a,b,s)=>{ const t=[]; for(let v=a; v<=b+1e-9; v+=s) t.push(+v.toFixed(6)); return t; };
-function niceRange(vals, pad=0.15, step){ const lo=Math.min(...vals), hi=Math.max(...vals), sp=(hi-lo)||Math.abs(hi)*0.05||1;
+function niceRange(vals, pad=0.15, step){ vals=vals.filter(v=>v!=null&&isFinite(v)); if(!vals.length) vals=[0,1]; const lo=Math.min(...vals), hi=Math.max(...vals), sp=(hi-lo)||Math.abs(hi)*0.05||1;
   const st=step||Math.pow(10,Math.floor(Math.log10(sp*1.6)))/(sp*1.6/Math.pow(10,Math.floor(Math.log10(sp*1.6)))>5?1:2);
   return {ymin:Math.floor((lo-sp*pad)/st)*st, ymax:Math.ceil((hi+sp*pad)/st)*st, yticks:ticks(Math.floor((lo-sp*pad)/st)*st, Math.ceil((hi+sp*pad)/st)*st, st)}; }
 
 // ---- headline tiles
 (function(){
   const rs=D.reseg, perp=k=>rs[k].perpendicular_full_thickness;
-  const swing=k=>{ const r=perp(k); return Math.max(...r.map(x=>x.dt))-Math.min(...r.map(x=>x.dt)); };
+  const swing=k=>{ const v=perp(k).map(x=>x.dt).filter(x=>x!=null); return v.length?Math.max(...v)-Math.min(...v):null; };
   const full=k=>D.path[k].find(p=>p.path===16);
   const thr=D.timing.thresholds, t05=thr.find(t=>t.thr===0.5), t3=thr.find(t=>t.thr===3);
   const P=D.provenance_spills;
@@ -343,14 +345,14 @@ function drawScenario(sc){
   const S=k=>D.reseg[k][sc];
   const pe=PIPE.flatMap(([k])=>S(k).map(r=>r.pe));
   chart('c1_pe',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Mean PE above threshold',...niceRange(pe,0.6),yfmt:y=>+y.toFixed(2)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.pe,lo:r.pe-r.pe_err,hi:r.pe+r.pe_err,tip:`${r.nseg} segments<br>${r.pe.toFixed(2)} ± ${r.pe_err.toFixed(2)} PE<br>survival ${pc(r.surv)}`}))})));
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.pe,lo:r.pe-r.pe_err,hi:r.pe+r.pe_err,tip:`${r.nseg} segments<br>${fx(r.pe,2)} ± ${fx(r.pe_err,2)} PE<br>survival ${pc(r.surv)}`}))})));
   chart('c1_hits',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Readouts per crossing',ymin:0.98,ymax:1.08,yticks:[0.98,1,1.02,1.04,1.06,1.08],yfmt:y=>y.toFixed(2)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.hits_total,tip:`${r.nseg} segments<br>${r.hits_total.toFixed(3)} readouts, all<br>${r.hits.toFixed(3)} above threshold`}))})));
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.hits_total,tip:`${r.nseg} segments<br>${fx(r.hits_total,3)} readouts, all<br>${fx(r.hits,3)} above threshold`}))})));
   const dts=PIPE.flatMap(([k])=>S(k).map(r=>r.dt));
   chart('c3_nseg',{xcat:NSEG,xlab:'Segments per crossing',ylab:'Hit time − true time (ns)',...niceRange(dts,0.2),yfmt:y=>+y.toFixed(1)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.dt,lo:r.dt-r.dt_err,hi:r.dt+r.dt_err,tip:`${r.nseg} segments<br>${r.dt.toFixed(2)} ± ${r.dt_err.toFixed(2)} ns<br>RMS ${r.dt_rms.toFixed(1)} ns`}))})));
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:S(k).map(r=>({x:r.nseg,y:r.dt,lo:r.dt-r.dt_err,hi:r.dt+r.dt_err,tip:`${r.nseg} segments<br>${fx(r.dt,2)} ± ${fx(r.dt_err,2)} ns<br>RMS ${fx(r.dt_rms,1)} ns`}))})));
   let t='<details><summary>All four crossings, table</summary><table><tr><th>crossing</th><th>segments</th>'+PIPE.map(([k,n])=>`<th>${n}: PE</th><th>energy in hits</th><th>readouts</th><th>time (ns)</th>`).join('')+'</tr>';
-  for(const [s2,lab] of SCEN) NSEG.forEach((ns,i)=>{ t+=`<tr><td>${i?'':lab}</td><td>${ns}</td>`+PIPE.map(([k])=>{ const r=D.reseg[k][s2][i]; return `<td>${r.pe.toFixed(2)}</td><td>${pc(r.efrac)}</td><td>${r.hits_total.toFixed(3)}</td><td>${r.dt.toFixed(2)}</td>`; }).join('')+'</tr>'; });
+  for(const [s2,lab] of SCEN) NSEG.forEach((ns,i)=>{ t+=`<tr><td>${i?'':lab}</td><td>${ns}</td>`+PIPE.map(([k])=>{ const r=D.reseg[k][s2][i]; return `<td>${fx(r.pe,2)}</td><td>${pc(r.efrac)}</td><td>${fx(r.hits_total,3)}</td><td>${fx(r.dt,2)}</td>`; }).join('')+'</tr>'; });
   document.getElementById('t1').innerHTML=t+'</table></details>';
 }
 const segEl=document.getElementById('scen');
@@ -359,8 +361,6 @@ segEl.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) r
 drawScenario(SCEN[0][0]);
 
 // ---- stage 2
-// Statistics that a small scan cannot define (one throw, no light) arrive as null
-const fx=(v,n)=>v==null?'n/a':v.toFixed(n);
 const PATHT=[0,2,4,6,8,10,12,14,16];
 chart('c2_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
   PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.path[k].map(p=>({x:p.path,y:p.surv,lo:p.surv-p.surv_err,hi:p.surv+p.surv_err,tip:`${p.path} mm<br>${pc(p.surv)} of ${p.n}<br>mean ${fx(p.pe,2)} PE`}))})));
@@ -373,7 +373,7 @@ if(D.spills){
   chart('c2_real',{xmin:0,xmax:20,xticks:[0,4,8,12,16,20],xlab:'True path length in the bar, TrueHitDx (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
     RS.map(([k,n,c])=>({name:n,col:c,pts:(D.spills[k].survival_vs_dx||[]).filter(b=>b.hi<=20).map(b=>({x:(b.lo+b.hi)/2,y:b.eff,tip:`${b.lo}–${b.hi} mm<br>${pc(b.eff)} of ${b.n.toLocaleString()}`}))})));
   chart('c3_real',{xcat:['1','2','3','4','5+'],xlab:'Geant4 steps merged into the true hit',ylab:'Hit time − true time (ns)',ymin:-1,ymax:4,yticks:ticks(-1,4,1)},
-    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} steps<br>${r.mean.toFixed(2)} ± ${r.sem.toFixed(2)} ns<br>${r.n.toLocaleString()} hits`}))})));
+    RS.map(([k,n,c])=>({name:n,col:c,pts:D.spills[k].time_vs_nseg.rows.map(r=>({x:r.nseg,y:r.mean,lo:r.mean-r.sem,hi:r.mean+r.sem,tip:`${r.nseg} steps<br>${fx(r.mean,2)} ± ${fx(r.sem,2)} ns<br>${r.n.toLocaleString()} hits`}))})));
 }
 
 // ---- position along the bar
@@ -382,10 +382,10 @@ if(D.position){
   const PX=PIPE.flatMap(([k])=>D.position[k]), Lmax=Math.max(...PX.map(p=>p.length));
   const PXT=ticks(0,3500,500), PXF=x=>(x/1000).toFixed(1), PD={xmin:0,xmax:Lmax,xticks:PXT,xfmt:PXF,xlab:'Distance from the readout end (m)'};
   chart('c2_pos',{...PD,ylab:'Mean PE (before threshold)',ymin:0,ymax:70,yticks:ticks(0,70,10)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.pe,lo:p.pe-p.pe_err,hi:p.pe+p.pe_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.pe.toFixed(2)} ± ${p.pe_err.toFixed(2)} PE`}))})),
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.pe,lo:p.pe-p.pe_err,hi:p.pe+p.pe_err,tip:`${(p.d/1000).toFixed(2)} m<br>${fx(p.pe,2)} ± ${fx(p.pe_err,2)} PE`}))})),
     [{y0:22,y1:25,label:'PDR initial 22–25'},{y0:13,y1:15,label:'PDR aged 13–15'}]);
   chart('c3_pos',{...PD,ylab:'Hit time − true time (ns)',ymin:-15,ymax:25,yticks:ticks(-15,25,10)},
-    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.dt,lo:p.dt-p.dt_err,hi:p.dt+p.dt_err,tip:`${(p.d/1000).toFixed(2)} m<br>${p.dt.toFixed(2)} ± ${p.dt_err.toFixed(2)} ns<br>RMS ${p.dt_rms.toFixed(1)} ns`}))})));
+    PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.position[k].map(p=>({x:p.d,y:p.dt,lo:p.dt-p.dt_err,hi:p.dt+p.dt_err,tip:`${(p.d/1000).toFixed(2)} m<br>${fx(p.dt,2)} ± ${fx(p.dt_err,2)} ns<br>RMS ${fx(p.dt_rms,1)} ns`}))})));
 }
 
 // ---- response-grid convergence
@@ -400,16 +400,16 @@ if(D.bins){
 
 // ---- stage 3
 chart('c3_pe',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'Hit time − true time (ns)',ymin:8,ymax:18,yticks:ticks(8,18,2)},
-  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt,lo:b.dt-b.dt_err,hi:b.dt+b.dt_err,tip:`${b.lo}–${b.hi} PE<br>${b.dt.toFixed(2)} ± ${b.dt_err.toFixed(2)} ns<br>${b.n} hits`}))})));
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt,lo:b.dt-b.dt_err,hi:b.dt+b.dt_err,tip:`${b.lo}–${b.hi} PE<br>${fx(b.dt,2)} ± ${fx(b.dt_err,2)} ns<br>${b.n} hits`}))})));
 chart('c3_rms',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'PE of the hit',ylab:'RMS of hit time (ns)',ymin:0,ymax:7,yticks:ticks(0,7,1)},
-  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt_rms,tip:`${b.lo}–${b.hi} PE<br>RMS ${b.dt_rms.toFixed(2)} ns`}))})));
+  PIPE.map(([k,n,c])=>({name:n,col:c,pts:D.time_vs_pe[k].map(b=>({x:b.x,y:b.dt_rms,tip:`${b.lo}–${b.hi} PE<br>RMS ${fx(b.dt_rms,2)} ns`}))})));
 
 // ---- stage 4
 const PAIRS=[['legacy','Legacy','--leg'],['new','New','--new'],['new_dead500','New, 500 ns deadtime','--s3'],['new_dead500_zombie100','New, 500 ns deadtime + 100 ns zombie','--s4']].filter(([k])=>D.pairs[k]);
 const expHits=(k,dt)=>{ const p=D.readout[k], rt=p.ReadoutTime, de=p.Deadtime, zo=p.ZombieTime; if(dt<rt) return 1; if(de>0&&dt<rt+de){ return (zo>0&&dt>=rt+de-zo)?2:1; } return 2; };
 function pairChart(id, keys, refs){
   const ser=[{name:'Expected from the settings',col:'--ref',dash:true,step:true,marker:false,width:1.5,pts:D.pairs[keys[0][0]].scan.map(r=>({x:r.dt,y:expHits(keys[0][0],r.dt),tip:`Δt ${r.dt} ns<br>expected ${expHits(keys[0][0],r.dt)}`}))}];
-  for(const [k,n,c,dash] of keys) ser.push({name:n+' (measured)',col:c,dash,step:true,marker:false,width:dash?1.75:3.5,pts:D.pairs[k].scan.map(r=>({x:r.dt,y:r.mean,tip:`Δt ${r.dt} ns<br>${r.mean.toFixed(2)} hits (mean of ${100} throws)`}))});
+  for(const [k,n,c,dash] of keys) ser.push({name:n+' (measured)',col:c,dash,step:true,marker:false,width:dash?1.75:3.5,pts:D.pairs[k].scan.map(r=>({x:r.dt,y:r.mean,tip:`Δt ${r.dt} ns<br>${fx(r.mean,2)} hits (mean of ${100} throws)`}))});
   chart(id,{xmin:0,xmax:1000,xticks:ticks(0,1000,200),xlab:'Δt between the two crossings (ns)',ylab:'Hits from the channel',ymin:0.5,ymax:2.4,yticks:[1,2]},ser,refs);
 }
 pairChart('c4_def',[['new','New','--new',false],['legacy','Legacy','--leg',true]],[{x:120,label:'120 ns'}]);
@@ -426,7 +426,7 @@ if(D.pairs.new_dead500_zombie100) pairChart('c4_zomb',[['new_dead500_zombie100',
   const firstTwo=(rows,f)=>{ const r=rows.find(r=>f(r)>=1.5); return r?r.dt:null; };
   let t='<table><tr><th></th><th>expected</th><th>measured</th><th>mean hits there</th></tr>';
   for(const [k,n,c] of PAIRS){ const rows=D.pairs[k].scan, e=firstTwo(rows,r=>expHits(k,r.dt)), mrow=rows.find(r=>r.mean>1.1&&r.dt>=e-20);
-    t+=`<tr><td>${swatch(c)} ${n}</td><td>${e} ns</td><td>${mrow.dt} ns</td><td>${mrow.mean.toFixed(2)}</td></tr>`; }
+    t+=`<tr><td>${swatch(c)} ${n}</td><td>${e} ns</td><td>${mrow.dt} ns</td><td>${fx(mrow.mean,2)}</td></tr>`; }
   document.getElementById('t4_steps').innerHTML=t+'</table><p style="font-size:12.5px;margin-top:6px">The first Δt (10 ns steps) with a second hit. At exactly the edge, the photon arrival times decide which side each throw falls on, so the mean there is between 1 and 2.</p>';
   document.getElementById('t4_xbar').innerHTML='<table><tr><th></th><th>hits</th><th>channels</th></tr>'+PAIRS.slice(0,2).map(([k,n,c])=>`<tr><td>${swatch(c)} ${n}</td><td>${D.pairs[k].xbar.readouts}</td><td>${D.pairs[k].xbar.channels}</td></tr>`).join('')+'</table>';
 })();
@@ -434,17 +434,17 @@ if(D.pairs.new_dead500_zombie100) pairChart('c4_zomb',[['new_dead500_zombie100',
 // ---- stage 5
 const TH=D.timing.thresholds, TCOL=['--t1','--t2','--t3','--t4','--t5','--t6'];
 chart('c5_res',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Time resolution (ns)',ymin:0,ymax:6,yticks:ticks(0,6,1)},
-  [{name:'RMS',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt_rms,tip:`${t.thr} pe<br>RMS ${t.dt_rms.toFixed(2)} ns`}))},
-   {name:'Half-width of the central 68%',col:'--s3',pts:TH.map(t=>({x:t.thr,y:t.dt_hw68,tip:`${t.thr} pe<br>68% half-width ${t.dt_hw68.toFixed(2)} ns`}))}],
+  [{name:'RMS',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt_rms,tip:`${t.thr} pe<br>RMS ${fx(t.dt_rms,2)} ns`}))},
+   {name:'Half-width of the central 68%',col:'--s3',pts:TH.map(t=>({x:t.thr,y:t.dt_hw68,tip:`${t.thr} pe<br>68% half-width ${fx(t.dt_hw68,2)} ns`}))}],
   [{y:2,label:''},{y:3,label:'PDR 2–3 ns'}]);
 chart('c5_off',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Hit time − true time (ns)',ymin:10,ymax:24,yticks:ticks(10,24,2)},
-  [{name:'Timing mode',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt,tip:`${t.thr} pe<br>${t.dt.toFixed(2)} ns<br>survival ${pc(t.surv)}`}))}],
+  [{name:'Timing mode',col:'--new',pts:TH.map(t=>({x:t.thr,y:t.dt,tip:`${t.thr} pe<br>${fx(t.dt,2)} ns<br>survival ${pc(t.surv)}`}))}],
   [{y:D.path.new.find(p=>p.path===16).dt,label:'readout-window model'}]);
 chart('c5_surv',{xmin:0,xmax:16.5,xticks:PATHT,xlab:'Path length in the bar (mm)',ylab:'Survival',ymin:0,ymax:1,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
-  [...TH.map((t,i)=>({name:t.thr+' pe',col:TCOL[i],pts:D.timing.survival[t.thr.toFixed(1)].map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))})),
+  [...TH.map((t,i)=>({name:t.thr+' pe',col:TCOL[i],pts:D.timing.survival[fx(t.thr,1)].map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))})),
    {name:'Readout window, 3 PE',col:'--ref',dash:true,marker:false,pts:D.path.new.map(p=>({x:p.path,y:p.surv,tip:`${p.path} mm<br>${pc(p.surv)}`}))}]);
 chart('c5_tot',{xmin:0,xmax:100,xticks:ticks(0,100,20),xlab:'Photoelectrons in the channel',ylab:'Time over threshold (ns)',ymin:0,ymax:200,yticks:ticks(0,200,40)},
-  [['1.0',1],['3.0',5]].map(([t,i])=>({name:t+' pe threshold',col:TCOL[i],band:true,pts:D.timing.tot[t].map(b=>({x:b.x,y:b.tot,lo:b.q16,hi:b.q84,tip:`${b.lo}–${b.hi} photons<br>mean ToT ${b.tot.toFixed(1)} ns<br>16–84%: ${b.q16.toFixed(1)}–${b.q84.toFixed(1)} ns`}))})));
+  [['1.0',1],['3.0',5]].map(([t,i])=>({name:t+' pe threshold',col:TCOL[i],band:true,pts:D.timing.tot[t].map(b=>({x:b.x,y:b.tot,lo:b.q16,hi:b.q84,tip:`${b.lo}–${b.hi} photons<br>mean ToT ${fx(b.tot,1)} ns<br>16–84%: ${fx(b.q16,1)}–${fx(b.q84,1)} ns`}))})));
 
 // ---- pileup in one channel
 if(D.pileup && D.pileup.new){
@@ -453,23 +453,23 @@ if(D.pileup && D.pileup.new){
   const sel=(pat,n)=>R.filter(r=>r.pattern===pat&&r.n===n).sort((a,b)=>a.dt-b.dt);
   const px={xmin:-10,xmax:260,xticks:[0,50,100,150,200,250],xlab:'Δt between consecutive particles (ns)'};
   const ser=[]; [2,3,4].forEach((n,i)=>{ ser.push({name:n+' particles, expected',col:PC[i],dash:true,step:true,marker:false,width:1.5,pts:sel('equal',n).map(r=>({x:r.dt,y:r.expected,tip:`Δt ${r.dt} ns<br>expected ${r.expected}`}))});
-    ser.push({name:n+' particles',col:PC[i],pts:sel('equal',n).map(r=>({x:r.dt,y:r.readouts,tip:`${n} particles, Δt ${r.dt} ns<br>${r.readouts.toFixed(2)} readouts`}))}); });
+    ser.push({name:n+' particles',col:PC[i],pts:sel('equal',n).map(r=>({x:r.dt,y:r.readouts,tip:`${n} particles, Δt ${r.dt} ns<br>${fx(r.readouts,2)} readouts`}))}); });
   chart('c4_pn',{...px,ylab:'Readouts',ymin:0.5,ymax:4.5,yticks:[1,2,3,4]},ser);
   const PAT=[['equal','Equal','--new'],['bright_first','Bright first','--s3'],['bright_last','Bright last','--s4']];
   chart('c4_ppe',{...px,ylab:'Detected / sum of single crossings',ymin:0.9,ymax:1.05,yticks:[0.9,0.95,1,1.05],yfmt:y=>y.toFixed(2)},
-    PAT.flatMap(([k,n,c])=>[{name:n+', light',col:c,pts:sel(k,4).map(r=>({x:r.dt,y:r.pe_ratio,tip:`${n}, Δt ${r.dt} ns<br>light ${r.pe_ratio.toFixed(3)}<br>energy ${r.e_ratio.toFixed(3)}<br>${pc(r.lost)} with no readout`}))}]),[{y:1,label:''}]);
+    PAT.flatMap(([k,n,c])=>[{name:n+', light',col:c,pts:sel(k,4).map(r=>({x:r.dt,y:r.pe_ratio,tip:`${n}, Δt ${r.dt} ns<br>light ${fx(r.pe_ratio,3)}<br>energy ${fx(r.e_ratio,3)}<br>${pc(r.lost)} with no readout`}))}]),[{y:1,label:''}]);
   chart('c4_pprov',{...px,ylab:'Fraction',ymin:0,ymax:1.05,yticks:ticks(0,1,.2),yfmt:y=>Math.round(y*100)+'%'},
     [{name:'Most light = most energy (bright first)',col:'--new',pts:sel('bright_first',4).filter(r=>r.top_is_max_energy!=null).map(r=>({x:r.dt,y:r.top_is_max_energy,tip:`Δt ${r.dt} ns<br>${pc(r.top_is_max_energy)}`}))},
      {name:'First photon from the earliest particle (equal)',col:'--s3',pts:sel('equal',4).filter(r=>r.first_is_earliest!=null).map(r=>({x:r.dt,y:r.first_is_earliest,tip:`Δt ${r.dt} ns<br>${pc(r.first_is_earliest)}`}))}]);
   let t='<table><tr><th>pattern</th><th>particles</th><th>measured share</th><th>by energy</th></tr>';
-  for(const [k,n] of PAT) for(const np of [2,3,4]){ const r=sel(k,np).find(r=>r.dt===20); if(r&&r.top_share!=null) t+=`<tr><td>${n}</td><td>${np}</td><td>${r.top_share.toFixed(2)}</td><td>${r.top_share_expected.toFixed(2)}</td></tr>`; }
+  for(const [k,n] of PAT) for(const np of [2,3,4]){ const r=sel(k,np).find(r=>r.dt===20); if(r&&r.top_share!=null) t+=`<tr><td>${n}</td><td>${np}</td><td>${fx(r.top_share,2)}</td><td>${fx(r.top_share_expected,2)}</td></tr>`; }
   document.getElementById('t4_pshare').innerHTML=t+'</table><p style="font-size:12.5px;margin-top:6px">Δt = 20 ns, everything in one readout. The measured share of the most-light particle runs above the energy share when the energies are equal because the largest of several Poisson counts is picked.</p>';
 }
 
 // ---- timing mode at the far end
 if(D.timing_grid && D.timing_grid.some(r=>r.pos==='far')){
   document.getElementById('far_card').hidden=false;
-  const G=D.timing_grid, line=(pos,path,name,col,dash)=>({name,col,dash,pts:G.filter(r=>r.pos===pos&&r.path===path).map(r=>({x:r.thr,y:r.dt_rms,tip:`${name}<br>${r.thr} pe: RMS ${r.dt_rms.toFixed(2)} ns<br>${r.pe.toFixed(1)} PE, survival ${pc(r.surv)}`}))});
+  const G=D.timing_grid, line=(pos,path,name,col,dash)=>({name,col,dash,pts:G.filter(r=>r.pos===pos&&r.path===path).map(r=>({x:r.thr,y:r.dt_rms,tip:`${name}<br>${r.thr} pe: RMS ${fx(r.dt_rms,2)} ns<br>${fx(r.pe,1)} PE, survival ${pc(r.surv)}`}))});
   chart('c5_far',{xmin:0.25,xmax:3.25,xticks:[0.5,1,1.5,2,2.5,3],xlab:'Discriminator threshold (pe)',ylab:'Time resolution, RMS (ns)',ymin:0,ymax:9,yticks:ticks(0,9,1)},
     [line('ref',16,'16 mm, 2.7 m','--new'),line('far',16,'16 mm, far end','--new',true),line('ref',9,'9 mm, 2.7 m','--s4'),line('far',9,'9 mm, far end','--s4',true)],[{y:2,label:''},{y:3,label:'PDR 2–3 ns'}]);
 }
