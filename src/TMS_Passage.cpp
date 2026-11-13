@@ -33,8 +33,16 @@ std::vector<std::vector<size_t>> BuildPassages(const std::vector<Segment>& segme
   std::vector<std::vector<size_t>> passages;
   for (auto& entry : by_bar_and_trajectory) {
     std::vector<size_t>& idx = entry.second;
+    // Order by start time, then break ties by stop time and position, so that the grouping below
+    // does not depend on the order the steps were given in (a point deposit and the step that
+    // leaves from it can share a start time).
     std::stable_sort(idx.begin(), idx.end(), [&](size_t a, size_t b) {
-      return segments[a].t_start < segments[b].t_start;
+      const Segment& sa = segments[a];
+      const Segment& sb = segments[b];
+      if (sa.t_start != sb.t_start) return sa.t_start < sb.t_start;
+      if (sa.t_stop != sb.t_stop) return sa.t_stop < sb.t_stop;
+      if (sa.start != sb.start) return sa.start < sb.start;
+      return sa.stop < sb.stop;
     });
     std::vector<size_t> current;
     for (size_t i : idx) {

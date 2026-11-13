@@ -120,6 +120,16 @@ int main() {
     Check(ok, "bin length 0, negative, 1e-12, inf and nan are rejected");
   }
 
+  // 3d. Steps with equal start times: a point deposit at z = 0 and a step leaving from it
+  //     (0 to 3 mm over 0 - 0.01 ns) are one passage whatever the input order.
+  {
+    Segment point = Seg(0, 0, 0.1, 0.0, 0.0);
+    Segment step = Seg(0, 3, 0.5, 0.0, 0.01);
+    auto a = TMS_Passage::BuildPassages({point, step}, 0.5);
+    auto b = TMS_Passage::BuildPassages({step, point}, 0.5);
+    Check(a.size() == 1 && b.size() == 1, "equal-start-time point deposit and step: one passage in either input order");
+  }
+
   // 4. Non-uniform deposit is preserved (localized high dE/dx is not smeared out).
   {
     // 1 MeV in the first 1 mm, 0.1 MeV in the other 9 mm.
