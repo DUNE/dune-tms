@@ -594,7 +594,8 @@ void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::defau
   const double readout_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ReadoutTime();
   const double deadtime = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_Deadtime();
   const double zombie_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ZombieTime();
-  std::normal_distribution<double> time_noise(0.0, TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise());
+  // std::normal_distribution requires a positive standard deviation: a noise-free setting (0) uses a negligible one
+  std::normal_distribution<double> time_noise(0.0, std::max(TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise(), 1e-12));
 
   std::map<TMS_ChannelId, std::vector<size_t>> hits_by_channel;
   for (size_t i = 0; i < TMS_Hits.size(); ++i) {
