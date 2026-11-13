@@ -141,7 +141,10 @@ int main(int argc, char** argv) {
 
   // Second-crossing delays, kept >= 30 ns from every window edge so photon-arrival and
   // electronic time jitter cannot move a crossing across one
-  std::vector<double> delays = {50, readout + 80};
+  std::vector<double> delays = {50};
+  // readout + 80 ns lies in the deadtime (at the zombie edge for some settings) when one is set;
+  // the deadtime cases below cover that region
+  if (dead <= 0) delays.push_back(readout + 80);
   if (dead > 0) {
     delays.push_back(readout + 0.5 * (dead - std::max(zombie, 0.0)));
     if (zombie > 0) delays.push_back(readout + dead - 0.5 * zombie);
@@ -154,11 +157,13 @@ int main(int argc, char** argv) {
     cases.push_back({"same_bar_dt" + std::to_string(static_cast<int>(dt)), {kRefBar, second}, ExpectedSameChannelReadouts(dt)});
   }
   // Two crossings both in the zombie time (after the first readout and its deadtime): they are one
-  // readout, stamped at the end of the deadtime and not at the earlier crossing
-  if (dead > 0 && zombie > 0) {
+  // readout, stamped at the end of the deadtime and not at the earlier crossing. The crossings are
+  // more than a readout time apart (closer ones are merged before the simulation), so this needs a
+  // zombie time longer than a readout time (e.g. Deadtime = 300, ZombieTime = 200 with ReadoutTime = 120).
+  if (dead > 0 && zombie >= readout + 60) {
     Crossing a = kRefBar, b = kRefBar;
-    a.t = readout + dead - 0.7 * zombie;
-    b.t = readout + dead - 0.3 * zombie;
+    a.t = readout + dead - zombie + 20;
+    b.t = a.t + readout + 10;
     cases.push_back({"zombie_pair", {kRefBar, a, b}, 2, readout + dead - 5.0});
   }
   // Split X-bar halves at the same time: two channels. The default pipeline's (z, NotZ)-keyed
@@ -171,20 +176,24 @@ int main(int argc, char** argv) {
     std::map<int, int> count_histogram;
     double pe_sum = 0;
     bool time_ok = true;
+    double last_time_sum = 0;
     int n_channels_min = 1000, n_channels_max = 0;
     for (int t = 0; t < nthrows; ++t) {
       TG4Event event = BuildEvent(c.crossings, event_id++);
       TMS_Event tms_event(event);
       tms_event.FinalizeEvent();
       int n = 0;
+      double last_time = -1e9;
       std::map<TMS_ChannelId, int> channels;
       for (const auto& hit : tms_event.GetHits(-1, /*include_ped_sup=*/false)) {
         n++;
         pe_sum += hit.GetPE();
         // the first readout is at ~0 ns; any later one must respect the deadtime
         if (hit.GetT() > 50.0 && hit.GetT() < c.min_last_time) time_ok = false;
+        last_time = std::max(last_time, hit.GetT());
         channels[hit.GetChannelId()]++;
       }
+      last_time_sum += last_time;
       count_histogram[n]++;
       n_channels_min = std::min(n_channels_min, static_cast<int>(channels.size()));
       n_channels_max = std::max(n_channels_max, static_cast<int>(channels.size()));
@@ -197,7 +206,7 @@ int main(int argc, char** argv) {
     for (const auto& h : count_histogram) std::cout << " " << h.first << "x" << h.second;
     if (!time_ok) std::cout << " (a readout was stamped inside the deadtime)";
     std::cout << " throws; channels " << n_channels_min << "-" << n_channels_max
-              << "; mean total PE " << pe_sum / nthrows << "\n";
+              << "; mean total PE " << pe_sum / nthrows << "; mean latest readout time " << last_time_sum / nthrows << " ns\n";
   }
   std::cout << (n_fail == 0 ? "ALL PASSED" : "FAILURES") << ": " << n_fail << " failing case(s)\n";
   return n_fail;
