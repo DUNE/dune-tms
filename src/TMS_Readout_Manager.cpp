@@ -50,18 +50,19 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_DETSIM_UseResponseElements = toml::find<bool>(data, "Sim", "DetSim", "UseResponseElements");
   _SIM_DETSIM_DepositBinLength = toml::find_or<double>(data, "Sim", "DetSim", "DepositBinLength", 1.0);
   _SIM_DETSIM_PassageMaxGap = toml::find_or<double>(data, "Sim", "DetSim", "PassageMaxGap", 0.5);
-  _SIM_DETSIM_FrontEndTimingMode = toml::find<bool>(data, "Sim", "DetSim", "FrontEndTimingMode");
+  // Optional with the shipped values, so older custom readout configs load with the flag off
+  _SIM_DETSIM_FrontEndTimingMode = toml::find_or<bool>(data, "Sim", "DetSim", "FrontEndTimingMode", false);
 
-  _SIM_FRONTEND_FastShaperPeakingTime = toml::find<double>(data, "Sim", "FrontEnd", "FastShaperPeakingTime");
-  _SIM_FRONTEND_FastShaperOrder = toml::find<int>(data, "Sim", "FrontEnd", "FastShaperOrder");
-  _SIM_FRONTEND_DiscriminatorThreshold = toml::find<double>(data, "Sim", "FrontEnd", "DiscriminatorThreshold");
+  _SIM_FRONTEND_FastShaperPeakingTime = toml::find_or<double>(data, "Sim", "FrontEnd", "FastShaperPeakingTime", 15.0);
+  _SIM_FRONTEND_FastShaperOrder = toml::find_or<int>(data, "Sim", "FrontEnd", "FastShaperOrder", 2);
+  _SIM_FRONTEND_DiscriminatorThreshold = toml::find_or<double>(data, "Sim", "FrontEnd", "DiscriminatorThreshold", 1.7);
   _SIM_FRONTEND_DiscriminatorStopThreshold = toml::find_or<double>(data, "Sim", "FrontEnd", "DiscriminatorStopThreshold", -1.0);
   _SIM_FRONTEND_ToTMax = toml::find_or<double>(data, "Sim", "FrontEnd", "ToTMax", 255.5);
-  _SIM_FRONTEND_TDCStep = toml::find<double>(data, "Sim", "FrontEnd", "TDCStep");
-  _SIM_FRONTEND_TimingJitter = toml::find<double>(data, "Sim", "FrontEnd", "TimingJitter");
-  _SIM_FRONTEND_SiPMCrosstalkProbability = toml::find<double>(data, "Sim", "FrontEnd", "SiPMCrosstalkProbability");
-  _SIM_FRONTEND_SiPMPixels = toml::find<int>(data, "Sim", "FrontEnd", "SiPMPixels");
-  _SIM_FRONTEND_EnergyFromToT = toml::find<bool>(data, "Sim", "FrontEnd", "EnergyFromToT");
+  _SIM_FRONTEND_TDCStep = toml::find_or<double>(data, "Sim", "FrontEnd", "TDCStep", 0.5);
+  _SIM_FRONTEND_TimingJitter = toml::find_or<double>(data, "Sim", "FrontEnd", "TimingJitter", 0.1);
+  _SIM_FRONTEND_SiPMCrosstalkProbability = toml::find_or<double>(data, "Sim", "FrontEnd", "SiPMCrosstalkProbability", 0.03);
+  _SIM_FRONTEND_SiPMPixels = toml::find_or<int>(data, "Sim", "FrontEnd", "SiPMPixels", 1584);
+  _SIM_FRONTEND_EnergyFromToT = toml::find_or<bool>(data, "Sim", "FrontEnd", "EnergyFromToT", false);
 
   _SIM_TIMING_ScintillatorDecayTime = toml::find_or<double>(data, "Sim", "Timing", "ScintillatorDecayTime", 3.0);
   _SIM_TIMING_WLSDecayTime = toml::find_or<double>(data, "Sim", "Timing", "WLSDecayTime", 20.0);

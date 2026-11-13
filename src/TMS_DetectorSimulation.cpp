@@ -189,9 +189,15 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
           pe_long += n_long;
           // Particle that produced each photon: drawn in proportion to the deposit's energy shares
           // (no draw when there is a single contributor)
+          // Several steps of one particle give several shares with the same trajectory: that is
+          // still a single source and needs no draw.
+          bool several_sources = false;
+          for (const auto& share : deposit.shares) {
+            if (share.first != deposit.shares.front().first) several_sources = true;
+          }
           auto photon_source = [&]() {
             int trajectory = deposit.shares.empty() ? -999 : deposit.shares.front().first;
-            if (deposit.shares.size() > 1) {
+            if (several_sources) {
               double pick = uniform_share(generator) * deposit.energy;
               for (const auto& share : deposit.shares) {
                 trajectory = share.first;
@@ -750,7 +756,8 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
     for (double a = threshold; a < 1e5; a *= 1.02) {
       int i0 = -1, i1 = -1;
       for (size_t i = 0; i < mean_waveform.size(); ++i) {
-        const bool above = a * mean_waveform[i] >= threshold;
+        // The pulse starts at the threshold and ends at the stop threshold (hysteresis)
+        const bool above = a * mean_waveform[i] >= (i0 < 0 ? threshold : stop_threshold);
         if (above && i0 < 0) i0 = static_cast<int>(i);
         if (!above && i0 >= 0) { i1 = static_cast<int>(i); break; }
       }
@@ -826,9 +833,15 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
     for (const auto& pe : pes) {
       while (p < pulses.size() && pe.t >= pulses[p].t_down) ++p;
       if (p == pulses.size()) break;
+      // A photoelectron whose pulse had already expired before this pulse rose did not contribute
+      // to it (an isolated sub-threshold photon is not credited to a much later pulse)
+      if (pe.t < pulses[p].t_up - tail) continue;
       charge_by_hit[p][pe.hit] += pe.charge;
       pulse_charge[p] += pe.charge;
     }
+    // Known limitation: a source hit whose photons span several pulses (a retrigger on its own
+    // tail) is read out once, in the pulse holding most of its charge, with all of its truth;
+    // splitting one hit's truth and photons across pulses is not done.
     // Each original hit goes (with its truth) to the pulse holding most of its charge; a pulse
     // no hit is assigned to (e.g. a late retrigger on one hit's tail) is dropped.
     std::map<size_t, size_t> pulse_of_hit;
