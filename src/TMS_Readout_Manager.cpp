@@ -70,6 +70,9 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
     if (_SIM_FRONTEND_FastShaperOrder <= 0) throw std::runtime_error("Sim.FrontEnd.FastShaperOrder must be positive (the pulse tail never decays otherwise)");
     if (!(_SIM_FRONTEND_FastShaperPeakingTime > 0)) throw std::runtime_error("Sim.FrontEnd.FastShaperPeakingTime must be positive");
     if (!(_SIM_FRONTEND_DiscriminatorThreshold > 0)) throw std::runtime_error("Sim.FrontEnd.DiscriminatorThreshold must be positive");
+    // A positive stop threshold above the start threshold would end every pulse the moment it starts
+    // (repeated crossings, zero ToT); <= 0 keeps the documented "same as the start threshold" fallback
+    if (_SIM_FRONTEND_DiscriminatorStopThreshold > _SIM_FRONTEND_DiscriminatorThreshold) throw std::runtime_error("Sim.FrontEnd.DiscriminatorStopThreshold must not exceed DiscriminatorThreshold (use <= 0 for the same value)");
     if (!(_SIM_FRONTEND_TDCStep > 0)) throw std::runtime_error("Sim.FrontEnd.TDCStep must be positive");
     if (!(_SIM_FRONTEND_SiPMCrosstalkProbability >= 0 && _SIM_FRONTEND_SiPMCrosstalkProbability < 1)) {
       throw std::runtime_error("Sim.FrontEnd.SiPMCrosstalkProbability must be in [0, 1) (the crosstalk charge loop never ends otherwise)");
