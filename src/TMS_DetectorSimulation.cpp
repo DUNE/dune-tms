@@ -184,7 +184,10 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
           // Arrival time at the sensor, corrected to the strip center as in SimulateTimingModel()
           // Photon count per path = ceil of the running total of detected PE (so the count of the
           // whole path does not depend on how many deposits it was split into, also when the
-          // mean is not Poisson-drawn and the per-deposit value is fractional)
+          // mean is not Poisson-drawn and the per-deposit value is fractional). Known limitation of
+          // that non-default mode (ShouldSimulatePoisson = false): the photon of a fractional path
+          // is emitted at the deposit where the running total first crosses an integer, which is
+          // earlier for finer bins; the default Poisson mode has integer photons per deposit.)
           cumulative_short += n_short;
           cumulative_long += n_long;
           const int photons_short = static_cast<int>(std::ceil(cumulative_short - 1e-9)) - emitted_short;
@@ -192,11 +195,17 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
           emitted_short += std::max(photons_short, 0);
           emitted_long += std::max(photons_long, 0);
           for (int i = 0; i < photons_short; ++i) {
-            const double t = deposit.t + middle / speed_of_light_in_fiber + exp_scint(generator) + exp_wsf(generator);
+            // Separate statements: the evaluation order of the operands of + is unspecified, and
+            // the two draws share one generator
+            const double t_scint = exp_scint(generator);
+            const double t_wsf = exp_wsf(generator);
+            const double t = deposit.t + middle / speed_of_light_in_fiber + t_scint + t_wsf;
             event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), false);
           }
           for (int i = 0; i < photons_long; ++i) {
-            const double t = deposit.t + long_middle / speed_of_light_in_fiber + exp_scint(generator) + exp_wsf(generator);
+            const double t_scint = exp_scint(generator);
+            const double t_wsf = exp_wsf(generator);
+            const double t = deposit.t + long_middle / speed_of_light_in_fiber + t_scint + t_wsf;
             event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), true);
           }
         }
