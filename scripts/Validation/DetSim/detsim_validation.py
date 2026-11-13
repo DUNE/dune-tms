@@ -384,19 +384,21 @@ def plots(res, labels, out):
     ax.legend(frameon=False, fontsize=9)
     save(fig, "survival.png")
 
-    # PE distribution at partial fill
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    hi = np.percentile(np.concatenate([res[l]["_partial_pe"] for l in labels]), 99.5)
-    bins = np.arange(0, max(hi, 10) + 1, 1.0)
-    for i, l in enumerate(labels):
-        pe = res[l]["_partial_pe"]
-        ax.hist(pe, bins=bins, histtype="step", color=COLORS[i % 4], linestyle=DASHES[i % 4], linewidth=1.5,
-                density=True, label=f"{l} (mean {pe.mean():.1f}, rms {pe.std():.1f})")
-    ax.axvline(THRESHOLD_PE, color=MUTED, linewidth=1, linestyle=":")
-    ax.text(THRESHOLD_PE, ax.get_ylim()[1] * 0.97, f" {THRESHOLD_PE:g} PE threshold", color=MUTED, fontsize=8, va="top")
-    style(ax, "Reco PE", "Fraction of hits per PE", f"Reco PE at partial fill ({res[labels[0]]['_partial_label']})")
-    ax.legend(frameon=False, fontsize=9)
-    save(fig, "pe_partial_fill.png")
+    # PE distribution at partial fill (skipped when no run has muon-dominated hits in the partial-fill band)
+    pooled = np.concatenate([res[l]["_partial_pe"] for l in labels])
+    if len(pooled):
+        fig, ax = plt.subplots(figsize=(6.4, 4.2))
+        hi = np.percentile(pooled, 99.5)
+        bins = np.arange(0, max(hi, 10) + 1, 1.0)
+        for i, l in enumerate(labels):
+            pe = res[l]["_partial_pe"]
+            ax.hist(pe, bins=bins, histtype="step", color=COLORS[i % 4], linestyle=DASHES[i % 4], linewidth=1.5,
+                    density=True, label=f"{l} (mean {pe.mean():.1f}, rms {pe.std():.1f})")
+        ax.axvline(THRESHOLD_PE, color=MUTED, linewidth=1, linestyle=":")
+        ax.text(THRESHOLD_PE, ax.get_ylim()[1] * 0.97, f" {THRESHOLD_PE:g} PE threshold", color=MUTED, fontsize=8, va="top")
+        style(ax, "Reco PE", "Fraction of hits per PE", f"Reco PE at partial fill ({res[labels[0]]['_partial_label']})")
+        ax.legend(frameon=False, fontsize=9)
+        save(fig, "pe_partial_fill.png")
 
     # timing vs contributions
     fig, ax = plt.subplots(figsize=(6.4, 4.2))

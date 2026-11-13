@@ -25,6 +25,14 @@ def sem(x):
     return float(np.std(x, ddof=1) / np.sqrt(len(x))) if len(x) > 1 else 0.0
 
 
+def hw68(x):
+    """Half width of the central 68% interval; None for an empty sample (a cell with no surviving crossings)."""
+    if len(x) == 0:
+        return None
+    q16, q84 = np.percentile(x, [16, 84])
+    return (q84 - q16) / 2
+
+
 def r(x, nd=4):
     return None if x is None or not np.isfinite(x) else round(float(x), nd)
 
@@ -126,9 +134,8 @@ def timing(scans):
         full = df[(df.path_mm == FULL_PATH) & (df.edep_MeV == df[df.path_mm == FULL_PATH].edep_MeV.min())]
         s = full[full.n_hits_surviving > 0]
         dt = s.hit_time - s.true_time
-        q16, q84 = np.percentile(dt, [16, 84])
         out["thresholds"].append(dict(thr=float(t), n=len(full), surv=r(full.n_hits_surviving.gt(0).mean()),
-                                      dt=r(dt.mean()), dt_rms=r(dt.std()), dt_hw68=r((q84 - q16) / 2),
+                                      dt=r(dt.mean()), dt_rms=r(dt.std()), dt_hw68=r(hw68(dt)),
                                       on_grid=r(np.mean(np.isclose(np.mod(s.hit_time * 2, 1), 0) | np.isclose(np.mod(s.hit_time * 2, 1), 1)))))
         out["survival"][t] = [dict(path=p["path"], surv=p["surv"]) for p in path_scan(df)]
         g = df[(df.n_hits_surviving > 0) & (df.n_photons >= 0) & (df.tot > 0)]
@@ -228,9 +235,8 @@ def timing_grid(scans):
                 g = df[(df.path_mm == p) & (df.edep_MeV == df[df.path_mm == p].edep_MeV.min())]
                 s = g[g.n_hits_surviving > 0]
                 dt = s.hit_time - s.true_time
-                q16, q84 = np.percentile(dt, [16, 84])
                 rows.append(dict(thr=float(t), pos=pos, path=p, n=len(g), surv=r(g.n_hits_surviving.gt(0).mean()), pe=r(g.pe_all.mean(), 2),
-                                 dt=r(dt.mean()), dt_rms=r(dt.std()), dt_hw68=r((q84 - q16) / 2)))
+                                 dt=r(dt.mean()), dt_rms=r(dt.std()), dt_hw68=r(hw68(dt))))
     return rows
 
 
