@@ -8,7 +8,9 @@
 
 // Electronics channels (a bar, or a bar half for the split X-bars: TMS_ChannelId) that are known
 // not to give a usable readout. The decoder drops their readouts before any TMS_Hit is made, so
-// they are applied the same way to simulation and, later, to data.
+// they are applied the same way to simulation and, later, to data. In simulation the decoder runs
+// only in the response-element pipeline (Sim.DetSim.UseResponseElements = true); the legacy detector
+// simulation never reads the list, and TMS_Event warns once if a non-empty list is configured there.
 //
 // The list is read from the file named by [Decoder] BadChannelFile in the main TOML. Each entry:
 //   [[BadChannel]]

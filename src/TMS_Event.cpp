@@ -1,4 +1,5 @@
 #include "TMS_Event.h"
+#include "TMS_BadChannels.h"
 #include "TMS_StageTimer.h"
 #include "TMS_Readout_Manager.h"
 #include "TMS_VertexId.h"
@@ -555,6 +556,18 @@ void TMS_Event::ApplyReconstructionEffects() {
     FillLightProvenance();
     return;
   }
+  // The bad-channel list is applied by the decoder, which only the response-element pipeline uses:
+  // say so once instead of silently keeping the hits of the listed channels
+  static const bool warned_bad_channels = [] {
+    size_t n = 0;
+    try { n = TMS_BadChannels::GetInstance().Size(); } catch (const std::exception&) { n = 0; }  // an unreadable list is the decoder's business
+    if (n > 0) {
+      std::cerr << "Warning: " << n << " bad channel(s) are listed in [Decoder] BadChannelFile, but they are applied only with "
+                   "Sim.DetSim.UseResponseElements = true; the legacy detector simulation keeps their hits" << std::endl;
+    }
+    return true;
+  }();
+  (void)warned_bad_channels;
   // Simulate deadtime if needed
   TMS_DetectorSimulation::GetInstance().SimulateDeadtime(*this);
   // Merge hits that happened in the same scintillator strip and within the same readout time window

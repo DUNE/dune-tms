@@ -24,7 +24,7 @@ namespace {
 
 struct Center { double x, y, z; };
 
-// Collects the master-frame centre of every scintillator bar node, as TMS_Bar::FindModules() uses it.
+// Collects the master-frame center of every scintillator bar node, as TMS_Bar::FindModules() uses it.
 // Bars are only constructed after the walk, since building one moves the geometry navigator.
 void Walk(TGeoManager* geom, const std::vector<std::string>& bar_names, std::vector<Center>& centers) {
   TGeoNode* node = geom->GetCurrentNode();

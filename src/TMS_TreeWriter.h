@@ -13,6 +13,7 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
+#include "TMS_LightContribColumns.h"
 
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
@@ -630,10 +631,7 @@ class TMS_TreeWriter {
     // of the flat TrueHitLightContrib* vectors, one per particle that produced detected photons
     INTMYVAR(TrueHitLightContribOffset);
     INTMYVAR(TrueHitNLightContrib);
-    std::vector<int> TrueHitLightContribPrimaryId;
-    std::vector<Long64_t> TrueHitLightContribVertexId;
-    std::vector<int> TrueHitLightContribPhotons;
-    std::vector<float> TrueHitLightContribShare;
+    TMS_LightContribColumns TrueHitLightContrib;
     MYVAR(TrueLeptonicEnergy);
     MYVAR(TrueHadronicEnergy);
     

@@ -9,6 +9,7 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
+#include "TMS_LightContribColumns.h"
 
 // Just a simple tree writer for the output tree
 class TMS_ReadoutTreeWriter {
@@ -72,10 +73,7 @@ class TMS_ReadoutTreeWriter {
     // of the flat TrueHitLightContrib* vectors (see TMS_TreeWriter.h)
     INTVAR(TrueHitLightContribOffset);
     INTVAR(TrueHitNLightContrib);
-    std::vector<int> TrueHitLightContribPrimaryId;
-    std::vector<Long64_t> TrueHitLightContribVertexId;
-    std::vector<int> TrueHitLightContribPhotons;
-    std::vector<float> TrueHitLightContribShare;
+    TMS_LightContribColumns TrueHitLightContrib;
     
     // Reco hit branches
     int NRecoHits;
