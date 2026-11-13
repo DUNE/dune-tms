@@ -111,6 +111,7 @@ struct Case {
   std::string label;
   std::vector<Crossing> crossings;
   int expected;  // readouts summed over the channels touched
+  double min_last_time = -1e9;  // ns, the latest readout must be stamped no earlier than this
 };
 
 }  // namespace
@@ -152,6 +153,14 @@ int main(int argc, char** argv) {
     second.t = dt;
     cases.push_back({"same_bar_dt" + std::to_string(static_cast<int>(dt)), {kRefBar, second}, ExpectedSameChannelReadouts(dt)});
   }
+  // Two crossings both in the zombie time (after the first readout and its deadtime): they are one
+  // readout, stamped at the end of the deadtime and not at the earlier crossing
+  if (dead > 0 && zombie > 0) {
+    Crossing a = kRefBar, b = kRefBar;
+    a.t = readout + dead - 0.7 * zombie;
+    b.t = readout + dead - 0.3 * zombie;
+    cases.push_back({"zombie_pair", {kRefBar, a, b}, 2, readout + dead - 5.0});
+  }
   // Split X-bar halves at the same time: two channels. The default pipeline's (z, NotZ)-keyed
   // merge combines them (reported, not required, with the flag off).
   cases.push_back({"xbar_halves_dt0", {kXBarNeg, kXBarPos}, 2});
@@ -161,6 +170,7 @@ int main(int argc, char** argv) {
   for (const Case& c : cases) {
     std::map<int, int> count_histogram;
     double pe_sum = 0;
+    bool time_ok = true;
     int n_channels_min = 1000, n_channels_max = 0;
     for (int t = 0; t < nthrows; ++t) {
       TG4Event event = BuildEvent(c.crossings, event_id++);
@@ -171,18 +181,21 @@ int main(int argc, char** argv) {
       for (const auto& hit : tms_event.GetHits(-1, /*include_ped_sup=*/false)) {
         n++;
         pe_sum += hit.GetPE();
+        // the first readout is at ~0 ns; any later one must respect the deadtime
+        if (hit.GetT() > 50.0 && hit.GetT() < c.min_last_time) time_ok = false;
         channels[hit.GetChannelId()]++;
       }
       count_histogram[n]++;
       n_channels_min = std::min(n_channels_min, static_cast<int>(channels.size()));
       n_channels_max = std::max(n_channels_max, static_cast<int>(channels.size()));
     }
-    const bool pass = count_histogram.size() == 1 && count_histogram.begin()->first == c.expected;
+    const bool pass = count_histogram.size() == 1 && count_histogram.begin()->first == c.expected && time_ok;
     const bool required = response_elements || c.label.rfind("xbar", 0) != 0;
     if (!pass && required) n_fail++;
     std::cout << (pass ? "PASS  " : (required ? "FAIL  " : "info  ")) << c.label << ": expected " << c.expected
               << " readout(s); got";
     for (const auto& h : count_histogram) std::cout << " " << h.first << "x" << h.second;
+    if (!time_ok) std::cout << " (a readout was stamped inside the deadtime)";
     std::cout << " throws; channels " << n_channels_min << "-" << n_channels_max
               << "; mean total PE " << pe_sum / nthrows << "\n";
   }

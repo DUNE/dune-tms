@@ -155,6 +155,8 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       if (segments == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no recorded steps while Sim.DetSim.UseResponseElements is on");
       double pe_short = 0;
       double pe_long = 0;
+      double cumulative_short = 0, cumulative_long = 0;
+      int emitted_short = 0, emitted_long = 0;
       for (const auto& passage_indices : TMS_Passage::BuildPassages(*segments, passage_max_gap)) {
         std::vector<TMS_Passage::Segment> passage;
         for (size_t i : passage_indices) passage.push_back((*segments)[i]);
@@ -180,8 +182,15 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
           pe_short += n_short;
           pe_long += n_long;
           // Arrival time at the sensor, corrected to the strip center as in SimulateTimingModel()
-          const int photons_short = static_cast<int>(std::ceil(n_short));
-          const int photons_long = static_cast<int>(std::ceil(n_long));
+          // Photon count per path = ceil of the running total of detected PE (so the count of the
+          // whole path does not depend on how many deposits it was split into, also when the
+          // mean is not Poisson-drawn and the per-deposit value is fractional)
+          cumulative_short += n_short;
+          cumulative_long += n_long;
+          const int photons_short = static_cast<int>(std::ceil(cumulative_short - 1e-9)) - emitted_short;
+          const int photons_long = static_cast<int>(std::ceil(cumulative_long - 1e-9)) - emitted_long;
+          emitted_short += std::max(photons_short, 0);
+          emitted_long += std::max(photons_long, 0);
           for (int i = 0; i < photons_short; ++i) {
             const double t = deposit.t + middle / speed_of_light_in_fiber + exp_scint(generator) + exp_wsf(generator);
             event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), false);
@@ -581,6 +590,9 @@ void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::defau
   std::map<TMS_ChannelId, std::vector<size_t>> hits_by_channel;
   for (size_t i = 0; i < TMS_Hits.size(); ++i) {
     if (TMS_Hits[i].GetPedSup()) continue;
+    // A hit with no detected photon cannot open a readout window or start a deadtime; it stays
+    // as it is and is removed by the pedestal threshold
+    if (TMS_Hits[i].GetPE() <= 0) continue;
     hits_by_channel[TMS_Hits[i].GetChannelId()].push_back(i);
   }
 
@@ -601,6 +613,10 @@ void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::defau
       if (deadtime > 0) {
         const TMS_Hit& hit = TMS_Hits[i];
         event.AddDeadtimeChannelRecord(std::make_pair(hit.GetNotZ(), hit.GetZ()), std::make_pair(t_read, t_dead), std::make_pair(t, t_read));
+        #ifdef RECORD_HIT_DEADTIME
+        TMS_Hits[i].SetDeadtimeStart(t_read);
+        TMS_Hits[i].SetDeadtimeStop(t_dead);
+        #endif
       }
     };
     for (size_t i : idx) {
@@ -609,7 +625,11 @@ void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::defau
       if (!open || t >= t_dead) {
         start_readout(i, t);
       } else if (t < t_read) {
+        // MergeWith() keeps the earlier time; the readout keeps the time it was opened at (a zombie
+        // readout is opened at the end of the deadtime, later than the hits that join it)
+        const double opened_at = TMS_Hits[current].GetT();
         TMS_Hits[current].MergeWith(hit);
+        TMS_Hits[current].SetT(opened_at);
         event.MergeTrueHit(TMS_Hits[current].GetHitId(), hit.GetHitId());
         event.MergePhotonArrivals(TMS_Hits[current].GetHitId(), hit.GetHitId());
         event.MergeResponseSegments(TMS_Hits[current].GetHitId(), hit.GetHitId());
