@@ -717,7 +717,10 @@ void TMS_DetectorSimulation::SimulateFrontEndTimingMode(TMS_Event &event, std::d
   const double pixels = config.Get_Sim_FrontEnd_SiPMPixels();
   const bool energy_from_tot = config.Get_Sim_FrontEnd_EnergyFromToT();
   const double calibration = TMS_Manager::GetInstance().Get_RECO_CALIBRATION_EnergyCalibration();
-  std::normal_distribution<double> jitter(0.0, config.Get_Sim_FrontEnd_TimingJitter());
+  // std::normal_distribution requires a positive width: with no jitter configured, do not draw
+  const double jitter_width = config.Get_Sim_FrontEnd_TimingJitter();
+  std::normal_distribution<double> jitter_distribution(0.0, jitter_width > 0 ? jitter_width : 1.0);
+  auto jitter = [&](std::default_random_engine& g) { return jitter_width > 0 ? jitter_distribution(g) : 0.0; };
   std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
   // Single-photoelectron fast-shaper pulse, unit height at t = peaking_time

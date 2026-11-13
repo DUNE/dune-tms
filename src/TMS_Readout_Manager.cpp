@@ -72,15 +72,23 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   }
   if (_SIM_DETSIM_UseResponseElements && _SIM_DETSIM_FrontEndTimingMode) {
     if (_SIM_FRONTEND_FastShaperOrder <= 0) throw std::runtime_error("Sim.FrontEnd.FastShaperOrder must be positive (the pulse tail never decays otherwise)");
-    if (!(_SIM_FRONTEND_FastShaperPeakingTime > 0)) throw std::runtime_error("Sim.FrontEnd.FastShaperPeakingTime must be positive");
-    if (!(_SIM_FRONTEND_DiscriminatorThreshold > 0)) throw std::runtime_error("Sim.FrontEnd.DiscriminatorThreshold must be positive");
+    if (!(_SIM_FRONTEND_FastShaperPeakingTime > 0) || !std::isfinite(_SIM_FRONTEND_FastShaperPeakingTime)) throw std::runtime_error("Sim.FrontEnd.FastShaperPeakingTime must be positive and finite (the pulse tail would never end otherwise)");
+    if (!(_SIM_FRONTEND_DiscriminatorThreshold > 0) || !std::isfinite(_SIM_FRONTEND_DiscriminatorThreshold)) throw std::runtime_error("Sim.FrontEnd.DiscriminatorThreshold must be positive and finite");
     // A positive stop threshold above the start threshold would end every pulse the moment it starts
     // (repeated crossings, zero ToT); <= 0 keeps the documented "same as the start threshold" fallback
     if (_SIM_FRONTEND_DiscriminatorStopThreshold > _SIM_FRONTEND_DiscriminatorThreshold) throw std::runtime_error("Sim.FrontEnd.DiscriminatorStopThreshold must not exceed DiscriminatorThreshold (use <= 0 for the same value)");
     // pixels * (1 - exp(-q / pixels)) blows up (or is undefined) for a non-positive pixel count
     if (_SIM_FRONTEND_SiPMPixels <= 0) throw std::runtime_error("Sim.FrontEnd.SiPMPixels must be positive (the saturation curve is undefined otherwise)");
-    if (!(_SIM_FRONTEND_ToTMax > 0)) throw std::runtime_error("Sim.FrontEnd.ToTMax must be positive");
-    if (!(_SIM_FRONTEND_TDCStep > 0)) throw std::runtime_error("Sim.FrontEnd.TDCStep must be positive");
+    if (!(_SIM_FRONTEND_ToTMax > 0)) throw std::runtime_error("Sim.FrontEnd.ToTMax must be positive");  // infinite = no clip, allowed
+    if (!(_SIM_FRONTEND_TDCStep > 0) || !std::isfinite(_SIM_FRONTEND_TDCStep)) throw std::runtime_error("Sim.FrontEnd.TDCStep must be positive and finite");
+    // Zero is allowed (no jitter, no draw); a negative or non-finite width is not
+    if (!(_SIM_FRONTEND_TimingJitter >= 0) || !std::isfinite(_SIM_FRONTEND_TimingJitter)) throw std::runtime_error("Sim.FrontEnd.TimingJitter must be zero or positive and finite");
+    // The ToT-to-charge table is built from the direct light only. Light that takes the long way round
+    // the fiber (end reflection, or fiber lengths not simulated so that it is not attenuated away)
+    // arrives later, lengthens the pulse, and would be read as extra charge: not supported yet
+    if (_SIM_FRONTEND_EnergyFromToT && (_SIM_OPTICAL_WSFEndReflectionEff > 0 || !_SIM_OPTICAL_ShouldSimulateFiberLengths)) {
+      throw std::runtime_error("Sim.FrontEnd.EnergyFromToT is not supported with reflected light (Sim.Optical.WSFEndReflectionEff > 0 or ShouldSimulateFiberLengths = false): the ToT calibration covers direct light only");
+    }
     if (!(_SIM_FRONTEND_SiPMCrosstalkProbability >= 0 && _SIM_FRONTEND_SiPMCrosstalkProbability < 1)) {
       throw std::runtime_error("Sim.FrontEnd.SiPMCrosstalkProbability must be in [0, 1) (the crosstalk charge loop never ends otherwise)");
     }
