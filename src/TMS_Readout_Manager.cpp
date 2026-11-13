@@ -73,6 +73,9 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
     // A positive stop threshold above the start threshold would end every pulse the moment it starts
     // (repeated crossings, zero ToT); <= 0 keeps the documented "same as the start threshold" fallback
     if (_SIM_FRONTEND_DiscriminatorStopThreshold > _SIM_FRONTEND_DiscriminatorThreshold) throw std::runtime_error("Sim.FrontEnd.DiscriminatorStopThreshold must not exceed DiscriminatorThreshold (use <= 0 for the same value)");
+    // pixels * (1 - exp(-q / pixels)) blows up (or is undefined) for a non-positive pixel count
+    if (_SIM_FRONTEND_SiPMPixels <= 0) throw std::runtime_error("Sim.FrontEnd.SiPMPixels must be positive (the saturation curve is undefined otherwise)");
+    if (!(_SIM_FRONTEND_ToTMax > 0)) throw std::runtime_error("Sim.FrontEnd.ToTMax must be positive");
     if (!(_SIM_FRONTEND_TDCStep > 0)) throw std::runtime_error("Sim.FrontEnd.TDCStep must be positive");
     if (!(_SIM_FRONTEND_SiPMCrosstalkProbability >= 0 && _SIM_FRONTEND_SiPMCrosstalkProbability < 1)) {
       throw std::runtime_error("Sim.FrontEnd.SiPMCrosstalkProbability must be in [0, 1) (the crosstalk charge loop never ends otherwise)");
