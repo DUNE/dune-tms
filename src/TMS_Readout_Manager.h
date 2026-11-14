@@ -27,6 +27,7 @@ class TMS_Readout_Manager {
     double Get_Sim_Readout_PedestalSubtractionThreshold() { return _SIM_READOUT_PedestalSubtractionThreshold; };
     
     bool Get_Sim_Optical_ShouldSimulatePoisson() { return _SIM_OPTICAL_ShouldSimulatePoisson; };
+    bool Get_Sim_Optical_PoissonAfterAttenuation() { return _SIM_OPTICAL_PoissonAfterAttenuation; };
     double Get_Sim_Optical_BirksConstant() { return _SIM_OPTICAL_BirksConstant; };
     bool Get_Sim_Optical_ShouldSimulateFiberLengths() { return _SIM_OPTICAL_ShouldSimulateFiberLengths; };
     double Get_Sim_Optical_WSFAttenuationLength() { return _SIM_OPTICAL_WSFAttenuationLength; };
@@ -47,6 +48,14 @@ class TMS_Readout_Manager {
     // false, i.e. the existing pipeline: the new one is being built out behind this flag
     // phase by phase so it can be validated incrementally before cutover.
     bool Get_Sim_DetSim_UseResponseElements() { return _SIM_DETSIM_UseResponseElements; };
+    double Get_Sim_DetSim_DepositBinLength() { return _SIM_DETSIM_DepositBinLength; };
+    double Get_Sim_DetSim_PassageMaxGap() { return _SIM_DETSIM_PassageMaxGap; };
+
+    double Get_Sim_Timing_ScintillatorDecayTime() { return _SIM_TIMING_ScintillatorDecayTime; };
+    double Get_Sim_Timing_WLSDecayTime() { return _SIM_TIMING_WLSDecayTime; };
+    double Get_Sim_Timing_FiberRefractiveIndex() { return _SIM_TIMING_FiberRefractiveIndex; };
+    double Get_Sim_Timing_ElectronicTimeNoise() { return _SIM_TIMING_ElectronicTimeNoise; };
+    int Get_Sim_Timing_MaxTimingPhotons() { return _SIM_TIMING_MaxTimingPhotons; };
 
 
   private:
@@ -66,6 +75,7 @@ class TMS_Readout_Manager {
   
   // Parameters related to optical model, used in TMS_Event::SimulateOpticalModel()
   bool _SIM_OPTICAL_ShouldSimulatePoisson;
+  bool _SIM_OPTICAL_PoissonAfterAttenuation;
   double _SIM_OPTICAL_BirksConstant;
   bool _SIM_OPTICAL_ShouldSimulateFiberLengths;
   double _SIM_OPTICAL_WSFAttenuationLength;
@@ -81,6 +91,21 @@ class TMS_Readout_Manager {
   double _SIM_NOISE_DarkNoiseMinPE;
 
   bool _SIM_DETSIM_UseResponseElements;
+
+  double _SIM_DETSIM_DepositBinLength;
+
+  double _SIM_DETSIM_PassageMaxGap;
+
+
+  double _SIM_TIMING_ScintillatorDecayTime;
+
+  double _SIM_TIMING_WLSDecayTime;
+
+  double _SIM_TIMING_FiberRefractiveIndex;
+
+  double _SIM_TIMING_ElectronicTimeNoise;
+
+  int _SIM_TIMING_MaxTimingPhotons;
 };
 
 #endif

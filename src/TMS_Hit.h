@@ -32,6 +32,22 @@ struct TMS_PhotonArrival {
     bool LongPath;
 };
 
+// One electronics readout channel: a scintillator bar (or, for the split X-bars, one bar half,
+// which has its own bar number) in one plane and view. Replaces the ad hoc
+// GetNotZ() + 100000*GetZ() surrogate: (z, NotZ) does not distinguish the two halves of a
+// split X-bar, which are read out at opposite ends.
+struct TMS_ChannelId {
+  int Plane;
+  int Bar;
+  int View;
+  bool operator<(const TMS_ChannelId& o) const {
+    if (Plane != o.Plane) return Plane < o.Plane;
+    if (Bar != o.Bar) return Bar < o.Bar;
+    return View < o.View;
+  }
+  bool operator==(const TMS_ChannelId& o) const { return Plane == o.Plane && Bar == o.Bar && View == o.View; }
+};
+
 // A low-level hit
 class TMS_Hit {
 
@@ -137,6 +153,7 @@ class TMS_Hit {
 
     int GetPlaneNumber() const {return Bar.GetPlaneNumber(); };
     int GetBarNumber() const {return Bar.GetBarNumber(); };
+    TMS_ChannelId GetChannelId() const { return {Bar.GetPlaneNumber(), Bar.GetBarNumber(), Bar.GetBarTypeNumber()}; };
     
     #ifdef RECORD_HIT_DEADTIME
     void SetDeadtimeStart(double t) { DeadtimeStart = t; };

@@ -11,26 +11,31 @@
 #include <vector>
 
 namespace {
+constexpr double SPEED_OF_LIGHT = 0.2998; // m/ns
+
 // Relocated from TMS_Hit.cpp (Phase III) -- these need the true hit position, which is no
 // longer embedded in TMS_Hit. Only ever called from this file, so kept file-local rather than
 // added to the TMS_DetectorSimulation public interface.
 
-double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+// Distance along the bar from the point (x, y) to the bar's readout end. Position-based so the
+// response-element path can evaluate it per optical deposit; the true-hit wrappers below are
+// the original functions.
+double DistanceFromReadout(const TMS_Hit &hit, double x, double y) {
   const double barLength = hit.GetBar().GetBarLength();
   const double barCenter = hit.GetBar().GetAxisReadoutCenter();
   // Note that you want to do always do more positive - less positive, or else you get a sign error
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
     // Readout from sides
-    if (true_hit.GetX() < 0) return true_hit.GetX() - TMS_Geom::GetInstance().XBarNegReadoutLocation(barCenter, barLength);
-    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barCenter, barLength) - true_hit.GetX();
+    if (x < 0) return x - TMS_Geom::GetInstance().XBarNegReadoutLocation(barCenter, barLength);
+    else return TMS_Geom::GetInstance().XBarPosReadoutLocation(barCenter, barLength) - x;
   }
   else {
     // Readout from top. Assuming U ~ V ~ Y for now
-    return TMS_Geom::GetInstance().YBarReadoutLocation(barCenter, barLength) - true_hit.GetY();
+    return TMS_Geom::GetInstance().YBarReadoutLocation(barCenter, barLength) - y;
   }
 }
 
-double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+double LongDistanceFromReadout(const TMS_Hit &hit, double x, double y) {
   const double barLength = hit.GetBar().GetBarLength();
   double additional_length;
   if (hit.GetBar().GetBarType() == TMS_Bar::kXBar) {
@@ -41,25 +46,39 @@ double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &tru
     // Readout from top. Assuming U ~ V ~ Y for now
     additional_length = 2 * TMS_Geom::GetInstance().YBarLength(barLength);
   }
-  return additional_length - GetTrueDistanceFromReadout(hit, true_hit);
+  return additional_length - DistanceFromReadout(hit, x, y);
+}
+
+// Distance from a bar's own readout end to its own geometric center is half its length,
+// for both bar types -- X-bars and Y-bars are both single-ended readout with a reflecting
+// far end (X-bars split into two mirror-image halves at the detector's central gap, Y-bars
+// not split), so both are defined symmetrically about their own center (readout locations
+// are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/XBarNegReadoutLocation/
+// YBarReadoutLocation). Written directly rather than routed through XBarLength()/
+// YBarLength() since those two are now identical (both just return barLength).
+double DistanceFromMiddle(const TMS_Hit &hit, double x, double y) {
+  return DistanceFromReadout(hit, x, y) - 0.5 * hit.GetBar().GetBarLength();
+}
+
+// Same bar-type-independent center offset as DistanceFromMiddle() above.
+double LongDistanceFromMiddle(const TMS_Hit &hit, double x, double y) {
+  return LongDistanceFromReadout(hit, x, y) - 0.5 * hit.GetBar().GetBarLength();
+}
+
+double GetTrueDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  return DistanceFromReadout(hit, true_hit.GetX(), true_hit.GetY());
+}
+
+double GetTrueLongDistanceFromReadout(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
+  return LongDistanceFromReadout(hit, true_hit.GetX(), true_hit.GetY());
 }
 
 double GetTrueDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
-  const double barLength = hit.GetBar().GetBarLength();
-  // Distance from a bar's own readout end to its own geometric center is half its length,
-  // for both bar types -- X-bars and Y-bars are both single-ended readout with a reflecting
-  // far end (X-bars split into two mirror-image halves at the detector's central gap, Y-bars
-  // not split), so both are defined symmetrically about their own center (readout locations
-  // are barCenter +/- 0.5*barLength in XBarPosReadoutLocation/XBarNegReadoutLocation/
-  // YBarReadoutLocation). Written directly rather than routed through XBarLength()/
-  // YBarLength() since those two are now identical (both just return barLength).
-  return GetTrueDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
+  return DistanceFromMiddle(hit, true_hit.GetX(), true_hit.GetY());
 }
 
 double GetTrueLongDistanceFromMiddle(const TMS_Hit &hit, const TMS_TrueHit &true_hit) {
-  const double barLength = hit.GetBar().GetBarLength();
-  // Same bar-type-independent center offset as GetTrueDistanceFromMiddle() above.
-  return GetTrueLongDistanceFromReadout(hit, true_hit) - 0.5 * barLength;
+  return LongDistanceFromMiddle(hit, true_hit.GetX(), true_hit.GetY());
 }
 } // namespace
 
@@ -67,9 +86,11 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
   // Steps:
   // Loop over hits
   // Convert hit E -> PE
-  // Do a poisson throw to get the number of PE
   // Apply some effect of PE capture into the fiber (assumed to be part of E -> PE conversion)
-  // Split PE in two randomly for short path vs the long way.
+  // Default: do a poisson throw to get the number of PE, split it in two randomly for the
+  // short path vs the long way, then attenuate each path.
+  // Sim.Optical.PoissonAfterAttenuation: attenuate the expected PE of each path first, then
+  // do a poisson throw per path.
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
   // TODO add second exponential term using fast decay length
@@ -88,8 +109,121 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
   const double optic_fiber_length = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_AdditionalFiberLength();
 
   const double readout_coupling_eff = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_ReadoutCouplingEff();
+  const bool poisson_after_attenuation = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_PoissonAfterAttenuation();
+  const bool use_response_elements = TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements();
+
+  // Path efficiencies for light produced at a given (length-multiplied) distance from the
+  // readout: WLS attenuation (and end reflection for the long way), optional additional optical
+  // fiber, then fiber-to-readout coupling. Applied as a sequence of multiplications so the
+  // default (draw-then-attenuate) path reproduces the previous arithmetic exactly.
+  auto attenuate_short = [&](double x, double distance) {
+    if (should_simulate_fiber_lengths) {
+      // Now do exponential decay
+      x = x * std::exp(-wsf_decay_constant * distance);
+      // Now possibly couple to a regular optical fiber
+      if (optic_fiber_length > 0) x = fiber_coupling_eff * x * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
+    }
+    // Now couple between the fibers and the readout
+    return x * readout_coupling_eff;
+  };
+  auto attenuate_long = [&](double x, double distance) {
+    if (should_simulate_fiber_lengths) {
+      x = x * std::exp(-wsf_decay_constant * distance) * wsf_fiber_reflection_eff;
+      if (optic_fiber_length > 0) x = fiber_coupling_eff * x * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
+    }
+    return x * readout_coupling_eff;
+  };
+  // std::poisson_distribution requires a positive mean
+  auto poisson_draw = [&](double mean) {
+    if (mean <= 0) return 0.0;
+    std::poisson_distribution<int> poisson(mean);
+    return static_cast<double>(poisson(generator));
+  };
+
+  // Response-element path: light is simulated per optical deposit and each detected photon
+  // gets an explicit sensor arrival time (used by SimulateTimingModel()).
+  const double light_yield = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_LightYield();
+  const double deposit_bin_length = TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_DepositBinLength();
+  const double passage_max_gap = TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_PassageMaxGap();
+  const double speed_of_light_in_fiber = SPEED_OF_LIGHT / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_FiberRefractiveIndex();
+  std::exponential_distribution<double> exp_scint(1 / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ScintillatorDecayTime());
+  std::exponential_distribution<double> exp_wsf(1 / TMS_Readout_Manager::GetInstance().Get_Sim_Timing_WLSDecayTime());
 
   for (auto& hit : TMS_Hits) {
+    if (use_response_elements) {
+      const std::vector<TMS_Passage::Segment>* segments = event.GetResponseSegments(hit.GetHitId());
+      if (segments == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no recorded steps while Sim.DetSim.UseResponseElements is on");
+      double pe_short = 0;
+      double pe_long = 0;
+      double cumulative_short = 0, cumulative_long = 0;
+      int emitted_short = 0, emitted_long = 0;
+      for (const auto& passage_indices : TMS_Passage::BuildPassages(*segments, passage_max_gap)) {
+        std::vector<TMS_Passage::Segment> passage;
+        for (size_t i : passage_indices) passage.push_back((*segments)[i]);
+        for (const auto& deposit : TMS_Passage::Resegment(passage, deposit_bin_length)) {
+          // Local Birks suppression from the deposit's own dE/dx
+          const double dedx = (deposit.dx > 1e-8) ? deposit.energy / deposit.dx : deposit.energy / 1.0;
+          const double pe_produced = deposit.energy * light_yield / (1.0 + birks_constant * dedx);
+          const double x = deposit.position[0];
+          const double y = deposit.position[1];
+          double distance = 0, long_distance = 0, middle = 0, long_middle = 0;
+          if (should_simulate_fiber_lengths) {
+            distance = DistanceFromReadout(hit, x, y) * 1e-3 * wsf_length_multiplier; // m
+            long_distance = LongDistanceFromReadout(hit, x, y) * 1e-3 * wsf_length_multiplier;
+          }
+          middle = DistanceFromMiddle(hit, x, y) * 1e-3 * wsf_length_multiplier;
+          long_middle = LongDistanceFromMiddle(hit, x, y) * 1e-3 * wsf_length_multiplier;
+          // Half the light goes each way; detected photons per path are Poisson with the fully
+          // attenuated mean (as Sim.Optical.PoissonAfterAttenuation)
+          const double mean_short = attenuate_short(0.5 * pe_produced, distance);
+          const double mean_long = attenuate_long(0.5 * pe_produced, long_distance);
+          const double n_short = should_simulate_poisson_throws ? poisson_draw(mean_short) : mean_short;
+          const double n_long = should_simulate_poisson_throws ? poisson_draw(mean_long) : mean_long;
+          pe_short += n_short;
+          pe_long += n_long;
+          // Arrival time at the sensor, corrected to the strip center as in SimulateTimingModel()
+          // Photon count per path = ceil of the running total of detected PE (so the count of the
+          // whole path does not depend on how many deposits it was split into, also when the
+          // mean is not Poisson-drawn and the per-deposit value is fractional). Known limitation of
+          // that non-default mode (ShouldSimulatePoisson = false): the photon of a fractional path
+          // is emitted at the deposit where the running total first crosses an integer, which is
+          // earlier for finer bins; the default Poisson mode has integer photons per deposit.)
+          cumulative_short += n_short;
+          cumulative_long += n_long;
+          const int photons_short = static_cast<int>(std::ceil(cumulative_short - 1e-9)) - emitted_short;
+          const int photons_long = static_cast<int>(std::ceil(cumulative_long - 1e-9)) - emitted_long;
+          emitted_short += std::max(photons_short, 0);
+          emitted_long += std::max(photons_long, 0);
+          for (int i = 0; i < photons_short; ++i) {
+            // Separate statements: the evaluation order of the operands of + is unspecified, and
+            // the two draws share one generator
+            const double t_scint = exp_scint(generator);
+            const double t_wsf = exp_wsf(generator);
+            const double t = deposit.t + middle / speed_of_light_in_fiber + t_scint + t_wsf;
+            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), false);
+          }
+          for (int i = 0; i < photons_long; ++i) {
+            const double t_scint = exp_scint(generator);
+            const double t_wsf = exp_wsf(generator);
+            const double t = deposit.t + long_middle / speed_of_light_in_fiber + t_scint + t_wsf;
+            event.AddPhotonArrival(hit.GetHitId(), t, hit.GetHitId(), true);
+          }
+        }
+      }
+      event.SortPhotonArrivals(hit.GetHitId());
+      const double pe = pe_short + pe_long;
+      TMS_TrueHit* adjustable_true_hit = event.GetAdjustableTrueHit(hit.GetHitId());
+      if (adjustable_true_hit == nullptr) throw std::runtime_error("Fatal: SimulateOpticalModel() found a hit with no truth -- this stage is MC-only");
+      adjustable_true_hit->SetPEAfterFibers(pe);
+      adjustable_true_hit->SetPEAfterFibersLongPath(pe_long);
+      adjustable_true_hit->SetPEAfterFibersShortPath(pe_short);
+      hit.SetPE(pe);
+      double reco_e = pe * TMS_Manager::GetInstance().Get_RECO_CALIBRATION_EnergyCalibration();
+      hit.SetE(reco_e);
+      hit.SetEVis(reco_e);
+      continue;
+    }
+
     double pe = hit.GetPE();
 
     // Applies birk's suppression
@@ -105,20 +239,13 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
     else dedx = de / 1.0;
     pe *= 1.0 / (1.0 + birks_constant * dedx);
 
-    double pe_short = pe;
-    double pe_long = 0;
-    if (should_simulate_poisson_throws) {
-      // Do a poisson throw to get the number of PE
-      std::poisson_distribution<int> poisson(pe);
-      pe = poisson(generator);
-      // Now split the photons into the long and short paths with 50% chance of each
-      std::binomial_distribution<int> binomial(pe, 0.5);
-      pe_short = binomial(generator);
-      pe_long = pe - pe_short;
-    }
-
+    // Path efficiencies: WLS attenuation (and end reflection for the long way), optional
+    // additional optical fiber, then fiber-to-readout coupling. Applied as a sequence of
+    // multiplications so the default (draw-then-attenuate) path reproduces the previous
+    // arithmetic exactly.
+    double distance_from_end = 0;
+    double long_way_distance_from_end = 0;
     if (should_simulate_fiber_lengths) {
-
       // Calculate the long and short path lengths
 #ifdef USE_OLD_CODE
       double true_y = true_hit->GetY() / 1000.0; // m
@@ -128,31 +255,38 @@ void TMS_DetectorSimulation::SimulateOpticalModel(TMS_Event &event, std::default
       // TODO manually found this center. Make function in geom tools that returns values about scint
       // TODO fix math
       double distance_from_middle = TMS_Manager::GetInstance().Get_Geometry_YMIDDLE() - true_y;  // -1.54799
-      double distance_from_end = distance_from_middle + 2;
-      double long_way_distance_from_end = 4 + (4 - distance_from_end);
+      distance_from_end = distance_from_middle + 2;
+      long_way_distance_from_end = 4 + (4 - distance_from_end);
 #else
-      double distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
-      double long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      distance_from_end = GetTrueDistanceFromReadout(hit, *true_hit) * 1e-3; // m
+      long_way_distance_from_end = GetTrueLongDistanceFromReadout(hit, *true_hit) * 1e-3; // m
 #endif
       // In reality, light bounces so there's a multiplier
       // TODO it may be more realistic to make this non-linear
       distance_from_end *= wsf_length_multiplier;
       long_way_distance_from_end *= wsf_length_multiplier;
-
-      // Now do exponential decay
-      pe_short = pe_short * std::exp(-wsf_decay_constant * distance_from_end);
-      pe_long = pe_long * std::exp(-wsf_decay_constant * long_way_distance_from_end) * wsf_fiber_reflection_eff;
-
-      // Now possibly couple to a regular optical fiber
-      if (optic_fiber_length > 0) {
-        pe_short = fiber_coupling_eff * pe_short * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
-        pe_long = fiber_coupling_eff * pe_long * std::exp(-optic_fiber_decay_constant * optic_fiber_length);
-      }
     }
-
-    // Now couple between the fibers and the readout
-    pe_long = pe_long * readout_coupling_eff;
-    pe_short = pe_short * readout_coupling_eff;
+    double pe_short = pe;
+    double pe_long = 0;
+    if (should_simulate_poisson_throws && poisson_after_attenuation) {
+      // Photons are produced and each one independently survives to the sensor, so the
+      // number detected on each path is Poisson with the fully attenuated expected mean
+      // (half the produced light goes each way). Integer PE, same mean as below.
+      pe_short = poisson_draw(attenuate_short(0.5 * pe, distance_from_end));
+      pe_long = poisson_draw(attenuate_long(0.5 * pe, long_way_distance_from_end));
+    } else {
+      if (should_simulate_poisson_throws) {
+        // Do a poisson throw to get the number of PE
+        std::poisson_distribution<int> poisson(pe);
+        pe = poisson(generator);
+        // Now split the photons into the long and short paths with 50% chance of each
+        std::binomial_distribution<int> binomial(pe, 0.5);
+        pe_short = binomial(generator);
+        pe_long = pe - pe_short;
+      }
+      pe_short = attenuate_short(pe_short, distance_from_end);
+      pe_long = attenuate_long(pe_long, long_way_distance_from_end);
+    }
 
     // Now save this information
     pe = pe_long + pe_short;
@@ -193,14 +327,26 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   // TODO check constants or put in config
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
-  std::normal_distribution<double> noise_distribution(0.0, 1); // Mean of 0.0 and standard deviation of 1ns
-  double scintillator_decay_time = 3.0; // ns
-  double wsf_decay_time = 20.0; // ns
-  std::exponential_distribution<double> exp_scint(1 / scintillator_decay_time); // Decay time = 3ns for scintillator
-  std::exponential_distribution<double> exp_wsf(1 / wsf_decay_time); // 20ns for wavelength shifting fiber
-  const double SPEED_OF_LIGHT =  0.2998; // m/ns
-  const double FIBER_N = 1.5; //
+  // std::normal_distribution requires a positive standard deviation: a noise-free setting (0) uses a negligible one
+  std::normal_distribution<double> noise_distribution(0.0, std::max(TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise(), 1e-12)); // ns
+  double scintillator_decay_time = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ScintillatorDecayTime(); // ns
+  double wsf_decay_time = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_WLSDecayTime(); // ns
+  std::exponential_distribution<double> exp_scint(1 / scintillator_decay_time);
+  std::exponential_distribution<double> exp_wsf(1 / wsf_decay_time); // wavelength shifting fiber
+  const double FIBER_N = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_FiberRefractiveIndex();
   const double SPEED_OF_LIGHT_IN_FIBER = SPEED_OF_LIGHT / FIBER_N;
+
+  if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
+    // Response-element path: SimulateOpticalModel() already generated every detected photon
+    // with its sensor arrival time; the hit time is the first arrival. The electronic time noise
+    // is added once per readout in SimulateChannelReadout().
+    for (auto& hit : TMS_Hits) {
+      const std::vector<TMS_PhotonArrival>* arrivals = event.GetPhotonArrivals(hit.GetHitId());
+      // No detected photons: keep the true time, as the default path does
+      if (arrivals != nullptr && !arrivals->empty()) hit.SetT(arrivals->front().Time);
+    }
+    return;
+  }
 
   const double wsf_length_multiplier = TMS_Readout_Manager::GetInstance().Get_Sim_Optical_WSFLengthMultiplier();
 
@@ -254,7 +400,7 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
     double pe_short_path = true_hit->GetPEAfterFibersShortPath();
     double pe_long_path = true_hit->GetPEAfterFibersLongPath();
     double minimum_time_offset = 1e100;
-    const double MAX_PE_THROWS = 300;
+    const double MAX_PE_THROWS = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_MaxTimingPhotons();
     const int n_short_photons = std::min(static_cast<int>(std::ceil(pe_short_path)),
                                          static_cast<int>(MAX_PE_THROWS));
     const int n_long_photons = std::min(static_cast<int>(std::ceil(pe_long_path)),
@@ -436,6 +582,96 @@ void TMS_DetectorSimulation::SimulateDeadtime(TMS_Event &event) {
     std::cout<<"N dead hits: "<<n_dead_hits<<" out of "<<TMS_Hits.size()<<" hits. That's "<<n_dead_hits_as_percent<<"%"<<std::endl;
     if (zombie_time > 0) std::cout<<"N zombie hits: "<<n_zombie_hits<<std::endl;
   }
+}
+
+void TMS_DetectorSimulation::SimulateChannelReadout(TMS_Event &event, std::default_random_engine &generator) {
+  // Same readout model as SimulateDeadtime() + TMS_SignalProcessing::MergeCoincidentHits(), done
+  // once per channel:  |----  readout -----|------- deadtime ----{zombie time}]
+  // The first hit in a channel opens a readout window of Sim.Readout.ReadoutTime; later hits in
+  // the window are merged into it. The channel is then dead for Sim.Readout.Deadtime (if > 0):
+  // hits in the deadtime are lost, except that hits in the final Sim.Readout.ZombieTime (if > 0)
+  // are read at the end of the deadtime as the start of the next readout.
+  std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
+  const double readout_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ReadoutTime();
+  const double deadtime = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_Deadtime();
+  const double zombie_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ZombieTime();
+  // std::normal_distribution requires a positive standard deviation: a noise-free setting (0) uses a negligible one
+  std::normal_distribution<double> time_noise(0.0, std::max(TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise(), 1e-12));
+
+  std::map<TMS_ChannelId, std::vector<size_t>> hits_by_channel;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (TMS_Hits[i].GetPedSup()) continue;
+    // A hit with no detected photon cannot open a readout window or start a deadtime; it stays
+    // as it is and is removed by the pedestal threshold
+    if (TMS_Hits[i].GetPE() <= 0) continue;
+    hits_by_channel[TMS_Hits[i].GetChannelId()].push_back(i);
+  }
+
+  std::vector<bool> remove(TMS_Hits.size(), false);
+  std::vector<size_t> readouts;
+  for (auto& channel : hits_by_channel) {
+    std::vector<size_t>& idx = channel.second;
+    std::stable_sort(idx.begin(), idx.end(), [&](size_t a, size_t b) { return TMS_Hits[a].GetT() < TMS_Hits[b].GetT(); });
+    bool open = false;
+    size_t current = 0;
+    double t_read = 0, t_dead = 0;
+    auto start_readout = [&](size_t i, double t) {
+      current = i;
+      open = true;
+      readouts.push_back(i);
+      t_read = t + readout_time;
+      t_dead = t_read + std::max(deadtime, 0.0);
+      if (deadtime > 0) {
+        const TMS_Hit& hit = TMS_Hits[i];
+        event.AddDeadtimeChannelRecord(std::make_pair(hit.GetNotZ(), hit.GetZ()), std::make_pair(t_read, t_dead), std::make_pair(t, t_read));
+        #ifdef RECORD_HIT_DEADTIME
+        TMS_Hits[i].SetDeadtimeStart(t_read);
+        TMS_Hits[i].SetDeadtimeStop(t_dead);
+        #endif
+      }
+    };
+    for (size_t i : idx) {
+      TMS_Hit& hit = TMS_Hits[i];
+      const double t = hit.GetT();
+      if (!open || t >= t_dead) {
+        start_readout(i, t);
+      } else if (t < t_read) {
+        // MergeWith() keeps the earlier time; the readout keeps the time it was opened at (a zombie
+        // readout is opened at the end of the deadtime, later than the hits that join it)
+        const double opened_at = TMS_Hits[current].GetT();
+        TMS_Hits[current].MergeWith(hit);
+        TMS_Hits[current].SetT(opened_at);
+        event.MergeTrueHit(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        event.MergePhotonArrivals(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        event.MergeResponseSegments(TMS_Hits[current].GetHitId(), hit.GetHitId());
+        remove[i] = true;
+      } else if (zombie_time > 0 && t >= t_dead - zombie_time) {
+        // Read at the end of the deadtime, as the start of the next readout
+        hit.SetT(t_dead);
+        start_readout(i, t_dead);
+      } else {
+        // Lost in the deadtime
+        remove[i] = true;
+      }
+    }
+  }
+
+  // One electronic time measurement per readout
+  for (size_t i : readouts) TMS_Hits[i].SetT(TMS_Hits[i].GetT() + time_noise(generator));
+
+  std::vector<TMS_Hit> remaining_hits;
+  for (size_t i = 0; i < TMS_Hits.size(); ++i) {
+    if (!remove[i]) {
+      remaining_hits.push_back(TMS_Hits[i]);
+    } else {
+      event.EraseTrueHit(TMS_Hits[i].GetHitId());
+      event.ErasePhotonArrivals(TMS_Hits[i].GetHitId());
+      event.EraseResponseSegments(TMS_Hits[i].GetHitId());
+    }
+  }
+  // Same final ordering as MergeCoincidentHits()
+  std::sort(remaining_hits.begin(), remaining_hits.end(), TMS_Hit::SortByZThenT);
+  TMS_Hits = std::move(remaining_hits);
 }
 
 void TMS_DetectorSimulation::SimulateReadoutNoise(TMS_Event &event, std::default_random_engine &generator) {

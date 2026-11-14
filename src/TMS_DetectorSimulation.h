@@ -21,6 +21,10 @@ class TMS_DetectorSimulation {
     void SimulateDarkCount(TMS_Event &event);
     void SimulateTimingModel(TMS_Event &event, std::default_random_engine &generator);
     void SimulateDeadtime(TMS_Event &event);
+    // Response-element pipeline (Sim.DetSim.UseResponseElements): readout windows, deadtime and
+    // zombie time per TMS_ChannelId, replacing SimulateDeadtime() + the post-simulation
+    // MergeCoincidentHits(). Adds the electronic time noise once per readout.
+    void SimulateChannelReadout(TMS_Event &event, std::default_random_engine &generator);
     void SimulateReadoutNoise(TMS_Event &event, std::default_random_engine &generator);
 
   private:

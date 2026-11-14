@@ -12,6 +12,9 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
   std::sort(TMS_Hits.begin(), TMS_Hits.end(), TMS_Hit::SortByZThenT);
 
   const double readout_time = TMS_Readout_Manager::GetInstance().Get_Sim_Readout_ReadoutTime();
+  // (z, NotZ) does not distinguish the two halves of a split X-bar, which are separate
+  // channels; the response-element pipeline also requires the same TMS_ChannelId.
+  const bool same_channel_required = TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements();
 
   // Loop over the original hits
   for (std::vector<TMS_Hit>::iterator it = TMS_Hits.begin();
@@ -36,13 +39,17 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
 
       // Merge
       // Same z and NotZ is not enough: the two halves of a split X-bar share both but are
-      // separate channels (different bar numbers), read out at opposite ends.
-      if (z == z2 && y == y2 && (*it).GetBarNumber() == hit2.GetBarNumber() && fabs(t2-t) < readout_time) {
+      // separate channels (different bar numbers), read out at opposite ends. The
+      // response-element pipeline additionally requires the same typed channel id (then the
+      // bar check is redundant but harmless).
+      if (z == z2 && y == y2 && (*it).GetBarNumber() == hit2.GetBarNumber() && fabs(t2-t) < readout_time &&
+          (!same_channel_required || (*it).GetChannelId() == hit2.GetChannelId())) {
         (*it).MergeWith(hit2);
         // Phase III: merge the event-level truth side table by HitId alongside the reco-level
         // merge above, since TMS_TrueHit is no longer embedded in TMS_Hit.
         event.MergeTrueHit((*it).GetHitId(), hit2.GetHitId());
         event.MergePhotonArrivals((*it).GetHitId(), hit2.GetHitId());
+        event.MergeResponseSegments((*it).GetHitId(), hit2.GetHitId());
         // todo, we may want to store an array of true hits. One way would be to move the merging code within the hit class
         duplicates.push_back(jt);
       }
@@ -62,6 +69,7 @@ void TMS_SignalProcessing::MergeCoincidentHits(TMS_Event &event) {
     } else {
       event.EraseTrueHit(hit.GetHitId());
       event.ErasePhotonArrivals(hit.GetHitId());
+      event.EraseResponseSegments(hit.GetHitId());
     }
   }
   TMS_Hits = std::move(remaining_hits);
