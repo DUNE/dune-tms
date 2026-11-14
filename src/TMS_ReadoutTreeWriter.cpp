@@ -54,6 +54,12 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
     TMS_Readout->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
     TMS_Readout->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
     TMS_Readout->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
+    TMS_Readout->Branch("TrueHitLightContribOffset", &TrueHitLightContribOffset, "TrueHitLightContribOffset[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitNLightContrib", &TrueHitNLightContrib, "TrueHitNLightContrib[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitLightContribPrimaryId", &TrueHitLightContrib.PrimaryId);
+    TMS_Readout->Branch("TrueHitLightContribVertexId", &TrueHitLightContrib.VertexId);
+    TMS_Readout->Branch("TrueHitLightContribPhotons", &TrueHitLightContrib.Photons);
+    TMS_Readout->Branch("TrueHitLightContribShare", &TrueHitLightContrib.Share);
   }
   
   // Reco branches
@@ -89,6 +95,7 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
   // Clear branches
   NRecoHits = 0;
   NTrueHits = 0;
+  TrueHitLightContrib.Clear();
 
   // Now fill branches
   // Get all hits including ped supped ones
@@ -126,6 +133,7 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
         TrueHitLightShare[true_index] = true_hit->GetLightShare();
         TrueHitFirstPhotonPrimaryId[true_index] = true_hit->GetFirstPhotonPrimaryId();
         TrueHitFirstPhotonVertexId[true_index] = true_hit->GetFirstPhotonVertexGlobalId();
+        TrueHitLightContrib.Append(*true_hit, TrueHitLightContribOffset[true_index], TrueHitNLightContrib[true_index]);
         true_index += 1;
         NTrueHits += 1;
       }

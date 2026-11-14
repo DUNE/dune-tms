@@ -1,4 +1,5 @@
 #include "TMS_Readout_Manager.h"
+#include "TMS_BadChannels.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -112,5 +113,8 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   if (_SIM_DETSIM_UseResponseElements) {
     if (!(_SIM_DETSIM_DepositBinLength > 0) || !std::isfinite(_SIM_DETSIM_DepositBinLength)) throw std::runtime_error("Sim.DetSim.DepositBinLength must be positive and finite");
     if (!(_SIM_DETSIM_PassageMaxGap >= 0) || !std::isfinite(_SIM_DETSIM_PassageMaxGap)) throw std::runtime_error("Sim.DetSim.PassageMaxGap must be zero or positive");
+    // The decoder applies the bad-channel list: read it now so that a missing or malformed list fails at
+    // configuration load, not in the middle of the first spill
+    TMS_BadChannels::GetInstance();
   }
 }

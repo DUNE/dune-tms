@@ -57,7 +57,10 @@ LIB_TMS = -lTMS_Prod
 EXE_DIR = ../bin
 MKDIR_P := mkdir -p
 
-all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe $(EXE_DIR)/RealDataSmokeTest.exe $(EXE_DIR)/PassageUtilsTest.exe
+# ChannelReadoutTest, DetSimStageScan and ArtificialResegmentationTest are CMake-only: they build
+# synthetic edep-sim events by assigning TG4PrimaryParticle members, which are private in newer
+# edep-sim releases (the CI Make build clones the latest one and fails to compile them).
+all: directories $(EXE_DIR)/ConvertToTMSTree.exe $(EXE_DIR)/BetheBloch_Example.exe $(EXE_DIR)/DBSCAN_test.exe $(EXE_DIR)/DrawEvents.exe $(EXE_DIR)/TrackLengthTester.exe $(EXE_DIR)/ShootRay.exe $(EXE_DIR)/BField_tester.exe $(EXE_DIR)/CherryPickEvents.exe $(EXE_DIR)/RealDataSmokeTest.exe $(EXE_DIR)/PassageUtilsTest.exe $(EXE_DIR)/BadChannelsTest.exe $(EXE_DIR)/DumpChannels.exe
 
 # Sanitize target
 sanitize: CXXFLAGS += -fsanitize=address
@@ -78,6 +81,12 @@ $(EXE_DIR)/RealDataSmokeTest.exe: RealDataSmokeTest.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 $(EXE_DIR)/PassageUtilsTest.exe: PassageUtilsTest.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
+
+$(EXE_DIR)/BadChannelsTest.exe: BadChannelsTest.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
+
+$(EXE_DIR)/DumpChannels.exe: DumpChannels.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L $(LIB_DIR) $(LIB_TMS) $(LIB_OBJ) $(BUILD_FLAGS)
 
 $(EXE_DIR)/BetheBloch_Example.exe: BetheBloch_Example.cpp

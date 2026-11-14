@@ -20,7 +20,8 @@ class TMS_TrueHit {
     // Or else true particle information is lost 
     // Copy constructor
     TMS_TrueHit(const TMS_TrueHit& other) : PrimaryIds(other.PrimaryIds),
-      VertexGlobalIds(other.VertexGlobalIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic)
+      VertexGlobalIds(other.VertexGlobalIds), EnergyShare(other.EnergyShare), EnergyShareIsLeptonic(other.EnergyShareIsLeptonic),
+      LightPrimaryIds(other.LightPrimaryIds), LightVertexGlobalIds(other.LightVertexGlobalIds), LightPhotonCounts(other.LightPhotonCounts)
     {
         if (this != &other) {
           x = other.x;
@@ -49,6 +50,9 @@ class TMS_TrueHit {
           VertexGlobalIds = other.VertexGlobalIds;
           EnergyShare = other.EnergyShare;
           EnergyShareIsLeptonic = other.EnergyShareIsLeptonic;
+          LightPrimaryIds = other.LightPrimaryIds;
+          LightVertexGlobalIds = other.LightVertexGlobalIds;
+          LightPhotonCounts = other.LightPhotonCounts;
           x = other.x;
           y = other.y;
           z = other.z;
@@ -76,6 +80,9 @@ class TMS_TrueHit {
           VertexGlobalIds = std::move(other.VertexGlobalIds);
           EnergyShare = std::move(other.EnergyShare);
           EnergyShareIsLeptonic = std::move(other.EnergyShareIsLeptonic);
+          LightPrimaryIds = std::move(other.LightPrimaryIds);
+          LightVertexGlobalIds = std::move(other.LightVertexGlobalIds);
+          LightPhotonCounts = std::move(other.LightPhotonCounts);
           x = other.x;
           y = other.y;
           z = other.z;
@@ -143,6 +150,16 @@ class TMS_TrueHit {
       NPhotons = n_photons; PrimaryIdByLight = primary_id; VertexGlobalIdByLight = vertex_id;
       LightShare = share; FirstPhotonPrimaryId = first_primary_id; FirstPhotonVertexGlobalId = first_vertex_id;
     };
+    // The full light breakdown of the same readout: one entry per (trajectory, vertex) that
+    // produced at least one detected photon, ascending in (vertex, trajectory), with its photon
+    // count (fraction = count / NPhotons). Empty unless FillLightProvenance() ran.
+    void SetLightContributions(std::vector<int> primary_ids, std::vector<long long> vertex_ids, std::vector<int> photon_counts) {
+      LightPrimaryIds = std::move(primary_ids); LightVertexGlobalIds = std::move(vertex_ids); LightPhotonCounts = std::move(photon_counts);
+    };
+    size_t GetNLightContributions() const { return LightPhotonCounts.size(); };
+    int GetLightContributionPrimaryId(size_t i) const { return LightPrimaryIds.at(i); };
+    long long GetLightContributionVertexGlobalId(size_t i) const { return LightVertexGlobalIds.at(i); };
+    int GetLightContributionPhotons(size_t i) const { return LightPhotonCounts.at(i); };
     int GetNPhotons() const { return NPhotons; };
     int GetPrimaryIdByLight() const { return PrimaryIdByLight; };
     long long GetVertexGlobalIdByLight() const { return VertexGlobalIdByLight; };
@@ -192,6 +209,10 @@ class TMS_TrueHit {
     double LightShare = -999;
     int FirstPhotonPrimaryId = -999;
     long long FirstPhotonVertexGlobalId = -999;
+    // See SetLightContributions()
+    std::vector<int> LightPrimaryIds;
+    std::vector<long long> LightVertexGlobalIds;
+    std::vector<int> LightPhotonCounts;
     
     // Store individual particles for later particle identication
     std::vector<int> PrimaryIds;

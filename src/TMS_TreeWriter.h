@@ -13,6 +13,7 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
+#include "TMS_LightContribColumns.h"
 
 // Only hard-coded for constant ROOT strucutre
 // Could (and probably should) be replaced by vectors
@@ -605,6 +606,7 @@ class TMS_TreeWriter {
     MYVAR(TrueHitT);
     MYVAR(TrueHitE);
     MYVAR(TrueHitPE);
+    MYVAR(TrueHitDx);
     MYVAR(TrueHitPEAfterFibers);
     MYVAR(TrueHitPEAfterFibersLongPath);
     MYVAR(TrueHitPEAfterFibersShortPath);
@@ -625,6 +627,11 @@ class TMS_TreeWriter {
     MYVAR(TrueHitLightShare);
     INTMYVAR(TrueHitFirstPhotonPrimaryId);
     Long64_t TrueHitFirstPhotonVertexId[__MAX_TRUE_TREE_ARRAY_LENGTH__];
+    // Full light breakdown per true hit: entries [TrueHitLightContribOffset, +TrueHitNLightContrib)
+    // of the flat TrueHitLightContrib* vectors, one per particle that produced detected photons
+    INTMYVAR(TrueHitLightContribOffset);
+    INTMYVAR(TrueHitNLightContrib);
+    TMS_LightContribColumns TrueHitLightContrib;
     MYVAR(TrueLeptonicEnergy);
     MYVAR(TrueHadronicEnergy);
     

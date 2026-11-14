@@ -681,6 +681,7 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueHitT",  &TrueHitT,  "TrueHitT[NTrueHits]/F");
   Truth_Info->Branch("TrueHitE",  &TrueHitE,  "TrueHitE[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPE", &TrueHitPE, "TrueHitPE[NTrueHits]/F");
+  Truth_Info->Branch("TrueHitDx", &TrueHitDx, "TrueHitDx[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibers",          &TrueHitPEAfterFibers,          "TrueHitPEAfterFibers[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibersLongPath",  &TrueHitPEAfterFibersLongPath,  "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
   Truth_Info->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
@@ -713,6 +714,12 @@ void TMS_TreeWriter::MakeBranches() {
   Truth_Info->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
   Truth_Info->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
   Truth_Info->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
+  Truth_Info->Branch("TrueHitLightContribOffset", &TrueHitLightContribOffset, "TrueHitLightContribOffset[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitNLightContrib", &TrueHitNLightContrib, "TrueHitNLightContrib[NTrueHits]/I");
+  Truth_Info->Branch("TrueHitLightContribPrimaryId", &TrueHitLightContrib.PrimaryId);
+  Truth_Info->Branch("TrueHitLightContribVertexId", &TrueHitLightContrib.VertexId);
+  Truth_Info->Branch("TrueHitLightContribPhotons", &TrueHitLightContrib.Photons);
+  Truth_Info->Branch("TrueHitLightContribShare", &TrueHitLightContrib.Share);
 }
 
 void TMS_TreeWriter::MakeTruthBranches(TTree* truth) {
@@ -2003,6 +2010,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
   
   // Clear branches
   NTrueHits = 0;
+  TrueHitLightContrib.Clear();
   int index = 0;
   for (auto& hit : event.GetHitsRaw()) {
     if (index >= __MAX_TRUE_TREE_ARRAY_LENGTH__) {
@@ -2026,6 +2034,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         TrueHitT[index] = true_hit->GetT();
         TrueHitE[index] = true_hit->GetE();
         TrueHitPE[index] = true_hit->GetPE();
+        TrueHitDx[index] = true_hit->GetdX();
         TrueHitPEAfterFibers[index] = true_hit->GetPEAfterFibers();
         TrueHitPEAfterFibersLongPath[index] = true_hit->GetPEAfterFibersLongPath();
         TrueHitPEAfterFibersShortPath[index] = true_hit->GetPEAfterFibersShortPath();
@@ -2043,6 +2052,7 @@ void TMS_TreeWriter::FillSlice(TMS_Event &event, const std::vector<TMS_Track> &t
         TrueHitLightShare[index] = true_hit->GetLightShare();
         TrueHitFirstPhotonPrimaryId[index] = true_hit->GetFirstPhotonPrimaryId();
         TrueHitFirstPhotonVertexId[index] = true_hit->GetFirstPhotonVertexGlobalId();
+        TrueHitLightContrib.Append(*true_hit, TrueHitLightContribOffset[index], TrueHitNLightContrib[index]);
         
         // Reco info
         TrueRecoHitX[index] = hit.GetX();

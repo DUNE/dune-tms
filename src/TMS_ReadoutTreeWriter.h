@@ -9,6 +9,7 @@
 #include "TMS_Manager.h"
 #include "TMS_Reco.h"
 #include "TMS_Event.h"
+#include "TMS_LightContribColumns.h"
 
 // Just a simple tree writer for the output tree
 class TMS_ReadoutTreeWriter {
@@ -68,6 +69,11 @@ class TMS_ReadoutTreeWriter {
     VAR(TrueHitLightShare);
     INTVAR(TrueHitFirstPhotonPrimaryId);
     Long64_t TrueHitFirstPhotonVertexId[__MAX_READOUT_TREE_ARRAY_LENGTH__];
+    // Full light breakdown per true hit: entries [TrueHitLightContribOffset, +TrueHitNLightContrib)
+    // of the flat TrueHitLightContrib* vectors (see TMS_TreeWriter.h)
+    INTVAR(TrueHitLightContribOffset);
+    INTVAR(TrueHitNLightContrib);
+    TMS_LightContribColumns TrueHitLightContrib;
     
     // Reco hit branches
     int NRecoHits;

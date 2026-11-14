@@ -1,4 +1,5 @@
 #include "TMS_Event.h"
+#include "TMS_BadChannels.h"
 #include "TMS_StageTimer.h"
 #include "TMS_Readout_Manager.h"
 #include "TMS_VertexId.h"
@@ -6,6 +7,7 @@
 #include "TMS_SignalProcessing.h"
 #include "TMS_SpacePointBuilder.h"
 #include "TMS_Cluster3DReco.h"
+#include "TMS_Decoder.h"
 #include "TDatabasePDG.h"
 #include <random>
 
@@ -541,17 +543,31 @@ void TMS_Event::ApplyReconstructionEffects() {
     // A5202 timing mode: discriminator on the summed fast-shaper pulses per channel gives the
     // hits, their time stamps and times over threshold; no separate window, noise or threshold
     TMS_DetectorSimulation::GetInstance().SimulateFrontEndTimingMode(*this, generator);
+    DecodeRawReadouts();
     FillLightProvenance();
     return;
   }
   if (TMS_Readout_Manager::GetInstance().Get_Sim_DetSim_UseResponseElements()) {
-    // Readout windows, deadtime and merging per electronics channel in one step
+    // Readout windows, deadtime and merging per electronics channel in one step. The pedestal
+    // threshold is not part of the electronics simulation: the decoder applies it.
     TMS_DetectorSimulation::GetInstance().SimulateChannelReadout(*this, generator);
     TMS_DetectorSimulation::GetInstance().SimulateReadoutNoise(*this, generator);
-    TMS_SignalProcessing::GetInstance().SimulatePedestalSubtraction(*this);
+    DecodeRawReadouts();
     FillLightProvenance();
     return;
   }
+  // The bad-channel list is applied by the decoder, which only the response-element pipeline uses:
+  // say so once instead of silently keeping the hits of the listed channels
+  static const bool warned_bad_channels = [] {
+    size_t n = 0;
+    try { n = TMS_BadChannels::GetInstance().Size(); } catch (const std::exception&) { n = 0; }  // an unreadable list is the decoder's business
+    if (n > 0) {
+      std::cerr << "Warning: " << n << " bad channel(s) are listed in [Decoder] BadChannelFile, but they are applied only with "
+                   "Sim.DetSim.UseResponseElements = true; the legacy detector simulation keeps their hits" << std::endl;
+    }
+    return true;
+  }();
+  (void)warned_bad_channels;
   // Simulate deadtime if needed
   TMS_DetectorSimulation::GetInstance().SimulateDeadtime(*this);
   // Merge hits that happened in the same scintillator strip and within the same readout time window
@@ -585,6 +601,14 @@ void TMS_Event::FillLightProvenance() {
     for (auto it = photons.begin(); it != photons.end(); ++it) {
       if (it->second > best->second) best = it;
     }
+    std::vector<int> contrib_primary, contrib_counts;
+    std::vector<long long> contrib_vertex;
+    for (const auto& kv : photons) {
+      contrib_vertex.push_back(kv.first.first);
+      contrib_primary.push_back(kv.first.second);
+      contrib_counts.push_back(kv.second);
+    }
+    truth->SetLightContributions(std::move(contrib_primary), std::move(contrib_vertex), std::move(contrib_counts));
     truth->SetLightProvenance(static_cast<int>(arrivals->size()), best->first.second, best->first.first,
                               static_cast<double>(best->second) / arrivals->size(),
                               first->TrajectoryId, first->VertexGlobalId);
@@ -1327,3 +1351,21 @@ long long TMS_Event::GetSpillID() const {
   }
   return spill_id;
 }
+
+// The electronics simulation leaves its readouts in TMS_Hits, which it uses as its working
+// container: one entry per channel readout, carrying the hit id of its truth. Hand them on as raw
+// readouts, and decode those into the TMS_Hits that reconstruction uses.
+void TMS_Event::DecodeRawReadouts() {
+  RawReadouts.clear();
+  RawReadouts.reserve(TMS_Hits.size());
+  for (const TMS_Hit& hit : TMS_Hits) {
+    RawReadouts.emplace_back(hit.GetChannelId(), hit.GetBar(), hit.GetHitId(), hit.GetT(), hit.GetPE(),
+                             hit.GetToT(), hit.GetE(), hit.GetEVis(), !hit.GetPedSup());
+    #ifdef RECORD_HIT_DEADTIME
+    RawReadouts.back().DeadtimeStart = hit.GetDeadtimeStart();
+    RawReadouts.back().DeadtimeStop = hit.GetDeadtimeStop();
+    #endif
+  }
+  TMS_Hits = TMS_MCDecoder::Decode(RawReadouts);
+}
+
