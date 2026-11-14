@@ -48,6 +48,12 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
     TMS_Readout->Branch("TrueHitPEAfterFibers", &TrueHitPEAfterFibers, "TrueHitPEAfterFibers[NTrueHits]/F");
     TMS_Readout->Branch("TrueHitPEAfterFibersLongPath", &TrueHitPEAfterFibersLongPath, "TrueHitPEAfterFibersLongPath[NTrueHits]/F");
     TMS_Readout->Branch("TrueHitPEAfterFibersShortPath", &TrueHitPEAfterFibersShortPath, "TrueHitPEAfterFibersShortPath[NTrueHits]/F");
+    TMS_Readout->Branch("TrueHitNPhotons", &TrueHitNPhotons, "TrueHitNPhotons[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitPrimaryIdByLight", &TrueHitPrimaryIdByLight, "TrueHitPrimaryIdByLight[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitVertexIdByLight", &TrueHitVertexIdByLight, "TrueHitVertexIdByLight[NTrueHits]/L");
+    TMS_Readout->Branch("TrueHitLightShare", &TrueHitLightShare, "TrueHitLightShare[NTrueHits]/F");
+    TMS_Readout->Branch("TrueHitFirstPhotonPrimaryId", &TrueHitFirstPhotonPrimaryId, "TrueHitFirstPhotonPrimaryId[NTrueHits]/I");
+    TMS_Readout->Branch("TrueHitFirstPhotonVertexId", &TrueHitFirstPhotonVertexId, "TrueHitFirstPhotonVertexId[NTrueHits]/L");
   }
   
   // Reco branches
@@ -59,6 +65,7 @@ void TMS_ReadoutTreeWriter::MakeBranches() {
   TMS_Readout->Branch("RecoHitT", &RecoHitT, "RecoHitT[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitE", &RecoHitE, "RecoHitE[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitPE", &RecoHitPE, "RecoHitPE[NRecoHits]/F");
+  TMS_Readout->Branch("RecoHitToT", &RecoHitToT, "RecoHitToT[NRecoHits]/F");
   TMS_Readout->Branch("RecoHitIsPedSupped", &RecoHitIsPedSupped, "RecoHitIsPedSupped[NRecoHits]/O");
   TMS_Readout->Branch("RecoHitBar", &RecoHitBar, "RecoHitBar[NRecoHits]/I");
   TMS_Readout->Branch("RecoHitPlane", &RecoHitPlane, "RecoHitPlane[NRecoHits]/I");
@@ -113,6 +120,12 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
         TrueHitPEAfterFibers[true_index] = true_hit->GetPEAfterFibers();
         TrueHitPEAfterFibersLongPath[true_index] = true_hit->GetPEAfterFibersLongPath();
         TrueHitPEAfterFibersShortPath[true_index] = true_hit->GetPEAfterFibersShortPath();
+        TrueHitNPhotons[true_index] = true_hit->GetNPhotons();
+        TrueHitPrimaryIdByLight[true_index] = true_hit->GetPrimaryIdByLight();
+        TrueHitVertexIdByLight[true_index] = true_hit->GetVertexGlobalIdByLight();
+        TrueHitLightShare[true_index] = true_hit->GetLightShare();
+        TrueHitFirstPhotonPrimaryId[true_index] = true_hit->GetFirstPhotonPrimaryId();
+        TrueHitFirstPhotonVertexId[true_index] = true_hit->GetFirstPhotonVertexGlobalId();
         true_index += 1;
         NTrueHits += 1;
       }
@@ -126,6 +139,7 @@ void TMS_ReadoutTreeWriter::Fill(TMS_Event &event) {
       RecoHitT[index] = hit.GetT();
       RecoHitE[index] = hit.GetE();
       RecoHitPE[index] = hit.GetPE();
+      RecoHitToT[index] = hit.GetToT();
       RecoHitIsPedSupped[index] = hit.GetPedSup();
       RecoHitBar[index] = hit.GetBarNumber();
       RecoHitPlane[index] = hit.GetPlaneNumber();
