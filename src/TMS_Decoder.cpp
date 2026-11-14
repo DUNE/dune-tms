@@ -23,7 +23,8 @@ std::vector<TMS_Hit> TMS_MCDecoder::Decode(const std::vector<TMS_RawReadout>& re
     hit.SetDeadtimeStart(readout.DeadtimeStart);
     hit.SetDeadtimeStop(readout.DeadtimeStop);
     #endif
-    hit.SetPedSup(!readout.Triggered || (!timing_mode && readout.Charge < threshold));
+    // A readout without charge (no detected photon) is never a hit, whatever the threshold
+    hit.SetPedSup(!readout.Triggered || (!timing_mode && (readout.Charge <= 0 || readout.Charge < threshold)));
     hits.push_back(std::move(hit));
   }
   return hits;

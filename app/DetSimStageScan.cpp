@@ -163,7 +163,7 @@ bool RunPathScan(std::ofstream& out, int nthrows, double distance_mm) {
   for (double p : {0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 9.0, 12.0, kBarThickness_mm}) cells.push_back({p, 1.0});
   for (double s : {2.0, 3.0, 4.0, 6.0, 8.0}) cells.push_back({9.0, s});
   BarAxis axis;
-  if (distance_mm > 0 && !axis.Probe()) return false;
+  if (!axis.Probe()) return false;  // always: a reference bar that makes no hit would give an all-zero scan
   int event_id = 0;
   for (const auto& cell : cells) {
     Crossing c = kRefBar;
@@ -364,6 +364,10 @@ int main(int argc, char** argv) {
   const std::string geom_file = argv[2];
   const std::string out_csv = argv[3];
   const int nthrows = (argc >= 5) ? std::atoi(argv[4]) : (mode == "pair" ? 200 : mode == "position" ? 1000 : mode == "pileup" ? 200 : 2000);
+  if (nthrows < 1) {
+    std::cerr << "nthrows must be at least 1\n";
+    return 1;
+  }
   const double distance_mm = (argc >= 6) ? std::atof(argv[5]) : -1;
   if (mode != "path" && mode != "position" && mode != "pileup" && mode != "pair") {
     std::cerr << "Unknown mode " << mode << "\n";
