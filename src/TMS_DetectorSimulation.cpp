@@ -327,7 +327,8 @@ void TMS_DetectorSimulation::SimulateTimingModel(TMS_Event &event, std::default_
   // TODO check constants or put in config
   std::vector<TMS_Hit> &TMS_Hits = event.GetHitsRawRef();
 
-  std::normal_distribution<double> noise_distribution(0.0, TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise()); // ns
+  // std::normal_distribution requires a positive standard deviation: a noise-free setting (0) uses a negligible one
+  std::normal_distribution<double> noise_distribution(0.0, std::max(TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ElectronicTimeNoise(), 1e-12)); // ns
   double scintillator_decay_time = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_ScintillatorDecayTime(); // ns
   double wsf_decay_time = TMS_Readout_Manager::GetInstance().Get_Sim_Timing_WLSDecayTime(); // ns
   std::exponential_distribution<double> exp_scint(1 / scintillator_decay_time);

@@ -57,15 +57,17 @@ TMS_Readout_Manager::TMS_Readout_Manager() {
   _SIM_TIMING_ElectronicTimeNoise = toml::find_or<double>(data, "Sim", "Timing", "ElectronicTimeNoise", 1.0);
   _SIM_TIMING_MaxTimingPhotons = toml::find_or<int>(data, "Sim", "Timing", "MaxTimingPhotons", 300);
 
-  // Settings of the response-element simulation that would divide by zero, draw from an undefined
-  // distribution or throw on the first event fail here with a clear message instead
+  // Settings that would divide by zero, draw from an undefined distribution or throw on the first
+  // event fail here with a clear message instead. The Sim.Timing keys are used by the legacy timing
+  // model too, so they are checked whichever pipeline runs; the deposit settings only matter for
+  // the response-element pipeline.
+  if (!(_SIM_TIMING_ScintillatorDecayTime > 0) || !std::isfinite(_SIM_TIMING_ScintillatorDecayTime)) throw std::runtime_error("Sim.Timing.ScintillatorDecayTime must be positive and finite");
+  if (!(_SIM_TIMING_WLSDecayTime > 0) || !std::isfinite(_SIM_TIMING_WLSDecayTime)) throw std::runtime_error("Sim.Timing.WLSDecayTime must be positive and finite");
+  if (!(_SIM_TIMING_FiberRefractiveIndex > 0) || !std::isfinite(_SIM_TIMING_FiberRefractiveIndex)) throw std::runtime_error("Sim.Timing.FiberRefractiveIndex must be positive and finite");
+  if (!(_SIM_TIMING_ElectronicTimeNoise >= 0) || !std::isfinite(_SIM_TIMING_ElectronicTimeNoise)) throw std::runtime_error("Sim.Timing.ElectronicTimeNoise must be zero or positive and finite");
+  if (_SIM_TIMING_MaxTimingPhotons < 1) throw std::runtime_error("Sim.Timing.MaxTimingPhotons must be at least 1");
   if (_SIM_DETSIM_UseResponseElements) {
     if (!(_SIM_DETSIM_DepositBinLength > 0) || !std::isfinite(_SIM_DETSIM_DepositBinLength)) throw std::runtime_error("Sim.DetSim.DepositBinLength must be positive and finite");
     if (!(_SIM_DETSIM_PassageMaxGap >= 0) || !std::isfinite(_SIM_DETSIM_PassageMaxGap)) throw std::runtime_error("Sim.DetSim.PassageMaxGap must be zero or positive");
-    if (!(_SIM_TIMING_ScintillatorDecayTime > 0) || !std::isfinite(_SIM_TIMING_ScintillatorDecayTime)) throw std::runtime_error("Sim.Timing.ScintillatorDecayTime must be positive and finite");
-    if (!(_SIM_TIMING_WLSDecayTime > 0) || !std::isfinite(_SIM_TIMING_WLSDecayTime)) throw std::runtime_error("Sim.Timing.WLSDecayTime must be positive and finite");
-    if (!(_SIM_TIMING_FiberRefractiveIndex > 0) || !std::isfinite(_SIM_TIMING_FiberRefractiveIndex)) throw std::runtime_error("Sim.Timing.FiberRefractiveIndex must be positive and finite");
-    if (!(_SIM_TIMING_ElectronicTimeNoise >= 0) || !std::isfinite(_SIM_TIMING_ElectronicTimeNoise)) throw std::runtime_error("Sim.Timing.ElectronicTimeNoise must be zero or positive and finite");
-    if (_SIM_TIMING_MaxTimingPhotons < 1) throw std::runtime_error("Sim.Timing.MaxTimingPhotons must be at least 1");
   }
 }
