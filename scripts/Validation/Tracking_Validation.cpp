@@ -218,14 +218,12 @@ bool IsInLAr(TVector3 position, LArSubRegion subregion) {
 }
 
 bool IsInTMSFull(TVector3 position) {
-  bool out = true;
-  if (-4500 < position.X() && position.X() < 4500)
-    out = false;
-  if (-4000 < position.Y() && position.Y() < 1000)
-    out = false;
-  if (11000 < position.Z() && position.Z() < 19000)
-    out = false;
-  return out;
+  // Inside only when all three coordinates are within the TMS box (mm).
+  // The old version returned false as soon as any one coordinate was in
+  // range, so it was false both inside the TMS and for most points outside.
+  return (-4500 < position.X() && position.X() < 4500) &&
+         (-4000 < position.Y() && position.Y() < 1000) &&
+         (11000 < position.Z() && position.Z() < 19000);
 }
 
 std::string getExecutableName(const char *arg) {
